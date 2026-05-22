@@ -4697,7 +4697,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               ref={containerRef}
               className={cn(
                 "relative overflow-hidden",
-                hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[500px] xl:max-h-[520px] w-full mx-auto bg-black rounded-xl", videoAspectClass) : "") : ""
+                hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[500px] xl:max-h-[520px] w-full mx-auto bg-black rounded-xl", videoAspectClass, videoAspect && videoAspect < 1 && "max-w-[420px]") : "") : ""
               )}
             >
               {hasMedia ? (
@@ -4926,7 +4926,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             onTouchEnd={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchEnd : undefined)}
             className={cn(
               "relative overflow-hidden",
-              hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[500px] xl:max-h-[520px] w-full mx-auto bg-black rounded-xl", videoAspectClass) : "") : ""
+              hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[500px] xl:max-h-[520px] w-full mx-auto bg-black rounded-xl", videoAspectClass, videoAspect && videoAspect < 1 && "max-w-[420px]") : "") : ""
             )}
           >
             {hasMedia ? (
