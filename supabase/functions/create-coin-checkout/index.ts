@@ -2,11 +2,7 @@ import { serve } from "../_shared/deps.ts";
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PACKAGES: Record<string, { coins: number; bonus: number; price_cents: number; label: string }> = {
   starter: { coins: 60, bonus: 0, price_cents: 99, label: "60 Z Coins" },
@@ -17,8 +13,14 @@ const PACKAGES: Record<string, { coins: number; bonus: number; price_cents: numb
   whale: { coins: 50000, bonus: 10000, price_cents: 49999, label: "50,000 Z Coins + 10,000 bonus" },
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+serve(withSecurity("create-coin-checkout", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
 
   try {
     const supabase = createClient(
@@ -97,4 +99,4 @@ serve(async (req) => {
       status: 400,
     });
   }
-});
+}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));

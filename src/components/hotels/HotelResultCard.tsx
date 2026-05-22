@@ -7,8 +7,8 @@ import { Star, MapPin, Wifi, Car, Coffee, CheckCircle, ExternalLink } from "luci
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { SmartImage } from "@/components/shared/SmartImage";
 
 export interface HotelResult {
   id: string;
@@ -45,11 +45,11 @@ export default function HotelResultCard({ hotel, onViewDeal }: HotelResultCardPr
         <div className="flex flex-col sm:flex-row">
           {/* Image */}
           <div className="relative w-full sm:w-48 h-48 sm:h-auto shrink-0">
-            <img
+            <SmartImage
               src={hotel.imageUrl}
               alt={hotel.name}
               className="w-full h-full object-cover"
-              loading="lazy"
+              size={480}
             />
             {hotel.freeCancellation && (
               <Badge className="absolute top-2 left-2 bg-emerald-500/90 text-primary-foreground text-xs">

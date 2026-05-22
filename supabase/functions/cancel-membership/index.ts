@@ -13,15 +13,14 @@
  * so this function only needs to call Stripe + record the intent.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("cancel-membership", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405, headers: { ...cors, "Content-Type": "application/json" },
+      status: 405, headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
     });
   }
 
@@ -47,7 +46,7 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { /* empty body OK */ }
     const immediate = !!body.immediate;
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // Look up the user's active subscription. Field names follow the existing
     // upsert in stripe-webhook (zivo_subscriptions.user_id is unique there).
@@ -119,4 +118,4 @@ Deno.serve(async (req) => {
     console.error("[cancel-membership]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));

@@ -277,8 +277,8 @@ export default function ProfileFeedCard({
                     </button>
                   </>
                 ) : (
-                  <img src={item.url!} alt="" className="block w-full h-auto cursor-pointer"
-                    style={{ filter: item.filterCss || "none" }} loading="lazy" onClick={() => onSelectPost(item)} />
+	                  <img src={item.url!} alt="" className="block w-full h-auto cursor-pointer"
+	                    style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => onSelectPost(item)} />
                 )}
                 {/* Double-tap heart */}
                 <AnimatePresence>
@@ -368,8 +368,8 @@ export default function ProfileFeedCard({
                   </button>
                 </>
               ) : (
-                <img src={item.url!} alt="" className="block w-full h-auto cursor-pointer"
-                  style={{ filter: item.filterCss || "none" }} loading="lazy" onClick={() => onSelectPost(item)} />
+	                <img src={item.url!} alt="" className="block w-full h-auto cursor-pointer"
+	                  style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => onSelectPost(item)} />
               )}
               {/* Double-tap heart */}
               <AnimatePresence>

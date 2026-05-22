@@ -413,10 +413,12 @@ export function FareVariantsCard({ offer, selectedFareId, onSelectFare }: FareVa
                 {/* Cabin seat photo strip */}
                 <div className="absolute inset-x-0 top-0 h-24 overflow-hidden">
                   <img
-                    src={theme.cabinImage}
-                    alt={`${theme.label} cabin`}
-                    className="w-full h-full object-cover object-center"
-                  />
+	                    src={theme.cabinImage}
+	                    alt={`${theme.label} cabin`}
+	                    className="w-full h-full object-cover object-center"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                   <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/60 to-background" />
                   <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/40" />
                 </div>

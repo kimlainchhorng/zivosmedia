@@ -52,9 +52,15 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
             className="flex items-center justify-center w-full h-full px-4"
           >
             {current.type === "image" ? (
-              <img src={current.url} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
-            ) : (
-              <video src={current.url} controls className="max-w-full max-h-full object-contain rounded-lg" />
+	              <img
+	                src={current.url}
+	                alt=""
+	                className="max-w-full max-h-full object-contain rounded-lg"
+	                loading="eager"
+	                decoding="async"
+	              />
+	            ) : (
+	              <video src={current.url} controls preload="metadata" className="max-w-full max-h-full object-contain rounded-lg" />
             )}
           </motion.div>
 

@@ -1,16 +1,18 @@
 import { createClient } from "../_shared/deps.ts";
 import { scanContentForLinks, logBlockedAttempt, isAbuseThresholdExceeded, isIpAbuseThresholdExceeded, getRequestIpHash } from "../_shared/contentLinkValidation.ts";
 import { isLikelyMaliciousBot } from "../_shared/botDetection.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const VALID_CATEGORIES = new Set(["overcharge", "no_service", "safety", "other"]);
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("submit-refund-request", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
 
   try {
     if (isLikelyMaliciousBot(req.headers)) {
@@ -41,7 +43,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "requested_amount_cents must be positive" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     const ipHash = await getRequestIpHash(req);
     if (await isIpAbuseThresholdExceeded(admin, ipHash)) {
@@ -149,4 +151,4 @@ Deno.serve(async (req) => {
     console.error("[submit-refund-request]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));

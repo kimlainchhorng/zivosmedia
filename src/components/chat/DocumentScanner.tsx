@@ -257,11 +257,13 @@ export default function DocumentScanner({ open, onClose, onComplete }: DocumentS
               {pages.map((p, idx) => (
                 <div key={p.id} className="relative aspect-[3/4] rounded-xl overflow-hidden border border-border/40 bg-muted">
                   <img
-                    src={p.dataUrl}
-                    alt={`Page ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                    style={{ transform: `rotate(${p.rotation}deg)` }}
-                  />
+	                    src={p.dataUrl}
+	                    alt={`Page ${idx + 1}`}
+	                    className="w-full h-full object-cover"
+	                    loading="lazy"
+	                    decoding="async"
+	                    style={{ transform: `rotate(${p.rotation}deg)` }}
+	                  />
                   <div className="absolute top-1 left-1 text-[10px] bg-background/80 backdrop-blur px-1.5 py-0.5 rounded">
                     Page {idx + 1}
                   </div>

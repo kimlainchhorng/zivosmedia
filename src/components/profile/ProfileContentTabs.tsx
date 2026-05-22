@@ -853,7 +853,7 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
       >
         <div className="h-10 w-10 rounded-full overflow-hidden bg-muted border-2 border-primary/20 shrink-0">
           {profileAvatar ? (
-            <img src={profileAvatar} alt="" className="h-full w-full object-cover" />
+	            <img src={profileAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-muted-foreground/50">
               <Camera className="h-4 w-4" />
@@ -962,7 +962,7 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                   item.type === "reel" ? (
                     <ReelThumbnail url={item.url!} filterCss={item.filterCss} />
                   ) : (
-                    <img src={item.url || undefined} alt={item.caption || "Post"} className="absolute inset-0 w-full h-full object-cover" style={{ filter: item.filterCss || "none" }} loading="lazy" />
+	                    <img src={item.url || undefined} alt={item.caption || "Post"} className="absolute inset-0 w-full h-full object-cover" style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" />
                   )
                 ) : (
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-card to-muted/30 p-2.5 flex flex-col">
@@ -1013,7 +1013,7 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                   <X className="w-6 h-6" />
                 </button>
                 {selectedPost.user.avatar ? (
-                  <img src={selectedPost.user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border-2 border-white/20" />
+	                  <img src={selectedPost.user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border-2 border-white/20" loading="lazy" decoding="async" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border-2 border-white/20 text-white text-xs font-bold">
                     {selectedPost.user.name?.charAt(0)?.toUpperCase() || "?"}
@@ -1044,17 +1044,20 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                       className="w-full h-full object-contain"
                       style={{ filter: selectedPost.filterCss || "none" }}
                       controls
-                      playsInline
-                      autoPlay
-                      loop
-                    />
+	                      playsInline
+	                      autoPlay
+	                      loop
+	                      preload="metadata"
+	                    />
                   ) : (
                     <img
                       src={selectedPost.url}
-                      alt={selectedPost.caption || "Shared post"}
-                      className="w-full h-full object-contain"
-                      style={{ filter: selectedPost.filterCss || "none" }}
-                    />
+	                      alt={selectedPost.caption || "Shared post"}
+	                      className="w-full h-full object-contain"
+	                      loading="eager"
+	                      decoding="async"
+	                      style={{ filter: selectedPost.filterCss || "none" }}
+	                    />
                   )
                 ) : (
                   <div className="w-full max-w-md rounded-2xl bg-card/90 border border-border/20 p-5 shadow-lg">
@@ -1254,9 +1257,9 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                   {selectedPost.url && (
                     <div className="rounded-xl overflow-hidden max-h-48 mb-1">
                       {selectedPost.type === "reel" ? (
-                        <video src={selectedPost.url} className="w-full h-full object-cover max-h-48" muted />
-                      ) : (
-                        <img src={selectedPost.url} alt="" className="w-full h-full object-cover max-h-48" style={selectedPost.filterCss ? { filter: selectedPost.filterCss } : undefined} />
+	                        <video src={selectedPost.url} className="w-full h-full object-cover max-h-48" muted preload="metadata" />
+	                      ) : (
+	                        <img src={selectedPost.url} alt="" className="w-full h-full object-cover max-h-48" loading="lazy" decoding="async" style={selectedPost.filterCss ? { filter: selectedPost.filterCss } : undefined} />
                       )}
                     </div>
                   )}
@@ -1810,17 +1813,20 @@ function ComposerForm({
           {isReel ? (
             <video
               src={mediaPreview}
-              className="w-full max-h-[40vh] object-cover rounded-2xl"
-              style={{ filter: COMPOSER_FILTERS[activeFilter]?.css || "none" }}
-              controls
-            />
+	              className="w-full max-h-[40vh] object-cover rounded-2xl"
+	              style={{ filter: COMPOSER_FILTERS[activeFilter]?.css || "none" }}
+	              controls
+	              preload="metadata"
+	            />
           ) : (
             <img
               src={mediaPreview}
-              alt=""
-              className="w-full max-h-[40vh] object-cover rounded-2xl"
-              style={{ filter: COMPOSER_FILTERS[activeFilter]?.css || "none" }}
-            />
+	              alt=""
+	              className="w-full max-h-[40vh] object-cover rounded-2xl"
+	              loading="lazy"
+	              decoding="async"
+	              style={{ filter: COMPOSER_FILTERS[activeFilter]?.css || "none" }}
+	            />
           )}
             <button type="button" onClick={clearMediaPreview} aria-label="Remove media" className="absolute top-2 right-2 min-w-[44px] min-h-[44px] -m-2 rounded-full bg-black/60 flex items-center justify-center">
             <X className="w-4 h-4 text-white" />
@@ -5072,10 +5078,11 @@ function LiveBroadcast({
       {/* Camera feed */}
       <video
         ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="absolute inset-0 w-full h-full object-cover"
+	        autoPlay
+	        playsInline
+	        muted
+	        preload="none"
+	        className="absolute inset-0 w-full h-full object-cover"
         style={{
           transform: facingMode === "user" ? "scaleX(-1)" : "none",
           filter: "none",
@@ -5091,7 +5098,7 @@ function LiveBroadcast({
       {/* AI result: always shown as mini card so camera stays visible */}
       {aiResultOverlay && (
         <div className="absolute bottom-32 left-3 z-[4] w-[132px] h-[184px] rounded-2xl overflow-hidden shadow-2xl border border-white/30 bg-black/20 backdrop-blur-sm">
-          <img src={aiResultOverlay} alt="AI result preview" className="w-full h-full object-cover" />
+	          <img src={aiResultOverlay} alt="AI result preview" className="w-full h-full object-cover" loading="lazy" decoding="async" />
           <button type="button"
             onClick={() => { setAiResultOverlay(null); setAiSelectedMode(null); }}
             className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center"

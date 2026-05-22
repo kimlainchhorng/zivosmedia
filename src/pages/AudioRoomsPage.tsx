@@ -170,7 +170,7 @@ export default function AudioRoomsPage() {
                 >
                   <div className="flex items-start gap-3">
                     {r.cover_url ? (
-                      <img src={r.cover_url} alt="" className="shrink-0 h-12 w-12 rounded-xl object-cover" loading="lazy" />
+	                      <img src={r.cover_url} alt="" className="shrink-0 h-12 w-12 rounded-xl object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="shrink-0 h-12 w-12 rounded-xl bg-ig-gradient flex items-center justify-center">
                         <Mic className="h-5 w-5 text-white" />

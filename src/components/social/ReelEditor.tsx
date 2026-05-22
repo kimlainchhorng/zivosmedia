@@ -76,10 +76,11 @@ export default function ReelEditor({ videoUrl, onSave, onClose }: ReelEditorProp
           className="max-h-full max-w-full rounded-2xl object-contain"
           style={{ filter: VIDEO_FILTERS[filter].css }}
           autoPlay
-          loop
-          muted
-          playsInline
-        />
+	          loop
+	          muted
+	          playsInline
+	          preload="metadata"
+	        />
         {textOverlay && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="text-white text-2xl font-bold drop-shadow-lg px-4 text-center" style={{ textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>

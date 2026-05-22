@@ -1,16 +1,21 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Creates a Stripe PaymentIntent (manual capture) for a ride request.
 // Adds 3.5% card surcharge for KH market rides.
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-ride-payment", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...cors, "Content-Type": "application/json" } });
+  }
 
   try {
     const authHeader = req.headers.get("authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -19,7 +24,10 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Stripe not configured" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
     const { data: { user }, error: authErr } = await userClient.auth.getUser();
     if (authErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
@@ -37,7 +45,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "ride_request_id required" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
     const { data: ride, error: rideErr } = await admin
       .from("ride_requests")
       .select("id, user_id, quoted_total, stripe_payment_intent_id")
@@ -93,6 +103,6 @@ Deno.serve(async (req) => {
     }), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[create-ride-payment]", e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, { rateLimit: "payment", strictCors: true }));

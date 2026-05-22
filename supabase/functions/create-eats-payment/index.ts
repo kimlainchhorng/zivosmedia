@@ -2,25 +2,29 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("create-eats-payment", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
   try {
-    const authHeader = req.headers.get("Authorization")!;
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY missing");
+
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) throw new Error("Not authenticated");
     const token = authHeader.replace("Bearer ", "");
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user?.email) throw new Error("Not authenticated");
@@ -38,7 +42,23 @@ Deno.serve(async (req) => {
       throw new Error("Invalid order_id or amount");
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: order } = await adminClient
+      .from("food_orders")
+      .select("id, customer_id, total_amount")
+      .eq("id", order_id)
+      .maybeSingle();
+    if (!order || (order as any).customer_id !== user.id) throw new Error("Order not found or access denied");
+    const expectedAmount = Math.round(Number((order as any).total_amount || 0) * 100);
+    if (expectedAmount > 0 && Math.abs(Number(amount_cents) - expectedAmount) > 100) {
+      throw new Error("Payment amount does not match order");
+    }
+
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -62,10 +82,6 @@ Deno.serve(async (req) => {
     });
 
     // Update food_orders with stripe payment intent ID
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
     await adminClient
       .from("food_orders")
       .update({ stripe_payment_id: paymentIntent.id })
@@ -85,4 +101,4 @@ Deno.serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

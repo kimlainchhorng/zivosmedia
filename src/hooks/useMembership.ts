@@ -163,24 +163,10 @@ export function useCreateMembershipCheckout() {
         throw new Error("You must be logged in to subscribe");
       }
 
-      const response = await fetch(
-        "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/create-membership-checkout",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.session.access_token}`,
-          },
-          body: JSON.stringify({ plan_id: planId, billing_cycle: billingCycle }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create checkout session");
-      }
-
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke("create-membership-checkout", {
+        body: { plan_id: planId, billing_cycle: billingCycle },
+      });
+      if (error) throw new Error(error.message || "Failed to create checkout session");
       return data as { url: string; session_id: string };
     },
     onError: (error: Error) => {
@@ -202,23 +188,9 @@ export function useCancelMembership() {
         throw new Error("You must be logged in to cancel");
       }
 
-      const response = await fetch(
-        "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/cancel-membership",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.session.access_token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to cancel membership");
-      }
-
-      return await response.json();
+      const { data, error } = await supabase.functions.invoke("cancel-membership");
+      if (error) throw new Error(error.message || "Failed to cancel membership");
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["membership"] });
@@ -241,23 +213,8 @@ export function useOpenCustomerPortal() {
         throw new Error("You must be logged in");
       }
 
-      const response = await fetch(
-        "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/customer-portal-membership",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.session.access_token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to open portal");
-      }
-
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke("customer-portal-membership");
+      if (error) throw new Error(error.message || "Failed to open portal");
       return data as { url: string };
     },
     onSuccess: (data) => {

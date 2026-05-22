@@ -1,5 +1,6 @@
 /** Customer wallet — reads from customer_wallets + customer_wallet_transactions */
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -15,9 +16,39 @@ export interface WalletTransaction {
 
 export function useCustomerWallet() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const walletQueryKey = ["customer-wallet", user?.id];
+  const txQueryKey = ["customer-wallet-transactions", user?.id];
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const refreshWallet = () => {
+      void queryClient.invalidateQueries({ queryKey: ["customer-wallet", user.id] });
+      void queryClient.invalidateQueries({ queryKey: ["customer-wallet-transactions", user.id] });
+    };
+
+    const channel = supabase
+      .channel(`customer-wallet-${user.id}-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "customer_wallets", filter: `user_id=eq.${user.id}` },
+        refreshWallet,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "customer_wallet_transactions", filter: `user_id=eq.${user.id}` },
+        refreshWallet,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, user?.id]);
 
   const walletQuery = useQuery({
-    queryKey: ["customer-wallet", user?.id],
+    queryKey: walletQueryKey,
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase
@@ -35,7 +66,7 @@ export function useCustomerWallet() {
   });
 
   const txQuery = useQuery({
-    queryKey: ["customer-wallet-transactions", user?.id],
+    queryKey: txQueryKey,
     queryFn: async () => {
       if (!user) return [];
       const { data, error } = await supabase

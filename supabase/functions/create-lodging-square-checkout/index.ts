@@ -11,16 +11,21 @@
  * sandbox vs production.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SQUARE_MODE = Deno.env.get("SQUARE_MODE") ?? "production";
 const SQUARE_BASE = SQUARE_MODE === "sandbox"
   ? "https://connect.squareupsandbox.com"
   : "https://connect.squareup.com";
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-lodging-square-checkout", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -53,7 +58,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     const { data: r } = await admin
       .from("lodge_reservations")
@@ -92,7 +99,7 @@ Deno.serve(async (req) => {
           location_id: locationId,
         },
         checkout_options: {
-          redirect_url: return_url || `${req.headers.get("origin") ?? ""}/trips`,
+          redirect_url: safeRedirectUrl(req, return_url, "/trips"),
           ask_for_shipping_address: false,
           merchant_support_email: Deno.env.get("MERCHANT_SUPPORT_EMAIL") || undefined,
         },
@@ -130,4 +137,16 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+
+function safeRedirectUrl(req: Request, value: unknown, fallbackPath: string) {
+  const origin = req.headers.get("origin") || "https://hizivo.com";
+  const fallback = `${origin}${fallbackPath}`;
+  if (typeof value !== "string" || !value) return fallback;
+  try {
+    const url = new URL(value, origin);
+    return url.origin === origin ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}

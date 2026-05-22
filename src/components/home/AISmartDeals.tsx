@@ -115,9 +115,10 @@ const FeaturedDealCard = ({ deal }: { deal: SmartDeal }) => {
       <img
         src={destPhoto?.src || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600"}
         alt={deal.destination}
-        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-        loading="lazy"
-      />
+	        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+	        loading="lazy"
+	        decoding="async"
+	      />
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
 
@@ -161,7 +162,7 @@ const FeaturedDealCard = ({ deal }: { deal: SmartDeal }) => {
             {/* Flight details row */}
             <div className="text-white/70 text-[10px] mt-1 flex items-center gap-1.5 flex-wrap">
               {deal.airlineLogo ? (
-                <img src={deal.airlineLogo} alt={deal.airline} className="w-4 h-4 rounded-sm bg-white/20 object-contain" />
+	                <img src={deal.airlineLogo} alt={deal.airline} className="w-4 h-4 rounded-sm bg-white/20 object-contain" loading="lazy" decoding="async" />
               ) : null}
               <span className="font-semibold text-white/90">{deal.airline}</span>
               {deal.flightNumber && <span className="text-white/50">{deal.flightNumber}</span>}
@@ -239,9 +240,10 @@ const SmartDealCard = ({ deal, index }: { deal: SmartDeal; index: number }) => {
         <img
           src={destPhoto?.src || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=300"}
           alt={deal.destination}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-          loading="lazy"
-        />
+	          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+	          loading="lazy"
+	          decoding="async"
+	        />
         <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/30" />
         {deal.savingsPercent > 5 && (
           <div className="absolute top-1.5 left-1.5 bg-emerald-500/90 backdrop-blur-sm rounded-full px-1.5 py-0.5 shadow-sm">
@@ -261,7 +263,7 @@ const SmartDealCard = ({ deal, index }: { deal: SmartDeal; index: number }) => {
           <div className="flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5 min-w-0">
               {deal.airlineLogo && (
-                <img src={deal.airlineLogo} alt={deal.airline} className="w-3.5 h-3.5 rounded-sm object-contain shrink-0" />
+	                <img src={deal.airlineLogo} alt={deal.airline} className="w-3.5 h-3.5 rounded-sm object-contain shrink-0" loading="lazy" decoding="async" />
               )}
               <span className="text-xs font-bold text-foreground truncate">{deal.destination}</span>
             </div>

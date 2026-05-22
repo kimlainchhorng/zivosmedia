@@ -169,9 +169,11 @@ export default function MobilePassengerCabinSheet({
                     >
                       {/* Seat image — positioned bottom-right */}
                       <img
-                        src={option.img}
-                        alt=""
-                        className={cn(
+	                        src={option.img}
+	                        alt=""
+	                        loading="lazy"
+	                        decoding="async"
+	                        className={cn(
                           "absolute bottom-0 right-0 w-[80px] h-[80px] object-contain pointer-events-none transition-all duration-300",
                           isSelected ? "opacity-30 scale-105" : "opacity-[0.12]"
                         )}

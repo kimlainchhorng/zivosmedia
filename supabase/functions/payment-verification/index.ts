@@ -1,11 +1,6 @@
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 function generateOTP(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(4));
@@ -13,15 +8,21 @@ function generateOTP(): string {
   return num.toString().padStart(6, "0");
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("payment-verification", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     // Authenticate user
     const authHeader = req.headers.get("Authorization");
@@ -47,6 +48,16 @@ Deno.serve(async (req) => {
     if (!store_id || typeof store_id !== "string") {
       return new Response(JSON.stringify({ error: "store_id is required" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: isOwner } = await supabase.rpc("is_store_owner", {
+      _store_id: store_id,
+      _user_id: user.id,
+    });
+    if (isOwner !== true) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -206,4 +217,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "auth_otp", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

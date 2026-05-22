@@ -145,9 +145,11 @@ function FlyingAirplane({ direction, top, size, duration, delay = 0 }: {
             ? "w-20 h-14 drop-shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
             : "w-11 h-7 drop-shadow-sm",
           !isLarge && "opacity-40"
-        )}
-        style={{ filter: isLarge ? undefined : "blur(0.5px)" }}
-        draggable={false}
+	        )}
+	        loading="lazy"
+	        decoding="async"
+	        style={{ filter: isLarge ? undefined : "blur(0.5px)" }}
+	        draggable={false}
       />
       {/* Contrail vapor trail */}
       {isLarge && (
@@ -208,9 +210,10 @@ export default function Flight3DSkyHeader({ className }: { className?: string })
       <video
         autoPlay
         loop
-        muted
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover"
+	        muted
+	        playsInline
+	        preload="metadata"
+	        className="absolute inset-0 w-full h-full object-cover"
         src="/videos/airplane-header.mp4"
       />
 

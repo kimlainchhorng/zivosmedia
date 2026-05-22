@@ -501,6 +501,7 @@ export default function AdminStoreEditPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "profile");
   const appliedLodgingDefaultTabRef = useRef(false);
+  const appliedAutoRepairDefaultTabRef = useRef(false);
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -680,12 +681,17 @@ export default function AdminStoreEditPage() {
     const isStoreAutoRepair = normalizedStoreCategory === "auto-repair";
     const requestedTab = searchParams.get("tab");
     const resolvedTab = resolveStoreTabFromSearch(searchParams, isStoreLodging, isStoreAutoRepair);
-    if (requestedTab !== resolvedTab && (requestedTab || isStoreLodging)) {
+    if (requestedTab !== resolvedTab && (requestedTab || isStoreLodging || isStoreAutoRepair)) {
       handleTabChange(resolvedTab);
       return;
     }
     if (!appliedLodgingDefaultTabRef.current && isStoreLodging && activeTab === "profile" && !requestedTab) {
       appliedLodgingDefaultTabRef.current = true;
+      handleTabChange(resolvedTab);
+      return;
+    }
+    if (!appliedAutoRepairDefaultTabRef.current && isStoreAutoRepair && activeTab === "profile" && !requestedTab) {
+      appliedAutoRepairDefaultTabRef.current = true;
       handleTabChange(resolvedTab);
     }
   }, [store, activeTab, searchParams, handleTabChange]);

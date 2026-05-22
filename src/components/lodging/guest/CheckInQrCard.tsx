@@ -44,10 +44,11 @@ export default function CheckInQrCard({
           src={qrUrl}
           alt="Check-in QR code"
           width={120}
-          height={120}
-          className="rounded-lg bg-white p-2"
-          loading="lazy"
-        />
+	          height={120}
+	          className="rounded-lg bg-white p-2"
+	          loading="lazy"
+	          decoding="async"
+	        />
         <div>
           <p className="text-xs text-muted-foreground">Show this at the front desk</p>
           <p className="font-mono font-bold text-lg mt-1">{reservationNumber}</p>

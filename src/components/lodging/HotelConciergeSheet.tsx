@@ -210,10 +210,11 @@ export default function HotelConciergeSheet({ isOpen, onClose, candidates, onSel
                           {(c.banner_url || c.logo_url) ? (
                             <img
                               src={c.banner_url || c.logo_url || ""}
-                              alt={c.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
+	                              alt={c.name}
+	                              className="w-full h-full object-cover"
+	                              loading="lazy"
+	                              decoding="async"
+	                            />
                           ) : null}
                           <span className="absolute top-1 left-1 rounded-full bg-foreground text-background text-[9px] font-extrabold px-1.5 py-0.5">
                             #{idx + 1}

@@ -1,12 +1,8 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Immediate Twilio Proxy session teardown for a single ride.
 // Invoked by a Postgres trigger when ride_requests.status hits a terminal value.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 interface CloseAttemptResult {
   status: "closed" | "not_found" | "error";
   responseCode: number | null;
@@ -87,7 +83,8 @@ async function closeWithRetry(
   return { ok: false, attempts: 3, lastResult };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("close-ride-call-session", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -112,7 +109,9 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     const { data: sessions } = await admin
       .from("trip_call_sessions")
@@ -159,4 +158,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "admin_action", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

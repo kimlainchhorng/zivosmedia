@@ -22,6 +22,7 @@
  */
 import { createClient } from "../_shared/deps.ts";
 import { notifyLodgingBookingConfirmed } from "../_shared/lodging-notifications.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PAYPAL_MODE = Deno.env.get("PAYPAL_MODE") ?? "live";
 const PAYPAL_BASE = PAYPAL_MODE === "sandbox"
@@ -74,12 +75,14 @@ async function verifySignature(req: Request, rawBody: string): Promise<boolean> 
   return j.verification_status === "SUCCESS";
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("paypal-lodging-webhook", async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const admin = createClient(supabaseUrl, serviceKey);
+  const admin = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   const rawBody = await req.text();
   let event: any;
@@ -296,4 +299,4 @@ Deno.serve(async (req) => {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
-});
+}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

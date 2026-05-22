@@ -240,10 +240,11 @@ export default function BrandDealsPage() {
                   <div className="flex items-start gap-3">
                     <img
                       src={c.logo}
-                      alt={c.brand}
-                      className="w-12 h-12 rounded-xl object-cover shrink-0"
-                      loading="lazy"
-                    />
+	                      alt={c.brand}
+	                      className="w-12 h-12 rounded-xl object-cover shrink-0"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{c.brand}</p>

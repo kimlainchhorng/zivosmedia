@@ -137,7 +137,7 @@ export default function ChatStories() {
                   {(() => {
                     const latest = myStories?.stories[myStories.stories.length - 1];
                     if (latest && latest.mediaType === "image" && latest.mediaUrl) {
-                      return <img src={latest.mediaUrl} alt="Your story" className="h-full w-full object-cover" loading="lazy" />;
+	                      return <img src={latest.mediaUrl} alt="Your story" className="h-full w-full object-cover" loading="lazy" decoding="async" />;
                     }
                     if (latest && latest.mediaType === "video" && latest.mediaUrl) {
                       return <video src={latest.mediaUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />;
@@ -147,7 +147,7 @@ export default function ChatStories() {
                     }
                     const avatar = myStories?.avatarUrl || myProfile?.avatar_url;
                     if (avatar) {
-                      return <img src={optimizeAvatar(avatar, 128) || avatar} alt="Your avatar" className="w-full h-full object-cover" />;
+	                      return <img src={optimizeAvatar(avatar, 128) || avatar} alt="Your avatar" className="w-full h-full object-cover" loading="lazy" decoding="async" />;
                     }
                     const initial = (myProfile?.full_name?.[0] || user?.email?.[0] || "").toUpperCase();
                     if (initial) {
@@ -195,7 +195,7 @@ export default function ChatStories() {
                 <div className="h-[54px] w-[54px] rounded-full p-[2px] bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_10px_-3px_hsl(160_84%_45%/0.55)]">
                   <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
                     {group.avatarUrl ? (
-                      <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" />
+	                      <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
                         {group.userName.charAt(0).toUpperCase()}

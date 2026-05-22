@@ -165,10 +165,11 @@ export default function PopularRoutesSection() {
                 <div className="relative h-28">
                   <img
                     src={route.image}
-                    alt={route.to}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
+	                    alt={route.to}
+	                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
                   
                   {/* Route badge */}

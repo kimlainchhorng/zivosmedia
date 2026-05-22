@@ -80,11 +80,12 @@ export default function DestinationHero({
           <div className="absolute inset-0">
             <img
               src={backgroundImage}
-              alt={`${title} destination`}
-              className="w-full h-full object-cover"
-              loading="eager"
-              fetchPriority="high"
-            />
+	              alt={`${title} destination`}
+	              className="w-full h-full object-cover"
+	              loading="eager"
+	              decoding="async"
+	              fetchPriority="high"
+	            />
           </div>
           <div className={cn(
             "absolute inset-0 bg-gradient-to-b",

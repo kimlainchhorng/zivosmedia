@@ -232,7 +232,7 @@ export default function ChallengesPage() {
                   {/* Cover */}
                   <div className="relative h-32 bg-muted">
                     {c.cover_url ? (
-                      <img src={c.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                      <img src={c.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full bg-ig-gradient" />
                     )}

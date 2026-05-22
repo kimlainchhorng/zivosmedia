@@ -45,7 +45,13 @@ export default function LostFoundPhotoUploader({ value, onChange, storeId }: { v
   if (value) {
     return (
       <div className="relative overflow-hidden rounded-lg border border-border bg-muted/20">
-        <img src={value} alt="Lost & found item" className="h-40 w-full object-cover" />
+	        <img
+	          src={value}
+	          alt="Lost & found item"
+	          className="h-40 w-full object-cover"
+	          loading="lazy"
+	          decoding="async"
+	        />
         <div className="absolute inset-x-2 bottom-2 flex gap-2">
           <Button size="sm" variant="secondary" className="flex-1 h-8 text-xs" onClick={() => inputRef.current?.click()} disabled={busy}>
             <RefreshCw className="mr-1 h-3 w-3" /> Replace

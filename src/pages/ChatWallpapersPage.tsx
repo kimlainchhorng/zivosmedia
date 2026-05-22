@@ -159,7 +159,7 @@ export default function ChatWallpapersPage() {
                 transition={{ delay: Math.min(idx, 12) * 0.02 }}
                 className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted group"
               >
-                <img src={w.wallpaper_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                <img src={w.wallpaper_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 {w.is_default && (
                   <div className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-ig-gradient text-white text-[10px] font-extrabold uppercase tracking-wider">
                     <Star className="h-2.5 w-2.5 fill-current" /> Default

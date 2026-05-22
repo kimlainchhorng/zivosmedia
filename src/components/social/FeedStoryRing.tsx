@@ -166,10 +166,11 @@ export default function FeedStoryRing() {
                 {myLatestStory && myLatestStory.mediaType === "image" && myLatestStory.mediaUrl ? (
                   <img
                     src={myLatestStory.mediaUrl}
-                    alt="Your story"
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
+	                    alt="Your story"
+	                    className="h-full w-full object-cover"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                 ) : myLatestStory && myLatestStory.mediaType === "video" && myLatestStory.mediaUrl ? (
                   <video
                     src={myLatestStory.mediaUrl}

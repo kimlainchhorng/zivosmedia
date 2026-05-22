@@ -107,10 +107,11 @@ export default function LocationShareBubble({ lat, lng, label, isMe, time }: Loc
         >
           {staticMapUrl && !imgFailed ? (
             <img
-              src={staticMapUrl}
-              alt="Map preview"
-              loading="lazy"
-              className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+	              src={staticMapUrl}
+	              alt="Map preview"
+	              loading="lazy"
+	              decoding="async"
+	              className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
               onError={() => setImgFailed(true)}
             />
           ) : (

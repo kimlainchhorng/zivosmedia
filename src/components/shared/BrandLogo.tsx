@@ -41,10 +41,11 @@ export function BrandLogo({ size = "md", showText = true, className }: BrandLogo
       <div className={cn("flex items-center gap-2", sizes.container, className)}>
         <img
           src={brand.logoUrl}
-          alt={brand.name}
-          className={cn("object-contain rounded-xl", sizes.icon)}
-          loading="lazy"
-        />
+	          alt={brand.name}
+	          className={cn("object-contain rounded-xl", sizes.icon)}
+	          loading="lazy"
+	          decoding="async"
+	        />
         {showText && (
           <span className={cn("font-bold tracking-tight text-foreground", sizes.text)}>
             {brand.name}

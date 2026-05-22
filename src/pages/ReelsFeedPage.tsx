@@ -457,26 +457,26 @@ const showGuestActionPrompt = (message: string, returnTo = "/feed") => {
 
 function GuestFeedCta({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
   return (
-    <div className="mx-3 my-3 rounded-2xl border border-primary/20 bg-card px-4 py-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-3 my-2 rounded-2xl border border-primary/15 bg-card px-3 py-3 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-bold text-foreground">Join ZIVO to make this feed yours</p>
-          <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-            Log in to like, comment, save posts, follow creators, and see friends-only updates.
+          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+            Log in to like, comment, save posts, and follow creators.
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 gap-1.5">
           <button
             type="button"
             onClick={onLogin}
-            className="h-9 rounded-full border border-border bg-background px-4 text-[12px] font-semibold text-foreground active:scale-95"
+            className="h-8 rounded-full border border-border bg-background px-3 text-[12px] font-semibold text-foreground active:scale-95"
           >
             Log in
           </button>
           <button
             type="button"
             onClick={onSignup}
-            className="h-9 rounded-full bg-ig-gradient px-4 text-[12px] font-bold text-white active:scale-95 shadow-sm hover:opacity-90 transition-opacity"
+            className="h-8 rounded-full bg-ig-gradient px-3 text-[12px] font-bold text-white active:scale-95 shadow-sm hover:opacity-90 transition-opacity"
           >
             Sign up
           </button>
@@ -1534,23 +1534,14 @@ export default function ReelsFeedPage() {
             data-testid="feed-sticky-header"
             className="lg:hidden zivo-sticky-mobile-header"
           >
-            <div className="zivo-pt-safe-overlay">
+            <div style={{ paddingTop: "max(var(--zivo-safe-top, 0px), 8px)" }}>
               <div
                 className={cn(
                   "overflow-hidden transition-all duration-300 ease-out",
-                  "max-h-[240px] opacity-100",
+                  "max-h-[128px] opacity-100",
                   headerHidden && "shadow-sm"
                 )}
               >
-                <div
-                  className={cn(
-                    "overflow-hidden transition-all duration-300 ease-out",
-                    headerHidden ? "max-h-0 opacity-0" : "max-h-[112px] opacity-100"
-                  )}
-                >
-                  <Suspense fallback={null}><FeedStoryRing /></Suspense>
-                </div>
-
                 <div className="px-3 pt-1.5 pb-1 flex items-center gap-2">
                   {/* Hamburger menu — Facebook-style entry point for secondary
                       items (Complete profile, Saved posts, etc.) so the feed
@@ -1854,7 +1845,7 @@ export default function ReelsFeedPage() {
                             >
                               <div className="h-11 w-11 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0 flex items-center justify-center">
                                 {s.logo_url ? (
-                                  <img src={s.logo_url} alt="" className="h-full w-full object-cover" />
+                                  <img src={s.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                                 ) : (
                                   <span className="text-xs font-bold text-muted-foreground">{(s.name || "S")[0].toUpperCase()}</span>
                                 )}
@@ -2510,6 +2501,7 @@ export default function ReelsFeedPage() {
                                   alt={post.author_name}
                                   className="h-full w-full object-cover"
                                   loading="lazy"
+                                  decoding="async"
                                 />
                               ) : (
                                 <div className="h-full w-full flex items-center justify-center text-xs font-semibold text-muted-foreground">
@@ -2613,7 +2605,7 @@ export default function ReelsFeedPage() {
                     <div className="relative shrink-0">
                       <div className="h-8 w-8 rounded-full overflow-hidden bg-muted border border-border/30">
                         {c.avatar ? (
-                          <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" />
+                          <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center text-[11px] font-bold text-muted-foreground bg-primary/10 text-primary">
                             {c.name[0]?.toUpperCase()}
@@ -3474,7 +3466,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
               >
                 <div className="h-11 w-11 rounded-full overflow-hidden border-2 border-white shrink-0">
                   {displayAvatar ? (
-                    <img src={displayAvatar} alt="" className="h-full w-full object-cover" />
+                    <img src={displayAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="h-full w-full bg-white/20 flex items-center justify-center text-white text-sm font-bold">
                       {displayName[0]}
@@ -3555,7 +3547,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
                 >
                   <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-white/40 shrink-0">
                     {displayAvatar ? (
-                      <img src={displayAvatar} alt="" className="h-full w-full object-cover" />
+                      <img src={displayAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="h-full w-full bg-white/20 flex items-center justify-center text-white text-sm font-bold">
                         {displayName[0]}
@@ -4574,7 +4566,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               >
                 <div className="h-8 w-8 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
                   {item.author_avatar ? (
-                    <img src={item.author_avatar} alt="" className="h-full w-full object-cover" />
+                    <img src={item.author_avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-xs font-bold">
                       {item.author_name[0]}
@@ -4656,7 +4648,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               >
                 <div className="h-9 w-9 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
                   {item.shared_from_user_avatar ? (
-                    <img src={item.shared_from_user_avatar} alt="" className="h-full w-full object-cover" />
+                    <img src={item.shared_from_user_avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-xs font-bold">
                       {(item.shared_from_user_name || (item.shared_from_source === "store" ? "S" : "?"))[0]}
@@ -4741,33 +4733,33 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   </>
                 ) : item.media_urls.length === 1 ? (
                   <div className="relative w-full bg-black overflow-hidden flex items-center justify-center max-h-[80vh] lg:max-h-[700px]">
-                    <img src={mediaUrl} alt={item.caption || "Shared post"} className="block w-full h-auto max-h-[80vh] lg:max-h-[700px] object-contain cursor-pointer" loading="lazy" onClick={() => onOpenFullscreen?.()} />
+                    <img src={mediaUrl} alt={item.caption || "Shared post"} className="block w-full h-auto max-h-[80vh] lg:max-h-[700px] object-contain cursor-pointer" loading="lazy" decoding="async" onClick={() => onOpenFullscreen?.()} />
                   </div>
                 ) : item.media_urls.length === 2 ? (
                   <div className="grid grid-cols-2 gap-0.5 w-full aspect-square md:aspect-[2/1]">
                     {item.media_urls.map((url, i) => (
                       <div key={i} className="relative bg-black overflow-hidden">
-                        <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
+                        <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
                       </div>
                     ))}
                   </div>
                 ) : item.media_urls.length === 3 ? (
                   <div className="grid grid-cols-2 grid-rows-2 gap-0.5 w-full aspect-square md:aspect-[3/2]">
                     <div className="relative row-span-2 bg-black overflow-hidden">
-                      <img src={item.media_urls[0]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(0); onOpenFullscreen?.(); }} />
+                      <img src={item.media_urls[0]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(0); onOpenFullscreen?.(); }} />
                     </div>
                     <div className="relative bg-black overflow-hidden">
-                      <img src={item.media_urls[1]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(1); onOpenFullscreen?.(); }} />
+                      <img src={item.media_urls[1]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(1); onOpenFullscreen?.(); }} />
                     </div>
                     <div className="relative bg-black overflow-hidden">
-                      <img src={item.media_urls[2]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(2); onOpenFullscreen?.(); }} />
+                      <img src={item.media_urls[2]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(2); onOpenFullscreen?.(); }} />
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-[3px] w-full aspect-square overflow-hidden rounded-lg">
                     {item.media_urls.slice(0, 4).map((url, i) => (
                       <div key={i} className="relative bg-muted overflow-hidden">
-                        <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
+                        <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
                         {i === 3 && item.media_urls.length > 4 && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer" onClick={() => { setCurrentMedia(3); onOpenFullscreen?.(); }}>
                             <span className="text-white text-2xl font-bold">+{item.media_urls.length - 4}</span>
@@ -4800,7 +4792,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               >
                 <div className="h-9 w-9 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
                   {item.author_avatar ? (
-                    <img src={item.author_avatar} alt="" className="h-full w-full object-cover" />
+                    <img src={item.author_avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-xs font-bold">
                       {item.author_name[0]}
@@ -4996,6 +4988,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                           alt={item.caption || "Post"}
                           className="w-full h-full object-cover"
                           loading="lazy"
+                          decoding="async"
                         />
                       </div>
                     ))}
@@ -5029,6 +5022,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     alt={item.caption || "Post"}
                     className="block w-full h-auto max-h-[80vh] lg:max-h-[700px] object-contain cursor-pointer"
                     loading="lazy"
+                    decoding="async"
                     onClick={() => onOpenFullscreen?.()}
                   />
                 </div>
@@ -5042,6 +5036,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                         alt=""
                         className="h-full w-full object-cover cursor-pointer"
                         loading="lazy"
+                        decoding="async"
                         onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }}
                       />
                     </div>
@@ -5056,17 +5051,19 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       alt=""
                       className="h-full w-full object-cover cursor-pointer"
                       loading="lazy"
+                      decoding="async"
                       onClick={() => { setCurrentMedia(0); onOpenFullscreen?.(); }}
                     />
                   </div>
                   <div className="relative bg-black overflow-hidden">
-                    <img
-                      src={item.media_urls[1]}
-                      alt=""
-                      className="h-full w-full object-cover cursor-pointer"
-                      loading="lazy"
-                      onClick={() => { setCurrentMedia(1); onOpenFullscreen?.(); }}
-                    />
+	                    <img
+	                      src={item.media_urls[1]}
+	                      alt=""
+	                      className="h-full w-full object-cover cursor-pointer"
+	                      loading="lazy"
+	                      decoding="async"
+	                      onClick={() => { setCurrentMedia(1); onOpenFullscreen?.(); }}
+	                    />
                   </div>
                   <div className="relative bg-black overflow-hidden">
                     <img
@@ -5074,6 +5071,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       alt=""
                       className="h-full w-full object-cover cursor-pointer"
                       loading="lazy"
+                      decoding="async"
                       onClick={() => { setCurrentMedia(2); onOpenFullscreen?.(); }}
                     />
                   </div>
@@ -5088,6 +5086,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                         alt=""
                         className="h-full w-full object-cover cursor-pointer"
                         loading="lazy"
+                        decoding="async"
                         onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }}
                       />
                       {i === 3 && item.media_urls.length > 4 && (
@@ -5445,6 +5444,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     alt="QR code for this post"
                     className="w-[220px] h-[220px] block"
                     loading="eager"
+                    decoding="async"
                   />
                 </div>
                 <p className="text-[12px] text-muted-foreground text-center px-4">Scan with any camera to open this post</p>

@@ -743,7 +743,7 @@ export default function CreatePostModal({
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="h-10 w-10 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
             {userProfile?.avatar ? (
-              <img src={userProfile.avatar} alt="" className="h-full w-full object-cover" />
+	              <img src={userProfile.avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
             ) : (
               <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-sm font-bold">
                 {userProfile?.name?.[0] || "?"}
@@ -1251,17 +1251,20 @@ export default function CreatePostModal({
               {(files[currentPreview]?.type?.startsWith("video") || (currentPreview === 0 && mediaType === "video" && files.length === 0)) ? (
                 <video
                   src={previews[currentPreview]}
-                  className={cn("h-full w-full object-cover", FILTERS[activeFilter]?.className ?? "[filter:none]")}
-                  controls
-                  muted
-                />
-              ) : (
-                <img
-                  src={previews[currentPreview]}
-                  alt=""
-                  className={cn("h-full w-full object-cover", FILTERS[activeFilter]?.className ?? "[filter:none]")}
-                />
-              )}
+	                  className={cn("h-full w-full object-cover", FILTERS[activeFilter]?.className ?? "[filter:none]")}
+	                  controls
+	                  muted
+	                  preload="metadata"
+	                />
+	              ) : (
+	                <img
+	                  src={previews[currentPreview]}
+	                  alt=""
+	                  className={cn("h-full w-full object-cover", FILTERS[activeFilter]?.className ?? "[filter:none]")}
+	                  loading="lazy"
+	                  decoding="async"
+	                />
+	              )}
 
               {files.length > 0 && (
                 <button type="button"
@@ -1309,10 +1312,10 @@ export default function CreatePostModal({
                       )}
                     >
                       {files[i]?.type?.startsWith("video") ? (
-                        <video src={p} className="h-full w-full object-cover" muted />
-                      ) : (
-                        <img src={p} alt="" className="h-full w-full object-cover" />
-                      )}
+	                        <video src={p} className="h-full w-full object-cover" muted preload="metadata" />
+	                      ) : (
+	                        <img src={p} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+	                      )}
                     </button>
                     <button
                       type="button"
@@ -1365,10 +1368,12 @@ export default function CreatePostModal({
                     )}
                   >
                     <img
-                      src={previews[0]}
-                      alt={f.name}
-                      className={cn("h-full w-full object-cover", f.className)}
-                    />
+	                      src={previews[0]}
+	                      alt={f.name}
+	                      className={cn("h-full w-full object-cover", f.className)}
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   </div>
                   <span className={cn(
                     "text-[9px] font-medium",

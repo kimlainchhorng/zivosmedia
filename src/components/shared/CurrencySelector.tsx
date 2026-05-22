@@ -62,7 +62,7 @@ const CurrencySelector = ({ variant = "dropdown", className }: CurrencySelectorP
               className
             )}
           >
-            <img src={bgCurrency} alt="" className="absolute inset-0 w-full h-full object-cover" loading="eager" />
+	            <img src={bgCurrency} alt="" className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" />
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-800/60 to-teal-600/50" />
             <span className="text-base relative z-10 drop-shadow-md">{currencyConfig.flag}</span>
             <span className="text-xs font-bold relative z-10 drop-shadow-md">{currency}</span>

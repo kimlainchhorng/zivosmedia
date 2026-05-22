@@ -1,22 +1,14 @@
 import { motion } from "framer-motion";
-import { ShoppingCart, LayoutGrid, ShoppingBag, Shirt, UtensilsCrossed, Wine, Building2, Car, Wrench, CircleDot, Cog, Scissors } from "lucide-react";
+import { ShoppingCart, LayoutGrid, ShoppingBag, Store, Pill } from "lucide-react";
 import type { StoreCategory } from "@/config/groceryStores";
 
 const CATEGORIES: { id: StoreCategory | "all"; label: string; icon: React.ElementType }[] = [
   { id: "all", label: "All", icon: LayoutGrid },
   { id: "grocery", label: "Grocery", icon: ShoppingCart },
   { id: "food-market", label: "Food Market", icon: ShoppingBag },
-  { id: "fashion", label: "Fashion", icon: Shirt },
-  { id: "restaurant", label: "Restaurant", icon: UtensilsCrossed },
-  { id: "drink", label: "Drink", icon: Wine },
-  { id: "mall", label: "Mall", icon: Building2 },
   { id: "supermarket", label: "Supermarket", icon: ShoppingCart },
-  { id: "car-rental", label: "Rental Car", icon: Car },
-  { id: "car-dealership", label: "Car Dealer", icon: Car },
-  { id: "auto-repair", label: "Auto Repair", icon: Wrench },
-  { id: "tire-shop", label: "Tire Shop", icon: CircleDot },
-  { id: "auto-parts", label: "Auto Parts", icon: Cog },
-  { id: "salon", label: "Salon", icon: Scissors },
+  { id: "convenience", label: "Convenience", icon: Store },
+  { id: "pharmacy", label: "Pharmacy", icon: Pill },
 ];
 
 interface Props {

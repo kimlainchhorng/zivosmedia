@@ -119,10 +119,11 @@ export default function FeaturedEatsSection() {
                     {store.banner_url || store.logo_url ? (
                       <img
                         src={optimizeAvatar(store.banner_url || store.logo_url, 400) || store.banner_url || store.logo_url}
-                        alt={store.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        loading="lazy"
-                      />
+	                        alt={store.name}
+	                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+	                        loading="lazy"
+	                        decoding="async"
+	                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-orange-500/10 to-primary/5">
                         🍽️
@@ -188,7 +189,7 @@ export default function FeaturedEatsSection() {
                   className="group block rounded-2xl bg-card border border-border/50 overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 transition-all duration-300 touch-manipulation active:scale-[0.99]"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden">
-                    <img src={food.image} alt={food.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
+	                    <img src={food.image} alt={food.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent opacity-50 group-hover:opacity-30 transition-opacity duration-500" />
                     {food.freeDelivery && (
                       <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-sm flex items-center gap-1">

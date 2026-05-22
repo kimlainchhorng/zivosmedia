@@ -6,7 +6,7 @@
 
 import { serve, createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface FlightPassenger {
   title: string;
@@ -37,10 +37,13 @@ interface CheckoutRequest {
   cabinClass: string;
 }
 
-serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(withSecurity("create-flight-checkout", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   try {
@@ -55,13 +58,22 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const anonClient = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+    );
+    const { data: { user }, error: authError } = await anonClient.auth.getUser();
+    if (authError || !user) throw new Error("Not authenticated");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const body: CheckoutRequest = await req.json();
     const {
-      userId,
+      userId: requestedUserId,
       offerId,
       passengers,
       totalAmount,
@@ -76,7 +88,11 @@ serve(async (req) => {
     } = body;
 
     // Validate required fields
-    if (!userId || !offerId || !passengers?.length || !totalAmount) {
+    const userId = user.id;
+    if (requestedUserId && requestedUserId !== userId) {
+      throw new Error("User mismatch");
+    }
+    if (!offerId || !passengers?.length || !totalAmount) {
       throw new Error("Missing required fields");
     }
 
@@ -356,4 +372,4 @@ serve(async (req) => {
       }
     );
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

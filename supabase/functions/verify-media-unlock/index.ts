@@ -1,21 +1,21 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(withSecurity("verify-media-unlock", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
   try {
@@ -59,7 +59,9 @@ serve(async (req) => {
       .maybeSingle();
 
     if (pending?.stripe_session_id) {
-      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) throw new Error("STRIPE_SECRET_KEY missing");
+      const stripe = new Stripe(stripeKey, {
         apiVersion: "2025-08-27.basil",
       });
       const session = await stripe.checkout.sessions.retrieve(pending.stripe_session_id);
@@ -73,7 +75,7 @@ serve(async (req) => {
         // Notify the media owner they earned money from an unlock
         try {
           const { data: msg } = await supabaseClient
-            .from("messages")
+            .from("direct_messages")
             .select("sender_id")
             .eq("id", message_id)
             .single();
@@ -83,7 +85,7 @@ serve(async (req) => {
               .select("full_name")
               .eq("user_id", user.id)
               .single();
-            const amountCents = pending.price_cents || session.amount_total || 0;
+            const amountCents = pending.amount_cents || session.amount_total || 0;
             const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
             const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
             await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
@@ -110,9 +112,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -216,7 +216,7 @@ function inspectFunctions() {
       highRisk: highRiskFunctionName.test(name),
       hasServe: /Deno\.serve|serve\s*\(/.test(text),
       withSecurity: /withSecurity\s*\(/.test(text),
-      strictCors: /strictCorsHeaders\s*\(/.test(text),
+      strictCors: /strictCorsHeaders\s*\(|strictCors\s*:\s*true/.test(text),
       wildcardCors: /corsHeaders|Access-Control-Allow-Origin["']?\s*:\s*["']\*/.test(text),
       serviceRole: /SUPABASE_SERVICE_ROLE_KEY/.test(text),
     };
@@ -251,12 +251,14 @@ function inspectFunctions() {
 
 function readMigrationDrift() {
   const file = path.join(root, "docs", "supabase-migration-drift-report.md");
+  const migrationsDir = path.join(root, "supabase", "migrations");
   if (!existsSync(file)) {
     add("warnings", "missing-migration-drift-report", "Run npm run supabase:migrations:report to generate migration drift data.");
     return null;
   }
   const text = readText(file);
   const pick = (label) => Number.parseInt(text.match(new RegExp(`- ${label}: (\\d+)`))?.[1] ?? "0", 10);
+  const remoteSection = text.match(/## Remote Query\n\n([\s\S]*?)(?:\n## |$)/)?.[1]?.trim() ?? "";
   const drift = {
     local: pick("Local migrations"),
     duplicateVersions: pick("Duplicate versions"),
@@ -264,11 +266,31 @@ function readMigrationDrift() {
     matched: pick("Matched versions"),
     localOnly: pick("Local-only pending"),
     remoteOnly: pick("Remote-only missing locally"),
+    remoteError: remoteSection.startsWith("- Error:"),
   };
+  const currentLocalCount = existsSync(migrationsDir)
+    ? readdirSync(migrationsDir).filter((entry) => entry.endsWith(".sql")).length
+    : 0;
+  drift.currentLocal = currentLocalCount;
+  if (currentLocalCount !== drift.local) {
+    add(
+      "warnings",
+      "stale-migration-drift-report",
+      `Supabase migration drift report is stale: report local=${drift.local}, current local=${currentLocalCount}.`,
+      { file: rel(file) },
+    );
+  }
   if (drift.duplicateVersions > 0) {
     add("warnings", "duplicate-migration-versions", `Local Supabase migrations contain ${drift.duplicateVersions} duplicate version(s).`, { file: rel(file) });
   }
-  if (drift.local > 0 && drift.remote > 0 && drift.matched === 0) {
+  if (drift.remoteError) {
+    add(
+      "warnings",
+      "migration-history-unavailable",
+      "Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before production schema work.",
+      { file: rel(file) },
+    );
+  } else if (drift.local > 0 && drift.remote > 0 && drift.matched === 0) {
     add(
       "warnings",
       "migration-history-disconnected",
@@ -306,7 +328,7 @@ function renderReport(summary) {
     `- Functions using withSecurity(): ${summary.functions.withSecurity}`,
     `- Functions using strictCorsHeaders(): ${summary.functions.strictCors}`,
     `- Functions using service role: ${summary.functions.serviceRole}`,
-    drift ? `- Supabase migration drift: local=${drift.local}, remote=${drift.remote}, matched=${drift.matched}, duplicateVersions=${drift.duplicateVersions}` : "- Supabase migration drift: report missing",
+    drift ? `- Supabase migration drift: reportLocal=${drift.local}, currentLocal=${drift.currentLocal}, remote=${drift.remote}, matched=${drift.matched}, duplicateVersions=${drift.duplicateVersions}, remoteError=${drift.remoteError ? "yes" : "no"}` : "- Supabase migration drift: report missing",
     "",
     "## Critical",
     "",
@@ -325,6 +347,7 @@ function renderReport(summary) {
     "## Next Hardening Moves",
     "",
     "- Reconcile Supabase migration history before running production schema pushes.",
+    "- Run npm run supabase:upgrade-readiness before a Postgres major-version upgrade.",
     "- Move browser Supabase URL/key to Vite env variables for staging and production separation.",
     "- Add withSecurity() to high-risk Edge Functions first, starting with payment, webhook, admin, auth, and wallet routes.",
     "- Replace wildcard CORS on authenticated/service-role functions with strictCorsHeaders().",

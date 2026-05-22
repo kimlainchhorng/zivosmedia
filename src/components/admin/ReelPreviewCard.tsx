@@ -19,12 +19,14 @@ export default function ReelPreviewCard({ url, isVideo, onRemove }: ReelPreviewC
           style={{ maxHeight: 320 }}
         />
       ) : (
-        <img
-          src={url}
-          alt="Post preview"
-          className="w-full rounded-lg object-cover border border-border"
-          style={{ aspectRatio: "1 / 1" }}
-        />
+	        <img
+	          src={url}
+	          alt="Post preview"
+	          className="w-full rounded-lg object-cover border border-border"
+	          loading="lazy"
+	          decoding="async"
+	          style={{ aspectRatio: "1 / 1" }}
+	        />
       )}
       <button
         type="button"

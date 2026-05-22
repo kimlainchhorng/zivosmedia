@@ -24,7 +24,7 @@ export default function StoryReplyBubble({ thumb, caption, storyId, isMine }: Pr
     >
       <div className="relative shrink-0 w-9 h-9 rounded-md overflow-hidden bg-muted">
         {thumb ? (
-          <img src={thumb} alt="" className="w-full h-full object-cover" />
+	          <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-primary" />

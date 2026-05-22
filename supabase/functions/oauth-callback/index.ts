@@ -1,6 +1,7 @@
 // Universal OAuth callback handler. Exchanges code for token, persists account, redirects to picker page.
 import { createClient } from "../_shared/deps.ts";
 import { encryptToken } from "../_shared/tokenCrypto.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PREVIEW_FALLBACK = "https://id-preview--72f99340-9c9f-453a-acff-60e5a9b25774.lovable.app";
 
@@ -28,7 +29,26 @@ function getMetaAppSecret() {
   return secret;
 }
 
-Deno.serve(async (req) => {
+function allowedReturnUrl(value: unknown) {
+  const allowedOrigins = new Set([
+    PREVIEW_FALLBACK,
+    Deno.env.get("APP_URL") || "",
+    Deno.env.get("SITE_URL") || "",
+    Deno.env.get("PUBLIC_SITE_URL") || "",
+    "https://hizivo.com",
+    "https://www.zivollc.com",
+  ].filter(Boolean).map((origin) => new URL(origin).origin));
+  if (typeof value !== "string" || !value) return `${PREVIEW_FALLBACK}/connect/callback`;
+  if (value.startsWith("/") && !value.startsWith("//")) return `${PREVIEW_FALLBACK}${value}`;
+  try {
+    const url = new URL(value);
+    return allowedOrigins.has(url.origin) ? url.toString() : `${PREVIEW_FALLBACK}/connect/callback`;
+  } catch {
+    return `${PREVIEW_FALLBACK}/connect/callback`;
+  }
+}
+
+Deno.serve(withSecurity("oauth-callback", async (req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -38,7 +58,11 @@ Deno.serve(async (req) => {
     return htmlRedirect(`${PREVIEW_FALLBACK}/connect/callback?error=missing_state`);
   }
 
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
   const { data: stateRow } = await admin
     .from("oauth_states")
     .select("*")
@@ -50,9 +74,7 @@ Deno.serve(async (req) => {
   }
   admin.from("oauth_states").delete().eq("state", state).then(() => {});
 
-  const returnBase = stateRow.return_url?.startsWith("http")
-    ? stateRow.return_url
-    : `${PREVIEW_FALLBACK}${stateRow.return_url || "/connect/callback"}`;
+  const returnBase = allowedReturnUrl(stateRow.return_url);
 
   if (error || !code) {
     return htmlRedirect(`${returnBase}?error=${encodeURIComponent(error || "no_code")}`);
@@ -166,4 +188,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return htmlRedirect(`${returnBase}?error=${encodeURIComponent((e as Error).message)}`);
   }
-});
+}, { rateLimit: "admin_action", strictCors: true, skipWaf: true, trackNetwork: "suspicious" }));

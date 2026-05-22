@@ -8,22 +8,35 @@
 const ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-application-name, x-request-id";
 
-// Production origins.  Add staging / preview domains here as needed.
+function readEnv(name: string): string {
+  try {
+    return typeof Deno !== "undefined" ? Deno.env.get(name) ?? "" : "";
+  } catch {
+    return "";
+  }
+}
+
+function parseCsvEnv(name: string): string[] {
+  return readEnv(name)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+// Production origins. Add staging / preview domains through CORS_ALLOWED_ORIGINS.
 const ALLOWED_ORIGINS = new Set<string>([
   "https://myzivo.com",
   "https://www.myzivo.com",
   "https://app.myzivo.com",
   // Supabase Studio (used by edge-function test runner)
   "https://supabase.com",
-  // Lovable preview (development only — remove before go-live)
-  "https://lovable.dev",
+  ...parseCsvEnv("CORS_ALLOWED_ORIGINS"),
 ]);
 
-// Domains whose origin prefixes are allowed (e.g. branch previews)
+// Domains whose origin prefixes are allowed (e.g. branch previews).
 const ALLOWED_ORIGIN_SUFFIXES = [
   ".myzivo.com",
-  ".lovable.app",
-  ".lovable.dev",
+  ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];
 
 export function isOriginAllowed(origin: string | null): boolean {

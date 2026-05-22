@@ -264,7 +264,7 @@ export function QRScannerModal({ open, onClose, onScan, title = "Scan QR Code" }
         </DialogHeader>
 
         <div className="relative aspect-square bg-black">
-          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay />
+	          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay preload="none" />
           <canvas ref={canvasRef} className="hidden" />
 
           {state === "scanning" && (

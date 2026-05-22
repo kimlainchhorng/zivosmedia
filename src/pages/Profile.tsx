@@ -662,7 +662,11 @@ const Profile = () => {
   }, [queryClient]);
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh} className="min-h-screen bg-background relative overflow-hidden safe-area-bottom">
+    <PullToRefresh
+      onRefresh={handlePullRefresh}
+      mouseDragScroll
+      className="min-h-screen bg-background relative overflow-x-hidden safe-area-bottom"
+    >
       <SEOHead title="Profile Settings – ZIVO" description="Manage your ZIVO account, profile, and travel preferences." noIndex={true} />
 
       {/* Desktop NavBar */}

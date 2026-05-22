@@ -1785,6 +1785,11 @@ const CreateCVPage = () => {
     if (exportFormat === "excel") await handleDownloadExcel();
   };
 
+  const chooseExportFormat = (format: ExportFormat) => {
+    if (downloading) return;
+    setExportFormat(format);
+  };
+
   return (
     <AppLayout title="Create CV" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-32 bg-gradient-to-b from-background via-muted/10 to-background min-h-full">
@@ -2522,7 +2527,10 @@ const CreateCVPage = () => {
                   <button
                     type="button"
                     key={option.id}
-                    onClick={() => setExportFormat(option.id)}
+                    aria-pressed={active}
+                    data-export-format={option.id}
+                    onPointerDown={() => chooseExportFormat(option.id)}
+                    onClick={() => chooseExportFormat(option.id)}
                     disabled={downloading}
                     className={cn(
                       "h-[70px] rounded-xl border text-left px-2.5 py-2 touch-manipulation active:scale-[0.97] transition-all disabled:opacity-60",

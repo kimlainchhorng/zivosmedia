@@ -82,6 +82,7 @@ async function manualDispatch(adminClient: any, jobId: string, customerId: strin
       {
         job_id: jobId,
         driver_id: best.driver_id,
+        offer_status: "sent",
         status: "pending",
         expires_at: expiresAt,
       },

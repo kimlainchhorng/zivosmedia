@@ -96,7 +96,13 @@ const Header = () => {
                   >
                     <Globe className="w-3.5 h-3.5" />
                     {currentLangData?.flag_svg ? (
-                      <img src={currentLangData.flag_svg} alt="" className="w-5 h-3.5 rounded-[2px] object-cover border border-border" />
+	                      <img
+	                        src={currentLangData.flag_svg}
+	                        alt=""
+	                        className="w-5 h-3.5 rounded-[2px] object-cover border border-border"
+	                        loading="eager"
+	                        decoding="async"
+	                      />
                     ) : (
                       <span className="text-xs">{currentLangData?.flag_emoji || "🌐"}</span>
                     )}
@@ -122,7 +128,13 @@ const Header = () => {
                         )}
                       >
                         {lang.flag_svg ? (
-                          <img src={lang.flag_svg} alt={lang.name} className="w-6 h-[17px] rounded-[3px] object-cover border border-border shrink-0" />
+	                          <img
+	                            src={lang.flag_svg}
+	                            alt={lang.name}
+	                            className="w-6 h-[17px] rounded-[3px] object-cover border border-border shrink-0"
+	                            loading="lazy"
+	                            decoding="async"
+	                          />
                         ) : (
                           <span className="text-lg">{lang.flag_emoji}</span>
                         )}

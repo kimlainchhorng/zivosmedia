@@ -73,10 +73,11 @@ export default function CarCategoryTiles({
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img
                     src={category.src}
-                    alt={category.alt}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    loading="lazy"
-                  />
+	                    alt={category.alt}
+	                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 

@@ -131,9 +131,10 @@ export default function StorePhotoLightbox({
                   src={image}
                   alt=""
                   className="h-full w-full object-cover"
-                  style={{ objectPosition: `center ${positions?.[image] ?? 50}%` }}
-                  loading="lazy"
-                />
+	                  style={{ objectPosition: `center ${positions?.[image] ?? 50}%` }}
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               </button>
             ))}
           </div>

@@ -22,6 +22,8 @@ import { useUserAccess } from "@/hooks/useUserAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getPublicOrigin, getProfileShareUrl } from "@/lib/getPublicOrigin";
+import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
+import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -72,15 +74,23 @@ const AppMore = () => {
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
   const { data: access } = useUserAccess(user?.id);
+  const { data: ownerStores = [] } = useOwnerStores();
   const { isPlus } = useZivoPlus();
   const [showPartnerSheet, setShowPartnerSheet] = useState(false);
   const [showDriverDownloadSheet, setShowDriverDownloadSheet] = useState(false);
   const [showSwitchSheet, setShowSwitchSheet] = useState(false);
-  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; share_code: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; share_code: string | null; display_brand_name?: string | null } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const ADMIN_EMAIL = "chhorngkimlain1@gmail.com";
   const isDesignatedAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
+  const profileBrandName = (profile as { display_brand_name?: string | null } | null)?.display_brand_name;
+  const hasBrandShopIdentity = Boolean(profileBrandName && profileBrandName.trim().toLowerCase() !== "zivo");
+  const hasShopDashboard = Boolean(user) || Boolean(access?.isStoreOwner) || ownerStores.length > 0 || hasBrandShopIdentity;
+  const primaryOwnerStore = ownerStores[0];
+  const shopDashboardPath = primaryOwnerStore
+    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id).path
+    : "/shop-dashboard";
 
   // Build role options dynamically
   const roleOptions = (() => {
@@ -101,8 +111,8 @@ const AppMore = () => {
     if (access?.isHotelOwner) {
       options.push({ icon: Hotel, label: "Hotel Dashboard", description: "Manage your hotel", href: "/hotel-dashboard", color: "from-purple-500 to-purple-600" });
     }
-    if (access?.isStoreOwner) {
-      options.push({ icon: Store, label: "Shop Dashboard", description: "Manage your shop", href: "/shop-dashboard", color: "from-emerald-500 to-green-500" });
+    if (hasShopDashboard) {
+      options.push({ icon: Store, label: "Shop Dashboard", description: "Manage your shop", href: shopDashboardPath, color: "from-emerald-500 to-green-500" });
     }
     return options;
   })();
@@ -136,7 +146,7 @@ const AppMore = () => {
     const loadProfile = async () => {
       const { data: byId } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, share_code")
+        .select("full_name, avatar_url, share_code, display_brand_name")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -147,7 +157,7 @@ const AppMore = () => {
 
       const { data: byUserId } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, share_code")
+        .select("full_name, avatar_url, share_code, display_brand_name")
         .eq("user_id", user.id)
         .maybeSingle();
 

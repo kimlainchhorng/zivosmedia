@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { getPublicOrigin } from '@/lib/getPublicOrigin';
+import { REFERRAL_REWARDS, SHARE_MESSAGES } from '@/config/referralProgram';
 
 export interface ReferralCode {
   id: string;
@@ -172,16 +173,46 @@ export const useReferrals = () => {
     return `${getPublicOrigin()}/signup?ref=${referralCode.code}`;
   };
 
+  const writeClipboard = async (value: string) => {
+    if (!value) return false;
+
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(value);
+        return true;
+      } catch {
+        // Some in-app browsers expose the API but still block it; fall back below.
+      }
+    }
+
+    const textArea = document.createElement('textarea');
+    textArea.value = value;
+    textArea.setAttribute('readonly', 'true');
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    textArea.style.pointerEvents = 'none';
+    document.body.appendChild(textArea);
+    textArea.select();
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    if (!copied) throw new Error('Copy command failed');
+    return copied;
+  };
+
   // Copy referral link
   const copyReferralLink = async () => {
     const url = getShareUrl();
     if (!url) return;
     
     try {
-      await navigator.clipboard.writeText(url);
+      await writeClipboard(url);
       toast.success('Referral link copied!');
     } catch {
-      toast.error('Failed to copy link');
+      toast.info('Referral link ready to share', {
+        description: referralCode?.code
+          ? `Copy code ${referralCode.code} from the invite card if your browser blocks clipboard access.`
+          : url,
+      });
     }
   };
 
@@ -194,14 +225,14 @@ export const useReferrals = () => {
       try {
         await navigator.share({
           title: 'Join ZIVO',
-          text: `Sign up with my referral code ${referralCode?.code} and get credits!`,
+          text: `${SHARE_MESSAGES.default} ${referralCode?.code}. New members get ${REFERRAL_REWARDS.newUser.points.toLocaleString()} ZIVO Points.`,
           url,
         });
       } catch {
         // User cancelled or share failed
       }
     } else {
-      copyReferralLink();
+      await copyReferralLink();
     }
   };
 

@@ -57,9 +57,10 @@ function PhotoTile({
           "h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]",
           imageClassName
         )}
-        style={{ objectPosition: `center ${positions?.[src] ?? 50}%` }}
-        loading={priority ? "eager" : "lazy"}
-      />
+	        style={{ objectPosition: `center ${positions?.[src] ?? 50}%` }}
+	        loading={priority ? "eager" : "lazy"}
+	        decoding="async"
+	      />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-black/0 opacity-80" />
       {overlayLabel && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35 text-white">

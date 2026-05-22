@@ -1689,7 +1689,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 aria-label={`Send sticker: ${s.alt}`}
                 title={s.alt}
               >
-                <img src={s.src} alt={s.alt} className="w-full h-full object-contain" loading="lazy" />
+	                <img src={s.src} alt={s.alt} className="w-full h-full object-contain" loading="lazy" decoding="async" />
               </button>
             ))}
           </div>
@@ -1755,7 +1755,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                   >
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary overflow-hidden shrink-0">
                       {m.avatar ? (
-                        <img src={m.avatar} alt="" className="w-full h-full object-cover" />
+	                        <img src={m.avatar} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         m.name.slice(0, 2).toUpperCase()
                       )}

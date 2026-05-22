@@ -351,7 +351,13 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {storeLogoUrl ? (
-              <img src={storeLogoUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0 ring-1 ring-border shadow-sm" />
+	              <img
+	                src={storeLogoUrl}
+	                alt=""
+	                className="w-8 h-8 rounded-lg object-cover shrink-0 ring-1 ring-border shadow-sm"
+	                loading="eager"
+	                decoding="async"
+	              />
             ) : (
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 ring-1 ring-primary/20">
                 <Store className="w-4 h-4 text-primary" />

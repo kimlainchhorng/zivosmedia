@@ -308,10 +308,11 @@ export default function PairedStreamViewer({
     <div className="absolute inset-0 bg-black flex items-center justify-center">
       <video
         ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="w-full h-full object-cover bg-black"
+	        autoPlay
+	        playsInline
+	        muted
+	        preload="none"
+	        className="w-full h-full object-cover bg-black"
       />
 
       {state !== "live" && (

@@ -27,11 +27,12 @@ export default function ScreenShareTile({ participant }: Props) {
   return (
     <div className="relative h-full w-full bg-black">
       <video
-        ref={videoRef}
-        playsInline
-        muted={participant.isLocal}
-        className="h-full w-full object-contain"
-      />
+	        ref={videoRef}
+	        playsInline
+	        muted={participant.isLocal}
+	        preload="none"
+	        className="h-full w-full object-contain"
+	      />
       <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
         <MonitorUp className="h-3 w-3 text-blue-400" />
         <span>{participant.isLocal ? "You" : participant.name} is sharing</span>

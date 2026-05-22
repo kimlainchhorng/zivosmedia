@@ -152,7 +152,13 @@ export default function AutoRepairPhotosSection({ storeId }: Props) {
               <CardContent className="pt-4 space-y-3">
                 <div className="flex items-start gap-3">
                   {previewUrl && (
-                    <img src={previewUrl} alt="Preview" className="w-20 h-20 rounded-lg object-cover shrink-0 border" />
+	                    <img
+	                      src={previewUrl}
+	                      alt="Preview"
+	                      className="w-20 h-20 rounded-lg object-cover shrink-0 border"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   )}
                   <div className="flex-1 space-y-2">
                     <p className="text-sm font-medium truncate">{pendingFile.name}</p>

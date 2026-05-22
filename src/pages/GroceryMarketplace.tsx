@@ -14,7 +14,7 @@ import GroceryRecentStores from "@/components/grocery/GroceryRecentStores";
 import GroceryReorder from "@/components/grocery/GroceryReorder";
 import GrocerySmartSearch from "@/components/grocery/GrocerySmartSearch";
 import { GroceryHowItWorks } from "@/components/grocery/GroceryHowItWorks";
-import { getStoresForMarket, type StoreCategory, type StoreConfig } from "@/config/groceryStores";
+import { getStoresForMarket, isGroceryMarketplaceCategory, type StoreCategory, type StoreConfig } from "@/config/groceryStores";
 import { useCountry } from "@/hooks/useCountry";
 import { useMarketStores, type StoreProfile } from "@/hooks/useStoreProfile";
 import { useGroceryCart } from "@/hooks/useGroceryCart";
@@ -191,6 +191,10 @@ export default function GroceryMarketplace() {
   const { country } = useCountry();
   const marketStores = useMemo(() => getStoresForMarket(country), [country]);
   const { data: dbStores = [] } = useMarketStores(country);
+  const groceryDbStores = useMemo(
+    () => dbStores.filter((store) => isGroceryMarketplaceCategory(store.category)),
+    [dbStores]
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState("");
   const [category, setCategory] = useState<StoreCategory | "all">("all");
@@ -285,15 +289,15 @@ export default function GroceryMarketplace() {
 
   // Category counts
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: availableStores.length + dbStores.length };
+    const counts: Record<string, number> = { all: availableStores.length + groceryDbStores.length };
     availableStores.forEach((s) => {
       counts[s.category] = (counts[s.category] || 0) + 1;
     });
-    dbStores.forEach((s) => {
+    groceryDbStores.forEach((s) => {
       if (s.category) counts[s.category] = (counts[s.category] || 0) + 1;
     });
     return counts;
-  }, [availableStores, dbStores]);
+  }, [availableStores, groceryDbStores]);
 
   // Featured store = closest open store
   const featuredStore = useMemo(() => {
@@ -304,6 +308,12 @@ export default function GroceryMarketplace() {
   const nonFeaturedStores = useMemo(() => {
     return filteredStores.filter((s) => s.slug !== featuredStore?.slug);
   }, [filteredStores, featuredStore]);
+
+  const visibleDbStores = useMemo(() => {
+    return groceryDbStores
+      .filter((ds) => category === "all" || ds.category === category)
+      .filter((ds) => !filter.trim() || ds.name.toLowerCase().includes(filter.toLowerCase()));
+  }, [category, filter, groceryDbStores]);
 
   const hasAddress = !!currentAddress?.lat && !!currentAddress?.lng;
 
@@ -334,7 +344,7 @@ export default function GroceryMarketplace() {
             <ArrowLeft className="h-5 w-5" />
           </motion.button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold tracking-tight">Grocery & More</h1>
+            <h1 className="text-lg font-bold tracking-tight">Grocery</h1>
             <div className="flex items-center gap-1.5">
               <p className="text-[10px] text-muted-foreground font-medium">Delivered by ZIVO drivers</p>
               {!isLoading && (
@@ -344,7 +354,7 @@ export default function GroceryMarketplace() {
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted/40 text-[9px] font-bold text-muted-foreground"
                 >
                   <Store className="h-2.5 w-2.5" />
-                  {availableStores.length + dbStores.length} stores
+                  {availableStores.length + groceryDbStores.length} stores
                 </motion.span>
               )}
             </div>
@@ -431,17 +441,14 @@ export default function GroceryMarketplace() {
           <GroceryReorder />
 
           {/* Database-backed stores (e.g. Cambodia local stores) */}
-          {dbStores.filter((ds) => category === "all" || ds.category === category).filter((ds) => !filter.trim() || ds.name.toLowerCase().includes(filter.toLowerCase())).length > 0 && (
+          {visibleDbStores.length > 0 && (
             <div className="px-4 pt-5">
               <div className="flex items-center gap-1.5 mb-2.5">
                 <Store className="h-3.5 w-3.5 text-primary" />
                 <h2 className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Local Stores</h2>
               </div>
               <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
-                {dbStores
-                  .filter((ds) => category === "all" || ds.category === category)
-                  .filter((ds) => !filter.trim() || ds.name.toLowerCase().includes(filter.toLowerCase()))
-                  .map((ds) => (
+                {visibleDbStores.map((ds) => (
                   <motion.button
                     key={ds.id}
                     variants={cardVariant}
@@ -572,7 +579,7 @@ export default function GroceryMarketplace() {
           )}
 
           {/* No stores nearby warning */}
-          {!isLoadingStores && hasAddress && availableStores.length === 0 && (
+          {!isLoadingStores && hasAddress && availableStores.length === 0 && groceryDbStores.length === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -626,7 +633,7 @@ export default function GroceryMarketplace() {
             </>
           )}
 
-          {filteredStores.length === 0 && !isLoadingStores && (
+          {filteredStores.length === 0 && visibleDbStores.length === 0 && !isLoadingStores && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

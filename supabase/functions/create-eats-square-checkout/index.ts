@@ -5,15 +5,20 @@
  * Realtime + the square-eats-webhook flip the order to 'paid' on completion.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SQUARE_BASE = (Deno.env.get("SQUARE_MODE") ?? "production") === "sandbox"
   ? "https://connect.squareupsandbox.com"
   : "https://connect.squareup.com";
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-eats-square-checkout", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -33,7 +38,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Invalid order_id or amount" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
     const { data: order } = await admin
       .from("food_orders")
       .select("id, customer_id, payment_status")
@@ -51,7 +58,7 @@ Deno.serve(async (req) => {
         idempotency_key: idemKey,
         quick_pay: { name: "ZIVO Eats order", price_money: { amount: amount_cents, currency: "USD" }, location_id: locationId },
         checkout_options: {
-          redirect_url: return_url || `${req.headers.get("origin") ?? ""}/orders`,
+          redirect_url: safeRedirectUrl(req, return_url, "/orders"),
           ask_for_shipping_address: false,
         },
         pre_populated_data: { buyer_email: user.email ?? undefined },
@@ -76,4 +83,16 @@ Deno.serve(async (req) => {
     console.error("[create-eats-square-checkout]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+
+function safeRedirectUrl(req: Request, value: unknown, fallbackPath: string) {
+  const origin = req.headers.get("origin") || "https://hizivo.com";
+  const fallback = `${origin}${fallbackPath}`;
+  if (typeof value !== "string" || !value) return fallback;
+  try {
+    const url = new URL(value, origin);
+    return url.origin === origin ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}

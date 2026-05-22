@@ -2,26 +2,26 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const logStep = (step: string, details?: any) => {
   const d = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[UNLOCK-MEDIA-CHECKOUT] ${step}${d}`);
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(withSecurity("unlock-media-checkout", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
   try {
@@ -50,7 +50,25 @@ serve(async (req) => {
     const priceCents = typeof amount_cents === "number" && amount_cents >= 50 ? amount_cents : 99;
     logStep("Unlock request", { message_id, seller_id, priceCents });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: message } = await admin
+      .from("direct_messages")
+      .select("id, sender_id, receiver_id, locked_price_cents")
+      .eq("id", message_id)
+      .maybeSingle();
+    if (!message) throw new Error("Message not found");
+    if ((message as any).receiver_id !== user.id) throw new Error("Only the recipient can unlock this media");
+    if ((message as any).sender_id !== seller_id) throw new Error("Seller does not match message");
+    const lockedPrice = Number((message as any).locked_price_cents || 0);
+    const finalPriceCents = lockedPrice >= 50 ? lockedPrice : priceCents;
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY missing");
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -72,7 +90,7 @@ serve(async (req) => {
               name: "Unlock Media",
               description: "Unlock locked photo or video",
             },
-            unit_amount: priceCents,
+              unit_amount: finalPriceCents,
           },
           quantity: 1,
         },
@@ -85,17 +103,17 @@ serve(async (req) => {
         buyer_id: user.id,
         seller_id,
         type: "media_unlock",
-        amount_cents: String(priceCents),
+        amount_cents: String(finalPriceCents),
       },
     });
     logStep("Checkout session created", { sessionId: session.id });
 
     // Create pending unlock record
-    const { error: insertErr } = await supabaseClient.from("media_unlocks").insert({
+    const { error: insertErr } = await admin.from("media_unlocks").insert({
       message_id,
       buyer_id: user.id,
       seller_id,
-      amount_cents: priceCents,
+      amount_cents: finalPriceCents,
       stripe_session_id: session.id,
       status: "pending",
     });
@@ -113,4 +131,4 @@ serve(async (req) => {
       status: 500,
     });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

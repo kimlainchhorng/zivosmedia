@@ -287,10 +287,12 @@ export function LodgingRoomDetailsModal({
                           lqip ? (
                             <img
                               src={lqip}
-                              alt=""
-                              aria-hidden
-                              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-400 blur-[20px] scale-[1.05]"
-                            />
+	                              alt=""
+	                              aria-hidden
+	                              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-400 blur-[20px] scale-[1.05]"
+	                              loading="lazy"
+	                              decoding="async"
+	                            />
                           ) : (
                             <Skeleton className="absolute inset-0 rounded-2xl" />
                           )

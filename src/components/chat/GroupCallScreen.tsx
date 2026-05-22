@@ -116,10 +116,11 @@ export default function GroupCallScreen({
         } bg-muted/20`}>
           {callType === "video" && !isCameraOff ? (
             <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
+	              ref={localVideoRef}
+	              autoPlay
+	              playsInline
+	              muted
+	              preload="none"
               className="w-full h-full object-cover"
             />
           ) : (
@@ -244,7 +245,7 @@ function ParticipantTile({ participant, isVideo }: { participant: Participant; i
       participant.isSpeaking ? "border-primary/50 shadow-lg shadow-primary/10" : "border-white/5"
     } bg-muted/20`}>
       {isVideo && !participant.isCameraOff && participant.stream ? (
-        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+	        <video ref={videoRef} autoPlay playsInline preload="none" className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-2">
           <Avatar className="h-16 w-16 border-2 border-muted/20">

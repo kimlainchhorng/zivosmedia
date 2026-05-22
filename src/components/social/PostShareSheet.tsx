@@ -261,10 +261,11 @@ export default function PostShareSheet() {
             {target.imageUrl ? (
               <img
                 src={target.imageUrl}
-                alt=""
-                className="h-20 w-20 shrink-0 rounded-2xl object-cover"
-                loading="lazy"
-              />
+	                alt=""
+	                className="h-20 w-20 shrink-0 rounded-2xl object-cover"
+	                loading="lazy"
+	                decoding="async"
+	              />
             ) : (
               <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary via-sky-500 to-emerald-500 text-white">
                 <Share2 className="h-8 w-8" />

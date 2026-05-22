@@ -1,12 +1,8 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Twilio Proxy: creates a masked-number session so rider and driver can call each other
 // without exposing their real phone numbers. Reuses an active session if one exists.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 async function twilioRequest(path: string, body: Record<string, string>) {
   const sid = Deno.env.get("TWILIO_ACCOUNT_SID")!;
   const token = Deno.env.get("TWILIO_AUTH_TOKEN")!;
@@ -21,8 +17,14 @@ async function twilioRequest(path: string, body: Record<string, string>) {
   return j;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("create-masked-call-session", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -40,7 +42,9 @@ Deno.serve(async (req) => {
     const { ride_request_id } = await req.json();
     if (!ride_request_id) return new Response(JSON.stringify({ error: "ride_request_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     // Verify caller is rider or assigned driver
     const { data: isParticipant } = await admin.rpc("is_trip_participant", { _ride_id: ride_request_id, _user_id: user.id } as any);
@@ -129,4 +133,4 @@ Deno.serve(async (req) => {
     console.error("[create-masked-call-session]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { rateLimit: "admin_action", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

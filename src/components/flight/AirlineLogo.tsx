@@ -67,10 +67,11 @@ const AirlineLogoComponent = forwardRef<HTMLDivElement, AirlineLogoProps>(
         {showImage ? (
           <img
             src={currentSrc}
-            alt={airlineName || `${code} logo`}
-            className="w-full h-full object-contain p-0.5"
-            loading="eager"
-            crossOrigin="anonymous"
+	            alt={airlineName || `${code} logo`}
+	            className="w-full h-full object-contain p-0.5"
+	            loading="eager"
+	            decoding="async"
+	            crossOrigin="anonymous"
             onError={handleError}
           />
         ) : showFallbackIcon ? (

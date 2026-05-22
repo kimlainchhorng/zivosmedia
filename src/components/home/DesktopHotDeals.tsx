@@ -73,10 +73,11 @@ export default function DesktopHotDeals() {
               <div className="relative h-[200px] overflow-hidden">
                 <img
                   src={destPhoto?.src || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600"}
-                  alt={deal.destination}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  loading="lazy"
-                />
+	                  alt={deal.destination}
+	                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
                 {/* HOT DEAL badge */}

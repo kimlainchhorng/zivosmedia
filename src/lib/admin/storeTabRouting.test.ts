@@ -28,6 +28,7 @@ describe("store tab routing", () => {
 
   it("defaults missing tabs safely", () => {
     expect(resolveStoreTab(null, true)).toBe("lodge-overview");
+    expect(resolveStoreTab(null, false, true)).toBe("ar-dashboard");
     expect(resolveStoreTab(undefined, false)).toBe("profile");
   });
 

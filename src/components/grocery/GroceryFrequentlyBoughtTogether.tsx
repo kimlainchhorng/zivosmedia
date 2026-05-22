@@ -80,7 +80,7 @@ export function GroceryFrequentlyBoughtTogether({
         <div className="shrink-0 w-[90px] rounded-xl border-2 border-primary/30 bg-primary/5 overflow-hidden">
           <div className="aspect-square bg-gradient-to-br from-muted/5 to-muted/15 flex items-center justify-center p-2">
             {currentProduct.image ? (
-              <img src={currentProduct.image} alt={currentProduct.name} className="h-full w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
+	              <img src={currentProduct.image} alt={currentProduct.name} className="h-full w-full object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
             ) : (
               <Package className="h-6 w-6 text-muted-foreground/10" />
             )}
@@ -106,7 +106,7 @@ export function GroceryFrequentlyBoughtTogether({
               >
                 <div className="aspect-square bg-gradient-to-br from-muted/5 to-muted/15 flex items-center justify-center p-2 relative">
                   {prod.image ? (
-                    <img src={prod.image} alt={prod.name} className="h-full w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
+	                    <img src={prod.image} alt={prod.name} className="h-full w-full object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                   ) : (
                     <Package className="h-6 w-6 text-muted-foreground/10" />
                   )}

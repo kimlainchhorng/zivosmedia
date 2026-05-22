@@ -133,10 +133,11 @@ export default function ExperienceGallery({
                     src={photo.src}
                     alt={photo.alt}
                     width={400}
-                    height={300}
-                    loading="lazy"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
+	                    height={300}
+	                    loading="lazy"
+	                    decoding="async"
+	                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+	                  />
                   {/* Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                   

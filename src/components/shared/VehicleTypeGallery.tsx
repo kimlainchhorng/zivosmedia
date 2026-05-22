@@ -149,10 +149,11 @@ export default function VehicleTypeGallery({
                   src={vehicle.src}
                   alt={vehicle.alt}
                   width={vehicle.width}
-                  height={vehicle.height}
-                  loading="lazy"
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+	                  height={vehicle.height}
+	                  loading="lazy"
+	                  decoding="async"
+	                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+	                />
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
                 

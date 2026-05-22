@@ -125,7 +125,15 @@ export default function ForwardPickerSheet({ open, onOpenChange, onConfirm }: Pr
             >
               <Checkbox checked={selected.has(c.contact_user_id)} />
               <div className="w-9 h-9 rounded-full bg-muted overflow-hidden shrink-0">
-                {c.avatar_url && <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />}
+	                {c.avatar_url && (
+	                  <img
+	                    src={c.avatar_url}
+	                    alt=""
+	                    className="w-full h-full object-cover"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
+	                )}
               </div>
               <div className="flex-1 text-left min-w-0">
                 <div className="text-sm font-medium truncate">{c.display_name || "Unnamed"}</div>

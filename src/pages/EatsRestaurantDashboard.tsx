@@ -413,7 +413,7 @@ export default function EatsRestaurantDashboard() {
                 {menuItems.map(item => (
                   <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
                     {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
+	                      <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
                         <UtensilsCrossed className="w-5 h-5 text-muted-foreground" />

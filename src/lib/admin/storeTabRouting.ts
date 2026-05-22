@@ -1,5 +1,37 @@
 export const LODGING_TAB_IDS = ["lodge-overview", "lodge-rooms", "lodge-rate-plans", "lodge-reservations", "lodge-calendar", "lodge-guests", "lodge-frontdesk", "lodge-housekeeping", "lodge-maintenance", "lodge-nightaudit", "lodge-addons", "lodge-guest-requests", "lodge-dining", "lodge-experiences", "lodge-transport", "lodge-wellness", "lodge-amenities", "lodge-property", "lodge-policies", "lodge-reviews", "lodge-reports", "lodge-promos", "lodge-channels", "lodge-payouts", "lodge-inbox", "lodge-staff", "lodge-handover", "lodge-concierge", "lodge-lostfound", "lodge-gallery", "lodge-folio", "lodge-groupbooking", "lodge-revenue", "lodge-notifications", "lodge-yield", "lodge-inventory", "lodge-roomservice", "lodge-vouchers", "lodge-parking", "lodge-wakeup", "lodge-laundry", "lodge-complaints"] as const;
-export const AUTO_REPAIR_TAB_IDS = ["ar-invoices", "ar-autocheck", "ar-parts", "ar-inspections", "ar-vehicles", "ar-estimates", "ar-workorders", "ar-techs", "ar-reminders", "ar-tires", "ar-warranty", "ar-fleet", "ar-reports", "ar-fin-income", "ar-fin-expenses", "ar-fin-payments", "ar-fin-pnl", "ar-fin-tax"] as const;
+export const AUTO_REPAIR_TAB_IDS = [
+  "ar-dashboard",
+  "ar-service-catalog",
+  "ar-invoices",
+  "ar-autocheck",
+  "ar-parts",
+  "ar-inspections",
+  "ar-vehicles",
+  "ar-estimates",
+  "ar-workorders",
+  "ar-labor-time",
+  "ar-techs",
+  "ar-reminders",
+  "ar-tires",
+  "ar-parts-suppliers",
+  "ar-warranty",
+  "ar-fleet",
+  "ar-loaners",
+  "ar-photos",
+  "ar-reviews",
+  "ar-inbox",
+  "ar-promos",
+  "ar-campaigns",
+  "ar-gift-cards",
+  "ar-booking-link",
+  "ar-qr",
+  "ar-reports",
+  "ar-fin-income",
+  "ar-fin-expenses",
+  "ar-fin-payments",
+  "ar-fin-pnl",
+  "ar-fin-tax",
+] as const;
 export const BASE_TAB_IDS = ["profile", "orders", "products", "payment", "settings", "customers", "marketing", "livestream", "software", "employees", "payroll", "employee-schedule", "time-clock", "attendance", "training", "documents", "employee-rules", "customer-bookings"] as const;
 
 export type LodgingTabId = typeof LODGING_TAB_IDS[number];
@@ -18,11 +50,11 @@ export function getTabFromSearch(search: string | URLSearchParams | null | undef
 }
 
 export function resolveStoreTab(requestedTab: string | null | undefined, isLodgingStore: boolean, isAutoRepairStore = false) {
-  if (!requestedTab) return isLodgingStore ? "lodge-overview" : "profile";
+  if (!requestedTab) return isLodgingStore ? "lodge-overview" : isAutoRepairStore ? "ar-dashboard" : "profile";
   if (isLodgingTab(requestedTab)) return isLodgingStore ? requestedTab : "profile";
   if (isAutoRepairTab(requestedTab)) return isAutoRepairStore ? requestedTab : "profile";
   if (isBaseStoreTab(requestedTab)) return requestedTab;
-  return isLodgingStore ? "lodge-overview" : "profile";
+  return isLodgingStore ? "lodge-overview" : isAutoRepairStore ? "ar-dashboard" : "profile";
 }
 
 export function resolveStoreTabFromSearch(search: string | URLSearchParams | null | undefined, isLodgingStore: boolean, isAutoRepairStore = false) {

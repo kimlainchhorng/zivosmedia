@@ -10,11 +10,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "../_shared/deps.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const STRIPE_COUNTRIES = new Set([
   "US","CA","MX","BR",
@@ -30,8 +26,13 @@ const MERCURY_COUNTRIES = new Set(["US"]);
 
 const ALLOWED_RAILS = new Set(["stripe","aba","bank_wire","paypal","square","mercury"]);
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+serve(withSecurity("lodge-payout-request", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const json = (body: unknown, status = 200) => jsonResponse(body, status, corsHeaders);
+
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
+  }
 
   try {
     const supabase = createClient(
@@ -148,9 +149,9 @@ serve(async (req) => {
     console.error("[lodge-payout-request]", msg);
     return json({ error: msg }, 400);
   }
-});
+}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
 
-function json(body: unknown, status = 200) {
+function jsonResponse(body: unknown, status: number, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

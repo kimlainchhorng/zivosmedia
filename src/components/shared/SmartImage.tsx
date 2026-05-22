@@ -5,7 +5,8 @@
  * Replaces raw <img> in card grids so broken URLs render a clean
  * gradient placeholder instead of the browser's "?" icon.
  */
-import { useState, type ImgHTMLAttributes, type ReactNode } from "react";
+import { useMemo, useState, type ImgHTMLAttributes, type ReactNode } from "react";
+import { optimizeImage } from "@/lib/optimizeImage";
 import { cn } from "@/lib/utils";
 
 interface SmartImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, "loading" | "decoding"> {
@@ -17,6 +18,10 @@ interface SmartImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, "loa
   noSkeleton?: boolean;
   /** Force eager loading for above-the-fold LCP images. */
   eager?: boolean;
+  /** Desired rendered image width, used for CDN/storage transformations. */
+  size?: number;
+  /** Transformation mode for square thumbnails vs cover images. */
+  mode?: "cover" | "square";
   className?: string;
   wrapperClassName?: string;
 }
@@ -27,6 +32,8 @@ export function SmartImage({
   fallback,
   noSkeleton,
   eager,
+  size,
+  mode = "cover",
   className,
   wrapperClassName,
   ...rest
@@ -34,7 +41,11 @@ export function SmartImage({
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
 
-  const showFallback = !src || errored;
+  const optimizedSrc = useMemo(
+    () => (src ? optimizeImage(src, size ?? 600, mode) ?? src : undefined),
+    [mode, size, src],
+  );
+  const showFallback = !optimizedSrc || errored;
 
   return (
     <div className={cn("absolute inset-0 w-full h-full overflow-hidden bg-muted", wrapperClassName)}>
@@ -48,10 +59,11 @@ export function SmartImage({
       ) : (
         <img
           {...rest}
-          src={src!}
+          src={optimizedSrc}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
           decoding="async"
+          fetchPriority={eager ? "high" : "auto"}
           onLoad={() => setLoaded(true)}
           onError={() => setErrored(true)}
           className={cn(

@@ -19,6 +19,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
+import { SmartImage } from "@/components/shared/SmartImage";
 
 const HOTEL_CATEGORIES = ["hotel", "resort", "lodging", "accommodation", "guesthouse", "hostel", "motel", "villa"];
 
@@ -100,11 +101,11 @@ export default function FeaturedHotelsSection() {
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                     {store.banner_url || store.logo_url ? (
-                      <img
+                      <SmartImage
                         src={optimizeAvatar(store.banner_url || store.logo_url, 500) || store.banner_url || store.logo_url}
                         alt={store.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        loading="lazy"
+                        size={500}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-amber-500/10 to-primary/5">

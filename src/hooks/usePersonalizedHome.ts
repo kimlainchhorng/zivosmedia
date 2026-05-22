@@ -2,8 +2,8 @@
  * Personalized Home Hook
  * Time-aware, behavior-driven content for AppHome
  */
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -45,7 +45,47 @@ const STALE_TIME = 60_000;
 
 export function usePersonalizedHome() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const timeContext = useMemo(() => getTimeContext(), []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const invalidatePersonalizedHome = () => {
+      void queryClient.invalidateQueries({ queryKey: ["home-time-suggestions"] });
+      void queryClient.invalidateQueries({ queryKey: ["home-order-again", user.id] });
+      void queryClient.invalidateQueries({ queryKey: ["home-favorites", user.id] });
+      void queryClient.invalidateQueries({ queryKey: ["home-recommended", user.id] });
+    };
+
+    const channel = supabase
+      .channel(`personalized-home-${user.id}-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `customer_id=eq.${user.id}` },
+        invalidatePersonalizedHome,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `user_id=eq.${user.id}` },
+        invalidatePersonalizedHome,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_favorites", filter: `user_id=eq.${user.id}` },
+        invalidatePersonalizedHome,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "restaurants" },
+        invalidatePersonalizedHome,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, user?.id]);
 
   // Time-based suggestions
   const { data: timeSuggestions = [], isLoading: timeLoading } = useQuery({
@@ -73,11 +113,12 @@ export function usePersonalizedHome() {
     queryKey: ["home-order-again", user?.id],
     queryFn: async (): Promise<HomeRestaurant[]> => {
       const db = supabase as any;
+      const userFilter = `user_id.eq.${user!.id},customer_id.eq.${user!.id}`;
       const { data, error } = await db
         .from("food_orders")
         .select("restaurant_id, restaurants(id, name, cuisine_type, rating, logo_url, cover_image_url)")
-        .eq("user_id", user!.id)
-        .eq("status", "delivered")
+        .or(userFilter)
+        .in("status", ["delivered", "completed"])
         .order("created_at", { ascending: false })
         .limit(20);
 
@@ -144,12 +185,13 @@ export function usePersonalizedHome() {
     queryKey: ["home-recommended", user?.id],
     queryFn: async (): Promise<HomeRestaurant[]> => {
       const db = supabase as any;
+      const userFilter = `user_id.eq.${user!.id},customer_id.eq.${user!.id}`;
       // Step 1: Get user's most-ordered cuisine types
       const { data: orderHistory } = await db
         .from("food_orders")
         .select("restaurant_id, restaurants(cuisine_type)")
-        .eq("user_id", user!.id)
-        .eq("status", "delivered")
+        .or(userFilter)
+        .in("status", ["delivered", "completed"])
         .limit(50);
 
       const cuisineCounts: Record<string, number> = {};

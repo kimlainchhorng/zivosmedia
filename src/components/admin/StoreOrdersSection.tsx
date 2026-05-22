@@ -417,12 +417,14 @@ export default function StoreOrdersSection({ storeId }: Props) {
                         {selectedOrder.payment_provider.toUpperCase()}
                       </Badge>
                     )}
-                    <img
-                      src={selectedOrder.receipt_url}
-                      alt="Payment receipt"
-                      className="w-full rounded-xl border border-border/30 cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => setReceiptPreview(selectedOrder.receipt_url)}
-                    />
+	                    <img
+	                      src={selectedOrder.receipt_url}
+	                      alt="Payment receipt"
+	                      className="w-full rounded-xl border border-border/30 cursor-pointer hover:opacity-90 transition-opacity"
+	                      loading="lazy"
+	                      decoding="async"
+	                      onClick={() => setReceiptPreview(selectedOrder.receipt_url)}
+	                    />
                     {selectedOrder.receipt_uploaded_at && (
                       <p className="text-[10px] text-muted-foreground">
                         Uploaded {format(new Date(selectedOrder.receipt_uploaded_at), "MMM d, h:mm a")}
@@ -479,7 +481,15 @@ export default function StoreOrdersSection({ storeId }: Props) {
       {/* Receipt Fullscreen */}
       <Dialog open={!!receiptPreview} onOpenChange={() => setReceiptPreview(null)}>
         <DialogContent className="max-w-2xl p-2">
-          {receiptPreview && <img src={receiptPreview} alt="Receipt" className="w-full rounded-xl" />}
+	          {receiptPreview && (
+	            <img
+	              src={receiptPreview}
+	              alt="Receipt"
+	              className="w-full rounded-xl"
+	              loading="eager"
+	              decoding="async"
+	            />
+	          )}
         </DialogContent>
       </Dialog>
     </div>

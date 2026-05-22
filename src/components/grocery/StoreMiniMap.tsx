@@ -268,10 +268,11 @@ export default function StoreMiniMap({ latitude, longitude, storeId, storeName, 
               <img
                 src={staticMapUrl}
                 alt={`Map location for ${storeName}`}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
+	                className="h-full w-full object-cover"
+	                loading="lazy"
+	                decoding="async"
+	                referrerPolicy="no-referrer-when-downgrade"
+	              />
             ) : (
               <>
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-emerald-500/15" />

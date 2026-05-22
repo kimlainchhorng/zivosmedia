@@ -81,9 +81,10 @@ export function GroceryDealsSection({ products, onAdd, cartProductIds }: Grocery
                 {p.image ? (
                   <img
                     src={p.image}
-                    alt={p.name}
-                    className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
+	                    alt={p.name}
+	                    className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300"
+	                    loading="lazy"
+	                    decoding="async"
                     referrerPolicy="no-referrer"
                   />
                 ) : (

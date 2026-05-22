@@ -1,7 +1,8 @@
 /**
  * Scheduled Bookings — queries scheduled_bookings table from Supabase
  */
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -20,15 +21,37 @@ export interface ScheduledBooking {
 
 export function useScheduledBookings() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const queryKey = ["scheduled-bookings", user?.id];
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`scheduled-bookings-${user.id}-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "scheduled_bookings", filter: `user_id=eq.${user.id}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["scheduled-bookings", user.id] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, user?.id]);
+
   const query = useQuery({
-    queryKey: ["scheduled-bookings", user?.id],
+    queryKey,
     queryFn: async (): Promise<ScheduledBooking[]> => {
       if (!user) return [];
       const { data, error } = await supabase
         .from("scheduled_bookings")
         .select("*")
         .eq("user_id", user.id)
-        .in("status", ["pending", "confirmed", "driver_assigned"])
+        .in("status", ["scheduled", "pending", "confirmed", "driver_assigned"])
         .order("scheduled_date", { ascending: true })
         .order("scheduled_time", { ascending: true })
         .limit(20);

@@ -1,14 +1,16 @@
 // Stripe Checkout for Ads Studio wallet top-up. Returns checkout URL.
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("create-ads-wallet-topup", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
   try {
     const auth = req.headers.get("Authorization");
     if (!auth?.startsWith("Bearer ")) {
@@ -28,7 +30,10 @@ Deno.serve(async (req) => {
     const storeId = String(body?.store_id || "");
     const amountCents = Math.max(500, Math.min(1_000_000, Number(body?.amount_cents) || 0));
     const saveCard = !!body?.save_card;
-    const returnUrl = String(body?.return_url || "/admin/stores");
+    const requestedReturnUrl = String(body?.return_url || "/admin/stores");
+    const returnUrl = requestedReturnUrl.startsWith("/") && !requestedReturnUrl.startsWith("//")
+      ? requestedReturnUrl
+      : "/admin/stores";
     if (!storeId || !amountCents) {
       return new Response(JSON.stringify({ error: "store_id and amount_cents required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -39,7 +44,11 @@ Deno.serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY missing");
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-11-20.acacia" as any });
 
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
     const { data: wallet } = await admin
       .from("ads_studio_wallet")
       .select("stripe_customer_id")
@@ -73,7 +82,7 @@ Deno.serve(async (req) => {
         quantity: 1,
       }],
       payment_intent_data: saveCard ? { setup_future_usage: "off_session" } : undefined,
-      metadata: { store_id: storeId, kind: "ads_wallet_topup", amount_cents: String(amountCents) },
+      metadata: { store_id: storeId, user_id: userRes.user.id, kind: "ads_wallet_topup", amount_cents: String(amountCents) },
       success_url: `${origin}${returnUrl}?topup=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${returnUrl}?topup=cancelled`,
     });
@@ -86,4 +95,4 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

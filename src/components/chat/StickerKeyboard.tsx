@@ -405,9 +405,10 @@ function LiveIllustratedStickerArt({
     <img
       src={sticker.src}
       alt={sticker.alt}
-      className={cn("h-full w-full object-contain pointer-events-none", mediaShadowClassName)}
-      loading="lazy"
-    />
+	      className={cn("h-full w-full object-contain pointer-events-none", mediaShadowClassName)}
+	      loading="lazy"
+	      decoding="async"
+	    />
   );
 
   // Grid mode: use static PNG thumbnails for performance (no video in grid)
@@ -417,9 +418,10 @@ function LiveIllustratedStickerArt({
         <img
           src={sticker.src}
           alt={sticker.alt}
-          className="h-full w-full object-contain pointer-events-none"
-          loading="lazy"
-        />
+	          className="h-full w-full object-contain pointer-events-none"
+	          loading="lazy"
+	          decoding="async"
+	        />
       </div>
     );
   }
@@ -576,7 +578,7 @@ function SupabaseStoreTab({ search }: { search: string }) {
             >
               <div className="flex items-center gap-3">
                 {pack.preview_url ? (
-                  <img src={pack.preview_url} alt={pack.name} className="w-10 h-10 rounded-xl object-cover" />
+	                  <img src={pack.preview_url} alt={pack.name} className="w-10 h-10 rounded-xl object-cover" loading="lazy" decoding="async" />
                 ) : (
                   <span className="text-3xl">📦</span>
                 )}
@@ -624,7 +626,7 @@ function SupabaseStoreTab({ search }: { search: string }) {
                         // when the same sticker.id appears more than once in
                         // a preview pack (rare but happens with seeded data).
                         <div key={`${s.id}-${idx}`} className="aspect-square rounded-xl bg-muted/20 flex items-center justify-center p-1">
-                          <img src={s.image_url} alt={s.name || "sticker"} className="w-full h-full object-contain" loading="lazy" />
+	                          <img src={s.image_url} alt={s.name || "sticker"} className="w-full h-full object-contain" loading="lazy" decoding="async" />
                         </div>
                       ))
                     ) : (
@@ -1075,10 +1077,12 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                     )}
                   >
                     <img
-                      src={pack.stickers[0]?.src}
-                      alt={pack.name}
-                      className="h-8 w-8 object-contain"
-                    />
+	                      src={pack.stickers[0]?.src}
+	                      alt={pack.name}
+	                      className="h-8 w-8 object-contain"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   </button>
                 ))}
 
@@ -1174,7 +1178,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                 {filteredGifs.map((gif, gIdx) => (
                   <button type="button" key={`${gif.id}-${gIdx}`} onClick={() => quickSend(`[GIF] ${gif.label}: ${gif.url}`, "gif")}
                     className="relative rounded-xl overflow-hidden border border-border/20 hover:border-primary/40 transition-all active:scale-95 aspect-square bg-muted/20">
-                    <img src={gif.url} alt={gif.altText} loading="lazy" className="w-full h-full object-cover" />
+	                    <img src={gif.url} alt={gif.altText} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
                       <p className="text-[11px] font-semibold text-white">{gif.label}</p>
                     </div>
@@ -1307,7 +1311,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                       <button type="button" onClick={() => void toggleTrackPreview(trackKey, track.previewUrl)}
                         className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${track.coverGradient} flex items-center justify-center shrink-0 shadow-lg overflow-hidden`}>
                         {artwork && (
-                          <img src={artwork} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+	                          <img src={artwork} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
                         )}
                         <span className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm">
                           {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white ml-0.5" />}

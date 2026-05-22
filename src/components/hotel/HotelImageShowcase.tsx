@@ -75,10 +75,11 @@ export default function HotelImageShowcase({ onSelect, className }: HotelImageSh
                 {img ? (
                   <img
                     src={optimizeAvatar(img, 800) || img}
-                    alt={s.name}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                  />
+	                    alt={s.name}
+	                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                 ) : (
                   <div className="absolute inset-0 w-full h-full flex items-center justify-center text-6xl bg-gradient-to-br from-amber-500/20 to-orange-500/10">
                     🏨

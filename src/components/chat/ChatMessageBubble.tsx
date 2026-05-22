@@ -437,7 +437,7 @@ function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: st
 
       <div className="mt-3">
         <span className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isMe ? "bg-white/10 text-white/70" : "bg-background/80 text-foreground/70 border border-border/40"}`}>
-          <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" />
+          <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" loading="lazy" decoding="async" />
           ZIVO
         </span>
       </div>
@@ -815,12 +815,11 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
               <video
                 src={`${displayVideoUrl}#t=0.1`}
                 className={`w-full aspect-[9/16] object-cover transition-all duration-300 ${isLocked ? "blur-xl scale-105" : ""}`}
-                style={{ maxHeight: CHAT_MEDIA_MAX_HEIGHT }}
+                style={{ maxHeight: CHAT_MEDIA_MAX_HEIGHT, pointerEvents: "none" }}
                 playsInline
                 preload="none"
                 muted
                 crossOrigin="anonymous"
-                style={{ pointerEvents: "none" }}
                 onLoadedData={(e) => {
                   const v = e.currentTarget;
                   if (v.readyState >= 2) v.currentTime = 0.1;
@@ -895,6 +894,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                 imageRendering: isTinyImage ? "pixelated" : undefined,
               }}
               loading="lazy"
+              decoding="async"
               onLoad={(e) => {
                 const img = e.currentTarget;
                 setIsTinyImage((img.naturalWidth || 0) <= 16 && (img.naturalHeight || 0) <= 16);
@@ -978,6 +978,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                           alt={parsedSticker.id}
                           className="h-full w-full object-contain pointer-events-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
                           loading="lazy"
+                          decoding="async"
                         />
                       </motion.div>
                     ) : (
@@ -1008,6 +1009,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                     alt={parsedGif.label || "GIF"}
                     className="w-full aspect-square object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
                 </motion.div>
                 <div className="flex items-center gap-1 justify-end px-1 pb-1 mt-1">
@@ -1299,6 +1301,7 @@ function ReelVideoPlayer({ videoUrl, onClose }: { videoUrl: string; onClose: () 
         autoPlay
         playsInline
         loop
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onClick={(e) => e.stopPropagation()}
       />
@@ -1687,11 +1690,11 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
               </div>
             </>
           ) : (
-            <img src={preview.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+            <img src={preview.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
           )}
           {/* ZIVO badge on media */}
           <div className="absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase bg-black/45 text-white backdrop-blur-sm">
-            <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" />
+            <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" loading="lazy" decoding="async" />
             ZIVO
           </div>
         </div>
@@ -1707,6 +1710,8 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
               src={preview.socialPlatform.brandImage}
               alt={preview.socialPlatform.label}
               className="h-9 w-auto object-contain"
+              loading="lazy"
+              decoding="async"
             />
           )}
           <div className={`absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${
@@ -1715,7 +1720,7 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
               : (isMe ? "bg-primary-foreground/20 text-primary-foreground/60" : "bg-foreground/10 text-foreground/40")
           }`}>
             {!preview.socialPlatform && (
-              <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" />
+              <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" loading="lazy" decoding="async" />
             )}
             {preview.socialPlatform ? preview.socialPlatform.label : "ZIVO"}
           </div>
@@ -1725,7 +1730,7 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
       {/* Info section */}
       <div className="px-3 py-2 flex items-center gap-2.5">
         {preview.authorAvatar && (
-          <img src={preview.authorAvatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+          <img src={preview.authorAvatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" loading="lazy" decoding="async" />
         )}
         <div className="flex-1 min-w-0">
           <p className={`text-[13px] font-bold truncate ${isMe ? "text-primary-foreground" : "text-foreground"}`}>

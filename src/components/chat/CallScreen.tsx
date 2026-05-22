@@ -809,10 +809,12 @@ export default function CallScreen({
             <>
               <img
                 src={recipientAvatar}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
-              />
+	                alt=""
+	                aria-hidden="true"
+	                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
+	                loading="lazy"
+	                decoding="async"
+	              />
               <Avatar className="relative z-[1] h-36 w-36 border-4 border-white/15 shadow-2xl">
                 <AvatarImage src={recipientAvatar} />
                 <AvatarFallback className="bg-white/10 text-5xl font-bold text-white">{initials}</AvatarFallback>
@@ -827,11 +829,12 @@ export default function CallScreen({
 
         {/* Remote video — full screen background */}
         <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${hasRemoteVideo ? "opacity-100" : "opacity-0"}`}
-        />
+	          ref={remoteVideoRef}
+	          autoPlay
+	          playsInline
+	          preload="none"
+	          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${hasRemoteVideo ? "opacity-100" : "opacity-0"}`}
+	        />
 
         {/* Dark overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60 pointer-events-none" />
@@ -897,8 +900,8 @@ export default function CallScreen({
             className="absolute bottom-36 right-4 cursor-grab active:cursor-grabbing z-20"
           >
             <div className="relative">
-              <video ref={localVideoRef} autoPlay playsInline muted
-                className="w-[110px] h-[150px] rounded-2xl border-2 border-white/20 object-cover shadow-2xl" />
+	              <video ref={localVideoRef} autoPlay playsInline muted preload="none"
+	                className="w-[110px] h-[150px] rounded-2xl border-2 border-white/20 object-cover shadow-2xl" />
               {/* Flip camera mini-button on PiP */}
               <motion.button
                 whileTap={{ scale: 0.85 }}

@@ -172,10 +172,11 @@ export default function EventsPage() {
                 {event.cover_image_url && (
                   <img
                     src={event.cover_image_url}
-                    alt={event.title}
-                    className="w-full h-36 object-cover"
-                    loading="lazy"
-                  />
+	                    alt={event.title}
+	                    className="w-full h-36 object-cover"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                 )}
 
                 <div className="p-4">

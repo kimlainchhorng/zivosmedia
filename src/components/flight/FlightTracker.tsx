@@ -99,7 +99,7 @@ export default function FlightTracker({
           <div className="flex items-center gap-3">
             {airlineLogo && (
               <div className="w-12 h-12 rounded-xl bg-white/90 dark:bg-muted/50 flex items-center justify-center border border-border/30">
-                <img src={airlineLogo} alt={airline} className="w-10 h-10 object-contain" loading="lazy" />
+	                <img src={airlineLogo} alt={airline} className="w-10 h-10 object-contain" loading="lazy" decoding="async" />
               </div>
             )}
             <div>

@@ -264,7 +264,7 @@ function AdminChatList({
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/30 shrink-0">
         <div className="h-10 w-10 rounded-full bg-muted border border-border/30 overflow-hidden flex items-center justify-center">
           {storeLogo ? (
-            <img src={storeLogo} alt={storeName} className="h-full w-full object-contain p-1" />
+	            <img src={storeLogo} alt={storeName} className="h-full w-full object-contain p-1" loading="lazy" decoding="async" />
           ) : (
             <MessageCircle className="h-5 w-5 text-muted-foreground" />
           )}
@@ -619,7 +619,7 @@ export default function StoreLiveChat({ storeId, storeName, storeLogo, open, onC
                     {isAdmin ? (
                       <User className="h-5 w-5 text-primary" />
                     ) : storeLogo ? (
-                      <img src={storeLogo} alt={storeName} className="h-full w-full object-contain p-1" />
+	                      <img src={storeLogo} alt={storeName} className="h-full w-full object-contain p-1" loading="lazy" decoding="async" />
                     ) : (
                       <MessageCircle className="h-5 w-5 text-muted-foreground" />
                     )}

@@ -63,6 +63,10 @@ const menuItems = [
   { id: "disappearing", label: "24h", hint: "Auto delete", icon: Timer, color: "text-amber-500", bg: "bg-amber-500/10" },
 ] as const;
 
+type ChatAttachMenuItem = (typeof menuItems)[number] & {
+  isNew?: boolean;
+};
+
 /** Plans that include Lock & Unlock */
 const LOCK_UNLOCK_PLANS = new Set(["chat", "pro"]);
 const USAGE_STORAGE_KEY = "chat:attach:usage:v2";
@@ -295,7 +299,7 @@ export default function ChatAttachMenu({
             )}
 
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5 sm:gap-3">
-              {renderedItems.map((item) => {
+              {renderedItems.map((item: ChatAttachMenuItem) => {
                 const isLockedGated = item.id === "locked" && !canUseLocked;
                 const isUnavailable = isActionUnavailable(item.id);
                 const reason = unavailableReason(item.id);

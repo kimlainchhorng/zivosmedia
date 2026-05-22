@@ -157,7 +157,7 @@ export default function EmojiPacksPage() {
                     <div className="border-t border-border/60 p-3 grid grid-cols-8 gap-2">
                       {p.emojis.slice(0, 64).map((e, i) => (
                         <div key={i} className="aspect-square rounded-lg bg-secondary flex items-center justify-center overflow-hidden" title={e.name || e.key}>
-                          {e.url ? <img src={e.url} alt={e.name || ""} className="w-full h-full object-cover" loading="lazy" /> : <span className="text-lg">{e.name?.[0] ?? "?"}</span>}
+	                          {e.url ? <img src={e.url} alt={e.name || ""} className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <span className="text-lg">{e.name?.[0] ?? "?"}</span>}
                         </div>
                       ))}
                     </div>

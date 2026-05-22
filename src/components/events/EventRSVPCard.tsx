@@ -55,7 +55,7 @@ export default function EventRSVPCard({ event, myStatus, onRSVP }: Props) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl overflow-hidden border border-border/40 bg-card shadow-sm max-w-[320px]">
-      {event.cover_url && <img src={event.cover_url} alt="" className="w-full aspect-[16/9] object-cover" />}
+	      {event.cover_url && <img src={event.cover_url} alt="" className="w-full aspect-[16/9] object-cover" loading="lazy" decoding="async" />}
       <div className="p-3.5">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Event</p>
         <p className="text-base font-bold">{event.title}</p>

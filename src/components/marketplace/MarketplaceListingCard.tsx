@@ -36,7 +36,7 @@ export default function MarketplaceListingCard({ listing, onTap }: Props) {
     >
       <div className="aspect-square bg-muted relative">
         {cover ? (
-          <img src={cover} alt={listing.title} className="w-full h-full object-cover" loading="lazy" />
+	          <img src={cover} alt={listing.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
         ) : (
           <div className="flex items-center justify-center h-full text-3xl">📦</div>
         )}

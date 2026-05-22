@@ -318,7 +318,13 @@ export default function ChatSocialShareSheet({ open, onClose, onShareLink, onSha
                             >
                               <div className={`w-6 h-6 rounded-full ${rp.color} flex items-center justify-center overflow-hidden border border-border/40`}>
                                 {rp.brandImage ? (
-                                  <img src={rp.brandImage} alt={rp.label} className="w-full h-full object-contain" />
+	                                  <img
+	                                    src={rp.brandImage}
+	                                    alt={rp.label}
+	                                    className="w-full h-full object-contain"
+	                                    loading="lazy"
+	                                    decoding="async"
+	                                  />
                                 ) : (
                                   <RIcon className="w-3.5 h-3.5 text-white" />
                                 )}
@@ -339,7 +345,13 @@ export default function ChatSocialShareSheet({ open, onClose, onShareLink, onSha
                     >
                       <div className={`w-14 h-14 rounded-2xl ${p.color} flex items-center justify-center shadow-sm group-active:scale-90 transition-transform overflow-hidden border ${p.brandImage ? "border-border/40" : "border-transparent"}`}>
                         {p.brandImage ? (
-                          <img src={p.brandImage} alt={p.label} className="w-10 h-10 object-contain" />
+	                          <img
+	                            src={p.brandImage}
+	                            alt={p.label}
+	                            className="w-10 h-10 object-contain"
+	                            loading="lazy"
+	                            decoding="async"
+	                          />
                         ) : (
                           <p.icon className="w-6 h-6 text-white" />
                         )}
@@ -356,7 +368,13 @@ export default function ChatSocialShareSheet({ open, onClose, onShareLink, onSha
                   <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/40">
                     <div className={`w-12 h-12 rounded-2xl ${platform.color} flex items-center justify-center flex-shrink-0 overflow-hidden ${platform.brandImage ? "border border-border/40" : ""}`}>
                       {platform.brandImage ? (
-                        <img src={platform.brandImage} alt={platform.label} className="w-9 h-9 object-contain" />
+	                        <img
+	                          src={platform.brandImage}
+	                          alt={platform.label}
+	                          className="w-9 h-9 object-contain"
+	                          loading="lazy"
+	                          decoding="async"
+	                        />
                       ) : (
                         <platform.icon className="w-6 h-6 text-white" />
                       )}

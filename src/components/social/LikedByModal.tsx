@@ -158,7 +158,7 @@ export default function LikedByModal({ open, onOpenChange, postId, source, total
                   >
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-muted shrink-0">
                       {r.avatar_url ? (
-                        <img src={r.avatar_url} alt="" className="w-full h-full object-cover" />
+	                        <img src={r.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-sm font-bold">
                           {(r.full_name ?? r.username ?? "?")[0]?.toUpperCase()}

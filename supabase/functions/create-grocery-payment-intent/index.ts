@@ -1,12 +1,15 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-grocery-payment-intent", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   try {
@@ -112,7 +115,7 @@ Deno.serve(async (req) => {
 
     const totalCents = Math.max(50, totalBeforeDiscount - promoDiscountCents);
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
     const { data: order, error: orderErr } = await admin
       .from("shopping_orders")
       .insert({
@@ -216,4 +219,4 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));

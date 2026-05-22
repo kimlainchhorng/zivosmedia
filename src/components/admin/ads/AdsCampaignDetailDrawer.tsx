@@ -380,11 +380,13 @@ export default function AdsCampaignDetailDrawer({
             <div className="rounded-lg border border-border overflow-hidden bg-card">
               <div className={cn("w-full bg-muted relative overflow-hidden", aspectClass[ratio])}>
                 {c.creative_url ? (
-                  <img
-                    src={c.creative_url}
-                    alt={c.headline || c.name}
-                    className="w-full h-full object-cover"
-                  />
+	                  <img
+	                    src={c.creative_url}
+	                    alt={c.headline || c.name}
+	                    className="w-full h-full object-cover"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[11px] text-muted-foreground">
                     No image uploaded

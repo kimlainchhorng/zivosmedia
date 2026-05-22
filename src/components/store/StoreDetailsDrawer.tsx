@@ -87,10 +87,12 @@ function StoreLogoThumb({ store, isLive }: { store: StorePin; isLive?: boolean }
       {logoSrc ? (
         <img
           src={logoSrc}
-          alt={store.name}
-          className="w-full h-full object-cover"
-          onError={() => setFailed(true)}
-        />
+	          alt={store.name}
+	          className="w-full h-full object-cover"
+	          loading="lazy"
+	          decoding="async"
+	          onError={() => setFailed(true)}
+	        />
       ) : (
         <span className="text-3xl leading-none">{getIcon(store.category)}</span>
       )}
@@ -109,10 +111,11 @@ function DrawerGalleryImage({ src, alt }: { src: string; alt: string }) {
     <img
       src={optimizeImage(src, 520)}
       alt={alt}
-      className="h-44 w-auto max-w-[260px] rounded-2xl object-cover shrink-0 border border-border/20 bg-muted/30"
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
+	      className="h-44 w-auto max-w-[260px] rounded-2xl object-cover shrink-0 border border-border/20 bg-muted/30"
+	      loading="lazy"
+	      decoding="async"
+	      onError={() => setFailed(true)}
+	    />
   );
 }
 

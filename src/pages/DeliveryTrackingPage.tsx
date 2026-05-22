@@ -313,9 +313,11 @@ export default function DeliveryTrackingPage() {
                     >
                       <img
                         src={signedProofs.pickup}
-                        alt="Pickup proof"
-                        className="w-full h-32 object-cover rounded-xl"
-                      />
+	                        alt="Pickup proof"
+	                        className="w-full h-32 object-cover rounded-xl"
+	                        loading="lazy"
+	                        decoding="async"
+	                      />
                       <p className="text-[10px] text-muted-foreground mt-1 text-center">Pickup</p>
                     </a>
                   )}
@@ -328,9 +330,11 @@ export default function DeliveryTrackingPage() {
                     >
                       <img
                         src={signedProofs.delivery}
-                        alt="Delivery proof"
-                        className="w-full h-32 object-cover rounded-xl"
-                      />
+	                        alt="Delivery proof"
+	                        className="w-full h-32 object-cover rounded-xl"
+	                        loading="lazy"
+	                        decoding="async"
+	                      />
                       <p className="text-[10px] text-muted-foreground mt-1 text-center">Delivery</p>
                     </a>
                   )}
@@ -343,7 +347,7 @@ export default function DeliveryTrackingPage() {
               <div className="rounded-2xl border border-border/40 bg-card p-4 mb-3 flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500/30 to-violet-500/5 flex items-center justify-center overflow-hidden shrink-0">
                   {driver?.avatar_url ? (
-                    <img src={driver.avatar_url} alt="" className="w-full h-full object-cover" />
+	                    <img src={driver.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <Truck className="w-5 h-5 text-violet-500" />
                   )}

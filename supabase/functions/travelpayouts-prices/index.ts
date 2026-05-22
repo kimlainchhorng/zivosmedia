@@ -1,13 +1,13 @@
 import { serve, createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+serve(withSecurity("travelpayouts-prices", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ success: false, error: "Method not allowed", data: [] }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   const authHeader = req.headers.get("Authorization");
@@ -37,18 +37,21 @@ serve(async (req) => {
 
     const { origin, destination, depart_date, return_date, currency } = await req.json();
 
-    if (!origin || !destination) {
+    const cleanOrigin = String(origin || "").trim().toUpperCase();
+    const cleanDestination = String(destination || "").trim().toUpperCase();
+    const cleanCurrency = String(currency || "usd").trim().toLowerCase();
+    if (!/^[A-Z]{3}$/.test(cleanOrigin) || !/^[A-Z]{3}$/.test(cleanDestination) || !/^[a-z]{3}$/.test(cleanCurrency)) {
       return new Response(
-        JSON.stringify({ success: false, error: 'origin and destination are required' }),
+        JSON.stringify({ success: false, error: 'invalid origin, destination, or currency' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Use the v3 prices_for_dates endpoint (recommended replacement for v1/v2)
     const params = new URLSearchParams({
-      origin,
-      destination,
-      currency: currency || 'usd',
+      origin: cleanOrigin,
+      destination: cleanDestination,
+      currency: cleanCurrency,
       sorting: 'price',
       direct: 'false',
       limit: '10',
@@ -72,7 +75,7 @@ serve(async (req) => {
 
     const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?${params.toString()}`;
 
-    console.log(`[travelpayouts-prices] Fetching: ${origin} → ${destination}, depart: ${depart_date || 'any'}`);
+    console.log(`[travelpayouts-prices] Fetching: ${cleanOrigin} -> ${cleanDestination}, depart: ${depart_date || 'any'}`);
 
     // Retry transient network errors (Travelpayouts occasionally resets the connection)
     const fetchWithRetry = async (attempts = 3): Promise<Response> => {
@@ -134,10 +137,10 @@ serve(async (req) => {
       link: ticket.link,
     }));
 
-    console.log(`[travelpayouts-prices] Found ${prices.length} prices for ${origin} → ${destination}`);
+    console.log(`[travelpayouts-prices] Found ${prices.length} prices for ${cleanOrigin} -> ${cleanDestination}`);
 
     return new Response(
-      JSON.stringify({ success: true, data: prices, currency: currency || 'usd' }),
+      JSON.stringify({ success: true, data: prices, currency: cleanCurrency }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
@@ -149,4 +152,4 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-});
+}, { rateLimit: "search", strictCors: true, trackNetwork: "suspicious" }));

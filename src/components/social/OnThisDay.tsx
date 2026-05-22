@@ -95,7 +95,7 @@ export default function OnThisDay() {
           >
             <div className="aspect-[4/5] relative bg-muted">
               {m.media_url && m.media_type !== "video" ? (
-                <img src={m.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+	                <img src={m.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" />
               ) : m.media_url && m.media_type === "video" ? (
                 <video src={m.media_url} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" />
               ) : (

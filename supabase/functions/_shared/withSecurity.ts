@@ -7,12 +7,16 @@
 //   serve(withSecurity('auth-login', handler, { rateLimit: 'auth_login' }));
 
 import { preflight, err } from './respond.ts';
+import { getCorsHeaders, strictCorsHeaders } from './cors.ts';
 import { inspectRequest, clientIp } from './waf.ts';
 import { newCorrelationId, makeLogger, type Logger } from './logger.ts';
 import { recordSecurityEvent } from './audit.ts';
+import { recordNetworkEvent } from './audit.ts';
 import { rateLimit, rateLimitHeaders, type LimitCategory } from './rateLimiter.ts';
 import { isIpBlocked, autoBlockIfHighThreat } from './threatIntel.ts';
+import { hashIp } from './threatIntel.ts';
 import { detectBot } from './botDetection.ts';
+import { assessNetwork, type NetworkSignals } from './networkSignals.ts';
 
 export interface SecurityContext {
   log: Logger;
@@ -21,6 +25,8 @@ export interface SecurityContext {
   userAgent: string | null;
   route: string;
   startedAt: number;
+  corsHeaders: Record<string, string>;
+  network: NetworkSignals;
 }
 
 export interface SecurityOptions {
@@ -28,6 +34,14 @@ export interface SecurityOptions {
   rateLimit?: LimitCategory | string;
   /** Skip WAF for specific trusted routes (e.g. internal cron) */
   skipWaf?: boolean;
+  /** Validate browser Origins against the shared allowlist. Server/native callers with no Origin are allowed. */
+  strictCors?: boolean;
+  /** Persist suspicious network/VPN/proxy signals to network_security_events. */
+  trackNetwork?: boolean | 'suspicious';
+  /** Block requests whose header-derived network risk reaches this score. */
+  blockNetworkRiskAt?: number;
+  /** Skip browser-oriented bot detection for provider webhooks/internal callers. */
+  skipBotDetection?: boolean;
 }
 
 export type SecuredHandler = (req: Request, ctx: SecurityContext) => Promise<Response>;
@@ -60,13 +74,65 @@ export function withSecurity(
   opts: SecurityOptions = {},
 ): (req: Request) => Promise<Response> {
   return async (req: Request) => {
-    if (req.method === 'OPTIONS') return preflight(req);
+    const corsHeaders = resolveCorsHeaders(req, opts.strictCors);
+    if (!corsHeaders) {
+      const res = new Response(JSON.stringify({ error: 'Forbidden origin' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json', 'Vary': 'Origin' },
+      });
+      applySecurityHeaders(res);
+      return res;
+    }
+    if (req.method === 'OPTIONS') {
+      if (opts.strictCors) return new Response(null, { status: 204, headers: corsHeaders });
+      return preflight(req);
+    }
 
     const correlationId = newCorrelationId(req);
     const ip = clientIp(req);
     const userAgent = req.headers.get('user-agent');
     const log = makeLogger({ correlationId, route, ip, method: req.method });
-    const ctx: SecurityContext = { log, correlationId, ip, userAgent, route, startedAt: Date.now() };
+    const network = assessNetwork(req);
+    const ctx: SecurityContext = { log, correlationId, ip, userAgent, route, startedAt: Date.now(), corsHeaders, network };
+
+    // Header-derived VPN/proxy/datacenter signals. This intentionally does not
+    // claim perfect VPN detection; it records useful edge metadata and can
+    // optionally block very risky requests on sensitive endpoints.
+    if (opts.trackNetwork && (opts.trackNetwork === true || network.riskScore > 0)) {
+      const ipHash = ip ? await hashIp(ip) : null;
+      recordNetworkEvent({
+        route,
+        ipHash,
+        country: network.country,
+        region: network.region,
+        city: network.city,
+        asn: network.asn,
+        colo: network.colo,
+        userAgent,
+        requestId: correlationId,
+        riskScore: network.riskScore,
+        signals: network.signals,
+        blocked: Boolean(opts.blockNetworkRiskAt && network.riskScore >= opts.blockNetworkRiskAt),
+      }).catch(() => {});
+    }
+
+    if (opts.blockNetworkRiskAt && network.riskScore >= opts.blockNetworkRiskAt) {
+      log.warn('network_risk_block', { score: network.riskScore, signals: network.signals });
+      recordSecurityEvent({
+        eventType: 'network.risk_block',
+        severity: 'warn',
+        ip,
+        userAgent,
+        route,
+        blocked: true,
+        data: { correlationId, riskScore: network.riskScore, signals: network.signals },
+      }).catch(() => {});
+      const res = err(req, 'Network risk too high', 403, { correlationId });
+      applyCorsHeaders(res, corsHeaders);
+      res.headers.set('x-request-id', correlationId);
+      applySecurityHeaders(res);
+      return res;
+    }
 
     // 0) Hard-blocklist (admin-curated). One cached RPC, no body work on hit.
     if (ip && await isIpBlocked(ip)) {
@@ -81,6 +147,7 @@ export function withSecurity(
         data: { correlationId },
       }).catch(() => {});
       const res = err(req, 'Forbidden', 403, { correlationId });
+      applyCorsHeaders(res, corsHeaders);
       res.headers.set('x-request-id', correlationId);
       applySecurityHeaders(res);
       return res;
@@ -90,7 +157,7 @@ export function withSecurity(
     //    (security tools) and "scraper" (curl/wget/python-requests/etc).
     //    "missing_accept" is a softer signal we let through here — it would
     //    false-positive on legitimate fetch() callers.
-    {
+    if (!opts.skipBotDetection) {
       const bot = detectBot(req.headers);
       if (bot.isBot && (bot.reason === 'scanner' || bot.reason === 'scraper' || bot.reason === 'missing_ua')) {
         log.warn('bot_blocked', { reason: bot.reason, ua: bot.ua.slice(0, 80) });
@@ -105,6 +172,7 @@ export function withSecurity(
         }).catch(() => {});
         autoBlockIfHighThreat({ ip, reason: `bot_${bot.reason}_repeat` }).catch(() => {});
         const res = err(req, 'Forbidden', 403, { correlationId });
+        applyCorsHeaders(res, corsHeaders);
         res.headers.set('x-request-id', correlationId);
         applySecurityHeaders(res);
         return res;
@@ -127,6 +195,7 @@ export function withSecurity(
         }).catch(() => {});
         autoBlockIfHighThreat({ ip, reason: `waf_${waf.reason}` }).catch(() => {});
         const res = err(req, 'Request blocked', 400, { correlationId });
+        applyCorsHeaders(res, corsHeaders);
         res.headers.set('x-request-id', correlationId);
         applySecurityHeaders(res);
         return res;
@@ -149,6 +218,7 @@ export function withSecurity(
           data: { category: opts.rateLimit, correlationId },
         }).catch(() => {});
         const res = err(req, 'Too many requests', 429, { correlationId, retryAfter: rl.retryAfter });
+        applyCorsHeaders(res, corsHeaders);
         res.headers.set('x-request-id', correlationId);
         for (const [k, v] of Object.entries(rlHeaders)) res.headers.set(k, v);
         applySecurityHeaders(res);
@@ -169,9 +239,29 @@ export function withSecurity(
       const message = e instanceof Error ? e.message : String(e);
       log.error('request_failed', { error: message, ms: Date.now() - ctx.startedAt });
       const res = err(req, 'Internal error', 500, { correlationId });
+      applyCorsHeaders(res, corsHeaders);
       res.headers.set('x-request-id', correlationId);
       applySecurityHeaders(res);
       return res;
     }
   };
+}
+
+function applyCorsHeaders(res: Response, corsHeaders: Record<string, string>): void {
+  for (const [k, v] of Object.entries(corsHeaders)) {
+    res.headers.set(k, v);
+  }
+}
+
+function resolveCorsHeaders(req: Request, strict = false): Record<string, string> | null {
+  if (!strict) return getCorsHeaders(req);
+  const origin = req.headers.get('origin');
+  if (!origin) {
+    return {
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name, x-request-id',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Vary': 'Origin',
+    };
+  }
+  return strictCorsHeaders(req);
 }

@@ -219,7 +219,7 @@ export default function ChatMediaGalleryPage() {
                   className="relative aspect-square rounded-xl overflow-hidden bg-muted active:scale-95 transition-transform"
                   aria-label={`${m.kind === "video" ? "Video" : "Photo"} from ${isMine ? "you" : "partner"}, ${formatRelative(m.created_at)}`}
                 >
-                  <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                  <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   {m.kind === "video" && (
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                       <div className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
@@ -327,9 +327,9 @@ export default function ChatMediaGalleryPage() {
             </div>
             <div className="flex-1 flex items-center justify-center px-4" onClick={(e) => e.stopPropagation()}>
               {preview.kind === "video" ? (
-                <video src={preview.file_url} controls autoPlay className="max-w-full max-h-full rounded-xl" />
-              ) : preview.kind === "image" ? (
-                <img src={preview.file_url} alt={preview.file_name} className="max-w-full max-h-full object-contain rounded-xl" />
+	                <video src={preview.file_url} controls autoPlay preload="metadata" className="max-w-full max-h-full rounded-xl" />
+	              ) : preview.kind === "image" ? (
+	                <img src={preview.file_url} alt={preview.file_name} className="max-w-full max-h-full object-contain rounded-xl" loading="eager" decoding="async" />
               ) : (
                 <a
                   href={preview.file_url}

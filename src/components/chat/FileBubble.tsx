@@ -53,7 +53,13 @@ export default function FileBubble({ file, mine }: { file: FileBubbleData; mine?
     <div className={`max-w-[280px] rounded-2xl overflow-hidden border ${mine ? "border-primary/20 bg-primary/5" : "border-border/40 bg-muted/40"}`}>
       {file.thumbnail_url ? (
         <a href={file.url} target="_blank" rel="noopener noreferrer" className="block aspect-[3/4] bg-background relative">
-          <img src={file.thumbnail_url} alt={file.filename} className="w-full h-full object-cover" loading="lazy" />
+	          <img
+	            src={file.thumbnail_url}
+	            alt={file.filename}
+	            className="w-full h-full object-cover"
+	            loading="lazy"
+	            decoding="async"
+	          />
           {isScan && (
             <div className="absolute top-2 left-2 text-[10px] px-1.5 py-0.5 rounded bg-background/80 backdrop-blur font-medium">
               SCAN

@@ -390,10 +390,11 @@ export default function HotelsMapView({ hotels, onSelect, apiKey }: Props) {
                     {(h.banner_url || h.logo_url) ? (
                       <img
                         src={h.banner_url || h.logo_url || ""}
-                        alt={h.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                      />
+	                        alt={h.name}
+	                        loading="lazy"
+	                        decoding="async"
+	                        className="w-full h-full object-cover"
+	                      />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                         <Hotel className="w-7 h-7 text-primary/40" />

@@ -60,10 +60,11 @@ export default function PopularRoutesGrid({
                     <div className="w-10 h-10 rounded-xl bg-white border border-border/50 flex items-center justify-center shrink-0 overflow-hidden">
                       <img
                         src={getAirlineLogo(route.airline, 32)}
-                        alt="Airline logo"
-                        className="w-8 h-8 object-contain"
-                        loading="lazy"
-                      />
+	                        alt="Airline logo"
+	                        className="w-8 h-8 object-contain"
+	                        loading="lazy"
+	                        decoding="async"
+	                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 text-sm font-bold">

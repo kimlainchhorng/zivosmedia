@@ -70,7 +70,13 @@ export default function LodgingLostFoundSection({ storeId }: { storeId: string }
           onToggleActive={(r) => toggleActive.mutate({ id: r.id, active: r.active === false })}
           columns={[
             { key: "photo", label: "Photo", className: "w-14", render: (r) => r.photo_url ? (
-              <img src={r.photo_url} alt={r.item_name} className="h-10 w-10 rounded-md object-cover border border-border" loading="lazy" />
+	              <img
+	                src={r.photo_url}
+	                alt={r.item_name}
+	                className="h-10 w-10 rounded-md object-cover border border-border"
+	                loading="lazy"
+	                decoding="async"
+	              />
             ) : (
               <div className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-border bg-muted/30 text-muted-foreground"><ImageIcon className="h-3.5 w-3.5" /></div>
             )},

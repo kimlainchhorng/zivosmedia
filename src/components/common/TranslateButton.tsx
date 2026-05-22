@@ -55,12 +55,14 @@ export default function TranslateButton({ className = "" }: { className?: string
         className={`relative z-20 flex min-h-[42px] items-center justify-center gap-1.5 rounded-2xl border border-primary/20 bg-primary/10 px-3 text-[12px] font-bold text-primary shadow-sm touch-manipulation transition-all w-full ${className}`}
       >
         <Globe className="h-3.5 w-3.5 shrink-0" />
-        <img
-          src={getFlagUrl(currentLang.cc)}
-          alt=""
-          className="h-3 w-4 rounded-[2px] object-cover shadow-sm"
-          onError={(e) => { e.currentTarget.style.display = "none"; }}
-        />
+	        <img
+	          src={getFlagUrl(currentLang.cc)}
+	          alt=""
+	          className="h-3 w-4 rounded-[2px] object-cover shadow-sm"
+	          loading="lazy"
+	          decoding="async"
+	          onError={(e) => { e.currentTarget.style.display = "none"; }}
+	        />
         <span className="truncate">Translate</span>
         <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
       </motion.button>
@@ -94,8 +96,8 @@ export default function TranslateButton({ className = "" }: { className?: string
                       : "text-foreground hover:bg-muted/70"
                   }`}
                 >
-                  <img src={getFlagUrl(lang.cc)} alt="" className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-8 rounded object-cover opacity-[0.05] pointer-events-none group-hover:opacity-[0.12] transition-opacity" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                  <img src={getFlagUrl(lang.cc)} alt={lang.label} className="w-6 h-4 rounded-[3px] object-cover shadow-sm border border-border/30 relative z-10 shrink-0" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+	                  <img src={getFlagUrl(lang.cc)} alt="" className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-8 rounded object-cover opacity-[0.05] pointer-events-none group-hover:opacity-[0.12] transition-opacity" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+	                  <img src={getFlagUrl(lang.cc)} alt={lang.label} className="w-6 h-4 rounded-[3px] object-cover shadow-sm border border-border/30 relative z-10 shrink-0" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   <span className="relative z-10">{lang.label}</span>
                   {currentLanguage === lang.code && <Star className="w-3 h-3 text-primary fill-primary ml-auto relative z-10" />}
                 </motion.button>

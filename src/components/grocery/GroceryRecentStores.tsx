@@ -67,7 +67,7 @@ export default function GroceryRecentStores() {
                 {/* Glow ring on hover */}
                 <div className="absolute inset-0 rounded-2xl bg-primary/0 group-hover:bg-primary/10 blur-md transition-all duration-300" />
                 <div className="relative h-14 w-14 rounded-2xl bg-card border border-border/40 flex items-center justify-center p-2 shadow-sm group-hover:shadow-lg group-hover:border-primary/25 transition-all duration-200">
-                  <img src={store!.logo} alt={store!.name} className="h-full w-full object-contain" />
+	                  <img src={store!.logo} alt={store!.name} className="h-full w-full object-contain" loading="lazy" decoding="async" />
                 </div>
                 {/* Status indicator */}
                 <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">

@@ -5,13 +5,7 @@
 
 import { createClient } from "../_shared/deps.ts";
 import { AccessToken } from "npm:livekit-server-sdk@2.7.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface Body {
   roomName: string;
@@ -19,8 +13,10 @@ interface Body {
   asHost?: boolean;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("livekit-token", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const respond = (body: unknown, status = 200) => json(body, status, corsHeaders);
+  if (req.method !== "POST") return respond({ error: "Method not allowed" }, 405);
 
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
@@ -31,7 +27,7 @@ Deno.serve(async (req) => {
     const lkSecret = Deno.env.get("LIVEKIT_API_SECRET");
 
     if (!lkUrl || !lkKey || !lkSecret) {
-      return json({ error: "LiveKit secrets missing" }, 500);
+      return respond({ error: "LiveKit secrets missing" }, 500);
     }
 
     // Identify the caller from their JWT
@@ -40,15 +36,20 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userData, error: uerr } = await userClient.auth.getUser();
-    if (uerr || !userData.user) return json({ error: "Unauthorized" }, 401);
+    if (uerr || !userData.user) return respond({ error: "Unauthorized" }, 401);
     const user = userData.user;
 
     const body = (await req.json()) as Body;
     if (!body?.roomName || typeof body.roomName !== "string" || body.roomName.length > 80) {
-      return json({ error: "Invalid roomName" }, 400);
+      return respond({ error: "Invalid roomName" }, 400);
+    }
+    if (!/^[A-Za-z0-9._:-]+$/.test(body.roomName)) {
+      return respond({ error: "Invalid roomName" }, 400);
     }
 
-    const admin = createClient(url, serviceKey);
+    const admin = createClient(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     // Find or create the session row
     const { data: existing } = await admin
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
         })
         .select("id")
         .single();
-      if (cerr) return json({ error: cerr.message }, 500);
+      if (cerr) return respond({ error: cerr.message }, 500);
       sessionId = created.id;
       isHost = true;
     } else {
@@ -116,7 +117,7 @@ Deno.serve(async (req) => {
 
     const token = await at.toJwt();
 
-    return json({
+    return respond({
       token,
       url: lkUrl,
       sessionId,
@@ -124,13 +125,13 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg }, 500);
+    return respond({ error: msg }, 500);
   }
-});
+}, { rateLimit: "admin_action", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }

@@ -165,7 +165,7 @@ export default function GrocerySmartSearch({ value, onChange }: Props) {
                     className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-muted/50 transition-colors"
                   >
                     <div className="h-8 w-8 rounded-lg bg-background border border-border/30 flex items-center justify-center p-1 shrink-0">
-                      <img src={store.logo} alt={store.name} className="h-full w-full object-contain" />
+	                      <img src={store.logo} alt={store.name} className="h-full w-full object-contain" loading="lazy" decoding="async" />
                     </div>
                     <div className="flex-1 text-left">
                       <p className="text-[12px] font-semibold text-foreground">{store.name}</p>

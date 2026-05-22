@@ -162,7 +162,7 @@ export default function GlobalChatSearch({ open, onClose }: Props) {
 
   const Avatar = ({ src, fallback }: { src: string | null; fallback: string }) => (
     <div className="w-9 h-9 rounded-full bg-muted overflow-hidden flex items-center justify-center text-xs font-semibold text-muted-foreground shrink-0">
-      {src ? <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" /> : fallback.slice(0, 2).toUpperCase()}
+	      {src ? <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : fallback.slice(0, 2).toUpperCase()}
     </div>
   );
 

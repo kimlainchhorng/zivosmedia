@@ -9,6 +9,7 @@ import { serve, createClient } from "../_shared/deps.ts";
 import { withErrorHandling, HttpError } from "../_shared/errors.ts";
 import { parseBody, v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const Body = v.object({
   phone_e164: v.e164,
@@ -115,4 +116,9 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
   return ok(req, { success: true, message: "Phone number verified successfully" });
 }, "verify-otp-sms");
 
-serve(handler);
+serve(withSecurity("verify-otp-sms", handler, {
+  strictCors: true,
+  rateLimit: "auth_otp",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 90,
+}));

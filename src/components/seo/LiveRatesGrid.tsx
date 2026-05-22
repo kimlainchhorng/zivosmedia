@@ -45,10 +45,11 @@ function PropertyCard({ property }: { property: ZivoPropertyExtended }) {
         {property.imageUrl && (
           <img
             src={property.imageUrl}
-            alt={property.meta.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+	            alt={property.meta.name}
+	            className="w-full h-full object-cover"
+	            loading="lazy"
+	            decoding="async"
+	          />
         )}
         
         {/* Badges overlay */}

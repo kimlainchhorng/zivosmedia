@@ -138,7 +138,7 @@ export default function ConnectCallback() {
               }`}
             >
               {row.picture_url ? (
-                <img src={row.picture_url} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" />
+	                <img src={row.picture_url} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                   <Building2 className="w-5 h-5 text-muted-foreground" />

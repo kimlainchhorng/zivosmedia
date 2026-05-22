@@ -110,10 +110,11 @@ function ReelThumbnailInner({
         <img
           src={poster}
           alt={alt}
-          className={cn("absolute inset-0 h-full w-full object-cover", className)}
-          style={{ filter: filterCss || "none" }}
-          loading="lazy"
-        />
+	          className={cn("absolute inset-0 h-full w-full object-cover", className)}
+	          style={{ filter: filterCss || "none" }}
+	          loading="lazy"
+	          decoding="async"
+	        />
       ) : (
         <video
           src={`${url}#t=0.5`}

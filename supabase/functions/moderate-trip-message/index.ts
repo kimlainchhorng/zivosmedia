@@ -1,9 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SYSTEM_PROMPT = `You are a content moderator for in-trip messages between a rider and driver in a ride-share app.
 Classify each message as exactly one of:
@@ -12,20 +8,46 @@ Classify each message as exactly one of:
 - "blocked": clear harassment, threats, sexual content, scam attempts, hate speech, illegal coordination
 Respond ONLY with JSON: {"label":"clean|needs_review|blocked","reason":"<short reason>"}`;
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("moderate-trip-message", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const aiKey = Deno.env.get("LOVABLE_API_KEY");
-    const admin = createClient(supabaseUrl, serviceKey);
+    const authHeader = req.headers.get("authorization") ?? "";
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     const { message_id } = await req.json();
     if (!message_id) return new Response(JSON.stringify({ error: "message_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const { data: msg, error } = await admin.from("trip_messages").select("id, content, body, ride_request_id, sender_id").eq("id", message_id).maybeSingle();
     if (error || !msg) return new Response(JSON.stringify({ error: "message not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if ((msg as any).sender_id !== user.id) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const text = (msg.content || msg.body || "").toString().slice(0, 1000);
 
@@ -73,4 +95,4 @@ Deno.serve(async (req) => {
     console.error("[moderate-trip-message]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { rateLimit: "api_general", strictCors: true, trackNetwork: "suspicious" }));

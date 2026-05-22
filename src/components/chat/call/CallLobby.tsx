@@ -195,11 +195,12 @@ export default function CallLobby({
         {callType === "video" ? (
           <video
             ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`h-full w-full object-cover ${camOn ? "" : "opacity-0"}`}
-          />
+	            autoPlay
+	            playsInline
+	            muted
+	            preload="none"
+	            className={`h-full w-full object-cover ${camOn ? "" : "opacity-0"}`}
+	          />
         ) : null}
         {mediaError ? (
           <div className="absolute inset-0 z-20 grid place-items-center px-5 text-center">

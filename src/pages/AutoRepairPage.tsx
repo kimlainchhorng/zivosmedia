@@ -222,7 +222,7 @@ export default function AutoRepairPage() {
                       {/* Image */}
                       <div className="relative aspect-[16/9] overflow-hidden bg-muted">
                         {img ? (
-                          <img src={img} alt={shop.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
+	                          <img src={img} alt={shop.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-slate-500/10 to-primary/5">
                             🔧

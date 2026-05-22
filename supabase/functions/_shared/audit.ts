@@ -66,6 +66,43 @@ export async function recordSecurityEvent(input: SecurityEventInput): Promise<vo
   }
 }
 
+export interface NetworkEventInput {
+  route: string;
+  ipHash?: string | null;
+  country?: string | null;
+  region?: string | null;
+  city?: string | null;
+  asn?: string | null;
+  colo?: string | null;
+  userAgent?: string | null;
+  requestId?: string | null;
+  riskScore: number;
+  signals: string[];
+  blocked?: boolean;
+}
+
+export async function recordNetworkEvent(input: NetworkEventInput): Promise<void> {
+  try {
+    const sb = adminClient();
+    await sb.from("network_security_events").insert({
+      route: input.route,
+      ip_hash: input.ipHash ?? null,
+      country: input.country ?? null,
+      region: input.region ?? null,
+      city: input.city ?? null,
+      asn: input.asn ?? null,
+      colo: input.colo ?? null,
+      user_agent: input.userAgent ?? null,
+      request_id: input.requestId ?? null,
+      risk_score: input.riskScore,
+      signals: input.signals,
+      blocked: input.blocked ?? false,
+    });
+  } catch (e) {
+    console.error(JSON.stringify({ level: "error", msg: "network_event_failed", error: String(e) }));
+  }
+}
+
 export interface AuditInput {
   actorId?: string | null;
   action: string;

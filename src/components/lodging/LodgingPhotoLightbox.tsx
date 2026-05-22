@@ -102,9 +102,11 @@ export function LodgingPhotoLightbox({
             src={lqip}
             alt=""
             aria-hidden
-            className="absolute inset-0 w-full h-full object-contain"
-            style={{ filter: "blur(20px)", transform: "scale(1.05)" }}
-          />
+	            className="absolute inset-0 w-full h-full object-contain"
+	            loading="lazy"
+	            decoding="async"
+	            style={{ filter: "blur(20px)", transform: "scale(1.05)" }}
+	          />
         )}
         {!lqip && !isLoaded && !isErrored && (
           <Skeleton className="absolute inset-0" />
@@ -124,8 +126,10 @@ export function LodgingPhotoLightbox({
             <img
               key={`${src}-${zoomNudge}`}
               src={src}
-              alt={`${name} photo ${index + 1} of ${total}`}
-              onLoad={() => setLoaded((p) => ({ ...p, [index]: true }))}
+	              alt={`${name} photo ${index + 1} of ${total}`}
+	              loading="lazy"
+	              decoding="async"
+	              onLoad={() => setLoaded((p) => ({ ...p, [index]: true }))}
               onError={() => setErrored((p) => ({ ...p, [index]: true }))}
               draggable={false}
               style={{

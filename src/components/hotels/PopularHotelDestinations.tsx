@@ -41,9 +41,10 @@ export default function PopularHotelDestinations() {
                 <img
                   src={photo?.src || `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=400&fit=crop&q=75&fm=webp`}
                   alt={`Hotels in ${city}`}
-                  className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-700"
-                  loading="lazy"
-                  width={400}
+	                  className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-700"
+	                  loading="lazy"
+	                  decoding="async"
+	                  width={400}
                   height={400}
                 />
                 

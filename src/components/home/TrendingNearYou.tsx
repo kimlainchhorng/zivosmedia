@@ -102,10 +102,11 @@ function TrendingCard({ store, index }: { store: TrendingStore; index: number })
         {store.logo_url ? (
           <img
             src={store.logo_url}
-            alt={store.store_name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+	            alt={store.store_name}
+	            className="w-full h-full object-cover"
+	            loading="lazy"
+	            decoding="async"
+	          />
         ) : (
           <Store className="h-10 w-10 text-muted-foreground/40" />
         )}

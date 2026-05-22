@@ -10,8 +10,9 @@
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { notifyLodgingBookingConfirmed, notifyLodgingRefundIssued } from "../_shared/lodging-notifications.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("stripe-lodging-webhook", async (req) => {
   if (req.method !== "POST") {
     return new Response("method not allowed", { status: 405 });
   }
@@ -37,7 +38,9 @@ Deno.serve(async (req) => {
     return new Response(`signature error: ${e.message}`, { status: 400 });
   }
 
-  const admin = createClient(supabaseUrl, serviceKey);
+  const admin = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
   const eventType = event.type as string;
   const eventStamp = new Date().toISOString();
 
@@ -405,4 +408,4 @@ Deno.serve(async (req) => {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
-});
+}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

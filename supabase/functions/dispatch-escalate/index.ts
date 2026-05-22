@@ -12,8 +12,8 @@ Deno.serve(async (_req) => {
     // Expire stale offers
     const { data: expired } = await admin
       .from("job_offers")
-      .update({ status: "expired" } as any)
-      .eq("status", "pending")
+      .update({ offer_status: "expired", status: "expired", expired_at: nowIso } as any)
+      .eq("offer_status", "sent")
       .lt("expires_at", nowIso)
       .select("ride_request_id");
 

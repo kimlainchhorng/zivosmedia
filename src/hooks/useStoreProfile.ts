@@ -4,6 +4,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { GROCERY_MARKETPLACE_CATEGORIES } from "@/config/groceryStores";
 
 export interface StoreProfile {
   id: string;
@@ -121,6 +122,7 @@ export function useMarketStores(market: string) {
         .select("id,name,slug,banner_url,logo_url,category,market,hours,rating,delivery_min")
         .eq("market", market)
         .eq("is_active", true)
+        .in("category", GROCERY_MARKETPLACE_CATEGORIES)
         .order("name");
       if (error) throw error;
       return (data || []) as Pick<StoreProfile,

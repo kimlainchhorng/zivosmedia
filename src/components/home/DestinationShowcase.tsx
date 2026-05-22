@@ -104,10 +104,11 @@ export default function DestinationShowcase() {
                 }}
               >
                 <img
-                  src={dest.image}
-                  alt={`${dest.city}, ${dest.country} — ${dest.tagline}`}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+	                  src={dest.image}
+	                  alt={`${dest.city}, ${dest.country} — ${dest.tagline}`}
+	                  loading="lazy"
+	                  decoding="async"
+	                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 {/* Depth gradient */}
                 <div

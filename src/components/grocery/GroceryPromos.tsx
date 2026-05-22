@@ -40,7 +40,7 @@ export default function GroceryPromos() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="h-10 w-10 rounded-xl bg-background border border-border/30 flex items-center justify-center p-1.5 shadow-sm">
-                  <img src={store.logo} alt={store.name} className="h-full w-full object-contain" />
+	                  <img src={store.logo} alt={store.name} className="h-full w-full object-contain" loading="lazy" decoding="async" />
                 </div>
                 {(() => {
                   const st = getStoreStatus(store.hours, country);

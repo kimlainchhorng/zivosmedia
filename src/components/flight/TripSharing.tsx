@@ -192,7 +192,7 @@ export const TripSharing = ({
           {/* QR Code Display */}
           <div className="flex items-center justify-center p-4 rounded-xl bg-white">
             {showQr ? (
-              <img src={qrUrl} alt="QR code for trip link" className="w-[180px] h-[180px] rounded-xl" />
+	              <img src={qrUrl} alt="QR code for trip link" className="w-[180px] h-[180px] rounded-xl" loading="lazy" decoding="async" />
             ) : (
               <div className="w-24 h-24 rounded-xl flex items-center justify-center cursor-pointer bg-secondary" onClick={() => setShowQr(true)}>
                 <QrCode className="w-16 h-16 text-primary-foreground" />

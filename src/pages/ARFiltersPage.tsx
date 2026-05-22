@@ -120,7 +120,7 @@ export default function ARFiltersPage() {
                 className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted shadow-sm text-left active:opacity-90"
                 aria-pressed={isSaved}
               >
-                <img src={f.cover} alt={f.name} className="w-full h-full object-cover" loading="lazy" />
+	                <img src={f.cover} alt={f.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute top-2 left-2 inline-flex items-center gap-1 bg-white/95 text-foreground text-[10px] font-bold rounded-full px-2 py-0.5">
                   <Icon className="h-2.5 w-2.5" />

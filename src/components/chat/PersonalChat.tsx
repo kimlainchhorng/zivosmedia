@@ -2970,7 +2970,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   aria-label={`Send sticker: ${s.alt}`}
                   title={s.alt}
                 >
-                  <img src={s.src} alt={s.alt} className="w-full h-full object-contain" loading="lazy" />
+	                  <img src={s.src} alt={s.alt} className="w-full h-full object-contain" loading="lazy" decoding="async" />
                 </button>
               ))}
             </div>

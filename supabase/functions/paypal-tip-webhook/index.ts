@@ -6,6 +6,7 @@
  */
 import { createClient } from "../_shared/deps.ts";
 import { creditCreatorTipToWallet } from "../_shared/tipWalletCredit.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "live") === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
@@ -47,11 +48,13 @@ async function verify(req: Request, raw: string): Promise<boolean> {
   return (await res.json()).verification_status === "SUCCESS";
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("paypal-tip-webhook", async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const admin = createClient(supabaseUrl, serviceKey);
+  const admin = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   const raw = await req.text();
   let event: any;
@@ -130,4 +133,4 @@ Deno.serve(async (req) => {
 
   await admin.from("tip_paypal_webhook_events").update({ processing_status: processingStatus, error_message: processingError, tip_id: resolvedTipId }).eq("id", logRowId);
   return new Response(JSON.stringify({ received: true, status: processingStatus }), { status: 200, headers: { "Content-Type": "application/json" } });
-});
+}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

@@ -43,7 +43,6 @@ import zivoShoppingIcon from "@/assets/zivo-shopping.webp";
 
 // Lazy-load below-fold heavy components
 const LiveTripTracker = lazy(() => import("@/components/home/widgets/LiveTripTracker"));
-const TrendingNearYou = lazy(() => import("@/components/home/TrendingNearYou"));
 const QuickReorderCarousel = lazy(() => import("@/components/home/widgets/QuickReorderCarousel"));
 const PriceAlertsWidget = lazy(() => import("@/components/home/widgets/PriceAlertsWidget"));
 const ZivoMobileNav = lazy(() => import("@/components/app/ZivoMobileNav"));
@@ -62,6 +61,7 @@ import Hotel from "lucide-react/dist/esm/icons/hotel";
 import Gift from "lucide-react/dist/esm/icons/gift";
 import Users from "lucide-react/dist/esm/icons/users";
 import Share2 from "lucide-react/dist/esm/icons/share-2";
+import Copy from "lucide-react/dist/esm/icons/copy";
 import Clock from "lucide-react/dist/esm/icons/clock";
 import Wallet from "lucide-react/dist/esm/icons/wallet";
 import CreditCard from "lucide-react/dist/esm/icons/credit-card";
@@ -643,7 +643,16 @@ const AppHome = () => {
   const { points, getNextTierProgress } = useLoyaltyPoints();
   const loyaltySummary = points as LoyaltySummary | null;
   const { active: activeRewards } = useUserRewards();
-  const { referralCode, shareReferral } = useReferrals();
+  const {
+    referralCode,
+    referrals = [],
+    isLoading: referralsLoading,
+    getCurrentTier,
+    getNextTier,
+    getShareUrl,
+    copyReferralLink,
+    shareReferral,
+  } = useReferrals();
   const destKeys = isKH ? [...cambodiaDestKeysKH] : [...popularDestKeysUS];
   const { data: destPrices = {}, isLoading: destPricesLoading } = useDestinationPrices(destKeys, isKH);
   const { data: allBookings = [] } = useScheduledBookingsQuery();
@@ -664,6 +673,17 @@ const AppHome = () => {
   const { balanceDollars } = useCustomerWallet();
   const { getDefault } = useLocalPaymentMethods();
   const defaultCard = getDefault();
+  const completedReferralCount = referrals.filter((referral) => referral.status === "qualified" || referral.status === "credited").length;
+  const pendingReferralCount = referrals.filter((referral) => referral.status === "pending").length;
+  const totalReferralCount = referralCode?.total_referrals ?? referrals.length;
+  const referralPointsEarned = totalReferralCount * REFERRAL_REWARDS.referrer.pointsPerReferral;
+  const currentReferralTier = getCurrentTier();
+  const nextReferralTier = getNextTier();
+  const referralsToNextTier = nextReferralTier ? Math.max(nextReferralTier.min_referrals - totalReferralCount, 0) : 0;
+  const referralTierProgress = nextReferralTier
+    ? Math.min((totalReferralCount / Math.max(nextReferralTier.min_referrals, 1)) * 100, 100)
+    : 100;
+  const referralShareUrl = referralCode?.code ? getShareUrl() : "";
 
   const hasAnyHomeData =
     Boolean(profile) ||
@@ -972,9 +992,6 @@ const AppHome = () => {
             </div>
           )}
 
-          {/* ─── FOR YOU (personalized stores — grouped with personal sections) ─── */}
-          <Suspense fallback={<div className="h-40 rounded-2xl bg-muted/30 animate-pulse mx-5" />}><TrendingNearYou /></Suspense>
-
           {/* ─── QUICK REBOOK (moved up — personal cluster) ─── */}
           <div className="px-5 pb-3">
             <Suspense fallback={null}><QuickReorderCarousel /></Suspense>
@@ -1222,35 +1239,104 @@ const AppHome = () => {
             </motion.button>
           )}
 
-          {/* ─── REFERRAL CTA ─── */}
-          {user && referralCode && (
+          {/* ─── REFERRAL WORKFLOW ─── */}
+          {user && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-border p-5 relative overflow-hidden shadow-sm bg-secondary"
+              className="rounded-2xl border border-border/70 p-3.5 relative overflow-hidden shadow-sm bg-card"
             >
-              <div className="absolute -top-8 -right-8 w-24 h-24 bg-secondary rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-500 via-rose-500 to-fuchsia-600" />
               <div className="relative z-10">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                    <Gift className="w-4 h-4 text-foreground" />
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Gift className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-foreground leading-tight">Invite friends, earn rewards</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                        Friends get {REFERRAL_REWARDS.newUser.points.toLocaleString()} pts. You earn {REFERRAL_REWARDS.referrer.pointsPerReferral.toLocaleString()} pts after they book.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">Invite Friends, Earn Rewards</p>
-                    <p className="text-[11px] text-muted-foreground">Earn {REFERRAL_REWARDS.referrer.pointsPerReferral.toLocaleString()} ZIVO points per friend who joins</p>
+                  <Badge variant="secondary" className="rounded-full shrink-0 px-2 py-0.5 text-[10px]">
+                    {currentReferralTier?.tier_name || "Standard"}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-3 gap-1.5 mt-3">
+                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Users className="w-3.5 h-3.5 text-primary" />
+                      <span className="truncate text-[10px]">Joined</span>
+                    </div>
+                    <p className="mt-1 text-base font-black text-foreground">{totalReferralCount.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="truncate text-[10px]">Points</span>
+                    </div>
+                    <p className="mt-1 text-base font-black text-foreground">{referralPointsEarned.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Clock className="w-3.5 h-3.5 text-blue-500" />
+                      <span className="truncate text-[10px]">Pending</span>
+                    </div>
+                    <p className="mt-1 text-base font-black text-foreground">{pendingReferralCount.toLocaleString()}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-muted/50 rounded-xl px-3 py-2.5 flex items-center border border-border/30">
-                    <span className="text-sm font-mono font-bold text-foreground tracking-widest">{referralCode.code}</span>
+
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {referralsLoading ? "Syncing invite" : `${completedReferralCount.toLocaleString()} qualified`}
+                    </p>
+                    <p className="truncate text-xs font-bold text-foreground select-all" title={referralShareUrl || undefined}>
+                      {referralCode?.code ? `Code ${referralCode.code}` : referralShareUrl || "Preparing your link"}
+                    </p>
                   </div>
                   <Button
+                    type="button"
+                    variant="outline"
                     size="sm"
-                    onClick={(e) => { e.stopPropagation(); shareReferral(); }}
-                    className="h-[42px] px-4 rounded-xl font-bold shadow-sm"
+                    disabled={!referralShareUrl}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void copyReferralLink();
+                    }}
+                    className="h-8 rounded-lg px-2.5 text-xs font-bold shrink-0"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+
+                <div className="mt-2.5">
+                  <div className="flex items-center justify-between gap-3 text-[11px]">
+                    <span className="truncate font-bold text-foreground">
+                      {nextReferralTier ? `${referralsToNextTier.toLocaleString()} more to ${nextReferralTier.tier_name}` : "Top referral tier unlocked"}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">{Math.round(referralTierProgress)}%</span>
+                  </div>
+                  <Progress value={referralTierProgress} className="mt-1.5 h-1 bg-primary/15" />
+                </div>
+
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!referralShareUrl}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void shareReferral();
+                    }}
+                    className="h-9 w-full rounded-xl text-sm font-bold shadow-sm"
                   >
                     <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                    Share
+                    Share invite
                   </Button>
                 </div>
               </div>

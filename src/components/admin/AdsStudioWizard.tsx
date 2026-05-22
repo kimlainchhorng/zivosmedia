@@ -361,7 +361,13 @@ export default function AdsStudioWizard({ storeId, storeName, storeSlug }: Props
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {result.images.map((img: any, i: number) => (
                   <div key={i} className="relative group">
-                    <img src={img.url} alt="ad" className="w-full rounded-lg border" loading="lazy" />
+	                    <img
+	                      src={img.url}
+	                      alt="ad"
+	                      className="w-full rounded-lg border"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                     <Badge className="absolute top-2 left-2 text-[10px]">{img.aspect}</Badge>
                     <a href={img.url} download className="absolute top-2 right-2 bg-background/90 rounded p-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
                       <Download className="h-3.5 w-3.5" />

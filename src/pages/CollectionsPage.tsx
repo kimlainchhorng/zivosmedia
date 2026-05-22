@@ -304,7 +304,7 @@ export default function CollectionsPage() {
                     aria-label={`Open collection ${c.name}`}
                   >
                     {c.cover_url ? (
-                      <img src={c.cover_url} alt={c.name} className="w-full h-full object-cover" loading="lazy" />
+	                      <img src={c.cover_url} alt={c.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className={cn("w-full h-full flex items-center justify-center", colorClass(c.color))}>
                         <FolderHeart className="h-10 w-10 text-white/85" />

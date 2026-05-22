@@ -626,7 +626,7 @@ export default function EatsLanding() {
         className="p-4 rounded-2xl bg-card border border-border/40 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 transition-all duration-200 space-y-2">
         <div className="flex items-center gap-4">
           {item.image_url ? (
-            <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-xl object-cover shrink-0" loading="lazy" />
+	            <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-xl object-cover shrink-0" loading="lazy" decoding="async" />
           ) : (
             <div className="w-16 h-16 rounded-xl shrink-0 bg-gradient-to-br from-orange-500/15 via-amber-500/10 to-rose-500/10 flex items-center justify-center">
               <UtensilsCrossed className="w-6 h-6 text-foreground/40" />
@@ -1149,7 +1149,7 @@ export default function EatsLanding() {
                         <button type="button" onClick={() => { trackRecentlyViewed(restaurant.id); setSelectedRestaurantId(restaurant.id); setStep("restaurant"); }} className="block w-full text-left touch-manipulation active:scale-[0.99]">
                           <div className="relative aspect-[16/10] overflow-hidden bg-muted/20">
                             {restaurant.cover_image_url ? (
-                              <img src={restaurant.cover_image_url} alt={restaurant.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
+	                              <img src={restaurant.cover_image_url} alt={restaurant.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async" />
                             ) : (
                               <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-orange-500/20 via-amber-500/15 to-rose-500/10 relative">
                                 <div className="absolute top-0 left-0 w-1/2 h-1/2 rounded-full bg-white/30 blur-2xl" />
@@ -1276,7 +1276,7 @@ export default function EatsLanding() {
                   {cart.slice(0, 3).map((it, idx) => (
                     <div key={it.menuItemId} className="w-8 h-8 rounded-full bg-white/30 ring-2 ring-primary overflow-hidden flex items-center justify-center" style={{ zIndex: 3 - idx }}>
                       {it.imageUrl
-                        ? <img src={it.imageUrl} alt="" className="w-full h-full object-cover" />
+	                        ? <img src={it.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         : <UtensilsCrossed className="w-3.5 h-3.5 text-white" />}
                     </div>
                   ))}
@@ -1418,7 +1418,7 @@ export default function EatsLanding() {
             {/* Cover image */}
             <div className="relative h-48 overflow-hidden bg-muted/20">
               {currentRestaurant.cover_image_url ? (
-                <img src={currentRestaurant.cover_image_url} alt={currentRestaurant.name} className="w-full h-full object-cover" loading="lazy" />
+	                <img src={currentRestaurant.cover_image_url} alt={currentRestaurant.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-orange-500/20 via-amber-500/15 to-rose-500/10 relative">
                   <div className="absolute top-0 left-0 w-1/2 h-1/2 rounded-full bg-white/30 blur-3xl" />
@@ -1623,7 +1623,7 @@ export default function EatsLanding() {
                           <div key={`feat-${item.id}`}
                             className="shrink-0 w-40 rounded-2xl bg-card border border-border/40 p-3 text-left transition-all hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 relative">
                             {item.image_url ? (
-                              <img src={item.image_url} alt={item.name} className="w-full h-20 rounded-lg object-cover mb-2" loading="lazy" />
+	                              <img src={item.image_url} alt={item.name} className="w-full h-20 rounded-lg object-cover mb-2" loading="lazy" decoding="async" />
                             ) : (
                               <div className="w-full h-20 rounded-lg mb-2 bg-gradient-to-br from-orange-500/15 via-amber-500/10 to-rose-500/10 flex items-center justify-center">
                                 <UtensilsCrossed className="w-6 h-6 text-foreground/40" />
@@ -1771,7 +1771,7 @@ export default function EatsLanding() {
                       <div key={item.menuItemId} className="p-4 rounded-2xl bg-card border border-border/40 space-y-2">
                         <div className="flex items-center gap-4">
                           {item.imageUrl ? (
-                            <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+	                            <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl object-cover shrink-0" loading="lazy" decoding="async" />
                           ) : (
                             <div className="w-12 h-12 rounded-xl shrink-0 bg-gradient-to-br from-orange-500/15 via-amber-500/10 to-rose-500/10 flex items-center justify-center">
                               <UtensilsCrossed className="w-5 h-5 text-foreground/40" />
@@ -1965,7 +1965,7 @@ export default function EatsLanding() {
                   const slots: { iso: string; label: string }[] = [];
                   const now = new Date();
                   // 30-min slots starting 1h from now, next 8 slots
-                  let next = new Date(Math.ceil((now.getTime() + 60 * 60 * 1000) / (30 * 60 * 1000)) * 30 * 60 * 1000);
+                  const next = new Date(Math.ceil((now.getTime() + 60 * 60 * 1000) / (30 * 60 * 1000)) * 30 * 60 * 1000);
                   for (let i = 0; i < 8; i++) {
                     const d = new Date(next.getTime() + i * 30 * 60 * 1000);
                     slots.push({

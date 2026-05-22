@@ -101,6 +101,18 @@ export const STORE_CATEGORY_OPTIONS: { value: StoreCategory; label: string; grou
   { value: "other", label: "Other", group: "Other" },
 ];
 
+export const GROCERY_MARKETPLACE_CATEGORIES: StoreCategory[] = [
+  "grocery",
+  "supermarket",
+  "convenience",
+  "food-market",
+  "pharmacy",
+];
+
+export function isGroceryMarketplaceCategory(category?: string | null): category is StoreCategory {
+  return !!category && GROCERY_MARKETPLACE_CATEGORIES.includes(category as StoreCategory);
+}
+
 export interface StoreConfig {
   name: StoreName;
   slug: string;

@@ -242,7 +242,7 @@ export function GroceryProductDetail({
                   <div className="flex items-center gap-2.5">
                     {storeLogo ? (
                       <div className="h-9 w-9 rounded-xl bg-background border border-border/40 shadow-sm flex items-center justify-center p-1">
-                        <img src={storeLogo} alt={product.store} className="h-full w-full object-contain" />
+	                        <img src={storeLogo} alt={product.store} className="h-full w-full object-contain" loading="lazy" decoding="async" />
                       </div>
                     ) : (
                       <div className="h-9 w-9 rounded-xl bg-background border border-border/40 shadow-sm flex items-center justify-center">
@@ -498,10 +498,12 @@ export function GroceryProductDetail({
                             {rp.image ? (
                               <img
                                 src={rp.image}
-                                alt={rp.name}
-                                className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300"
-                                referrerPolicy="no-referrer"
-                              />
+	                                alt={rp.name}
+	                                className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300"
+	                                loading="lazy"
+	                                decoding="async"
+	                                referrerPolicy="no-referrer"
+	                              />
                             ) : (
                               <Package className="h-8 w-8 text-muted-foreground/10" />
                             )}

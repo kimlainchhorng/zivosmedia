@@ -20,11 +20,13 @@ const ZivoLogo = forwardRef<HTMLDivElement, ZivoLogoProps>(({ size = "md", showT
   
   return (
     <div ref={ref} className={cn("flex items-center gap-2", sizes.container, className)}>
-      <img
-        src={zivoLogoPng}
-        alt="ZIVO"
-        className={cn("object-contain rounded-xl", sizes.icon)}
-      />
+	      <img
+	        src={zivoLogoPng}
+	        alt="ZIVO"
+	        className={cn("object-contain rounded-xl", sizes.icon)}
+	        loading="eager"
+	        decoding="async"
+	      />
       
       {showText && (
         <span className={cn(

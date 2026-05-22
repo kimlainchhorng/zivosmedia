@@ -5,6 +5,7 @@
  *        npm run deploy:update:immediate -- --message="Critical fix"
  *
  * Requires .env.deploy with:
+ *   SUPABASE_URL=https://<project-ref>.supabase.co
  *   SUPABASE_SERVICE_ROLE_KEY=eyJ...
  */
 
@@ -23,7 +24,7 @@ const ROOT = join(__dirname, "..");
 // Load deploy env vars
 config({ path: join(ROOT, ".env.deploy") });
 
-const SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = "app-updates";
 const args = process.argv.slice(2);
@@ -47,11 +48,17 @@ const mandatory = args.includes("--mandatory") || activation === "immediate";
 const message = readOption("--message");
 const minNativeVersion = readOption("--min-native-version");
 
-if (!SERVICE_ROLE_KEY) {
-  console.error("\nERROR: SUPABASE_SERVICE_ROLE_KEY not found.");
-  console.error("Create .env.deploy with your service role key from:");
-  console.error("  https://supabase.com/dashboard/project/slirphzzwcogdbkeicff/settings/api\n");
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  console.error("\nERROR: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not found.");
+  console.error("Create .env.deploy with:");
+  console.error("  SUPABASE_URL=https://<project-ref>.supabase.co");
+  console.error("  SUPABASE_SERVICE_ROLE_KEY=<service-role-key>\n");
   process.exit(1);
+}
+
+if (!args.includes("--skip-preflight")) {
+  console.log("\nRunning production preflight...");
+  execSync("node scripts/deploy/preflight.mjs --strict --skip-build", { cwd: ROOT, stdio: "inherit" });
 }
 
 // ── 1. Bump patch version ────────────────────────────────────────────────────

@@ -47,9 +47,11 @@ export default function AvatarPreviewSheet({ open, src, name, initials, onClose 
           >
             {src ? (
               <img
-                src={src}
-                alt={name}
-                draggable={false}
+	                src={src}
+	                alt={name}
+	                loading="eager"
+	                decoding="async"
+	                draggable={false}
                 className="rounded-full object-cover w-[78vw] max-w-[420px] aspect-square shadow-2xl select-none"
               />
             ) : (

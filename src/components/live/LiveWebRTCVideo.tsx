@@ -212,10 +212,11 @@ export default function LiveWebRTCVideo({
   return (
     <video
       ref={videoRef}
-      autoPlay
-      playsInline
-      muted={muted}
-      className={className}
+	      autoPlay
+	      playsInline
+	      muted={muted}
+	      preload="none"
+	      className={className}
       data-state={state}
     />
   );

@@ -762,7 +762,15 @@ export default function AutoRepairPartShopSection({ storeId }: Props) {
               <Label className="text-xs">Part Image</Label>
               <div className="mt-1 flex items-center gap-3">
                 {(form as any).image_url
-                  ? <img src={(form as any).image_url} alt="part" className="h-16 w-16 rounded-lg object-cover border" />
+	                  ? (
+	                    <img
+	                      src={(form as any).image_url}
+	                      alt="part"
+	                      className="h-16 w-16 rounded-lg object-cover border"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
+	                  )
                   : <div className="h-16 w-16 rounded-lg border border-dashed border-border flex items-center justify-center bg-muted/40">
                       <Package className="w-6 h-6 text-muted-foreground/40" />
                     </div>
@@ -878,7 +886,15 @@ function PartCard({ part: p, onEdit, onAdjust, onRemove }: { part: Part; onEdit:
         {/* Image */}
         <div className="aspect-[4/3] bg-muted/50 flex items-center justify-center relative">
           {p.image_url
-            ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+	            ? (
+	              <img
+	                src={p.image_url}
+	                alt={p.name}
+	                className="w-full h-full object-cover"
+	                loading="lazy"
+	                decoding="async"
+	              />
+	            )
             : <Package className="w-10 h-10 text-muted-foreground/30" />}
           <div className="absolute top-1.5 left-1.5 flex gap-1 flex-wrap">
             {conditionBadge(p.condition)}

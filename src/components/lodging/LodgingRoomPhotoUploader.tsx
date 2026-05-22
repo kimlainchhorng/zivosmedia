@@ -116,7 +116,7 @@ export function LodgingRoomPhotoUploader({
         </button>
       ) : (
         <div className="relative w-full h-40 rounded-xl overflow-hidden border border-border bg-muted/30 group">
-          <img src={coverUrl} alt="Cover" className="h-full w-full object-cover" />
+	          <img src={coverUrl} alt="Cover" className="h-full w-full object-cover" loading="lazy" decoding="async" />
           {/* Top gradient for legibility */}
           <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
           {/* Cover badge */}
@@ -154,7 +154,7 @@ export function LodgingRoomPhotoUploader({
                     isCover ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <img src={url} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+	                  <img src={url} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   {isCover && (
                     <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
                       <Star className="h-4 w-4 text-primary-foreground fill-primary drop-shadow" />
@@ -192,7 +192,7 @@ export function LodgingRoomPhotoUploader({
           const isCover = i === safeCover;
           return (
             <div key={url + i} className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted/30 group">
-              <img src={url} alt={`Room ${i + 1}`} className="h-full w-full object-cover" />
+	              <img src={url} alt={`Room ${i + 1}`} className="h-full w-full object-cover" loading="lazy" decoding="async" />
 
               {isCover && (
                 <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center gap-0.5">

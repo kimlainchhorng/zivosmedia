@@ -1,15 +1,17 @@
 // Google Ads OAuth start. Returns Google authorize URL with adwords scope.
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SCOPES = ["https://www.googleapis.com/auth/adwords", "openid", "email"].join(" ");
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("google-ads-oauth-start", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
   try {
     const auth = req.headers.get("Authorization");
     if (!auth?.startsWith("Bearer ")) {
@@ -27,7 +29,10 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const storeId = String(body?.store_id || "");
-    const returnUrl = String(body?.return_url || "/connect/callback");
+    const requestedReturnUrl = String(body?.return_url || "/connect/callback");
+    const returnUrl = requestedReturnUrl.startsWith("/") && !requestedReturnUrl.startsWith("//")
+      ? requestedReturnUrl
+      : "/connect/callback";
     if (!storeId) {
       return new Response(JSON.stringify({ error: "store_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -36,7 +41,21 @@ Deno.serve(async (req) => {
     if (!clientId) throw new Error("GOOGLE_ADS_CLIENT_ID not configured");
 
     const state = crypto.randomUUID();
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: isOwner } = await admin.rpc("is_store_owner", {
+      _store_id: storeId,
+      _user_id: userRes.user.id,
+    });
+    if (isOwner !== true) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const { error: insertErr } = await admin.from("oauth_states").insert({
       state,
       user_id: userRes.user.id,
@@ -65,4 +84,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "admin_action", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

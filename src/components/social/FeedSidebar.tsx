@@ -22,7 +22,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useUserAccess } from "@/hooks/useUserAccess";
 import { useUsername } from "@/hooks/useUsername";
 import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
-import { resolvePublicBusinessPageRoute, resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
+import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
 import {
   Sheet,
@@ -135,8 +135,15 @@ export default function FeedSidebar() {
   const isSupport = access?.isSupport ?? false;
   const isModerator = access?.isModerator ?? false;
   const isOperations = access?.isOperations ?? false;
+  const hasBrandShopIdentity = Boolean(brandName && brandName.trim().toLowerCase() !== "zivo");
+  const hasOwnedShopIdentity = isStoreOwner || ownerStores.length > 0 || hasBrandShopIdentity;
+  const canOpenShopDashboard = !!user;
+  const primaryOwnerStore = ownerStores[0];
+  const shopDashboardPath = primaryOwnerStore
+    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id).path
+    : "/shop-dashboard";
 
-  const hasDashboard = isAdmin || isStoreOwner || isDriver || isRestaurantOwner || isHotelOwner || isSupport || isModerator || isOperations;
+  const hasDashboard = isAdmin || canOpenShopDashboard || isDriver || isRestaurantOwner || isHotelOwner || isSupport || isModerator || isOperations;
 
   return (
     <>
@@ -206,11 +213,7 @@ export default function FeedSidebar() {
                 ? "Tap to complete your business"
                 : store.normalizedCategory;
               const handleClick = () => {
-                if (placeholder) {
-                  navigate(resolveBusinessDashboardRoute(store.category, store.id).path);
-                } else {
-                  navigate(resolvePublicBusinessPageRoute(store.category, store.id, (store as any).slug));
-                }
+                navigate(resolveBusinessDashboardRoute(store.category, store.id).path);
               };
               return (
                 <button type="button"
@@ -378,11 +381,11 @@ export default function FeedSidebar() {
                   </button>
                 )}
 
-                {isStoreOwner && (
+                {canOpenShopDashboard && (
                   <button type="button"
                     onClick={() => {
                       setShowSwitch(false);
-                      navigate("/shop-dashboard");
+                      navigate(shopDashboardPath);
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
                   >
@@ -462,11 +465,11 @@ export default function FeedSidebar() {
             )}
 
             {/* Become a Partner section — shown to users who don't have those roles yet */}
-            {(!isStoreOwner || !isDriver) && (
+            {(!hasOwnedShopIdentity || !isDriver) && (
               <div className="pt-3 space-y-1">
                 <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 pb-1">Become a Partner</p>
                 
-                {!isStoreOwner && (
+                {!hasOwnedShopIdentity && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/partner-with-zivo"); }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"

@@ -1,11 +1,14 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-grocery-checkout", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   try {
@@ -21,16 +24,27 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Optionally authenticate
     const authHeader = req.headers.get("authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user } } = await userClient.auth.getUser();
+    const { data: { user }, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
 
     const { items, delivery_address, customer_name, customer_phone, tip, store } = await req.json();
 
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       return new Response(JSON.stringify({ error: "No items provided" }), {
         status: 400,
         headers: { ...cors, "Content-Type": "application/json" },
@@ -52,7 +66,7 @@ Deno.serve(async (req) => {
     const SERVICE_FEE_PCT = 5; // percentage
     const SERVICE_FEE_MIN = 250; // cents = $2.50
     const SERVICE_FEE_MAX = 1000; // cents = $10.00
-    const tipCents = Math.round((tip || 0) * 100);
+    const tipCents = Math.max(0, Math.round(Number(tip || 0) * 100));
 
     // Estimate distance (~3 miles, ~30 min as fallback)
     const estMiles = 3;
@@ -61,10 +75,20 @@ Deno.serve(async (req) => {
     const deliveryFeeCents = Math.min(DELIVERY_MAX, Math.max(DELIVERY_MIN, rawDelivery));
 
     // Calculate subtotal in cents
-    const subtotalCents = items.reduce(
-      (sum: number, item: any) => sum + Math.round(item.price * 100) * item.quantity,
-      0
-    );
+    const subtotalCents = items.reduce((sum: number, item: any) => {
+      const priceCents = Math.round(Number(item?.price || 0) * 100);
+      const quantity = Math.floor(Number(item?.quantity || 0));
+      if (!Number.isFinite(priceCents) || !Number.isFinite(quantity) || priceCents < 0 || quantity <= 0) {
+        return sum;
+      }
+      return sum + priceCents * quantity;
+    }, 0);
+    if (subtotalCents <= 0) {
+      return new Response(JSON.stringify({ error: "Invalid item pricing" }), {
+        status: 400,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
 
     // Service fee: 5% of subtotal with min $2.50 and max $10.00
     const rawServiceFee = Math.round(subtotalCents * SERVICE_FEE_PCT / 100);
@@ -73,11 +97,13 @@ Deno.serve(async (req) => {
     const totalCents = subtotalCents + deliveryFeeCents + serviceFeeCents + tipCents;
 
     // Save order to DB first
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
     const { data: order, error: orderErr } = await admin
       .from("shopping_orders")
       .insert({
-        user_id: user?.id || null,
+        user_id: user.id,
         store: store || "Unknown",
         order_type: "shopping_delivery",
         status: "pending_payment",
@@ -87,7 +113,7 @@ Deno.serve(async (req) => {
         delivery_address,
         customer_name,
         customer_phone: customer_phone || null,
-        customer_email: user?.email || null,
+        customer_email: user.email || null,
         placed_at: new Date().toISOString(),
       })
       .select("id")
@@ -108,9 +134,9 @@ Deno.serve(async (req) => {
           name: item.name,
           ...(item.image ? { images: [item.image] } : {}),
         },
-        unit_amount: Math.round(item.price * 100),
+        unit_amount: Math.max(0, Math.round(Number(item.price) * 100)),
       },
-      quantity: item.quantity,
+      quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
     }));
 
     // Add delivery fee
@@ -184,4 +210,4 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

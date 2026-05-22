@@ -195,7 +195,13 @@ export default function ChannelPostComments({
                   className="w-7 h-7 rounded-full overflow-hidden bg-muted shrink-0 active:opacity-70"
                 >
                   {r.author?.avatar_url ? (
-                    <img src={r.author.avatar_url} alt="" className="w-full h-full object-cover" />
+	                    <img
+	                      src={r.author.avatar_url}
+	                      alt=""
+	                      className="w-full h-full object-cover"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-[10px] font-bold">
                       {(r.author?.full_name ?? r.author?.username ?? "?")[0]?.toUpperCase()}

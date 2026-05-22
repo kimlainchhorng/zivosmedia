@@ -113,7 +113,13 @@ export default function AdminStoresVerification() {
                 <li key={store.id} className="flex items-center gap-3 px-3 py-2.5">
                   <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-muted">
                     {store.logo_url ? (
-                      <img src={store.logo_url} alt="" className="h-full w-full object-cover" />
+	                      <img
+	                        src={store.logo_url}
+	                        alt=""
+	                        className="h-full w-full object-cover"
+	                        loading="lazy"
+	                        decoding="async"
+	                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <StoreIcon className="h-4 w-4 text-muted-foreground" />

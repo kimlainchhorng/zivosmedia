@@ -526,11 +526,12 @@ export function TransparentStickerVideo({
   if (error && fallbackSrc) {
     return (
       <img
-        src={fallbackSrc}
-        alt={alt}
-        className={cn("h-full w-full object-contain pointer-events-none", className)}
-        loading="lazy"
-      />
+	        src={fallbackSrc}
+	        alt={alt}
+	        className={cn("h-full w-full object-contain pointer-events-none", className)}
+	        loading="lazy"
+	        decoding="async"
+	      />
     );
   }
 

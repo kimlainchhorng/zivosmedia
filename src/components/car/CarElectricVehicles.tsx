@@ -55,10 +55,11 @@ const CarElectricVehicles = () => {
                 >
                   <img
                     src={car.src}
-                    alt={car.alt}
-                    className="w-24 h-16 object-cover rounded-xl"
-                    loading="lazy"
-                  />
+	                    alt={car.alt}
+	                    className="w-24 h-16 object-cover rounded-xl"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                   <div className="flex-1">
                     <h3 className="font-bold">{car.brand} {car.model}</h3>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">

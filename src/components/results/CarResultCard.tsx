@@ -117,17 +117,19 @@ export function CarResultCard({ car, onViewDeal, className }: CarResultCardProps
               {brandedCar ? (
                 <img
                   src={brandedCar.src}
-                  alt={`${brandedCar.brand} ${brandedCar.model}`}
-                  className="w-full h-full object-contain max-h-32 transition-transform duration-500 group-hover:scale-110"
-                  loading="lazy"
-                />
+	                  alt={`${brandedCar.brand} ${brandedCar.model}`}
+	                  className="w-full h-full object-contain max-h-32 transition-transform duration-500 group-hover:scale-110"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               ) : car.imageUrl ? (
                 <img
                   src={car.imageUrl}
-                  alt={car.category}
-                  className="w-full h-full object-contain max-h-28"
-                  loading="lazy"
-                />
+	                  alt={car.category}
+	                  className="w-full h-full object-contain max-h-28"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               ) : (
                 <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-[hsl(var(--cars))/0.15] to-[hsl(var(--cars))/0.05] flex items-center justify-center">
                   <Car className="w-10 h-10 text-[hsl(var(--cars))]" />
@@ -147,7 +149,7 @@ export function CarResultCard({ car, onViewDeal, className }: CarResultCardProps
                   <h3 className="font-bold text-lg">{car.category}</h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
                     {car.companyLogo && (
-                      <img src={car.companyLogo} alt={car.company} className="h-4 object-contain" loading="lazy" />
+	                      <img src={car.companyLogo} alt={car.company} className="h-4 object-contain" loading="lazy" decoding="async" />
                     )}
                     {car.company}
                   </p>

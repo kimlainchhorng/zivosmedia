@@ -87,7 +87,7 @@ export default function BotPublicProfilePage() {
         <section className="rounded-2xl bg-card border border-border p-6 text-center">
           <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center overflow-hidden mb-3">
             {bot.avatar_url
-              ? <img src={bot.avatar_url} alt="" className="w-full h-full object-cover" />
+	              ? <img src={bot.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               : <BotIcon className="w-10 h-10 text-primary" />}
           </div>
           <div className="text-lg font-semibold flex items-center justify-center gap-1">

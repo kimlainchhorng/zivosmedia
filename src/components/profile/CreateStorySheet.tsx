@@ -436,7 +436,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/15 flex items-center justify-center text-primary text-sm font-bold ring-2 ring-primary/20">
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+	                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : initials}
                 </div>
                 <div className="leading-tight">
@@ -521,9 +521,9 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
               <div className="p-3 space-y-3">
                 <div className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden bg-black">
                   {pickedFile.type.startsWith("video/") ? (
-                    <video src={previewUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+	                    <video src={previewUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline preload="metadata" />
                   ) : (
-                    <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+	                    <img src={previewUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   )}
                   {caption && (
                     <div className="absolute bottom-4 left-4 right-4">

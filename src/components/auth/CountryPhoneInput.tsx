@@ -116,14 +116,15 @@ const FlagImg = forwardRef<HTMLImageElement, { src: string; alt: string; size?: 
   ref,
 ) {
   return (
-    <img
-      ref={ref}
-      src={src}
-      alt={alt}
-      className="rounded-[3px] object-cover shadow-sm border border-white/20"
-      style={{ width: size, height: Math.round(size * 0.68) }}
-      loading="lazy"
-    />
+	    <img
+	      ref={ref}
+	      src={src}
+	      alt={alt}
+	      className="rounded-[3px] object-cover shadow-sm border border-white/20"
+	      loading="lazy"
+	      decoding="async"
+	      style={{ width: size, height: Math.round(size * 0.68) }}
+	    />
   );
 });
 
@@ -257,12 +258,14 @@ export function CountryPhoneInput({ value, onChange, onBlur, name }: CountryPhon
             >
               <div className="relative overflow-hidden bg-slate-950">
               <div className="absolute -right-6 -top-6 h-44 w-44 opacity-[0.07] pointer-events-none select-none">
-                <img
-                  src={selectedCountry.flag}
-                  alt=""
-                  className="h-full w-full rounded-3xl object-cover blur-[2px]"
-                  style={{ transform: "rotate(-15deg) scale(1.3)" }}
-                />
+	                <img
+	                  src={selectedCountry.flag}
+	                  alt=""
+	                  className="h-full w-full rounded-3xl object-cover blur-[2px]"
+	                  loading="lazy"
+	                  decoding="async"
+	                  style={{ transform: "rotate(-15deg) scale(1.3)" }}
+	                />
               </div>
 
               <div className="relative z-10 border-b border-white/10 p-2.5">
@@ -294,7 +297,13 @@ export function CountryPhoneInput({ value, onChange, onBlur, name }: CountryPhon
                       )}
                     >
                       <div className="absolute right-1 top-1/2 h-12 w-12 -translate-y-1/2 opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-[0.08]">
-                        <img src={country.flag} alt="" className="h-full w-full rounded-md object-cover" />
+	                        <img
+	                          src={country.flag}
+	                          alt=""
+	                          className="h-full w-full rounded-md object-cover"
+	                          loading="lazy"
+	                          decoding="async"
+	                        />
                       </div>
 
                       <div className="relative shrink-0">

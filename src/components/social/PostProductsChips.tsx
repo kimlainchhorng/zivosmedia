@@ -47,9 +47,10 @@ export default function PostProductsChips({ postId, variant = "chips", className
           {p.image_url && !brokenImages[p.id] ? (
             <img
               src={p.image_url}
-              alt=""
-              loading="lazy"
-              className="h-9 w-9 rounded-lg object-cover"
+	              alt=""
+	              loading="lazy"
+	              decoding="async"
+	              className="h-9 w-9 rounded-lg object-cover"
               onError={() => {
                 setBrokenImages((prev) => ({ ...prev, [p.id]: true }));
               }}

@@ -102,10 +102,11 @@ export function FlightMultiProviderCard({
               {flight.airlineLogo ? (
                 <img
                   src={flight.airlineLogo}
-                  alt={flight.airline}
-                  className="w-8 h-8 object-contain"
-                  loading="lazy"
-                  onError={(e) => {
+	                  alt={flight.airline}
+	                  className="w-8 h-8 object-contain"
+	                  loading="lazy"
+	                  decoding="async"
+	                  onError={(e) => {
                     (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${flight.airlineCode}&background=0ea5e9&color=fff&size=32`;
                   }}
                 />

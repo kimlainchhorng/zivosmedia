@@ -55,7 +55,7 @@ export function GroceryStoreHero({ store, liveEta, isOpen }: Props) {
             transition={{ type: "spring", stiffness: 400, damping: 20 }}
             className="h-14 w-14 rounded-2xl bg-background border border-border/30 flex items-center justify-center p-2 shadow-lg shrink-0"
           >
-            <img src={store.logo} alt={store.name} className="h-full w-full object-contain" />
+	            <img src={store.logo} alt={store.name} className="h-full w-full object-contain" loading="lazy" decoding="async" />
           </motion.div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">

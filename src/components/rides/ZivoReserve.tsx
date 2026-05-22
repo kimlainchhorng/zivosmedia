@@ -139,10 +139,12 @@ export default function ZivoReserve({ onReserve }: { onReserve?: () => void } = 
             {/* Hero image — compact */}
             <div className="relative w-full h-[140px] shrink-0">
               <img
-                src={reserveHero}
-                alt="ZIVO Reserve"
-                className="w-full h-full object-cover rounded-b-2xl"
-              />
+	                src={reserveHero}
+	                alt="ZIVO Reserve"
+	                className="w-full h-full object-cover rounded-b-2xl"
+	                loading="lazy"
+	                decoding="async"
+	              />
               <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent rounded-b-2xl" />
               <div className="absolute bottom-2 left-4">
                 <div className="px-2 py-0.5 rounded-full bg-primary/20 border border-primary/30 backdrop-blur-sm">

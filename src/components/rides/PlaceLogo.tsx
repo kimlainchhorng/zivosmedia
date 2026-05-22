@@ -162,19 +162,21 @@ function PlaceLogoInner({ name, googlePhotoUrl, categoryType, className }: Place
       {showBrand && (
         <img
           src={brandUrl}
-          alt={name}
-          className="w-8 h-8 object-contain"
-          loading="lazy"
-          onError={() => setBrandFailed(true)}
+	          alt={name}
+	          className="w-8 h-8 object-contain"
+	          loading="lazy"
+	          decoding="async"
+	          onError={() => setBrandFailed(true)}
         />
       )}
       {showGoogle && (
         <img
           src={googlePhotoUrl}
-          alt={name}
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={() => setGoogleFailed(true)}
+	          alt={name}
+	          className="w-full h-full object-cover"
+	          loading="lazy"
+	          decoding="async"
+	          onError={() => setGoogleFailed(true)}
         />
       )}
       {showLetter && (

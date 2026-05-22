@@ -1,6 +1,7 @@
 /**
  * QuickReorderCarousel - Swipeable recent rides/food with one-tap rebook
  */
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Car from "lucide-react/dist/esm/icons/car";
@@ -13,7 +14,7 @@ import Star from "lucide-react/dist/esm/icons/star";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import useEmblaCarousel from "embla-carousel-react";
@@ -41,10 +42,43 @@ const typeConfig = {
 export default function QuickReorderCarousel() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [emblaRef] = useEmblaCarousel({ align: "start", containScroll: "trimSnaps" });
+  const queryKey = ["home-reorder", user?.id];
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const invalidateReorder = () => {
+      void queryClient.invalidateQueries({ queryKey: ["home-reorder", user.id] });
+    };
+
+    const channel = supabase
+      .channel(`home-reorder-${user.id}-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trips", filter: `rider_id=eq.${user.id}` },
+        invalidateReorder,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `customer_id=eq.${user.id}` },
+        invalidateReorder,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `user_id=eq.${user.id}` },
+        invalidateReorder,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, user?.id]);
 
   const { data: recentBookings } = useQuery({
-    queryKey: ["home-reorder", user?.id],
+    queryKey,
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -75,9 +109,9 @@ export default function QuickReorderCarousel() {
       // Recent food orders
       const { data: orders } = await supabase
         .from("food_orders")
-        .select("id, total_amount, items, restaurants(name), created_at")
-        .eq("customer_id", user.id)
-        .eq("status", "completed")
+        .select("id, total_amount, items, restaurants(id, name), created_at")
+        .or(`customer_id.eq.${user.id},user_id.eq.${user.id}`)
+        .in("status", ["completed", "delivered"])
         .order("created_at", { ascending: false })
         .limit(3);
 
@@ -148,7 +182,7 @@ export default function QuickReorderCarousel() {
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center border border-border/30 overflow-hidden`}>
                     {cfg.vehicleImage ? (
-                      <img src={cfg.vehicleImage} alt={item.type} className="w-8 h-8 object-contain" />
+	                      <img src={cfg.vehicleImage} alt={item.type} className="w-8 h-8 object-contain" loading="lazy" decoding="async" />
                     ) : (
                       <Icon className={`w-5 h-5 ${cfg.color}`} />
                     )}

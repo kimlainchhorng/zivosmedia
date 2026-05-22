@@ -1079,7 +1079,13 @@ function ExpenseDetailSheet({ expenseId, onClose }: { expenseId: string | null; 
             {imgUrl && (
               <div>
                 <div className="text-xs text-muted-foreground mb-1">Receipt</div>
-                <img src={imgUrl} alt="Receipt" className="rounded-md border max-h-[420px] object-contain" />
+	                <img
+	                  src={imgUrl}
+	                  alt="Receipt"
+	                  className="rounded-md border max-h-[420px] object-contain"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               </div>
             )}
           </div>
@@ -1251,4 +1257,3 @@ function DiagRow({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

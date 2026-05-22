@@ -2,7 +2,14 @@
  * PullToRefresh — Instagram-style pull-to-refresh with spinning loader
  * Wrap scrollable content; fires onRefresh when user pulls down from top.
  */
-import { useRef, useState, useCallback, type ReactNode } from "react";
+import {
+  useRef,
+  useState,
+  useCallback,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
@@ -11,6 +18,7 @@ interface PullToRefreshProps {
   children: ReactNode;
   className?: string;
   enabled?: boolean;
+  mouseDragScroll?: boolean;
 }
 
 const THRESHOLD = 80;
@@ -27,12 +35,21 @@ const INTERACTIVE_SELECTOR = [
   "[data-disable-pull-to-refresh='true'] *",
 ].join(", ");
 
-export default function PullToRefresh({ onRefresh, children, className, enabled = true }: PullToRefreshProps) {
+export default function PullToRefresh({ onRefresh, children, className, enabled = true, mouseDragScroll = false }: PullToRefreshProps) {
   const [refreshing, setRefreshing] = useState(false);
   const pullY = useMotionValue(0);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const mouseDrag = useRef({
+    active: false,
+    dragging: false,
+    startX: 0,
+    startY: 0,
+    lastY: 0,
+    pointerId: -1,
+  });
+  const suppressClickUntil = useRef(0);
 
   const spinnerY = useTransform(pullY, [0, MAX_PULL], [0, MAX_PULL]);
   const spinnerOpacity = useTransform(pullY, [0, THRESHOLD * 0.4, THRESHOLD], [0, 0.5, 1]);
@@ -84,6 +101,67 @@ export default function PullToRefresh({ onRefresh, children, className, enabled 
     }
   }, [enabled, pullY, refreshing, onRefresh]);
 
+  const handlePointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!mouseDragScroll || e.pointerType !== "mouse" || e.button !== 0 || refreshing) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest(INTERACTIVE_SELECTOR)) return;
+    mouseDrag.current = {
+      active: true,
+      dragging: false,
+      startX: e.clientX,
+      startY: e.clientY,
+      lastY: e.clientY,
+      pointerId: e.pointerId,
+    };
+  }, [mouseDragScroll, refreshing]);
+
+  const handlePointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = mouseDrag.current;
+    if (!mouseDragScroll || !drag.active || drag.pointerId !== e.pointerId) return;
+
+    const totalX = e.clientX - drag.startX;
+    const totalY = e.clientY - drag.startY;
+    if (!drag.dragging) {
+      if (Math.hypot(totalX, totalY) < 6) return;
+      if (Math.abs(totalX) > Math.abs(totalY)) {
+        mouseDrag.current.active = false;
+        return;
+      }
+      drag.dragging = true;
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    }
+
+    e.preventDefault();
+    const deltaY = e.clientY - drag.lastY;
+    window.scrollBy({ top: -deltaY, behavior: "auto" });
+    drag.lastY = e.clientY;
+  }, [mouseDragScroll]);
+
+  const finishMouseDrag = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = mouseDrag.current;
+    if (!drag.active || drag.pointerId !== e.pointerId) return;
+    if (drag.dragging) {
+      suppressClickUntil.current = Date.now() + 250;
+      e.preventDefault();
+      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    }
+    mouseDrag.current = {
+      active: false,
+      dragging: false,
+      startX: 0,
+      startY: 0,
+      lastY: 0,
+      pointerId: -1,
+    };
+  }, []);
+
+  const handleClickCapture = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    if (Date.now() <= suppressClickUntil.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
+
   return (
     <div className={className} style={{ position: "relative" }}>
       {/* Spinner indicator */}
@@ -115,6 +193,11 @@ export default function PullToRefresh({ onRefresh, children, className, enabled 
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishMouseDrag}
+        onPointerCancel={finishMouseDrag}
+        onClickCapture={handleClickCapture}
       >
         {children}
       </motion.div>

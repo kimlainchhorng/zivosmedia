@@ -1,5 +1,6 @@
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Stripe webhook for ride PaymentIntent events.
 // verify_jwt=false; signature is verified via STRIPE_WEBHOOK_SECRET.
@@ -8,7 +9,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "stripe-signature, content-type",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("stripe-ride-webhook", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")!;
@@ -28,7 +30,9 @@ Deno.serve(async (req) => {
     return new Response(`Webhook Error: ${err}`, { status: 400 });
   }
 
-  const admin = createClient(supabaseUrl, serviceKey);
+  const admin = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
   const pi = event.data?.object;
   const rideId = pi?.metadata?.ride_request_id ?? null;
   const piType = pi?.metadata?.type ?? null; // "ride_tip" for tip PIs created by capture-ride-tip
@@ -131,4 +135,4 @@ Deno.serve(async (req) => {
     console.error("[stripe-ride-webhook]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
   }
-});
+}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

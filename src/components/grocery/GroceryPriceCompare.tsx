@@ -7,9 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpDown, Loader2, Check, ExternalLink } from "lucide-react";
 import { getStoresForMarket, type StoreName } from "@/config/groceryStores";
 import { useCountry } from "@/hooks/useCountry";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://slirphzzwcogdbkeicff.supabase.co";
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
 
 interface PriceResult {
   store: StoreName;
@@ -59,7 +57,7 @@ export function GroceryPriceCompare({ productName, currentStore, currentPrice }:
       try {
         const url = `${SUPABASE_URL}/functions/v1/${storeCfg.edgeFunction}?q=${encodeURIComponent(searchTerms)}&page=1`;
         const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${SUPABASE_KEY}`, apikey: SUPABASE_KEY },
+          headers: { Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`, apikey: SUPABASE_PUBLISHABLE_KEY },
         });
         const data = await res.json();
         const products = data.products || [];
@@ -123,7 +121,7 @@ export function GroceryPriceCompare({ productName, currentStore, currentPrice }:
               {/* Current store */}
               <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-primary/5 border border-primary/15">
                 {currentStoreCfg && (
-                  <img src={currentStoreCfg.logo} alt={currentStore} className="h-5 w-5 object-contain" />
+	                  <img src={currentStoreCfg.logo} alt={currentStore} className="h-5 w-5 object-contain" loading="lazy" decoding="async" />
                 )}
                 <span className="text-[11px] font-bold text-foreground flex-1">{currentStore}</span>
                 <span className="text-[13px] font-extrabold text-primary">${currentPrice.toFixed(2)}</span>
@@ -141,7 +139,7 @@ export function GroceryPriceCompare({ productName, currentStore, currentPrice }:
                       cheaper ? "border-emerald-500/20 bg-emerald-500/5" : "border-border/20 bg-muted/5"
                     }`}
                   >
-                    <img src={r.logo} alt={r.store} className="h-5 w-5 object-contain" />
+	                    <img src={r.logo} alt={r.store} className="h-5 w-5 object-contain" loading="lazy" decoding="async" />
                     <div className="flex-1 min-w-0">
                       <span className="text-[11px] font-bold text-foreground">{r.store}</span>
                       {r.productName && (

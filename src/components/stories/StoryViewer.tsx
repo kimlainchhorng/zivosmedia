@@ -694,18 +694,21 @@ export default function StoryViewer({
               key={currentStory.id}
               src={currentStory.mediaUrl}
               className="w-full h-full object-cover"
-              autoPlay
-              playsInline
-              loop
-              onPlay={() => { if (!paused) startTimer(); }}
-            />
+	              autoPlay
+	              playsInline
+	              loop
+	              preload="metadata"
+	              onPlay={() => { if (!paused) startTimer(); }}
+	            />
           ) : (
             <img
               key={currentStory.id}
               src={currentStory.mediaUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
+	              alt=""
+	              className="w-full h-full object-cover"
+	              loading="lazy"
+	              decoding="async"
+	            />
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60" />
         </div>
@@ -734,7 +737,7 @@ export default function StoryViewer({
           <div className="flex items-center gap-2.5 rounded-full bg-black/35 backdrop-blur-xl border border-white/10 ring-1 ring-[hsl(160_84%_55%)/0.25] pl-1 pr-3.5 py-1 shadow-[0_4px_20px_-6px_rgba(0,0,0,0.5)] min-w-0 flex-1 max-w-[68%]">
             <div className="w-9 h-9 rounded-full ring-2 ring-[hsl(160_84%_55%)/0.7] overflow-hidden shrink-0">
               {viewingGroup.avatarUrl ? (
-                <img src={viewingGroup.avatarUrl} alt="" className="w-full h-full object-cover" />
+	                <img src={viewingGroup.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-[hsl(160_84%_45%)] to-[hsl(174_72%_40%)] flex items-center justify-center text-sm font-bold text-white">
                   {viewingGroup.userName.charAt(0)}

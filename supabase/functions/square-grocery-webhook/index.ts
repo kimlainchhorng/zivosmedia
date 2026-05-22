@@ -7,6 +7,7 @@
  */
 import { createClient } from "../_shared/deps.ts";
 import { notifyGroceryOrderConfirmed } from "../_shared/grocery-notifications.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 async function hmacSha256Base64(key: string, message: string): Promise<string> {
   const cryptoKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -29,12 +30,14 @@ async function verify(req: Request, raw: string): Promise<boolean> {
 
 const ORDER_RE = /Grocery order\s+([0-9a-f-]{36})/i;
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("square-grocery-webhook", async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const admin = createClient(supabaseUrl, serviceKey);
+  const admin = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   const raw = await req.text();
   let event: any;
@@ -126,4 +129,4 @@ Deno.serve(async (req) => {
     .eq("id", logRowId);
 
   return new Response(JSON.stringify({ received: true, status: processingStatus }), { status: 200, headers: { "Content-Type": "application/json" } });
-});
+}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

@@ -326,7 +326,13 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
                   <span className="text-[9px] uppercase tracking-wider opacity-70">Voice</span>
                 </div>
               ) : (
-                <img src={m.url} alt="" className="h-full w-full object-cover" />
+	                <img
+	                  src={m.url}
+	                  alt=""
+	                  className="h-full w-full object-cover"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               )}
               <button type="button"
                 onClick={() => removeMedia(i)}

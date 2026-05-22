@@ -191,7 +191,7 @@ export function GroceryMemberDeals({ products, onAdd, cartProductIds }: {
             className="snap-start shrink-0 w-[130px] rounded-2xl border border-amber-500/15 bg-gradient-to-b from-amber-500/5 to-transparent p-2.5 text-left hover:border-amber-500/30 transition-all"
           >
             {d.image && (
-              <img src={d.image} alt={d.name} className="h-16 w-full object-contain mb-2" loading="lazy" referrerPolicy="no-referrer" />
+	              <img src={d.image} alt={d.name} className="h-16 w-full object-contain mb-2" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
             )}
             <p className="text-[10px] font-semibold line-clamp-2 leading-snug mb-1">{d.name}</p>
             <div className="flex items-center gap-1.5">

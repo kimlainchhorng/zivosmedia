@@ -69,7 +69,7 @@ export default function DailyRewardCard() {
           "flex items-center gap-1 rounded-full px-3 py-1.5 shrink-0 shadow-md",
           isClaimed ? "bg-emerald-500/20 text-emerald-300" : "bg-white text-amber-700"
         )}>
-          <img src={goldCoinIcon} alt="" className="w-4 h-4" />
+	          <img src={goldCoinIcon} alt="" className="w-4 h-4" loading="lazy" decoding="async" />
           <span className="text-[11px] font-bold">
             {isClaimed
               ? `+${(justClaimed?.amount ?? status.todayAmount ?? 0).toLocaleString()}`

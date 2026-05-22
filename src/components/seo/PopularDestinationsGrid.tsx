@@ -103,10 +103,11 @@ export default function PopularDestinationsGrid({
                   src={destination.src}
                   alt={destination.alt}
                   width={destination.width}
-                  height={destination.height}
-                  loading="lazy"
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+	                  height={destination.height}
+	                  loading="lazy"
+	                  decoding="async"
+	                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+	                />
                 
                 {/* Overlay Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />

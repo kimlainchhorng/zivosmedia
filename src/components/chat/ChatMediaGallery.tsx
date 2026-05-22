@@ -183,7 +183,7 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
                 aria-label="Open photo"
                 title="Open photo"
               >
-                <img src={item.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                <img src={item.url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               </button>
             ))}
           </div>
@@ -286,9 +286,9 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
               <X className="w-5 h-5 text-white" />
             </button>
             {previewType === "image" ? (
-              <img src={previewUrl} alt="" className="max-w-full max-h-full object-contain" />
+              <img src={previewUrl} alt="" className="max-w-full max-h-full object-contain" loading="eager" decoding="async" />
             ) : (
-              <video src={previewUrl} controls autoPlay playsInline className="max-w-full max-h-full" onClick={(e) => e.stopPropagation()} />
+              <video src={previewUrl} controls autoPlay playsInline preload="metadata" className="max-w-full max-h-full" onClick={(e) => e.stopPropagation()} />
             )}
           </motion.div>
         )}

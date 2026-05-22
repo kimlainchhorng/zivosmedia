@@ -51,7 +51,7 @@ export default function LiveTripTracker() {
     activeTripRef.current = activeTrip;
   }, [activeTrip]);
 
-  // Poll for active trips
+  // Realtime for active trips, with polling as an app-resume/network fallback.
   useEffect(() => {
     if (!user?.id) return;
 
@@ -126,6 +126,31 @@ export default function LiveTripTracker() {
       }
     };
 
+    const channel = supabase
+      .channel(`home-live-trip-${user.id}-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trips", filter: `rider_id=eq.${user.id}` },
+        () => {
+          void fetchActive();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `customer_id=eq.${user.id}` },
+        () => {
+          void fetchActive();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `user_id=eq.${user.id}` },
+        () => {
+          void fetchActive();
+        },
+      )
+      .subscribe();
+
     fetchActive();
     timeout = setTimeout(tick, 15000);
     document.addEventListener("visibilitychange", onVisibility);
@@ -133,6 +158,7 @@ export default function LiveTripTracker() {
       cancelled = true;
       if (timeout) clearTimeout(timeout);
       document.removeEventListener("visibilitychange", onVisibility);
+      supabase.removeChannel(channel);
     };
   }, [user?.id]);
 
@@ -142,7 +168,7 @@ export default function LiveTripTracker() {
     setCountdown(activeTrip.eta_minutes * 60);
     const timer = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000);
     return () => clearInterval(timer);
-  }, [activeTrip?.id, activeTrip?.eta_minutes]);
+  }, [activeTrip]);
 
   if (!activeTrip) return null;
 

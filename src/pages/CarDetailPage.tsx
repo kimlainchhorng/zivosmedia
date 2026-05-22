@@ -124,10 +124,11 @@ export default function CarDetailPage() {
                   {brandedCar ? (
                     <img
                       src={brandedCar.src}
-                      alt={`${brandedCar.brand} ${brandedCar.model}`}
-                      className="max-h-48 object-contain"
-                      loading="lazy"
-                    />
+	                      alt={`${brandedCar.brand} ${brandedCar.model}`}
+	                      className="max-h-48 object-contain"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   ) : (
                     <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 flex items-center justify-center">
                       <CarFront className="w-14 h-14 text-emerald-500" />

@@ -261,7 +261,7 @@ export default function BookmarksPage() {
                   {b.item_type === "post" && b.preview_url && b.is_video ? (
                     <ReelThumbnail url={b.preview_url} className="h-full w-full" />
                   ) : b.item_type === "post" && b.preview_url ? (
-                    <img src={b.preview_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+	                    <img src={b.preview_url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   ) : b.item_type === "post" ? (
                     <Image className="h-4 w-4 text-primary" />
                   ) : b.item_type === "flight" ? (

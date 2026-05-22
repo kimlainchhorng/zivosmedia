@@ -8,9 +8,7 @@ import { Package, Plus, Check, ChevronRight, Loader2, ShoppingBag, ChevronDown }
 import type { StoreName } from "@/config/groceryStores";
 import { getStoreConfig } from "@/config/groceryStores";
 import type { StoreProduct } from "@/hooks/useStoreSearch";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://slirphzzwcogdbkeicff.supabase.co";
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
 
 const CATEGORIES = [
   // 🥩 Meat & Protein
@@ -520,7 +518,10 @@ function CategorySection({ category, store, onAdd, cartProductIds, onBrowse, onS
 
     const cfg = getStoreConfig(store);
     const baseUrl = `${SUPABASE_URL}/functions/v1/${cfg.edgeFunction}`;
-    const headers = { Authorization: `Bearer ${SUPABASE_KEY}`, apikey: SUPABASE_KEY };
+    const headers = {
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+    };
 
     // API returns ~2 products per query, so split into individual keyword searches
     const keywords = category.query.split(/\s+/).filter((w) => w.length >= 2);
@@ -630,10 +631,11 @@ function CategorySection({ category, store, onAdd, cartProductIds, onBrowse, onS
                         <img
                           src={p.image}
                           alt={p.name}
-                          className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
+	                          className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300"
+	                          loading="lazy"
+	                          decoding="async"
+	                          referrerPolicy="no-referrer"
+	                        />
                       ) : (
                         <Package className="h-6 w-6 text-muted-foreground/10" />
                       )}

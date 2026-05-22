@@ -74,7 +74,7 @@ export default function SecretMediaBubble({ message, decryptMedia, mine }: Props
       {type === "image" && (
         <button type="button" onClick={handleManualLoad} className="block w-full">
           {url ? (
-            <img src={url} alt="" className="max-h-80 w-auto" />
+	            <img src={url} alt="" className="max-h-80 w-auto" loading="lazy" decoding="async" />
           ) : (
             <Placeholder icon={<ImageIcon className="h-8 w-8" />} loading={loading} label="Encrypted image" />
           )}
@@ -83,7 +83,7 @@ export default function SecretMediaBubble({ message, decryptMedia, mine }: Props
 
       {type === "video" && (
         url ? (
-          <video src={url} controls className="max-h-96 w-auto" />
+	          <video src={url} controls preload="metadata" className="max-h-96 w-auto" />
         ) : (
           <button type="button" onClick={handleManualLoad} className="block w-full">
             <Placeholder icon={<VideoIcon className="h-8 w-8" />} loading={loading} label="Tap to decrypt video" />

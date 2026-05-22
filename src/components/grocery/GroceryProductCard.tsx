@@ -105,7 +105,7 @@ export function GroceryProductCard({
         {/* Store logo */}
         {storeLogo && (
           <div className="absolute top-1 right-1 h-5 w-5 rounded-md bg-background/90 backdrop-blur-sm border border-border/30 flex items-center justify-center p-0.5">
-            <img src={storeLogo} alt={product.store} className="h-full w-full object-contain" />
+	            <img src={storeLogo} alt={product.store} className="h-full w-full object-contain" loading="lazy" decoding="async" />
           </div>
         )}
 

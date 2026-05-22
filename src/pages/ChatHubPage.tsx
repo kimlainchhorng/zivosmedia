@@ -22,7 +22,6 @@ import PanelLeftOpen from "lucide-react/dist/esm/icons/panel-left-open";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import X from "lucide-react/dist/esm/icons/x";
 import Bell from "lucide-react/dist/esm/icons/bell";
-import BellRing from "lucide-react/dist/esm/icons/bell-ring";
 import { ChatBellPopover } from "@/components/notifications/ChatBellPopover";
 import Users from "lucide-react/dist/esm/icons/users";
 import Plus from "lucide-react/dist/esm/icons/plus";
@@ -52,9 +51,6 @@ import Bookmark from "lucide-react/dist/esm/icons/bookmark";
 import MoreVertical from "lucide-react/dist/esm/icons/more-vertical";
 import HardDrive from "lucide-react/dist/esm/icons/hard-drive";
 import BotIcon from "lucide-react/dist/esm/icons/bot";
-import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
-import Smartphone from "lucide-react/dist/esm/icons/smartphone";
-import Waves from "lucide-react/dist/esm/icons/waves";
 import SwipeableRow from "@/components/chat/SwipeableRow";
 import ChatErrorBoundary from "@/components/chat/ChatErrorBoundary";
 import ChatRowActionsSheet, { type ChatRowActionsTarget } from "@/components/chat/ChatRowActionsSheet";
@@ -98,7 +94,6 @@ import { useChatHubSearchResults } from "./chat/useChatHubSearchResults";
 import { useChatHubRealtimeInvalidation } from "./chat/useChatHubRealtimeInvalidation";
 import { useMarkOpenPersonalChatRead } from "./chat/useMarkOpenPersonalChatRead";
 import { useLastOpenChatPersistence } from "./chat/useLastOpenChatPersistence";
-import { primeCallAudio } from "@/lib/callAudio";
 
 // Lazy-load heavy sub-pages/components
 const GroupChat = lazy(() => import("@/components/chat/GroupChat"));
@@ -312,241 +307,6 @@ function detectPreviewType(message: string): { hasMedia: boolean; hasLink: boole
     lower.includes("document") ||
     /\.(pdf|docx?|xlsx?|pptx?|zip|rar|txt)(\?|#|$)/i.test(lower);
   return { hasMedia, hasLink, hasFile };
-}
-
-type ChatCallAlertsCardProps = {
-  userId?: string;
-  syncMode: "live" | "fallback";
-};
-
-type ChatCallNotificationPermission = NotificationPermission | "unsupported";
-
-function getCallNotificationPermission(): ChatCallNotificationPermission {
-  if (typeof window === "undefined" || typeof Notification === "undefined") return "unsupported";
-  return Notification.permission;
-}
-
-function ChatCallAlertsCard({ userId, syncMode }: ChatCallAlertsCardProps) {
-  const audioStorageKey = `zivo:chat-call-audio-ready:${userId || "anon"}`;
-  const dismissedStorageKey = `zivo:chat-call-alert-card-dismissed:${userId || "anon"}`;
-  const [permission, setPermission] = useState<ChatCallNotificationPermission>(() => getCallNotificationPermission());
-  const [audioReady, setAudioReady] = useState(() => {
-    try {
-      return localStorage.getItem(audioStorageKey) === "true";
-    } catch {
-      return false;
-    }
-  });
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      return localStorage.getItem(dismissedStorageKey) === "true";
-    } catch {
-      return false;
-    }
-  });
-  const [isEnabling, setIsEnabling] = useState(false);
-
-  useEffect(() => {
-    setPermission(getCallNotificationPermission());
-    try {
-      setAudioReady(localStorage.getItem(audioStorageKey) === "true");
-      setDismissed(localStorage.getItem(dismissedStorageKey) === "true");
-    } catch {
-      setAudioReady(false);
-      setDismissed(false);
-    }
-  }, [audioStorageKey, dismissedStorageKey]);
-
-  const canUseWebNotifications = permission !== "unsupported";
-  const lockAlertsReady = permission === "granted";
-  const allReady = audioReady && lockAlertsReady && syncMode === "live";
-
-  const enableCallAlerts = useCallback(async () => {
-    setIsEnabling(true);
-    try {
-      await primeCallAudio();
-      setAudioReady(true);
-      try {
-        localStorage.setItem(audioStorageKey, "true");
-      } catch {}
-
-      if (typeof Notification !== "undefined") {
-        const nextPermission = Notification.permission === "granted"
-          ? "granted"
-          : await Notification.requestPermission();
-        setPermission(nextPermission);
-
-        if (nextPermission === "granted") {
-          window.dispatchEvent(new Event("zivo-register-push"));
-          toast.success("Call alerts are ready", {
-            description: "ZIVO can ring in-app and send lock-screen alerts when installed.",
-          });
-          return;
-        }
-
-        toast.info("Ringtone is ready", {
-          description: "Turn on browser notifications later for lock-screen alerts.",
-        });
-        return;
-      }
-
-      setPermission("unsupported");
-      window.dispatchEvent(new Event("zivo-register-push"));
-      toast.success("In-app ringing is ready", {
-        description: "Install or open ZIVO in a notification-capable browser for lock-screen alerts.",
-      });
-    } catch {
-      toast.error("Could not prepare call alerts");
-    } finally {
-      setIsEnabling(false);
-    }
-  }, [audioStorageKey]);
-
-  const previewAlert = useCallback(() => {
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-      try {
-        const preview = new Notification("ZIVO Platform", {
-          body: "Voice calling you on ZIVO",
-          icon: "/pwa-icons/icon-192x192.png",
-          badge: "/pwa-icons/icon-192x192.png",
-          tag: "zivo-call-preview",
-          requireInteraction: true,
-          vibrate: [220, 100, 220],
-          data: { type: "incoming_call", preview: true },
-        } as NotificationOptions);
-        window.setTimeout(() => preview.close(), 6000);
-        return;
-      } catch {
-        // Fall through to toast preview.
-      }
-    }
-
-    toast.custom((toastId) => (
-      <div className="w-[min(92vw,360px)] rounded-3xl border border-border/40 bg-background p-4 shadow-2xl">
-        <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground">
-            <Phone className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground">ZIVO Platform</p>
-            <p className="text-xs text-muted-foreground">Incoming voice call preview</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => toast.dismiss(toastId)}
-            className="h-8 w-8 rounded-full bg-muted text-muted-foreground"
-            aria-label="Dismiss preview"
-          >
-            <X className="mx-auto h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    ), { duration: 6000 });
-  }, []);
-
-  const dismissCard = useCallback(() => {
-    setDismissed(true);
-    try {
-      localStorage.setItem(dismissedStorageKey, "true");
-    } catch {}
-  }, [dismissedStorageKey]);
-
-  if (dismissed && allReady) return null;
-
-  const notificationLabel =
-    permission === "granted"
-      ? "Lock alerts on"
-      : permission === "denied"
-        ? "Alerts blocked"
-        : permission === "unsupported"
-          ? "In-app only"
-          : "Needs permission";
-
-  return (
-    <div className="px-5 pt-3 pb-3 border-b border-border/20">
-      <div className="relative overflow-hidden rounded-[1.6rem] border border-primary/15 bg-card shadow-sm">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/8 pointer-events-none" />
-        <div className="relative p-4">
-          <div className="flex items-start gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/12 text-primary">
-              <BellRing className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-bold leading-tight text-foreground">Calls and lock-screen alerts</p>
-                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                    Prepare ringtone, push delivery, and call popups before someone calls.
-                  </p>
-                </div>
-                {allReady && (
-                  <button
-                    type="button"
-                    onClick={dismissCard}
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted/70 text-muted-foreground active:scale-95"
-                    aria-label="Hide call alert setup"
-                    title="Hide"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                <div className={cn(
-                  "rounded-2xl border px-2.5 py-2",
-                  audioReady ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border/35 bg-background/70 text-muted-foreground"
-                )}>
-                  <Waves className="mb-1 h-4 w-4" />
-                  <p className="text-[10px] font-bold leading-tight">Ringtone</p>
-                  <p className="text-[9px] leading-tight">{audioReady ? "Ready" : "Tap once"}</p>
-                </div>
-                <div className={cn(
-                  "rounded-2xl border px-2.5 py-2",
-                  lockAlertsReady ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border/35 bg-background/70 text-muted-foreground"
-                )}>
-                  <Smartphone className="mb-1 h-4 w-4" />
-                  <p className="text-[10px] font-bold leading-tight">Push</p>
-                  <p className="text-[9px] leading-tight">{notificationLabel}</p>
-                </div>
-                <div className={cn(
-                  "rounded-2xl border px-2.5 py-2",
-                  syncMode === "live" ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-amber-500/25 bg-amber-500/10 text-amber-700"
-                )}>
-                  <ShieldCheck className="mb-1 h-4 w-4" />
-                  <p className="text-[10px] font-bold leading-tight">Realtime</p>
-                  <p className="text-[9px] leading-tight">{syncMode === "live" ? "Live" : "Fallback"}</p>
-                </div>
-              </div>
-
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={enableCallAlerts}
-                  disabled={isEnabling || allReady}
-                  className="h-10 flex-1 rounded-2xl bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm shadow-primary/20 active:scale-[0.98] disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
-                >
-                  {isEnabling ? "Preparing..." : allReady ? "Ready" : canUseWebNotifications ? "Enable alerts" : "Enable ringtone"}
-                </button>
-                <button
-                  type="button"
-                  onClick={previewAlert}
-                  className="h-10 rounded-2xl border border-border/40 bg-background/80 px-3 text-xs font-bold text-foreground active:scale-[0.98]"
-                >
-                  Preview
-                </button>
-              </div>
-              {permission === "denied" && (
-                <p className="mt-2 text-[10px] leading-snug text-destructive">
-                  Notifications are blocked for this browser. Turn them on in browser or app settings for lock-screen calls.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 const personalHubMenu = [
@@ -2207,12 +1967,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
             </div>
           )}
 
-          {active === "personal" && !embedded && !selectionMode && !zivoOFMode && !search && (
-            <div className={cn(collapsedRail && "lg:hidden")}>
-              <ChatCallAlertsCard userId={user?.id} syncMode={syncMode} />
-            </div>
-          )}
-
           {sharePayload && (
             <div className={cn("px-5 pt-3", embedded && "px-4 pt-3")}>
               <div className="p-3.5 rounded-2xl bg-primary/8 border border-primary/15 flex items-center gap-3">
@@ -3442,7 +3196,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           >
                             <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                               {g.avatar
-                                ? <img src={g.avatar} alt="" className="w-full h-full object-cover" />
+	                                ? <img src={g.avatar} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                 : <Users className="w-3.5 h-3.5 text-primary" />}
                             </span>
                             <span className="flex-1 truncate text-[13px]">{g.name}</span>

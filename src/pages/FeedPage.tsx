@@ -331,7 +331,7 @@ function MusicTicker({ name, avatarUrl, isPlaying, onClick }: { name: string; av
         )}
       >
         {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+          <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" loading="lazy" decoding="async" />
         ) : (
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white">
             <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
@@ -549,8 +549,8 @@ function ReelCard({
   const progressBarRef = useRef<HTMLDivElement>(null);
   const wasPlayingBeforeScrub = useRef(false);
   const lastTapRef = useRef(0);
-  const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const doubleTapHeartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const singleTapTimerRef = useRef<number | null>(null);
+  const doubleTapHeartTimerRef = useRef<number | null>(null);
   const doubleTapLikeLockRef = useRef(false);
   const [doubleTapPoint, setDoubleTapPoint] = useState<{ x: number; y: number } | null>(null);
   const savingBookmarkRef = useRef(false);
@@ -1289,6 +1289,7 @@ function ReelCard({
           alt=""
           className="zivo-reel-no-callout absolute inset-0 w-full h-full object-cover"
           loading={isActive ? "eager" : "lazy"}
+          decoding="async"
           onLoad={() => {
             if (mediaPerfLogged.current || firstMediaLogged.value) return;
             mediaPerfLogged.current = true;

@@ -250,7 +250,7 @@ export default function ClubsPage() {
                   <div className="shrink-0 h-12 w-12 rounded-2xl bg-ig-gradient p-[2px]">
                     <div className="w-full h-full rounded-2xl bg-card flex items-center justify-center overflow-hidden">
                       {c.avatar_url ? (
-                        <img src={c.avatar_url} alt={c.name} className="w-full h-full object-cover rounded-2xl" loading="lazy" />
+	                        <img src={c.avatar_url} alt={c.name} className="w-full h-full object-cover rounded-2xl" loading="lazy" decoding="async" />
                       ) : (
                         <span className="text-base font-extrabold text-foreground">{initial}</span>
                       )}

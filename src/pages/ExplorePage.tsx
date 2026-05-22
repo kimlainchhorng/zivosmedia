@@ -328,9 +328,9 @@ export default function ExplorePage() {
                 >
                   {url && (
                     post.media_type === "video" ? (
-                      <video src={`${url}#t=0.1`} muted className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                      <video src={`${url}#t=0.1`} muted preload="metadata" className="w-full h-full object-cover" />
+	                    ) : (
+	                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     )
                   )}
                   {!url && (
@@ -410,8 +410,8 @@ export default function ExplorePage() {
                           onClick={() => navigate(`/reels/${post.id}`)}
                         >
                           {url && (post.media_type === "video"
-                            ? <video src={`${url}#t=0.1`} muted className="w-full h-full object-cover" />
-                            : <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                            ? <video src={`${url}#t=0.1`} muted preload="metadata" className="w-full h-full object-cover" />
+	                            : <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           )}
                           {!url && <div className="w-full h-full flex items-center justify-center"><Grid3X3 className="h-6 w-6 text-muted-foreground/30" /></div>}
                         </motion.button>

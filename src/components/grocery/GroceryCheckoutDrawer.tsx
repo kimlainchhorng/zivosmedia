@@ -995,7 +995,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                               className="flex items-center gap-2.5 text-xs"
                             >
                               {item.image && (
-                                <img src={item.image} alt={item.name} className="h-9 w-9 rounded-xl object-contain bg-background border border-border/15 p-0.5" loading="lazy" referrerPolicy="no-referrer" />
+	                                <img src={item.image} alt={item.name} className="h-9 w-9 rounded-xl object-contain bg-background border border-border/15 p-0.5" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                               )}
                               <span className="text-muted-foreground truncate flex-1">{item.name}</span>
                               {onUpdateQuantity ? (
@@ -1207,7 +1207,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                               className="flex items-center gap-2.5 text-xs"
                             >
                               {item.image && (
-                                <img src={item.image} alt={item.name} className="h-9 w-9 rounded-xl object-contain bg-background border border-border/15 p-0.5" loading="lazy" referrerPolicy="no-referrer" />
+	                                <img src={item.image} alt={item.name} className="h-9 w-9 rounded-xl object-contain bg-background border border-border/15 p-0.5" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                               )}
                               <span className="text-muted-foreground truncate flex-1">{item.name}</span>
                               {onUpdateQuantity ? (

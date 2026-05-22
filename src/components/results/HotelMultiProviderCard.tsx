@@ -72,10 +72,11 @@ export function HotelMultiProviderCard({
           <div className="relative w-full sm:w-48 h-48 sm:h-auto shrink-0">
             <img
               src={hotel.imageUrl}
-              alt={hotel.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+	              alt={hotel.name}
+	              className="w-full h-full object-cover"
+	              loading="lazy"
+	              decoding="async"
+	            />
             {hotel.freeCancellation && (
               <Badge className="absolute top-2 left-2 bg-emerald-500/90 text-primary-foreground text-xs">
                 <CheckCircle className="w-3 h-3 mr-1" />

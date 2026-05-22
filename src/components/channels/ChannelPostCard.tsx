@@ -484,11 +484,12 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
                     </>
                   ) : (
                     <img
-                      src={m.url}
-                      alt=""
-                      loading="lazy"
-                      draggable={false}
-                      className="h-full w-full object-cover transition-transform hover:scale-[1.02]"
+	                      src={m.url}
+	                      alt=""
+	                      loading="lazy"
+	                      decoding="async"
+	                      draggable={false}
+	                      className="h-full w-full object-cover transition-transform hover:scale-[1.02]"
                       onContextMenu={blockSaveGestures}
                       onContextMenuCapture={blockSaveGestures}
                       onDragStartCapture={blockSaveGestures}
@@ -617,9 +618,10 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
             <video
               src={media[lightboxIdx].url}
               autoPlay
-              controls
-              playsInline
-              controlsList={protectContent ? "nodownload noplaybackrate noremoteplayback" : undefined}
+	              controls
+	              playsInline
+	              preload="metadata"
+	              controlsList={protectContent ? "nodownload noplaybackrate noremoteplayback" : undefined}
               disablePictureInPicture={protectContent}
               className="max-h-[90vh] max-w-[92vw] rounded-lg shadow-2xl bg-black"
               onClick={(e) => e.stopPropagation()}
@@ -629,9 +631,11 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
             />
           ) : (
             <img
-              src={media[lightboxIdx].url}
-              alt=""
-              draggable={false}
+	              src={media[lightboxIdx].url}
+	              alt=""
+	              loading="eager"
+	              decoding="async"
+	              draggable={false}
               className="max-h-[90vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
               onClick={(e) => e.stopPropagation()}
               onContextMenu={blockSaveGestures}

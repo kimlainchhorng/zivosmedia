@@ -146,10 +146,11 @@ export default function HeartedDestinationsRail() {
             <div className="relative h-[80px] w-full overflow-hidden">
               <img
                 src={p.cover ?? (p.kind === "restaurant" ? FALLBACK_R : FALLBACK_H)}
-                alt={p.name}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+	                alt={p.name}
+	                className="w-full h-full object-cover"
+	                loading="lazy"
+	                decoding="async"
+	              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
               <div className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-black/55 backdrop-blur px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
                 {p.kind === "restaurant" ? (

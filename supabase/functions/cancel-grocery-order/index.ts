@@ -16,11 +16,7 @@
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { cascadeCancellationToDriver } from "../_shared/cancellation-cascade.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "live") === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
@@ -42,8 +38,14 @@ async function paypalToken(): Promise<string> {
   return (await res.json()).access_token;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+Deno.serve(withSecurity("cancel-grocery-order", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -58,7 +60,7 @@ Deno.serve(async (req) => {
     const { order_id, reason, preview } = await req.json();
     if (!order_id) return new Response(JSON.stringify({ error: "missing_order_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
     const { data: o } = await admin
       .from("shopping_orders")
       .select("id, user_id, status, payment_status, payment_provider, total_amount, final_total, stripe_payment_intent_id, paypal_capture_id, paypal_order_id, square_payment_id")
@@ -200,4 +202,4 @@ Deno.serve(async (req) => {
     console.error("[cancel-grocery-order]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));

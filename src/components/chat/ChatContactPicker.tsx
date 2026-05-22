@@ -156,7 +156,13 @@ export default function ChatContactPicker({ open, onOpenChange, onConfirm }: Pro
               >
                 <div className="w-9 h-9 rounded-full bg-muted overflow-hidden shrink-0 flex items-center justify-center">
                   {c.avatar_url ? (
-                    <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />
+	                    <img
+	                      src={c.avatar_url}
+	                      alt=""
+	                      className="w-full h-full object-cover"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   ) : (
                     <span className="text-xs font-bold text-muted-foreground">
                       {(c.display_name || "?").slice(0, 1).toUpperCase()}

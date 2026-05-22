@@ -96,10 +96,11 @@ export default function QuickReorderWidget() {
           <div className="relative w-24 h-24 shrink-0">
             <img
               src={last.cover ?? FALLBACK_COVER}
-              alt={last.restaurantName}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+	              alt={last.restaurantName}
+	              className="w-full h-full object-cover"
+	              loading="lazy"
+	              decoding="async"
+	            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
             <div className="absolute bottom-1 left-1 inline-flex items-center gap-0.5 rounded-full bg-black/55 backdrop-blur px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
               <UtensilsCrossed className="w-2.5 h-2.5" /> Eats

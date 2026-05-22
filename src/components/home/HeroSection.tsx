@@ -241,7 +241,7 @@ export default function HeroSection() {
                     boxShadow: `0 10px 40px -8px hsl(${svc.cssVar} / 0.4), 0 4px 12px -4px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,0.15)`,
                   }}
                 >
-                  <img src={svc.image} alt={svc.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-115" />
+	                  <img src={svc.image} alt={svc.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-115" loading="lazy" decoding="async" />
                   <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, hsl(${svc.cssVar} / 0.55), hsl(${svc.cssVar} / 0.2))` }} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 

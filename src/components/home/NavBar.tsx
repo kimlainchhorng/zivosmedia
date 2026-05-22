@@ -164,6 +164,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
   }, []);
 
   const isHomePage = location.pathname === "/";
+  const shouldFillTopSafeArea = !isHomePage || scrolled;
   const prefetchIfEligible = (path: string) => {
     if (!path) return;
     if (path.startsWith("/login")) {
@@ -185,7 +186,18 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
   return (
     <>
       {/* 3D Perspective wrapper */}
-      <div className="fixed top-0 left-0 right-0 z-50 overflow-x-clip safe-area-top" style={{ perspective: "1200px" }}>
+      <div
+        className={cn(
+          "fixed top-0 left-0 right-0 z-50 overflow-x-clip transition-colors duration-500",
+          shouldFillTopSafeArea
+            ? "bg-background/95 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/85"
+            : "bg-transparent"
+        )}
+        style={{
+          perspective: "1200px",
+          paddingTop: "env(safe-area-inset-top, 0px)",
+        }}
+      >
         <motion.header
           ref={ref}
           initial={{ rotateX: -3, y: -10, opacity: 0 }}
@@ -331,7 +343,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                     >
                       <Globe className="w-3.5 h-3.5" />
                       {currentLangData?.flag_svg ? (
-                        <img src={currentLangData.flag_svg} alt="" className="w-5 h-3.5 rounded-[2px] object-cover shadow-sm border border-foreground/10" />
+	                        <img src={currentLangData.flag_svg} alt="" className="w-5 h-3.5 rounded-[2px] object-cover shadow-sm border border-foreground/10" loading="lazy" decoding="async" />
                       ) : (
                         <span className="text-xs">{currentLangData?.flag_emoji || "🌐"}</span>
                       )}
@@ -343,7 +355,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                     {/* Header with background flag watermark */}
                     <div className="relative p-3 border-b border-border/50 bg-muted/30 overflow-hidden">
                       {currentLangData?.flag_svg && (
-                        <img src={currentLangData.flag_svg} alt="" className="absolute -right-4 -top-4 w-32 h-32 opacity-[0.07] pointer-events-none blur-[1px]" style={{ transform: "rotate(-12deg) scale(1.3)" }} />
+	                        <img src={currentLangData.flag_svg} alt="" className="absolute -right-4 -top-4 w-32 h-32 opacity-[0.07] pointer-events-none blur-[1px]" loading="lazy" decoding="async" style={{ transform: "rotate(-12deg) scale(1.3)" }} />
                       )}
                       <div className="flex items-center gap-2 relative z-10">
                         <Globe className="w-4 h-4 text-muted-foreground" />
@@ -362,10 +374,10 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                         >
                           {/* Hover background flag watermark */}
                           {lang.flag_svg && (
-                            <img src={lang.flag_svg} alt="" className="absolute right-1 top-1/2 -translate-y-1/2 w-16 h-16 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
+	                            <img src={lang.flag_svg} alt="" className="absolute right-1 top-1/2 -translate-y-1/2 w-16 h-16 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" loading="lazy" decoding="async" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
                           )}
                           {lang.flag_svg ? (
-                            <img src={lang.flag_svg} alt={lang.name} className="w-6 h-[17px] rounded-[3px] object-cover shadow-sm border border-black/10 shrink-0 relative z-10" />
+	                            <img src={lang.flag_svg} alt={lang.name} className="w-6 h-[17px] rounded-[3px] object-cover shadow-sm border border-black/10 shrink-0 relative z-10" loading="lazy" decoding="async" />
                           ) : (
                             <span className="text-lg">{lang.flag_emoji}</span>
                           )}
@@ -404,7 +416,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                             style={{ boxShadow: isMember ? "0 0 12px hsl(45 90% 50% / 0.15)" : "0 0 8px hsl(var(--primary) / 0.1)" }}
                           >
                             {avatarUrl ? (
-                              <img src={optimizeAvatar(avatarUrl, 72) || avatarUrl || undefined} alt={userName || ""} className="w-full h-full object-cover" />
+	                              <img src={optimizeAvatar(avatarUrl, 72) || avatarUrl || undefined} alt={userName || ""} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             ) : (
                               <div className={cn("w-full h-full flex items-center justify-center", isMember ? "bg-gradient-to-br from-amber-400/20 to-amber-600/20" : "bg-primary/10")}>
                                 <User className={cn("h-4 w-4", isMember ? "text-amber-600" : "text-primary")} />

@@ -6,9 +6,10 @@ Apple still requires review for native app changes. Do not use OTA updates for n
 
 ## Deploy A Web Bundle
 
-Create `.env.deploy` with the Supabase service role key:
+Create `.env.deploy` with the target Supabase project URL and service role key:
 
 ```bash
+SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
@@ -20,11 +21,14 @@ npm run deploy:update
 
 That command:
 
-1. bumps the patch version in `package.json`
-2. builds `dist/`
-3. zips the web bundle
-4. uploads it to the public Supabase Storage bucket `app-updates`
-5. writes `latest.json` with version, URL, SHA-256 checksum, activation mode, and release metadata
+1. runs the strict production preflight gate
+2. bumps the patch version in `package.json`
+3. builds `dist/`
+4. zips the web bundle
+5. uploads it to the public Supabase Storage bucket `app-updates`
+6. writes `latest.json` with version, URL, SHA-256 checksum, activation mode, and release metadata
+
+Use `npm run deploy:preflight` for a local report and `npm run deploy:preflight:strict` for the production gate. The strict gate blocks deploys when API/database readiness still has unresolved blockers.
 
 ## Activation Modes
 

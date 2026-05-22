@@ -765,7 +765,13 @@ function StreamRowCard({ stream, live }: { stream: StreamRow; live?: boolean }) 
     >
       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-muted overflow-hidden shrink-0 relative">
         {stream.thumbnail_url ? (
-          <img src={stream.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	          <img
+	            src={stream.thumbnail_url}
+	            alt=""
+	            className="w-full h-full object-cover"
+	            loading="lazy"
+	            decoding="async"
+	          />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Video className="w-5 h-5 text-muted-foreground" />
@@ -809,4 +815,3 @@ function StreamRowCard({ stream, live }: { stream: StreamRow; live?: boolean }) 
     </div>
   );
 }
-

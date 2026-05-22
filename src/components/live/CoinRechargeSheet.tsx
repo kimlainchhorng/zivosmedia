@@ -138,7 +138,7 @@ function PayForm({
         <div className="flex items-center justify-between text-sm mb-2">
           <span className="text-white/50">Coins</span>
           <div className="flex items-center gap-1.5">
-            <img src={goldCoinIcon} alt="" className="w-4 h-4" />
+	            <img src={goldCoinIcon} alt="" className="w-4 h-4" loading="lazy" decoding="async" />
             <span className="text-amber-300 font-bold">{selected.coins.toLocaleString()}</span>
           </div>
         </div>
@@ -298,7 +298,7 @@ export default function CoinRechargeSheet({ open, onClose, currentBalance, onPur
               <div className="px-4 pb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <img src={goldCoinIcon} alt="" className="w-6 h-6" />
+	                    <img src={goldCoinIcon} alt="" className="w-6 h-6" loading="lazy" decoding="async" />
                     <div>
                       <h3 className="text-white font-bold text-base">Get Z Coins</h3>
                       <p className="text-white/40 text-[10px]">
@@ -337,7 +337,7 @@ export default function CoinRechargeSheet({ open, onClose, currentBalance, onPur
                         </span>
                       )}
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <img src={goldCoinIcon} alt="" className="w-5 h-5" />
+	                        <img src={goldCoinIcon} alt="" className="w-5 h-5" loading="lazy" decoding="async" />
                         <span className="text-amber-300 font-bold text-lg">{pkg.coins.toLocaleString()}</span>
                       </div>
                       {pkg.bonus ? (

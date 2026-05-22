@@ -82,6 +82,8 @@ const PushNotificationsBootstrap = lazyWithRetry(() => import("@/hooks/usePushNo
   return { default: PushNotificationsBootstrap };
 }));
 const ENABLE_DEV_ROUTES = import.meta.env.DEV;
+const SHOW_REQUEST_HEALTH_BADGE =
+  import.meta.env.DEV && import.meta.env.VITE_SHOW_REQUEST_HEALTH === "true";
 let PostMenuRegressionPage: ReturnType<typeof lazy> | null = null;
 let SafeAreaQAPage: ReturnType<typeof lazy> | null = null;
 let ChatCallPreviewPage: ReturnType<typeof lazy> | null = null;
@@ -1265,7 +1267,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <Suspense fallback={null}><GlobalAutoTranslator /></Suspense>
-              {import.meta.env.DEV && <RequestHealthBadge />}
+              {SHOW_REQUEST_HEALTH_BADGE && <RequestHealthBadge />}
               <DeferredPassiveChatOverlays />
               <BrowserRouter
                 future={{

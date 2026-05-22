@@ -163,7 +163,7 @@ const ProfileStories = () => {
                   {(() => {
                     const latest = myGroup?.stories[myGroup.stories.length - 1];
                     if (latest && latest.mediaType === "image" && latest.mediaUrl) {
-                      return <img src={latest.mediaUrl} alt="Your story" className="h-full w-full object-cover" loading="lazy" />;
+	                      return <img src={latest.mediaUrl} alt="Your story" className="h-full w-full object-cover" loading="lazy" decoding="async" />;
                     }
                     if (latest && latest.mediaType === "video" && latest.mediaUrl) {
                       return <video src={latest.mediaUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />;

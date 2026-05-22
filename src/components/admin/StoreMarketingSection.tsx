@@ -623,7 +623,13 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   <CardContent className="p-4">
                     <div className="flex gap-3">
                       {post.media_urls?.[0] && (
-                        <img src={post.media_urls[0]} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0 bg-muted" />
+	                        <img
+	                          src={post.media_urls[0]}
+	                          alt=""
+	                          className="w-16 h-16 rounded-xl object-cover shrink-0 bg-muted"
+	                          loading="lazy"
+	                          decoding="async"
+	                        />
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm line-clamp-2">{post.caption || "(No caption)"}</p>
@@ -943,7 +949,13 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               {/* Post preview */}
               <div className="flex gap-3 p-3 rounded-xl bg-muted/40 border">
                 {boostPost.media_urls?.[0] && (
-                  <img src={boostPost.media_urls[0]} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+	                  <img
+	                    src={boostPost.media_urls[0]}
+	                    alt=""
+	                    className="w-14 h-14 rounded-lg object-cover shrink-0"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xs line-clamp-2">{boostPost.caption || "(No caption)"}</p>

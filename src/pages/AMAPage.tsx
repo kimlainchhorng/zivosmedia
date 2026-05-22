@@ -297,7 +297,7 @@ export default function AMAPage() {
                     {/* Cover */}
                     {s.cover_url && (
                       <div className="relative aspect-[3/1] bg-muted overflow-hidden">
-                        <img src={s.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                        <img src={s.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         <div className="absolute top-2 left-2">
                           <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider", meta.bg, meta.tone)}>
                             <StatusIcon className={cn("h-2.5 w-2.5", s.derivedStatus === "live" && "animate-pulse")} />

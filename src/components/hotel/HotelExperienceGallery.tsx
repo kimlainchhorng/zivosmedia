@@ -116,10 +116,11 @@ export default function HotelExperienceGallery({ onCategorySelect, className }: 
                 {/* Background Image */}
                 <img
                   src={exp.image}
-                  alt={exp.title}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
-                />
+	                  alt={exp.title}
+	                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
                 
                 {/* Overlay */}
                 <div className={cn(

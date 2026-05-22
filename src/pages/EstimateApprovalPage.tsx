@@ -97,7 +97,7 @@ export default function EstimateApprovalPage() {
         {/* Shop header */}
         <div className="flex items-center gap-3">
           {store?.logo_url ? (
-            <img src={store.logo_url} alt={store?.name} className="w-12 h-12 rounded-xl object-cover border" />
+	            <img src={store.logo_url} alt={store?.name} className="w-12 h-12 rounded-xl object-cover border" loading="lazy" decoding="async" />
           ) : (
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <Wrench className="w-5 h-5 text-primary" />

@@ -224,7 +224,13 @@ export default function StorePaymentSection({ storeId, market = "KH" }: { storeI
         <div className="flex items-center gap-2.5">
           <div className={`h-9 w-9 rounded-lg flex items-center justify-center overflow-hidden ${isImageIcon ? "" : iconBg}`}>
             {isImageIcon ? (
-              <img src={icon} alt={name} className="h-full w-full object-contain p-1" loading="lazy" />
+	              <img
+	                src={icon}
+	                alt={name}
+	                className="h-full w-full object-contain p-1"
+	                loading="lazy"
+	                decoding="async"
+	              />
             ) : (
               icon
             )}
@@ -321,12 +327,24 @@ export default function StorePaymentSection({ storeId, market = "KH" }: { storeI
             return (
               <div key={prov.key} className="rounded-xl border border-border overflow-hidden space-y-0">
                 <div className="relative h-24 w-full">
-                  <img src={prov.banner} alt={prov.bannerAlt} className="h-full w-full object-cover" loading="lazy" />
+	                  <img
+	                    src={prov.banner}
+	                    alt={prov.bannerAlt}
+	                    className="h-full w-full object-cover"
+	                    loading="lazy"
+	                    decoding="async"
+	                  />
                 </div>
                 <div className="p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg overflow-hidden flex items-center justify-center bg-muted">
-                      <img src={prov.logo} alt={prov.name} className="h-full w-full object-cover" loading="lazy" />
+	                      <img
+	                        src={prov.logo}
+	                        alt={prov.name}
+	                        className="h-full w-full object-cover"
+	                        loading="lazy"
+	                        decoding="async"
+	                      />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{prov.name}</p>
@@ -355,7 +373,13 @@ export default function StorePaymentSection({ storeId, market = "KH" }: { storeI
 
                       {form.qr_code_url ? (
                         <div className="relative rounded-lg overflow-hidden border border-border">
-                          <img src={form.qr_code_url} alt="QR Code" className="w-full max-h-48 object-contain bg-white" />
+	                          <img
+	                            src={form.qr_code_url}
+	                            alt="QR Code"
+	                            className="w-full max-h-48 object-contain bg-white"
+	                            loading="lazy"
+	                            decoding="async"
+	                          />
                           <Button
                             variant="outline"
                             size="sm"

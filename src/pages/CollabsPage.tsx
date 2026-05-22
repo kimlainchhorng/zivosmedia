@@ -290,7 +290,7 @@ export default function CollabsPage() {
                       isVideo ? (
                         <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                       ) : (
-                        <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                        <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       )
                     ) : (
                       <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-5 w-5 text-muted-foreground" /></div>

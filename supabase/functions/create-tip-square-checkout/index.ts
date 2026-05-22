@@ -5,15 +5,20 @@
  * first with status='pending'.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SQUARE_BASE = (Deno.env.get("SQUARE_MODE") ?? "production") === "sandbox"
   ? "https://connect.squareupsandbox.com"
   : "https://connect.squareup.com";
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-tip-square-checkout", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -31,7 +36,9 @@ Deno.serve(async (req) => {
     if (!creator_id || !amount_cents || amount_cents < 100) {
       return new Response(JSON.stringify({ error: "Invalid creator_id or amount (min $1)" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     const { data: tip, error: tipErr } = await admin
       .from("creator_tips")
@@ -57,7 +64,7 @@ Deno.serve(async (req) => {
         idempotency_key: idemKey,
         quick_pay: { name: "ZIVO creator tip", price_money: { amount: amount_cents, currency: "USD" }, location_id: locationId },
         checkout_options: {
-          redirect_url: return_url || `${req.headers.get("origin") ?? ""}`,
+          redirect_url: safeRedirectUrl(req, return_url, "/"),
           ask_for_shipping_address: false,
         },
         pre_populated_data: { buyer_email: user.email ?? undefined },
@@ -82,4 +89,16 @@ Deno.serve(async (req) => {
     console.error("[create-tip-square-checkout]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+
+function safeRedirectUrl(req: Request, value: unknown, fallbackPath: string) {
+  const origin = req.headers.get("origin") || "https://hizivo.com";
+  const fallback = `${origin}${fallbackPath}`;
+  if (typeof value !== "string" || !value) return fallback;
+  try {
+    const url = new URL(value, origin);
+    return url.origin === origin ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}

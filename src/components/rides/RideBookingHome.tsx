@@ -377,10 +377,12 @@ function VehicleRow({
     >
       <div className="w-[72px] shrink-0 flex items-center justify-center">
         <img
-          src={getVehicleImage(vehicle.id, useKm)}
-          alt={getVehicleName(vehicle.id, vehicle.name, useKm)}
-          className="w-[72px] h-[44px] object-contain"
-        />
+	          src={getVehicleImage(vehicle.id, useKm)}
+	          alt={getVehicleName(vehicle.id, vehicle.name, useKm)}
+	          className="w-[72px] h-[44px] object-contain"
+	          loading="lazy"
+	          decoding="async"
+	        />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -1179,13 +1181,16 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
           const updatedJob = payload.new as any;
           if (cancelled) return;
 
-          if (updatedJob.assigned_driver_id && ["accepted", "driver_assigned", "en_route_pickup"].includes(updatedJob.status)) {
+          if (
+            updatedJob.assigned_driver_id &&
+            !["canceled", "cancelled", "completed"].includes(updatedJob.status)
+          ) {
             // Driver accepted! Fetch driver details
             const { data: driverRow } = await supabase
               .from("drivers")
               .select("id, full_name, rating, total_trips, vehicle_model, vehicle_color, vehicle_plate, phone, current_lat, current_lng")
-              .eq("id", updatedJob.assigned_driver_id)
-              .single();
+              .or(`id.eq.${updatedJob.assigned_driver_id},user_id.eq.${updatedJob.assigned_driver_id}`)
+              .maybeSingle();
 
             if (driverRow && !cancelled) {
               const firstName = driverRow.full_name?.split(" ")[0] || "Driver";
@@ -2392,7 +2397,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                             currentLanguage === l.code ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted/60"
                           )}
                         >
-                          <img src={l.flagImg} alt="" className="absolute right-0 top-1/2 -translate-y-1/2 h-[120%] w-auto opacity-[0.07] pointer-events-none" />
+	                          <img src={l.flagImg} alt="" className="absolute right-0 top-1/2 -translate-y-1/2 h-[120%] w-auto opacity-[0.07] pointer-events-none" loading="lazy" decoding="async" />
                           <span className="text-xs font-bold text-muted-foreground uppercase w-6 shrink-0">{l.cc}</span>
                           <span className="font-medium relative z-10">{l.label}</span>
                           {currentLanguage === l.code && <CheckCircle className="w-4 h-4 ml-auto text-primary relative z-10" />}
@@ -2890,7 +2895,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                               currentLanguage === l.code ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted/60"
                             )}
                           >
-                            <img src={l.flagImg} alt="" className="absolute right-0 top-1/2 -translate-y-1/2 h-[120%] w-auto opacity-[0.07] pointer-events-none" />
+	                            <img src={l.flagImg} alt="" className="absolute right-0 top-1/2 -translate-y-1/2 h-[120%] w-auto opacity-[0.07] pointer-events-none" loading="lazy" decoding="async" />
                             <span className="text-xs font-bold text-muted-foreground uppercase w-6 shrink-0">{l.cc}</span>
                             <span className="font-medium relative z-10">{l.label}</span>
                             {currentLanguage === l.code && <CheckCircle className="w-4 h-4 ml-auto text-primary relative z-10" />}
@@ -3272,7 +3277,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
               </label>
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5 h-12 px-3 rounded-2xl bg-muted/30 border border-border/40 shrink-0">
-                  <img src="/flags/kh.svg" alt="KH" className="w-5 h-4 rounded-sm object-cover" />
+	                  <img src="/flags/kh.svg" alt="KH" className="w-5 h-4 rounded-sm object-cover" loading="lazy" decoding="async" />
                   <span className="text-sm font-medium text-foreground">+855</span>
                 </div>
                 <Input
@@ -3405,10 +3410,12 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                   {/* Vehicle image */}
                   <div className="w-[68px] shrink-0 flex items-center justify-center">
                     <img
-                      src={getVehicleImage(v.id, isCambodiaCountry)}
-                      alt={getVehicleName(v.id, v.name, isCambodiaCountry)}
-                      className={cn("w-[68px] h-auto transition-transform duration-200", isSelected && "scale-105")}
-                    />
+	                      src={getVehicleImage(v.id, isCambodiaCountry)}
+	                      alt={getVehicleName(v.id, v.name, isCambodiaCountry)}
+	                      className={cn("w-[68px] h-auto transition-transform duration-200", isSelected && "scale-105")}
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   </div>
 
                   {/* Center: Name + meta */}
@@ -3621,7 +3628,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
             <div className="rounded-lg bg-card border border-border/20 px-3 py-2 shrink-0">
               <div className="flex items-center gap-2.5 mb-1.5">
                 <div className="w-[50px] h-[36px] flex items-center justify-center shrink-0 bg-muted/10 rounded-md">
-                  <img src={getVehicleImage(selectedVehicle, isCambodiaCountry)} alt={getVehicleName(selectedVehicle, currentVehicle.name, isCambodiaCountry)} className="w-full h-full object-contain" />
+	                  <img src={getVehicleImage(selectedVehicle, isCambodiaCountry)} alt={getVehicleName(selectedVehicle, currentVehicle.name, isCambodiaCountry)} className="w-full h-full object-contain" loading="lazy" decoding="async" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground leading-tight">{getVehicleName(selectedVehicle, currentVehicle.name, isCambodiaCountry)} · {getVehicleCapacity(selectedVehicle, currentVehicle.capacity, isCambodiaCountry)} {t("ride.seats")}</p>
@@ -3841,10 +3848,12 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
             {/* KHQR Code Image */}
             <div className="w-48 h-48 rounded-2xl overflow-hidden border-2 border-border/50 bg-white p-2">
               <img
-                src="/images/aba-khqr.jpeg"
-                alt="ABA KHQR Payment Code"
-                className="w-full h-full object-contain"
-              />
+	                src="/images/aba-khqr.jpeg"
+	                alt="ABA KHQR Payment Code"
+	                className="w-full h-full object-contain"
+	                loading="lazy"
+	                decoding="async"
+	              />
             </div>
 
             <div className="text-center space-y-1">

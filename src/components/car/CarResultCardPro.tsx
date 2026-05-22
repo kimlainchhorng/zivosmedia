@@ -130,10 +130,11 @@ export default function CarResultCardPro({
             {image ? (
               <img 
                 src={image} 
-                alt={name || category}
-                className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110"
-                loading="lazy"
-              />
+	                alt={name || category}
+	                className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110"
+	                loading="lazy"
+	                decoding="async"
+	              />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-secondary">

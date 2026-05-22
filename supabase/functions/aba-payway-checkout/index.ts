@@ -5,18 +5,17 @@
  */
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const ABA_API_BASE = "https://checkout-sandbox.payway.com.kh";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("aba-payway-checkout", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   try {
@@ -76,7 +75,7 @@ Deno.serve(async (req) => {
       tran_id: tranId,
       amount: amount.toFixed(2),
       payment_option: "abapay_deeplink",
-      return_url: return_url ? btoa(return_url) : "",
+      return_url: return_url ? btoa(safeReturnUrl(req, return_url)) : "",
       currency: cur,
     };
 
@@ -144,7 +143,18 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+
+function safeReturnUrl(req: Request, value: unknown) {
+  const origin = req.headers.get("origin") || "https://hizivo.com";
+  if (typeof value !== "string" || !value) return origin;
+  try {
+    const url = new URL(value, origin);
+    return url.origin === origin ? url.toString() : origin;
+  } catch {
+    return origin;
+  }
+}
 
 /** Format date as yyyyMMddHHmmss */
 function formatDate(d: Date): string {

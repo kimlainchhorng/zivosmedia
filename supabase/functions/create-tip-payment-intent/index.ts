@@ -2,15 +2,18 @@
  * create-tip-payment-intent — Creates a Stripe PaymentIntent for in-app tipping.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import Stripe from "../_shared/stripe.ts";
+import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import { scanContentForLinks, logBlockedAttempt, isAbuseThresholdExceeded, isIpAbuseThresholdExceeded, getRequestIpHash } from "../_shared/contentLinkValidation.ts";
 import { isLikelyMaliciousBot } from "../_shared/botDetection.ts";
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-tip-payment-intent", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...cors, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -26,17 +29,30 @@ Deno.serve(async (req) => {
     }
 
     const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
     });
     const { data: { user }, error: authErr } = await userClient.auth.getUser();
     if (authErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
+    const rl = await rateLimitDb(user.id, "payment");
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: "Too many requests. Please try again shortly." }), {
+        status: 429, headers: { ...cors, "Content-Type": "application/json", ...rateLimitHeaders(rl, "payment") },
       });
     }
 
@@ -49,7 +65,9 @@ Deno.serve(async (req) => {
     }
 
     {
-      const admin = createClient(supabaseUrl, serviceKey);
+      const admin = createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
       const ipHash = await getRequestIpHash(req);
       if (await isIpAbuseThresholdExceeded(admin, ipHash)) {
         return new Response(JSON.stringify({ error: "rate_limited", code: "ip_abuse_threshold_exceeded", message: "Too many recent blocked submissions from your network." }), { status: 429, headers: { ...cors, "Content-Type": "application/json" } });
@@ -62,7 +80,9 @@ Deno.serve(async (req) => {
     if (typeof message === "string") {
       const linkScan = scanContentForLinks(message);
       if (!linkScan.ok) {
-        const admin = createClient(supabaseUrl, serviceKey);
+        const admin = createClient(supabaseUrl, serviceKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
         logBlockedAttempt(admin, { endpoint: "create-tip-payment-intent", userId: user.id, urls: linkScan.blocked, text: message, ip: req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") });
         return new Response(JSON.stringify({ error: "blocked_link", code: "blocked_link", urls: linkScan.blocked }), { status: 422, headers: { ...cors, "Content-Type": "application/json" } });
       }
@@ -99,7 +119,9 @@ Deno.serve(async (req) => {
     });
 
     // Record pending tip
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
     await admin.from("creator_tips").insert({
       tipper_id: user.id,
       creator_id,
@@ -120,7 +142,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("[create-tip-payment-intent] Error:", e);
     return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "payment", strictCors: true }));

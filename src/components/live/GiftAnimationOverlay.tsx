@@ -561,7 +561,7 @@ function GiftAnimationOverlay({ activeGift, onComplete, giftPanelOpen, comboCoun
                       boxShadow: `0 2px 10px ${lv.glow}`,
                     }}
                   >
-                    <img src={goldCoinIcon} alt="" className="w-3.5 h-3.5" style={{ filter: "drop-shadow(0 0 4px rgba(255,200,0,0.5))" }} />
+	                    <img src={goldCoinIcon} alt="" className="w-3.5 h-3.5" loading="lazy" decoding="async" style={{ filter: "drop-shadow(0 0 4px rgba(255,200,0,0.5))" }} />
                     <span className="text-amber-100 text-[12px] font-black tabular-nums" style={{ textShadow: "0 0 6px rgba(255,200,0,0.4), 0 1px 3px rgba(0,0,0,0.6)" }}>
                       {activeGift.coins.toLocaleString()}
                     </span>

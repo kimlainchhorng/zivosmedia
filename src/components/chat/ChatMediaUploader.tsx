@@ -181,7 +181,13 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
           >
             <div className="flex items-center gap-3">
               {preview.url ? (
-                <img src={preview.url} className="w-12 h-12 rounded-lg object-cover" alt="" />
+	                <img
+	                  src={preview.url}
+	                  className="w-12 h-12 rounded-lg object-cover"
+	                  alt=""
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
                   {getFileIcon(preview.type)}

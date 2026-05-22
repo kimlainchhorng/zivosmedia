@@ -206,24 +206,33 @@ export default function CallPiP({
       {hasVideo ? (
         <video
           ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-[142px] object-cover bg-muted"
+	          autoPlay
+	          playsInline
+	          muted
+	          preload="none"
+	          className="w-full h-[142px] object-cover bg-muted"
         />
       ) : callType === "video" ? (
         <div className="relative grid h-[142px] place-items-center overflow-hidden bg-zinc-950">
           {recipientAvatar && (
             <img
               src={recipientAvatar}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl"
-            />
+	              alt=""
+	              aria-hidden="true"
+	              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl"
+	              loading="lazy"
+	              decoding="async"
+	            />
           )}
           <div className="relative grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-white/10 text-xl font-bold text-white ring-1 ring-white/15">
             {recipientAvatar ? (
-              <img src={recipientAvatar} alt="" className="h-full w-full object-cover" />
+	              <img
+	                src={recipientAvatar}
+	                alt=""
+	                className="h-full w-full object-cover"
+	                loading="lazy"
+	                decoding="async"
+	              />
             ) : (
               initials
             )}

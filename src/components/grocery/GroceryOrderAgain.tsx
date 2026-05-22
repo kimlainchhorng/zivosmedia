@@ -169,7 +169,7 @@ export function GroceryOrderAgain({ store, onAdd, cartProductIds }: GroceryOrder
             >
               <div className="relative h-[90px] bg-gradient-to-br from-primary/[0.03] to-muted/20 flex items-center justify-center p-3">
                 {item.image ? (
-                  <img src={item.image} alt={item.name} className="h-full w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
+	                  <img src={item.image} alt={item.name} className="h-full w-full object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                 ) : (
                   <Package className="h-8 w-8 text-muted-foreground/10" />
                 )}

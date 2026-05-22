@@ -184,7 +184,7 @@ export default function TrustSection({ service, className = '' }: TrustSectionPr
                 "relative w-12 h-12 rounded-xl flex items-center justify-center mb-4 overflow-hidden ring-1 shadow-md transition-transform duration-300 group-hover:scale-110",
                 point.iconRing
               )}>
-                <img src={point.bg} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+	                <img src={point.bg} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
                 <div className={cn("absolute inset-0 bg-gradient-to-br", point.gradient)} />
                 <point.icon className="w-6 h-6 relative z-10 text-foreground drop-shadow-sm" />
               </div>

@@ -148,7 +148,13 @@ export default function LodgingGallerySection({ storeId }: { storeId: string }) 
                 onClick={() => goTab(p.source === "room" ? "lodge-rooms" : "lodge-property")}
                 className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-muted text-left transition hover:border-primary/40"
               >
-                <img src={p.url} alt={p.label} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+	                <img
+	                  src={p.url}
+	                  alt={p.label}
+	                  className="h-full w-full object-cover transition group-hover:scale-105"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1">
                   <Badge variant={p.source === "property" ? "default" : "secondary"} className="text-[9px] px-1.5 py-0 leading-tight">
                     {p.source === "property" ? <Building2 className="mr-0.5 h-2.5 w-2.5" /> : <BedDouble className="mr-0.5 h-2.5 w-2.5" />}

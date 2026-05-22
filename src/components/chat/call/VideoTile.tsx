@@ -75,24 +75,33 @@ export default function VideoTile({ participant, emphasized = false, isRecording
     >
       {participant.camEnabled && participant.cameraTrack ? (
         <video
-          ref={videoRef}
-          muted={participant.isLocal}
-          playsInline
-          className="h-full w-full object-cover"
-        />
+	          ref={videoRef}
+	          muted={participant.isLocal}
+	          playsInline
+	          preload="none"
+	          className="h-full w-full object-cover"
+	        />
       ) : (
         <>
           {participant.avatarUrl && (
             <img
               src={participant.avatarUrl}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-25 blur-2xl"
-            />
+	              alt=""
+	              aria-hidden="true"
+	              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-25 blur-2xl"
+	              loading="lazy"
+	              decoding="async"
+	            />
           )}
           <div className="relative grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-zinc-700 text-2xl font-semibold text-white shadow-2xl ring-2 ring-white/20 sm:h-24 sm:w-24 sm:text-3xl">
             {participant.avatarUrl ? (
-              <img src={participant.avatarUrl} alt="" className="h-full w-full object-cover" />
+	              <img
+	                src={participant.avatarUrl}
+	                alt=""
+	                className="h-full w-full object-cover"
+	                loading="lazy"
+	                decoding="async"
+	              />
             ) : (
               initials
             )}

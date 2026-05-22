@@ -22,10 +22,11 @@ export default function HotelInspirationalBanner({ className }: HotelInspiration
         <img
           src={hotelLuxuryPool}
           alt="Luxury resort pool"
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-        />
+	          className="absolute inset-0 w-full h-full object-cover"
+	          loading="eager"
+	          decoding="async"
+	          fetchPriority="high"
+	        />
         
         {/* Gradient Overlays */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />

@@ -106,10 +106,11 @@ export function RampCarCard({ car, onViewDeal, className }: RampCarCardProps) {
           {brandedCar ? (
             <img
               src={brandedCar.src}
-              alt={`${car.category} rental car`}
-              className="w-full h-full object-contain max-h-32 group-hover:scale-110 transition-transform duration-200"
-              loading="lazy"
-            />
+	              alt={`${car.category} rental car`}
+	              className="w-full h-full object-contain max-h-32 group-hover:scale-110 transition-transform duration-200"
+	              loading="lazy"
+	              decoding="async"
+	            />
           ) : (
             <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 flex items-center justify-center">
               <Car className="w-12 h-12 text-emerald-500" />

@@ -102,10 +102,12 @@ export default function ZivoActionBubble({ payload, isMe, time }: Props) {
             {imageUrl && (
               <img
                 src={imageUrl}
-                alt=""
-                draggable={false}
-                className="absolute inset-0 h-full w-full object-cover opacity-90 group-hover:opacity-100 transition"
-              />
+	                alt=""
+	                draggable={false}
+	                className="absolute inset-0 h-full w-full object-cover opacity-90 group-hover:opacity-100 transition"
+	                loading="lazy"
+	                decoding="async"
+	              />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
             <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/95 text-[10px] font-bold uppercase tracking-wide text-foreground">

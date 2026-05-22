@@ -519,10 +519,12 @@ export default function ChatContactInfo({
                       className="aspect-square bg-muted overflow-hidden relative group"
                     >
                       <img
-                        src={media.image_url || media.video_url}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
+	                        src={media.image_url || media.video_url}
+	                        alt=""
+	                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+	                        loading="lazy"
+	                        decoding="async"
+	                      />
                       {media.message_type === "video" && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                           <Video className="w-5 h-5 text-white drop-shadow" />
@@ -563,7 +565,13 @@ export default function ChatContactInfo({
                     >
                       <div className={`w-9 h-9 rounded-xl ${meta.color} flex items-center justify-center flex-shrink-0 overflow-hidden ${meta.brandImage ? "border border-border/40" : ""}`}>
                         {meta.brandImage ? (
-                          <img src={meta.brandImage} alt={link.label} className="w-7 h-7 object-contain" />
+	                          <img
+	                            src={meta.brandImage}
+	                            alt={link.label}
+	                            className="w-7 h-7 object-contain"
+	                            loading="lazy"
+	                            decoding="async"
+	                          />
                         ) : (
                           <Icon className="w-[16px] h-[16px] text-white" />
                         )}
@@ -606,7 +614,13 @@ export default function ChatContactInfo({
                     >
                       <div className="w-7 h-7 rounded-full overflow-hidden bg-muted flex-shrink-0">
                         {friend.avatar ? (
-                          <img src={friend.avatar} alt="" className="w-full h-full object-cover" />
+	                          <img
+	                            src={friend.avatar}
+	                            alt=""
+	                            className="w-full h-full object-cover"
+	                            loading="lazy"
+	                            decoding="async"
+	                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                             {friend.name.charAt(0)}

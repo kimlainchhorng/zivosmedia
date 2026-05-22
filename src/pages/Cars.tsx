@@ -396,10 +396,11 @@ export default function Cars() {
                     <div className="relative aspect-[4/3] overflow-hidden">
                       <img
                         src={primaryImage}
-                        alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        loading="lazy"
-                      />
+	                        alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+	                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+	                        loading="lazy"
+	                        decoding="async"
+	                      />
                       {vehicle.instant_book && (
                         <Badge className="absolute top-3 left-3 bg-ig-gradient text-white border-0 gap-1 shadow-sm">
                           <Zap className="w-3 h-3" />

@@ -123,10 +123,11 @@ export default function HotelResultCardPro({
               {image ? (
                 <img 
                   src={image} 
-                  alt={name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
-                />
+	                  alt={name}
+	                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Hotel className="w-12 h-12 text-amber-500/50" />

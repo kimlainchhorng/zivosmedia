@@ -35,7 +35,13 @@ export default function GiftBubble({ payload, isMine }: Props) {
       <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/15 blur-2xl pointer-events-none" />
       <div className="flex items-center justify-center mb-2">
         {isImage ? (
-          <img src={icon} alt={name} className="w-16 h-16 object-contain" />
+	          <img
+	            src={icon}
+	            alt={name}
+	            className="w-16 h-16 object-contain"
+	            loading="lazy"
+	            decoding="async"
+	          />
         ) : (
           <div className="text-5xl">{icon}</div>
         )}

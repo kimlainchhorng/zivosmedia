@@ -5,7 +5,7 @@
  * with status='pending' so the webhook + capture function can resolve it.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "live") === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
@@ -24,9 +24,14 @@ async function token() {
   return (await res.json()).access_token as string;
 }
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-tip-paypal-order", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -40,7 +45,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Invalid creator_id or amount (min $1)" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     // Reserve the tip row with status='pending'.
     const { data: tip, error: tipErr } = await admin
@@ -74,8 +81,8 @@ Deno.serve(async (req) => {
           brand_name: "ZIVO",
           shipping_preference: "NO_SHIPPING",
           user_action: "PAY_NOW",
-          return_url: return_url || `${req.headers.get("origin") ?? ""}`,
-          cancel_url: cancel_url || `${req.headers.get("origin") ?? ""}`,
+          return_url: safeRedirectUrl(req, return_url, "/"),
+          cancel_url: safeRedirectUrl(req, cancel_url, "/"),
         },
       }),
     });
@@ -98,4 +105,16 @@ Deno.serve(async (req) => {
     console.error("[create-tip-paypal-order]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+
+function safeRedirectUrl(req: Request, value: unknown, fallbackPath: string) {
+  const origin = req.headers.get("origin") || "https://hizivo.com";
+  const fallback = `${origin}${fallbackPath}`;
+  if (typeof value !== "string" || !value) return fallback;
+  try {
+    const url = new URL(value, origin);
+    return url.origin === origin ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}

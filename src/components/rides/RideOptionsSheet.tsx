@@ -200,10 +200,12 @@ export default function RideOptionsSheet({
               {/* Vehicle Image */}
               <div className="flex h-16 w-20 flex-shrink-0 items-center justify-center">
                 <img
-                  src={ride.image}
-                  alt={ride.name}
-                  className="h-12 w-auto object-contain"
-                />
+	                  src={ride.image}
+	                  alt={ride.name}
+	                  className="h-12 w-auto object-contain"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               </div>
 
               {/* Info */}

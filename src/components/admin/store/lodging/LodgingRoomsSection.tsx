@@ -386,7 +386,15 @@ export default function LodgingRoomsSection({ storeId }: { storeId: string }) {
                   <div className="flex items-start gap-3">
                     <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                       {cover
-                        ? <img src={cover} alt={r.name} className="h-full w-full object-cover" />
+	                        ? (
+	                          <img
+	                            src={cover}
+	                            alt={r.name}
+	                            className="h-full w-full object-cover"
+	                            loading="lazy"
+	                            decoding="async"
+	                          />
+	                        )
                         : <BedDouble className="h-6 w-6 text-primary" />}
                     </div>
                     <div className="flex-1 min-w-0">

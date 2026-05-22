@@ -178,10 +178,11 @@ export function FlightFiltersContent({
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <img
                     src={getAirlineLogo(airline.code)}
-                    alt={airline.name}
-                    className="w-5 h-5 object-contain"
-                    loading="lazy"
-                    onError={(e) => {
+	                    alt={airline.name}
+	                    className="w-5 h-5 object-contain"
+	                    loading="lazy"
+	                    decoding="async"
+	                    onError={(e) => {
                       (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${airline.code}&background=0ea5e9&color=fff&size=24`;
                     }}
                   />

@@ -133,7 +133,13 @@ export default function TwoFactorSetupDialog({ open, onOpenChange, onEnrolled }:
                   dangerouslySetInnerHTML={{ __html: qrSvg }}
                 />
               ) : (
-                <img src={qrSvg} alt="2FA QR code" className="w-44 h-44" />
+	                <img
+	                  src={qrSvg}
+	                  alt="2FA QR code"
+	                  className="w-44 h-44"
+	                  loading="lazy"
+	                  decoding="async"
+	                />
               )}
             </div>
 

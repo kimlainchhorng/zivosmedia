@@ -108,10 +108,11 @@ export default function FeaturedCarsSection() {
                   {store.banner_url || store.logo_url ? (
                     <img
                       src={optimizeAvatar(store.banner_url || store.logo_url, 400) || store.banner_url || store.logo_url}
-                      alt={store.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      loading="lazy"
-                    />
+	                      alt={store.name}
+	                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-teal-500/10 to-primary/5">
                       🚗

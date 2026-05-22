@@ -291,7 +291,13 @@ export default function ChatPersonalization({ open, onClose, chatPartnerId, chat
                             : "border-border/20 hover:border-border/50"
                         }`}
                       >
-                        <img src={url} alt="Custom" className="w-full h-full object-cover" />
+	                        <img
+	                          src={url}
+	                          alt="Custom"
+	                          className="w-full h-full object-cover"
+	                          loading="lazy"
+	                          decoding="async"
+	                        />
                         {isSelected && (
                           <motion.div
                             initial={{ scale: 0 }}

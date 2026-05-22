@@ -224,10 +224,12 @@ export default function FlightSearchFormPro({
       {/* Background image */}
       <img
         src={tabFlightsBg}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ opacity: 0.3 }}
-      />
+	        alt=""
+	        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+	        loading="lazy"
+	        decoding="async"
+	        style={{ opacity: 0.3 }}
+	      />
       <span className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, hsl(var(--card) / 0.55) 0%, hsl(var(--card) / 0.7) 50%, hsl(var(--card) / 0.6) 100%)" }} />
 
       {/* Accent bar with 3D lift */}
@@ -256,7 +258,7 @@ export default function FlightSearchFormPro({
           >
             {tripType === type.id && (
               <>
-                <img src={tabFlightsBg} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.5 }} />
+	                <img src={tabFlightsBg} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" style={{ opacity: 0.5 }} />
                 <span className="absolute inset-0" style={{ background: "linear-gradient(135deg, hsl(var(--flights) / 0.7), hsl(var(--flights) / 0.5))" }} />
               </>
             )}

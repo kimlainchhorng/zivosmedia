@@ -1,6 +1,7 @@
 // Google Ads OAuth callback. Exchanges code, stores tokens in store_ad_platform_connections.
 import { createClient } from "../_shared/deps.ts";
 import { encryptToken } from "../_shared/tokenCrypto.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PREVIEW_FALLBACK = "https://id-preview--72f99340-9c9f-453a-acff-60e5a9b25774.lovable.app";
 
@@ -11,7 +12,26 @@ function htmlRedirect(url: string, message = "Connecting...") {
   );
 }
 
-Deno.serve(async (req) => {
+function allowedReturnUrl(value: unknown) {
+  const allowedOrigins = new Set([
+    PREVIEW_FALLBACK,
+    Deno.env.get("APP_URL") || "",
+    Deno.env.get("SITE_URL") || "",
+    Deno.env.get("PUBLIC_SITE_URL") || "",
+    "https://hizivo.com",
+    "https://www.zivollc.com",
+  ].filter(Boolean).map((origin) => new URL(origin).origin));
+  if (typeof value !== "string" || !value) return `${PREVIEW_FALLBACK}/connect/callback`;
+  if (value.startsWith("/") && !value.startsWith("//")) return `${PREVIEW_FALLBACK}${value}`;
+  try {
+    const url = new URL(value);
+    return allowedOrigins.has(url.origin) ? url.toString() : `${PREVIEW_FALLBACK}/connect/callback`;
+  } catch {
+    return `${PREVIEW_FALLBACK}/connect/callback`;
+  }
+}
+
+Deno.serve(withSecurity("google-ads-oauth-callback", async (req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -19,12 +39,16 @@ Deno.serve(async (req) => {
 
   if (!state) return htmlRedirect(`${PREVIEW_FALLBACK}/connect/callback?error=missing_state`);
 
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
   const { data: stateRow } = await admin.from("oauth_states").select("*").eq("state", state).maybeSingle();
   if (!stateRow) return htmlRedirect(`${PREVIEW_FALLBACK}/connect/callback?error=invalid_state`);
   admin.from("oauth_states").delete().eq("state", state).then(() => {});
 
-  const returnBase = stateRow.return_url || `${PREVIEW_FALLBACK}/connect/callback`;
+  const returnBase = allowedReturnUrl(stateRow.return_url);
   const back = (q: string) => htmlRedirect(`${returnBase}${returnBase.includes("?") ? "&" : "?"}${q}`);
 
   if (errParam) return back(`error=${encodeURIComponent(errParam)}`);
@@ -104,4 +128,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return back(`error=${encodeURIComponent((e as Error).message)}`);
   }
-});
+}, { rateLimit: "admin_action", strictCors: true, skipWaf: true, trackNetwork: "suspicious" }));

@@ -111,9 +111,6 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks,
-        // Merge micro-chunks (< 20 kB) back into their importer to reduce
-        // the number of HTTP/2 round-trips on first load.
-        experimentalMinChunkSize: 20_000,
       },
     },
     cssCodeSplit: true,
@@ -254,6 +251,21 @@ export default defineConfig(({ mode }) => ({
               // the broken image renders forever.
               cacheableResponse: {
                 statuses: [200]
+              }
+            }
+          },
+          {
+            urlPattern: /\.(mp4|webm|mov|m4v)$/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "local-video-metadata",
+              expiration: {
+                maxEntries: 25,
+                maxAgeSeconds: 60 * 60 * 24 * 7
+              },
+              rangeRequests: true,
+              cacheableResponse: {
+                statuses: [200, 206]
               }
             }
           }

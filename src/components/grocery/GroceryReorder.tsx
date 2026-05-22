@@ -120,7 +120,7 @@ export default function GroceryReorder() {
             className="group w-full flex items-center gap-3 p-3 rounded-[16px] border border-border/30 bg-card/60 backdrop-blur-sm hover:bg-card hover:border-primary/15 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200"
           >
             <div className="relative h-11 w-11 rounded-xl bg-background border border-border/30 flex items-center justify-center p-1.5 shrink-0 group-hover:shadow-md transition-shadow">
-              <img src={r.storeLogo} alt={r.storeName} className="h-full w-full object-contain" />
+	              <img src={r.storeLogo} alt={r.storeName} className="h-full w-full object-contain" loading="lazy" decoding="async" />
               <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary/15 flex items-center justify-center">
                 <RotateCcw className="h-2 w-2 text-primary" />
               </div>

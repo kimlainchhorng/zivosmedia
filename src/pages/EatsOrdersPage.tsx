@@ -209,7 +209,7 @@ export default function EatsOrdersPage() {
                 className="w-full text-left rounded-2xl bg-card border border-border/40 p-4 hover:border-primary/20 transition-all touch-manipulation active:scale-[0.99] space-y-3">
                 <div className="flex items-center gap-3">
                   {restaurant?.logo_url ? (
-                    <img src={restaurant.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+	                    <img src={restaurant.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                       <UtensilsCrossed className="w-5 h-5 text-primary" />
