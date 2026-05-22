@@ -63,7 +63,6 @@ const IncomingCallListener = lazyWithRetry(() => import("@/components/chat/Incom
 const ChatNotificationListener = lazyWithRetry(() => import("@/components/chat/ChatNotificationListener"));
 const RuntimeSecurityGuard = lazyWithRetry(() => import("@/components/security/RuntimeSecurityGuard"));
 const GlobalAutoTranslator = lazyWithRetry(() => import("@/components/common/GlobalAutoTranslator"));
-const SpatialCursor = lazyWithRetry(() => import("./components/ui/SpatialCursor").then(m => ({ default: m.SpatialCursor })));
 const StoryDebugPanel = lazyWithRetry(() => import("@/components/stories/StoryDebugPanel"));
 const PostShareSheet = lazyWithRetry(() => import("@/components/social/PostShareSheet"));
 const ShareToChatSheet = lazyWithRetry(() => import("@/components/chat/ShareToChatSheet"));
@@ -1118,7 +1117,6 @@ function RouteAwareGlobalUI() {
       <PWAUpdatePrompt />
       <PWAInstallBanner />
       <InAppBrowserInterstitial />
-      <SpatialCursor />
       <RuntimeSecurityGuard />
       {user && <MfaChallengeDialog />}
       {user && <IncomingCallListener />}

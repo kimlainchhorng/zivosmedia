@@ -5055,7 +5055,10 @@ export default function FeedPage() {
           so we max() the safe-area inset with 16px so the tabs sit inside the
           frame instead of floating above it on tablets without a notch. */}
       {userId && (
-        <div className="absolute left-1/2 top-safe-overlay -translate-x-1/2 z-50">
+        <div
+          className="absolute left-1/2 -translate-x-1/2 z-50"
+          style={{ top: "calc(var(--zivo-safe-top, 0px) + 8px)" }}
+        >
           <div
             className="relative flex items-center gap-6 px-2"
             role="tablist"
@@ -5162,7 +5165,10 @@ export default function FeedPage() {
         </div>
       )}
 
-      <div className="absolute left-3 top-safe-overlay z-50 lg:left-4">
+      <div
+        className="absolute left-3 z-50 lg:left-4"
+        style={{ top: "calc(var(--zivo-safe-top, 0px) + 8px)" }}
+      >
         <button
           type="button"
           onClick={cycleSourceFilter}
@@ -5184,7 +5190,10 @@ export default function FeedPage() {
           Wrapped in a centered container so on iPad (md+), where the reel
           sits in a 420-px-wide phone frame, the buttons hug the right edge
           of the frame instead of floating in the black gutter outside it. */}
-      <div className="absolute inset-x-0 top-safe-overlay z-50 mx-auto md:max-w-[420px] pointer-events-none lg:hidden">
+      <div
+        className="absolute inset-x-0 z-50 mx-auto md:max-w-[420px] pointer-events-none lg:hidden"
+        style={{ top: "calc(var(--zivo-safe-top, 0px) + 8px)" }}
+      >
       <div data-testid="feed-floating-actions" className="flex justify-end gap-2 sm:gap-2.5 px-3 sm:px-4">
         {/* Live entry — also reachable via the bottom nav, so hide on the
             smallest phones (<sm) where the row would collide with center tabs. */}
