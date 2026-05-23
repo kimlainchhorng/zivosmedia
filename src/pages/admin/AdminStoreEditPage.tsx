@@ -58,7 +58,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Save, Store, Image, Package, Plus, Edit, Trash2, Loader2, Eye, Upload, Camera, MapPin, ExternalLink, Globe, Check, Percent, DollarSign, CalendarIcon, Tag, Gift, Video, ImagePlus, RefreshCw, Replace, CheckCircle2, XCircle, MinusCircle, AlertTriangle, Move, X, Ruler, MessageCircle, CreditCard, Banknote, QrCode, Building2, Smartphone, Wallet, Car, Heart, Clock, Send, Users, Shield, Bell, Info, Copy, GripVertical, Hotel, BedDouble, CalendarRange, KeyRound, PackagePlus, MessageSquareText, BarChart3, ListChecks, LayoutDashboard, BookOpen } from "lucide-react";
 import StoreLiveChat from "@/components/grocery/StoreLiveChat";
 import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
-import { LODGING_TAB_IDS, resolveStoreTab, resolveStoreTabFromSearch } from "@/lib/admin/storeTabRouting";
+import { LODGING_TAB_IDS, isAutoRepairTab, resolveStoreTab, resolveStoreTabFromSearch } from "@/lib/admin/storeTabRouting";
 import { useLodgeRooms } from "@/hooks/lodging/useLodgeRooms";
 import { useLodgePropertyProfile } from "@/hooks/lodging/useLodgePropertyProfile";
 import { useLodgingPhase5Counts } from "@/hooks/lodging/useLodgingPhase5Counts";
@@ -678,8 +678,12 @@ export default function AdminStoreEditPage() {
     if (!store) return;
     const normalizedStoreCategory = (store?.category || "").toLowerCase().trim();
     const isStoreLodging = isLikelyLodgingStore(store, normalizedStoreCategory);
-    const isStoreAutoRepair = normalizedStoreCategory === "auto-repair";
     const requestedTab = searchParams.get("tab");
+    const requestedCategory = (searchParams.get("category") || "").toLowerCase().trim();
+    const isStoreAutoRepair =
+      normalizedStoreCategory === "auto-repair" ||
+      requestedCategory === "auto-repair" ||
+      isAutoRepairTab(requestedTab);
     const resolvedTab = resolveStoreTabFromSearch(searchParams, isStoreLodging, isStoreAutoRepair);
     if (requestedTab !== resolvedTab && (requestedTab || isStoreLodging || isStoreAutoRepair)) {
       handleTabChange(resolvedTab);
@@ -2091,8 +2095,10 @@ export default function AdminStoreEditPage() {
 
   const employeeTitles: Record<string, string> = { employees: "Employees", payroll: "Payroll", "employee-schedule": "Employee Schedule", "time-clock": "Time Clock", "employee-rules": "Employee Rules", attendance: "Attendance & Leave", training: "Training & Onboarding", documents: "Documents & Files" };
   const normalizedCategory = (form.category || "").toLowerCase().trim();
-  const isAutoRepair = normalizedCategory === "auto-repair";
+  const requestedCategory = (searchParams.get("category") || "").toLowerCase().trim();
+  const isAutoRepair = normalizedCategory === "auto-repair" || requestedCategory === "auto-repair" || isAutoRepairTab(activeTab);
   const isLodging = isLikelyLodgingStore(store, normalizedCategory);
+  const effectiveStoreCategory = isAutoRepair ? "auto-repair" : form.category;
   const autoRepairTitles: Record<string, string> = {
     "customer-bookings": "Customer Bookings",
     "ar-invoices": "Invoices & Estimates",
@@ -2178,7 +2184,7 @@ export default function AdminStoreEditPage() {
           storeId={storeId}
           storeName={store?.name}
           storeLogoUrl={store?.logo_url}
-          storeCategory={form.category}
+          storeCategory={effectiveStoreCategory}
           activeTab={activeTab}
           onTabChange={handleTabChange}
           lodgingSetupProgress={isLodging ? lodgingSetup : undefined}
@@ -2188,7 +2194,7 @@ export default function AdminStoreEditPage() {
         </StoreOwnerLayout>
       );
     },
-    [isAdmin, storeOwnerTitle, storeId, store?.name, store?.logo_url, form.category, activeTab, handleTabChange, lodgingSetup, products?.length],
+    [isAdmin, storeOwnerTitle, storeId, store?.name, store?.logo_url, effectiveStoreCategory, activeTab, handleTabChange, lodgingSetup, products?.length],
   );
 
   if (isLoading) {
@@ -4208,7 +4214,7 @@ export default function AdminStoreEditPage() {
           )}
 
           <TabsContent value="software" data-testid="store-tab-software">
-            <SoftwareDownloadsSection storeCategory={form.category} storeId={storeId} />
+            <SoftwareDownloadsSection storeCategory={effectiveStoreCategory} storeId={storeId} />
           </TabsContent>
           </Suspense>
 

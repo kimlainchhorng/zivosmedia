@@ -26,6 +26,7 @@ import { Helmet } from "react-helmet-async";
 import { useFocusTrap } from "./useFocusTrap";
 import { useFocusReturn } from "./ads/useFocusReturn";
 import { isLodgingStoreCategory } from "@/hooks/useOwnerStoreProfile";
+import { isAutoRepairTab } from "@/lib/admin/storeTabRouting";
 import type { LodgingCompletionItem } from "@/lib/lodging/lodgingCompletion";
 import { useLodgingSidebarBadges } from "@/hooks/lodging/useLodgingSidebarBadges";
 
@@ -127,7 +128,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   };
 
   const normalizedStoreCategory = (storeCategory || "").toLowerCase().trim();
-  const isAutoRepair = normalizedStoreCategory === "auto-repair";
+  const isAutoRepair = normalizedStoreCategory === "auto-repair" || isAutoRepairTab(activeTab);
   const isLodging = isLodgingStoreCategory(storeCategory);
   const productsLabel = isAutoRepair ? "Services" : isLodging ? "Rooms" : "Products";
   const paymentLabel = isAutoRepair ? "Bookings" : "Payment & Payouts";

@@ -16,7 +16,9 @@ export default function BusinessSoftwareDownloadPage() {
       ? `/downloads/auto-repair/${encodeURIComponent(installerName)}`
       : `/admin/stores/${encodeURIComponent(storeId)}?tab=software`
   ), [installerName, isAutoRepair, storeId]);
-  const dashboardHref = `/admin/stores/${encodeURIComponent(storeId)}?tab=${isAutoRepair ? "ar-dashboard" : "software"}`;
+  const dashboardParams = new URLSearchParams({ tab: isAutoRepair ? "ar-dashboard" : "software" });
+  if (isAutoRepair) dashboardParams.set("category", "auto-repair");
+  const dashboardHref = `/admin/stores/${encodeURIComponent(storeId)}?${dashboardParams.toString()}`;
 
   return (
     <main className="min-h-screen bg-background px-6 py-8 text-foreground">
