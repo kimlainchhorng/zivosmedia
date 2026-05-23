@@ -96,6 +96,8 @@ import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 
 const FEED_STORE_PAGE_SIZE = 18;
 const FEED_USER_PAGE_SIZE = 30;
+const REEL_RENDER_WINDOW_BEFORE = 2;
+const REEL_RENDER_WINDOW_AFTER = 2;
 const firstMediaLogged = { value: false };
 type ReelSourceFilter = "all" | "people" | "shops";
 const REEL_SOURCE_FILTERS: Array<{
@@ -157,7 +159,6 @@ const PostInsights = lazy(() => import("@/components/social/PostInsights"));
 const CaptionEditDialog = lazy(() => import("@/components/social/CaptionEditDialog"));
 const CommentHeartButton = lazy(() => import("@/components/social/CommentHeartButton"));
 const CommentRowActions = lazy(() => import("@/components/social/CommentRowActions"));
-const ReelsCoachmarks = lazy(() => import("@/components/social/ReelsCoachmarks"));
 const LikedByModal = lazy(() => import("@/components/social/LikedByModal"));
 
 interface FeedPost {
@@ -4999,7 +5000,6 @@ export default function FeedPage() {
       description={isReelsRoute ? "Watch full-screen creator reels, trending videos, captions, reposts, comments, and shares on ZIVO." : "Watch and share short videos, reels, and stories from creators around the world on ZIVO."}
       canonical={isReelsRoute ? "/reels" : "/feed"}
     />
-    <Suspense fallback={null}><ReelsCoachmarks /></Suspense>
     <div className="fixed inset-0 bg-black lg:flex lg:flex-col">
       {/* Desktop NavBar */}
       <div className="hidden lg:block relative z-[1200] shrink-0">
@@ -5347,7 +5347,12 @@ export default function FeedPage() {
               </div>
             )}
 
-            {visiblePosts.map((post, index) => (
+            {visiblePosts.map((post, index) => {
+              const shouldRenderCard =
+                index >= activeIndex - REEL_RENDER_WINDOW_BEFORE &&
+                index <= activeIndex + REEL_RENDER_WINDOW_AFTER;
+
+              return (
               <div key={post.id} className="contents">
                 <div
                   ref={(el) => { cardRefs.current[index] = el; }}
@@ -5383,6 +5388,7 @@ export default function FeedPage() {
                   }}
                   onPointerCancel={() => { swipeStartRef.current = null; }}
                 >
+                  {shouldRenderCard ? (
                   <ErrorBoundary
                     fallback={
                       <div className="w-full h-full bg-black flex items-center justify-center px-6">
@@ -5464,9 +5470,13 @@ export default function FeedPage() {
                     }}
                     />
                   </ErrorBoundary>
+                  ) : (
+                    <div className="w-full h-full bg-black" aria-hidden="true" />
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {/* Infinite-scroll sentinel: when the user reaches the last card,
                 bump the page multiplier so the next refetch loads more.

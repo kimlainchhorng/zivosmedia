@@ -701,8 +701,7 @@ const Profile = () => {
           aria-label="Profile quick navigation"
           data-testid="profile-sticky-header"
           style={{
-            paddingTop: "var(--zivo-safe-top-sticky)",
-            height: "calc(var(--zivo-safe-top-sticky) + 3rem)",
+            height: "3rem",
           }}
           className="lg:hidden fixed top-0 inset-x-0 z-40 px-3 flex items-center gap-3"
         >
@@ -795,8 +794,8 @@ const Profile = () => {
                     transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                     className="fixed z-50 overflow-hidden rounded-2xl border border-border/60 bg-card/95 text-card-foreground shadow-2xl shadow-black/25 backdrop-blur-xl right-2 left-2 mx-auto max-w-[320px] lg:left-auto lg:right-20 lg:mx-0 lg:w-[260px]"
                     style={{
-                      top: "calc(var(--zivo-safe-top-sticky) + 3rem + 6px)",
-                      maxHeight: "calc(100vh - var(--zivo-safe-top-sticky) - 3rem - 24px)",
+                      top: "calc(3rem + 6px)",
+                      maxHeight: "calc(100vh - 3rem - 24px)",
                     }}
                   >
                     <div className="border-b border-border/40 bg-muted/30 px-3 py-2.5">
@@ -895,7 +894,7 @@ const Profile = () => {
                   transition={{ duration: 0.18 }}
                   onClick={() => setShowNotifPanel(false)}
                   className="lg:hidden fixed inset-0 z-40 bg-background/40 backdrop-blur-[2px]"
-                  style={{ top: "calc(var(--zivo-safe-top-sticky) + 3rem)" }}
+                  style={{ top: "3rem" }}
                   aria-hidden
                 />
                 <motion.div
@@ -909,8 +908,8 @@ const Profile = () => {
                   transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                   className="fixed z-50 origin-top-right overflow-hidden rounded-2xl border border-border/60 bg-card text-card-foreground shadow-2xl shadow-black/30 backdrop-blur-xl right-2 left-2 mx-auto max-w-[420px] lg:left-auto lg:right-4 lg:mx-0 lg:w-[400px]"
                   style={{
-                    top: "calc(var(--zivo-safe-top-sticky) + 3rem + 6px)",
-                    maxHeight: "calc(100vh - var(--zivo-safe-top-sticky) - 3rem - 24px)",
+                    top: "calc(3rem + 6px)",
+                    maxHeight: "calc(100vh - 3rem - 24px)",
                   }}
                 >
                 {/* Caret pointing at the bell */}
@@ -1103,7 +1102,7 @@ const Profile = () => {
       {/* ── Scrollable content ── */}
       <div className="relative z-10 min-h-screen pb-24 scroll-smooth bg-background no-scrollbar">
         {/* Mobile: edge-to-edge full-screen (Facebook-style). Desktop: centered card. */}
-        <div className="px-0 lg:px-4 pt-[calc(var(--zivo-safe-top-sticky)+3rem)] lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
+        <div className="px-0 lg:px-4 pt-12 lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
 
           {profileLoading ? (
             <div className="flex items-center justify-center py-20">

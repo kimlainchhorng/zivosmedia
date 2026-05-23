@@ -4208,7 +4208,7 @@ export default function AdminStoreEditPage() {
           )}
 
           <TabsContent value="software" data-testid="store-tab-software">
-            <SoftwareDownloadsSection storeCategory={form.category} />
+            <SoftwareDownloadsSection storeCategory={form.category} storeId={storeId} />
           </TabsContent>
           </Suspense>
 

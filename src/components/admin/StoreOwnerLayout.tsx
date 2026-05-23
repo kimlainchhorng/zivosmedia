@@ -65,17 +65,6 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
     setSidebarOpen(true);
   };
 
-  // Restore per-tab scroll position when sidebar opens
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const r = requestAnimationFrame(() => {
-      if (navRef.current) {
-        navRef.current.scrollTop = scrollMemoryRef.current[tabKey] ?? 0;
-      }
-    });
-    return () => cancelAnimationFrame(r);
-  }, [sidebarOpen, tabKey]);
-
   // Lock background scroll via overflow:hidden
   useEffect(() => {
     if (!sidebarOpen || typeof document === "undefined") return;
@@ -143,6 +132,19 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   const productsLabel = isAutoRepair ? "Services" : isLodging ? "Rooms" : "Products";
   const paymentLabel = isAutoRepair ? "Bookings" : "Payment & Payouts";
 
+  // Restore per-tab scroll position when sidebar opens, but Auto Repair should
+  // always open at the top so the shop tools are immediately visible.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const r = requestAnimationFrame(() => {
+      if (navRef.current) {
+        const shouldStartAtTop = isAutoRepair && (activeTab?.startsWith("ar-") || activeTab === "software");
+        navRef.current.scrollTop = shouldStartAtTop ? 0 : scrollMemoryRef.current[tabKey] ?? 0;
+      }
+    });
+    return () => cancelAnimationFrame(r);
+  }, [activeTab, isAutoRepair, sidebarOpen, tabKey]);
+
   const { data: lodgingBadges } = useLodgingSidebarBadges(storeId, isLodging);
   const badgeFor = (id: string): number | undefined => {
     if (!isLodging || !lodgingBadges) return undefined;
@@ -162,15 +164,15 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
     ] : []),
     { id: "payment", label: paymentLabel, icon: isAutoRepair ? Calendar : isLodging ? CalendarRange : CreditCard },
     ...(isAutoRepair ? [
-      { id: "ar-dashboard", label: "Shop Dashboard", icon: LayoutDashboard },
-      { id: "_ar_frontdesk_label", label: "FRONT DESK", icon: ClipboardList, divider: true },
+      { id: "ar-dashboard", label: "Auto Repair Dashboard", icon: LayoutDashboard },
+      { id: "_ar_frontdesk_label", label: "AUTO REPAIR FRONT DESK", icon: ClipboardList, divider: true },
       { id: "customer-bookings", label: "Customer Bookings", icon: CalendarCheck },
       { id: "ar-service-catalog", label: "Service Catalog", icon: BookOpen },
       { id: "ar-estimates", label: "Estimates", icon: FileSignature },
       { id: "ar-invoices", label: "Invoices", icon: FileText },
       { id: "ar-vehicles", label: "Customer Vehicles", icon: Car },
       { id: "ar-autocheck", label: "Auto Check (VIN)", icon: ScanSearch },
-      { id: "_ar_shopfloor_label", label: "SHOP FLOOR", icon: Wrench, divider: true },
+      { id: "_ar_shopfloor_label", label: "AUTO REPAIR SHOP FLOOR", icon: Wrench, divider: true },
       { id: "ar-workorders", label: "Work Orders", icon: Hammer },
       { id: "ar-labor-time", label: "Labor Time", icon: Timer },
       { id: "ar-inspections", label: "Inspections", icon: ClipboardCheck },
@@ -178,11 +180,11 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
       { id: "ar-reminders", label: "Reminders & Recalls", icon: BellRing },
       { id: "ar-loaners", label: "Loaner Vehicles", icon: Car },
       { id: "ar-photos", label: "Job Photos", icon: Camera },
-      { id: "_ar_inventory_label", label: "INVENTORY", icon: Package, divider: true },
+      { id: "_ar_inventory_label", label: "AUTO REPAIR INVENTORY", icon: Package, divider: true },
       { id: "ar-parts", label: "Part Shop", icon: Wrench },
       { id: "ar-tires", label: "Tire Inventory", icon: CircleDot },
       { id: "ar-parts-suppliers", label: "Parts Suppliers", icon: Package },
-      { id: "_ar_carecare_label", label: "CUSTOMER CARE", icon: ShieldCheck, divider: true },
+      { id: "_ar_carecare_label", label: "AUTO REPAIR CUSTOMER CARE", icon: ShieldCheck, divider: true },
       { id: "ar-warranty", label: "Warranty & Comebacks", icon: ShieldAlert },
       { id: "ar-fleet", label: "Fleet Accounts", icon: Truck },
       { id: "ar-reviews", label: "Reviews & Ratings", icon: Star },
@@ -316,7 +318,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="safe-area-top min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+          <header className="min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -391,7 +393,31 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
           className="flex-1 min-h-0 px-2 py-2 overflow-y-scroll scroll-momentum overscroll-contain touch-pan-y"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
-          <p id="sidebar-group-manage" className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70">Manage</p>
+          <div className={cn(isAutoRepair && "sticky top-0 z-10 -mx-2 mb-1 bg-card px-2 pb-1 pt-1")}>
+            <p id="sidebar-group-manage" className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70">
+              {isAutoRepair ? "Auto Repair" : "Manage"}
+            </p>
+            {isAutoRepair && (
+              <button
+                type="button"
+                onClick={() => { onTabChange?.("ar-dashboard"); closeSidebar(); }}
+                className={cn(
+                  "mb-1.5 flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
+                  activeTab === "ar-dashboard"
+                    ? "border-emerald-500/35 bg-emerald-500/12 text-emerald-800 dark:text-emerald-300"
+                    : "border-emerald-500/20 bg-emerald-500/8 text-foreground hover:bg-emerald-500/12"
+                )}
+              >
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/12">
+                  <Wrench className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[12px] font-bold">Auto Repair Software</p>
+                  <p className="truncate text-[10px] text-muted-foreground">Work orders, VIN, invoices, parts</p>
+                </div>
+              </button>
+            )}
+          </div>
           {isLodging && (
             <div className="mb-1.5 rounded-md border border-primary/15 bg-primary/5 px-2 py-1 text-primary">
               <button type="button"

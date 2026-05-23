@@ -204,6 +204,11 @@ interface CallEvent {
   _isCallEvent: true;
 }
 
+type MissedCallDismissMarker = {
+  id: string;
+  createdAt: string | null;
+};
+
 type TimelineItem = Message | CallEvent;
 
 type ChatSettingsRow = {
@@ -258,6 +263,33 @@ const MEDIA_MESSAGE_TEXT = {
   file: "File",
   location: "Location",
 } as const;
+
+function readMissedCallDismissMarker(key: string): MissedCallDismissMarker | null {
+  if (!key || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as Partial<MissedCallDismissMarker>;
+      if (typeof parsed.id === "string") {
+        return {
+          id: parsed.id,
+          createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : null,
+        };
+      }
+    } catch {
+      return { id: raw, createdAt: null };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function isMissedCallDismissed(call: CallEvent | undefined, marker: MissedCallDismissMarker | null) {
+  if (!call || !marker) return false;
+  if (call.id === marker.id) return true;
+  if (!marker.createdAt) return false;
+  return new Date(call.created_at).getTime() <= new Date(marker.createdAt).getTime();
+}
 
 function formatUploadLimit(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))}MB`;
@@ -574,7 +606,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [pendingLockedFile, setPendingLockedFile] = useState<File | null>(null);
   const [chatStyle, setChatStyle] = useState({ wallpaper: "default", themeColor: "default", fontSize: "medium" });
   const [callEvents, setCallEvents] = useState<CallEvent[]>([]);
-  const [dismissedMissedCallId, setDismissedMissedCallId] = useState<string | null>(null);
+  const [dismissedMissedCallMarker, setDismissedMissedCallMarker] = useState<MissedCallDismissMarker | null>(null);
   const [activeEffect, setActiveEffect] = useState<EffectType>(null);
   // Manually-armed send effect; overrides detectMessageEffect for the next message
   const [pendingEffect, setPendingEffect] = useState<EffectType>(null);
@@ -633,6 +665,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     () => user?.id && recipientId ? `zivo:chat:dismissed-missed-call:${user.id}:${recipientId}` : "",
     [user?.id, recipientId],
   );
+  const storedMissedCallDismissMarker = useMemo(
+    () => readMissedCallDismissMarker(missedCallDismissKey),
+    [missedCallDismissKey],
+  );
 
   // Sync draft to input on load
   useEffect(() => {
@@ -641,21 +677,18 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
   useEffect(() => {
     if (!missedCallDismissKey) {
-      setDismissedMissedCallId(null);
+      setDismissedMissedCallMarker(null);
       return;
     }
-    try {
-      setDismissedMissedCallId(window.localStorage.getItem(missedCallDismissKey));
-    } catch {
-      setDismissedMissedCallId(null);
-    }
-  }, [missedCallDismissKey]);
+    setDismissedMissedCallMarker(storedMissedCallDismissMarker);
+  }, [missedCallDismissKey, storedMissedCallDismissMarker]);
 
-  const dismissMissedCall = useCallback((callId: string) => {
-    setDismissedMissedCallId(callId);
+  const dismissMissedCall = useCallback((call: CallEvent) => {
+    const marker = { id: call.id, createdAt: call.created_at };
+    setDismissedMissedCallMarker(marker);
     if (!missedCallDismissKey) return;
     try {
-      window.localStorage.setItem(missedCallDismissKey, callId);
+      window.localStorage.setItem(missedCallDismissKey, JSON.stringify(marker));
     } catch { /* ignore */ }
   }, [missedCallDismissKey]);
 
@@ -2194,6 +2227,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .find((event) => ["missed", "no_answer", "declined"].includes(event.status));
   }, [callEvents]);
+  const effectiveMissedCallDismissMarker = dismissedMissedCallMarker ?? storedMissedCallDismissMarker;
+  const showMissedCallBanner =
+    !!latestMissedCall &&
+    !isMissedCallDismissed(latestMissedCall, effectiveMissedCallDismissMarker) &&
+    !activeCall &&
+    !zivoOFMode;
 
   const initials = useMemo(
     () => (recipientName || "U").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2),
@@ -2239,7 +2278,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       transition={inline ? { duration: 0.12 } : { type: "tween", duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-2xl border-b border-border/20 safe-area-top">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-2xl border-b border-border/20">
         <div className="px-2 py-2.5 flex items-center gap-3">
           <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-90 transition-transform rounded-full hover:bg-muted/50" aria-label="Back" title="Back">
             <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -2350,7 +2389,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           </button>
         )}
 
-        {latestMissedCall && latestMissedCall.id !== dismissedMissedCallId && !activeCall && !zivoOFMode && (
+        {showMissedCallBanner && latestMissedCall && (
           <div className="w-full px-4 py-3 border-t border-border bg-secondary flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-background border border-border flex items-center justify-center shrink-0">
               <Phone className="w-5 h-5 text-amber-500" />
@@ -2374,7 +2413,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               Call back
             </button>
             <button type="button"
-              onClick={() => dismissMissedCall(latestMissedCall.id)}
+              onClick={() => dismissMissedCall(latestMissedCall)}
               className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-background transition-colors"
               aria-label="Dismiss"
             >

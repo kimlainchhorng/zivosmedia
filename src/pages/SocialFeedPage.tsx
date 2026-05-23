@@ -84,6 +84,8 @@ type FeedPost = {
   tips_enabled?: boolean | null;
   is_pinned?: boolean | null;
   visibility?: string | null;
+  viewer_has_liked?: boolean;
+  viewer_has_saved?: boolean;
 };
 
 const TABS: { id: FeedTab; label: string }[] = [
@@ -188,18 +190,40 @@ export default function SocialFeedPage() {
       if (!posts?.length) return [];
 
       const userIds = [...new Set(posts.map((p: any) => p.user_id))] as string[];
-      const { data: profiles } = await withSupabaseAbortSignal(supabase
-        .from("profiles")
-        .select("user_id, full_name, avatar_url")
-        .in("user_id", userIds), signal);
+      const postIds = posts.map((p: any) => p.id).filter(Boolean) as string[];
+      const [{ data: profiles }, { data: likedRows }, { data: savedRows }] = await Promise.all([
+        withSupabaseAbortSignal(supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", userIds), signal),
+        user?.id && postIds.length
+          ? withSupabaseAbortSignal((supabase as any)
+              .from("post_likes")
+              .select("post_id")
+              .eq("user_id", user.id)
+              .in("post_id", postIds), signal)
+          : Promise.resolve({ data: [] }),
+        user?.id && postIds.length
+          ? withSupabaseAbortSignal((supabase as any)
+              .from("bookmarks")
+              .select("item_id")
+              .eq("user_id", user.id)
+              .eq("item_type", "post")
+              .in("item_id", postIds), signal)
+          : Promise.resolve({ data: [] }),
+      ]);
 
       const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      const likedPostIds = new Set((likedRows || []).map((row: any) => row.post_id));
+      const savedPostIds = new Set((savedRows || []).map((row: any) => row.item_id));
       return posts.map((p: any) => {
         const author = profileMap.get(p.user_id);
         return {
           ...p,
           author_name: author?.full_name || null,
           author_avatar: author?.avatar_url || null,
+          viewer_has_liked: likedPostIds.has(p.id),
+          viewer_has_saved: savedPostIds.has(p.id),
         };
       });
     },
@@ -496,8 +520,8 @@ function PostFooter({ post }: { post: FeedPost }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(() => !!post.viewer_has_liked);
+  const [saved, setSaved] = useState(() => !!post.viewer_has_saved);
   const [likes, setLikes] = useState(post.likes_count ?? 0);
   const [comments, setComments] = useState(post.comments_count ?? 0);
   const [shares, setShares] = useState(post.shares_count ?? 0);
@@ -508,27 +532,11 @@ function PostFooter({ post }: { post: FeedPost }) {
   // "I tapped like and nothing happened" reports).
   const userTouchedRef = useRef({ liked: false, saved: false });
 
-  // Hydrate like + save state for this post.
   useEffect(() => {
-    if (!user?.id) {
-      if (!userTouchedRef.current.liked) setLiked(false);
-      if (!userTouchedRef.current.saved) setSaved(false);
-      return;
-    }
-    let alive = true;
-    (async () => {
-      const [{ data: likeRow }, { data: saveRow }] = await Promise.all([
-        (supabase as any).from("post_likes").select("post_id").eq("user_id", user.id).eq("post_id", post.id).maybeSingle(),
-        (supabase as any).from("bookmarks").select("id").eq("user_id", user.id).eq("item_type", "post").eq("item_id", post.id).maybeSingle(),
-      ]);
-      if (!alive) return;
-      // Only apply the fetched state if the user hasn't manually toggled — their
-      // intent always wins over a late hydration result.
-      if (!userTouchedRef.current.liked) setLiked(!!likeRow);
-      if (!userTouchedRef.current.saved) setSaved(!!saveRow);
-    })();
-    return () => { alive = false; };
-  }, [post.id, user?.id]);
+    userTouchedRef.current = { liked: false, saved: false };
+    setLiked(!!post.viewer_has_liked);
+    setSaved(!!post.viewer_has_saved);
+  }, [post.id, post.viewer_has_liked, post.viewer_has_saved]);
 
   const goAuth = () => navigate("/auth?next=" + encodeURIComponent("/feed"));
 

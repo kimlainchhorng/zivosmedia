@@ -362,6 +362,8 @@ const StoreAssetsUploadCheck = lazy(() => import("./pages/admin/StoreAssetsUploa
 const StoreSetup = lazy(() => import("./pages/store/StoreSetup"));
 const BusinessPageWizard = lazy(() => import("./pages/business/BusinessPageWizard"));
 const ServiceBookingPage = lazy(() => import("./pages/store/ServiceBookingPage"));
+const BusinessSoftwareDownloadPage = lazy(() => import("./pages/store/BusinessSoftwareDownloadPage"));
+const AutoRepairDesktopAppPage = lazy(() => import("./pages/store/AutoRepairDesktopAppPage"));
 const AdminEmployeesPage = lazy(() => import("./pages/admin/AdminEmployeesPage"));
 const AdminSystemHealth = lazy(() => import("./pages/admin/AdminSystemHealth"));
 const AdminAppStoreAssets = lazy(() => import("./pages/admin/AdminAppStoreAssets"));
@@ -1249,6 +1251,8 @@ function useDesktopViewport() {
 
 function DesktopNavBootstrap() {
   const isDesktop = useDesktopViewport();
+  const location = useLocation();
+  if (location.pathname.startsWith("/desktop/auto-repair")) return null;
   return isDesktop ? <Suspense fallback={null}><GlobalDesktopNav /></Suspense> : null;
 }
 
@@ -1329,6 +1333,7 @@ const App = () => (
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
                             <Route path="/" element={<Index />} />
+                            <Route path="/desktop/auto-repair/:storeId" element={<ProtectedRoute><AutoRepairDesktopAppPage /></ProtectedRoute>} />
                             <Route path="/login" element={<Login />} />
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/unsubscribe" element={<Unsubscribe />} />
@@ -1431,6 +1436,7 @@ const App = () => (
                 <Route path="/dl/:kind/:id" element={<DeepLinkLandingPage />} />
                 <Route path="/stories/:storyId" element={<StoryDeepLinkPage />} />
                 <Route path="/shop/:storeId" element={<StoreProfilePage />} />
+                <Route path="/business/software/:storeId" element={<ProtectedRoute><BusinessSoftwareDownloadPage /></ProtectedRoute>} />
                 <Route path="/refer" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
                 <Route path={SOCIAL_ROUTE_PATHS.chat} element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
                 <Route path="/chat/saved" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />

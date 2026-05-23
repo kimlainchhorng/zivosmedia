@@ -337,7 +337,7 @@ export default function AdminLayout({ children, title, brandLabel }: AdminLayout
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="safe-area-top min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+          <header className="min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"

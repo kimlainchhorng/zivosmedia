@@ -378,6 +378,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   }, []);
 
   const [showArchived, setShowArchived] = useState(false);
+  const [showChatMenu, setShowChatMenu] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -1195,23 +1196,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const [bulkFolderAction, setBulkFolderAction] = useState<"add" | "remove" | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  // Saved Messages — Telegram's self-chat
-  const { data: savedMessagesPreview } = useQuery({
-    queryKey: ["chat-hub-saved", user?.id],
-    enabled: !!user && active === "personal",
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("direct_messages")
-        .select("message, created_at")
-        .eq("sender_id", user!.id)
-        .eq("receiver_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data as { message: string; created_at: string } | null;
-    },
-  });
-
   // Draft indicators — batch load all chat drafts so we can show "Draft: …" in previews
   const { data: chatDraftsRaw = [] } = useQuery({
     queryKey: ["chat-drafts-all", user?.id],
@@ -1776,17 +1760,17 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     "bg-background/95 backdrop-blur-2xl border-b border-border/15 shadow-[0_1px_0_rgba(15,23,42,0.03)]",
                     desktopTwoColumn
                       ? "pt-safe"
-                      : "zivo-sticky-mobile-header pt-safe zivo-pt-safe-sticky lg:top-[60px]"
+                      : "zivo-sticky-mobile-header lg:top-[60px]"
                   )
             )}
           >
             {!embedded ? (
               <div className={cn(
-                "px-5 pt-2 pb-3 flex items-center justify-between",
+                "px-5 py-2 flex items-center gap-3",
                 desktopTwoColumn && sidebarCollapsed && "lg:px-2 lg:flex-col lg:items-stretch lg:gap-1"
               )}>
                 <div className={cn(
-                  "flex items-center gap-3",
+                  "flex shrink-0 items-center gap-3",
                   desktopTwoColumn && sidebarCollapsed && "lg:flex-col lg:gap-1"
                 )}>
                   {selectionMode ? (
@@ -1799,14 +1783,76 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <X className="w-5 h-5 text-foreground" />
                     </button>
                   ) : (
-                    <button type="button"
-                      onClick={() => navigate('/')}
-                      className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
-                      aria-label="Back"
-                      title="Back"
-                    >
-                      <Menu className="w-5 h-5 text-foreground" />
-                    </button>
+                    <div className="relative">
+                      <input id="chat-hub-menu-toggle" type="checkbox" className="peer sr-only" />
+                      <label
+                        htmlFor="chat-hub-menu-toggle"
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                        aria-label="Chat menu"
+                        title="Chat menu"
+                      >
+                        <Menu className="w-5 h-5 text-foreground" />
+                      </label>
+                      <div className="absolute left-0 top-full z-[2200] mt-2 hidden max-h-[75vh] w-[min(86vw,340px)] flex-col overflow-hidden rounded-3xl border border-border/20 bg-background shadow-2xl peer-checked:flex">
+                        <div className="flex items-center gap-3 border-b border-border/20 px-5 py-3">
+                          <label htmlFor="chat-hub-menu-toggle" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-muted/70 active:scale-95" aria-label="Close chat menu" title="Close">
+                            <X className="h-5 w-5" />
+                          </label>
+                          <div>
+                            <p className="text-lg font-bold text-ig-gradient">Chat</p>
+                            <p className="text-xs text-muted-foreground">Menu</p>
+                          </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto px-3 py-3">
+                          {active === "personal" && !search && (
+                            <button type="button" onClick={() => setShowAddContact(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <SquarePen className="h-5 w-5 text-muted-foreground" />
+                              <span>New message</span>
+                            </button>
+                          )}
+                          {active === "personal" && user && !zivoOFMode && (
+                            <button type="button" onClick={() => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false })} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <Bookmark className="h-5 w-5 text-muted-foreground" />
+                              <span>Saved Messages</span>
+                            </button>
+                          )}
+                          {active === "personal" && !search && !zivoOFMode && (
+                            <button type="button" onClick={() => setSelectionMode(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <CheckSquare className="h-5 w-5 text-muted-foreground" />
+                              <span>Select chats</span>
+                            </button>
+                          )}
+                          {active === "personal" && !zivoOFMode && (
+                            <>
+                              <button type="button" onClick={() => void handleMarkAllPersonalRead()} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                <CheckCheck className="h-5 w-5 text-muted-foreground" />
+                                <span>Mark all as read</span>
+                              </button>
+                              <button type="button" onClick={() => navigate("/chat/contacts")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                <UserPlus className="h-5 w-5 text-muted-foreground" />
+                                <span>Contacts</span>
+                              </button>
+                              <button type="button" onClick={() => setShowCreateGroup(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                <Users className="h-5 w-5 text-muted-foreground" />
+                                <span>New group</span>
+                              </button>
+                              <div className="my-2 h-px bg-border/25" />
+                              {personalHubMenu.map((item) => (
+                                <button key={item.action} type="button" onClick={() => handlePersonalHubMenuAction(item.action)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                  <item.icon className="h-5 w-5 text-muted-foreground" />
+                                  <span>{item.label}</span>
+                                </button>
+                              ))}
+                            </>
+                          )}
+                          <div className="my-2 h-px bg-border/25" />
+                          <button type="button" onClick={() => navigate("/notifications")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                            <Bell className="h-5 w-5 text-muted-foreground" />
+                            <span>Notifications</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                   {/* Desktop-only collapse toggle. Visible only when the
                       conversation list is sitting next to an active chat,
@@ -1829,7 +1875,36 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     </h1>
                   </div>
                 </div>
-                <div className={cn("flex items-center gap-1", collapsedRail && "lg:hidden")}>
+                <div className={cn("relative min-w-0 flex-1", collapsedRail && "lg:hidden")}>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search conversations..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-10 bg-muted/60 rounded-2xl py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground transition-all"
+                  />
+                  {search ? (
+                    <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Clear search" title="Clear search">
+                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  ) : (
+                    <span
+                      className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/50 text-[10px] font-mono text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                      title="Press / to focus search"
+                    >
+                      /
+                    </span>
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    "hidden shrink-0 items-center justify-end gap-1",
+                    "md:flex md:basis-auto md:overflow-visible md:pt-0",
+                    collapsedRail && "lg:hidden"
+                  )}
+                >
                   {active === "personal" && !selectionMode && !search && (
                     <button type="button"
                       onClick={() => setShowAddContact(true)}
@@ -2010,35 +2085,27 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 transition={{ duration: 0.12 }}
                 className={cn("px-4 pt-2", embedded && "px-2 pt-2 pb-2")}
               >
-                <div className={cn("pb-3", collapsedRail && "lg:hidden")}>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="Search conversations..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className={cn(
-                        "w-full pl-9 pr-10 bg-muted/60 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground transition-all",
-                        embedded ? "py-2 text-xs" : "py-2.5"
-                      )}
-                    />
-                    {search ? (
-                      <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Clear search" title="Clear search">
-                        <X className="w-3.5 h-3.5 text-muted-foreground" />
-                      </button>
-                    ) : (
-                      <span
-                        className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/50 text-[10px] font-mono text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                        title="Press / to focus search"
-                      >
-                        /
-                      </span>
-                    )}
-                  </div>
+                <div className={cn(search.trim().length > 0 && "pb-3", collapsedRail && "lg:hidden")}>
+                  {embedded && (
+                    <div className="relative pb-3">
+                      <Search className="absolute left-3 top-1/2 -translate-y-[calc(50%+0.375rem)] w-3.5 h-3.5 text-muted-foreground" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Search conversations..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-9 pr-10 bg-muted/60 rounded-2xl py-2 text-xs outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground transition-all"
+                      />
+                      {search ? (
+                        <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-[calc(50%+0.375rem)]" aria-label="Clear search" title="Clear search">
+                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
                   {search.trim().length > 0 && (
-                    <div className="flex gap-1.5 mt-2 overflow-x-auto scrollbar-hide">
+                    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
                       {(["chats", "media", "links", "files"] as const).map((f) => {
                         const isActiveFilter = searchFilter === f;
                         const enabled = true;
@@ -2275,39 +2342,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <div className={cn(collapsedRail && "lg:hidden")}>
                         <MyChannelsStrip />
                       </div>
-                    )}
-
-                    {/* Saved Messages — Telegram-style self chat */}
-                    {!search && active === "personal" && user && !zivoOFMode && (
-                      <button type="button"
-                        onClick={() => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false })}
-                        aria-label="Open Saved Messages"
-                        className={cn(
-                          "w-full flex items-center gap-3 px-4 py-3 active:bg-muted/50 transition-colors",
-                          collapsedRail && "lg:px-2 lg:justify-center lg:gap-0"
-                        )}
-                        title="Saved Messages"
-                      >
-                        <div className={cn(
-                          "rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 shadow-sm w-[52px] h-[52px]",
-                          collapsedRail && "lg:w-11 lg:h-11"
-                        )}>
-                          <Bookmark className="w-5 h-5 text-white" />
-                        </div>
-                        <div className={cn("flex-1 min-w-0 text-left", collapsedRail && "lg:hidden")}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[15px] font-semibold text-foreground truncate">Saved Messages</span>
-                            {savedMessagesPreview?.created_at && (
-                              <span className="text-[11px] text-muted-foreground tabular-nums ml-2">{formatChatTime(savedMessagesPreview.created_at)}</span>
-                            )}
-                          </div>
-                          <p className="text-[13px] text-muted-foreground truncate leading-snug">
-                            {savedMessagesPreview?.message
-                              ? parseRichMessagePreview(savedMessagesPreview.message)
-                              : "Notes, links and reminders for yourself"}
-                          </p>
-                        </div>
-                      </button>
                     )}
 
                     {/* Pinned section header */}
@@ -2840,6 +2874,109 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       )}
 
       <AddContactSheet open={showAddContact} onOpenChange={setShowAddContact} />
+
+      <AnimatePresence>
+        {showChatMenu && !selectionMode && (
+          <motion.div
+            className="fixed inset-0 z-[2200] bg-black/35 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowChatMenu(false)}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Chat menu"
+              className="absolute inset-y-0 left-0 flex w-[min(86vw,340px)] flex-col bg-background shadow-2xl"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 340 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 border-b border-border/20 px-5 pt-safe pb-4">
+                <button
+                  type="button"
+                  onClick={() => setShowChatMenu(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
+                  aria-label="Close chat menu"
+                  title="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                <div>
+                  <p className="text-lg font-bold text-ig-gradient">Chat</p>
+                  <p className="text-xs text-muted-foreground">Menu</p>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-3 py-3">
+                {[
+                  { label: "Home", icon: ArrowLeft, action: () => navigate("/") },
+                  ...(active === "personal" && !search ? [{ label: "New message", icon: SquarePen, action: () => setShowAddContact(true) }] : []),
+                  ...(active === "personal" && !search && !zivoOFMode ? [{ label: "Select chats", icon: CheckSquare, action: () => setSelectionMode(true) }] : []),
+                  ...(active === "personal" && !zivoOFMode ? [
+                    { label: "Mark all as read", icon: CheckCheck, action: () => void handleMarkAllPersonalRead() },
+                    { label: "Contacts", icon: UserPlus, action: () => navigate("/chat/contacts") },
+                    { label: "New group", icon: Users, action: () => setShowCreateGroup(true) },
+                  ] : []),
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setShowChatMenu(false);
+                      item.action();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                  >
+                    <item.icon className="h-5 w-5 text-muted-foreground" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+
+                {active === "personal" && !zivoOFMode && (
+                  <>
+                    <div className="my-2 h-px bg-border/25" />
+                    {personalHubMenu.map((item) => (
+                      <button
+                        key={item.action}
+                        type="button"
+                        onClick={() => {
+                          setShowChatMenu(false);
+                          handlePersonalHubMenuAction(item.action);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                      >
+                        <item.icon className="h-5 w-5 text-muted-foreground" />
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                <div className="my-2 h-px bg-border/25" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowChatMenu(false);
+                    navigate("/notifications");
+                  }}
+                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                >
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  <span>Notifications</span>
+                </button>
+                <div className="mx-3 mt-2 flex items-center gap-2 rounded-2xl border border-border/30 bg-muted/35 px-3 py-3 text-sm font-semibold">
+                  <span className={cn("h-2.5 w-2.5 rounded-full", syncMode === "live" ? "bg-emerald-500" : "bg-amber-500")} />
+                  <span>{syncMode === "live" ? "Live" : "Fallback"} sync</span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ChatRowActionsSheet
         target={actionsTarget}
