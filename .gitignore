@@ -49,6 +49,12 @@ playwright-report/
 ios/DerivedData/
 ios/App/build/
 
+# Auto Repair desktop installer output. Keep generated apps/installers out of
+# normal GitHub source changes; publish these as release/storage artifacts.
+release/auto-repair/
+public/downloads/auto-repair/*.dmg
+public/downloads/auto-repair/*.zip
+
 # Stray Playwright session profiles (Windows-style paths)
 Usersabiga*/
 
