@@ -361,6 +361,8 @@ const AdminLodgingWebhookEventsPage = lazy(() => import("./pages/admin/AdminLodg
 const StoreAssetsUploadCheck = lazy(() => import("./pages/admin/StoreAssetsUploadCheck"));
 const StoreSetup = lazy(() => import("./pages/store/StoreSetup"));
 const BusinessPageWizard = lazy(() => import("./pages/business/BusinessPageWizard"));
+const BusinessSoftwareDownloadPage = lazy(() => import("./pages/store/BusinessSoftwareDownloadPage"));
+const AutoRepairDesktopAppPage = lazy(() => import("./pages/store/AutoRepairDesktopAppPage"));
 const ServiceBookingPage = lazy(() => import("./pages/store/ServiceBookingPage"));
 
 
@@ -1608,6 +1610,8 @@ const App = () => (
                 <Route path="/admin/lodging/webhook-events" element={<ProtectedRoute requireAdmin={true}><AdminLodgingWebhookEventsPage /></ProtectedRoute>} />
                 <Route path="/store/setup" element={<ProtectedRoute><StoreSetup /></ProtectedRoute>} />
                 <Route path="/business/new" element={<ProtectedRoute><BusinessPageWizard /></ProtectedRoute>} />
+                <Route path="/business/software/:storeId" element={<ProtectedRoute><BusinessSoftwareDownloadPage /></ProtectedRoute>} />
+                <Route path="/desktop/auto-repair/:storeId" element={<ProtectedRoute requireAdmin={true} allowStoreOwner={true}><AutoRepairDesktopAppPage /></ProtectedRoute>} />
                 <Route path="/admin/employees" element={<ProtectedRoute requireAdmin={true}><AdminEmployeesPage /></ProtectedRoute>} />
                 <Route path="/admin/wallet" element={<ProtectedRoute requireAdmin={true}><AdminWalletPage /></ProtectedRoute>} />
                 <Route path="/admin/system-health" element={<ProtectedRoute requireAdmin={true}><AdminSystemHealth /></ProtectedRoute>} />

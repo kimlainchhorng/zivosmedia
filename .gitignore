@@ -54,6 +54,7 @@ ios/App/build/
 release/auto-repair/
 public/downloads/auto-repair/*.dmg
 public/downloads/auto-repair/*.zip
+public/downloads/auto-repair/*.blockmap
 
 # Stray Playwright session profiles (Windows-style paths)
 Usersabiga*/
