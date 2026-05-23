@@ -363,7 +363,7 @@ const StoreSetup = lazy(() => import("./pages/store/StoreSetup"));
 const BusinessPageWizard = lazy(() => import("./pages/business/BusinessPageWizard"));
 const ServiceBookingPage = lazy(() => import("./pages/store/ServiceBookingPage"));
 
-const AutoRepairDesktopAppPage = lazy(() => import("./pages/store/AutoRepairDesktopAppPage"));
+
 const AdminEmployeesPage = lazy(() => import("./pages/admin/AdminEmployeesPage"));
 const AdminSystemHealth = lazy(() => import("./pages/admin/AdminSystemHealth"));
 const AdminAppStoreAssets = lazy(() => import("./pages/admin/AdminAppStoreAssets"));
