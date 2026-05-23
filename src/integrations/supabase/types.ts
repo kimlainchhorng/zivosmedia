@@ -61631,6 +61631,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_safety_actions: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          target_user_id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          target_user_id: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          target_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_saved_searches: {
         Row: {
           created_at: string
