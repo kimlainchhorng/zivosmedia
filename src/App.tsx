@@ -1333,7 +1333,7 @@ const App = () => (
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
                             <Route path="/" element={<Index />} />
-                            <Route path="/desktop/auto-repair/:storeId" element={<ProtectedRoute><AutoRepairDesktopAppPage /></ProtectedRoute>} />
+                            
                             <Route path="/login" element={<Login />} />
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/unsubscribe" element={<Unsubscribe />} />
