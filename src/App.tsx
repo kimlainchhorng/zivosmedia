@@ -1436,7 +1436,7 @@ const App = () => (
                 <Route path="/dl/:kind/:id" element={<DeepLinkLandingPage />} />
                 <Route path="/stories/:storyId" element={<StoryDeepLinkPage />} />
                 <Route path="/shop/:storeId" element={<StoreProfilePage />} />
-                <Route path="/business/software/:storeId" element={<ProtectedRoute><BusinessSoftwareDownloadPage /></ProtectedRoute>} />
+                
                 <Route path="/refer" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
                 <Route path={SOCIAL_ROUTE_PATHS.chat} element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
                 <Route path="/chat/saved" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
