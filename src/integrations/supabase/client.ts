@@ -2,18 +2,18 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const LOCAL_DEV_SUPABASE_CONFIG = {
+const DEFAULT_SUPABASE_CONFIG = {
   url: "https://slirphzzwcogdbkeicff.supabase.co",
   publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI",
   projectRef: "slirphzzwcogdbkeicff",
 };
 
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || (import.meta.env.DEV ? LOCAL_DEV_SUPABASE_CONFIG.url : "");
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || (import.meta.env.DEV ? LOCAL_DEV_SUPABASE_CONFIG.publishableKey : "");
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_CONFIG.url;
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_CONFIG.publishableKey;
 const REMEMBER_ME_KEY = "zivo_remember_me";
 const SUPABASE_PROJECT_REF =
   import.meta.env.VITE_SUPABASE_PROJECT_ID ||
-  (SUPABASE_URL ? new URL(SUPABASE_URL).hostname.split(".")[0] : LOCAL_DEV_SUPABASE_CONFIG.projectRef);
+  (SUPABASE_URL ? new URL(SUPABASE_URL).hostname.split(".")[0] : DEFAULT_SUPABASE_CONFIG.projectRef);
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
