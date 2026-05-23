@@ -25,6 +25,11 @@ function parseCsvEnv(name: string): string[] {
 
 // Production origins. Add staging / preview domains through CORS_ALLOWED_ORIGINS.
 const ALLOWED_ORIGINS = new Set<string>([
+  "https://zivollc.com",
+  "https://www.zivollc.com",
+  "https://app.zivollc.com",
+  "https://preview.zivollc.com",
+  "https://zivo-web.myzivo.workers.dev",
   "https://myzivo.com",
   "https://www.myzivo.com",
   "https://app.myzivo.com",
@@ -35,6 +40,7 @@ const ALLOWED_ORIGINS = new Set<string>([
 
 // Domains whose origin prefixes are allowed (e.g. branch previews).
 const ALLOWED_ORIGIN_SUFFIXES = [
+  ".zivollc.com",
   ".myzivo.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];
