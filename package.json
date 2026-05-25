@@ -104,7 +104,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-google-maps/api": "^2.20.8",
-    "@stripe/connect-js": "^3.4.3",
+    "@stripe/connect-js": "^3.4.4",
     "@stripe/react-connect-js": "^3.4.2",
     "@stripe/react-stripe-js": "^6.4.0",
     "@stripe/stripe-js": "^9.6.0",
