@@ -75,7 +75,14 @@ Deno.serve(withSecurity("cancel-ride-request", async (req, ctx) => {
     }
 
     const feeCents = Math.max(0, Math.floor(Number(cancel_fee_cents || 0)));
-    const wasPaid = (ride as any).payment_status === "paid";
+    // Accept Stripe-speak ('captured', 'succeeded') alongside legacy 'paid'.
+    // complete-trip (driver-side) and stripe-ride-webhook both write 'captured'
+    // after a successful capture; without this we'd silently skip the refund
+    // and the customer would be charged for a cancelled ride.
+    const wasPaid =
+      (ride as any).payment_status === "paid" ||
+      (ride as any).payment_status === "captured" ||
+      (ride as any).payment_status === "succeeded";
     const piId = (ride as any).stripe_payment_intent_id as string | null;
     const captured = Number((ride as any).captured_amount_cents || Math.round(Number((ride as any).payment_amount || 0) * 100));
 

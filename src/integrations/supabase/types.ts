@@ -29221,6 +29221,7 @@ export type Database = {
           dispatch_stage: number | null
           dispatched_at: string | null
           driver_earnings: number | null
+          driver_payout_cents: number | null
           dropoff_address: string | null
           dropoff_lat: number | null
           dropoff_lng: number | null
@@ -29239,6 +29240,11 @@ export type Database = {
           merchant_net: number | null
           notes: string | null
           payment_status: string | null
+          payout_at: string | null
+          payout_error: string | null
+          payout_idempotency_key: string | null
+          payout_status: string | null
+          payout_transfer_id: string | null
           per_mile: number | null
           per_minute: number | null
           picked_up_at: string | null
@@ -29274,6 +29280,7 @@ export type Database = {
           dispatch_stage?: number | null
           dispatched_at?: string | null
           driver_earnings?: number | null
+          driver_payout_cents?: number | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
@@ -29292,6 +29299,11 @@ export type Database = {
           merchant_net?: number | null
           notes?: string | null
           payment_status?: string | null
+          payout_at?: string | null
+          payout_error?: string | null
+          payout_idempotency_key?: string | null
+          payout_status?: string | null
+          payout_transfer_id?: string | null
           per_mile?: number | null
           per_minute?: number | null
           picked_up_at?: string | null
@@ -29327,6 +29339,7 @@ export type Database = {
           dispatch_stage?: number | null
           dispatched_at?: string | null
           driver_earnings?: number | null
+          driver_payout_cents?: number | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
@@ -29345,6 +29358,11 @@ export type Database = {
           merchant_net?: number | null
           notes?: string | null
           payment_status?: string | null
+          payout_at?: string | null
+          payout_error?: string | null
+          payout_idempotency_key?: string | null
+          payout_status?: string | null
+          payout_transfer_id?: string | null
           per_mile?: number | null
           per_minute?: number | null
           picked_up_at?: string | null
@@ -50106,6 +50124,1294 @@ export type Database = {
           },
         ]
       }
+      salon_blockouts: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          end_at: string
+          id: string
+          reason: string | null
+          start_at: string
+          store_id: string
+          stylist_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          end_at: string
+          id?: string
+          reason?: string | null
+          start_at: string
+          store_id: string
+          stylist_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          end_at?: string
+          id?: string
+          reason?: string | null
+          start_at?: string
+          store_id?: string
+          stylist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_blockouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_blockouts_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_booking_addons: {
+        Row: {
+          booking_id: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          name: string
+          price_cents: number
+          quantity: number
+          service_id: string | null
+          store_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          name: string
+          price_cents: number
+          quantity?: number
+          service_id?: string | null
+          store_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          name?: string
+          price_cents?: number
+          quantity?: number
+          service_id?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_booking_addons_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_booking_addons_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_booking_addons_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_booking_retail_items: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          unit_price_cents: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          unit_price_cents?: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_booking_retail_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_booking_retail_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "salon_retail_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_bookings: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          client_notes: string | null
+          client_phone: string | null
+          created_at: string
+          created_by_user_id: string | null
+          deposit_cents: number
+          deposit_paid_at: string | null
+          deposit_paid_cents: number
+          duration_minutes: number
+          end_at: string
+          id: string
+          internal_notes: string | null
+          no_show_fee_charged_cents: number
+          price_cents: number
+          referral_source: string | null
+          service_id: string | null
+          service_name: string
+          source: string
+          start_at: string
+          status: Database["public"]["Enums"]["salon_booking_status"]
+          store_id: string
+          stylist_id: string | null
+          stylist_name: string | null
+          tax_cents: number
+          tip_cents: number
+          updated_at: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          client_notes?: string | null
+          client_phone?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          deposit_cents?: number
+          deposit_paid_at?: string | null
+          deposit_paid_cents?: number
+          duration_minutes: number
+          end_at: string
+          id?: string
+          internal_notes?: string | null
+          no_show_fee_charged_cents?: number
+          price_cents?: number
+          referral_source?: string | null
+          service_id?: string | null
+          service_name: string
+          source?: string
+          start_at: string
+          status?: Database["public"]["Enums"]["salon_booking_status"]
+          store_id: string
+          stylist_id?: string | null
+          stylist_name?: string | null
+          tax_cents?: number
+          tip_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          client_notes?: string | null
+          client_phone?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          deposit_cents?: number
+          deposit_paid_at?: string | null
+          deposit_paid_cents?: number
+          duration_minutes?: number
+          end_at?: string
+          id?: string
+          internal_notes?: string | null
+          no_show_fee_charged_cents?: number
+          price_cents?: number
+          referral_source?: string | null
+          service_id?: string | null
+          service_name?: string
+          source?: string
+          start_at?: string
+          status?: Database["public"]["Enums"]["salon_booking_status"]
+          store_id?: string
+          stylist_id?: string | null
+          stylist_name?: string | null
+          tax_cents?: number
+          tip_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "salon_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_bookings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_bookings_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_commission_payouts: {
+        Row: {
+          commission_cents: number
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string
+          paid_by_user_id: string | null
+          period_from: string
+          period_to: string
+          service_revenue_cents: number
+          services_count: number
+          store_id: string
+          stylist_id: string
+          tips_cents: number
+          total_paid_cents: number
+        }
+        Insert: {
+          commission_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          paid_by_user_id?: string | null
+          period_from: string
+          period_to: string
+          service_revenue_cents?: number
+          services_count?: number
+          store_id: string
+          stylist_id: string
+          tips_cents?: number
+          total_paid_cents: number
+        }
+        Update: {
+          commission_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          paid_by_user_id?: string | null
+          period_from?: string
+          period_to?: string
+          service_revenue_cents?: number
+          services_count?: number
+          store_id?: string
+          stylist_id?: string
+          tips_cents?: number
+          total_paid_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_commission_payouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_commission_payouts_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_clients: {
+        Row: {
+          birthday: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          id: string
+          is_blocked: boolean
+          last_visit_at: string | null
+          loyalty_points: number
+          no_show_count: number
+          notes: string | null
+          phone: string | null
+          preferred_stylist_id: string | null
+          store_id: string
+          tags: string[]
+          total_spent_cents: number
+          updated_at: string
+          user_id: string | null
+          visits_count: number
+        }
+        Insert: {
+          birthday?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          id?: string
+          is_blocked?: boolean
+          last_visit_at?: string | null
+          loyalty_points?: number
+          no_show_count?: number
+          notes?: string | null
+          phone?: string | null
+          preferred_stylist_id?: string | null
+          store_id: string
+          tags?: string[]
+          total_spent_cents?: number
+          updated_at?: string
+          user_id?: string | null
+          visits_count?: number
+        }
+        Update: {
+          birthday?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          is_blocked?: boolean
+          last_visit_at?: string | null
+          loyalty_points?: number
+          no_show_count?: number
+          notes?: string | null
+          phone?: string | null
+          preferred_stylist_id?: string | null
+          store_id?: string
+          tags?: string[]
+          total_spent_cents?: number
+          updated_at?: string
+          user_id?: string | null
+          visits_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_clients_preferred_stylist_id_fkey"
+            columns: ["preferred_stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_clients_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_expenses: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string
+          expense_date: string
+          id: string
+          is_recurring: boolean
+          notes: string | null
+          receipt_url: string | null
+          recurrence: string | null
+          store_id: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          amount_cents: number
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description: string
+          expense_date?: string
+          id?: string
+          is_recurring?: boolean
+          notes?: string | null
+          receipt_url?: string | null
+          recurrence?: string | null
+          store_id: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string
+          expense_date?: string
+          id?: string
+          is_recurring?: boolean
+          notes?: string | null
+          receipt_url?: string | null
+          recurrence?: string | null
+          store_id?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_expenses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_loyalty_events: {
+        Row: {
+          booking_id: string | null
+          client_id: string
+          created_at: string
+          created_by_user_id: string | null
+          event_type: string
+          id: string
+          points_delta: number
+          reason: string | null
+          store_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          client_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          event_type: string
+          id?: string
+          points_delta: number
+          reason?: string | null
+          store_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          client_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          event_type?: string
+          id?: string
+          points_delta?: number
+          reason?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_loyalty_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_loyalty_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "salon_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_loyalty_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_gift_cards: {
+        Row: {
+          balance_cents: number
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          initial_cents: number
+          is_active: boolean
+          issued_by_user_id: string | null
+          message: string | null
+          purchaser_name: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance_cents: number
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          initial_cents: number
+          is_active?: boolean
+          issued_by_user_id?: string | null
+          message?: string | null
+          purchaser_name?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance_cents?: number
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          initial_cents?: number
+          is_active?: boolean
+          issued_by_user_id?: string | null
+          message?: string | null
+          purchaser_name?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_gift_cards_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_gift_card_redemptions: {
+        Row: {
+          amount_cents: number
+          booking_id: string | null
+          created_at: string
+          gift_card_id: string
+          id: string
+          notes: string | null
+          redeemed_at: string
+          redeemed_by_user_id: string | null
+          store_id: string
+        }
+        Insert: {
+          amount_cents: number
+          booking_id?: string | null
+          created_at?: string
+          gift_card_id: string
+          id?: string
+          notes?: string | null
+          redeemed_at?: string
+          redeemed_by_user_id?: string | null
+          store_id: string
+        }
+        Update: {
+          amount_cents?: number
+          booking_id?: string | null
+          created_at?: string
+          gift_card_id?: string
+          id?: string
+          notes?: string | null
+          redeemed_at?: string
+          redeemed_by_user_id?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_gift_card_redemptions_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "salon_gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_gift_card_redemptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_gift_card_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_loyalty_settings: {
+        Row: {
+          birthday_points: number
+          is_enabled: boolean
+          points_per_dollar: number
+          redemption_value_cents_per_point: number
+          store_id: string
+          updated_at: string
+          welcome_points: number
+        }
+        Insert: {
+          birthday_points?: number
+          is_enabled?: boolean
+          points_per_dollar?: number
+          redemption_value_cents_per_point?: number
+          store_id: string
+          updated_at?: string
+          welcome_points?: number
+        }
+        Update: {
+          birthday_points?: number
+          is_enabled?: boolean
+          points_per_dollar?: number
+          redemption_value_cents_per_point?: number
+          store_id?: string
+          updated_at?: string
+          welcome_points?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_loyalty_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_package_services: {
+        Row: {
+          package_id: string
+          quantity: number
+          service_id: string
+        }
+        Insert: {
+          package_id: string
+          quantity?: number
+          service_id: string
+        }
+        Update: {
+          package_id?: string
+          quantity?: number
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_package_services_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "salon_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_package_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_packages: {
+        Row: {
+          bundle_price_cents: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          store_id: string
+          updated_at: string
+          validity_days: number | null
+        }
+        Insert: {
+          bundle_price_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+          validity_days?: number | null
+        }
+        Update: {
+          bundle_price_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_packages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_retail_products: {
+        Row: {
+          brand: string | null
+          cost_cents: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          low_stock_threshold: number
+          name: string
+          price_cents: number
+          sku: string | null
+          sort_order: number
+          stock_quantity: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          cost_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          low_stock_threshold?: number
+          name: string
+          price_cents?: number
+          sku?: string | null
+          sort_order?: number
+          stock_quantity?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          cost_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          low_stock_threshold?: number
+          name?: string
+          price_cents?: number
+          sku?: string | null
+          sort_order?: number
+          stock_quantity?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_retail_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_reviews: {
+        Row: {
+          booking_id: string | null
+          client_id: string | null
+          client_name: string
+          comment: string | null
+          created_at: string
+          id: string
+          is_visible: boolean
+          owner_response: string | null
+          rating_stars: number
+          store_id: string
+          stylist_id: string | null
+          stylist_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          client_id?: string | null
+          client_name: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          owner_response?: string | null
+          rating_stars: number
+          store_id: string
+          stylist_id?: string | null
+          stylist_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          client_id?: string | null
+          client_name?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          owner_response?: string | null
+          rating_stars?: number
+          store_id?: string
+          stylist_id?: string | null
+          stylist_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reviews_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "salon_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reviews_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_services: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_cents?: number
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_services_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_stylist_schedules: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string | null
+          id: string
+          is_working: boolean
+          start_time: string | null
+          store_id: string
+          stylist_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time?: string | null
+          id?: string
+          is_working?: boolean
+          start_time?: string | null
+          store_id: string
+          stylist_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string | null
+          id?: string
+          is_working?: boolean
+          start_time?: string | null
+          store_id?: string
+          stylist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_stylist_schedules_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_stylist_schedules_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_time_entries: {
+        Row: {
+          created_at: string
+          end_at: string | null
+          id: string
+          notes: string | null
+          source: string
+          start_at: string
+          store_id: string
+          stylist_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_at?: string | null
+          id?: string
+          notes?: string | null
+          source?: string
+          start_at?: string
+          store_id: string
+          stylist_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_at?: string | null
+          id?: string
+          notes?: string | null
+          source?: string
+          start_at?: string
+          store_id?: string
+          stylist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_time_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_time_entries_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_store_closures: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          end_at: string
+          id: string
+          reason: string | null
+          start_at: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          end_at: string
+          id?: string
+          reason?: string | null
+          start_at: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          end_at?: string
+          id?: string
+          reason?: string | null
+          start_at?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_store_closures_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_stylist_services: {
+        Row: {
+          created_at: string
+          service_id: string
+          stylist_id: string
+        }
+        Insert: {
+          created_at?: string
+          service_id: string
+          stylist_id: string
+        }
+        Update: {
+          created_at?: string
+          service_id?: string
+          stylist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_stylist_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_stylist_services_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_stylists: {
+        Row: {
+          bio: string | null
+          commission_percent: number
+          created_at: string
+          display_name: string
+          email: string | null
+          id: string
+          is_active: boolean
+          phone: string | null
+          photo_url: string | null
+          sort_order: number
+          store_id: string
+          title: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bio?: string | null
+          commission_percent?: number
+          created_at?: string
+          display_name: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          photo_url?: string | null
+          sort_order?: number
+          store_id: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bio?: string | null
+          commission_percent?: number
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          photo_url?: string | null
+          sort_order?: number
+          store_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_stylists_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_waitlist: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          preferred_window: string | null
+          requested_service_id: string | null
+          requested_service_name: string | null
+          requested_stylist_id: string | null
+          requested_stylist_name: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          preferred_window?: string | null
+          requested_service_id?: string | null
+          requested_service_name?: string | null
+          requested_stylist_id?: string | null
+          requested_stylist_name?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          preferred_window?: string | null
+          requested_service_id?: string | null
+          requested_service_name?: string | null
+          requested_stylist_id?: string | null
+          requested_stylist_name?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_waitlist_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "salon_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_waitlist_requested_service_id_fkey"
+            columns: ["requested_service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_waitlist_requested_stylist_id_fkey"
+            columns: ["requested_stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_waitlist_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_collection_items: {
         Row: {
           added_at: string | null
@@ -54523,6 +55829,77 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      store_payment_settings: {
+        Row: {
+          accept_card: boolean
+          accept_cash: boolean
+          cancellation_window_hours: number
+          created_at: string
+          deposit_percent: number
+          id: string
+          market: string
+          no_show_fee_cents: number
+          store_id: string
+          stripe_account_id: string | null
+          stripe_status: string
+          tax_enabled: boolean
+          tax_label: string
+          tax_rate: number
+          tip_applies_pre_tax: boolean
+          tip_presets: number[]
+          tips_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          accept_card?: boolean
+          accept_cash?: boolean
+          cancellation_window_hours?: number
+          created_at?: string
+          deposit_percent?: number
+          id?: string
+          market?: string
+          no_show_fee_cents?: number
+          store_id: string
+          stripe_account_id?: string | null
+          stripe_status?: string
+          tax_enabled?: boolean
+          tax_label?: string
+          tax_rate?: number
+          tip_applies_pre_tax?: boolean
+          tip_presets?: number[]
+          tips_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          accept_card?: boolean
+          accept_cash?: boolean
+          cancellation_window_hours?: number
+          created_at?: string
+          deposit_percent?: number
+          id?: string
+          market?: string
+          no_show_fee_cents?: number
+          store_id?: string
+          stripe_account_id?: string | null
+          stripe_status?: string
+          tax_enabled?: boolean
+          tax_label?: string
+          tax_rate?: number
+          tip_applies_pre_tax?: boolean
+          tip_presets?: number[]
+          tips_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_payment_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_post_comments: {
         Row: {
@@ -68929,26 +70306,6 @@ export type Database = {
         }
         Returns: number
       }
-      credit_customer_wallet:
-        | {
-            Args: {
-              p_amount_cents: number
-              p_reason?: string
-              p_reference_id?: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount_cents: number
-              p_description?: string
-              p_reference_id?: string
-              p_type: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
       credit_driver_earnings: {
         Args: {
           p_amount_cents: number
@@ -69008,36 +70365,6 @@ export type Database = {
       deduct_merchant_balance: {
         Args: { p_amount_cents: number; p_restaurant_id: string }
         Returns: boolean
-      }
-      dispatch_next_offer:
-        | {
-            Args: {
-              p_job_id: string
-              p_offer_ttl_seconds?: number
-              p_radius_meters?: number
-            }
-            Returns: {
-              driver_id: string
-              expires_at: string
-              job_id: string
-              offer_id: string
-            }[]
-          }
-        | {
-            Args: { p_job_id: string; p_ttl_seconds?: number }
-            Returns: {
-              driver_id: string
-              expires_at: string
-              job_id: string
-              offer_id: string
-            }[]
-          }
-      dispatch_tick: {
-        Args: { p_offer_ttl_seconds?: number; p_radius_meters?: number }
-        Returns: {
-          expired_count: number
-          newly_dispatched_count: number
-        }[]
       }
       driver_complete_trip: { Args: { p_job_id: string }; Returns: Json }
       driver_decline_offer: {
@@ -70331,6 +71658,112 @@ export type Database = {
       run_ad_boost_auction: { Args: never; Returns: Json }
       safe_parse_timestamptz: { Args: { input: string }; Returns: string }
       safe_uuid: { Args: { _text: string }; Returns: string }
+      salon_auto_expire_pending_bookings: { Args: never; Returns: number }
+      salon_public_cancel_booking: {
+        Args: { p_id: string }
+        Returns: {
+          cancelled_at: string
+          id: string
+          status: string
+        }[]
+      }
+      salon_public_gift_card_lookup: {
+        Args: { p_code: string }
+        Returns: {
+          balance_cents: number
+          expires_at: string | null
+          initial_cents: number
+          is_active: boolean
+          store_id: string
+          store_name: string
+        }[]
+      }
+      salon_public_get_booking: {
+        Args: { p_id: string }
+        Returns: {
+          cancellation_window_hours: number
+          cancelled_at: string
+          client_email: string
+          client_name: string
+          client_phone: string
+          duration_minutes: number
+          end_at: string
+          id: string
+          price_cents: number
+          service_id: string | null
+          service_name: string
+          source: string
+          start_at: string
+          status: string
+          store_id: string
+          store_name: string
+          store_slug: string
+          stylist_id: string | null
+          stylist_name: string
+        }[]
+      }
+      salon_public_stylist_blockouts: {
+        Args: { p_day_end: string; p_day_start: string; p_stylist_id: string }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
+      salon_public_store_closures: {
+        Args: { p_day_end: string; p_day_start: string; p_store_id: string }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
+      salon_public_stylist_day: {
+        Args: { p_day_end: string; p_day_start: string; p_stylist_id: string }
+        Returns: {
+          client_name: string
+          client_phone: string | null
+          duration_minutes: number
+          end_at: string
+          id: string
+          internal_notes: string | null
+          service_name: string
+          start_at: string
+          status: string
+          store_id: string
+          store_name: string
+          stylist_id: string
+          stylist_name: string
+        }[]
+      }
+      salon_public_stylist_meta: {
+        Args: { p_stylist_id: string }
+        Returns: {
+          display_name: string
+          id: string
+          store_id: string
+          store_name: string
+          store_slug: string
+        }[]
+      }
+      salon_public_get_booking_for_review: {
+        Args: { p_id: string }
+        Returns: {
+          already_reviewed: boolean
+          client_name: string
+          id: string
+          service_name: string
+          start_at: string
+          status: string
+          store_id: string
+          store_name: string
+          store_slug: string
+          stylist_id: string | null
+          stylist_name: string | null
+        }[]
+      }
+      salon_public_submit_review: {
+        Args: { p_booking_id: string; p_comment: string; p_rating: number }
+        Returns: { id: string }[]
+      }
       score_driver_for_assignment: {
         Args: {
           p_driver_id: string
@@ -70382,15 +71815,7 @@ export type Database = {
       }
       set_customer_phone: { Args: { p_phone_e164: string }; Returns: Json }
       set_driver_phone: { Args: { p_phone_e164: string }; Returns: Json }
-      set_driver_state:
-        | { Args: { p_state: string }; Returns: Json }
-        | {
-            Args: { p_meta?: Json; p_reason?: string; p_to_state: string }
-            Returns: {
-              driver_id: string
-              driver_state: string
-            }[]
-          }
+      set_driver_state: { Args: { p_state: string }; Returns: Json }
       set_job_status_safe: {
         Args: {
           p_job_id: string
@@ -71064,6 +72489,10 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "canceled"
+        | "enroute_pickup"
+        | "arrived_pickup"
+        | "enroute_dropoff"
+        | "arrived_dropoff"
       job_type: "ride" | "food_delivery" | "package"
       launch_alert_severity: "info" | "warning" | "critical"
       launch_alert_type:
@@ -71196,6 +72625,12 @@ export type Database = {
         | "approved"
         | "rejected"
         | "suspended"
+      salon_booking_status:
+        | "pending"
+        | "confirmed"
+        | "completed"
+        | "cancelled"
+        | "no_show"
       service_offer_status:
         | "pending"
         | "accepted"
@@ -71491,6 +72926,10 @@ export const Constants = {
         "in_progress",
         "completed",
         "canceled",
+        "enroute_pickup",
+        "arrived_pickup",
+        "enroute_dropoff",
+        "arrived_dropoff",
       ],
       job_type: ["ride", "food_delivery", "package"],
       launch_alert_severity: ["info", "warning", "critical"],
@@ -71639,6 +73078,13 @@ export const Constants = {
         "approved",
         "rejected",
         "suspended",
+      ],
+      salon_booking_status: [
+        "pending",
+        "confirmed",
+        "completed",
+        "cancelled",
+        "no_show",
       ],
       service_offer_status: [
         "pending",

@@ -364,6 +364,15 @@ const BusinessPageWizard = lazy(() => import("./pages/business/BusinessPageWizar
 const BusinessSoftwareDownloadPage = lazy(() => import("./pages/store/BusinessSoftwareDownloadPage"));
 const AutoRepairDesktopAppPage = lazy(() => import("./pages/store/AutoRepairDesktopAppPage"));
 const ServiceBookingPage = lazy(() => import("./pages/store/ServiceBookingPage"));
+const PublicSalonBookingPage = lazy(() => import("./pages/salon/PublicSalonBookingPage"));
+const PublicSalonBookingDetailPage = lazy(() => import("./pages/salon/PublicSalonBookingDetailPage"));
+const SalonReceiptPage = lazy(() => import("./pages/admin/SalonReceiptPage"));
+const SalonDailySchedulePage = lazy(() => import("./pages/admin/SalonDailySchedulePage"));
+const SalonDailySummaryPage = lazy(() => import("./pages/admin/SalonDailySummaryPage"));
+const SalonQueueDisplayPage = lazy(() => import("./pages/admin/SalonQueueDisplayPage"));
+const SalonGiftCardCheckPage = lazy(() => import("./pages/salon/SalonGiftCardCheckPage"));
+const PublicStylistDayPage = lazy(() => import("./pages/salon/PublicStylistDayPage"));
+const PublicReviewSubmitPage = lazy(() => import("./pages/salon/PublicReviewSubmitPage"));
 
 
 const AdminEmployeesPage = lazy(() => import("./pages/admin/AdminEmployeesPage"));
@@ -1540,6 +1549,15 @@ const App = () => (
                 <Route path="/store-map" element={<StoreMapPage />} />
                 <Route path="/store-map/list" element={<StoresListPage />} />
                 <Route path="/book/:slug" element={<ServiceBookingPage />} />
+                <Route path="/salon/:slug" element={<PublicSalonBookingPage />} />
+                <Route path="/booking/:id" element={<PublicSalonBookingDetailPage />} />
+                <Route path="/admin/salon-receipt/:bookingId" element={<SalonReceiptPage />} />
+                <Route path="/admin/salon-schedule/:storeId/:date" element={<SalonDailySchedulePage />} />
+                <Route path="/admin/salon-summary/:storeId/:date" element={<SalonDailySummaryPage />} />
+                <Route path="/admin/salon-queue/:storeId" element={<SalonQueueDisplayPage />} />
+                <Route path="/gift-card" element={<SalonGiftCardCheckPage />} />
+                <Route path="/stylist/:stylistId" element={<PublicStylistDayPage />} />
+                <Route path="/review/:bookingId" element={<PublicReviewSubmitPage />} />
                 <Route path="/grocery/store/:slug" element={<GroceryStorePage />} />
                 <Route path="/grocery/shop/:slug" element={<StoreProfilePage />} />
                 <Route path="/store/:slug" element={<StoreProfilePage />} />

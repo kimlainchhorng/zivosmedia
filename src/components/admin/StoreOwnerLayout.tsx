@@ -29,6 +29,8 @@ import { isLodgingStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { isAutoRepairTab } from "@/lib/admin/storeTabRouting";
 import type { LodgingCompletionItem } from "@/lib/lodging/lodgingCompletion";
 import { useLodgingSidebarBadges } from "@/hooks/lodging/useLodgingSidebarBadges";
+import { useSalonSidebarBadges } from "@/hooks/salon/useSalonSidebarBadges";
+import { useSalonRealtimeNotifications } from "@/hooks/salon/useSalonRealtimeNotifications";
 
 interface StoreOwnerLayoutProps {
   children: ReactNode;
@@ -130,6 +132,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   const normalizedStoreCategory = (storeCategory || "").toLowerCase().trim();
   const isAutoRepair = normalizedStoreCategory === "auto-repair" || isAutoRepairTab(activeTab);
   const isLodging = isLodgingStoreCategory(storeCategory);
+  const isSalon = normalizedStoreCategory === "salon";
   const productsLabel = isAutoRepair ? "Services" : isLodging ? "Rooms" : "Products";
   const paymentLabel = isAutoRepair ? "Bookings" : "Payment & Payouts";
 
@@ -147,20 +150,33 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   }, [activeTab, isAutoRepair, sidebarOpen, tabKey]);
 
   const { data: lodgingBadges } = useLodgingSidebarBadges(storeId, isLodging);
+  const salonBadges = useSalonSidebarBadges(storeId, isSalon);
+  useSalonRealtimeNotifications(storeId, isSalon);
   const badgeFor = (id: string): number | undefined => {
-    if (!isLodging || !lodgingBadges) return undefined;
-    if (id === "lodge-inbox") return lodgingBadges.inboxUnread || undefined;
-    if (id === "lodge-concierge") return lodgingBadges.conciergeOpen || undefined;
-    if (id === "lodge-lostfound") return lodgingBadges.lostFoundUnclaimed || undefined;
-    if (id === "lodge-frontdesk") return lodgingBadges.frontDeskToday || undefined;
+    if (isLodging && lodgingBadges) {
+      if (id === "lodge-inbox") return lodgingBadges.inboxUnread || undefined;
+      if (id === "lodge-concierge") return lodgingBadges.conciergeOpen || undefined;
+      if (id === "lodge-lostfound") return lodgingBadges.lostFoundUnclaimed || undefined;
+      if (id === "lodge-frontdesk") return lodgingBadges.frontDeskToday || undefined;
+    }
+    if (isSalon) {
+      if (id === "salon-bookings") return salonBadges.bookingsPending || undefined;
+      if (id === "salon-waitlist") return salonBadges.waitlist || undefined;
+      if (id === "salon-reviews") return salonBadges.reviewsUnreplied || undefined;
+      if (id === "salon-retail") return salonBadges.retailLowStock || undefined;
+    }
     return undefined;
   };
 
   const navItems = [
     { id: "profile", label: "Profile", icon: Store },
-    { id: "orders", label: `Orders${orderCount ? ` (${orderCount})` : ""}`, icon: ClipboardList },
-    // Lodging uses the dedicated "Rooms & Rates" entry under HOTEL OPS instead.
-    ...(!isLodging ? [
+    // Salon replaces "Orders" with "Appointments" inside its dedicated module.
+    ...(!isSalon ? [
+      { id: "orders", label: `Orders${orderCount ? ` (${orderCount})` : ""}`, icon: ClipboardList },
+    ] : []),
+    // Lodging uses the dedicated "Rooms & Rates" entry under HOTEL OPS.
+    // Salon replaces "Products" with the "Service Menu" inside its module.
+    ...(!isLodging && !isSalon ? [
       { id: "products", label: `${productsLabel}${productCount != null ? ` (${productCount})` : ""}`, icon: isAutoRepair ? Package : Package },
     ] : []),
     { id: "payment", label: paymentLabel, icon: isAutoRepair ? Calendar : isLodging ? CalendarRange : CreditCard },
@@ -255,9 +271,38 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
       { id: "lodge-handover", label: "Shift Handover", icon: ScrollText },
       { id: "lodge-folio", label: "Guest Folio", icon: Receipt },
     ] : []),
+    ...(isSalon ? [
+      { id: "salon-dashboard", label: "Salon Dashboard", icon: LayoutDashboard },
+      { id: "_salon_appts_label", label: "APPOINTMENTS", icon: CalendarCheck, divider: true },
+      { id: "salon-bookings", label: "Bookings & Calendar", icon: CalendarRange },
+      { id: "salon-walkins", label: "Walk-ins", icon: ClipboardList },
+      { id: "salon-waitlist", label: "Waitlist", icon: Timer },
+      { id: "_salon_services_label", label: "SERVICES & MENU", icon: BookOpen, divider: true },
+      { id: "salon-services", label: "Service Menu", icon: BookOpen },
+      { id: "salon-packages", label: "Packages & Bundles", icon: Gift },
+      { id: "salon-retail", label: "Retail Products", icon: Package },
+      { id: "_salon_team_label", label: "STYLISTS & TEAM", icon: UserCog, divider: true },
+      { id: "salon-stylists", label: "Stylists & Specialists", icon: UserCog },
+      { id: "salon-schedules", label: "Stylist Schedules", icon: Calendar },
+      { id: "salon-timeclock", label: "Time Clock", icon: Clock },
+      { id: "salon-commissions", label: "Tips & Commissions", icon: Banknote },
+      { id: "_salon_client_label", label: "CLIENT CARE", icon: HeartPulse, divider: true },
+      { id: "salon-clients", label: "Clients", icon: Users },
+      { id: "salon-history", label: "Service History", icon: ScrollText },
+      { id: "salon-loyalty", label: "Loyalty & Rewards", icon: Star },
+      { id: "salon-gift-cards", label: "Gift Cards", icon: CreditCard },
+      { id: "salon-reviews", label: "Reviews & Ratings", icon: Star },
+      { id: "_salon_finance_label", label: "FINANCE", icon: DollarSign, divider: true },
+      { id: "salon-income", label: "Income & Revenue", icon: DollarSign },
+      { id: "salon-expenses", label: "Expenses & Bills", icon: Wallet },
+      { id: "salon-reports", label: "Reports & Analytics", icon: BarChart3 },
+    ] : []),
     { id: "customers", label: "Customers", icon: Users },
     { id: "marketing", label: "Marketing & Ads", icon: Megaphone },
-    { id: "livestream", label: "Live Stream", icon: Tv },
+    // Live Stream is hidden for salons — not relevant to the appointment-based workflow.
+    ...(!isSalon ? [
+      { id: "livestream", label: "Live Stream", icon: Tv },
+    ] : []),
   ];
 
   const employeeItems = [
@@ -396,7 +441,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
         >
           <div className={cn(isAutoRepair && "sticky top-0 z-10 -mx-2 mb-1 bg-card px-2 pb-1 pt-1")}>
             <p id="sidebar-group-manage" className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70">
-              {isAutoRepair ? "Auto Repair" : "Manage"}
+              {isAutoRepair ? "Auto Repair" : isSalon ? "Salon" : "Manage"}
             </p>
             {isAutoRepair && (
               <button

@@ -28,7 +28,10 @@ type JobStatus =
 interface JobRow {
   id: string;
   status: JobStatus;
-  driver_id: string | null;
+  // Column on jobs table is `assigned_driver_id` (NOT driver_id). It can be
+  // either drivers.id OR auth.users.id depending on which dispatch path set
+  // it — resolve to a concrete drivers.id via `resolvedDriverId` below.
+  assigned_driver_id: string | null;
   customer_id: string | null;
   pickup_address: string | null;
   dropoff_address: string | null;
@@ -219,19 +222,38 @@ export default function TripStatusPage() {
     };
   }, [id]);
 
-  // ── Fetch driver profile when driver_id becomes available ──────────────────
+  // Resolved drivers.id — assigned_driver_id may be drivers.id OR user.id; we
+  // store the canonical drivers.id here for downstream consumers.
+  const [resolvedDriverId, setResolvedDriverId] = useState<string | null>(null);
+
+  // ── Resolve assigned_driver_id → drivers.id, then fetch driver profile ────
   useEffect(() => {
-    if (!job?.driver_id) return;
-    if (fetchedDriverRef.current === job.driver_id) return;
-    fetchedDriverRef.current = job.driver_id;
+    const rawId = job?.assigned_driver_id;
+    if (!rawId) {
+      setResolvedDriverId(null);
+      return;
+    }
+    if (fetchedDriverRef.current === rawId) return;
+    fetchedDriverRef.current = rawId;
 
     const fetchDriver = async () => {
+      // jobs.assigned_driver_id can be either drivers.id (legacy path) or
+      // auth.users.id (current dispatch path) — match either.
+      const { data: driverRow } = await (supabase as any)
+        .from("drivers")
+        .select("id")
+        .or(`id.eq.${rawId},user_id.eq.${rawId}`)
+        .maybeSingle();
+
+      const driverId = (driverRow as { id?: string } | null)?.id ?? rawId;
+      setResolvedDriverId(driverId);
+
       const { data } = await (supabase as any)
         .from("driver_profiles")
         .select(
           "full_name,rating,trips_count,vehicle_model,vehicle_color,license_plate,phone,avatar_url"
         )
-        .eq("id", job.driver_id)
+        .eq("id", driverId)
         .maybeSingle();
 
       if (data) {
@@ -240,7 +262,7 @@ export default function TripStatusPage() {
     };
 
     fetchDriver();
-  }, [job?.driver_id]);
+  }, [job?.assigned_driver_id]);
 
   // ── Decrement ETA each minute while ride is active ─────────────────────────
   useEffect(() => {
@@ -448,7 +470,7 @@ export default function TripStatusPage() {
               >
                 <DriverEnRouteTracker
                   tripId={id ?? ""}
-                  driverId={job?.driver_id}
+                  driverId={resolvedDriverId}
                   driver={driverInfo}
                   etaMinutes={etaMinutes}
                   pickupAddress={job?.pickup_address ?? ""}

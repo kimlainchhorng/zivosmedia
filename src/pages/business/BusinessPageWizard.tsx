@@ -30,6 +30,7 @@ import {
 } from "@/lib/business/dashboardRoute";
 import {
   persistWizardPartial,
+  slugify,
   type WizardSnapshot,
 } from "./wizardPersistence";
 
@@ -348,21 +349,33 @@ export default function BusinessPageWizard() {
   const goNext = async () => {
     if (!canContinue()) return;
 
-    // Auto-save after every step except 5 (handled by handleComplete).
-    if (step >= 1 && step <= 4) {
-      const res = await persist({ persistProfile: step >= 3 });
-      if (res.error) {
-        setNameError(res.error);
-        toast.error(res.error);
-        if (step !== 1) setStep(1);
-        return;
+    // Step 1 has no DB persistence — we wait until Step 2 (Type) so the row
+    // is created with a real category instead of the DB default. Subsequent
+    // steps (2–4) auto-save; Step 5 is the final commit via handleComplete.
+    if (step >= 2 && step <= 4) {
+      setSubmitting(true);
+      try {
+        const res = await persist({ persistProfile: step >= 3 });
+        if (res.error) {
+          setNameError(res.error);
+          toast.error(res.error, {
+            action: { label: "Retry", onClick: () => void goNext() },
+          });
+          if (step !== 1) setStep(1);
+          return;
+        }
+        setNameError(null);
+      } finally {
+        setSubmitting(false);
       }
-      setNameError(null);
     }
 
     setCompletedSteps((prev) => new Set(prev).add(step));
     const nextLabel = NEXT_STEP_LABELS[step];
-    if (nextLabel) toast.success("Step saved", { description: `Next: ${nextLabel}` });
+    if (nextLabel) {
+      const title = step === 1 ? "Looking good" : "Step saved";
+      toast.success(title, { description: `Next: ${nextLabel}` });
+    }
 
     if (step < STEP_COUNT) setStep((s) => (s + 1) as Step);
   };
@@ -399,6 +412,12 @@ export default function BusinessPageWizard() {
   /** User chose Save & exit. Persist progress, then navigate to /account. */
   const saveAndExit = async () => {
     if (savingExit) return;
+    // Step 1 has no DB row yet (deferred until Step 2). Block Save & exit so
+    // we never silently lose the basics.
+    if (step === 1) {
+      toast.error("Pick a business type on Step 2 before you can save and resume later.");
+      return;
+    }
     setSavingExit(true);
     try {
       const res = await persist({ persistProfile: step >= 3 });
@@ -585,14 +604,21 @@ export default function BusinessPageWizard() {
                     <Input
                       id="bizName"
                       placeholder="e.g. Sunrise Coffee Co."
+                      maxLength={80}
                       value={bizName}
                       onChange={(e) => {
                         setBizName(e.target.value);
                         if (nameError) setNameError(null);
                       }}
+                      onBlur={(e) => setBizName(e.target.value.trim())}
                       autoFocus
                       aria-invalid={!!nameError}
                     />
+                    {bizName.trim().length >= 2 && !nameError && (
+                      <p className="text-xs text-muted-foreground">
+                        Your page URL: <span className="font-mono text-foreground">/{slugify(bizName.trim())}</span>
+                      </p>
+                    )}
                     {nameError && (
                       <p className="text-xs font-medium text-destructive">{nameError}</p>
                     )}
@@ -605,7 +631,13 @@ export default function BusinessPageWizard() {
                       placeholder="(555) 123-4567"
                       value={bizPhone}
                       onChange={(e) => setBizPhone(formatPhone(e.target.value))}
+                      aria-invalid={bizPhone.length > 0 && bizPhone.replace(/\D/g, "").length < 7}
                     />
+                    {bizPhone.length > 0 && bizPhone.replace(/\D/g, "").length < 7 && (
+                      <p className="text-xs font-medium text-destructive">
+                        Enter at least 7 digits.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bizEmail">Business email</Label>
@@ -615,7 +647,14 @@ export default function BusinessPageWizard() {
                       placeholder="hello@yourbusiness.com"
                       value={bizEmail}
                       onChange={(e) => setBizEmail(e.target.value)}
+                      onBlur={(e) => setBizEmail(e.target.value.trim())}
+                      aria-invalid={bizEmail.length > 0 && !/\S+@\S+\.\S+/.test(bizEmail)}
                     />
+                    {bizEmail.length > 0 && !/\S+@\S+\.\S+/.test(bizEmail) && (
+                      <p className="text-xs font-medium text-destructive">
+                        Enter a valid email address.
+                      </p>
+                    )}
                   </div>
                 </div>
               </>
@@ -888,8 +927,9 @@ export default function BusinessPageWizard() {
               type="button"
               variant="secondary"
               onClick={saveAndExit}
-              disabled={savingExit || (step === 1 && !canContinue())}
+              disabled={savingExit || step === 1}
               className="gap-1.5"
+              title={step === 1 ? "Pick a business type on Step 2 before saving" : undefined}
             >
               {savingExit ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

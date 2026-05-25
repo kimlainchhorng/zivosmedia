@@ -68,6 +68,28 @@ import { cn } from "@/lib/utils";
 import { STORE_CATEGORY_OPTIONS } from "@/config/groceryStores";
 import StoreMapPicker from "@/components/admin/StoreMapPicker";
 import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import SalonComingSoonSection from "@/components/admin/store/salon/SalonComingSoonSection";
+import SalonPaymentUsSection from "@/components/admin/store/salon/SalonPaymentUsSection";
+import SalonServiceMenuSection from "@/components/admin/store/salon/SalonServiceMenuSection";
+import SalonStylistsSection from "@/components/admin/store/salon/SalonStylistsSection";
+import SalonClientsSection from "@/components/admin/store/salon/SalonClientsSection";
+import SalonBookingsSection from "@/components/admin/store/salon/SalonBookingsSection";
+import SalonDashboardSection from "@/components/admin/store/salon/SalonDashboardSection";
+import SalonServiceHistorySection from "@/components/admin/store/salon/SalonServiceHistorySection";
+import SalonCommissionsSection from "@/components/admin/store/salon/SalonCommissionsSection";
+import SalonWalkinsSection from "@/components/admin/store/salon/SalonWalkinsSection";
+import SalonReportsSection from "@/components/admin/store/salon/SalonReportsSection";
+import SalonExpensesSection from "@/components/admin/store/salon/SalonExpensesSection";
+import SalonWaitlistSection from "@/components/admin/store/salon/SalonWaitlistSection";
+import SalonIncomeSection from "@/components/admin/store/salon/SalonIncomeSection";
+import SalonStylistSchedulesSection from "@/components/admin/store/salon/SalonStylistSchedulesSection";
+import SalonPackagesSection from "@/components/admin/store/salon/SalonPackagesSection";
+import SalonRetailProductsSection from "@/components/admin/store/salon/SalonRetailProductsSection";
+import SalonLoyaltySection from "@/components/admin/store/salon/SalonLoyaltySection";
+import SalonReviewsSection from "@/components/admin/store/salon/SalonReviewsSection";
+import SalonTimeClockSection from "@/components/admin/store/salon/SalonTimeClockSection";
+import SalonGiftCardsSection from "@/components/admin/store/salon/SalonGiftCardsSection";
+import { SALON_TAB_META, SALON_TAB_IDS } from "@/components/admin/store/salon/salonTabConfig";
 import { toast } from "sonner";
 
 const StorePaymentSection = React.lazy(() => import("@/components/admin/StorePaymentSection"));
@@ -684,7 +706,8 @@ export default function AdminStoreEditPage() {
       normalizedStoreCategory === "auto-repair" ||
       requestedCategory === "auto-repair" ||
       isAutoRepairTab(requestedTab);
-    const resolvedTab = resolveStoreTabFromSearch(searchParams, isStoreLodging, isStoreAutoRepair);
+    const isStoreSalon = normalizedStoreCategory === "salon" || requestedCategory === "salon";
+    const resolvedTab = resolveStoreTabFromSearch(searchParams, isStoreLodging, isStoreAutoRepair, isStoreSalon);
     if (requestedTab !== resolvedTab && (requestedTab || isStoreLodging || isStoreAutoRepair)) {
       handleTabChange(resolvedTab);
       return;
@@ -2169,7 +2192,8 @@ export default function AdminStoreEditPage() {
   };
   const productsLabelTitle = isAutoRepair ? "Services" : isLodging ? "Rooms" : "Products";
   const paymentLabelTitle = form.category === "car-dealership" ? t("admin.store.booking_appointment") : isAutoRepair ? "Bookings" : isLodging ? "Payment & Payouts" : t("admin.store.payment");
-  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
+  const salonTitle = SALON_TAB_META[activeTab]?.title;
+  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || salonTitle || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
   // IMPORTANT: Do NOT define a component inside render — it creates a new component
   // type on every render, which forces React to unmount + remount the entire subtree
   // (including the Add Product dialog inputs) on every keystroke. Use a render helper instead.
@@ -4059,6 +4083,8 @@ export default function AdminStoreEditPage() {
                   <AdminBookingsTab storeId={storeId!} />
                 </CardContent>
               </Card>
+            ) : form.category === "salon" ? (
+              <SalonPaymentUsSection storeId={storeId!} />
             ) : (
               <StorePaymentSection storeId={storeId!} market={form.market} />
             )}
@@ -4216,6 +4242,68 @@ export default function AdminStoreEditPage() {
           <TabsContent value="software" data-testid="store-tab-software">
             <SoftwareDownloadsSection storeCategory={effectiveStoreCategory} storeId={storeId} />
           </TabsContent>
+
+          {/* Salon module — real sections where built, placeholder otherwise. */}
+          {SALON_TAB_IDS.map((tabId) => {
+            const meta = SALON_TAB_META[tabId];
+            const renderReal = () => {
+              switch (tabId) {
+                case "salon-services":
+                  return <SalonServiceMenuSection storeId={storeId!} />;
+                case "salon-stylists":
+                  return <SalonStylistsSection storeId={storeId!} />;
+                case "salon-clients":
+                  return <SalonClientsSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "salon-bookings":
+                  return <SalonBookingsSection storeId={storeId!} />;
+                case "salon-dashboard":
+                  return <SalonDashboardSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "salon-history":
+                  return <SalonServiceHistorySection storeId={storeId!} />;
+                case "salon-commissions":
+                  return <SalonCommissionsSection storeId={storeId!} />;
+                case "salon-walkins":
+                  return <SalonWalkinsSection storeId={storeId!} />;
+                case "salon-reports":
+                  return <SalonReportsSection storeId={storeId!} />;
+                case "salon-expenses":
+                  return <SalonExpensesSection storeId={storeId!} />;
+                case "salon-waitlist":
+                  return <SalonWaitlistSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "salon-income":
+                  return <SalonIncomeSection storeId={storeId!} />;
+                case "salon-schedules":
+                  return <SalonStylistSchedulesSection storeId={storeId!} />;
+                case "salon-packages":
+                  return <SalonPackagesSection storeId={storeId!} />;
+                case "salon-retail":
+                  return <SalonRetailProductsSection storeId={storeId!} />;
+                case "salon-loyalty":
+                  return <SalonLoyaltySection storeId={storeId!} />;
+                case "salon-reviews":
+                  return <SalonReviewsSection storeId={storeId!} />;
+                case "salon-timeclock":
+                  return <SalonTimeClockSection storeId={storeId!} />;
+                case "salon-gift-cards":
+                  return <SalonGiftCardsSection storeId={storeId!} />;
+                default:
+                  return null;
+              }
+            };
+            const real = renderReal();
+            return (
+              <TabsContent key={tabId} value={tabId}>
+                {real ?? (
+                  <SalonComingSoonSection
+                    title={meta.title}
+                    description={meta.description}
+                    Icon={meta.Icon}
+                    bullets={meta.bullets}
+                  />
+                )}
+              </TabsContent>
+            );
+          })}
           </Suspense>
 
         </Tabs>
