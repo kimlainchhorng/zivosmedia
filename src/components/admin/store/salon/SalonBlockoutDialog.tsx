@@ -31,7 +31,12 @@ interface SalonBlockoutDialogProps {
   onChanged: () => void;
 }
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+/** Local YYYY-MM-DD. `toISOString().slice(0, 10)` returns UTC, which can
+ *  drift by one day for users at the edges of the day in negative-offset TZs. */
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 export default function SalonBlockoutDialog({ storeId, open, defaultDate, onClose, onChanged }: SalonBlockoutDialogProps) {
   const { stylists } = useSalonStylists(storeId);
@@ -84,12 +89,14 @@ export default function SalonBlockoutDialog({ storeId, open, defaultDate, onClos
       return;
     }
     setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("salon_blockouts").insert({
       store_id: storeId,
       stylist_id: stylistId,
       start_at: startIso,
       end_at: endIso,
       reason: reason.trim() || null,
+      created_by_user_id: user?.id ?? null,
     } as never);
     setSaving(false);
     if (error) {
@@ -107,18 +114,23 @@ export default function SalonBlockoutDialog({ storeId, open, defaultDate, onClos
     onChanged();
   };
 
-  const handleDelete = async (id: string) => {
+  const formatRange = (s: string, e: string) => {
+    const f = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    return `${f(new Date(s))} – ${f(new Date(e))}`;
+  };
+
+  const handleDelete = async (b: Blockout) => {
+    // Block-offs often hold vacation/training slots — accidentally deleting
+    // one re-opens that time for booking. Confirm with the range + reason
+    // so the owner sees what they're removing.
+    const detail = b.reason ? `${formatRange(b.start_at, b.end_at)} · ${b.reason}` : formatRange(b.start_at, b.end_at);
+    if (!confirm(`Delete this block-off?\n\n${detail}\n\nThe time will become bookable again.`)) return;
     setSaving(true);
-    const { error } = await supabase.from("salon_blockouts").delete().eq("id", id);
+    const { error } = await supabase.from("salon_blockouts").delete().eq("id", b.id);
     setSaving(false);
     if (error) { toast.error("Couldn't delete."); return; }
     await loadDay();
     onChanged();
-  };
-
-  const formatRange = (s: string, e: string) => {
-    const f = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    return `${f(new Date(s))} – ${f(new Date(e))}`;
   };
 
   return (
@@ -174,7 +186,7 @@ export default function SalonBlockoutDialog({ storeId, open, defaultDate, onClos
                       <p className="text-sm font-medium text-foreground">{formatRange(b.start_at, b.end_at)}</p>
                       {b.reason && <p className="truncate text-xs text-muted-foreground">{b.reason}</p>}
                     </div>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(b.id)} disabled={saving}>
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(b)} disabled={saving}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </li>

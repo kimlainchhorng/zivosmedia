@@ -127,13 +127,28 @@ export default function SalonPackagesSection({ storeId }: SalonPackagesSectionPr
       if (err || !data) { setError("Couldn't create package."); setSaving(false); return; }
       pkgId = (data as any).id;
     }
-    // Sync junction
+    // Sync junction. This is delete-then-insert without a transaction, so a
+    // failed insert leaves the package with zero services. Surface the error
+    // and reload — don't claim success on a half-applied edit.
     if (pkgId) {
-      await supabase.from("salon_package_services").delete().eq("package_id", pkgId);
+      const { error: dErr } = await supabase.from("salon_package_services").delete().eq("package_id", pkgId);
+      if (dErr) {
+        console.error("[SalonPackages] junction delete failed", dErr);
+        setSaving(false);
+        toast.error("Couldn't update the services list. Reloaded latest from server.");
+        await load();
+        return;
+      }
       const inserts = Object.entries(draft.service_quantities).map(([service_id, quantity]) => ({ package_id: pkgId, service_id, quantity }));
       if (inserts.length > 0) {
         const { error: jErr } = await supabase.from("salon_package_services").insert(inserts as never);
-        if (jErr) console.error("[SalonPackages] junction insert failed", jErr);
+        if (jErr) {
+          console.error("[SalonPackages] junction insert failed", jErr);
+          setSaving(false);
+          toast.error("Saved the package but couldn't attach services. Open it again and re-pick services.");
+          await load();
+          return;
+        }
       }
     }
     setSaving(false);

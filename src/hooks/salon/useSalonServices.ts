@@ -27,8 +27,8 @@ interface UseSalonServicesResult {
   saving: boolean;
   error: string | null;
   create: (draft: SalonServiceDraft) => Promise<SalonService | null>;
-  update: (id: string, patch: Partial<SalonServiceDraft & { sort_order: number }>) => Promise<void>;
-  remove: (id: string) => Promise<void>;
+  update: (id: string, patch: Partial<SalonServiceDraft & { sort_order: number }>) => Promise<boolean>;
+  remove: (id: string) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -98,7 +98,7 @@ export function useSalonServices(storeId: string | undefined): UseSalonServicesR
     return created;
   }, [storeId, services]);
 
-  const update = useCallback(async (id: string, patch: Partial<SalonServiceDraft & { sort_order: number }>) => {
+  const update = useCallback(async (id: string, patch: Partial<SalonServiceDraft & { sort_order: number }>): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const cleanPatch: Record<string, unknown> = {};
@@ -122,11 +122,14 @@ export function useSalonServices(storeId: string | undefined): UseSalonServicesR
       console.error("[useSalonServices] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const previous = services;
@@ -139,8 +142,11 @@ export function useSalonServices(storeId: string | undefined): UseSalonServicesR
       console.error("[useSalonServices] delete failed", err);
       setError("Couldn't delete service.");
       setServices(previous);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [services]);
 
   return { services, loading, saving, error, create, update, remove, refresh: load };

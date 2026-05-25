@@ -110,7 +110,16 @@ export default function SalonRetailProductsSection({ storeId }: SalonRetailProdu
       : supabase.from("salon_retail_products").insert(payload as never);
     const { error: err } = await op;
     setSaving(false);
-    if (err) { setError(editingId ? "Couldn't save changes." : "Couldn't add product."); return; }
+    if (err) {
+      // 23505 = unique_violation. With the per-store SKU unique index, this
+      // fires when the SKU collides with an existing product.
+      if ((err as { code?: string }).code === "23505") {
+        setError(`Another product already uses SKU "${draft.sku.trim()}". Pick a different one.`);
+      } else {
+        setError(editingId ? "Couldn't save changes." : "Couldn't add product.");
+      }
+      return;
+    }
     toast.success(editingId ? "Product updated." : "Product added.");
     setDialogOpen(false);
     await load();
@@ -118,13 +127,25 @@ export default function SalonRetailProductsSection({ storeId }: SalonRetailProdu
 
   const adjustStock = async (id: string, delta: number) => {
     setSaving(true);
-    const row = rows.find((r) => r.id === id);
-    if (!row) { setSaving(false); return; }
-    const next = Math.max(0, row.stock_quantity + delta);
+    // Optimistic local update first — without this, rapid +/- clicks all
+    // read the same starting stock_quantity from React state and dispatch
+    // identical updates to the DB, dropping every click but the first.
+    let next = 0;
+    setRows((prev) => prev.map((r) => {
+      if (r.id !== id) return r;
+      next = Math.max(0, r.stock_quantity + delta);
+      return { ...r, stock_quantity: next };
+    }));
     const { error: err } = await supabase.from("salon_retail_products").update({ stock_quantity: next } as never).eq("id", id);
     setSaving(false);
-    if (err) { setError("Couldn't adjust stock."); return; }
-    setRows((prev) => prev.map((r) => r.id === id ? { ...r, stock_quantity: next } : r));
+    if (err) {
+      setError("Couldn't adjust stock.");
+      // Roll back the optimistic change so the UI reflects reality. Re-fetch
+      // is the safest way since we don't know exactly what concurrent edits
+      // happened.
+      await load();
+      return;
+    }
   };
 
   const handleDelete = async () => {
@@ -267,7 +288,28 @@ export default function SalonRetailProductsSection({ storeId }: SalonRetailProdu
 
       <AlertDialog open={confirmDeleteId !== null} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Delete this product?</AlertDialogTitle><AlertDialogDescription>This can't be undone.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {/* Surface inventory still on the shelf and the existence of past
+                  sales — both are silently impacted by delete. Past sales rows
+                  keep their product_name snapshot (FK is ON DELETE SET NULL)
+                  but lose the catalog link, so the top-products report would
+                  drop this product retroactively. */}
+              {(() => {
+                const p = rows.find((r) => r.id === confirmDeleteId);
+                if (!p) return "This can't be undone.";
+                const valueOnHand = p.stock_quantity * p.cost_cents;
+                const parts: string[] = [];
+                if (p.stock_quantity > 0) {
+                  parts.push(`You still have ${p.stock_quantity} unit${p.stock_quantity === 1 ? "" : "s"} on hand${valueOnHand > 0 ? ` (~${formatPrice(valueOnHand)} at cost)` : ""}.`);
+                }
+                parts.push("Past sales keep their record but lose the catalog link, so this product won't appear in future top-product reports.");
+                parts.push("To stop selling without losing history, untick \"Active\" instead. This can't be undone.");
+                return parts.join(" ");
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={saving}>Keep product</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={saving} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}</AlertDialogAction>

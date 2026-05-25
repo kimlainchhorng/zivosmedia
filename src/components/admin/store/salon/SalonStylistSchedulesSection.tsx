@@ -3,7 +3,7 @@
  * One row per (stylist, day_of_week). Used (later) to validate booking
  * times and to drive the public booking site's availability calculation.
  */
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Calendar, Loader2, AlertCircle, UserCog, Save,
@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useSalonStylists } from "@/hooks/salon/useSalonStylists";
-import { useSalonStoreClosures } from "@/hooks/salon/useSalonStoreClosures";
+import { useSalonStoreClosures, type SalonStoreClosure } from "@/hooks/salon/useSalonStoreClosures";
 
 interface SalonStylistSchedulesSectionProps {
   storeId: string;
@@ -45,6 +45,57 @@ function defaultsForStylist(stylistId: string): Omit<ScheduleRow, "id">[] {
 }
 
 const hhmm = (timeStr: string | null) => (timeStr ? timeStr.slice(0, 5) : "");
+
+// One row per weekday. Memo'd so parent re-renders that don't change this
+// specific row's data don't bubble down into Radix Switch's internal
+// composedRefs cycle (see comment in components/ui/switch.tsx).
+interface DayRowProps {
+  dayLabel: string;
+  dayIndex: number;
+  row: ScheduleRow & { dirty?: boolean };
+  onUpdate: (day: number, patch: Partial<ScheduleRow>) => void;
+}
+const DayRow = memo(function DayRow({ dayLabel, dayIndex, row, onUpdate }: DayRowProps) {
+  const handleStart = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      onUpdate(dayIndex, { start_time: e.target.value ? `${e.target.value}:00` : null }),
+    [dayIndex, onUpdate],
+  );
+  const handleEnd = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      onUpdate(dayIndex, { end_time: e.target.value ? `${e.target.value}:00` : null }),
+    [dayIndex, onUpdate],
+  );
+  const handleWorking = useCallback(
+    (v: boolean) => onUpdate(dayIndex, { is_working: v }),
+    [dayIndex, onUpdate],
+  );
+  return (
+    <div className="grid grid-cols-[80px_1fr_1fr_120px] items-center gap-3 p-3">
+      <p className="text-sm font-semibold text-foreground">{dayLabel}</p>
+      <Input
+        type="time"
+        step={900}
+        value={hhmm(row.start_time)}
+        onChange={handleStart}
+        disabled={!row.is_working}
+      />
+      <Input
+        type="time"
+        step={900}
+        value={hhmm(row.end_time)}
+        onChange={handleEnd}
+        disabled={!row.is_working}
+      />
+      <label className="flex items-center gap-2 text-xs">
+        <Switch checked={row.is_working} onCheckedChange={handleWorking} />
+        <span className={row.is_working ? "text-foreground" : "text-muted-foreground"}>
+          {row.is_working ? "Working" : "Off"}
+        </span>
+      </label>
+    </div>
+  );
+});
 
 export default function SalonStylistSchedulesSection({ storeId }: SalonStylistSchedulesSectionProps) {
   const { stylists, loading: stylistsLoading } = useSalonStylists(storeId);
@@ -92,13 +143,16 @@ export default function SalonStylistSchedulesSection({ storeId }: SalonStylistSc
     return () => { cancelled = true; };
   }, [selectedStylistId]);
 
-  const updateDay = (day: number, patch: Partial<ScheduleRow>) => {
+  // Stable so the per-row callbacks below don't change identity on every
+  // render — keeps memo'd <Switch> in DayRow from re-running Radix's internal
+  // composedRefs cycle (which can blow up under React 19 if it does).
+  const updateDay = useCallback((day: number, patch: Partial<ScheduleRow>) => {
     setRows((prev) => {
       const cur = prev[day];
       if (!cur) return prev;
       return { ...prev, [day]: { ...cur, ...patch, dirty: true } };
     });
-  };
+  }, []);
 
   const saveAll = async () => {
     if (!selectedStylistId) return;
@@ -107,8 +161,10 @@ export default function SalonStylistSchedulesSection({ storeId }: SalonStylistSc
       toast.info("No changes to save.");
       return;
     }
-    setSaving(true);
-    setError(null);
+    // Build payloads first so we can validate the start/end ordering before
+    // hitting the DB — the salon_stylist_schedules_time_order CHECK rejects
+    // end_time <= start_time for working rows, and Postgres's generic 23514
+    // message wouldn't tell the owner which day broke.
     const payloads = dirtyRows.map((r) => ({
       store_id: storeId,
       stylist_id: selectedStylistId,
@@ -117,6 +173,15 @@ export default function SalonStylistSchedulesSection({ storeId }: SalonStylistSc
       start_time: r.is_working ? (r.start_time || `${DEFAULT_HOURS.start}:00`) : null,
       end_time: r.is_working ? (r.end_time || `${DEFAULT_HOURS.end}:00`) : null,
     }));
+    const invalid = payloads.find((p) =>
+      p.is_working && p.start_time && p.end_time && p.end_time <= p.start_time
+    );
+    if (invalid) {
+      toast.error(`${DAYS[invalid.day_of_week]}: end time must be after start time.`);
+      return;
+    }
+    setSaving(true);
+    setError(null);
     const { error: err } = await supabase
       .from("salon_stylist_schedules")
       .upsert(payloads as never, { onConflict: "stylist_id,day_of_week" });
@@ -198,32 +263,13 @@ export default function SalonStylistSchedulesSection({ storeId }: SalonStylistSc
                 const r = rows[i];
                 if (!r) return null;
                 return (
-                  <div key={i} className="grid grid-cols-[80px_1fr_1fr_120px] items-center gap-3 p-3">
-                    <p className="text-sm font-semibold text-foreground">{d}</p>
-                    <Input
-                      type="time"
-                      step={900}
-                      value={hhmm(r.start_time)}
-                      onChange={(e) => updateDay(i, { start_time: e.target.value ? `${e.target.value}:00` : null })}
-                      disabled={!r.is_working}
-                    />
-                    <Input
-                      type="time"
-                      step={900}
-                      value={hhmm(r.end_time)}
-                      onChange={(e) => updateDay(i, { end_time: e.target.value ? `${e.target.value}:00` : null })}
-                      disabled={!r.is_working}
-                    />
-                    <label className="flex items-center gap-2 text-xs">
-                      <Switch
-                        checked={r.is_working}
-                        onCheckedChange={(v) => updateDay(i, { is_working: v })}
-                      />
-                      <span className={r.is_working ? "text-foreground" : "text-muted-foreground"}>
-                        {r.is_working ? "Working" : "Off"}
-                      </span>
-                    </label>
-                  </div>
+                  <DayRow
+                    key={i}
+                    dayLabel={d}
+                    dayIndex={i}
+                    row={r}
+                    onUpdate={updateDay}
+                  />
                 );
               })}
             </div>
@@ -277,9 +323,13 @@ function StoreClosuresCard({ storeId }: { storeId: string }) {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (closure: SalonStoreClosure) => {
+    // Closures often represent vacation dates entered weeks in advance. A
+    // misclick here would silently let new bookings flow into a day the
+    // salon is closed.
+    if (!window.confirm(`Remove the closure ${formatRange(closure.start_at, closure.end_at)}?\n\nNew bookings will be allowed during this window again.`)) return;
     try {
-      await remove(id);
+      await remove(closure.id);
       toast.success("Closure removed.");
     } catch (err) {
       toast.error((err as Error).message);
@@ -345,7 +395,10 @@ function StoreClosuresCard({ storeId }: { storeId: string }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Optional reason (e.g. Christmas Day, Staff training)"
-            maxLength={120}
+            // Matches salon_store_closures.reason CHECK <= 200. Closures
+            // sometimes need longer text than blockouts (e.g. "Annual deep
+            // cleaning + staff training intensive — back Jan 2nd").
+            maxLength={200}
           />
         </div>
 
@@ -363,7 +416,7 @@ function StoreClosuresCard({ storeId }: { storeId: string }) {
                   <p className="truncate text-foreground">{formatRange(c.start_at, c.end_at)}</p>
                   {c.reason && <p className="truncate text-xs text-muted-foreground">{c.reason}</p>}
                 </div>
-                <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => void handleDelete(c.id)}>
+                <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => void handleDelete(c)}>
                   Remove
                 </Button>
               </li>

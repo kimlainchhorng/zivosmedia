@@ -84,6 +84,13 @@ const friendlyDate = (iso: string) => {
   return d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
 };
 const isoForLocalDateTime = (date: string, time: string) => new Date(`${date}T${time}`).toISOString();
+/** YYYY-MM-DD in the user's local timezone. ISO `.slice(0, 10)` would return
+ *  the UTC date, which can put a late-evening booking on the wrong day for
+ *  any negative-UTC-offset timezone. */
+const isoToLocalDate = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 const isoToLocalTime = (iso: string) => {
   const d = new Date(iso);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -182,8 +189,22 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
     const q = searchQuery.trim();
     if (q.length < 2) { setSearchResults([]); setSearching(false); return; }
     setSearching(true);
+    // `cancelled` guards against an older query's response arriving AFTER a
+    // newer keystroke (clearTimeout doesn't help once the timer has fired and
+    // the request is in-flight). Without it the user can briefly see results
+    // for a prior search string overwriting their current one.
+    let cancelled = false;
     const handle = setTimeout(async () => {
-      const like = `%${q.replace(/[%_\\]/g, (m) => "\\" + m)}%`;
+      // 1) escape LIKE metacharacters so `%`/`_` typed by the user don't act
+      //    as wildcards on the server.
+      // 2) PostgREST splits the `.or()` clause on top-level commas; an
+      //    unescaped comma in the search term ("Smith, John") corrupts the
+      //    parse. Replace commas with `%` so "Smith, John" still matches
+      //    "Smith John" without breaking the OR.
+      // 3) Parentheses are also reserved in the .or() grammar — collapse
+      //    them to wildcards for the same reason.
+      const sanitized = q.replace(/[%_\\]/g, (m) => "\\" + m).replace(/[,()]/g, "%");
+      const like = `%${sanitized}%`;
       const { data, error: err } = await supabase
         .from("salon_bookings")
         .select("*")
@@ -191,6 +212,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
         .or(`client_name.ilike.${like},client_phone.ilike.${like},client_email.ilike.${like}`)
         .order("start_at", { ascending: false })
         .limit(50);
+      if (cancelled) return;
       if (err) {
         console.error("[SalonBookings] global search failed", err);
         setSearchResults([]);
@@ -199,7 +221,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
       }
       setSearching(false);
     }, 250);
-    return () => clearTimeout(handle);
+    return () => { cancelled = true; clearTimeout(handle); };
   }, [searchQuery, storeId]);
 
   useEffect(() => {
@@ -271,6 +293,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
       internal_notes: "",
       status: "confirmed",
       addonIds: [],
+      referral_source: "",
     });
     setDialogOpen(true);
     toast.info(
@@ -297,6 +320,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
       internal_notes: "",
       status: "confirmed",
       addonIds: [],
+      referral_source: "",
     });
     setDialogOpen(true);
   };
@@ -310,7 +334,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
       client_email: b.client_email ?? "",
       service_id: b.service_id ?? "",
       stylist_id: b.stylist_id ?? "",
-      date: b.start_at.slice(0, 10),
+      date: isoToLocalDate(b.start_at),
       time: isoToLocalTime(b.start_at),
       client_notes: b.client_notes ?? "",
       internal_notes: b.internal_notes ?? "",
@@ -350,8 +374,14 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
     if (!dialogOpen || !draft.stylist_id || !draft.date || !draft.time || !draft.service_id) return null;
     const svc = serviceById[draft.service_id];
     if (!svc) return null;
-    return describeScheduleConflict(stylistSchedule, draft.date, draft.time, svc.duration_minutes);
-  }, [dialogOpen, draft.stylist_id, draft.date, draft.time, draft.service_id, stylistSchedule, serviceById]);
+    // Include any selected add-ons in the duration so the "after hours" check
+    // covers the full slot the stylist actually needs.
+    const addonMinutes = draft.addonIds.reduce(
+      (sum, id) => sum + (serviceById[id]?.duration_minutes ?? 0),
+      0,
+    );
+    return describeScheduleConflict(stylistSchedule, draft.date, draft.time, svc.duration_minutes + addonMinutes);
+  }, [dialogOpen, draft.stylist_id, draft.date, draft.time, draft.service_id, draft.addonIds, stylistSchedule, serviceById]);
 
   const handleSave = async () => {
     const svc = serviceById[draft.service_id];
@@ -367,11 +397,22 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
       toast.error("Pick a date and time.");
       return;
     }
+    // Same loose email check used by Clients, Stylists, and Gift Cards. The
+    // booking-confirmation email + the "View or cancel" mailto deep-link both
+    // rely on a deliverable address; a typo here breaks both silently.
+    const email = draft.client_email?.trim() ?? "";
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error("That email looks malformed. Double-check the address.");
+      return;
+    }
     const startIso = isoForLocalDateTime(draft.date, draft.time);
     const stylist = draft.stylist_id ? stylistById[draft.stylist_id] : null;
 
     if (editingId) {
-      await update(editingId, {
+      // `update` returns false when the DB rejects (overlap, blockout, closure,
+      // RLS). The error banner has the cause — bail before the success toast
+      // and keep the dialog open so the owner can adjust the slot.
+      const ok = await update(editingId, {
         client_id: draft.client_id,
         client_name: draft.client_name,
         client_phone: draft.client_phone || null,
@@ -388,6 +429,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
         internal_notes: draft.internal_notes || null,
         referral_source: draft.referral_source || null,
       });
+      if (!ok) return;
       // Snap calendar to the new date if changed
       if (draft.date !== date) setDate(draft.date);
       toast.success("Booking updated.");
@@ -411,13 +453,15 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
         referral_source: draft.referral_source || null,
       });
       if (created) {
-        // Attach selected add-ons (trigger updates booking total + duration).
-        if (draft.addonIds.length > 0) {
-          const rows = draft.addonIds
+        // Snapshot the selected add-ons as DB rows for a single booking. Used
+        // for the initial booking and replayed for each recurring occurrence
+        // so weekly-repeat clients keep their full upsell list on every visit.
+        const buildAddonRows = (bookingId: string) =>
+          draft.addonIds
             .map((id) => serviceById[id])
             .filter((a): a is NonNullable<typeof a> => Boolean(a))
             .map((a) => ({
-              booking_id: created.id,
+              booking_id: bookingId,
               store_id: storeId,
               service_id: a.id,
               name: a.name,
@@ -425,6 +469,10 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
               duration_minutes: a.duration_minutes,
               quantity: 1,
             }));
+
+        // Attach selected add-ons (trigger updates booking total + duration).
+        if (draft.addonIds.length > 0) {
+          const rows = buildAddonRows(created.id);
           if (rows.length > 0) {
             const { error: addonErr } = await supabase.from("salon_booking_addons").insert(rows as never);
             if (addonErr) toast.error(`Couldn't attach add-ons: ${addonErr.message}`);
@@ -458,10 +506,27 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
               client_notes: null,
               internal_notes: null,
             });
-            if (r) okCount++; else skipCount++;
+            if (r) {
+              okCount++;
+              // Replicate the same add-ons on this occurrence so the recurring
+              // visits match what the first one is. Best-effort: if the insert
+              // fails we toast but keep going.
+              if (draft.addonIds.length > 0) {
+                const rows = buildAddonRows(r.id);
+                if (rows.length > 0) {
+                  const { error: addonErr } = await supabase.from("salon_booking_addons").insert(rows as never);
+                  if (addonErr) toast.error(`Couldn't copy add-ons to a recurring visit: ${addonErr.message}`);
+                }
+              }
+            } else {
+              skipCount++;
+            }
           }
           if (okCount > 0) toast.success(`+${okCount} future visit${okCount === 1 ? "" : "s"} scheduled${skipCount > 0 ? ` (${skipCount} skipped due to conflicts)` : ""}.`);
-          else if (skipCount > 0) toast.warning(`Couldn't add the future visits — all ${skipCount} slots conflict with existing bookings.`);
+          // Skips can come from a booking overlap, a stylist blockout, or a
+          // store closure — say "conflicts" generically instead of pinning
+          // it on "existing bookings".
+          else if (skipCount > 0) toast.warning(`Couldn't add the future visits — all ${skipCount} slots conflict with the stylist's calendar.`);
         }
       } else {
         // create() sets error state; keep dialog open so they can fix the slot
@@ -482,18 +547,33 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
 
   const handleDelete = async () => {
     if (!confirmDeleteId) return;
-    await remove(confirmDeleteId);
+    const ok = await remove(confirmDeleteId);
     setConfirmDeleteId(null);
-    toast.success("Booking removed.");
+    if (ok) toast.success("Booking removed.");
   };
 
   const handleStatus = async (b: SalonBooking, status: SalonBookingStatus) => {
+    // Confirm destructive transitions. Both are reversible (changeStatus
+    // zeroes the no-show fee when flipped back, and salon_bookings keep
+    // their full record) — confirmation is here to slow down accidental
+    // clicks on a touch-screen front-desk tablet.
+    if (status === "cancelled") {
+      if (!window.confirm(`Cancel ${b.client_name}'s ${b.service_name} booking?`)) return;
+    } else if (status === "no_show") {
+      const feeNote = paymentSettings.no_show_fee_cents > 0
+        ? ` A $${(paymentSettings.no_show_fee_cents / 100).toFixed(2)} no-show fee will be recorded.`
+        : "";
+      if (!window.confirm(`Mark ${b.client_name} as a no-show?${feeNote}`)) return;
+    }
     const opts: Parameters<typeof changeStatus>[2] = {};
     if (status === "no_show" && paymentSettings.no_show_fee_cents > 0) {
       opts.noShowFeeCents = paymentSettings.no_show_fee_cents;
     }
-    await changeStatus(b.id, status, opts);
-    toast.success(`Marked ${STATUS_META[status].label.toLowerCase()}.`);
+    // `changeStatus` returns false on a failed write — don't claim success
+    // when the booking is actually still in its old status (the error banner
+    // surfaces the cause).
+    const ok = await changeStatus(b.id, status, opts);
+    if (ok) toast.success(`Marked ${STATUS_META[status].label.toLowerCase()}.`);
   };
 
   /** Build a mailto URL with booking details pre-filled. */
@@ -622,7 +702,10 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                   Day summary
                 </a>
               </Button>
-              <Button onClick={() => setBlockoutOpen(true)} size="sm" variant="outline" className="gap-1.5" disabled={noActiveSetup}>
+              {/* Block-offs don't need services — only a stylist to assign
+                 the time-block to. Disable only when there are no active
+                 stylists, not the full noActiveSetup gate. */}
+              <Button onClick={() => setBlockoutOpen(true)} size="sm" variant="outline" className="gap-1.5" disabled={activeStylists.length === 0}>
                 Block-off
               </Button>
               <Button onClick={openAdd} size="sm" className="gap-1.5" disabled={noActiveSetup}>
@@ -714,7 +797,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                         <div className="flex shrink-0 items-center gap-1.5">
                           <Button
                             size="sm" variant="outline" className="h-7"
-                            onClick={() => { setDate(b.start_at.slice(0, 10)); setSearchQuery(""); }}
+                            onClick={() => { setDate(isoToLocalDate(b.start_at)); setSearchQuery(""); }}
                           >
                             Jump to day
                           </Button>
@@ -864,7 +947,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                               )}
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
                                 <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTimeRange(b.start_at, b.end_at)}</span>
-                                <span className="inline-flex items-center gap-1 font-semibold text-foreground"><DollarSign className="h-3 w-3" /> {formatPrice(b.price_cents).slice(1)}</span>
+                                <span className="inline-flex items-center gap-1 font-semibold text-foreground"><DollarSign className="h-3 w-3" /> {formatPrice(b.price_cents + (b.addons_total_cents ?? 0)).slice(1)}</span>
                                 {b.client_phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" /> {b.client_phone}</span>}
                                 {b.client_email && <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" /> {b.client_email}</span>}
                               </div>
@@ -901,8 +984,11 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                               booking={b}
                               depositPercent={paymentSettings?.deposit_percent ?? 0}
                               onRecord={async (cents) => {
-                                await update(b.id, { deposit_paid_cents: cents, deposit_paid_at: cents > 0 ? new Date().toISOString() : null });
-                                toast.success(cents > 0 ? `Recorded ${formatPrice(cents)} deposit.` : "Deposit cleared.");
+                                // Only toast on a confirmed write — `update`
+                                // returns false on RLS/network failures and
+                                // the error banner already explains the cause.
+                                const ok = await update(b.id, { deposit_paid_cents: cents, deposit_paid_at: cents > 0 ? new Date().toISOString() : null });
+                                if (ok) toast.success(cents > 0 ? `Recorded ${formatPrice(cents)} deposit.` : "Deposit cleared.");
                               }}
                               saving={saving}
                             />
@@ -998,6 +1084,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                   type="tel"
                   value={draft.client_phone}
                   onChange={(e) => setDraft({ ...draft, client_phone: e.target.value })}
+                  maxLength={30}
                 />
               </div>
             </div>
@@ -1016,6 +1103,23 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                     {s.name} · {s.duration_minutes} min · {formatPrice(s.price_cents)}
                   </option>
                 ))}
+                {/* If we're editing a booking whose service has since been
+                   deactivated or recategorised as an add-on, surface it
+                   here so the dropdown reflects the booking's actual
+                   service_id instead of silently reading as "Pick a service…". */}
+                {(() => {
+                  const cur = draft.service_id;
+                  if (!cur) return null;
+                  if (primaryServices.some((s) => s.id === cur)) return null;
+                  const svc = serviceById[cur];
+                  if (!svc) return null;
+                  return (
+                    <option key={svc.id} value={svc.id}>
+                      {svc.name} · {svc.duration_minutes} min · {formatPrice(svc.price_cents)}
+                      {svc.is_active ? "" : " (inactive)"}
+                    </option>
+                  );
+                })()}
               </select>
             </div>
 
@@ -1073,6 +1177,23 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                 {eligibleStylists.map((s) => (
                   <option key={s.id} value={s.id}>{s.display_name}</option>
                 ))}
+                {/* If we're editing a booking whose stylist has since been
+                   deactivated (or isn't eligible for the current service),
+                   surface them as a tagged option so the dropdown reflects
+                   the booking's actual stylist_id instead of silently
+                   reading as "Unassigned". */}
+                {(() => {
+                  const cur = draft.stylist_id;
+                  if (!cur) return null;
+                  if (eligibleStylists.some((s) => s.id === cur)) return null;
+                  const stylist = stylists.find((s) => s.id === cur);
+                  if (!stylist) return null;
+                  return (
+                    <option key={stylist.id} value={stylist.id}>
+                      {stylist.display_name}{stylist.is_active ? " (not eligible)" : " (inactive)"}
+                    </option>
+                  );
+                })()}
               </select>
               {draft.service_id && eligibleStylists.length < activeStylists.length && (
                 <p className="text-xs text-muted-foreground">
@@ -1295,7 +1416,10 @@ function DepositControl({
   onRecord: (cents: number) => Promise<void>;
   saving: boolean;
 }) {
-  const recommended = Math.round((booking.price_cents * (depositPercent || 0)) / 100);
+  // Deposit recommendation and over-pay warning use the full service total
+  // (base + add-ons), matching what the customer is quoted.
+  const bookingTotalCents = booking.price_cents + (booking.addons_total_cents ?? 0);
+  const recommended = Math.round((bookingTotalCents * (depositPercent || 0)) / 100);
   if (booking.deposit_paid_cents > 0) {
     return (
       <Button
@@ -1314,7 +1438,7 @@ function DepositControl({
     );
   }
   if (booking.status === "cancelled" || booking.status === "no_show") return null;
-  const placeholder = recommended > 0 ? (recommended / 100).toFixed(2) : (booking.price_cents / 100 / 4).toFixed(2);
+  const placeholder = recommended > 0 ? (recommended / 100).toFixed(2) : (bookingTotalCents / 100 / 4).toFixed(2);
   return (
     <Button
       size="sm" variant="outline" className="h-7 gap-1.5"
@@ -1331,8 +1455,8 @@ function DepositControl({
           return;
         }
         const cents = Math.round(dollars * 100);
-        if (cents > booking.price_cents) {
-          if (!confirm(`That's more than the booking total ($${(booking.price_cents / 100).toFixed(2)}). Record it anyway?`)) return;
+        if (cents > bookingTotalCents) {
+          if (!confirm(`That's more than the booking total ($${(bookingTotalCents / 100).toFixed(2)}). Record it anyway?`)) return;
         }
         void onRecord(cents);
       }}

@@ -15,11 +15,14 @@ interface SalonReportsSectionProps {
 }
 
 const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 const daysAgoIso = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
 export default function SalonReportsSection({ storeId }: SalonReportsSectionProps) {
@@ -71,18 +74,28 @@ export default function SalonReportsSection({ storeId }: SalonReportsSectionProp
     for (const r of rows) {
       if (r.status === "completed") {
         completed++;
-        revenue += r.price_cents;
+        // Total service revenue = base + add-ons (trigger rollup).
+        const totalServiceCents = r.price_cents + (r.addons_total_cents ?? 0);
+        revenue += totalServiceCents;
         tips += r.tip_cents;
+        // Top services & top stylists are still keyed by the base service —
+        // add-ons are tracked separately and would skew the leaderboard if
+        // mixed in — but the revenue figure each row shows is the total the
+        // stylist actually delivered.
         const svc = byService.get(r.service_name) ?? { count: 0, revenue: 0 };
-        svc.count++; svc.revenue += r.price_cents;
+        svc.count++; svc.revenue += totalServiceCents;
         byService.set(r.service_name, svc);
         const styName = r.stylist_name ?? "Unassigned";
         const st = byStylist.get(styName) ?? { count: 0, revenue: 0 };
-        st.count++; st.revenue += r.price_cents;
+        st.count++; st.revenue += totalServiceCents;
         byStylist.set(styName, st);
-        const dayKey = r.start_at.slice(0, 10);
+        // Local-time day key so the daily trend chart bucketizes evening
+        // bookings under the day the customer actually showed up, not the
+        // UTC date (which would shift bookings in negative-offset timezones).
+        const dt = new Date(r.start_at);
+        const dayKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
         const d = byDay.get(dayKey) ?? { revenue: 0, count: 0 };
-        d.revenue += r.price_cents; d.count++;
+        d.revenue += totalServiceCents; d.count++;
         byDay.set(dayKey, d);
       }
       if (r.status === "cancelled") cancelled++;
@@ -111,7 +124,10 @@ export default function SalonReportsSection({ storeId }: SalonReportsSectionProp
     let completed = 0, cancelled = 0, noShow = 0;
     let revenue = 0;
     for (const r of priorRows) {
-      if (r.status === "completed") { completed++; revenue += r.price_cents; }
+      if (r.status === "completed") {
+        completed++;
+        revenue += r.price_cents + (r.addons_total_cents ?? 0);
+      }
       else if (r.status === "cancelled") cancelled++;
       else if (r.status === "no_show") noShow++;
     }
@@ -144,11 +160,13 @@ export default function SalonReportsSection({ storeId }: SalonReportsSectionProp
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="repFrom">From</Label>
-              <Input id="repFrom" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
+              {/* Bind the range so the owner can't construct an inverted
+                  window. Same fix as the Expenses + Income sections. */}
+              <Input id="repFrom" type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="repTo">To</Label>
-              <Input id="repTo" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
+              <Input id="repTo" type="date" value={to} min={from} max={todayIso()} onChange={(e) => setTo(e.target.value)} className="h-9" />
             </div>
             <div className="ml-auto flex gap-2">
               <button type="button" onClick={() => { setFrom(daysAgoIso(7)); setTo(todayIso()); }} className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted">Last 7d</button>

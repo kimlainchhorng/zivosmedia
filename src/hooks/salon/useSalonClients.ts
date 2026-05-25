@@ -46,8 +46,8 @@ interface UseSalonClientsResult {
   saving: boolean;
   error: string | null;
   create: (draft: SalonClientDraft) => Promise<SalonClient | null>;
-  update: (id: string, patch: Partial<SalonClientDraft & { tags: string[] }>) => Promise<void>;
-  remove: (id: string) => Promise<void>;
+  update: (id: string, patch: Partial<SalonClientDraft & { tags: string[] }>) => Promise<boolean>;
+  remove: (id: string) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -114,7 +114,7 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<SalonClientDraft & { tags: string[] }>) => {
+  const update = useCallback(async (id: string, patch: Partial<SalonClientDraft & { tags: string[] }>): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const cleanPatch: Record<string, unknown> = {};
@@ -139,11 +139,14 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
       console.error("[useSalonClients] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const previous = clients;
@@ -156,8 +159,11 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
       console.error("[useSalonClients] delete failed", err);
       setError("Couldn't delete client.");
       setClients(previous);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [clients]);
 
   return { clients, loading, saving, error, create, update, remove, refresh: load };

@@ -38,16 +38,44 @@ export default function SalonDashboardSection({ storeId, onJumpToTab }: SalonDas
   const { stylists } = useSalonStylists(storeId);
   const { services } = useSalonServices(storeId);
 
+  // Retail sold against today's completed bookings — added to "Revenue today"
+  // so this card matches the Income tab's gross-income definition (services
+  // + retail + tips, tax excluded).
+  const [retailCentsToday, setRetailCentsToday] = useState(0);
+  useEffect(() => {
+    const completedIds = bookings.filter((b) => b.status === "completed").map((b) => b.id);
+    if (completedIds.length === 0) {
+      setRetailCentsToday(0);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("salon_booking_retail_items")
+        .select("unit_price_cents, quantity")
+        .in("booking_id", completedIds);
+      if (cancelled) return;
+      let total = 0;
+      for (const r of (data ?? []) as Array<{ unit_price_cents: number; quantity: number }>) {
+        total += r.unit_price_cents * r.quantity;
+      }
+      setRetailCentsToday(total);
+    })();
+    return () => { cancelled = true; };
+  }, [bookings]);
+
   const stats = useMemo(() => {
     const now = Date.now();
     let confirmed = 0, completed = 0, noShow = 0, cancelled = 0;
-    let revenueCents = 0, tipsCents = 0;
+    let serviceCents = 0, tipsCents = 0;
     const upcoming: typeof bookings = [];
     for (const b of bookings) {
       if (b.status === "confirmed" || b.status === "pending") confirmed++;
       if (b.status === "completed") {
         completed++;
-        revenueCents += b.price_cents + b.tip_cents + b.tax_cents;
+        // Tax is pass-through, NOT the owner's money — keep it out of revenue.
+        // Add-ons roll up via the salon_booking_addons trigger.
+        serviceCents += b.price_cents + (b.addons_total_cents ?? 0);
         tipsCents += b.tip_cents;
       }
       if (b.status === "no_show") noShow++;
@@ -57,8 +85,9 @@ export default function SalonDashboardSection({ storeId, onJumpToTab }: SalonDas
       }
     }
     upcoming.sort((a, b) => a.start_at.localeCompare(b.start_at));
-    return { confirmed, completed, noShow, cancelled, revenueCents, tipsCents, upcoming: upcoming.slice(0, 5) };
-  }, [bookings]);
+    const revenueCents = serviceCents + tipsCents + retailCentsToday;
+    return { confirmed, completed, noShow, cancelled, revenueCents, tipsCents, retailCents: retailCentsToday, upcoming: upcoming.slice(0, 5) };
+  }, [bookings, retailCentsToday]);
 
   const activeServices = services.filter((s) => s.is_active).length;
   const activeStylists = stylists.filter((s) => s.is_active).length;
@@ -132,7 +161,11 @@ export default function SalonDashboardSection({ storeId, onJumpToTab }: SalonDas
           icon={DollarSign}
           label="Revenue today"
           value={formatPrice(stats.revenueCents)}
-          sub={`${formatPrice(stats.tipsCents)} in tips`}
+          sub={
+            stats.retailCents > 0
+              ? `${formatPrice(stats.tipsCents)} tips · ${formatPrice(stats.retailCents)} retail`
+              : `${formatPrice(stats.tipsCents)} in tips`
+          }
         />
         <StatCard
           icon={AlarmClockOff}
@@ -184,7 +217,7 @@ export default function SalonDashboardSection({ storeId, onJumpToTab }: SalonDas
                         {b.service_name}{b.stylist_name ? ` · ${b.stylist_name}` : ""}
                       </p>
                     </div>
-                    <span className="text-xs font-semibold text-foreground">{formatPrice(b.price_cents)}</span>
+                    <span className="text-xs font-semibold text-foreground">{formatPrice(b.price_cents + (b.addons_total_cents ?? 0))}</span>
                   </li>
                 ))}
               </ul>
@@ -334,13 +367,20 @@ function ReferralBreakdownCard({ storeId }: { storeId: string }) {
         .not("referral_source", "is", null)
         .gte("start_at", cutoff.toISOString());
       if (cancelled) return;
-      const tally = new Map<string, number>();
+      // Group case-insensitively so "Instagram", "instagram", and "INSTAGRAM"
+      // collapse into one bar (front desk typing varies). Keep a display
+      // label per bucket — the first-seen capitalization — so the bar reads
+      // naturally instead of all-lowercase.
+      const tally = new Map<string, { n: number; display: string }>();
       for (const row of (data ?? []) as Array<{ referral_source: string | null }>) {
         const s = (row.referral_source ?? "").trim();
         if (!s) continue;
-        tally.set(s, (tally.get(s) ?? 0) + 1);
+        const key = s.toLowerCase();
+        const cur = tally.get(key);
+        if (cur) cur.n += 1;
+        else tally.set(key, { n: 1, display: s });
       }
-      const arr = Array.from(tally, ([source, n]) => ({ source, n })).sort((a, b) => b.n - a.n);
+      const arr = Array.from(tally.values(), (v) => ({ source: v.display, n: v.n })).sort((a, b) => b.n - a.n);
       setCounts(arr);
       setLoading(false);
     })();

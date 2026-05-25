@@ -26,6 +26,12 @@ interface ReceiptBooking {
   status: string;
 }
 
+interface ReceiptAddon {
+  name: string;
+  price_cents: number;
+  quantity: number;
+}
+
 interface ReceiptRetailItem {
   product_name: string;
   unit_price_cents: number;
@@ -45,6 +51,7 @@ const formatDateTime = (iso: string) =>
 export default function SalonReceiptPage() {
   const { bookingId = "" } = useParams<{ bookingId: string }>();
   const [booking, setBooking] = useState<ReceiptBooking | null>(null);
+  const [addons, setAddons] = useState<ReceiptAddon[]>([]);
   const [items, setItems] = useState<ReceiptRetailItem[]>([]);
   const [store, setStore] = useState<ReceiptStore | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +73,10 @@ export default function SalonReceiptPage() {
         setLoading(false);
         return;
       }
-      const [itemsRes, storeRes] = await Promise.all([
+      const [addonsRes, itemsRes, storeRes] = await Promise.all([
+        supabase.from("salon_booking_addons")
+          .select("name, price_cents, quantity")
+          .eq("booking_id", bookingId),
         supabase.from("salon_booking_retail_items")
           .select("product_name, unit_price_cents, quantity")
           .eq("booking_id", bookingId),
@@ -77,6 +87,7 @@ export default function SalonReceiptPage() {
       ]);
       if (cancelled) return;
       setBooking(b as unknown as ReceiptBooking);
+      setAddons((addonsRes.data ?? []) as unknown as ReceiptAddon[]);
       setItems((itemsRes.data ?? []) as unknown as ReceiptRetailItem[]);
       setStore(storeRes.data as unknown as ReceiptStore);
       setLoading(false);
@@ -102,8 +113,9 @@ export default function SalonReceiptPage() {
     );
   }
 
+  const addonsTotal = addons.reduce((s, a) => s + a.price_cents * a.quantity, 0);
   const retailTotal = items.reduce((s, r) => s + r.unit_price_cents * r.quantity, 0);
-  const grossTotal = booking.price_cents + retailTotal + booking.tip_cents + booking.tax_cents;
+  const grossTotal = booking.price_cents + addonsTotal + retailTotal + booking.tip_cents + booking.tax_cents;
   const depositPaid = booking.deposit_paid_cents ?? 0;
   const grandTotal = Math.max(0, grossTotal - depositPaid);
 
@@ -123,7 +135,21 @@ export default function SalonReceiptPage() {
 
       <div className="mx-auto max-w-md px-4 py-8 print:p-0">
         <div className="receipt-noprint mb-4 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="gap-1.5">
+          <Button variant="ghost" size="sm" onClick={() => {
+            // Receipt is usually opened in a new tab from the checkout
+            // dialog (target="_blank") so history.back() is a no-op. Try
+            // close → back → parent route. We don't have storeId in URL
+            // params here; the loaded booking row was fetched with a
+            // store_id but isn't kept in state, so fall back to /admin/stores.
+            const before = window.history.length;
+            window.close();
+            window.history.back();
+            setTimeout(() => {
+              if (window.history.length === before) {
+                window.location.href = `/admin/stores`;
+              }
+            }, 60);
+          }} className="gap-1.5">
             <X className="h-4 w-4" /> Close
           </Button>
           <Button onClick={() => window.print()} size="sm" className="gap-1.5">
@@ -131,12 +157,28 @@ export default function SalonReceiptPage() {
           </Button>
         </div>
 
+        {/* Receipt assumes a completed booking. Surface other statuses so a
+            pending booking's projected price or a cancelled booking's stale
+            "balance due" isn't mistaken for the final tally. */}
+        {booking.status !== "completed" && (
+          <div className="receipt-noprint mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+            <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+            {booking.status === "cancelled"
+              ? "This booking was cancelled — totals below reflect the original price, not what the client actually paid."
+              : booking.status === "no_show"
+              ? "Marked as no-show — totals shown don't include the no-show fee policy."
+              : "This booking hasn't been checked out yet. Tip and tax aren't captured until checkout — these totals are projected."}
+          </div>
+        )}
+
         <div className="receipt-card rounded-2xl border border-border bg-card p-6 shadow-sm">
           <header className="border-b border-dashed border-border pb-4 text-center">
             <h1 className="text-xl font-bold text-foreground">{store.name}</h1>
             {store.address && <p className="mt-1 text-xs text-muted-foreground">{store.address}</p>}
             {store.phone && <p className="text-xs text-muted-foreground">{store.phone}</p>}
-            <p className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">Receipt</p>
+            <p className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              {booking.status === "completed" ? "Receipt" : booking.status === "cancelled" ? "Cancelled booking" : booking.status === "no_show" ? "No-show booking" : "Pre-checkout estimate"}
+            </p>
             <p className="text-xs font-mono text-foreground/80">#{booking.id.slice(0, 8).toUpperCase()}</p>
           </header>
 
@@ -162,6 +204,20 @@ export default function SalonReceiptPage() {
             <p className="text-[11px] text-muted-foreground">{booking.duration_minutes} min</p>
           </section>
 
+          {addons.length > 0 && (
+            <section className="border-t border-dashed border-border py-3 text-sm">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Add-ons</p>
+              <ul className="space-y-1">
+                {addons.map((a, i) => (
+                  <li key={i} className="flex justify-between">
+                    <span className="text-foreground">{a.quantity > 1 ? `${a.quantity}× ` : ""}{a.name}</span>
+                    <span className="font-medium text-foreground">{formatPrice(a.price_cents * a.quantity)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {items.length > 0 && (
             <section className="border-t border-dashed border-border py-3 text-sm">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Retail</p>
@@ -177,7 +233,7 @@ export default function SalonReceiptPage() {
           )}
 
           <section className="border-t border-dashed border-border py-3 text-sm">
-            <Row label="Subtotal" value={formatPrice(booking.price_cents + retailTotal)} />
+            <Row label="Subtotal" value={formatPrice(booking.price_cents + addonsTotal + retailTotal)} />
             {booking.tip_cents > 0 && <Row label="Tip" value={formatPrice(booking.tip_cents)} />}
             {booking.tax_cents > 0 && <Row label="Tax" value={formatPrice(booking.tax_cents)} />}
             {depositPaid > 0 && (

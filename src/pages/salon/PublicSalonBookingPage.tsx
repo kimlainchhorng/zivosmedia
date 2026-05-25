@@ -46,7 +46,14 @@ interface Stylist {
   service_ids: string[];
 }
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+/** Local YYYY-MM-DD — the date the customer sees on their device. Using
+ *  `.toISOString().slice(0, 10)` here would return the UTC date, which is
+ *  off by a day for negative-UTC offset users in the evening, defaulting
+ *  the picker to tomorrow and breaking past-slot suppression on "today". */
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 const shiftDay = (iso: string, days: number) => {
   const d = new Date(`${iso}T12:00:00`);
   d.setDate(d.getDate() + days);
@@ -81,6 +88,9 @@ export default function PublicSalonBookingPage() {
 
   const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
   const [busy, setBusy] = useState<BusyRange[]>([]);
+  /** True when the selected day is fully covered by a store closure — so we
+   *  can show "Closed today" instead of the generic "no openings" message. */
+  const [dayClosed, setDayClosed] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   /** When the user picks "Any stylist", we compute per-stylist slot maps so a
    * selected time can be attributed to whichever stylist offered it. */
@@ -196,17 +206,23 @@ export default function PublicSalonBookingPage() {
   // "__any" means we'll compute combined availability across all eligible
   // stylists; that fetch lives in a separate effect below.
   useEffect(() => {
-    if (!stylistId || stylistId === "__any" || !store) { setSchedule([]); setBusy([]); return; }
+    if (!stylistId || stylistId === "__any" || !store) { setSchedule([]); setBusy([]); setDayClosed(false); return; }
     let cancelled = false;
     (async () => {
       setSlotsLoading(true);
-      const dayStart = new Date(`${date}T00:00:00`).toISOString();
-      const dayEnd = new Date(`${date}T23:59:59.999`).toISOString();
+      const dayStartMs = new Date(`${date}T00:00:00`).getTime();
+      const dayEndMs = new Date(`${date}T23:59:59.999`).getTime();
+      const dayStart = new Date(dayStartMs).toISOString();
+      const dayEnd = new Date(dayEndMs).toISOString();
       const [schedRes, busyRes, blockoutRes, closureRes] = await Promise.all([
         supabase.from("salon_stylist_schedules").select("day_of_week,is_working,start_time,end_time").eq("stylist_id", stylistId),
-        supabase.from("salon_bookings").select("start_at,end_at")
-          .eq("stylist_id", stylistId).in("status", ["pending", "confirmed"])
-          .gte("start_at", dayStart).lte("start_at", dayEnd),
+        // Use the public RPC — direct salon_bookings SELECT would either fail
+        // (no anon policy) or leak client info. The RPC returns just
+        // start_at/end_at for pending+confirmed bookings on this stylist.
+        // `as never` until types.ts is regenerated with the new RPC.
+        supabase.rpc("salon_public_stylist_busy" as never, {
+          p_stylist_id: stylistId, p_day_start: dayStart, p_day_end: dayEnd,
+        } as never),
         supabase.rpc("salon_public_stylist_blockouts", {
           p_stylist_id: stylistId, p_day_start: dayStart, p_day_end: dayEnd,
         }),
@@ -216,10 +232,15 @@ export default function PublicSalonBookingPage() {
       ]);
       if (cancelled) return;
       setSchedule((schedRes.data ?? []) as unknown as ScheduleRow[]);
+      const closuresList = (closureRes.data ?? []) as unknown as BusyRange[];
+      // Day is "closed" if any single closure window contains the full day.
+      setDayClosed(closuresList.some((c) =>
+        new Date(c.start_at).getTime() <= dayStartMs && new Date(c.end_at).getTime() >= dayEndMs
+      ));
       const allBusy = [
         ...((busyRes.data ?? []) as unknown as BusyRange[]),
         ...((blockoutRes.data ?? []) as unknown as BusyRange[]),
-        ...((closureRes.data ?? []) as unknown as BusyRange[]),
+        ...closuresList,
       ];
       setBusy(allBusy);
       setSlotsLoading(false);
@@ -258,14 +279,20 @@ export default function PublicSalonBookingPage() {
       const dayEnd = new Date(`${date}T23:59:59.999`).toISOString();
       const ids = eligibleStylists.map((s) => s.id);
       const [schedRes, busyRes, blockRes, closureRes] = await Promise.all([
+        // Schedules already have an anon SELECT policy (see migration 070000)
+        // so the direct query is fine.
         supabase.from("salon_stylist_schedules")
           .select("stylist_id, day_of_week, is_working, start_time, end_time")
           .in("stylist_id", ids),
-        supabase.from("salon_bookings").select("stylist_id, start_at, end_at")
-          .in("stylist_id", ids).in("status", ["pending", "confirmed"])
-          .gte("start_at", dayStart).lte("start_at", dayEnd),
-        supabase.from("salon_blockouts").select("stylist_id, start_at, end_at")
-          .in("stylist_id", ids).lt("start_at", dayEnd).gt("end_at", dayStart),
+        // Bookings + blockouts need SECURITY DEFINER RPCs — see comment in
+        // the single-stylist effect above for the privacy rationale.
+        // `as never` until types.ts is regenerated with the new RPCs.
+        supabase.rpc("salon_public_stylists_busy" as never, {
+          p_stylist_ids: ids, p_day_start: dayStart, p_day_end: dayEnd,
+        } as never),
+        supabase.rpc("salon_public_stylists_blockouts" as never, {
+          p_stylist_ids: ids, p_day_start: dayStart, p_day_end: dayEnd,
+        } as never),
         store
           ? supabase.rpc("salon_public_store_closures", { p_store_id: store.id, p_day_start: dayStart, p_day_end: dayEnd })
           : Promise.resolve({ data: [] as Array<{ start_at: string; end_at: string }>, error: null }),
@@ -290,6 +317,11 @@ export default function PublicSalonBookingPage() {
         for (const c of storeClosures) arr.push({ start_at: c.start_at, end_at: c.end_at });
         busyByStylist.set(sid, arr);
       }
+      const dayStartMs = new Date(`${date}T00:00:00`).getTime();
+      const dayEndMs = new Date(`${date}T23:59:59.999`).getTime();
+      setDayClosed(storeClosures.some((c) =>
+        new Date(c.start_at).getTime() <= dayStartMs && new Date(c.end_at).getTime() >= dayEndMs
+      ));
       const now = new Date();
       const earliest = date === todayIso() ? now : undefined;
       const slotMap = new Map<string, string>(); // ISO start → stylist_id
@@ -341,6 +373,14 @@ export default function PublicSalonBookingPage() {
 
   const handleConfirm = async () => {
     if (!store || !selectedService || !canSubmit) return;
+    // Light email check — `type=email` is on the field but this form submits
+    // via a button handler, not a `<form>`, so the native validation never
+    // fires. A typo here breaks the confirmation email + the View/cancel link.
+    const trimmedEmail = email.trim();
+    if (trimmedEmail && !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+      toast.error("That email looks malformed. Double-check the address.");
+      return;
+    }
     setSubmitting(true);
     const stylist = resolveStylistForSubmit();
     const startIso = selectedSlot;
@@ -369,7 +409,17 @@ export default function PublicSalonBookingPage() {
     if (error) {
       console.error("[PublicSalonBookingPage] insert failed", error);
       if ((error as any).code === "23P01") {
-        toast.error("Sorry — someone just booked that slot. Pick another time.");
+        // 23P01 = exclusion_violation, raised by THREE different sources:
+        // the GIST no-overlap (real "just booked" case), the blockout guard,
+        // and the store-closure guard. The guards' messages are
+        // customer-friendly so pass them through; fall back to the
+        // booking-conflict copy for the raw exclusion.
+        const msg = (error as { message?: string }).message ?? "";
+        if (/closed during/i.test(msg) || /block-off in place/i.test(msg) || /unavailable during/i.test(msg)) {
+          toast.error(msg);
+        } else {
+          toast.error("Sorry — someone just booked that slot. Pick another time.");
+        }
         setSelectedSlot("");
       } else {
         toast.error("Couldn't submit your booking. Please try again.");
@@ -594,9 +644,11 @@ export default function PublicSalonBookingPage() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Checking availability…</div>
               ) : slots.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-                  {schedule.length === 0
-                    ? "This stylist's schedule isn't set yet — please pick a different stylist or contact the salon."
-                    : "No openings on this day. Try another date."}
+                  {dayClosed
+                    ? "The salon is closed on this day. Please pick another date."
+                    : schedule.length === 0
+                      ? "This stylist's schedule isn't set yet — please pick a different stylist or contact the salon."
+                      : "No openings on this day. Try another date."}
                 </p>
               ) : (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">

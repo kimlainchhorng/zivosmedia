@@ -42,11 +42,14 @@ interface SalonExpensesSectionProps {
 
 const SUGGESTED_CATEGORIES = ["Supplies", "Rent", "Utilities", "Marketing", "Software", "Equipment", "Maintenance", "Insurance", "Taxes", "Other"];
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 const daysAgoIso = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const formatDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -87,6 +90,9 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
   const [draft, setDraft] = useState<DraftState>(EMPTY);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  // `load` (re-)fetches the date-bounded expense list. Used both by the
+  // initial-mount/date-change effect (with cancellation) and by post-mutation
+  // refreshes (where we want the latest state regardless of dependency churn).
   const load = async () => {
     setLoading(true);
     setError(null);
@@ -108,7 +114,34 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
     setLoading(false);
   };
 
-  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [storeId, from, to]);
+  // Cancellation guard so a rapid From/To change can't land an older response
+  // over a newer one. Matches the pattern in Income, Reports, Commissions, etc.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: err } = await supabase
+        .from("salon_expenses")
+        .select("*")
+        .eq("store_id", storeId)
+        .gte("expense_date", from)
+        .lte("expense_date", to)
+        .order("expense_date", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      if (err) {
+        console.error("[SalonExpenses] load failed", err);
+        setError("Couldn't load expenses.");
+        setLoading(false);
+        return;
+      }
+      setRows((data ?? []) as unknown as SalonExpense[]);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [storeId, from, to]);
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -159,6 +192,13 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
       toast.error("Description is required.");
       return;
     }
+    if (draft.is_recurring && !draft.recurrence) {
+      // Recurring expenses without a frequency are useless — the column
+      // would save as NULL and the "recurring (?)" label would render
+      // weird. Force the owner to pick before continuing.
+      toast.error("Pick a frequency for this recurring expense.");
+      return;
+    }
     setSaving(true);
     const payload = {
       store_id: storeId,
@@ -176,7 +216,9 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
       if (err) { setError("Couldn't save changes."); setSaving(false); return; }
       toast.success("Expense updated.");
     } else {
-      const { error: err } = await supabase.from("salon_expenses").insert(payload as never);
+      // Author tagging — useful when multiple staff log expenses.
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: err } = await supabase.from("salon_expenses").insert({ ...payload, created_by_user_id: user?.id ?? null } as never);
       if (err) { setError("Couldn't add expense."); setSaving(false); return; }
       toast.success("Expense added.");
     }
@@ -216,11 +258,15 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
           <div className="grid gap-3 sm:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="expFrom">From</Label>
-              <Input id="expFrom" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
+              {/* Bound the range so the owner can't construct an inverted
+                  window (from > to silently returns zero rows). The `to`
+                  upper bound is today since we don't expect future-dated
+                  expenses to be filterable. */}
+              <Input id="expFrom" type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="expTo">To</Label>
-              <Input id="expTo" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
+              <Input id="expTo" type="date" value={to} min={from} max={todayIso()} onChange={(e) => setTo(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="expSearch">Search</Label>
@@ -326,8 +372,11 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
 
             <label className="flex items-start justify-between gap-3 rounded-xl border border-border p-3 cursor-pointer hover:border-primary/40">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">Recurring bill</p>
-                <p className="text-xs text-muted-foreground">For things like rent or subscriptions.</p>
+                <p className="text-sm font-semibold text-foreground">Tag as a recurring bill</p>
+                <p className="text-xs text-muted-foreground">
+                  Labels this expense as a regularly-occurring bill (rent, subscriptions) so it stands out in the ledger.
+                  This doesn't auto-create future entries — you'll still log each one as it's paid.
+                </p>
               </div>
               <input
                 type="checkbox"

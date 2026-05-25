@@ -58,7 +58,8 @@ const friendlyAge = (iso: string) => {
   if (mins < 60) return `${mins} min ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs} hr ago`;
-  return `${Math.floor(hrs / 24)} day ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
 };
 
 interface DraftState {
@@ -155,11 +156,19 @@ export default function SalonWaitlistSection({ storeId, onJumpToTab }: SalonWait
     await load();
   };
 
-  const removeRow = async (id: string) => {
+  const removeRow = async (row: WaitlistRow) => {
+    // Remove is a DB delete — irreversible. Cancel (status flip) sits right
+    // next to it and the row disappears from the list either way (the load
+    // query already filters status not-in ['waiting','notified']), so make
+    // sure the owner knows which they're picking.
+    if (!window.confirm(
+      `Permanently remove ${row.client_name} from the waitlist?\n\nUse "Cancel" instead if you might want to look this up later — Remove can't be undone.`
+    )) return;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_waitlist").delete().eq("id", id);
+    const { error: err } = await supabase.from("salon_waitlist").delete().eq("id", row.id);
     setSaving(false);
     if (err) { setError("Couldn't remove."); return; }
+    toast.success("Removed from waitlist.");
     await load();
   };
 
@@ -241,7 +250,7 @@ export default function SalonWaitlistSection({ storeId, onJumpToTab }: SalonWait
                       <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => setStatus(r.id, "cancelled")} disabled={saving}>
                         <X className="h-3.5 w-3.5" /> Cancel
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-destructive hover:text-destructive" onClick={() => removeRow(r.id)} disabled={saving}>
+                      <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-destructive hover:text-destructive" onClick={() => removeRow(r)} disabled={saving}>
                         <Trash2 className="h-3.5 w-3.5" /> Remove
                       </Button>
                     </div>
@@ -274,7 +283,7 @@ export default function SalonWaitlistSection({ storeId, onJumpToTab }: SalonWait
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="wlPhone">Phone</Label>
-                <Input id="wlPhone" type="tel" value={draft.client_phone} onChange={(e) => setDraft({ ...draft, client_phone: e.target.value })} />
+                <Input id="wlPhone" type="tel" value={draft.client_phone} onChange={(e) => setDraft({ ...draft, client_phone: e.target.value })} maxLength={30} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

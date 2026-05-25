@@ -283,7 +283,10 @@ export default function SalonBookingsDayGrid({
             {(bookingsByStylist.get(c.id) ?? []).map((b) => {
               const start = isoToHourMin(b.start_at);
               const offset = (start.minutesFromMidnight - window.startMin) * PX_PER_MIN;
-              const lengthMin = b.duration_minutes;
+              // Use end_at vs start_at, not duration_minutes — the former
+              // includes add-on time (via the salon_booking_addons rollup
+              // trigger), the latter is base-service-only.
+              const lengthMin = Math.max(1, (new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) / 60000);
               const height = Math.max(20, lengthMin * PX_PER_MIN - 2);
               const tone = STATUS_TONE[b.status];
               return (

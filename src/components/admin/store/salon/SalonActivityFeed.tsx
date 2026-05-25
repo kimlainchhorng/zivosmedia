@@ -67,7 +67,7 @@ export default function SalonActivityFeed({ storeId, onJumpToTab }: SalonActivit
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const [bookingsRes, reviewsRes] = await Promise.all([
         supabase.from("salon_bookings")
-          .select("id, client_name, service_name, source, status, price_cents, tip_cents, created_at, updated_at, cancelled_at, start_at")
+          .select("id, client_name, service_name, source, status, price_cents, addons_total_cents, tip_cents, created_at, updated_at, cancelled_at, start_at")
           .eq("store_id", storeId)
           .gte("updated_at", sevenDaysAgo)
           .order("updated_at", { ascending: false })
@@ -97,7 +97,7 @@ export default function SalonActivityFeed({ storeId, onJumpToTab }: SalonActivit
             kind: "completed",
             title: `${b.client_name} checked out`,
             detail: b.service_name,
-            amountCents: b.price_cents + (b.tip_cents ?? 0),
+            amountCents: b.price_cents + (b.addons_total_cents ?? 0) + (b.tip_cents ?? 0),
           });
         } else if (status === "cancelled") {
           evts.push({

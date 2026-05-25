@@ -33,8 +33,8 @@ interface UseSalonStylistsResult {
   saving: boolean;
   error: string | null;
   create: (draft: SalonStylistDraft) => Promise<SalonStylist | null>;
-  update: (id: string, patch: Partial<SalonStylistDraft>) => Promise<void>;
-  remove: (id: string) => Promise<void>;
+  update: (id: string, patch: Partial<SalonStylistDraft>) => Promise<boolean>;
+  remove: (id: string) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -150,7 +150,7 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
     return final;
   }, [storeId, stylists]);
 
-  const update = useCallback(async (id: string, patch: Partial<SalonStylistDraft>) => {
+  const update = useCallback(async (id: string, patch: Partial<SalonStylistDraft>): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const cleanPatch: Record<string, unknown> = {};
@@ -176,6 +176,7 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
       )
     );
 
+    let ok = true;
     if (Object.keys(cleanPatch).length > 0) {
       const { error: err } = await supabase
         .from("salon_stylists")
@@ -186,7 +187,7 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
         setError("Couldn't save changes — refreshing.");
         await load();
         setSaving(false);
-        return;
+        return false;
       }
     }
     if (patch.service_ids !== undefined) {
@@ -196,12 +197,14 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
         console.error("[useSalonStylists] service sync failed", e);
         setError("Couldn't update services — refreshing.");
         await load();
+        ok = false;
       }
     }
     setSaving(false);
+    return ok;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const previous = stylists;
@@ -214,8 +217,11 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
       console.error("[useSalonStylists] delete failed", err);
       setError("Couldn't delete stylist.");
       setStylists(previous);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [stylists]);
 
   return { stylists, loading, saving, error, create, update, remove, refresh: load };

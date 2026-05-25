@@ -66,18 +66,35 @@ export default function SalonCheckoutDialog({ storeId, booking, onClose, onCompl
     return () => { cancelled = true; };
   }, [booking]);
 
-  // Reset state when booking changes.
+  // Reset state when booking changes. Clearing retail too prevents the prior
+  // booking's items from briefly flashing while the new fetch is in flight.
   useEffect(() => {
     setTipPreset("custom");
     setTipDollars("0.00");
     setError(null);
     setCompletedId(null);
+    setRetail([]);
   }, [booking?.id]);
 
-  const serviceCents = booking?.price_cents ?? 0;
+  // Service total = base service + add-ons (the trigger maintains the rollup).
+  const serviceCents = (booking?.price_cents ?? 0) + (booking?.addons_total_cents ?? 0);
   const retailCents = useMemo(() => retail.reduce((s, r) => s + r.unit_price_cents * r.quantity, 0), [retail]);
 
-  const tipBaseCents = settings.tip_applies_pre_tax ? serviceCents : serviceCents; // tax-exclusive base is service total
+  // Tax is charged on goods + services (services + retail). Tip is never
+  // included in the tax base — taxing a tip would be wrong everywhere we
+  // operate. Compute tax first so the post-tax tip base can use it.
+  const taxBaseCents = serviceCents + retailCents;
+  const taxCents = useMemo(() => {
+    if (!settings.tax_enabled) return 0;
+    return Math.round((taxBaseCents * Number(settings.tax_rate)) / 100);
+  }, [settings.tax_enabled, settings.tax_rate, taxBaseCents]);
+
+  // tip_applies_pre_tax:
+  //   true  → tip on services only (the typical US convention).
+  //   false → tip on services + tax (some salons advertise tip on the post-tax
+  //           total). Retail is excluded either way — convention is to tip
+  //           the service, not the product.
+  const tipBaseCents = settings.tip_applies_pre_tax ? serviceCents : serviceCents + taxCents;
   const tipCents = useMemo(() => {
     if (tipPreset === "custom") {
       const c = Math.round(Number(tipDollars) * 100);
@@ -85,12 +102,6 @@ export default function SalonCheckoutDialog({ storeId, booking, onClose, onCompl
     }
     return Math.round((tipBaseCents * tipPreset) / 100);
   }, [tipPreset, tipDollars, tipBaseCents]);
-
-  const taxBaseCents = settings.tax_enabled ? serviceCents + (settings.tip_applies_pre_tax ? 0 : tipCents) : 0;
-  const taxCents = useMemo(() => {
-    if (!settings.tax_enabled) return 0;
-    return Math.round((taxBaseCents * Number(settings.tax_rate)) / 100);
-  }, [settings.tax_enabled, settings.tax_rate, taxBaseCents]);
 
   const grandTotalCents = serviceCents + retailCents + tipCents + taxCents;
 
@@ -106,25 +117,18 @@ export default function SalonCheckoutDialog({ storeId, booking, onClose, onCompl
     if (!booking) return;
     setSubmitting(true);
     setError(null);
-    // First write tip/tax on the row (UPDATE), then transition to completed
-    // so the completion trigger uses the right values when computing spend.
-    const { error: writeErr } = await supabase
+    // Single UPDATE so the completion trigger sees tip/tax in NEW alongside
+    // the status flip — and so a network failure can't leave the booking
+    // half-checked-out (tip/tax saved, status still pending). The trigger
+    // fires on BEFORE UPDATE OF status, so the in-row NEW values for
+    // tip_cents/tax_cents are visible when the spend rollup runs.
+    const { error: err } = await supabase
       .from("salon_bookings")
-      .update({ tip_cents: tipCents, tax_cents: taxCents } as never)
-      .eq("id", booking.id);
-    if (writeErr) {
-      console.error("[SalonCheckout] write tip/tax failed", writeErr);
-      setError("Couldn't save tip / tax. Try again.");
-      setSubmitting(false);
-      return;
-    }
-    const { error: statusErr } = await supabase
-      .from("salon_bookings")
-      .update({ status: "completed" } as never)
+      .update({ tip_cents: tipCents, tax_cents: taxCents, status: "completed" } as never)
       .eq("id", booking.id);
     setSubmitting(false);
-    if (statusErr) {
-      console.error("[SalonCheckout] complete failed", statusErr);
+    if (err) {
+      console.error("[SalonCheckout] complete failed", err);
       setError("Couldn't mark the booking complete.");
       return;
     }
@@ -257,7 +261,9 @@ export default function SalonCheckoutDialog({ storeId, booking, onClose, onCompl
 
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-2 text-xs text-emerald-700 dark:text-emerald-300">
             <Sparkles className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-            Completing this will decrement retail stock, update {booking?.client_name}'s spend history{settings.tax_enabled ? "" : ""}, and grant loyalty points if your program is on.
+            {booking?.client_id
+              ? <>Completing this will decrement retail stock, update {booking.client_name}'s spend history, and grant loyalty points if your program is on.</>
+              : <>Completing this will decrement retail stock. Walk-ins aren't tied to a client record, so no spend history or loyalty points are recorded.</>}
           </div>
         </div>
         <DialogFooter>

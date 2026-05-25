@@ -3,8 +3,9 @@
  * stylist can perform. Bookings will use service_ids to filter which
  * stylists can take a given appointment.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   UserCog, Plus, Edit, Trash2, Loader2, AlertCircle, Copy, Check,
   Eye, EyeOff, Search, Mail, Phone, Percent,
@@ -63,6 +64,24 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
   const [draft, setDraft] = useState<SalonStylistDraft>(EMPTY_DRAFT);
   const [search, setSearch] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  // Pending/confirmed bookings for the stylist about to be deleted — counted
+  // up-front so the confirm dialog can warn the owner that those bookings
+  // will become unassigned (FK is ON DELETE SET NULL).
+  const [confirmDeleteUpcoming, setConfirmDeleteUpcoming] = useState<number | null>(null);
+  useEffect(() => {
+    if (!confirmDeleteId) { setConfirmDeleteUpcoming(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("salon_bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("stylist_id", confirmDeleteId)
+        .in("status", ["pending", "confirmed"])
+        .gte("start_at", new Date().toISOString());
+      if (!cancelled) setConfirmDeleteUpcoming(count ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, [confirmDeleteId]);
 
   const serviceById = useMemo(() => {
     const m: Record<string, string> = {};
@@ -112,23 +131,38 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
       toast.error("Commission must be 0–100%.");
       return;
     }
+    // Same loose "something@something.something" check used in Clients — this
+    // dialog saves via a button handler, so `type=email`'s native validation
+    // never fires.
+    const email = draft.email?.trim() ?? "";
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error("That email looks malformed. Double-check the address.");
+      return;
+    }
     const payload: SalonStylistDraft = { ...draft, display_name: cleanName };
 
     if (editingId) {
-      await update(editingId, payload);
-      toast.success("Stylist updated.");
+      // `update` returns false when the DB write fails — the error banner
+      // surfaces the cause and the dialog stays open so the owner can retry.
+      const ok = await update(editingId, payload);
+      if (ok) {
+        toast.success("Stylist updated.");
+        setDialogOpen(false);
+      }
     } else {
       const created = await create(payload);
-      if (created) toast.success("Stylist added.");
+      if (created) {
+        toast.success("Stylist added.");
+        setDialogOpen(false);
+      }
     }
-    setDialogOpen(false);
   };
 
   const handleDelete = async () => {
     if (!confirmDeleteId) return;
-    await remove(confirmDeleteId);
+    const ok = await remove(confirmDeleteId);
     setConfirmDeleteId(null);
-    toast.success("Stylist removed.");
+    if (ok) toast.success("Stylist removed.");
   };
 
   const filtered = stylists.filter((s) =>
@@ -242,7 +276,10 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
                           aria-label={st.is_active ? "Hide" : "Show"}
                           title={st.is_active ? "Hide" : "Show"}
                         >
-                          {st.is_active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                          {/* Icon shows the action that'll happen on click,
+                              matching the Reviews section convention:
+                              EyeOff = click to hide, Eye = click to make visible. */}
+                          {st.is_active ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                         </Button>
                         <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
                           onClick={() => openEdit(st)}
@@ -322,6 +359,8 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
                   value={draft.email ?? ""}
                   onChange={(e) => setDraft({ ...draft, email: e.target.value })}
                   placeholder="sarah@example.com"
+                  // Matches salon_stylists.email CHECK char_length <= 254.
+                  maxLength={254}
                 />
               </div>
               <div className="space-y-1.5">
@@ -332,6 +371,8 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
                   value={draft.phone ?? ""}
                   onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
                   placeholder="(555) 123-4567"
+                  // Matches salon_stylists.phone CHECK char_length <= 30.
+                  maxLength={30}
                 />
               </div>
             </div>
@@ -420,7 +461,11 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
           <AlertDialogHeader>
             <AlertDialogTitle>Remove this stylist?</AlertDialogTitle>
             <AlertDialogDescription>
-              Past bookings keep their records, but new bookings won't be able to choose this stylist. This can't be undone.
+              {confirmDeleteUpcoming === null
+                ? "Past bookings keep their records, but new bookings won't be able to choose this stylist. This can't be undone."
+                : confirmDeleteUpcoming > 0
+                  ? `${confirmDeleteUpcoming} upcoming booking${confirmDeleteUpcoming === 1 ? "" : "s"} ${confirmDeleteUpcoming === 1 ? "is" : "are"} assigned to this stylist — ${confirmDeleteUpcoming === 1 ? "it" : "they"} will become unassigned and need to be reassigned by hand. Past bookings keep their records. This can't be undone.`
+                  : "Past bookings keep their records, but new bookings won't be able to choose this stylist. This can't be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -456,7 +501,13 @@ function CopyDayLinkButton({ stylistId }: { stylistId: string }) {
           await navigator.clipboard.writeText(url);
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
-        } catch { /* clipboard blocked — silent */ }
+        } catch {
+          // Clipboard API can fail under HTTP, in iframes, or when the
+          // browser denies the permission. Silent fail leaves the owner
+          // wondering why nothing happened — surface it so they can manually
+          // copy the URL from the toast/log.
+          toast.error("Couldn't copy. Long-press or right-click the link instead.");
+        }
       }}
     >
       {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}

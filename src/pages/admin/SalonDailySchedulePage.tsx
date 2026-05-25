@@ -20,6 +20,7 @@ interface ScheduleBooking {
   end_at: string;
   status: string;
   duration_minutes: number;
+  salon_booking_addons: { name: string }[];
 }
 
 const formatTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -47,7 +48,7 @@ export default function SalonDailySchedulePage() {
       const [storeRes, bookingsRes] = await Promise.all([
         supabase.from("store_profiles").select("name").eq("id", storeId).maybeSingle(),
         supabase.from("salon_bookings")
-          .select("id, client_name, client_phone, service_name, stylist_name, start_at, end_at, status, duration_minutes")
+          .select("id, client_name, client_phone, service_name, stylist_name, start_at, end_at, status, duration_minutes, salon_booking_addons(name)")
           .eq("store_id", storeId)
           .gte("start_at", dayStart).lte("start_at", dayEnd)
           .in("status", ["pending", "confirmed", "completed"])
@@ -118,7 +119,21 @@ export default function SalonDailySchedulePage() {
 
       <div className="mx-auto max-w-3xl px-4 py-8 print:p-0">
         <div className="sched-noprint mb-4 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="gap-1.5">
+          <Button variant="ghost" size="sm" onClick={() => {
+            // Page is usually opened in a new tab (target="_blank") so
+            // history.back() is a no-op. Try close first; if denied, fall
+            // back to history.back(); if THAT did nothing, send the owner
+            // to the salon's bookings tab.
+            const before = window.history.length;
+            window.close();
+            window.history.back();
+            // If the browser refused both, route to a sensible parent.
+            setTimeout(() => {
+              if (window.history.length === before) {
+                window.location.href = `/admin/stores/${storeId}?tab=salon-bookings`;
+              }
+            }, 60);
+          }} className="gap-1.5">
             <X className="h-4 w-4" /> Close
           </Button>
           <Button onClick={() => window.print()} size="sm" className="gap-1.5">
@@ -150,14 +165,31 @@ export default function SalonDailySchedulePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((r) => (
-                        <tr key={r.id} className="border-b border-border/60">
-                          <td className="py-1.5 pr-2 font-mono text-foreground/90">{formatTime(r.start_at)}–{formatTime(r.end_at)}</td>
-                          <td className="py-1.5 pr-2 font-semibold text-foreground">{r.client_name}</td>
-                          <td className="py-1.5 pr-2 text-foreground/85">{r.service_name}</td>
-                          <td className="py-1.5 text-[12px] text-muted-foreground">{r.client_phone ?? ""}</td>
-                        </tr>
-                      ))}
+                      {rows.map((r) => {
+                        // The printed page is posted at the front desk — staff
+                        // need to tell apart bookings that still need owner
+                        // confirmation (pending) from ones already finished
+                        // (completed) without flipping back to the screen.
+                        const pending = r.status === "pending";
+                        const done = r.status === "completed";
+                        return (
+                          <tr key={r.id} className={`border-b border-border/60 ${done ? "text-muted-foreground" : ""}`}>
+                            <td className="py-1.5 pr-2 font-mono text-foreground/90">
+                              {formatTime(r.start_at)}–{formatTime(r.end_at)}
+                              {pending && <span className="ml-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">(pending)</span>}
+                              {done && <span className="ml-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">(done)</span>}
+                            </td>
+                            <td className={`py-1.5 pr-2 font-semibold ${done ? "text-muted-foreground line-through" : "text-foreground"}`}>{r.client_name}</td>
+                            <td className="py-1.5 pr-2 text-foreground/85">
+                              {r.service_name}
+                              {r.salon_booking_addons.length > 0 && (
+                                <span className="text-muted-foreground"> + {r.salon_booking_addons.map((a) => a.name).join(", ")}</span>
+                              )}
+                            </td>
+                            <td className="py-1.5 text-[12px] text-muted-foreground">{r.client_phone ?? ""}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

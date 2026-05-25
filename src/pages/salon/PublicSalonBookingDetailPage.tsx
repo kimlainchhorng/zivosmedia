@@ -35,6 +35,7 @@ interface PublicBooking {
   start_at: string;
   end_at: string;
   price_cents: number;
+  addons_total_cents: number;
   duration_minutes: number;
   status: string;
   source: string;
@@ -165,7 +166,7 @@ export default function PublicSalonBookingDetailPage() {
                 </p>
               )}
               <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <DollarSign className="h-3.5 w-3.5" /> {formatPrice(booking.price_cents)}
+                <DollarSign className="h-3.5 w-3.5" /> {formatPrice(booking.price_cents + (booking.addons_total_cents ?? 0))}
               </p>
             </div>
 

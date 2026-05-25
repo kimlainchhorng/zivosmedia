@@ -42,9 +42,12 @@ const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const daysAgoIso = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 interface StylistTotals {
   stylistId: string;
@@ -95,10 +98,25 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
 
   const markPaid = async (totals: StylistTotals) => {
     const payout = totals.commissionEarnedCents + totals.tipsCents;
-    const confirmed = window.confirm(
-      `Record paying ${totals.name} ${formatPrice(payout)} for ${totals.serviceCount} service${totals.serviceCount === 1 ? "" : "s"} from ${from} to ${to}?`
+    // Totals here are computed from completed bookings and don't subtract
+    // existing payouts — without this check, a refresh + second "Mark paid"
+    // would silently log a duplicate payment record for the same period.
+    const dup = payouts.find((p) =>
+      p.stylist_id === totals.stylistId && p.period_from === from && p.period_to === to
     );
-    if (!confirmed) return;
+    if (dup) {
+      const ok = window.confirm(
+        `You already recorded a payout to ${totals.name} for ${from} → ${to} ` +
+        `(${formatPrice(dup.total_paid_cents)} on ${new Date(dup.paid_at).toLocaleDateString()}).\n\n` +
+        `Record another ${formatPrice(payout)} payment anyway?`
+      );
+      if (!ok) return;
+    } else {
+      const confirmed = window.confirm(
+        `Record paying ${totals.name} ${formatPrice(payout)} for ${totals.serviceCount} service${totals.serviceCount === 1 ? "" : "s"} from ${from} to ${to}?`
+      );
+      if (!confirmed) return;
+    }
     setPayingStylistId(totals.stylistId);
     const { data: { user } } = await supabase.auth.getUser();
     const { error: err } = await supabase
@@ -178,7 +196,9 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
       const t = map.get(r.stylist_id);
       if (!t) continue;
       t.serviceCount += 1;
-      t.serviceRevenueCents += r.price_cents;
+      // Include add-on revenue — the stylist who performed the upsell earns
+      // commission on it too. Rolled up by salon_booking_addons trigger.
+      t.serviceRevenueCents += r.price_cents + (r.addons_total_cents ?? 0);
       t.tipsCents += r.tip_cents;
     }
     for (const t of map.values()) {
@@ -220,11 +240,13 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="commFrom">From</Label>
-              <Input id="commFrom" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
+              {/* Bind the range so an inverted window can't silently produce
+                  $0 commission for the whole team. */}
+              <Input id="commFrom" type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="commTo">To</Label>
-              <Input id="commTo" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
+              <Input id="commTo" type="date" value={to} min={from} max={todayIso()} onChange={(e) => setTo(e.target.value)} className="h-9" />
             </div>
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => { setFrom(daysAgoIso(7)); setTo(todayIso()); }} className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted">Last 7d</button>
@@ -262,7 +284,11 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
                   const lineItems = rows.map((r) => {
                     const st = r.stylist_id ? stylistById.get(r.stylist_id) : undefined;
                     const pct = st?.commission_percent ?? 0;
-                    const commission = Math.round((r.price_cents ?? 0) * (pct / 100));
+                    // Commission base = services + add-ons (matches the per-stylist
+                    // summary above and SalonCommissionsSection's totalsByStylist).
+                    const addons = r.addons_total_cents ?? 0;
+                    const totalServiceCents = (r.price_cents ?? 0) + addons;
+                    const commission = Math.round(totalServiceCents * (pct / 100));
                     return [
                       new Date(r.start_at).toLocaleDateString(undefined, { year: "numeric", month: "2-digit", day: "2-digit" }),
                       new Date(r.start_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -270,6 +296,7 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
                       r.service_name,
                       r.stylist_name ?? "",
                       (r.price_cents / 100).toFixed(2),
+                      (addons / 100).toFixed(2),
                       (r.tip_cents / 100).toFixed(2),
                       (r.tax_cents / 100).toFixed(2),
                       pct,
@@ -279,7 +306,7 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
                   });
                   downloadCsv(
                     `commissions_detail_${from}_to_${to}.csv`,
-                    ["Date", "Time", "Client", "Service", "Stylist", "Price ($)", "Tip ($)", "Tax ($)", "Commission %", "Commission ($)", "Stylist Payout ($)"],
+                    ["Date", "Time", "Client", "Service", "Stylist", "Price ($)", "Add-ons ($)", "Tip ($)", "Tax ($)", "Commission %", "Commission ($)", "Stylist Payout ($)"],
                     lineItems
                   );
                   toast.success(`Exported ${rows.length} visits.`);

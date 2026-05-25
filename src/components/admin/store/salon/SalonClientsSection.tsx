@@ -74,6 +74,25 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
   const [draft, setDraft] = useState<SalonClientDraft>(EMPTY_DRAFT);
   const [search, setSearch] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  // Upcoming bookings that reference the client about to be deleted. FK is
+  // ON DELETE SET NULL — the booking keeps the client_name snapshot but the
+  // back-link to the client record is severed. Surface the count so the owner
+  // sees what they're about to break.
+  const [confirmDeleteUpcoming, setConfirmDeleteUpcoming] = useState<number | null>(null);
+  useEffect(() => {
+    if (!confirmDeleteId) { setConfirmDeleteUpcoming(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("salon_bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", confirmDeleteId)
+        .in("status", ["pending", "confirmed"])
+        .gte("start_at", new Date().toISOString());
+      if (!cancelled) setConfirmDeleteUpcoming(count ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, [confirmDeleteId]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const stylistById = useMemo(() => {
@@ -112,22 +131,38 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
       toast.error("Add at least a phone or email so you can reach them.");
       return;
     }
+    // Light email sanity check — browser `type=email` validation only fires
+    // on real form submit, and this dialog saves via a button handler.
+    // Pattern is intentionally loose: requires "something@something.something".
+    const email = draft.email?.trim() ?? "";
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error("That email looks malformed. Double-check the address.");
+      return;
+    }
     const payload: SalonClientDraft = { ...draft, display_name: cleanName };
     if (editingId) {
-      await update(editingId, payload);
-      toast.success("Client updated.");
+      // Only confirm on success — `update` returns false when the DB write
+      // fails (RLS, constraint, network), in which case the error banner
+      // surfaces the cause and we don't want a contradictory success toast.
+      const ok = await update(editingId, payload);
+      if (ok) {
+        toast.success("Client updated.");
+        setDialogOpen(false);
+      }
     } else {
       const created = await create(payload);
-      if (created) toast.success("Client added.");
+      if (created) {
+        toast.success("Client added.");
+        setDialogOpen(false);
+      }
     }
-    setDialogOpen(false);
   };
 
   const handleDelete = async () => {
     if (!confirmDeleteId) return;
-    await remove(confirmDeleteId);
+    const ok = await remove(confirmDeleteId);
     setConfirmDeleteId(null);
-    toast.success("Client removed.");
+    if (ok) toast.success("Client removed.");
   };
 
   // All tags across all clients, ranked by frequency for the filter bar.
@@ -405,6 +440,8 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
                   value={draft.phone ?? ""}
                   onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
                   placeholder="(555) 123-4567"
+                  // Matches salon_clients.phone CHECK char_length <= 30.
+                  maxLength={30}
                 />
               </div>
               <div className="space-y-1.5">
@@ -415,6 +452,8 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
                   value={draft.email ?? ""}
                   onChange={(e) => setDraft({ ...draft, email: e.target.value })}
                   placeholder="jamie@example.com"
+                  // Matches salon_clients.email CHECK char_length <= 254.
+                  maxLength={254}
                 />
               </div>
             </div>
@@ -425,6 +464,9 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
                 <Input
                   id="clBirthday"
                   type="date"
+                  // Cap at today (local date) so the native picker won't let
+                  // owners enter a future birth date by accident.
+                  max={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })()}
                   value={draft.birthday ?? ""}
                   onChange={(e) => setDraft({ ...draft, birthday: e.target.value || null })}
                 />
@@ -441,6 +483,21 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
                   {stylists.filter((s) => s.is_active).map((s) => (
                     <option key={s.id} value={s.id}>{s.display_name}</option>
                   ))}
+                  {/* If the currently-preferred stylist has since been
+                     deactivated, surface them as a tagged option so the
+                     dropdown reflects the underlying value instead of
+                     silently reading as "No preference". */}
+                  {(() => {
+                    const cur = draft.preferred_stylist_id;
+                    if (!cur) return null;
+                    const stylist = stylists.find((s) => s.id === cur);
+                    if (!stylist || stylist.is_active) return null;
+                    return (
+                      <option key={stylist.id} value={stylist.id}>
+                        {stylist.display_name} (inactive)
+                      </option>
+                    );
+                  })()}
                 </select>
               </div>
             </div>
@@ -486,7 +543,9 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this client?</AlertDialogTitle>
             <AlertDialogDescription>
-              Their service history and any past bookings will keep their records, but the client entry will be removed from your address book. This can't be undone.
+              {confirmDeleteUpcoming && confirmDeleteUpcoming > 0
+                ? `${confirmDeleteUpcoming} upcoming booking${confirmDeleteUpcoming === 1 ? "" : "s"} ${confirmDeleteUpcoming === 1 ? "is" : "are"} tied to this client — ${confirmDeleteUpcoming === 1 ? "it" : "they"} will keep the client_name snapshot but lose the address-book link. Past bookings keep their records too. This can't be undone.`
+                : "Their service history and any past bookings will keep their records, but the client entry will be removed from your address book. This can't be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -518,6 +577,7 @@ interface RecentBooking {
   start_at: string;
   status: string;
   price_cents: number;
+  addons_total_cents: number;
   tip_cents: number;
   internal_notes: string | null;
 }
@@ -540,6 +600,7 @@ const statusColor: Record<string, string> = {
 
 function ClientActivityPanel({ storeId, clientId, loyaltyPoints }: ClientActivityPanelProps) {
   const [bookings, setBookings] = useState<RecentBooking[]>([]);
+  const [retailByBooking, setRetailByBooking] = useState<Map<string, number>>(new Map());
   const [events, setEvents] = useState<LoyaltyEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -549,7 +610,7 @@ function ClientActivityPanel({ storeId, clientId, loyaltyPoints }: ClientActivit
       setLoading(true);
       const [bRes, eRes] = await Promise.all([
         supabase.from("salon_bookings")
-          .select("id, service_name, stylist_name, start_at, status, price_cents, tip_cents, internal_notes")
+          .select("id, service_name, stylist_name, start_at, status, price_cents, addons_total_cents, tip_cents, internal_notes")
           .eq("store_id", storeId).eq("client_id", clientId)
           .order("start_at", { ascending: false }).limit(5),
         supabase.from("salon_loyalty_events")
@@ -558,8 +619,28 @@ function ClientActivityPanel({ storeId, clientId, loyaltyPoints }: ClientActivit
           .order("created_at", { ascending: false }).limit(5),
       ]);
       if (cancelled) return;
-      setBookings((bRes.data ?? []) as unknown as RecentBooking[]);
+      const bookingRows = (bRes.data ?? []) as unknown as RecentBooking[];
+      setBookings(bookingRows);
       setEvents((eRes.data ?? []) as unknown as LoyaltyEvent[]);
+
+      // Retail per visit — owners use this panel to gauge a client's true
+      // lifetime spend, so omitting products would systematically undercount
+      // anyone who buys take-home product after a service.
+      const completedIds = bookingRows.filter((b) => b.status === "completed").map((b) => b.id);
+      if (completedIds.length > 0) {
+        const { data: retail } = await supabase
+          .from("salon_booking_retail_items")
+          .select("booking_id, unit_price_cents, quantity")
+          .in("booking_id", completedIds);
+        if (cancelled) return;
+        const map = new Map<string, number>();
+        for (const r of (retail ?? []) as Array<{ booking_id: string; unit_price_cents: number; quantity: number }>) {
+          map.set(r.booking_id, (map.get(r.booking_id) ?? 0) + r.unit_price_cents * r.quantity);
+        }
+        setRetailByBooking(map);
+      } else {
+        setRetailByBooking(new Map());
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -590,7 +671,7 @@ function ClientActivityPanel({ storeId, clientId, loyaltyPoints }: ClientActivit
                     <p className={cn("text-[10px] font-bold uppercase tracking-wider", statusColor[b.status] ?? "text-muted-foreground")}>
                       {b.status}
                     </p>
-                    <p className="font-semibold text-foreground">${((b.price_cents + b.tip_cents) / 100).toFixed(2)}</p>
+                    <p className="font-semibold text-foreground">${((b.price_cents + (b.addons_total_cents ?? 0) + b.tip_cents + (retailByBooking.get(b.id) ?? 0)) / 100).toFixed(2)}</p>
                   </div>
                 </div>
                 {b.internal_notes && (

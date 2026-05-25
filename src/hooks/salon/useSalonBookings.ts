@@ -3,7 +3,7 @@
  * Snapshots client/stylist/service display strings on insert so historical
  * records survive catalog edits.
  */
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type SalonBookingStatus =
@@ -26,6 +26,9 @@ export interface SalonBooking {
   client_email: string | null;
   price_cents: number;
   duration_minutes: number;
+  /** Auto-maintained by the salon_booking_addons rollup trigger. */
+  addons_total_cents: number;
+  addons_duration_minutes: number;
   start_at: string;
   end_at: string;
   status: SalonBookingStatus;
@@ -76,9 +79,9 @@ interface UseSalonBookingsResult {
   saving: boolean;
   error: string | null;
   create: (draft: SalonBookingDraft) => Promise<SalonBooking | null>;
-  update: (id: string, patch: Partial<SalonBookingDraft & { tip_cents: number; tax_cents: number }>) => Promise<void>;
-  changeStatus: (id: string, status: SalonBookingStatus, opts?: { reason?: string; noShowFeeCents?: number }) => Promise<void>;
-  remove: (id: string) => Promise<void>;
+  update: (id: string, patch: Partial<SalonBookingDraft & { tip_cents: number; tax_cents: number; deposit_paid_cents: number; deposit_paid_at: string | null }>) => Promise<boolean>;
+  changeStatus: (id: string, status: SalonBookingStatus, opts?: { reason?: string; noShowFeeCents?: number }) => Promise<boolean>;
+  remove: (id: string) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -98,11 +101,17 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
 
   const range = useMemo(() => dayBoundsIso(date), [date]);
 
+  // Request counter — Prev/Next day clicks (or the realtime channel firing
+  // mid-load) can issue concurrent fetches. Only the latest call should be
+  // allowed to apply state; older in-flight responses bail.
+  const reqIdRef = useRef(0);
+
   const load = useCallback(async () => {
     if (!storeId) {
       setLoading(false);
       return;
     }
+    const myReqId = ++reqIdRef.current;
     setLoading(true);
     setError(null);
     const { data, error: err } = await supabase
@@ -112,6 +121,7 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       .gte("start_at", range.from)
       .lt("start_at", range.to)
       .order("start_at", { ascending: true });
+    if (myReqId !== reqIdRef.current) return;
     if (err) {
       console.error("[useSalonBookings] load failed", err);
       setError("Couldn't load bookings.");
@@ -146,6 +156,10 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
     setSaving(true);
     setError(null);
     const end = new Date(new Date(draft.start_at).getTime() + draft.duration_minutes * 60 * 1000);
+    // Record who added the booking for the audit trail. The sanitize trigger
+    // overrides this to NULL for source='app' (public) inserts so we don't
+    // accidentally attribute customer-placed bookings to an owner.
+    const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       store_id: storeId,
       client_id: draft.client_id,
@@ -165,6 +179,7 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       client_notes: draft.client_notes?.trim() || null,
       internal_notes: draft.internal_notes?.trim() || null,
       referral_source: draft.referral_source?.trim() || null,
+      created_by_user_id: user?.id ?? null,
     };
     const { data, error: err } = await supabase
       .from("salon_bookings")
@@ -173,8 +188,19 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       .single();
     if (err) {
       console.error("[useSalonBookings] create failed", err);
+      // 23P01 is raised by THREE things: the no-overlap GIST exclusion (which
+      // produces a Postgres-flavoured "conflicting key value violates ..." you
+      // don't want to surface), the blockout guard ("Stylist is unavailable
+      // during that time …"), and the store closure guard ("The salon is
+      // closed during that time."). The two guards' messages are owner-
+      // friendly so prefer them; fall back to a friendly overlap message.
       if ((err as any).code === "23P01") {
-        setError("That time slot is already booked for this stylist. Pick another time.");
+        const msg = (err as { message?: string }).message ?? "";
+        if (/closed during/i.test(msg) || /block-off in place/i.test(msg) || /unavailable during/i.test(msg)) {
+          setError(msg);
+        } else {
+          setError("That time slot is already booked for this stylist. Pick another time.");
+        }
       } else {
         setError("Couldn't save booking.");
       }
@@ -190,7 +216,7 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
     return created;
   }, [storeId, range.from, range.to]);
 
-  const update = useCallback(async (id: string, patch: Partial<SalonBookingDraft & { tip_cents: number; tax_cents: number; deposit_paid_cents: number; deposit_paid_at: string | null }>) => {
+  const update = useCallback(async (id: string, patch: Partial<SalonBookingDraft & { tip_cents: number; tax_cents: number; deposit_paid_cents: number; deposit_paid_at: string | null }>): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const cleanPatch: Record<string, unknown> = {};
@@ -219,7 +245,12 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       if (current) {
         const start = new Date(patch.start_at ?? current.start_at);
         const duration = patch.duration_minutes ?? current.duration_minutes;
-        cleanPatch.end_at = new Date(start.getTime() + duration * 60 * 1000).toISOString();
+        // Include add-on minutes so end_at matches what the DB rollup trigger
+        // would compute — otherwise this client write would shorten end_at
+        // back below the true end and the no-overlap exclusion would let
+        // another booking slip into the add-on time.
+        const addonMinutes = current.addons_duration_minutes ?? 0;
+        cleanPatch.end_at = new Date(start.getTime() + (duration + addonMinutes) * 60 * 1000).toISOString();
       }
     }
 
@@ -234,22 +265,31 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
     if (err) {
       console.error("[useSalonBookings] update failed", err);
       if ((err as any).code === "23P01") {
-        setError("That time slot is already booked for this stylist.");
+        const msg = (err as { message?: string }).message ?? "";
+        if (/closed during/i.test(msg) || /block-off in place/i.test(msg) || /unavailable during/i.test(msg)) {
+          setError(msg);
+        } else {
+          setError("That time slot is already booked for this stylist.");
+        }
       } else {
         setError("Couldn't save changes — refreshing.");
       }
       await load();
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [bookings, load]);
 
   const changeStatus = useCallback(async (
     id: string,
     status: SalonBookingStatus,
     opts?: { reason?: string; noShowFeeCents?: number }
-  ) => {
+  ): Promise<boolean> => {
     setSaving(true);
     setError(null);
+    const current = bookings.find((b) => b.id === id);
     const cleanPatch: Record<string, unknown> = { status };
     if (status === "cancelled") {
       cleanPatch.cancelled_at = new Date().toISOString();
@@ -257,6 +297,12 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
     }
     if (status === "no_show" && opts?.noShowFeeCents != null) {
       cleanPatch.no_show_fee_charged_cents = opts.noShowFeeCents;
+    }
+    // If the booking was previously no_show and we're flipping back to any
+    // other status, the no-show fee on the row no longer applies — zero it
+    // out so receipts/reports don't carry a stale charge.
+    if (current?.status === "no_show" && status !== "no_show" && (current.no_show_fee_charged_cents ?? 0) > 0) {
+      cleanPatch.no_show_fee_charged_cents = 0;
     }
     setBookings((prev) =>
       prev.map((b) => (b.id === id ? ({ ...b, ...cleanPatch } as SalonBooking) : b))
@@ -269,11 +315,14 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       console.error("[useSalonBookings] changeStatus failed", err);
       setError("Couldn't change status — refreshing.");
       await load();
+      setSaving(false);
+      return false;
     }
     setSaving(false);
-  }, [load]);
+    return true;
+  }, [bookings, load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const previous = bookings;
@@ -286,8 +335,11 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       console.error("[useSalonBookings] delete failed", err);
       setError("Couldn't delete booking.");
       setBookings(previous);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [bookings]);
 
   return { bookings, loading, saving, error, create, update, changeStatus, remove, refresh: load };

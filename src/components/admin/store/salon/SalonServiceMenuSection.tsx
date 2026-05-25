@@ -3,8 +3,9 @@
  * Owner can add / edit / delete services, set duration & price, toggle active.
  * Built USD-first for the USA flow; tax & tip are configured in Payment & Payouts.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   BookOpen, Plus, Edit, Trash2, Loader2, Clock, DollarSign, ChevronUp, ChevronDown,
   EyeOff, Eye, AlertCircle, Search,
@@ -65,6 +66,23 @@ export default function SalonServiceMenuSection({ storeId }: SalonServiceMenuSec
   const [priceDollars, setPriceDollars] = useState("0.00");
   const [search, setSearch] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  // Pending/confirmed bookings that reference the service being deleted.
+  // FK is ON DELETE SET NULL, so they'd be orphaned without a warning.
+  const [confirmDeleteUpcoming, setConfirmDeleteUpcoming] = useState<number | null>(null);
+  useEffect(() => {
+    if (!confirmDeleteId) { setConfirmDeleteUpcoming(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("salon_bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("service_id", confirmDeleteId)
+        .in("status", ["pending", "confirmed"])
+        .gte("start_at", new Date().toISOString());
+      if (!cancelled) setConfirmDeleteUpcoming(count ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, [confirmDeleteId]);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -111,20 +129,27 @@ export default function SalonServiceMenuSection({ storeId }: SalonServiceMenuSec
     const payload: SalonServiceDraft = { ...draft, price_cents: cents, name: cleanName };
 
     if (editingId) {
-      await update(editingId, payload);
-      toast.success("Service updated.");
+      // `update` returns false when the DB write fails — keep the dialog open
+      // and skip the success toast so the error banner is the only signal.
+      const ok = await update(editingId, payload);
+      if (ok) {
+        toast.success("Service updated.");
+        setDialogOpen(false);
+      }
     } else {
       const created = await create(payload);
-      if (created) toast.success("Service added.");
+      if (created) {
+        toast.success("Service added.");
+        setDialogOpen(false);
+      }
     }
-    setDialogOpen(false);
   };
 
   const handleDelete = async () => {
     if (!confirmDeleteId) return;
-    await remove(confirmDeleteId);
+    const ok = await remove(confirmDeleteId);
     setConfirmDeleteId(null);
-    toast.success("Service removed.");
+    if (ok) toast.success("Service removed.");
   };
 
   const handleImageUpload = async (file: File | null) => {
@@ -349,7 +374,9 @@ export default function SalonServiceMenuSection({ storeId }: SalonServiceMenuSec
                             aria-label={svc.is_active ? "Hide" : "Show"}
                             title={svc.is_active ? "Hide from clients" : "Show to clients"}
                           >
-                            {svc.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                            {/* Icon = action that'll happen on click, matching
+                                the Reviews and Stylists conventions. */}
+                            {svc.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                           <Button
                             type="button"
@@ -564,7 +591,9 @@ export default function SalonServiceMenuSection({ storeId }: SalonServiceMenuSec
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this service?</AlertDialogTitle>
             <AlertDialogDescription>
-              Past bookings that reference it will keep their record, but it won't be bookable going forward. This can't be undone.
+              {confirmDeleteUpcoming && confirmDeleteUpcoming > 0
+                ? `${confirmDeleteUpcoming} upcoming booking${confirmDeleteUpcoming === 1 ? "" : "s"} ${confirmDeleteUpcoming === 1 ? "uses" : "use"} this service — ${confirmDeleteUpcoming === 1 ? "it" : "they"} will keep ${confirmDeleteUpcoming === 1 ? "its" : "their"} service-name snapshot but lose the catalog link. Past bookings also keep their records. This can't be undone.`
+                : "Past bookings that reference it will keep their record, but it won't be bookable going forward. This can't be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

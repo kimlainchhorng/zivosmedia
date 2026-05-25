@@ -44,6 +44,9 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
     recipient_name: "",
     recipient_email: "",
     message: "",
+    // YYYY-MM-DD; empty = no expiry. Owners can leave blank where state law
+    // requires non-expiring gift cards.
+    expires_at: "",
   });
 
   const [redeemDraft, setRedeemDraft] = useState({ amount: "", notes: "" });
@@ -59,11 +62,17 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
   }, [redemptions]);
 
   const summary = useMemo(() => {
+    const nowMs = Date.now();
     let outstanding = 0;
     let issued = 0;
     let active = 0;
     for (const c of cards) {
-      if (c.is_active) {
+      // A card is a real liability only if it's still redeemable. Expired
+      // cards have is_active=true but the redemption trigger rejects them,
+      // so excluding them gives the owner an accurate "money customers can
+      // still claim" figure.
+      const expired = c.expires_at !== null && new Date(c.expires_at).getTime() < nowMs;
+      if (c.is_active && !expired) {
         outstanding += c.balance_cents;
         active += 1;
       }
@@ -72,12 +81,20 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
     return { outstanding, issued, active };
   }, [cards]);
 
-  const resetIssueDraft = () => setDraft({ amount: "50.00", recipient_name: "", recipient_email: "", message: "" });
+  const resetIssueDraft = () => setDraft({ amount: "50.00", recipient_name: "", recipient_email: "", message: "", expires_at: "" });
 
   const handleIssue = async () => {
     const cents = Math.round(parseFloat(draft.amount) * 100);
     if (!Number.isFinite(cents) || cents <= 0) {
       toast.error("Enter a positive amount.");
+      return;
+    }
+    // Same loose "something@something.something" check used in Clients and
+    // Stylists. Gift card recipients often get the code by email — a typo
+    // means the recipient never finds out they have a card.
+    const email = draft.recipient_email.trim();
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error("That email looks malformed. Double-check the address.");
       return;
     }
     setIssueBusy(true);
@@ -87,6 +104,9 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
         recipient_name: draft.recipient_name,
         recipient_email: draft.recipient_email,
         message: draft.message,
+        // Send as end-of-day local time so the card is redeemable for the
+        // full expiry day, not midnight of it. Empty string → no expiry.
+        expires_at: draft.expires_at ? new Date(`${draft.expires_at}T23:59:59`).toISOString() : null,
       });
       toast.success(`Issued ${formatMoney(cents)} — code ${card.code}`);
       resetIssueDraft();
@@ -254,7 +274,12 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
                         size="sm"
                         variant="outline"
                         className="gap-1.5"
-                        disabled={!c.is_active || usedOut}
+                        // Match the DB trigger's reject conditions so a click
+                        // can't roundtrip just to get rejected: card must be
+                        // active, have remaining balance, and not be past its
+                        // expiry date.
+                        disabled={!c.is_active || usedOut || expired}
+                        title={expired ? "This card has expired." : undefined}
                         onClick={() => { setRedeemFor(c); setRedeemDraft({ amount: "", notes: "" }); }}
                       >
                         Redeem
@@ -348,6 +373,8 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
                 <Input id="gc-name" value={draft.recipient_name}
                   onChange={(e) => setDraft({ ...draft, recipient_name: e.target.value })}
                   placeholder="Optional"
+                  // Matches salon_gift_cards.recipient_name CHECK <= 120.
+                  maxLength={120}
                 />
               </div>
               <div>
@@ -355,6 +382,8 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
                 <Input id="gc-email" type="email" value={draft.recipient_email}
                   onChange={(e) => setDraft({ ...draft, recipient_email: e.target.value })}
                   placeholder="Optional"
+                  // Matches salon_gift_cards.recipient_email CHECK <= 160.
+                  maxLength={160}
                 />
               </div>
             </div>
@@ -363,7 +392,24 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
               <Textarea id="gc-msg" rows={2} value={draft.message}
                 onChange={(e) => setDraft({ ...draft, message: e.target.value })}
                 placeholder="Optional — e.g. Happy Birthday!"
+                // Matches salon_gift_cards.message CHECK <= 500.
+                maxLength={500}
               />
+            </div>
+            <div>
+              <Label htmlFor="gc-expires">Expires (optional)</Label>
+              <Input
+                id="gc-expires"
+                type="date"
+                // Can't expire in the past — would create an already-dead card.
+                // The DB trigger would reject all redemptions immediately.
+                min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })()}
+                value={draft.expires_at}
+                onChange={(e) => setDraft({ ...draft, expires_at: e.target.value })}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Leave blank for cards that never expire. Some states require non-expiring gift cards — check local law.
+              </p>
             </div>
           </div>
           <DialogFooter>
@@ -407,6 +453,8 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
               <Input id="r-notes" value={redeemDraft.notes}
                 onChange={(e) => setRedeemDraft({ ...redeemDraft, notes: e.target.value })}
                 placeholder="Optional — e.g. Booking #1234"
+                // Matches salon_gift_card_redemptions.notes CHECK <= 500.
+                maxLength={500}
               />
             </div>
           </div>
@@ -424,8 +472,12 @@ export default function SalonGiftCardsSection({ storeId }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete gift card {confirmDelete?.code}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the card and all its redemption history. If you only want to prevent
-              further use, disable it instead.
+              {/* Surface unredeemed balance — deleting a card with money still
+                  on it erases a real customer-owed liability, and "Disable"
+                  preserves the ledger if the goal is just to block further use. */}
+              {confirmDelete && confirmDelete.balance_cents > 0
+                ? `This card still has ${formatMoney(confirmDelete.balance_cents)} of unredeemed balance. Deleting it removes the card and all its redemption history — the customer won't be able to spend that balance. If you only want to block further use, disable it instead.`
+                : "This removes the card and all its redemption history. If you only want to prevent further use, disable it instead."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -449,7 +501,10 @@ function ShareCheckLinkBar() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* clipboard blocked — silent */
+      // Surface the failure (HTTP, iframe, denied permission) instead of
+      // leaving the owner staring at an unresponsive button. The link is
+      // also visible on-page so they can copy it manually.
+      toast.error("Couldn't copy. Long-press or right-click the link instead.");
     }
   };
   return (

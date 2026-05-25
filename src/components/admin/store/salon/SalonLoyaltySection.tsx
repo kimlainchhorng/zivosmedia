@@ -46,6 +46,17 @@ export default function SalonLoyaltySection({ storeId }: SalonLoyaltySectionProp
   const [adjustDelta, setAdjustDelta] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustType, setAdjustType] = useState<"earn" | "redeem">("earn");
+  // Number-input local drafts. Without these, every keystroke fires its own
+  // upsert and the storm both wastes network round-trips and opens stale-merge
+  // races where typing fast lands the wrong final value.
+  const [ppdInput, setPpdInput] = useState(String(settings.points_per_dollar));
+  const [rpvInput, setRpvInput] = useState(String(settings.redemption_value_cents_per_point));
+  const [welcomeInput, setWelcomeInput] = useState(String(settings.welcome_points));
+  const [birthdayInput, setBirthdayInput] = useState(String(settings.birthday_points));
+  useEffect(() => { setPpdInput(String(settings.points_per_dollar)); }, [settings.points_per_dollar]);
+  useEffect(() => { setRpvInput(String(settings.redemption_value_cents_per_point)); }, [settings.redemption_value_cents_per_point]);
+  useEffect(() => { setWelcomeInput(String(settings.welcome_points)); }, [settings.welcome_points]);
+  useEffect(() => { setBirthdayInput(String(settings.birthday_points)); }, [settings.birthday_points]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,12 +109,16 @@ export default function SalonLoyaltySection({ storeId }: SalonLoyaltySectionProp
       return;
     }
     setSaving(true);
+    // Track who applied the adjustment so a client dispute later can be
+    // traced back to the staff member who pressed the button.
+    const { data: { user } } = await supabase.auth.getUser();
     const { error: err } = await supabase.from("salon_loyalty_events").insert({
       store_id: storeId,
       client_id: adjustDialog.clientId,
       event_type: adjustType,
       points_delta: delta,
       reason: adjustReason.trim() || null,
+      created_by_user_id: user?.id ?? null,
     } as never);
     setSaving(false);
     if (err) { setError("Couldn't record event."); return; }
@@ -146,23 +161,48 @@ export default function SalonLoyaltySection({ storeId }: SalonLoyaltySectionProp
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="ltPpd">Points per $1 spent</Label>
-              <Input id="ltPpd" type="number" min={0} max={100} step="0.5" value={settings.points_per_dollar}
-                onChange={(e) => void saveSettings({ points_per_dollar: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })} disabled={saving || !settings.is_enabled} />
+              <Input id="ltPpd" type="number" min={0} max={100} step="0.5" value={ppdInput}
+                onChange={(e) => setPpdInput(e.target.value)}
+                onBlur={() => {
+                  const n = Number(ppdInput);
+                  const clamped = Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0;
+                  if (clamped !== settings.points_per_dollar) void saveSettings({ points_per_dollar: clamped });
+                  setPpdInput(String(clamped));
+                }}
+                disabled={saving || !settings.is_enabled} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ltRpv">Cents per redeemed point</Label>
-              <Input id="ltRpv" type="number" min={0} value={settings.redemption_value_cents_per_point}
-                onChange={(e) => void saveSettings({ redemption_value_cents_per_point: Math.max(0, parseInt(e.target.value, 10) || 0) })} disabled={saving || !settings.is_enabled} />
+              <Input id="ltRpv" type="number" min={0} value={rpvInput}
+                onChange={(e) => setRpvInput(e.target.value)}
+                onBlur={() => {
+                  const clamped = Math.max(0, parseInt(rpvInput, 10) || 0);
+                  if (clamped !== settings.redemption_value_cents_per_point) void saveSettings({ redemption_value_cents_per_point: clamped });
+                  setRpvInput(String(clamped));
+                }}
+                disabled={saving || !settings.is_enabled} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ltWelcome">Welcome bonus</Label>
-              <Input id="ltWelcome" type="number" min={0} value={settings.welcome_points}
-                onChange={(e) => void saveSettings({ welcome_points: Math.max(0, parseInt(e.target.value, 10) || 0) })} disabled={saving || !settings.is_enabled} />
+              <Input id="ltWelcome" type="number" min={0} value={welcomeInput}
+                onChange={(e) => setWelcomeInput(e.target.value)}
+                onBlur={() => {
+                  const clamped = Math.max(0, parseInt(welcomeInput, 10) || 0);
+                  if (clamped !== settings.welcome_points) void saveSettings({ welcome_points: clamped });
+                  setWelcomeInput(String(clamped));
+                }}
+                disabled={saving || !settings.is_enabled} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ltBirthday">Birthday bonus</Label>
-              <Input id="ltBirthday" type="number" min={0} value={settings.birthday_points}
-                onChange={(e) => void saveSettings({ birthday_points: Math.max(0, parseInt(e.target.value, 10) || 0) })} disabled={saving || !settings.is_enabled} />
+              <Input id="ltBirthday" type="number" min={0} value={birthdayInput}
+                onChange={(e) => setBirthdayInput(e.target.value)}
+                onBlur={() => {
+                  const clamped = Math.max(0, parseInt(birthdayInput, 10) || 0);
+                  if (clamped !== settings.birthday_points) void saveSettings({ birthday_points: clamped });
+                  setBirthdayInput(String(clamped));
+                }}
+                disabled={saving || !settings.is_enabled} />
             </div>
           </div>
 

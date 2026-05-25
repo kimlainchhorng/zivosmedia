@@ -34,7 +34,22 @@ export default function SalonOnboardingChecklist({ storeId, storeSlug, onJumpToT
     hasServices: false, hasStylists: false, hasSchedules: false,
     paymentConfigured: false, ready: false, loading: true,
   });
-  const [dismissed, setDismissed] = useState(false);
+  // Persisted per-store so "Hide this panel" sticks across reloads. Local
+  // state alone would re-show the panel on every dashboard visit.
+  const dismissKey = `zivo:salon:onboardingDismissed:${storeId}`;
+  const [dismissed, setDismissedState] = useState<boolean>(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem(dismissKey) === "1"; }
+    catch { return false; }
+  });
+  const setDismissed = (next: boolean) => {
+    setDismissedState(next);
+    try {
+      if (next) window.localStorage.setItem(dismissKey, "1");
+      else window.localStorage.removeItem(dismissKey);
+    } catch {
+      // localStorage may be unavailable (incognito quirks) — fail silent.
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -44,8 +59,15 @@ export default function SalonOnboardingChecklist({ storeId, storeSlug, onJumpToT
           .eq("store_id", storeId).eq("is_active", true),
         supabase.from("salon_stylists").select("id", { count: "exact", head: true })
           .eq("store_id", storeId).eq("is_active", true),
-        supabase.from("salon_stylist_schedules").select("id", { count: "exact", head: true })
-          .eq("store_id", storeId).eq("is_working", true),
+        // Inner-join salon_stylists so a schedule only counts if the linked
+        // stylist is still active — otherwise an owner who deactivated their
+        // last stylist would see this step ticked despite no one being able
+        // to take bookings.
+        supabase.from("salon_stylist_schedules")
+          .select("id, salon_stylists!inner(is_active)", { count: "exact", head: true })
+          .eq("store_id", storeId)
+          .eq("is_working", true)
+          .eq("salon_stylists.is_active", true),
         supabase.from("store_payment_settings").select("market", { count: "exact", head: true })
           .eq("store_id", storeId),
       ]);

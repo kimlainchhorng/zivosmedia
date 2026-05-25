@@ -25,9 +25,12 @@ const formatDateTime = (iso: string) =>
 const daysAgoIso = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 export default function SalonServiceHistorySection({ storeId }: SalonServiceHistorySectionProps) {
   const { clients } = useSalonClients(storeId);
@@ -36,6 +39,7 @@ export default function SalonServiceHistorySection({ storeId }: SalonServiceHist
   const [to, setTo] = useState<string>(todayIso());
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<SalonBooking[]>([]);
+  const [retailByBooking, setRetailByBooking] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -88,7 +92,26 @@ export default function SalonServiceHistorySection({ storeId }: SalonServiceHist
         setLoading(false);
         return;
       }
-      setRows((data ?? []) as unknown as SalonBooking[]);
+      const bookingRows = (data ?? []) as unknown as SalonBooking[];
+      setRows(bookingRows);
+
+      // Retail per visit — owners filtering to a single client gauge that
+      // client's value here; omitting retail would undercount anyone who
+      // buys product after a service.
+      if (bookingRows.length > 0) {
+        const { data: retail } = await supabase
+          .from("salon_booking_retail_items")
+          .select("booking_id, unit_price_cents, quantity")
+          .in("booking_id", bookingRows.map((b) => b.id));
+        if (cancelled) return;
+        const map = new Map<string, number>();
+        for (const r of (retail ?? []) as Array<{ booking_id: string; unit_price_cents: number; quantity: number }>) {
+          map.set(r.booking_id, (map.get(r.booking_id) ?? 0) + r.unit_price_cents * r.quantity);
+        }
+        setRetailByBooking(map);
+      } else {
+        setRetailByBooking(new Map());
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -107,11 +130,13 @@ export default function SalonServiceHistorySection({ storeId }: SalonServiceHist
   const totals = useMemo(() => {
     let revenue = 0, tips = 0, visits = filtered.length;
     for (const r of filtered) {
-      revenue += r.price_cents + r.tax_cents;
+      // Owner revenue = services + add-ons + retail. Tax is pass-through;
+      // tips are shown separately below.
+      revenue += r.price_cents + (r.addons_total_cents ?? 0) + (retailByBooking.get(r.id) ?? 0);
       tips += r.tip_cents;
     }
     return { revenue, tips, visits };
-  }, [filtered]);
+  }, [filtered, retailByBooking]);
 
   return (
     <div className="space-y-4">
@@ -147,11 +172,14 @@ export default function SalonServiceHistorySection({ storeId }: SalonServiceHist
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="historyFrom">From</Label>
-              <Input id="historyFrom" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+              {/* Bind the range so the owner can't construct an inverted
+                  window — would otherwise silently zero out the history list
+                  and the totals card. */}
+              <Input id="historyFrom" type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="historyTo">To</Label>
-              <Input id="historyTo" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              <Input id="historyTo" type="date" value={to} min={from} max={todayIso()} onChange={(e) => setTo(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="historySearch">Search</Label>
@@ -194,7 +222,7 @@ export default function SalonServiceHistorySection({ storeId }: SalonServiceHist
                         <p className="text-[11px] text-muted-foreground">{formatDateTime(r.start_at)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-foreground">{formatPrice(r.price_cents)}</p>
+                        <p className="text-sm font-semibold text-foreground">{formatPrice(r.price_cents + (r.addons_total_cents ?? 0) + (retailByBooking.get(r.id) ?? 0))}</p>
                         {r.tip_cents > 0 && (
                           <p className="text-[11px] text-muted-foreground">+ {formatPrice(r.tip_cents)} tip</p>
                         )}

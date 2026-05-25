@@ -95,7 +95,11 @@ export default function SalonBookingsWeekGrid({ storeId, date, onJumpToDay, onCl
       m[dayIso] = [];
     }
     for (const b of bookings) {
-      const dayIso = b.start_at.slice(0, 10);
+      // Use LOCAL date — start_at.slice(0, 10) would return the UTC date,
+      // which lands evening bookings in the next day's column for any
+      // negative-UTC-offset timezone.
+      const d = new Date(b.start_at);
+      const dayIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       if (m[dayIso]) m[dayIso].push(b);
     }
     return m;

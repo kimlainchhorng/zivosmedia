@@ -21,6 +21,7 @@ interface SummaryBooking {
   status: string;
   source: string;
   price_cents: number;
+  addons_total_cents: number;
   tip_cents: number;
   tax_cents: number;
   deposit_paid_cents: number;
@@ -37,6 +38,7 @@ export default function SalonDailySummaryPage() {
 
   const [storeName, setStoreName] = useState("");
   const [rows, setRows] = useState<SummaryBooking[]>([]);
+  const [retailByBooking, setRetailByBooking] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +52,7 @@ export default function SalonDailySummaryPage() {
       const [storeRes, bookingsRes] = await Promise.all([
         supabase.from("store_profiles").select("name").eq("id", storeId).maybeSingle(),
         supabase.from("salon_bookings")
-          .select("id, stylist_name, client_name, service_name, start_at, status, source, price_cents, tip_cents, tax_cents, deposit_paid_cents")
+          .select("id, stylist_name, client_name, service_name, start_at, status, source, price_cents, addons_total_cents, tip_cents, tax_cents, deposit_paid_cents")
           .eq("store_id", storeId)
           .gte("start_at", dayStart).lte("start_at", dayEnd)
           .order("start_at", { ascending: true }),
@@ -61,8 +63,28 @@ export default function SalonDailySummaryPage() {
         setLoading(false);
         return;
       }
+      const bookings = (bookingsRes.data ?? []) as unknown as SummaryBooking[];
       setStoreName((storeRes.data as any).name);
-      setRows((bookingsRes.data ?? []) as unknown as SummaryBooking[]);
+      setRows(bookings);
+
+      // Retail sold on today's completed bookings — every other revenue surface
+      // in the salon (Dashboard, Income, Reports) includes retail in gross, so
+      // omitting it here would silently underreport the end-of-day close-out.
+      const completedIds = bookings.filter((b) => b.status === "completed").map((b) => b.id);
+      if (completedIds.length > 0) {
+        const { data: retail } = await supabase
+          .from("salon_booking_retail_items")
+          .select("booking_id, unit_price_cents, quantity")
+          .in("booking_id", completedIds);
+        if (cancelled) return;
+        const map = new Map<string, number>();
+        for (const r of (retail ?? []) as Array<{ booking_id: string; unit_price_cents: number; quantity: number }>) {
+          map.set(r.booking_id, (map.get(r.booking_id) ?? 0) + r.unit_price_cents * r.quantity);
+        }
+        setRetailByBooking(map);
+      } else {
+        setRetailByBooking(new Map());
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -78,7 +100,7 @@ export default function SalonDailySummaryPage() {
 
   const summary = useMemo(() => {
     let booked = 0, completed = 0, noShow = 0, cancelled = 0, walkIns = 0;
-    let revenue = 0, tips = 0, tax = 0, depositsHeld = 0;
+    let revenue = 0, retail = 0, tips = 0, tax = 0, depositsHeld = 0;
     const perStylist = new Map<string, { name: string; visits: number; revenue: number; tips: number }>();
 
     for (const b of rows) {
@@ -86,14 +108,20 @@ export default function SalonDailySummaryPage() {
       if (b.source === "walk_in") walkIns += 1;
       if (b.status === "completed") {
         completed += 1;
-        revenue += b.price_cents;
+        // Service revenue = base + add-ons (rolled up by the salon_booking_addons trigger).
+        const lineService = b.price_cents + (b.addons_total_cents ?? 0);
+        const lineRetail = retailByBooking.get(b.id) ?? 0;
+        revenue += lineService;
+        retail += lineRetail;
         tips += b.tip_cents;
         tax += b.tax_cents;
         depositsHeld += b.deposit_paid_cents;
         const key = b.stylist_name ?? "Unassigned";
         const entry = perStylist.get(key) ?? { name: key, visits: 0, revenue: 0, tips: 0 };
         entry.visits += 1;
-        entry.revenue += b.price_cents;
+        // Stylist-level revenue stays services+addons only — retail commission
+        // policy varies and shouldn't be implicitly attributed to the stylist.
+        entry.revenue += lineService;
         entry.tips += b.tip_cents;
         perStylist.set(key, entry);
       }
@@ -102,9 +130,11 @@ export default function SalonDailySummaryPage() {
     }
 
     const stylists = Array.from(perStylist.values()).sort((a, b) => b.revenue - a.revenue);
-    const gross = revenue + tips + tax;
-    return { booked, completed, noShow, cancelled, walkIns, revenue, tips, tax, depositsHeld, gross, stylists };
-  }, [rows]);
+    // Gross is the owner's take-home — services + add-ons + retail + tips.
+    // Tax is pass-through (owed to the government) so it's reported separately.
+    const gross = revenue + retail + tips;
+    return { booked, completed, noShow, cancelled, walkIns, revenue, retail, tips, tax, depositsHeld, gross, stylists };
+  }, [rows, retailByBooking]);
 
   if (loading) {
     return (
@@ -139,7 +169,18 @@ export default function SalonDailySummaryPage() {
 
       <div className="mx-auto max-w-3xl px-4 py-8 print:p-0">
         <div className="summary-noprint mb-4 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="gap-1.5">
+          <Button variant="ghost" size="sm" onClick={() => {
+            // Page is usually opened in a new tab (target="_blank") so
+            // history.back() is a no-op. Try close → back → parent route.
+            const before = window.history.length;
+            window.close();
+            window.history.back();
+            setTimeout(() => {
+              if (window.history.length === before) {
+                window.location.href = `/admin/stores/${storeId}?tab=salon-bookings`;
+              }
+            }, 60);
+          }} className="gap-1.5">
             <X className="h-4 w-4" /> Close
           </Button>
           <Button onClick={() => window.print()} size="sm" className="gap-1.5">
@@ -167,6 +208,7 @@ export default function SalonDailySummaryPage() {
           <section className="border-b border-dashed border-border py-4">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Revenue</p>
             <Row label="Services" value={formatMoney(summary.revenue)} />
+            {summary.retail > 0 && <Row label="Retail" value={formatMoney(summary.retail)} />}
             {summary.tips > 0 && <Row label="Tips" value={formatMoney(summary.tips)} />}
             {summary.tax > 0 && <Row label="Tax collected" value={formatMoney(summary.tax)} />}
             {summary.depositsHeld > 0 && (

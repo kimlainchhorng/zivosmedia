@@ -58,7 +58,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Save, Store, Image, Package, Plus, Edit, Trash2, Loader2, Eye, Upload, Camera, MapPin, ExternalLink, Globe, Check, Percent, DollarSign, CalendarIcon, Tag, Gift, Video, ImagePlus, RefreshCw, Replace, CheckCircle2, XCircle, MinusCircle, AlertTriangle, Move, X, Ruler, MessageCircle, CreditCard, Banknote, QrCode, Building2, Smartphone, Wallet, Car, Heart, Clock, Send, Users, Shield, Bell, Info, Copy, GripVertical, Hotel, BedDouble, CalendarRange, KeyRound, PackagePlus, MessageSquareText, BarChart3, ListChecks, LayoutDashboard, BookOpen } from "lucide-react";
 import StoreLiveChat from "@/components/grocery/StoreLiveChat";
 import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
-import { LODGING_TAB_IDS, isAutoRepairTab, resolveStoreTab, resolveStoreTabFromSearch } from "@/lib/admin/storeTabRouting";
+import { LODGING_TAB_IDS, isAutoRepairTab, isCafeTab, isCarRentalTab, isCarDealershipTab, resolveStoreTab, resolveStoreTabFromSearch } from "@/lib/admin/storeTabRouting";
 import { useLodgeRooms } from "@/hooks/lodging/useLodgeRooms";
 import { useLodgePropertyProfile } from "@/hooks/lodging/useLodgePropertyProfile";
 import { useLodgingPhase5Counts } from "@/hooks/lodging/useLodgingPhase5Counts";
@@ -90,6 +90,62 @@ import SalonReviewsSection from "@/components/admin/store/salon/SalonReviewsSect
 import SalonTimeClockSection from "@/components/admin/store/salon/SalonTimeClockSection";
 import SalonGiftCardsSection from "@/components/admin/store/salon/SalonGiftCardsSection";
 import { SALON_TAB_META, SALON_TAB_IDS } from "@/components/admin/store/salon/salonTabConfig";
+import CarRentalComingSoonSection from "@/components/admin/store/car-rental/CarRentalComingSoonSection";
+import CarRentalDashboardSection from "@/components/admin/store/car-rental/CarRentalDashboardSection";
+import CarRentalReservationsSection from "@/components/admin/store/car-rental/CarRentalReservationsSection";
+import CarRentalFleetSection from "@/components/admin/store/car-rental/CarRentalFleetSection";
+import CarRentalLocationsSection from "@/components/admin/store/car-rental/CarRentalLocationsSection";
+import CarRentalAddonsSection from "@/components/admin/store/car-rental/CarRentalAddonsSection";
+import CarRentalCustomersSection from "@/components/admin/store/car-rental/CarRentalCustomersSection";
+import CarRentalCheckoutSection from "@/components/admin/store/car-rental/CarRentalCheckoutSection";
+import CarRentalReturnsSection from "@/components/admin/store/car-rental/CarRentalReturnsSection";
+import CarRentalMaintenanceSection from "@/components/admin/store/car-rental/CarRentalMaintenanceSection";
+import CarRentalIncomeSection from "@/components/admin/store/car-rental/CarRentalIncomeSection";
+import CarRentalExpensesSection from "@/components/admin/store/car-rental/CarRentalExpensesSection";
+import CarRentalReportsSection from "@/components/admin/store/car-rental/CarRentalReportsSection";
+import CarRentalReviewsSection from "@/components/admin/store/car-rental/CarRentalReviewsSection";
+import CarRentalPromotionsSection from "@/components/admin/store/car-rental/CarRentalPromotionsSection";
+import CarRentalRatesSection from "@/components/admin/store/car-rental/CarRentalRatesSection";
+import { CAR_RENTAL_TAB_META, CAR_RENTAL_TAB_IDS } from "@/components/admin/store/car-rental/carRentalTabConfig";
+import CarDealershipComingSoonSection from "@/components/admin/store/car-dealership/CarDealershipComingSoonSection";
+import CarDealershipDashboardSection from "@/components/admin/store/car-dealership/CarDealershipDashboardSection";
+import CarDealershipInventorySection from "@/components/admin/store/car-dealership/CarDealershipInventorySection";
+import CarDealershipLeadsSection from "@/components/admin/store/car-dealership/CarDealershipLeadsSection";
+import CarDealershipCustomersSection from "@/components/admin/store/car-dealership/CarDealershipCustomersSection";
+import CarDealershipTestDrivesSection from "@/components/admin/store/car-dealership/CarDealershipTestDrivesSection";
+import CarDealershipSalesSection from "@/components/admin/store/car-dealership/CarDealershipSalesSection";
+import CarDealershipFinancingSection from "@/components/admin/store/car-dealership/CarDealershipFinancingSection";
+import CarDealershipTradeInsSection from "@/components/admin/store/car-dealership/CarDealershipTradeInsSection";
+import CarDealershipReviewsSection from "@/components/admin/store/car-dealership/CarDealershipReviewsSection";
+import CarDealershipExpensesSection from "@/components/admin/store/car-dealership/CarDealershipExpensesSection";
+import CarDealershipIncomeSection from "@/components/admin/store/car-dealership/CarDealershipIncomeSection";
+import CarDealershipReportsSection from "@/components/admin/store/car-dealership/CarDealershipReportsSection";
+import CarDealershipPromotionsSection from "@/components/admin/store/car-dealership/CarDealershipPromotionsSection";
+import { CAR_DEALERSHIP_TAB_META, CAR_DEALERSHIP_TAB_IDS } from "@/components/admin/store/car-dealership/carDealershipTabConfig";
+import CafeComingSoonSection from "@/components/admin/store/cafe/CafeComingSoonSection";
+import CafeDashboardSection from "@/components/admin/store/cafe/CafeDashboardSection";
+import CafeMenuSection from "@/components/admin/store/cafe/CafeMenuSection";
+import CafeModifiersSection from "@/components/admin/store/cafe/CafeModifiersSection";
+import CafeOrdersSection from "@/components/admin/store/cafe/CafeOrdersSection";
+import CafeKdsSection from "@/components/admin/store/cafe/CafeKdsSection";
+import CafeTablesSection from "@/components/admin/store/cafe/CafeTablesSection";
+import CafePaymentSection from "@/components/admin/store/cafe/CafePaymentSection";
+import CafeCustomersSection from "@/components/admin/store/cafe/CafeCustomersSection";
+import CafeGiftCardsSection from "@/components/admin/store/cafe/CafeGiftCardsSection";
+import CafeIncomeSection from "@/components/admin/store/cafe/CafeIncomeSection";
+import CafeReportsSection from "@/components/admin/store/cafe/CafeReportsSection";
+import CafeExpensesSection from "@/components/admin/store/cafe/CafeExpensesSection";
+import CafeBaristasSection from "@/components/admin/store/cafe/CafeBaristasSection";
+import CafeTimeClockSection from "@/components/admin/store/cafe/CafeTimeClockSection";
+import CafeReviewsSection from "@/components/admin/store/cafe/CafeReviewsSection";
+import CafePromotionsSection from "@/components/admin/store/cafe/CafePromotionsSection";
+import CafeInventorySection from "@/components/admin/store/cafe/CafeInventorySection";
+import CafeRecipesSection from "@/components/admin/store/cafe/CafeRecipesSection";
+import CafeTipsSection from "@/components/admin/store/cafe/CafeTipsSection";
+import CafePurchasingSection from "@/components/admin/store/cafe/CafePurchasingSection";
+import CafeLoyaltySection from "@/components/admin/store/cafe/CafeLoyaltySection";
+import CafeShiftsSection from "@/components/admin/store/cafe/CafeShiftsSection";
+import { CAFE_TAB_META, CAFE_TAB_IDS } from "@/components/admin/store/cafe/cafeTabConfig";
 import { toast } from "sonner";
 
 const StorePaymentSection = React.lazy(() => import("@/components/admin/StorePaymentSection"));
@@ -524,6 +580,7 @@ export default function AdminStoreEditPage() {
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "profile");
   const appliedLodgingDefaultTabRef = useRef(false);
   const appliedAutoRepairDefaultTabRef = useRef(false);
+  const appliedCafeDefaultTabRef = useRef(false);
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -707,8 +764,11 @@ export default function AdminStoreEditPage() {
       requestedCategory === "auto-repair" ||
       isAutoRepairTab(requestedTab);
     const isStoreSalon = normalizedStoreCategory === "salon" || requestedCategory === "salon";
-    const resolvedTab = resolveStoreTabFromSearch(searchParams, isStoreLodging, isStoreAutoRepair, isStoreSalon);
-    if (requestedTab !== resolvedTab && (requestedTab || isStoreLodging || isStoreAutoRepair)) {
+    const isStoreCafe = normalizedStoreCategory === "cafe" || requestedCategory === "cafe" || isCafeTab(requestedTab);
+    const isStoreCarRental = normalizedStoreCategory === "car-rental" || requestedCategory === "car-rental" || isCarRentalTab(requestedTab);
+    const isStoreCarDealership = normalizedStoreCategory === "car-dealership" || requestedCategory === "car-dealership" || isCarDealershipTab(requestedTab);
+    const resolvedTab = resolveStoreTabFromSearch(searchParams, isStoreLodging, isStoreAutoRepair, isStoreSalon, isStoreCafe, isStoreCarRental, isStoreCarDealership);
+    if (requestedTab !== resolvedTab && (requestedTab || isStoreLodging || isStoreAutoRepair || isStoreCafe || isStoreCarRental || isStoreCarDealership)) {
       handleTabChange(resolvedTab);
       return;
     }
@@ -719,6 +779,11 @@ export default function AdminStoreEditPage() {
     }
     if (!appliedAutoRepairDefaultTabRef.current && isStoreAutoRepair && activeTab === "profile" && !requestedTab) {
       appliedAutoRepairDefaultTabRef.current = true;
+      handleTabChange(resolvedTab);
+      return;
+    }
+    if (!appliedCafeDefaultTabRef.current && isStoreCafe && activeTab === "profile" && !requestedTab) {
+      appliedCafeDefaultTabRef.current = true;
       handleTabChange(resolvedTab);
     }
   }, [store, activeTab, searchParams, handleTabChange]);
@@ -2121,7 +2186,10 @@ export default function AdminStoreEditPage() {
   const requestedCategory = (searchParams.get("category") || "").toLowerCase().trim();
   const isAutoRepair = normalizedCategory === "auto-repair" || requestedCategory === "auto-repair" || isAutoRepairTab(activeTab);
   const isLodging = isLikelyLodgingStore(store, normalizedCategory);
-  const effectiveStoreCategory = isAutoRepair ? "auto-repair" : form.category;
+  const isCafe = normalizedCategory === "cafe" || requestedCategory === "cafe" || isCafeTab(activeTab);
+  const isCarRental = normalizedCategory === "car-rental" || requestedCategory === "car-rental" || isCarRentalTab(activeTab);
+  const isCarDealership = normalizedCategory === "car-dealership" || requestedCategory === "car-dealership" || isCarDealershipTab(activeTab);
+  const effectiveStoreCategory = isAutoRepair ? "auto-repair" : isCafe ? "cafe" : isCarRental ? "car-rental" : isCarDealership ? "car-dealership" : form.category;
   const autoRepairTitles: Record<string, string> = {
     "customer-bookings": "Customer Bookings",
     "ar-invoices": "Invoices & Estimates",
@@ -2193,7 +2261,10 @@ export default function AdminStoreEditPage() {
   const productsLabelTitle = isAutoRepair ? "Services" : isLodging ? "Rooms" : "Products";
   const paymentLabelTitle = form.category === "car-dealership" ? t("admin.store.booking_appointment") : isAutoRepair ? "Bookings" : isLodging ? "Payment & Payouts" : t("admin.store.payment");
   const salonTitle = SALON_TAB_META[activeTab]?.title;
-  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || salonTitle || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
+  const cafeTitle = CAFE_TAB_META[activeTab]?.title;
+  const carRentalTitle = CAR_RENTAL_TAB_META[activeTab]?.title;
+  const carDealershipTitle = CAR_DEALERSHIP_TAB_META[activeTab]?.title;
+  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || salonTitle || cafeTitle || carRentalTitle || carDealershipTitle || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
   // IMPORTANT: Do NOT define a component inside render — it creates a new component
   // type on every render, which forces React to unmount + remount the entire subtree
   // (including the Add Product dialog inputs) on every keystroke. Use a render helper instead.
@@ -4242,6 +4313,178 @@ export default function AdminStoreEditPage() {
           <TabsContent value="software" data-testid="store-tab-software">
             <SoftwareDownloadsSection storeCategory={effectiveStoreCategory} storeId={storeId} />
           </TabsContent>
+
+          {/* Cafe module — real sections where built, placeholder otherwise. */}
+          {CAFE_TAB_IDS.map((tabId) => {
+            const meta = CAFE_TAB_META[tabId];
+            const renderReal = () => {
+              switch (tabId) {
+                case "cafe-dashboard":
+                  return <CafeDashboardSection storeId={storeId!} storeSlug={form.slug} onJumpToTab={handleTabChange} />;
+                case "cafe-orders":
+                  return <CafeOrdersSection storeId={storeId!} />;
+                case "cafe-kds":
+                  return <CafeKdsSection storeId={storeId!} />;
+                case "cafe-tables":
+                  return <CafeTablesSection storeId={storeId!} storeSlug={form.slug} />;
+                case "cafe-menu":
+                  return <CafeMenuSection storeId={storeId!} />;
+                case "cafe-modifiers":
+                  return <CafeModifiersSection storeId={storeId!} />;
+                case "cafe-payment":
+                  return <CafePaymentSection storeId={storeId!} />;
+                case "cafe-customers":
+                  return <CafeCustomersSection storeId={storeId!} />;
+                case "cafe-gift-cards":
+                  return <CafeGiftCardsSection storeId={storeId!} />;
+                case "cafe-income":
+                  return <CafeIncomeSection storeId={storeId!} />;
+                case "cafe-reports":
+                  return <CafeReportsSection storeId={storeId!} />;
+                case "cafe-expenses":
+                  return <CafeExpensesSection storeId={storeId!} />;
+                case "cafe-baristas":
+                  return <CafeBaristasSection storeId={storeId!} />;
+                case "cafe-timeclock":
+                  return <CafeTimeClockSection storeId={storeId!} />;
+                case "cafe-reviews":
+                  return <CafeReviewsSection storeId={storeId!} />;
+                case "cafe-promotions":
+                  return <CafePromotionsSection storeId={storeId!} />;
+                case "cafe-inventory":
+                  return <CafeInventorySection storeId={storeId!} />;
+                case "cafe-recipes":
+                  return <CafeRecipesSection storeId={storeId!} />;
+                case "cafe-tips":
+                  return <CafeTipsSection storeId={storeId!} />;
+                case "cafe-purchasing":
+                  return <CafePurchasingSection storeId={storeId!} />;
+                case "cafe-loyalty":
+                  return <CafeLoyaltySection storeId={storeId!} />;
+                case "cafe-shifts":
+                  return <CafeShiftsSection storeId={storeId!} />;
+                default:
+                  return null;
+              }
+            };
+            const real = renderReal();
+            return (
+              <TabsContent key={tabId} value={tabId}>
+                {real ?? (
+                  <CafeComingSoonSection
+                    title={meta.title}
+                    description={meta.description}
+                    Icon={meta.Icon}
+                    bullets={meta.bullets}
+                  />
+                )}
+              </TabsContent>
+            );
+          })}
+
+          {/* Car Rental module — real sections where built, placeholder otherwise. */}
+          {CAR_RENTAL_TAB_IDS.map((tabId) => {
+            const meta = CAR_RENTAL_TAB_META[tabId];
+            const renderReal = () => {
+              switch (tabId) {
+                case "car-rental-dashboard":
+                  return <CarRentalDashboardSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "car-rental-reservations":
+                  return <CarRentalReservationsSection storeId={storeId!} />;
+                case "car-rental-fleet":
+                  return <CarRentalFleetSection storeId={storeId!} />;
+                case "car-rental-locations":
+                  return <CarRentalLocationsSection storeId={storeId!} />;
+                case "car-rental-addons":
+                  return <CarRentalAddonsSection storeId={storeId!} />;
+                case "car-rental-customers":
+                  return <CarRentalCustomersSection storeId={storeId!} />;
+                case "car-rental-checkout":
+                  return <CarRentalCheckoutSection storeId={storeId!} />;
+                case "car-rental-returns":
+                  return <CarRentalReturnsSection storeId={storeId!} />;
+                case "car-rental-maintenance":
+                  return <CarRentalMaintenanceSection storeId={storeId!} />;
+                case "car-rental-income":
+                  return <CarRentalIncomeSection storeId={storeId!} />;
+                case "car-rental-expenses":
+                  return <CarRentalExpensesSection storeId={storeId!} />;
+                case "car-rental-reports":
+                  return <CarRentalReportsSection storeId={storeId!} />;
+                case "car-rental-reviews":
+                  return <CarRentalReviewsSection storeId={storeId!} />;
+                case "car-rental-promotions":
+                  return <CarRentalPromotionsSection storeId={storeId!} />;
+                case "car-rental-rates":
+                  return <CarRentalRatesSection storeId={storeId!} />;
+                default:
+                  return null;
+              }
+            };
+            const real = renderReal();
+            return (
+              <TabsContent key={tabId} value={tabId}>
+                {real ?? (
+                  <CarRentalComingSoonSection
+                    title={meta.title}
+                    description={meta.description}
+                    Icon={meta.Icon}
+                    bullets={meta.bullets}
+                  />
+                )}
+              </TabsContent>
+            );
+          })}
+
+          {/* Car Dealership module — real sections where built, placeholder otherwise. */}
+          {CAR_DEALERSHIP_TAB_IDS.map((tabId) => {
+            const meta = CAR_DEALERSHIP_TAB_META[tabId];
+            const renderReal = () => {
+              switch (tabId) {
+                case "cd-dashboard":
+                  return <CarDealershipDashboardSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "cd-inventory":
+                  return <CarDealershipInventorySection storeId={storeId!} />;
+                case "cd-leads":
+                  return <CarDealershipLeadsSection storeId={storeId!} />;
+                case "cd-test-drives":
+                  return <CarDealershipTestDrivesSection storeId={storeId!} />;
+                case "cd-sales":
+                  return <CarDealershipSalesSection storeId={storeId!} />;
+                case "cd-customers":
+                  return <CarDealershipCustomersSection storeId={storeId!} />;
+                case "cd-financing":
+                  return <CarDealershipFinancingSection storeId={storeId!} />;
+                case "cd-trade-ins":
+                  return <CarDealershipTradeInsSection storeId={storeId!} />;
+                case "cd-reviews":
+                  return <CarDealershipReviewsSection storeId={storeId!} />;
+                case "cd-expenses":
+                  return <CarDealershipExpensesSection storeId={storeId!} />;
+                case "cd-income":
+                  return <CarDealershipIncomeSection storeId={storeId!} />;
+                case "cd-reports":
+                  return <CarDealershipReportsSection storeId={storeId!} />;
+                case "cd-promotions":
+                  return <CarDealershipPromotionsSection storeId={storeId!} />;
+                default:
+                  return null;
+              }
+            };
+            const real = renderReal();
+            return (
+              <TabsContent key={tabId} value={tabId}>
+                {real ?? (
+                  <CarDealershipComingSoonSection
+                    title={meta.title}
+                    description={meta.description}
+                    Icon={meta.Icon}
+                    bullets={meta.bullets}
+                  />
+                )}
+              </TabsContent>
+            );
+          })}
 
           {/* Salon module — real sections where built, placeholder otherwise. */}
           {SALON_TAB_IDS.map((tabId) => {

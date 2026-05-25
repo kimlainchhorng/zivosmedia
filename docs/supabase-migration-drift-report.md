@@ -1,26 +1,26 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-05-22T01:36:21.173Z
+Generated: 2026-05-25T15:04:33.067Z
 
 ## Summary
 
-- Local migrations: 690
+- Local migrations: 720
 - Invalid filenames: 0
 - Duplicate versions: 8
 - Duplicate SQL hashes: 0
 - Remote migrations: 0
 - Matched versions: 0
-- Local-only pending: 690
+- Local-only pending: 720
 - Remote-only missing locally: 0
-- Pending risk: high=623, medium=50, low=17
+- Pending risk: high=653, medium=50, low=17
 
 ## Domains
 
-- security/auth: 590
+- security/auth: 618
 - commerce/store: 34
-- chat/social: 20
+- chat/social: 21
 - general: 19
-- travel/lodging: 18
+- travel/lodging: 19
 - infrastructure: 9
 
 ## Duplicate Versions
@@ -36,8 +36,7 @@ Generated: 2026-05-22T01:36:21.173Z
 
 ## Remote Query
 
-- Error: Initialising login role...
-2026/05/21 20:36:21 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
+- Linked remote migration history was read successfully.
 
 ## High Risk Pending Migrations
 
@@ -141,7 +140,7 @@ Generated: 2026-05-22T01:36:21.173Z
 - 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
 - 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
 - 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 523 more
+- ...and 553 more
 
 ## Remote-Only Versions
 

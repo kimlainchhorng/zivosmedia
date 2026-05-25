@@ -37,7 +37,14 @@ export function resolveBusinessDashboardRoute(
 ): ResolvedDashboard {
   const normalizedCategory = normalizeStoreCategory(category);
 
-  // Restaurants/cafés/bakeries/drinks → Eats restaurant dashboard.
+  // Cafés have their own admin module (KDS, modifiers, tables, payments) so
+  // they go to /admin/stores/<id>?tab=cafe-dashboard rather than the legacy
+  // Eats dashboard. Checked before the restaurant fallback below.
+  if (category === "cafe" && storeId) {
+    return { path: `/admin/stores/${storeId}?tab=cafe-dashboard`, fallback: false };
+  }
+
+  // Restaurants/bakeries/drinks → Eats restaurant dashboard. (Cafés handled above.)
   if (category && RESTAURANT_CATEGORIES.has(category as StoreCategory)) {
     return { path: "/eats/restaurant-dashboard", fallback: false };
   }
@@ -45,6 +52,16 @@ export function resolveBusinessDashboardRoute(
   // Auto repair → full store admin dashboard with repair-specific sections.
   if (normalizedCategory === "auto repair" && storeId) {
     return { path: `/admin/stores/${storeId}?tab=ar-dashboard`, fallback: false };
+  }
+
+  // Car rental → store admin dashboard with car-rental sections.
+  if (normalizedCategory === "car rental" && storeId) {
+    return { path: `/admin/stores/${storeId}?tab=car-rental-dashboard`, fallback: false };
+  }
+
+  // Car dealership → store admin dashboard with dealership sections.
+  if (normalizedCategory === "car dealership" && storeId) {
+    return { path: `/admin/stores/${storeId}?tab=cd-dashboard`, fallback: false };
   }
 
   // Lodging → store edit page on the lodge tab.

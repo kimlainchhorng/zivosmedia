@@ -31,7 +31,8 @@
       "Bash(ps -p 30160 -o pid,etime,command)",
       "Bash(grep -rnE \"/grocery/shop/|grocery/shop\\\\$\" src --include=\"*.tsx\" --include=\"*.ts\")",
       "Bash(node --experimental-strip-types --no-warnings --check scripts/scrape-booking-bulk.ts)",
-      "Bash(break)"
+      "Bash(break)",
+      "Bash(npm install *)"
     ]
   }
 }

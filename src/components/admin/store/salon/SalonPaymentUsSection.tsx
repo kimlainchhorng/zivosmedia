@@ -10,7 +10,7 @@
  * link; this section calls a placeholder edge function name. Until that's
  * wired, the button shows a toast explaining the next step.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   CreditCard, Banknote, Sparkles, Receipt, CalendarX2, ShieldCheck,
@@ -66,6 +66,13 @@ export default function SalonPaymentUsSection({ storeId }: SalonPaymentUsSection
   const { settings, loading, saving, error, save } = useSalonPaymentSettings(storeId);
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [newPresetDraft, setNewPresetDraft] = useState("");
+  // Free-text inputs use local state and commit on blur to avoid firing one
+  // upsert per keystroke (typing "Sales tax" would otherwise send 9 saves and
+  // open cross-field race windows where stale `settings` get re-merged).
+  const [taxRateInput, setTaxRateInput] = useState<string>(String(settings.tax_rate));
+  const [taxLabelInput, setTaxLabelInput] = useState<string>(settings.tax_label);
+  useEffect(() => { setTaxRateInput(String(settings.tax_rate)); }, [settings.tax_rate]);
+  useEffect(() => { setTaxLabelInput(settings.tax_label); }, [settings.tax_label]);
 
   if (loading) {
     return (
@@ -81,12 +88,19 @@ export default function SalonPaymentUsSection({ storeId }: SalonPaymentUsSection
   const handleConnectStripe = async () => {
     setConnectingStripe(true);
     try {
-      // Backend hook-up TBD: this should call an edge function like
-      // `salon-stripe-connect-link` that returns a hosted onboarding URL.
-      // For now we surface a clear message so the owner knows what to expect.
-      toast.info("Stripe onboarding coming soon", {
-        description: "We're wiring up the secure Stripe Connect handoff. You'll be redirected to Stripe once it's ready.",
-      });
+      if (settings.stripe_status === "not_connected") {
+        // Backend hook-up TBD: this should call an edge function like
+        // `salon-stripe-connect-link` that returns a hosted onboarding URL
+        // for first-time connection.
+        toast.info("Stripe onboarding coming soon", {
+          description: "We're wiring up the secure Stripe Connect handoff. You'll be redirected to Stripe once it's ready.",
+        });
+      } else {
+        // Already connected — just punt them to Stripe's hosted dashboard so
+        // they can manage payouts, bank, etc. Opens in a new tab so they
+        // don't lose their salon admin context.
+        window.open("https://dashboard.stripe.com/dashboard", "_blank", "noopener,noreferrer");
+      }
     } finally {
       setConnectingStripe(false);
     }
@@ -290,8 +304,14 @@ export default function SalonPaymentUsSection({ storeId }: SalonPaymentUsSection
                   step="0.001"
                   min={0}
                   max={30}
-                  value={settings.tax_rate}
-                  onChange={(e) => void save({ tax_rate: Number(e.target.value) })}
+                  value={taxRateInput}
+                  onChange={(e) => setTaxRateInput(e.target.value)}
+                  onBlur={() => {
+                    const n = Number(taxRateInput);
+                    const clamped = Number.isFinite(n) ? Math.max(0, Math.min(30, n)) : 0;
+                    if (clamped !== settings.tax_rate) void save({ tax_rate: clamped });
+                    setTaxRateInput(String(clamped));
+                  }}
                   disabled={saving}
                 />
                 <p className="text-xs text-muted-foreground">e.g. 8.875 for parts of NY, 6.625 for NJ.</p>
@@ -300,8 +320,13 @@ export default function SalonPaymentUsSection({ storeId }: SalonPaymentUsSection
                 <Label htmlFor="taxLabel">Label on receipts</Label>
                 <Input
                   id="taxLabel"
-                  value={settings.tax_label}
-                  onChange={(e) => void save({ tax_label: e.target.value })}
+                  value={taxLabelInput}
+                  onChange={(e) => setTaxLabelInput(e.target.value)}
+                  onBlur={() => {
+                    const trimmed = taxLabelInput.trim() || "Sales tax";
+                    if (trimmed !== settings.tax_label) void save({ tax_label: trimmed });
+                    setTaxLabelInput(trimmed);
+                  }}
                   disabled={saving}
                   maxLength={32}
                 />

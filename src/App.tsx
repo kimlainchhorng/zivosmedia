@@ -365,6 +365,22 @@ const BusinessSoftwareDownloadPage = lazy(() => import("./pages/store/BusinessSo
 const AutoRepairDesktopAppPage = lazy(() => import("./pages/store/AutoRepairDesktopAppPage"));
 const ServiceBookingPage = lazy(() => import("./pages/store/ServiceBookingPage"));
 const PublicSalonBookingPage = lazy(() => import("./pages/salon/PublicSalonBookingPage"));
+const PublicCarRentalBookingPage = lazy(() => import("./pages/car-rental/PublicCarRentalBookingPage"));
+const PublicCarRentalBookingDetailPage = lazy(() => import("./pages/car-rental/PublicCarRentalBookingDetailPage"));
+const CarRentalDailySheetPage = lazy(() => import("./pages/admin/CarRentalDailySheetPage"));
+const CarRentalReceiptPage = lazy(() => import("./pages/admin/CarRentalReceiptPage"));
+const PublicCarRentalReviewSubmitPage = lazy(() => import("./pages/car-rental/PublicCarRentalReviewSubmitPage"));
+const MyCarRentalsPage = lazy(() => import("./pages/car-rental/MyCarRentalsPage"));
+const PublicCafeOrderPage = lazy(() => import("./pages/cafe/PublicCafeOrderPage"));
+const CafeReceiptPage = lazy(() => import("./pages/cafe/CafeReceiptPage"));
+const CafeKitchenTicketPage = lazy(() => import("./pages/cafe/CafeKitchenTicketPage"));
+const CafeOrderStatusPage = lazy(() => import("./pages/cafe/CafeOrderStatusPage"));
+const CafeReviewSubmitPage = lazy(() => import("./pages/cafe/CafeReviewSubmitPage"));
+const CafeGiftCardCheckPage = lazy(() => import("./pages/cafe/CafeGiftCardCheckPage"));
+const CafeReservePage = lazy(() => import("./pages/cafe/CafeReservePage"));
+const CafeStorefrontPage = lazy(() => import("./pages/cafe/CafeStorefrontPage"));
+const CafeDailySummaryPage = lazy(() => import("./pages/admin/CafeDailySummaryPage"));
+const CafeQrSheetPage = lazy(() => import("./pages/admin/CafeQrSheetPage"));
 const PublicSalonBookingDetailPage = lazy(() => import("./pages/salon/PublicSalonBookingDetailPage"));
 const SalonReceiptPage = lazy(() => import("./pages/admin/SalonReceiptPage"));
 const SalonDailySchedulePage = lazy(() => import("./pages/admin/SalonDailySchedulePage"));
@@ -1550,6 +1566,23 @@ const App = () => (
                 <Route path="/store-map/list" element={<StoresListPage />} />
                 <Route path="/book/:slug" element={<ServiceBookingPage />} />
                 <Route path="/salon/:slug" element={<PublicSalonBookingPage />} />
+                <Route path="/car-rental/:slug" element={<PublicCarRentalBookingPage />} />
+                <Route path="/car-rental-booking" element={<PublicCarRentalBookingDetailPage />} />
+                <Route path="/car-rental-booking/:code" element={<PublicCarRentalBookingDetailPage />} />
+                <Route path="/admin/stores/:storeId/car-rental-daily-sheet" element={<CarRentalDailySheetPage />} />
+                <Route path="/admin/stores/:storeId/car-rental-receipt/:reservationId" element={<CarRentalReceiptPage />} />
+                <Route path="/car-rental-review/:reservationId" element={<PublicCarRentalReviewSubmitPage />} />
+                <Route path="/my-rentals" element={<MyCarRentalsPage />} />
+                <Route path="/cafe/:slug/gift-card-check" element={<CafeGiftCardCheckPage />} />
+                <Route path="/cafe/:slug/about" element={<CafeStorefrontPage />} />
+                <Route path="/cafe/:slug/reserve" element={<CafeReservePage />} />
+                <Route path="/cafe/:slug" element={<PublicCafeOrderPage />} />
+                <Route path="/cafe/receipt/:orderId" element={<CafeReceiptPage />} />
+                <Route path="/cafe/kitchen-ticket/:orderId" element={<CafeKitchenTicketPage />} />
+                <Route path="/cafe/order/:orderId" element={<CafeOrderStatusPage />} />
+                <Route path="/cafe/review/:orderId" element={<CafeReviewSubmitPage />} />
+                <Route path="/admin/cafe-summary/:storeId/:date" element={<CafeDailySummaryPage />} />
+                <Route path="/admin/cafe-qr-sheet/:storeId" element={<CafeQrSheetPage />} />
                 <Route path="/booking/:id" element={<PublicSalonBookingDetailPage />} />
                 <Route path="/admin/salon-receipt/:bookingId" element={<SalonReceiptPage />} />
                 <Route path="/admin/salon-schedule/:storeId/:date" element={<SalonDailySchedulePage />} />

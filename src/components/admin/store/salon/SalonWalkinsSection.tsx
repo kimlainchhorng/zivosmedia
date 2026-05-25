@@ -82,6 +82,10 @@ export default function SalonWalkinsSection({ storeId }: SalonWalkinsSectionProp
     setSaving(true);
     const start = new Date();
     const end = new Date(start.getTime() + svc.duration_minutes * 60 * 1000);
+    // Audit trail: stamp the front-desk user who created the walk-in so
+    // "who added this?" is answerable later. Matches the pattern used by
+    // owner-create, blockouts, expenses, and loyalty adjustments.
+    const { data: auth } = await supabase.auth.getUser();
     const payload = {
       store_id: storeId,
       client_id: null,
@@ -98,6 +102,7 @@ export default function SalonWalkinsSection({ storeId }: SalonWalkinsSectionProp
       end_at: end.toISOString(),
       status: "confirmed" as const,
       source: "walk_in" as const,
+      created_by_user_id: auth.user?.id ?? null,
     };
     const { error: err } = await supabase
       .from("salon_bookings")
@@ -105,8 +110,17 @@ export default function SalonWalkinsSection({ storeId }: SalonWalkinsSectionProp
     setSaving(false);
     if (err) {
       console.error("[SalonWalkins] insert failed", err);
+      // 23P01 = exclusion_violation, raised by three triggers: GIST no-overlap
+      // (real "stylist is busy"), blockout guard, closure guard. The guards'
+      // RAISE messages are owner-friendly — pass them through; fall back to
+      // the busy-stylist copy for the raw GIST conflict.
       if ((err as any).code === "23P01") {
-        toast.error("That stylist is busy right now — pick another or leave unassigned.");
+        const msg = (err as { message?: string }).message ?? "";
+        if (/closed during/i.test(msg) || /block-off in place/i.test(msg) || /unavailable during/i.test(msg)) {
+          toast.error(msg);
+        } else {
+          toast.error("That stylist is busy right now — pick another or leave unassigned.");
+        }
       } else {
         toast.error("Couldn't add walk-in.");
       }
@@ -137,11 +151,15 @@ export default function SalonWalkinsSection({ storeId }: SalonWalkinsSectionProp
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="wiName">Name *</Label>
-              <Input id="wiName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Client name" />
+              {/* Same caps the Clients & Waitlist dialogs use. The
+                 salon_bookings snapshot columns are unconstrained on length
+                 but keeping the UI consistent prevents accidental paste of
+                 enormous strings. */}
+              <Input id="wiName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Client name" maxLength={120} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="wiPhone">Phone (optional)</Label>
-              <Input id="wiPhone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-5555" />
+              <Input id="wiPhone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-5555" maxLength={30} />
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -212,7 +230,7 @@ export default function SalonWalkinsSection({ storeId }: SalonWalkinsSectionProp
                       {w.service_name}{w.stylist_name ? ` · ${w.stylist_name}` : " · Unassigned"} · {w.duration_minutes} min
                     </p>
                   </div>
-                  <span className="text-sm font-semibold text-foreground">{formatPrice(w.price_cents)}</span>
+                  <span className="text-sm font-semibold text-foreground">{formatPrice(w.price_cents + (w.addons_total_cents ?? 0))}</span>
                 </li>
               ))}
             </ul>

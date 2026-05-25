@@ -40,6 +40,18 @@ export default function SalonBookingRetailDialog({
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Refresh the products list — needed after every mutation on a completed
+  // booking because the stock-sync trigger has just changed stock_quantity.
+  const reloadProducts = async () => {
+    const { data, error } = await supabase
+      .from("salon_retail_products")
+      .select("id,name,price_cents,stock_quantity,is_active")
+      .eq("store_id", storeId)
+      .order("name", { ascending: true });
+    if (error) return;
+    setProducts((data ?? []) as any);
+  };
+
   useEffect(() => {
     if (!bookingId) return;
     let cancelled = false;
@@ -69,9 +81,10 @@ export default function SalonBookingRetailDialog({
   }, [items]);
 
   const filteredProducts = useMemo(() => {
-    if (!search) return products;
+    const active = products.filter((p) => p.is_active);
+    if (!search) return active;
     const q = search.toLowerCase();
-    return products.filter((p) => p.name.toLowerCase().includes(q));
+    return active.filter((p) => p.name.toLowerCase().includes(q));
   }, [products, search]);
 
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.unit_price_cents * it.quantity, 0), [items]);
@@ -108,6 +121,7 @@ export default function SalonBookingRetailDialog({
       if (error || !data) { toast.error("Couldn't add product."); setSaving(false); return; }
       setItems((prev) => [...prev, data as unknown as BookingRetailItem]);
     }
+    if (bookingStatus === "completed") await reloadProducts();
     setSaving(false);
     onChanged?.();
   };
@@ -135,6 +149,7 @@ export default function SalonBookingRetailDialog({
       if (error) { toast.error("Couldn't update."); setSaving(false); return; }
       setItems((prev) => prev.map((x) => x.id === item.id ? { ...x, quantity: next } : x));
     }
+    if (bookingStatus === "completed") await reloadProducts();
     setSaving(false);
     onChanged?.();
   };
@@ -142,9 +157,10 @@ export default function SalonBookingRetailDialog({
   const removeItem = async (item: BookingRetailItem) => {
     setSaving(true);
     const { error } = await supabase.from("salon_booking_retail_items").delete().eq("id", item.id);
-    setSaving(false);
-    if (error) { toast.error("Couldn't remove."); return; }
+    if (error) { toast.error("Couldn't remove."); setSaving(false); return; }
     setItems((prev) => prev.filter((x) => x.id !== item.id));
+    if (bookingStatus === "completed") await reloadProducts();
+    setSaving(false);
     onChanged?.();
   };
 
@@ -205,7 +221,7 @@ export default function SalonBookingRetailDialog({
               <p className="text-xs text-muted-foreground">No products match.</p>
             ) : (
               <div className="max-h-48 divide-y divide-border overflow-y-auto rounded-xl border border-border">
-                {filteredProducts.filter((p) => p.is_active).map((p) => (
+                {filteredProducts.map((p) => (
                   <div key={p.id} className="flex items-center gap-3 p-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-foreground">{p.name}</p>

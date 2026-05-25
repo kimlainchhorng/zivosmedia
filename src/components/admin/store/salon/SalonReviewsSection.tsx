@@ -80,18 +80,35 @@ export default function SalonReviewsSection({ storeId }: SalonReviewsSectionProp
   };
 
   const toggleVisible = async (r: Review) => {
+    const next = !r.is_visible;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_reviews").update({ is_visible: !r.is_visible } as never).eq("id", r.id);
+    // Optimistic flip so the row updates immediately — without this, on a
+    // slow connection the click feels unresponsive until the reload completes.
+    setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, is_visible: next } : x)));
+    const { error: err } = await supabase.from("salon_reviews").update({ is_visible: next } as never).eq("id", r.id);
     setSaving(false);
-    if (err) { setError("Couldn't update visibility."); return; }
-    await load();
+    if (err) {
+      setError("Couldn't update visibility.");
+      await load(); // roll back to server truth
+      return;
+    }
+    toast.success(next ? "Review shown on your public page." : "Review hidden from your public page.");
   };
 
-  const remove = async (id: string) => {
+  const remove = async (review: Review) => {
+    // Owners can already hide a review; deletion is irreversible and would
+    // also rewrite history (the public RPC has no way to know what was
+    // removed). Make them mean it.
+    const stars = "★".repeat(review.rating_stars);
+    const ok = window.confirm(
+      `Permanently delete ${review.client_name}'s ${stars} review?\n\nTo just remove it from the public page, use "Hide" instead — that's reversible.`
+    );
+    if (!ok) return;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_reviews").delete().eq("id", id);
+    const { error: err } = await supabase.from("salon_reviews").delete().eq("id", review.id);
     setSaving(false);
     if (err) { setError("Couldn't delete."); return; }
+    toast.success("Review deleted.");
     await load();
   };
 
@@ -170,7 +187,7 @@ export default function SalonReviewsSection({ storeId }: SalonReviewsSectionProp
                     <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => toggleVisible(r)} disabled={saving}>
                       {r.is_visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />} {r.is_visible ? "Hide" : "Show"}
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-destructive hover:text-destructive" onClick={() => remove(r.id)} disabled={saving}>
+                    <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-destructive hover:text-destructive" onClick={() => remove(r)} disabled={saving}>
                       <Trash2 className="h-3.5 w-3.5" /> Delete
                     </Button>
                   </div>
