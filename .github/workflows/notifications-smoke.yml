@@ -42,7 +42,7 @@ jobs:
           deno-version: v1.x
 
       - name: Cache Deno dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/deno
           key: ${{ runner.os }}-deno-notifications-${{ hashFiles('supabase/functions/**/*.ts', 'supabase/functions/**/*.json', 'supabase/config.toml') }}
