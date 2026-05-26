@@ -20,6 +20,7 @@ import { useStoryDeepLink, useStoryViewerLocation } from "@/hooks/useStoryDeepLi
 import { invalidateAllStoryCaches } from "@/lib/storiesCache";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 const CreateStorySheet = lazy(() => import("@/components/profile/CreateStorySheet"));
 
@@ -33,6 +34,11 @@ interface StoryRow {
   created_at: string;
   expires_at: string;
   view_count: number | null;
+  is_sensitive?: boolean | null;
+  sensitive_reason?: string | null;
+  hidden_at?: string | null;
+  hidden_reason?: string | null;
+  sensitive_report_count?: number | null;
 }
 
 interface StoryProfileRow {
@@ -53,13 +59,25 @@ export default function ChatStories() {
     enabled: !!user,
     refetchInterval: 60000,
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("stories" as any)
-        .select("id, user_id, media_url, media_type, text_overlay, audio_url, created_at, expires_at, view_count")
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: true });
+      const selectBase = "id, user_id, media_url, media_type, text_overlay, audio_url, created_at, expires_at, view_count";
+      const selectWithSafety = `${selectBase}, is_sensitive, sensitive_reason, hidden_at, hidden_reason, sensitive_report_count`;
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories" as any)
+          .select(select)
+          .gt("expires_at", new Date().toISOString());
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: true });
+      };
+      let { data, error } = await queryStories(selectWithSafety, true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories(selectBase, false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
 
-      const stories = (data ?? []) as StoryRow[];
+      const stories = ((data ?? []) as StoryRow[]).filter((story) => !story.hidden_at);
       if (stories.length === 0) return [];
 
       const userIds = [...new Set(stories.map((s) => s.user_id))];
@@ -90,6 +108,11 @@ export default function ChatStories() {
           audioUrl: s.audio_url,
           createdAt: s.created_at,
           viewsCount: s.view_count ?? 0,
+          isSensitive: Boolean(s.is_sensitive),
+          sensitiveReason: s.sensitive_reason,
+          hiddenAt: s.hidden_at,
+          hiddenReason: s.hidden_reason,
+          sensitiveReportCount: s.sensitive_report_count ?? 0,
         });
       }
 

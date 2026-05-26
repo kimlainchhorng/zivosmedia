@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { FeedIncidentSummaryCard } from "@/components/admin/FeedIncidentSummaryCard";
 import { cn } from "@/lib/utils";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 type TimeRange = "7d" | "30d" | "90d" | "1y";
 
@@ -557,13 +558,22 @@ export default function AdminAnalyticsDashboard() {
   const { data: storiesRaw } = useQuery({
     queryKey: ["admin-stories", timeRange],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("stories")
-        .select("view_count, created_at")
-        .gte("created_at", since)
-        .limit(10000);
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories")
+          .select(select)
+          .gte("created_at", since);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.limit(10000);
+      };
+      let { data, error } = await queryStories("view_count, created_at, hidden_at", true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories("view_count, created_at", false);
+        data = fallback.data;
+        error = fallback.error;
+      }
       if (error) return [];
-      return data || [];
+      return ((data || []) as Array<{ hidden_at?: string | null }>).filter((story) => !story.hidden_at);
     },
     enabled: isAdmin,
   });

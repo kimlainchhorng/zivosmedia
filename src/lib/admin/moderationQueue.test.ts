@@ -17,7 +17,8 @@ describe("moderationQueue", () => {
     expect(normalizeModerationContentType("chat_message")).toBe("direct_message");
     expect(normalizeModerationContentType("direct_message")).toBe("direct_message");
     expect(normalizeModerationContentType("group_message")).toBe("group_message");
-    expect(normalizeModerationContentType("story")).toBe("unknown");
+    expect(normalizeModerationContentType("story")).toBe("story");
+    expect(normalizeModerationContentType("story_comment")).toBe("story_comment");
   });
 
   it("returns operator-facing content labels", () => {
@@ -25,7 +26,8 @@ describe("moderationQueue", () => {
     expect(getModerationContentLabel("post_comment")).toBe("Comment");
     expect(getModerationContentLabel("direct_message")).toBe("Direct message");
     expect(getModerationContentLabel("group_message")).toBe("Group message");
-    expect(getModerationContentLabel("story")).toBe("Unknown");
+    expect(getModerationContentLabel("story")).toBe("Story");
+    expect(getModerationContentLabel("story_comment")).toBe("Story comment");
   });
 
   it("maps review actions to queue statuses and audit actions", () => {

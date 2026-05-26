@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 interface ArchivedStory {
   id: string;
@@ -25,6 +26,7 @@ interface ArchivedStory {
   view_count: number;
   created_at: string;
   expires_at: string;
+  hidden_at?: string | null;
 }
 
 type Filter = "All" | "Photos" | "Videos" | "Text";
@@ -52,24 +54,24 @@ export default function StoryArchivePage() {
     queryKey: ["story-archive", user?.id],
     queryFn: async () => {
       if (!user?.id) return [] as ArchivedStory[];
-      const sb = supabase as unknown as {
-        from: (t: string) => {
-          select: (s: string) => {
-            eq: (k: string, v: string) => {
-              lt: (k: string, v: string) => {
-                order: (k: string, opts: { ascending: boolean }) => Promise<{ data: ArchivedStory[] | null }>;
-              };
-            };
-          };
-        };
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories")
+          .select(select)
+          .eq("user_id", user.id)
+          .lt("expires_at", new Date().toISOString());
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: false });
       };
-      const { data } = await sb
-        .from("stories")
-        .select("id, media_url, media_type, text_overlay, background_color, view_count, created_at, expires_at")
-        .eq("user_id", user.id)
-        .lt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false });
-      return data ?? [];
+      const selectBase = "id, media_url, media_type, text_overlay, background_color, view_count, created_at, expires_at";
+      let { data, error } = await queryStories(`${selectBase}, hidden_at`, true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories(selectBase, false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
+      return ((data ?? []) as ArchivedStory[]).filter((story) => !story.hidden_at);
     },
     enabled: !!user?.id,
     staleTime: 60_000,

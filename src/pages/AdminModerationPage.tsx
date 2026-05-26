@@ -126,6 +126,8 @@ const CONTENT_FILTERS: Array<{ label: string; value: ContentFilter }> = [
   { label: "Comments", value: "post_comment" },
   { label: "Direct messages", value: "direct_message" },
   { label: "Group messages", value: "group_message" },
+  { label: "Stories", value: "story" },
+  { label: "Story comments", value: "story_comment" },
 ];
 
 const STATUS_FILTERS: Array<{ label: string; value: StatusFilter }> = [
@@ -213,7 +215,11 @@ async function loadContentDetails(report: ModerationReport): Promise<ContentDeta
           ? "direct_messages"
           : report.kind === "group_message"
             ? "group_messages"
-            : null;
+            : report.kind === "story"
+              ? "stories"
+              : report.kind === "story_comment"
+                ? "story_comments"
+                : null;
   if (!table) return null;
 
   const select =
@@ -223,7 +229,11 @@ async function loadContentDetails(report: ModerationReport): Promise<ContentDeta
         ? "id, user_id, content, post_id, post_source, hidden_at, hidden_reason, sensitive_report_count, created_at"
         : report.kind === "direct_message"
           ? "id, sender_id, receiver_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload"
-          : "id, group_id, sender_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload";
+          : report.kind === "group_message"
+            ? "id, group_id, sender_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload"
+            : report.kind === "story"
+              ? "id, user_id, text_overlay, media_type, media_url, hidden_at, hidden_reason, is_sensitive, sensitive_reason, sensitive_report_count, created_at"
+              : "id, story_id, user_id, content, hidden_at, hidden_reason, sensitive_report_count, created_at";
 
   const { data, error } = await (supabase as any).from(table).select(select).eq("id", report.contentId).maybeSingle();
   if (error) throw error;
@@ -239,6 +249,7 @@ async function loadContentDetails(report: ModerationReport): Promise<ContentDeta
   ]);
   const body =
     textField(row, "caption") ||
+    textField(row, "text_overlay") ||
     textField(row, "content") ||
     textField(row, "message") ||
     "No text content";
@@ -260,6 +271,7 @@ async function loadContentDetails(report: ModerationReport): Promise<ContentDeta
       row.created_at ? `Created ${formatDistanceToNow(new Date(textField(row, "created_at")), { addSuffix: true })}` : null,
       row.sensitive_report_count ? `${row.sensitive_report_count} sensitive reports` : null,
       groupName ? `Group: ${groupName}` : null,
+      report.kind === "story_comment" && textField(row, "story_id") ? `Story: ${textField(row, "story_id")}` : null,
       receiver ? `Receiver: ${receiver.full_name || "Unknown user"}` : null,
     ].filter(Boolean) as string[],
   };
@@ -402,7 +414,11 @@ export default function AdminModerationPage() {
             ? "direct_messages"
             : report.kind === "group_message"
               ? "group_messages"
-              : null;
+              : report.kind === "story"
+                ? "stories"
+                : report.kind === "story_comment"
+                  ? "story_comments"
+                  : null;
     if (!table) return;
 
     const hidePatch = {
@@ -417,7 +433,7 @@ export default function AdminModerationPage() {
     };
     const basePatch = action === "unhide_false_positive" ? unhidePatch : hidePatch;
     const patch =
-      report.kind === "user_post"
+      report.kind === "user_post" || report.kind === "story"
         ? action === "unhide_false_positive"
           ? { ...basePatch, is_sensitive: false, sensitive_reason: null }
           : { ...basePatch, is_sensitive: true, sensitive_reason: "moderator_sensitive" }

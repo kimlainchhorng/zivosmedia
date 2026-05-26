@@ -24,6 +24,7 @@ import { useStoryDeepLink, useStoryViewerLocation } from "@/hooks/useStoryDeepLi
 import { invalidateAllStoryCaches } from "@/lib/storiesCache";
 import { useMyStoryViews } from "@/hooks/useMyStoryViews";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 const CreateStorySheet = lazy(() => import("@/components/profile/CreateStorySheet"));
 
@@ -37,6 +38,11 @@ interface RawStory {
   created_at: string;
   expires_at: string;
   view_count: number | null;
+  is_sensitive?: boolean | null;
+  sensitive_reason?: string | null;
+  hidden_at?: string | null;
+  hidden_reason?: string | null;
+  sensitive_report_count?: number | null;
 }
 
 export default function FeedStoryRing() {
@@ -53,12 +59,24 @@ export default function FeedStoryRing() {
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("stories")
-        .select("id, user_id, media_url, media_type, text_overlay, audio_url, created_at, expires_at, view_count")
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: true });
-      return ((data as any[]) || []) as RawStory[];
+      const selectBase = "id, user_id, media_url, media_type, text_overlay, audio_url, created_at, expires_at, view_count";
+      const selectWithSafety = `${selectBase}, is_sensitive, sensitive_reason, hidden_at, hidden_reason, sensitive_report_count`;
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories")
+          .select(select)
+          .gt("expires_at", new Date().toISOString());
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: true });
+      };
+      let { data, error } = await queryStories(selectWithSafety, true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories(selectBase, false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
+      return (((data as any[]) || []) as RawStory[]).filter((story) => !story.hidden_at);
     },
   });
 
@@ -105,6 +123,11 @@ export default function FeedStoryRing() {
           audioUrl: s.audio_url || undefined,
           createdAt: s.created_at,
           viewsCount: s.view_count ?? 0,
+          isSensitive: Boolean(s.is_sensitive),
+          sensitiveReason: s.sensitive_reason,
+          hiddenAt: s.hidden_at,
+          hiddenReason: s.hidden_reason,
+          sensitiveReportCount: s.sensitive_report_count ?? 0,
         })),
       });
     }

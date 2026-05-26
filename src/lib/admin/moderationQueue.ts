@@ -1,4 +1,11 @@
-export type ModerationContentKind = "user_post" | "post_comment" | "direct_message" | "group_message" | "unknown";
+export type ModerationContentKind =
+  | "user_post"
+  | "post_comment"
+  | "direct_message"
+  | "group_message"
+  | "story"
+  | "story_comment"
+  | "unknown";
 
 export type ModerationReviewAction = "confirm_hidden" | "dismiss" | "unhide_false_positive";
 
@@ -13,6 +20,8 @@ const CONTENT_LABELS: Record<ModerationContentKind, string> = {
   post_comment: "Comment",
   direct_message: "Direct message",
   group_message: "Group message",
+  story: "Story",
+  story_comment: "Story comment",
   unknown: "Unknown",
 };
 
@@ -29,6 +38,10 @@ export function normalizeModerationContentType(contentType?: string | null): Mod
       return "direct_message";
     case "group_message":
       return "group_message";
+    case "story":
+      return "story";
+    case "story_comment":
+      return "story_comment";
     default:
       return "unknown";
   }

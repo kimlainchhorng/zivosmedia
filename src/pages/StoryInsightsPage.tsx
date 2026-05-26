@@ -14,6 +14,7 @@ import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 interface StoryRow {
   id: string;
@@ -24,6 +25,7 @@ interface StoryRow {
   view_count: number;
   created_at: string;
   expires_at: string;
+  hidden_at?: string | null;
 }
 
 interface ResponseRow {
@@ -39,24 +41,23 @@ export default function StoryInsightsPage() {
     queryKey: ["story-insights", user?.id],
     queryFn: async () => {
       if (!user?.id) return [] as StoryRow[];
-      const sb = supabase as unknown as {
-        from: (t: string) => {
-          select: (s: string) => {
-            eq: (k: string, v: string) => {
-              order: (k: string, opts: { ascending: boolean }) => {
-                limit: (n: number) => Promise<{ data: StoryRow[] | null }>;
-              };
-            };
-          };
-        };
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories")
+          .select(select)
+          .eq("user_id", user.id);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: false }).limit(40);
       };
-      const { data } = await sb
-        .from("stories")
-        .select("id, media_url, media_type, text_overlay, background_color, view_count, created_at, expires_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(40);
-      return data ?? [];
+      const selectBase = "id, media_url, media_type, text_overlay, background_color, view_count, created_at, expires_at";
+      let { data, error } = await queryStories(`${selectBase}, hidden_at`, true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories(selectBase, false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
+      return ((data ?? []) as StoryRow[]).filter((story) => !story.hidden_at);
     },
     enabled: !!user?.id,
     staleTime: 60_000,

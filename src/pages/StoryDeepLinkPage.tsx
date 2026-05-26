@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 type MissingReason = "not_found" | "expired" | "fetch_error";
 type Status =
@@ -47,11 +48,20 @@ export default function StoryDeepLinkPage() {
       return;
     }
     try {
-      const { data, error } = await supabase
-        .from("stories" as any)
-        .select("id, expires_at")
-        .eq("id", storyId)
-        .maybeSingle();
+      const queryStory = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories" as any)
+          .select(select)
+          .eq("id", storyId);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.maybeSingle();
+      };
+      let { data, error } = await queryStory("id, expires_at, hidden_at", true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStory("id, expires_at", false);
+        data = fallback.data;
+        error = fallback.error;
+      }
 
       if (error) {
         setState({ status: "missing", reason: "fetch_error", detail: error.message });

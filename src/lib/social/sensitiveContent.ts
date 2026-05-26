@@ -79,3 +79,13 @@ export function isGroupMessageSafetySchemaDriftError(error: unknown): boolean {
   const message = String((error as any)?.message || (error as any)?.details || (error as any)?.hint || "");
   return /group_message_reports|group_messages.*hidden_at|hidden_by|hidden_reason|sensitive_report_count|schema cache|column|relation .* does not exist/i.test(message);
 }
+
+export function isStorySafetySchemaDriftError(error: unknown): boolean {
+  const message = String((error as any)?.message || (error as any)?.details || (error as any)?.hint || "");
+  return /story_reports|stories.*(is_sensitive|sensitive_reason|hidden_at|hidden_by|hidden_reason|sensitive_report_count)|schema cache|column|relation .* does not exist/i.test(message);
+}
+
+export function isStoryCommentSafetySchemaDriftError(error: unknown): boolean {
+  const message = String((error as any)?.message || (error as any)?.details || (error as any)?.hint || "");
+  return /story_comment_reports|story_comments.*hidden_at|hidden_by|hidden_reason|sensitive_report_count|schema cache|column|relation .* does not exist/i.test(message);
+}

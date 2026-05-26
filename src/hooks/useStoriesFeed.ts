@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 export interface FeedStory {
   id: string;
@@ -22,21 +23,31 @@ async function fetchStoriesFeed(viewerId: string): Promise<FeedStory[]> {
   const followingIds = (follows ?? []).map(f => f.following_id);
   if (followingIds.length === 0) return [];
 
-  const { data: stories, error: storiesErr } = await supabase
-    .from("stories")
-    .select("id, user_id, created_at")
-    .in("user_id", followingIds)
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false });
+  const queryStories = (select: string, includeHiddenFilter: boolean) => {
+    let query = (supabase as any)
+      .from("stories")
+      .select(select)
+      .in("user_id", followingIds)
+      .gt("expires_at", new Date().toISOString());
+    if (includeHiddenFilter) query = query.is("hidden_at", null);
+    return query.order("created_at", { ascending: false });
+  };
+  let { data: stories, error: storiesErr } = await queryStories("id, user_id, created_at, hidden_at", true);
+  if (storiesErr && isStorySafetySchemaDriftError(storiesErr)) {
+    const fallback = await queryStories("id, user_id, created_at", false);
+    stories = fallback.data;
+    storiesErr = fallback.error;
+  }
   if (storiesErr) throw storiesErr;
   if (!stories || stories.length === 0) return [];
 
   // One entry per user — keep the most recent story (already sorted desc).
   const latestByUser = new Map<string, { id: string; user_id: string }>();
-  for (const s of stories) {
+  for (const s of stories.filter((story: any) => !story.hidden_at)) {
     if (!latestByUser.has(s.user_id)) latestByUser.set(s.user_id, s);
   }
   const latestStories = [...latestByUser.values()];
+  if (latestStories.length === 0) return [];
   const userIds = latestStories.map(s => s.user_id);
   const storyIds = latestStories.map(s => s.id);
 

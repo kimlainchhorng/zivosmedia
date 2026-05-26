@@ -5,6 +5,8 @@ import {
   isCommentSafetySchemaDriftError,
   isGroupMessageSafetySchemaDriftError,
   isSensitiveReportReason,
+  isStoryCommentSafetySchemaDriftError,
+  isStorySafetySchemaDriftError,
 } from "./sensitiveContent";
 
 describe("sensitiveContent", () => {
@@ -40,5 +42,17 @@ describe("sensitiveContent", () => {
     expect(isGroupMessageSafetySchemaDriftError({ message: "relation public.group_message_reports does not exist" })).toBe(true);
     expect(isGroupMessageSafetySchemaDriftError({ message: "Could not find the hidden_at column of group_messages" })).toBe(true);
     expect(isGroupMessageSafetySchemaDriftError({ message: "network timeout" })).toBe(false);
+  });
+
+  it("recognizes missing story safety migration errors", () => {
+    expect(isStorySafetySchemaDriftError({ message: "relation public.story_reports does not exist" })).toBe(true);
+    expect(isStorySafetySchemaDriftError({ message: "Could not find the hidden_at column of stories" })).toBe(true);
+    expect(isStorySafetySchemaDriftError({ message: "network timeout" })).toBe(false);
+  });
+
+  it("recognizes missing story comment safety migration errors", () => {
+    expect(isStoryCommentSafetySchemaDriftError({ message: "relation public.story_comment_reports does not exist" })).toBe(true);
+    expect(isStoryCommentSafetySchemaDriftError({ message: "Could not find the hidden_at column of story_comments" })).toBe(true);
+    expect(isStoryCommentSafetySchemaDriftError({ message: "network timeout" })).toBe(false);
   });
 });

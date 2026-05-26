@@ -26,6 +26,7 @@ import {
   STORIES_BUCKET,
 } from "@/lib/storiesCache";
 import StoryForwardSheet from "@/components/stories/StoryForwardSheet";
+import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
 import X from "lucide-react/dist/esm/icons/x";
 import Eye from "lucide-react/dist/esm/icons/eye";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
@@ -45,9 +46,16 @@ import Share2 from "lucide-react/dist/esm/icons/share-2";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import CornerDownRight from "lucide-react/dist/esm/icons/corner-down-right";
+import Flag from "lucide-react/dist/esm/icons/flag";
 import { useNavigate } from "react-router-dom";
 import { getPublicOrigin } from "@/lib/getPublicOrigin";
 import { useStoryRealtime } from "@/hooks/useStoryRealtime";
+import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
+import {
+  detectSensitiveContent,
+  isStoryCommentSafetySchemaDriftError,
+  isStorySafetySchemaDriftError,
+} from "@/lib/social/sensitiveContent";
 
 export interface StoryItem {
   id: string;
@@ -57,6 +65,11 @@ export interface StoryItem {
   audioUrl?: string;
   createdAt: string;
   viewsCount: number;
+  isSensitive?: boolean;
+  sensitiveReason?: string | null;
+  hiddenAt?: string | null;
+  hiddenReason?: string | null;
+  sensitiveReportCount?: number | null;
 }
 
 export interface StoryGroup {
@@ -118,6 +131,9 @@ type StoryCommentRow = {
   user_id: string;
   content: string;
   created_at: string;
+  hidden_at?: string | null;
+  hidden_reason?: string | null;
+  sensitive_report_count?: number | null;
 };
 
 type StoryDbRow = {
@@ -177,6 +193,7 @@ export default function StoryViewer({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { blurSensitiveMedia } = useSensitiveMediaPreference(user?.id);
 
   const [groupIdx, setGroupIdx] = useState(startGroupIndex);
   const [viewIdx, setViewIdx] = useState(startStoryIndex);
@@ -191,6 +208,9 @@ export default function StoryViewer({
   const [showForward, setShowForward] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [showMention, setShowMention] = useState(false);
+  const [revealedSensitiveStories, setRevealedSensitiveStories] = useState<Set<string>>(() => new Set());
+  const [reportedStoryIds, setReportedStoryIds] = useState<Set<string>>(() => new Set());
+  const [reportedCommentIds, setReportedCommentIds] = useState<Set<string>>(() => new Set());
   // Quick-react picker (non-owner: tap "+" or long-press to open expanded grid)
   const [showQuickReact, setShowQuickReact] = useState(false);
   // Threaded reply UI inside the Reactions tab
@@ -234,6 +254,20 @@ export default function StoryViewer({
   const currentStoryId = currentStory?.id ?? null;
   const userId = user?.id ?? null;
   const isOwner = viewingGroup?.userId === user?.id;
+  const storySensitiveMediaMatch = detectSensitiveContent(currentStory?.caption || "", {
+    creatorMarked: Boolean(currentStory?.isSensitive),
+    reportMarked: Boolean(currentStory?.hiddenAt || currentStory?.sensitiveReportCount),
+    reason: currentStory?.sensitiveReason || currentStory?.hiddenReason,
+  });
+  const shouldGateSensitiveStory =
+    Boolean(currentStory?.mediaUrl) &&
+    !isOwner &&
+    blurSensitiveMedia &&
+    storySensitiveMediaMatch.isSensitive;
+  const sensitiveStoryLocked =
+    Boolean(currentStoryId) &&
+    shouldGateSensitiveStory &&
+    !revealedSensitiveStories.has(currentStoryId);
 
   // Live updates: subscribe to reactions / comments / views for the active story
   useStoryRealtime(currentStory?.id);
@@ -295,15 +329,31 @@ export default function StoryViewer({
       }));
     },
   });
-  const { data: comments = [] } = useQuery({
+  const { data: commentRows = [] } = useQuery({
     queryKey: ["story-comments", currentStory?.id],
     enabled: !!currentStory,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("story_comments")
-        .select("id, user_id, content, created_at")
-        .eq("story_id", currentStory!.id)
-        .order("created_at", { ascending: true });
+      const queryComments = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("story_comments")
+          .select(select)
+          .eq("story_id", currentStory!.id);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: true });
+      };
+
+      let { data, error } = await queryComments(
+        "id, user_id, content, created_at, hidden_at, hidden_reason, sensitive_report_count",
+        true,
+      );
+
+      if (error && isStoryCommentSafetySchemaDriftError(error)) {
+        const fallback = await queryComments("id, user_id, content, created_at", false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+
+      if (error) throw error;
       if (!data || data.length === 0) return [];
       // Dedupe comments by id (defensive — duplicates would crash React lists)
       const seenC = new Set<string>();
@@ -311,7 +361,7 @@ export default function StoryViewer({
         if (seenC.has(c.id)) return false;
         seenC.add(c.id);
         return true;
-      });
+      }).filter((c) => !c.hidden_at);
       const userIds = [...new Set(uniqueComments.map((c) => c.user_id))];
       const { data: profiles } = await storyDb
         .from("public_profiles")
@@ -325,6 +375,7 @@ export default function StoryViewer({
       }));
     },
   });
+  const comments = commentRows.filter((comment) => !reportedCommentIds.has(comment.id) && !comment.hidden_at);
 
   // Parse comments into threads keyed by reactionId.
   // Convention: content starting with "[react:<uuid>] body" belongs to that
@@ -444,6 +495,10 @@ export default function StoryViewer({
   // ---- Post comment (used for threaded replies under reactions) ----
   const postComment = useMutation({
     mutationFn: async (content: string) => {
+      const textSensitivity = detectSensitiveContent(content);
+      if (textSensitivity.isSensitive) {
+        throw new Error("explicit_story_comment_blocked");
+      }
       const { error } = await supabase.from("story_comments").insert({
         story_id: currentStory!.id,
         user_id: user!.id,
@@ -458,7 +513,9 @@ export default function StoryViewer({
     },
     onError: (err: unknown) => {
       const message = errorMessage(err, "");
-      if (message.includes("violates row-level security")) {
+      if (message.includes("explicit_story_comment_blocked")) {
+        toast.error("This comment looks sexual or explicit. Story comments cannot contain 18+ text.");
+      } else if (message.includes("violates row-level security")) {
         toast.error("Only the story owner or original reactor can reply here");
       } else {
         toast.error("Failed to post reply");
@@ -624,6 +681,103 @@ export default function StoryViewer({
     }
   }, [viewIdx, groupIdx, groups]);
 
+  const blockForReporter = useCallback(async (targetUserId: string) => {
+    if (!user?.id || targetUserId === user.id) return;
+    await (supabase as any).from("user_safety_actions").upsert(
+      {
+        user_id: user.id,
+        target_user_id: targetUserId,
+        action: "block",
+      },
+      { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
+    );
+  }, [user?.id]);
+
+  const handleReportStory = useCallback(async () => {
+    if (!currentStory || !viewingGroup || !user?.id) {
+      toast.error("Sign in to report stories");
+      return;
+    }
+    if (isOwner) {
+      toast.error("You can't report your own story");
+      return;
+    }
+
+    const reason = "Nudity or sexual content";
+    setReportedStoryIds((prev) => new Set(prev).add(currentStory.id));
+    setShowMore(false);
+    setPaused(false);
+
+    try {
+      const { error } = await (supabase as any).from("story_reports").insert({
+        reporter_id: user.id,
+        story_id: currentStory.id,
+        owner_id: viewingGroup.userId,
+        reason,
+        description: (currentStory.caption || "").slice(0, 500),
+      });
+      if (error) throw error;
+      await blockForReporter(viewingGroup.userId);
+      invalidateAllStoryCaches(queryClient, user.id);
+      toast.success("We hid it, blocked this user, and sent it for safety review");
+      goNext();
+    } catch (error) {
+      if (isStorySafetySchemaDriftError(error)) {
+        await blockForReporter(viewingGroup.userId).catch(() => {});
+        toast.warning("Story hidden here. Deploy the story safety migration to send it for review.");
+        goNext();
+        return;
+      }
+      setReportedStoryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(currentStory.id);
+        return next;
+      });
+      toast.error("Couldn't submit story report");
+    }
+  }, [blockForReporter, currentStory, goNext, isOwner, queryClient, user?.id, viewingGroup]);
+
+  const handleReportStoryComment = useCallback(async (comment: CommentListItem) => {
+    if (!currentStory || !user?.id) {
+      toast.error("Sign in to report comments");
+      return;
+    }
+    if (comment.user_id === user.id) {
+      toast.error("You can't report your own comment");
+      return;
+    }
+
+    const reason = "Nudity or sexual content";
+    setReportedCommentIds((prev) => new Set(prev).add(comment.id));
+
+    try {
+      const { error } = await (supabase as any).from("story_comment_reports").insert({
+        reporter_id: user.id,
+        comment_id: comment.id,
+        story_id: currentStory.id,
+        comment_author_id: comment.user_id,
+        reason,
+        description: (comment.content || "").slice(0, 500),
+      });
+      if (error) throw error;
+      await blockForReporter(comment.user_id);
+      queryClient.invalidateQueries({ queryKey: ["story-comments", currentStory.id] });
+      toast.success("Comment hidden, user blocked, and report sent for review");
+    } catch (error) {
+      if (isStoryCommentSafetySchemaDriftError(error)) {
+        await blockForReporter(comment.user_id).catch(() => {});
+        toast.warning("Comment hidden here. Deploy the story safety migration to send it for review.");
+        return;
+      }
+      setReportedCommentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(comment.id);
+        return next;
+      });
+      toast.error("Couldn't submit comment report");
+    }
+  }, [blockForReporter, currentStory, queryClient, user?.id]);
+
   useEffect(() => {
     if (progress < 1 || !viewingGroup) return;
     const id = window.setTimeout(() => goNext(), 0);
@@ -631,7 +785,7 @@ export default function StoryViewer({
   }, [progress, viewingGroup, goNext]);
 
   useEffect(() => {
-    if (!viewingGroup || paused) {
+    if (!viewingGroup || paused || sensitiveStoryLocked) {
       stopTimer();
       return () => stopTimer();
     }
@@ -640,7 +794,7 @@ export default function StoryViewer({
       window.clearTimeout(id);
       stopTimer();
     };
-  }, [viewingGroup, viewIdx, groupIdx, paused, resetAndStart, stopTimer]);
+  }, [viewingGroup, viewIdx, groupIdx, paused, sensitiveStoryLocked, resetAndStart, stopTimer]);
 
   // Keyboard
   useEffect(() => {
@@ -658,7 +812,7 @@ export default function StoryViewer({
     if (info.offset.y > 120 || info.velocity.y > 600) closeWithMeta();
   };
 
-  if (!viewingGroup || !currentStory) return null;
+  if (!viewingGroup || !currentStory || reportedStoryIds.has(currentStory.id)) return null;
 
   // SSR-safe portal guard — prevents runtime errors during prerender/build
   // pipelines that import this component without a real DOM.
@@ -689,27 +843,39 @@ export default function StoryViewer({
       >
         {/* Media */}
         <div className="absolute inset-0">
-          {currentStory.mediaType === "video" ? (
-            <video
-              key={currentStory.id}
-              src={currentStory.mediaUrl}
-              className="w-full h-full object-cover"
-	              autoPlay
-	              playsInline
-	              loop
-	              preload="metadata"
-	              onPlay={() => { if (!paused) startTimer(); }}
-	            />
-          ) : (
-            <img
-              key={currentStory.id}
-              src={currentStory.mediaUrl}
-	              alt=""
-	              className="w-full h-full object-cover"
-	              loading="lazy"
-	              decoding="async"
-	            />
-          )}
+          <SensitiveMediaGate
+            active={shouldGateSensitiveStory}
+            revealed={currentStoryId ? revealedSensitiveStories.has(currentStoryId) : false}
+            onReveal={() => {
+              if (!currentStoryId) return;
+              setRevealedSensitiveStories((prev) => new Set(prev).add(currentStoryId));
+            }}
+            reason={storySensitiveMediaMatch.label}
+            className="h-full w-full"
+            contentClassName="h-full w-full"
+          >
+            {currentStory.mediaType === "video" ? (
+              <video
+                key={currentStory.id}
+                src={currentStory.mediaUrl}
+                className="w-full h-full object-cover"
+	                autoPlay
+	                playsInline
+	                loop
+	                preload="metadata"
+	                onPlay={() => { if (!paused && !sensitiveStoryLocked) startTimer(); }}
+	              />
+            ) : (
+              <img
+                key={currentStory.id}
+                src={currentStory.mediaUrl}
+	                alt=""
+	                className="w-full h-full object-cover"
+	                loading="lazy"
+	                decoding="async"
+	              />
+            )}
+          </SensitiveMediaGate>
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60" />
         </div>
 
@@ -842,6 +1008,17 @@ export default function StoryViewer({
                 <Send className="w-5 h-5 text-white" />
               </div>
               <span className="text-white/80 text-[10px] font-medium">Share</span>
+            </button>
+
+            <button type="button"
+              onClick={() => { setPaused(true); setShowMore(true); }}
+              className="flex flex-col items-center gap-1"
+              aria-label="More options"
+            >
+              <div className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                <MoreHorizontal className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-white/80 text-[10px] font-medium">More</span>
             </button>
           </div>
         )}
@@ -1259,6 +1436,15 @@ export default function StoryViewer({
                           </span>
                         </div>
                         <p className="text-sm text-foreground mt-0.5">{c.content}</p>
+                        {user?.id && c.user_id !== user.id && (
+                          <button type="button"
+                            onClick={() => void handleReportStoryComment(c)}
+                            className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold text-destructive hover:bg-destructive/10"
+                          >
+                            <Flag className="h-3 w-3" />
+                            Report 18+
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -1291,9 +1477,9 @@ export default function StoryViewer({
           )}
         </AnimatePresence>
 
-        {/* Owner: "More" action sheet */}
+        {/* Story "More" action sheet */}
         <AnimatePresence>
-          {showMore && isOwner && (
+          {showMore && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1310,25 +1496,27 @@ export default function StoryViewer({
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/30 my-2" />
-                <button type="button"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(currentStory.mediaUrl, { mode: "cors" });
-                      const blob = await res.blob();
-                      const a = document.createElement("a");
-                      a.href = URL.createObjectURL(blob);
-                      a.download = `story-${currentStory.id}.${(currentStory.mediaType === "video" ? "mp4" : "jpg")}`;
-                      document.body.appendChild(a); a.click(); a.remove();
-                      URL.revokeObjectURL(a.href);
-                      toast.success("Saved");
-                    } catch { toast.error("Couldn't save"); }
-                    setShowMore(false); setPaused(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted text-left"
-                >
-                  <Download className="w-5 h-5 text-foreground" />
-                  <span className="text-sm font-medium text-foreground">Save to device</span>
-                </button>
+                {isOwner && (
+                  <button type="button"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(currentStory.mediaUrl, { mode: "cors" });
+                        const blob = await res.blob();
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `story-${currentStory.id}.${(currentStory.mediaType === "video" ? "mp4" : "jpg")}`;
+                        document.body.appendChild(a); a.click(); a.remove();
+                        URL.revokeObjectURL(a.href);
+                        toast.success("Saved");
+                      } catch { toast.error("Couldn't save"); }
+                      setShowMore(false); setPaused(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted text-left"
+                  >
+                    <Download className="w-5 h-5 text-foreground" />
+                    <span className="text-sm font-medium text-foreground">Save to device</span>
+                  </button>
+                )}
                 <button type="button"
                   onClick={() => {
                     const url = `${getPublicOrigin()}/stories/${currentStory.id}`;
@@ -1341,19 +1529,30 @@ export default function StoryViewer({
                   <Share2 className="w-5 h-5 text-foreground" />
                   <span className="text-sm font-medium text-foreground">Share link</span>
                 </button>
-                <button type="button"
-                  onClick={() => {
-                    if (!currentStory) return;
-                    const last = viewingGroup.stories.length <= 1;
-                    deleteStory.mutate(currentStory.id);
-                    setShowMore(false);
-                    if (last) closeWithMeta(); else goNext();
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-destructive/10 text-left"
-                >
-                  <Trash2 className="w-5 h-5 text-destructive" />
-                  <span className="text-sm font-semibold text-destructive">Delete story</span>
-                </button>
+                {!isOwner && (
+                  <button type="button"
+                    onClick={() => void handleReportStory()}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-destructive/10 text-left"
+                  >
+                    <Flag className="w-5 h-5 text-destructive" />
+                    <span className="text-sm font-semibold text-destructive">Report 18+</span>
+                  </button>
+                )}
+                {isOwner && (
+                  <button type="button"
+                    onClick={() => {
+                      if (!currentStory) return;
+                      const last = viewingGroup.stories.length <= 1;
+                      deleteStory.mutate(currentStory.id);
+                      setShowMore(false);
+                      if (last) closeWithMeta(); else goNext();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-destructive/10 text-left"
+                  >
+                    <Trash2 className="w-5 h-5 text-destructive" />
+                    <span className="text-sm font-semibold text-destructive">Delete story</span>
+                  </button>
+                )}
                 <button type="button"
                   onClick={() => { setShowMore(false); setPaused(false); }}
                   className="w-full px-4 py-3 mt-1 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted"

@@ -13,10 +13,11 @@ import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { isStoryCommentSafetySchemaDriftError, isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 type Tab = "mine" | "on-my-stories";
 
-interface CommentRow { id: string; story_id: string; user_id: string; content: string; created_at: string; }
+interface CommentRow { id: string; story_id: string; user_id: string; content: string; created_at: string; hidden_at?: string | null; }
 interface UserProfile { id: string; user_id: string | null; full_name: string | null; avatar_url: string | null; }
 
 function formatRelative(iso: string): string {
@@ -41,9 +42,22 @@ export default function StoryCommentsPage() {
     queryKey: ["story-comments-mine", user?.id],
     queryFn: async () => {
       if (!user?.id) return [] as CommentRow[];
-      const sb = supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { order: (k: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: CommentRow[] | null }> } } } } };
-      const { data } = await sb.from("story_comments").select("id, story_id, user_id, content, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(100);
-      return data ?? [];
+      const queryComments = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("story_comments")
+          .select(select)
+          .eq("user_id", user.id);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: false }).limit(100);
+      };
+      let { data, error } = await queryComments("id, story_id, user_id, content, created_at, hidden_at", true);
+      if (error && isStoryCommentSafetySchemaDriftError(error)) {
+        const fallback = await queryComments("id, story_id, user_id, content, created_at", false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
+      return ((data ?? []) as CommentRow[]).filter((comment) => !comment.hidden_at);
     },
     enabled: !!user?.id && tab === "mine",
     staleTime: 30_000,
@@ -54,8 +68,21 @@ export default function StoryCommentsPage() {
     queryKey: ["my-story-ids", user?.id],
     queryFn: async () => {
       if (!user?.id) return [] as string[];
-      const sb = supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { order: (k: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: { id: string }[] | null }> } } } } };
-      const { data } = await sb.from("user_stories").select("id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories")
+          .select(select)
+          .eq("user_id", user.id);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: false }).limit(50);
+      };
+      let { data, error } = await queryStories("id, hidden_at", true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories("id", false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
       return (data ?? []).map((r) => r.id);
     },
     enabled: !!user?.id && tab === "on-my-stories",
@@ -66,9 +93,22 @@ export default function StoryCommentsPage() {
     queryKey: ["comments-on-my-stories", storyIds.join(",")],
     queryFn: async () => {
       if (storyIds.length === 0) return [] as CommentRow[];
-      const sb = supabase as unknown as { from: (t: string) => { select: (s: string) => { in: (k: string, v: string[]) => { order: (k: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: CommentRow[] | null }> } } } } };
-      const { data } = await sb.from("story_comments").select("id, story_id, user_id, content, created_at").in("story_id", storyIds).order("created_at", { ascending: false }).limit(100);
-      return data ?? [];
+      const queryComments = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("story_comments")
+          .select(select)
+          .in("story_id", storyIds);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: false }).limit(100);
+      };
+      let { data, error } = await queryComments("id, story_id, user_id, content, created_at, hidden_at", true);
+      if (error && isStoryCommentSafetySchemaDriftError(error)) {
+        const fallback = await queryComments("id, story_id, user_id, content, created_at", false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
+      return ((data ?? []) as CommentRow[]).filter((comment) => !comment.hidden_at);
     },
     enabled: storyIds.length > 0 && tab === "on-my-stories",
     staleTime: 30_000,
