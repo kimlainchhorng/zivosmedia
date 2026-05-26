@@ -1,10 +1,12 @@
 /**
  * CreateGroupModal — Select friends to create a group chat
  */
-import { useState, useEffect, useRef, useMemo } from "react";
+import { type ChangeEvent, useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
+import Camera from "lucide-react/dist/esm/icons/camera";
 import X from "lucide-react/dist/esm/icons/x";
 import Check from "lucide-react/dist/esm/icons/check";
 import Users from "lucide-react/dist/esm/icons/users";
@@ -30,6 +32,7 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const MAX_GROUP_NAME = 80;
+const GROUP_AVATAR_BUCKET = "chat-media-files";
 
 interface CreateGroupModalProps {
   open: boolean;
@@ -57,6 +60,7 @@ type ProfileRow = {
 type GroupRow = {
   id: string;
   name: string;
+  avatar_url?: string | null;
 };
 
 type GroupMemberInsert = {
@@ -75,6 +79,10 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
+  const [step, setStep] = useState<"members" | "details">("members");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const filteredFriends = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -83,8 +91,27 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
   }, [friends, search]);
 
   const trimmedName = groupName.trim();
+  const canAdvance = selected.size >= 1;
   const canSubmit = !creating && trimmedName.length > 0 && selected.size >= 1;
   const friendsLabel = selected.size === 1 ? "friend" : "friends";
+
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(avatarFile);
+    setAvatarPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [avatarFile]);
+
+  useEffect(() => {
+    if (open) return;
+    setStep("members");
+    setSearch("");
+    setGroupName("");
+    setAvatarFile(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open || !user?.id) return;
@@ -129,6 +156,21 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
       else next.add(id);
       return next;
     });
+  };
+
+  const handleAvatarSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose an image for the group photo");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Group photo must be under 8MB");
+      return;
+    }
+    setAvatarFile(file);
   };
 
   // Tracks whether an in-flight creation should still update the UI / commit.
@@ -237,6 +279,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
     const performCreate = async (): Promise<{
       groupId: string;
       groupName: string;
+      avatarPath: string | null;
     }> => {
       const { data: authData, error: authErr } = await supabase.auth.getUser();
       if (authErr || !authData?.user?.id) {
@@ -254,6 +297,21 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
       if (gErr || !group?.id) {
         console.error("[CreateGroup] chat_groups insert failed", gErr);
         throw gErr || new Error("Group row was not created");
+      }
+
+      let avatarPath: string | null = group.avatar_url ?? null;
+      if (avatarFile) {
+        const ext = avatarFile.name.split(".").pop()?.replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
+        const path = `${uid}/group-avatars/${group.id}-${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from(GROUP_AVATAR_BUCKET)
+          .upload(path, avatarFile, { cacheControl: "3600", upsert: false, contentType: avatarFile.type });
+        if (uploadErr) throw uploadErr;
+        avatarPath = path;
+        const { error: updateErr } = await dbFrom("chat_groups")
+          .update({ avatar_url: avatarPath })
+          .eq("id", group.id);
+        if (updateErr) throw updateErr;
       }
 
       const creatorInsert: GroupMemberInsert = {
@@ -290,7 +348,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
           throw mErr;
         }
       }
-      return { groupId: group.id, groupName: group.name };
+      return { groupId: group.id, groupName: group.name, avatarPath };
     };
 
     // ---------- Step 3: run with one auto-retry on auth/RLS errors ----------
@@ -298,7 +356,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
     creatingRef.current = true;
     cancelledRef.current = false;
     try {
-      let result: { groupId: string; groupName: string };
+      let result: { groupId: string; groupName: string; avatarPath: string | null };
       try {
         result = await performCreate();
       } catch (firstErr) {
@@ -325,11 +383,13 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
       }
 
       toast.success("Group created!");
-      onCreated({ id: result.groupId, name: result.groupName });
+      onCreated({ id: result.groupId, name: result.groupName, avatar: result.avatarPath });
       onClose();
       setSelected(new Set());
       setGroupName("");
       setSearch("");
+      setAvatarFile(null);
+      setStep("members");
     } catch (err: unknown) {
       console.error("[CreateGroup] failed", err);
       if (cancelledRef.current) {
@@ -373,8 +433,21 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border/30">
             <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              <h3 id="create-group-title" className="text-base font-bold text-foreground">New Group</h3>
+              {step === "details" ? (
+                <button
+                  type="button"
+                  onClick={() => setStep("members")}
+                  aria-label="Back to member selection"
+                  className="h-9 w-9 -ml-1 flex items-center justify-center rounded-full hover:bg-muted active:bg-muted/80"
+                >
+                  <ArrowLeft className="w-5 h-5 text-foreground" />
+                </button>
+              ) : (
+                <Users className="w-5 h-5 text-primary" />
+              )}
+              <h3 id="create-group-title" className="text-base font-bold text-foreground">
+                {step === "details" ? "Group details" : "New Group"}
+              </h3>
             </div>
             <button type="button"
               onClick={onClose}
@@ -385,39 +458,60 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
             </button>
           </div>
 
-          {/* Group name */}
-          <div className="px-4 py-3 border-b border-border/20">
-            <div className="relative">
-              <input
-                value={groupName}
-                onChange={(e) =>
-                  setGroupName(e.target.value.slice(0, MAX_GROUP_NAME))
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && canSubmit) {
-                    e.preventDefault();
-                    handleCreate();
-                  }
-                }}
-                placeholder="Group name"
-                maxLength={MAX_GROUP_NAME}
-                autoFocus
-                className="w-full pl-3 pr-14 py-2.5 rounded-xl bg-muted/50 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-              />
-              <span
-                className={`absolute right-3 top-1/2 -translate-y-1/2 text-[11px] tabular-nums ${
-                  groupName.length >= MAX_GROUP_NAME
-                    ? "text-destructive"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {groupName.length}/{MAX_GROUP_NAME}
-              </span>
+          {/* Group details */}
+          {step === "details" && (
+            <div className="px-4 py-4 border-b border-border/20">
+              <div className="flex items-center gap-3">
+                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} />
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-primary/10 flex items-center justify-center active:scale-95"
+                  aria-label="Add group photo"
+                  title="Add group photo"
+                >
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <Camera className="h-6 w-6 text-primary" />
+                  )}
+                  <span className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background">
+                    <Camera className="h-3.5 w-3.5" />
+                  </span>
+                </button>
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    value={groupName}
+                    onChange={(e) =>
+                      setGroupName(e.target.value.slice(0, MAX_GROUP_NAME))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && canSubmit) {
+                        e.preventDefault();
+                        handleCreate();
+                      }
+                    }}
+                    placeholder="Group name"
+                    maxLength={MAX_GROUP_NAME}
+                    autoFocus
+                    className="w-full pl-3 pr-14 py-2.5 rounded-xl bg-muted/50 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <span
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 text-[11px] tabular-nums ${
+                      groupName.length >= MAX_GROUP_NAME
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {groupName.length}/{MAX_GROUP_NAME}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Search */}
-          {friends.length > 0 && (
+          {step === "members" && friends.length > 0 && (
             <div className="px-4 pt-3 pb-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -481,69 +575,94 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
 
           {/* Friend list */}
           <div className="flex-1 overflow-y-auto px-4 py-1">
-            {loading ? (
-              <div className="flex justify-center py-10">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              </div>
-            ) : friends.length === 0 ? (
-              <div className="text-center py-10 px-6">
-                <Users className="w-8 h-8 mx-auto text-muted-foreground/60 mb-2" />
-                <p className="text-sm font-medium text-foreground">No friends yet</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Add contacts first, then come back to create a group.
+            {step === "members" ? (
+              loading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              ) : friends.length === 0 ? (
+                <div className="text-center py-10 px-6">
+                  <Users className="w-8 h-8 mx-auto text-muted-foreground/60 mb-2" />
+                  <p className="text-sm font-medium text-foreground">No friends yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add contacts first, then come back to create a group.
+                  </p>
+                </div>
+              ) : filteredFriends.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-10">
+                  No matches for "{search}"
                 </p>
-              </div>
-            ) : filteredFriends.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-10">
-                No matches for "{search}"
-              </p>
-            ) : (
-              filteredFriends.map((f) => {
-                const isSelected = selected.has(f.id);
-                return (
-                  <button type="button"
-                    key={f.id}
-                    onClick={() => toggleSelect(f.id)}
-                    aria-pressed={isSelected}
-                    className="w-full flex items-center gap-3 py-2.5 px-1 rounded-xl hover:bg-muted/50 transition-colors"
-                  >
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={f.avatar || undefined} />
-                      <AvatarFallback className="text-xs bg-muted">
-                        {f.name[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="flex-1 text-sm font-medium text-foreground text-left truncate">
-                      {f.name}
-                    </span>
-                    <div
-                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-                        isSelected
-                          ? "bg-primary border-primary"
-                          : "border-border"
-                      }`}
+              ) : (
+                filteredFriends.map((f) => {
+                  const isSelected = selected.has(f.id);
+                  return (
+                    <button type="button"
+                      key={f.id}
+                      onClick={() => toggleSelect(f.id)}
+                      aria-pressed={isSelected}
+                      className="w-full flex items-center gap-3 py-2.5 px-1 rounded-xl hover:bg-muted/50 transition-colors"
                     >
-                      {isSelected && (
-                        <Check className="w-3 h-3 text-primary-foreground" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={f.avatar || undefined} />
+                        <AvatarFallback className="text-xs bg-muted">
+                          {f.name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="flex-1 text-sm font-medium text-foreground text-left truncate">
+                        {f.name}
+                      </span>
+                      <div
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                          isSelected
+                            ? "bg-primary border-primary"
+                            : "border-border"
+                        }`}
+                      >
+                        {isSelected && (
+                          <Check className="w-3 h-3 text-primary-foreground" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )
+            ) : (
+              <div className="py-3">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-2">
+                  Members
+                </p>
+                <div className="space-y-1">
+                  {Array.from(selected).map((id) => {
+                    const f = friends.find((fr) => fr.id === id);
+                    if (!f) return null;
+                    return (
+                      <div key={id} className="flex items-center gap-3 py-2">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={f.avatar || undefined} />
+                          <AvatarFallback className="text-xs bg-muted">{f.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <span className="flex-1 text-sm font-medium text-foreground truncate">{f.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
 
           {/* Create button */}
           <div className="p-4 border-t border-border/30 pb-[max(1rem,var(--zivo-safe-bottom,0px))]">
             <button type="button"
-              onClick={handleCreate}
-              disabled={!canSubmit}
+              onClick={() => step === "members" ? setStep("details") : handleCreate()}
+              disabled={step === "members" ? !canAdvance : !canSubmit}
               className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {selected.size === 0
-                ? "Create Group"
-                : `Create Group · ${selected.size} ${friendsLabel}`}
+              {step === "members"
+                ? `Next${selected.size > 0 ? ` - ${selected.size} ${friendsLabel}` : ""}`
+                : selected.size === 0
+                  ? "Create Group"
+                  : `Create Group - ${selected.size} ${friendsLabel}`}
             </button>
           </div>
         </motion.div>

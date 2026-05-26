@@ -1,0 +1,3195 @@
+{
+  "run_at": "2026-05-16T15:42:03.368Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false
+  },
+  "summary": {
+    "total": 397,
+    "updated": 368,
+    "not_found": 28,
+    "errors": 1
+  },
+  "results": [
+    {
+      "id": "1b3fbc70-0d0b-4b07-a655-1d8ef1ac9d6b",
+      "name": "22 Homestay Near Techo international airport",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/22-homestay-near-techo-international-airport.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "aef8638b-4a0b-4d51-bfcd-7cf5f3b242f7",
+      "name": "85 SOHO Hotel & Apartment",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/85-soho-amp-apartment.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "711bb5ea-3c12-4ef0-9c0d-0f568bb48669",
+      "name": "A One Oasis River View Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/a-one-oasis-river-view.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8aeeec6d-4902-484a-917c-7b2231cf4413",
+      "name": "Adventure Dome Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/adventure-dome-resort-kep1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3fad491b-9975-4dc4-a7f2-d88aa969310a",
+      "name": "AHHA Boutique Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ahha-boutique-kampot-kampot-cambodia.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ccdfa26e-6ac7-4a69-996e-e19c2a39175f",
+      "name": "AHHA Bungalow Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ahha-bungalow-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "521523bc-81a8-499f-b3e6-76876e1e38ae",
+      "name": "AHHA Floatel Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ahha-floatel-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "eb71f530-7c5e-4320-a486-3f8001514cb5",
+      "name": "AHHA River Breeze Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ahha-river-breeze-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7cc7f8a1-fbb8-4d29-98c9-8b9ea54ac27f",
+      "name": "AhuraMazda House",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ahuramazda.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "cc949413-f85c-4462-872e-66cce481fb51",
+      "name": "Alicia Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/alicia-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b2bcf509-5c56-4fec-958c-d5cb3e55d871",
+      "name": "Almond Hotel Bassac River",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/almond-bassac-phnom-penh3.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f638096a-3112-4f01-ac6b-506960f18258",
+      "name": "Amana Hotel & Residences",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/amana-amp-residences.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9e9af8ca-e191-4e8a-9d93-f3bb00d99945",
+      "name": "Amanda Hotel",
+      "status": "updated",
+      "photos": 20,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/vn/amanda.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5c3fb31e-fcc2-4ecd-8e12-690def7bc82d",
+      "name": "AMATA Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/amata-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6ee32e0e-6e1a-4e0c-a6c9-057172edbd06",
+      "name": "Amor Resort Koh Rong",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/amor-resort-koh-rong.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9bbc8e1d-e037-4085-8160-3f008f736cac",
+      "name": "Anantara Angkor Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 13,
+      "bookingUrl": "https://www.booking.com/hotel/kh/anantara-angkor-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "85cfbd8d-1505-4161-82f0-40a631a01101",
+      "name": "Anaya Koh Rong",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/anaya-koh-rong.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6343c5b1-e8f3-4b5a-87c2-dfce31651bb5",
+      "name": "Angkearboss Villa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkearboss-villa-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e3753058-6d28-4a1c-bae7-9e96a3f23859",
+      "name": "ANGKOR DINO B&B",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-dino-b-amp-b.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8186aa82-ff89-4daa-a506-6a84007eda91",
+      "name": "Angkor Green Gardens by Dara",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-green-garden-by-dara.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "53f91766-a2f0-4544-ad71-d8b0e7613ffa",
+      "name": "Angkor Land House",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-land-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5970e60f-5927-4924-bee2-2f4526e7cae5",
+      "name": "Angkor Land Siem Reap",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/gallery-siem-reap-krong-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.booking.com/hotel/kh/gallery-siem-reap-krong-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1\", waiting until \"networkidle\"\u001b[22m\n"
+    },
+    {
+      "id": "9c0cc06c-dd21-49d0-bbc3-7abb72e85234",
+      "name": "Angkor Miracle Resort & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-miracle-resort-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1fd52518-1c16-4441-bc30-676d5ea38040",
+      "name": "Angkor Palace Resort & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkorpalace.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "08b7e9a2-aea6-468b-8d58-0e966a93c340",
+      "name": "Angkor Palace Suite & Villa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-palace-suite-amp-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "804a5517-d339-4f6f-a57a-74beabcf1699",
+      "name": "Angkor Piseth Retreat",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-piseth-retreat.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c1d161c2-e053-43fa-b7a7-aec0c05d690a",
+      "name": "Angkor Privilege Resort & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-privilege-resort-amp-spa-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "08d878fb-7e1b-4a86-83cb-df3f83931fca",
+      "name": "Angkor Rithy Residence 2",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/nina-angkor-residences-teame.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "804f6192-3ede-4b96-bc6a-bfd298662bc9",
+      "name": "Angkor Village Hotel - Small Luxury Hotels of the World",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-village.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "92c9afa4-2709-4a60-9488-b7039db39d5f",
+      "name": "Anik Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/br/monan-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0681c145-a6b0-45da-9f22-24dc00a5cfea",
+      "name": "Anik Palace Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 13,
+      "bookingUrl": "https://www.booking.com/hotel/kh/anik-palace.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fccb350b-c94c-484f-9fde-3da69c90cd95",
+      "name": "Anjali by Syphon",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/anjali-by-syphon.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1bef8595-6f0d-4107-96b4-14cdd6eae5c4",
+      "name": "Apsara Guest House Kampot City",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/apsara-guest-house-kampot-city.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b9c83ee1-a0b0-4c8d-ac80-f396d2fab35b",
+      "name": "Apsara Resort Koh Rong",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/apsara-resort-koh-rong.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ea4987fc-c52d-447d-9f48-8ed8a0f3d77f",
+      "name": "Apsor Palace Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/apsor-palace-hotel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d5fcdab9-eda8-474a-b56a-9055708902fd",
+      "name": "Aquarius Hotel and Urban Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/aquarius-and-urban-resort-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fb7a7206-f8e1-4430-9198-9ae1ec95ae1a",
+      "name": "ARISON Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/arison.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8dad193b-6a54-4080-adca-015e7a627476",
+      "name": "Aristocrat Residence & Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 10,
+      "bookingUrl": "https://www.booking.com/hotel/kh/aristocrat-residence-hotel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c30e408b-f441-4fc6-809d-616d6b223bd2",
+      "name": "Arjuna Solitaire Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 10,
+      "bookingUrl": "https://www.booking.com/hotel/kh/arjuna-resort-amp-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8808c9d5-0d93-4108-bdb0-76bcf9c0432e",
+      "name": "ARK House",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "1868371b-0375-4dca-b15e-2db0c0248ba6",
+      "name": "Arthur & Paul (Men Only Hotel)",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/rthur-amp-aul.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ce41ef9a-c7a1-4119-913d-9a3e98f03231",
+      "name": "Au Cabaret Vert",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/au-cabaret-vert-ecologic.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "13e3b7d1-400d-4822-a7cc-5f9822777830",
+      "name": "Au Paradis Bleu Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/au-paradis-bleu-krong-kaeb1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b72e849d-c9ac-4c54-b7f8-4a7d7a368e4c",
+      "name": "Auberge de la Plage",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/de-la-plage-backpackers.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "409281eb-782d-4412-bbfe-95212e70793d",
+      "name": "Aurea Central Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/aurea-central.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "28317376-8415-426a-be48-5128011cbc4d",
+      "name": "Authentic Joe Homestay",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/authentic-joe-homestay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ba5bad65-70f5-4a30-86a1-605dda3c8fdc",
+      "name": "Avocado Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/avocado-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "cfb203bf-eae2-4c0d-aba5-096c9809d1c3",
+      "name": "B Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/b-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6e81acac-40f4-444d-9251-ca9aa48d3415",
+      "name": "B&B Verger Vannary",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/b-amp-b-verger-vannary.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9a862b5f-d5e7-4b74-ab0e-019837d6b6bc",
+      "name": "Ba Min hotel 八闽酒店",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ba-min-ba-min-jiu-dian.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6fb6356d-cead-44f6-b987-978187be9457",
+      "name": "Baahu Villa - Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/baahu-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b7630d0d-9915-45a2-9308-410874be637e",
+      "name": "Bali Villa Kampot Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/bali-villa-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "11176aeb-b7d1-4405-a912-c1bb851b2850",
+      "name": "Bar Oz Riverside Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sundance-riverside.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "03cf9750-6887-4e35-8366-0e46e8ea44c1",
+      "name": "Bassac Signature Hotel & Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 10,
+      "bookingUrl": "https://www.booking.com/hotel/kh/bassac-signature-amp-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "059e2db1-7315-498c-9564-d9ea55f9313d",
+      "name": "Battambang Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "85abc224-3f40-4386-8838-eb23a55decaf",
+      "name": "Bellevue Serviced Apartments",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/bellevue-serviced-apartments.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2019d36c-7cfc-43c8-bfcd-1007aa14d10b",
+      "name": "Billions Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 11,
+      "bookingUrl": "https://www.booking.com/hotel/kh/billions.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d2e109da-7079-4fd4-814f-2d68e95eeb5b",
+      "name": "Bird of Paradise Bungalows",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/abc-bungalow.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "875f1e92-304e-468c-9231-3b63317a6562",
+      "name": "Blanc Smith Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/blanc-smith-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7b627186-1e9e-4064-b64a-453696245e68",
+      "name": "Bliss & Beats Hostel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 16,
+      "bookingUrl": "https://www.booking.com/hotel/kh/nangkol-village.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "69232110-de04-4540-8cec-06994dc8c3fa",
+      "name": "Blue & Chill Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/blue-amp-chill-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d0aae4d5-d4b3-4540-b236-0d6035988500",
+      "name": "Blue Sky Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/blue-sky-guest-house-phnom-penh1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7fd78dc2-cf1b-4579-ac79-2fc031ecf962",
+      "name": "Boeung Prolet Guest House",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/boeung-prolet-guest-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f8f6b177-1642-4bae-aaf6-09e6211625c4",
+      "name": "Bopha Bassac Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/teav-bassac-boutique-and-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c1c96343-eb1b-432a-9c0c-9783a76742a7",
+      "name": "Borei Angkor Resort & Spa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "981371cb-76cb-4dce-8c85-f8d595344afe",
+      "name": "Bou's Kampot Adventures",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/bous-kampot-adventures-krungkmbt.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f9cb235f-5d0d-4b42-b328-80b854f9a721",
+      "name": "Capri by Fraser, Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/capri-by-fraser-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "664c96a7-2d68-4cfd-a0ef-009485e92136",
+      "name": "Central Boutique Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/central-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fa3718ea-b284-4da5-b945-dd1be188644b",
+      "name": "Central Suite Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/central-suite-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d9838773-2ff3-4659-993d-e30b9f70e7d1",
+      "name": "Chaiya Palace Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/chaiya-palace.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2f6d7d31-ce7c-4013-97eb-25ac788dcb55",
+      "name": "Champa Lodge",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/champa-lodge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d682b08d-bd1f-4c37-9e55-83b0570525d3",
+      "name": "Champa Village",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/champa-village.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4b075b7f-e36c-46fd-ba00-9c2aa344d19d",
+      "name": "Champs Elysees Hotel & Suites",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/champs-elysees-amp-suites.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9e5e8c7e-99a5-46d9-a4a0-fcb25a212d30",
+      "name": "Chateau Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/chateau-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "26461cb9-a863-4d3c-ac30-06ea85baae07",
+      "name": "Cheathata CTS Hotel Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/cheathata-suites.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e74540aa-7cd4-44f3-961b-bdea1b9ca38a",
+      "name": "Clover Hotel Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/clover-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d37427c6-87a5-4ca8-aa9f-16ede43a28c5",
+      "name": "Coconut Lodge",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/villa-pich-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5430dc9e-1cc0-48c8-bd24-3346ca1442a5",
+      "name": "Cominsia Lodge",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/cominsia-lodge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "72937783-6257-4dc7-863a-9bac6e30b4f8",
+      "name": "Condo tel at star bay",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3efc75d1-07cc-4090-9ff7-f7d99fbb41ab",
+      "name": "Courtyard by Marriott Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/courtyard-by-marriott-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1436d3dd-d2f4-483c-bd51-54a7e0d0a3e8",
+      "name": "Crowne Plaza Phnom Penh by IHG 金边皇冠假日酒店 Former VM Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 9,
+      "bookingUrl": "https://www.booking.com/hotel/kh/crowne-plaza-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d39aafb2-9d78-4a3b-a6a4-06caa9701e39",
+      "name": "Da San Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/da-san.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "84acf4fb-4fe0-407c-b588-196281831d5c",
+      "name": "Dary's Village Guesthouse & Restaurant",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/darys-village-guesthouse-amp-restaurant-krong-kracheh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4b7a484a-a922-4b64-b5b3-0f5e8dbb7f84",
+      "name": "Daun Penh Palace Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/daun-penh-palace-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "38eb87a7-8218-45b2-b542-54df66cbbb76",
+      "name": "Daya Villa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/daya-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6cc3af7b-ee7a-4b26-a31b-9b7769ebf2d0",
+      "name": "De KT Villa Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/de-kt-villa-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "80ceff59-43f9-4948-ab8e-5ea586524506",
+      "name": "Derm Svay Guesthouse - yoga & cafe",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/derm-svay-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "a41a4b51-3525-49c1-b155-86b50b254065",
+      "name": "Devi Kampot Resort at Phum Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 10,
+      "bookingUrl": "https://www.booking.com/hotel/kh/meraki-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7d11ca15-e196-4995-9a21-44a319cbe36b",
+      "name": "Diamond Pearl Hotel ,Phnom Penh,Royel Palace, Mekong RIver,Swimming Pool",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/diamond-pearl-pnhom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3ed88b79-bfaf-4552-830d-a69ba3ed3990",
+      "name": "Dolphin Home Stay New",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/dolphin-home-stay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "87c776e4-4cbe-4dc0-b717-19a9ede62edd",
+      "name": "Downtime Hotel Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/downtime.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2d3907a4-99f0-4dce-baad-0bcf1cbaa6aa",
+      "name": "Duong Chan Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "515be981-12fd-4cfa-b622-264bca31c56c",
+      "name": "Eco Lotus Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/eco-lotus-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "85b82d34-ebf1-4858-9744-a42f5cf57c4b",
+      "name": "Ecran Riverfront Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ecran-riverfront-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "af6cd0b3-c3f7-423b-8bce-fc7c18e430fa",
+      "name": "Eightfold Urban Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/eightfold-urban-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0b2dc615-54b6-48fd-a6fc-8ddc738cfb82",
+      "name": "El Ling guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/el-ling-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "31d4ba5c-13b3-43ac-bbc9-1666fd9b511b",
+      "name": "Emerald Residence Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/emeral-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2d1ddb69-71ac-411c-bbed-bc2a8c44c9df",
+      "name": "Empire House, Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/empire-house-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5c69d562-e065-4105-bbd2-25bd9fe53081",
+      "name": "F L G Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/noblesea-art.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4c62914d-5b8a-427b-add5-e28ca2c89358",
+      "name": "Fairfield by Marriott Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/fairfield-by-marriott-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5755a997-21ce-4acb-a5bb-43fe3a2f1791",
+      "name": "Family Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/family-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "20484fbe-ea83-45f5-aa8f-ee6a9c7d087c",
+      "name": "Family Motel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/vn/motel-family-sam-son.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b402f597-b03a-4b50-b94a-a7694fd917d1",
+      "name": "Farmhouse Resort & Spa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "744fcfee-a3cf-4c07-a896-9f83c126eff0",
+      "name": "FCC Angkor by Avani",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/fcc-angkor.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3fdce49f-c94f-4b93-894d-775eb272a888",
+      "name": "Finance Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/finance-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "854d6765-38bd-491c-ab80-33a053c5de6b",
+      "name": "Funky Moon Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/funky-moon.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fd9749a2-8970-4722-8f7b-f40dd2436231",
+      "name": "Ganesha Kampot Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 12,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ganesha-kampot-eco-guesthouse-and-more.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d68622ae-8bae-41b5-a463-3d917d6029c3",
+      "name": "Golden Banana Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-banana-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6d35d703-d258-49d7-b0ff-009e5bda9041",
+      "name": "Golden Kep Beach Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-kep-beach-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3fb80dd0-e0ea-413c-a64c-353be1051aec",
+      "name": "Golden Star Inn",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-star-inn.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "984c0697-8168-4215-b8b0-e519354c8a37",
+      "name": "Golden Temple Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-temple-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2d76a723-0f48-405a-ad7f-cf57a4587cd7",
+      "name": "Golden Temple Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-temple.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "58071e18-1b60-40bc-a315-f0124e373fdc",
+      "name": "Golden Temple Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-temple-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5b375af2-b338-4166-b368-32df277f28d9",
+      "name": "Golden Temple Retreat",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-temple-retreat.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c4984135-7f36-4792-99ee-82b9e70f7f92",
+      "name": "Golden Temple Villa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-temple-villa-siem-reap1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "a3a495da-72f5-4de4-a7f8-16f5070e79af",
+      "name": "Good Day Kampot Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/good-day-kampot-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e541fd48-3934-410d-a203-675baf02b1a8",
+      "name": "Good Time Relax Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 11,
+      "bookingUrl": "https://www.booking.com/hotel/kh/good-time-relax-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e4ad0624-cac5-4b59-bb03-cdcf94d41ebd",
+      "name": "Good Time Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/good-time-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f051feb6-2276-4f83-893d-fd50c9be0075",
+      "name": "Grand Venus La Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/grand-venus-la-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "97129278-41f0-4394-981a-9998525f3000",
+      "name": "Green Garden Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/green-garden-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "03dbaba0-372d-47ca-a37b-faf5423cc60d",
+      "name": "H&M Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/hm-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "95eb5c35-e414-4118-96a8-8d6dfcf85eaf",
+      "name": "Happy​​ Family Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/happy-family-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "71160765-3454-4d8b-8a5b-f8f1f09ebd69",
+      "name": "Hawaii Beach Bungalows",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6bb89bde-a33f-4a7f-a9fd-203ab2f345de",
+      "name": "Hawaii Lounge",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/china-lounge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "77ed3ddb-b7aa-4024-948d-18c2603bac24",
+      "name": "Hello Kampot Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ruby-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9e751144-1b8c-40d4-a2a1-8ba7b9483049",
+      "name": "Heritage Village Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/heritage-village.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6686d0f5-5e77-4ba1-bc35-830f538d856c",
+      "name": "Hillocks Hotel & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/hillocks-and-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "89e53185-2730-4c44-9b6a-a498687729b5",
+      "name": "Holy Villa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/holy-villa-krong-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d275bd10-e604-4732-95a7-9e64ff0c276f",
+      "name": "Homewood Hotel Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/diamond-smith.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "83db5fb9-fe85-41c3-8f76-4e832d995926",
+      "name": "Hotel Emion Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/emion-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4e779372-2e62-41d7-9814-2000ccd4fb5e",
+      "name": "Hotel KVL",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "0ada2cee-4a2f-4e65-b787-2288a4a94b62",
+      "name": "Hotel Old Cinema",
+      "status": "updated",
+      "photos": 20,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/old-cinema.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b94e4a03-bf2d-469f-9442-a597dd25509c",
+      "name": "Hotel Serviced Apartments Top One Infinity Pool with View of 360 Degree",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/serviced-apartments-top-one-infinity-pool-with-view-of-360-degree.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "71214495-b9c9-4d84-abbd-17ad80aaa926",
+      "name": "Hotel Sor",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/po-kolab-sor-phnom-penh-hotel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1e2d224e-ca57-4c64-baa1-09d832c4784f",
+      "name": "House Boutique Eco Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/house-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c0f80efc-7eb8-4a7d-b520-206465bfaf28",
+      "name": "ibis Styles Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ibis-styles-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f0fd7d2d-2280-4cf8-873e-0b1796293a92",
+      "name": "INFINITE POOL Condominium & Residence - Sihanoukville - 5mn to boat pier",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/air-apartment-residence-no1-sky-pool.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "60fba608-4994-43aa-82f5-978f90f680dc",
+      "name": "Invito Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/invito-guesthouse-preah-sihanouk.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9d390443-cf6d-44ff-9578-8a77f44f1cbd",
+      "name": "ISLAND CENTER POINT",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/island-center-point.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d37b8372-488d-4de6-81d5-10a4fc7f76c1",
+      "name": "J7 Angkor Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 9,
+      "bookingUrl": "https://www.booking.com/hotel/kh/prince-d-angkor-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c2ecf438-95ce-4bdf-858d-9b94ae0eae93",
+      "name": "Jaya Suites Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/jaya-suites-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fa9d33a8-1377-4a8a-907b-2197f777c27c",
+      "name": "Joes Homestay Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/joes-homestay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "31094ea3-bba4-4cc6-9ab2-e03a38852b6d",
+      "name": "John Bosco Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/don-bosco-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c6dd8501-7de3-4645-9314-d52488e5f92d",
+      "name": "Joya Hotel",
+      "status": "updated",
+      "photos": 5,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/joya-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "084d247a-d16c-4938-82f5-aac4d22a7d54",
+      "name": "Julieka’s Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/juliekas-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "813158f4-3310-4543-8f88-b8e523676026",
+      "name": "Jungle Addition",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/jungle-addition.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "300f7fe2-e99c-4397-b163-d3d3ff3078a9",
+      "name": "Kampheak Roath Bungalows",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampheak-roath-truy-koh-bungalows-kampot-city.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8bd129ee-20d5-48a6-85fa-b77189305fd4",
+      "name": "KampongBay Makeng II Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampongbay-makeng-ii.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "49024c3a-cb2a-4701-9be2-1853601c2dbe",
+      "name": "Kampot - Harmony Villa 35",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7ee1e3ff-56bb-4502-a6a2-b5162c29d86d",
+      "name": "Kampot Cabana",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampot-cabana.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "33141644-3aa2-4be5-9421-95f7fd0de70c",
+      "name": "Kampot Coco Guest House",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampot-coco-guest-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b923dbd3-8d42-4e63-bb98-c9c51c6bbf1e",
+      "name": "Kampot Gate Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/gate-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "cdb15843-aa50-4436-bcdc-0c53ff5804b3",
+      "name": "Kampot guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampot-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "049a6319-889f-4ca5-bdd0-471d6f0a52e1",
+      "name": "Kampot Origin",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampot-origin-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8f77c2fd-e999-4570-9f90-1b5b1ebe0b0e",
+      "name": "Kampot Orkide Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampot-orkide-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "28c21ad4-4997-4c8d-bb44-7952d2942b16",
+      "name": "Kampot Orkide Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampot-orkide-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2215ac6c-7c55-47c8-a581-35848ca01de1",
+      "name": "Kampot River Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampot-river-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ce583629-bbaf-40ff-9d3a-49d43a3a05d3",
+      "name": "Kep Arunrass Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kep-arunrass-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "34bbfb3a-57d9-4ac2-822f-6db5170c58d4",
+      "name": "Kep Bungalows",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/le-kep-bungalows.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3aa30bd3-9700-4032-9837-453cb834892f",
+      "name": "Kep Sea View Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kep-sea-view-amp-sky-bar.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d005b441-f0ee-4744-869e-e59917121aa6",
+      "name": "Kep Villa Hill Guest House 1",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kep-villa-hill-guest-house-1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0bd68933-bb5d-47e2-aca1-a1a8feda976f",
+      "name": "Khemara Angkor Hotel & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khemara-angkor.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7f084fbe-b51c-4a8f-9e82-92419de01227",
+      "name": "Khemra I Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khemara-i-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "10f02187-bfa2-4a13-a315-8cf1a6fbfb73",
+      "name": "Khla Lodge",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khla-lodge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "00bdeacb-8d3e-42f4-9726-ce02173d1783",
+      "name": "Khmer Hands",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khmer-hands.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "104814b7-739f-4e5a-8270-98ace81c66e5",
+      "name": "Khmer House Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khmer-house-boutique-krong-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "cc77b455-542c-4ed5-808e-58ae0b683872",
+      "name": "Khmer House Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khmer-house-hostel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "acbcdc81-405e-4c93-9f22-5a91d6c0a2c9",
+      "name": "Khmer Mansion Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khmer-mansion.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "bd24e657-ae07-4035-8e33-111de552596d",
+      "name": "Khmer Surin Boutique Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khmer-surin-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "225e7374-47e3-4080-99dd-bc9c2102c7f9",
+      "name": "Khmer Village Homestay",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/community-homestay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fc04e694-da43-4c12-8203-170b22baf90b",
+      "name": "King Grand Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/king-grand-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "37c47055-b5be-4a35-b9a9-f6d0a4ea1b7a",
+      "name": "Knai Bang Chatt Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/knai-bang-chatt-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ee85f1b8-946a-494f-89af-0e626c803dff",
+      "name": "KNN RESORT Mondulkiri",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/fcc-mondulkiri-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7322b460-2c23-4d3d-bdc5-55a31cc65fab",
+      "name": "Koh Sdach Resort by EHM កោះស្ដេច រីសត",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "153cf43d-fd40-4aa3-9286-03c0e99d0192",
+      "name": "Komsan Kampot Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 13,
+      "bookingUrl": "https://www.booking.com/hotel/kh/komsan-kampot-resort-by-ehm.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0cb4df80-645e-4249-9576-ae424262b7ea",
+      "name": "Koulen Central Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 10,
+      "bookingUrl": "https://www.booking.com/hotel/kh/koulen-central.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "67af236b-33cd-45a5-bb58-862265bb20ce",
+      "name": "Koy Lay",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "77ccc00a-0f45-41e8-9c7c-864ad2f33d08",
+      "name": "Kro Nhep Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/teacher-n-p-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "021747f4-9414-4198-b84e-25445f5a9e5e",
+      "name": "La maison de Soriya - Homestay",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/pit-stop-villa-restaurant.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1b183fed-c37e-4ee0-b3c2-5b67cdf4e546",
+      "name": "La Mansion Durian Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/la-mansion-durian.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d3ce58b8-3cd1-41c1-8444-e1d63664a9ce",
+      "name": "La Plantation Villa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/villa-de-la-plantation.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0a4398b0-cd1a-434f-b0bc-93bdbf749828",
+      "name": "La Plante Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/la-plante-siem-reap-krong-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b83e319f-278e-497c-9974-791ffd7039b8",
+      "name": "La Rose Suites",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 15,
+      "bookingUrl": "https://www.booking.com/hotel/kh/la-rose-suites.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "787fa4b4-8ce4-4450-b90c-4d399ea29928",
+      "name": "La Vogue Boutique Hotel & Casino",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/la-vogue-boutique-amp-casino.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "37a6f47a-3df1-43ec-a32e-fff75b285329",
+      "name": "Lavanya Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/lavanya-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "09748511-6cea-4b19-89a0-d6f487426b41",
+      "name": "Le Botum Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/le-botum.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "69061bdc-c6f8-4e01-a687-dd694d103a22",
+      "name": "Le Chen Miiya Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/le-chen-miiya-sihanouk-ville.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5c417e60-7842-4a41-9089-525973bd76e2",
+      "name": "Le Grand Palais Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/le-grand-palais.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "01529c3a-0496-4925-92ca-79a9014f7df8",
+      "name": "Le hotel hotel Phnom Penh Cambodia",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/le-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "50d3afaa-bf09-40d2-a965-ee304d535eec",
+      "name": "Le Vert Angkor Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/le-vert-angkor.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "319ce935-de28-49d5-8c4b-8a4f4ce34385",
+      "name": "Leap Leap Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/leap-leap-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2bb2d66b-a66e-43a4-a8f3-8115a1d6b50e",
+      "name": "Les Jardins Du Bassac",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/les-jardins-du-bassac-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9241c382-409b-4ab8-afb4-5ae00d8188fc",
+      "name": "LML Kampot Relax House",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/lml-kampot-relax-house-tuek-chhou.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b670a09b-6ddf-4713-a280-849c1c94eee2",
+      "name": "Los Penguin",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/vilsna-pingvinen.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c129647f-2dea-48c9-8bd9-84cca80fb653",
+      "name": "Lotus Blanc Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "9b198bb5-4fc8-42e2-959a-79f406c69772",
+      "name": "Lotus Blanc Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/lotus-blanc-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "869b2161-56d8-4e98-81c1-a937c166614e",
+      "name": "Lub d Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/lub-d-cambodia-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0aeb0a7a-ffb9-4e47-a406-2ed90300acbf",
+      "name": "Lub d Siem Reap - Near Pub Street & Angkor Wat",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/lub-d-cambodia-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fd3e718a-d187-4714-b731-4ad19eebf808",
+      "name": "Lynnaya Urban River Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/lynna-urban-river-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f5200519-f807-497e-875c-70cb8fb03464",
+      "name": "Maam Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "2f0625fb-79d4-4cbe-8ff3-08273867f650",
+      "name": "Mabuhay Guesthouse Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/jasmine-resort-kampot-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c6497925-a255-41df-98f3-86038773b19d",
+      "name": "Mad Monkey Hostel Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 11,
+      "bookingUrl": "https://www.booking.com/hotel/kh/mad-monkey-hostel-phnom-penh-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4a1c1dde-9b92-48db-ae16-10de26351e0f",
+      "name": "Mansion 51 Hotel & Apartment",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/mansion-51-amp-apartment.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ef19f6b6-8423-40d1-90dc-4efbd1d89911",
+      "name": "Marany Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/marany-guesthouse-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3be38822-1599-4e41-91b8-748eb684d1d5",
+      "name": "Memoire d' Angkor Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/memoire-d-angkor-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c6af17fd-7f9e-4979-8163-f6ca4311b4ef",
+      "name": "Mettā Guesthouse Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/cambodhi-vegan-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "dae6096b-4ebd-48ab-9df2-aac3459ff0fc",
+      "name": "Metta Residence & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/metta-residence-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f89e49a6-8d1b-4d78-8c40-d1f1591e48fa",
+      "name": "Minimalist Living",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/minimalist-living.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d71aae70-3423-4f82-9dc9-66ddae646266",
+      "name": "Mlis Kampot River",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/mlis-kampot-river.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "936893e8-b3e5-4a0b-a70b-84ce326bdad3",
+      "name": "Moly Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/moly-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "99c087f5-d0d3-4667-adcc-05128e46a4ae",
+      "name": "Monica Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/monica-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "93c81321-9c38-45c2-a447-0bfb0c99af3e",
+      "name": "Monivong Clover Hotel Formerly G Mekong Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/g-mekong.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "36cf74e3-163e-40e2-9507-0eabc5534713",
+      "name": "Monsoon Bassac Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/monsoon-bassac-hotel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e4e48e9a-87f9-4f97-b8c5-9912acca5b95",
+      "name": "Montagne Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/montagne-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c2d96fce-0bc4-4fa1-889c-bd4288da8805",
+      "name": "My Parents Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/my-parents-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "de7e4698-2930-4c16-ab2f-f625e37cd05e",
+      "name": "Naiya Sea Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/naiya-sea-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ba468a53-d0e7-476a-9e31-e06212e01f09",
+      "name": "Naki Suites @ Silvertown",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/residia-at-silvertown-metropolitan.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "78ad6390-8f26-4a92-9afc-019820053026",
+      "name": "NanaSky Kampot Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/nanasky-kampot-residence-tuek-chhou.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "39aa897c-00fc-450b-8236-b9758e433e00",
+      "name": "Naraya Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d9e3a916-d660-4459-aa81-01a31ab24647",
+      "name": "Natural Bungalow",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/ar/bungalow-san-carlos-de-bariloche.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5c532e75-fa71-4713-acd1-1e2bb56e44e7",
+      "name": "Nature Lodge",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6f255dae-99ae-429e-ad60-09e19b69a2dd",
+      "name": "Neakru Guesthouse and Restaurant",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/neakru-guesthouse-and-restaurant.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "92d571f7-e375-4d33-86a4-6039d6b590a5",
+      "name": "Neang Aun Kep",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/neaung-aun-kep.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8e0517cf-aced-4956-87b1-eaa6564cee68",
+      "name": "Nice Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/nice-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "73470f62-cb17-42d1-a910-943d36c2c62c",
+      "name": "NyNa Villa Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/nyna-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "92bcb119-e4fe-4be0-a169-5a22fe314969",
+      "name": "Ocean Breeze Hotel",
+      "status": "updated",
+      "photos": 7,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ocean-breeze-bai-ma-shi.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "27a80ac0-9ffc-4ecd-ace0-217c1ba7b8f0",
+      "name": "OCEAN HOTEL",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ocean.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "89357115-a1fc-4592-bc7a-a04a973b19ad",
+      "name": "Okay Palace Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/okay-palace-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "da348106-279e-4a7c-8fef-a75efbcfc1cf",
+      "name": "Olympia City Hotel by Dara",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/olympia-city-by-dara.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b975d92c-4f45-4c2c-9fa7-16065169509e",
+      "name": "One Park Hotel & Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/one-park-residences.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5785cfa3-367a-4d02-bfed-f0ca7d706b69",
+      "name": "One Residence Hotel & Apartment",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/one-residence-amp-apartment.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "97b28f67-9bcd-4ce1-b2ef-9586c1d92f9e",
+      "name": "Onederz Sihanoukville - 10 mins walk from the Tourism Pier",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/onederz-sihanoukville.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "26ecb9f4-d6e0-4b22-b002-e75a24844be8",
+      "name": "Orchid 101",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/orchid-guesthouse-kampot1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0d78a75f-f78f-4900-a72b-a1a639209fe7",
+      "name": "Orchid bokor family guest house",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/orchid-bokor-guest-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1108f4a1-1cbc-4719-8d61-824d19273f4d",
+      "name": "Ostro Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/indochine-2.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "15d0b962-5ccf-4774-9b1b-b96980f9406d",
+      "name": "PACI Hotel&SPA",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/paci-amp-spa-pei-si-jiu-dian-gao-mian-an-mo.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8e1aa8a2-31a8-4051-ab85-145ebaab6b37",
+      "name": "Palace Gate Hotel & Resort by EHM",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 12,
+      "bookingUrl": "https://www.booking.com/hotel/kh/palace-gate.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "54cc3c6c-1be7-436e-bf9f-5a4efba314e7",
+      "name": "Palm Village Resort & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/palm-village-resort-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e7928c1a-03db-4a3a-a2fe-72881f2abc35",
+      "name": "Pandora Suite D'Angkor",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/grand-elysee-la-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9599c89e-d1f3-4c79-bb91-32c73c9d12de",
+      "name": "Papaya Guesthouse Nesat",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/papaya-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e99f0e4a-69c8-44d4-ae1b-fd2520dfbdc1",
+      "name": "Paradise Tropica kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/paradise-tropica-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2598aaeb-db29-4332-8c88-e21ef44fc78d",
+      "name": "Park Inn Boutique and Hostel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/park-inn-hostel-and-bar.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "024d9dd7-e326-4b41-8ee3-617e968eae32",
+      "name": "Peaceful Home for Big Groups",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "afbc92fd-36ae-4258-ab88-17da1abc1955",
+      "name": "Peaceful Homestay",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/peaceful-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8ca9571d-aab2-4895-8b25-38942654e5f8",
+      "name": "Phanyro Motel",
+      "status": "updated",
+      "photos": 5,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/phanyro-motel-krong-saen-monourom1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7c13c49c-7bfb-44d9-a110-e769c411c4ad",
+      "name": "Phka Kravan Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/phka-kravan-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8705f885-7b2f-4b3f-a82c-b52fd3e84dbe",
+      "name": "Phnom Meas Homestay",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/phnom-meas-homestay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b2287448-ad24-4828-8e22-7e6caf558a83",
+      "name": "Phoumrumduol Bungalow",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/phoumrumduol.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "db9edb68-c988-4ec7-8822-1e8cc5859591",
+      "name": "Phum Borann Homestay",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/phum-borann-homestay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ecd3b8b0-9d01-46ec-9c39-b3bce82fd0d4",
+      "name": "PIDA Coffee Farm Lodge Mondulkiri",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/pida-coffee-farm-lodge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "97e15d6c-af84-4c9c-82c7-4d60c7acfa6e",
+      "name": "Pidoma Resort by EHM",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/pidoma-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c60ff223-93ab-4714-9260-8255960fe2bb",
+      "name": "Plantation Urban Resort & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-plantation-urban-resort-and-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0e0df84f-133b-4db7-9fcc-0de84f28cafb",
+      "name": "Pooltop Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/pooltop.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "50ed3667-bba8-4ad4-8165-4402af2bb2e6",
+      "name": "Prince Angkor Hotel & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 9,
+      "bookingUrl": "https://www.booking.com/hotel/kh/prince-d-angkor-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7d0aebbc-d85c-4b39-829b-e25a696da116",
+      "name": "Private home",
+      "status": "updated",
+      "photos": 7,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/private-home-kampot1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "79f7ca8b-fdc7-4a5d-a5b8-46f7c9973edf",
+      "name": "Qube Resort Kep",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/qube-resort-kep.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "304ad51a-4f84-4a12-8a8f-4570896e94b8",
+      "name": "Queen Mansion",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "aa252066-e561-40df-8757-7ed7690ce9f7",
+      "name": "Raffles Hotel Le Royal",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 14,
+      "bookingUrl": "https://www.booking.com/hotel/kh/raffles-le-royal.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "dcad0f39-454b-4962-8666-fe164d558363",
+      "name": "Raing Phnom Bungalow",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "428334b3-7c0e-4e40-be34-fe7447c6879c",
+      "name": "Raksmey Kampuchea",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/raksmey-kampuchea.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "119ff2f7-84b7-43e2-9bc7-7e33c5e3d024",
+      "name": "Ramada by Wyndham Sihanoukville Xinhaohui Palace",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 9,
+      "bookingUrl": "https://www.booking.com/hotel/kh/zhou-ji-xin-hao-jiu-dian-xi-ha-nu-ke.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "67499ece-b448-42fe-b9ad-400e438aa1d7",
+      "name": "Ranisa Kampot",
+      "status": "updated",
+      "photos": 20,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ranisa-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3b0608f4-b84a-4b59-9da7-e67a91d13fe4",
+      "name": "REACHBUT SESSOR HOTEl",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/reachbut-sessor-krong-kaeb.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fbfa61c3-7b93-4d11-a08e-3183cb22c375",
+      "name": "Reaksmey Meanrith Guesthouse and Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/reaksmey-meanrith-guesthouse-and-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "862fba02-e4e3-4a7e-8bce-af4cdda810c1",
+      "name": "Redhouse Boutique",
+      "status": "updated",
+      "photos": 5,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/redhouse-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2c6172c7-268d-45ef-bd94-0eae71fb38a5",
+      "name": "Residence 110 (Hotel and Apartments)",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 15,
+      "bookingUrl": "https://www.booking.com/hotel/kh/residence-110-and-apartments.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "af37cfb9-0178-43f8-9df5-be90e2e8bdbf",
+      "name": "Riversoul Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/riversoul-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0391d751-1ada-48c0-8879-ae4d9cd8201e",
+      "name": "Romano Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/romano.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "492a5ca0-a413-4601-bd22-3cc7796e1a6f",
+      "name": "Rooftop View Home",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/rooftop-view-home.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "608e9b5c-bec1-4e0b-9315-b0e80dadb352",
+      "name": "Room 11 - Studio in a villa 5mn walk from the Royal Palace with swimming pool",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/room-11-studio-in-a-villa-5mn-walk-from-the-royal-palace-with-swimming-pool.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c33c7f49-7d2f-49fc-b53b-7451a021f41d",
+      "name": "RoSi Guesthouse & coffee",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/rosi-guesthouse-amp-coffee.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "45db9cda-94e3-42b1-bb57-b1a6087342ed",
+      "name": "Royal Beach Resort and Residence by EHM",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/royal-beach-resort-and-residence-by-ehm.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b97f7cf9-ec4c-4b6d-938c-03ba276c849f",
+      "name": "S & D Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/s-amp-d-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c67444cb-3e3c-4f8f-a73d-81bd13ad2d3c",
+      "name": "Sabara Angkor Resort & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sabara-angkor-resort-amp-spa-krong-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fa725fb8-69aa-42b9-a15e-89fa6dfc2bf4",
+      "name": "Sahaa Beach Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sahaa-beach-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "80a68932-4ff5-4986-a899-d1bb82661707",
+      "name": "SAI & SU Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sai-amp-su-phnom-penh3.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "bb3f8228-6e39-449a-bbfb-3354e2ffe424",
+      "name": "Samanea Beach Resort & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/samanea.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e5b0af60-21d4-48b1-9c16-94e7559a357f",
+      "name": "Samaya Boutique & Cuisine",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/samaya-boutique-cuisine.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "dcae49da-a445-4985-acc8-259c5744d585",
+      "name": "Sanssouci Kep",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sanssouci-kep.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3c0e7af8-8350-4ec6-91f7-6ee388c7fc7a",
+      "name": "Sarai and Wander Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 13,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sarai-resort-amp-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "01ad9d25-235e-4160-b5b1-5330841a74f3",
+      "name": "SB Condo Sihanoukville -700m to U MALL",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sb-condo-sihanoukville-700m-to-u-mall.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "eb95a3d6-056d-43a2-b436-0fc5d0241854",
+      "name": "Sea Breeze Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sea-breeze-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d3c03f66-ff63-4466-a2b5-cab7ba9d4712",
+      "name": "SEA SAND RESORT",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sea-sand-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "68d15e71-e6c5-4f02-b51b-7186e3d63fe2",
+      "name": "Season Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/season-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ad7aa6b3-8b4b-430c-9247-b97512102251",
+      "name": "Sela Home - Private Rental",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "27f22abb-d649-46ea-947a-01168eecdd4c",
+      "name": "SENNA SUNSHINE INTERNATIONAL HOTEL",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/senna-sunshine-international.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "942a5cd9-25fa-4bf5-834d-08a955af9045",
+      "name": "Shinta Mani Angkor",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "8ac4220d-7f97-449f-a57e-5087462ea111",
+      "name": "Shintana Saya Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/shintana-saya-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f16aea95-f36a-4cc8-a0c8-79acec809dd0",
+      "name": "SIHA Hotel & Casino",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/siha-amp-casino.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f19d65c1-66bd-471d-b089-e6d9a7335177",
+      "name": "Sihanouk Star Bay 西港星汇",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "29ab8133-7863-4873-90dd-6d905ad110ca",
+      "name": "Silk Island Homestay",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/silkislandhomestay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "bd8c8173-11cd-43f8-ba49-85cb560808e6",
+      "name": "Silver Mounts Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/silver-mounts-hotel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b3f2ec71-4c06-4a2b-8b2b-c131c015d8b3",
+      "name": "Sky Hotel - Cinema rooms & Apartments - Free laundry",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/da-xi-gang.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3f14cc81-c77a-400c-8b80-2e6bde0d3351",
+      "name": "SKYCONDO",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6ccafd3b-d86b-4182-a2fe-b26c126dac37",
+      "name": "Skyline Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/skyline-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5253d6de-8cac-4343-a392-c853f33c741a",
+      "name": "Sobenban",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sobenban-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f74fc41b-1699-4c23-adc4-53980fde21d5",
+      "name": "Sofitel Phnom Penh Phokeethra",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 10,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sofitel-phnom-penh-phokeethra.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9270901b-f6cd-49d0-8127-c1d0c78f6e59",
+      "name": "Soksan Villa",
+      "status": "updated",
+      "photos": 5,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/soksan-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "8258bf67-1768-47fe-8543-02d3401c6fd5",
+      "name": "SOMA HOTEL Riverside",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 9,
+      "bookingUrl": "https://www.booking.com/hotel/kh/soma-riverside-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5aa94599-98d9-4b76-875a-d22a4fe9d88c",
+      "name": "Somato Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/soma.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4e093bed-8b25-468b-af61-c75447964211",
+      "name": "Somnea Villa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/somnea-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ede81ed5-ecfb-47fb-9c2b-550a6886855a",
+      "name": "SON Hotel & Apartment",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/son-amp-apartment.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "45a44359-3de4-4b10-a777-d8776400b8c7",
+      "name": "Sonitori Boutique Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/rambutan-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b6ea3c9b-b8ca-43e4-9d4d-f0a1c6b94ebc",
+      "name": "Sovanphum Riverside",
+      "status": "updated",
+      "photos": 6,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sovanphum-riverside.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "15178aed-02a2-458e-8112-c7f9fddd4858",
+      "name": "Spicy23 - M' Pai Bay",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/spicy23.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "076e4220-581c-4d6a-91a8-cc28c99bb59f",
+      "name": "SSB Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ssb-residence-phnom-penh1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f5cb2692-6a82-4039-8c96-884fd21946cd",
+      "name": "ST Apartment",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/st-apartment-phnom-penh3.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "28ad6a21-4fa0-410b-8992-7ba79f1fcbf7",
+      "name": "Star Bay Apartment",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/star-bay-apartment-sihanouk-ville.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b56be597-9b99-4e8f-b584-3e60eb8c5141",
+      "name": "STAR BAY APARTMENT SIHANOUK Ville",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/star-bay-apartment-sihanouk-ville.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "aa5e0298-62e9-42de-b9e0-0bd250a5d197",
+      "name": "STAR BAY Hotel Sihanoukville - 400m to beach Sokha",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/mo-lin-jiu-dian-morning.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7d817cf8-dd01-4c62-a810-ed324901b6fb",
+      "name": "STAR BAY SIHANOUKVILLE HOTEL 350 m to U Mall",
+      "status": "updated",
+      "photos": 5,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/star-bay-sihanoukville-350-m-to-u-mall.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7126ba5e-1b86-4d02-8c36-5a628434a6a7",
+      "name": "Starbay condotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "51a14f1b-e24f-4809-b67b-b0bdf10321b6",
+      "name": "Steung Siemreap Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/steung-siemreap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "74fced74-26ec-491b-bdac-8374d8f77565",
+      "name": "STONE AGE Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/stone-age-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b8e3158f-b68f-4e3d-b850-bb819990cbb5",
+      "name": "Studebaker Guesthouse & Pool",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/studebaker-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ab145f29-b2ff-485a-b093-be4b816925c9",
+      "name": "Suite Home Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-suite-home.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "207e25dc-f6bb-4311-88c2-cea9af8df397",
+      "name": "Sun & Roots Kampot Lodge",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sun-hostel-and-restaurant-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "190b8c26-0a18-4178-9504-ce6b7a1ffaab",
+      "name": "Sun Horizon Hotel - Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/apple-three.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "dba85574-90a1-450a-b8cc-430a66841129",
+      "name": "Sunway Hotel Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sunway.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "71ac016b-880f-467c-8cd7-501e39de6c08",
+      "name": "SVR homestay",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ea206d6c-131e-46b5-b643-e6edb627094e",
+      "name": "swj09",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/khlaung-meas-1-preah-sihanouk.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d98b6dda-34cc-4098-8634-350e436dac60",
+      "name": "Ta Eng Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ta-eng-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2b8453da-c398-4f7c-8e76-72e0b750f386",
+      "name": "TAO Riverside Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/riverside-suites.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6490e722-ac72-40c3-a656-c3895cfc8a50",
+      "name": "TARA LODGE Haven of peace",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/theara-lodge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3a464f1e-37bc-4af6-a390-8f6dc8fccb83",
+      "name": "Terres Rouges Lodge",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/terres-rouges-lodge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1c41e71f-a150-4e30-9526-6325ea0aa0e2",
+      "name": "Tevy Resort Koh Rong",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/reaksa-homestay-preah-sihanouk.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "535dac12-4c29-4a69-a54e-8267a1572a35",
+      "name": "The B Relax House",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-b-relax-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "94f10a6d-ce5a-4156-91b3-aa420a69c431",
+      "name": "The Bale Phnom Penh by LifestyleRetreats",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-bale-phnom-penh-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7c320a96-a92b-46ac-87a9-703a51209b6e",
+      "name": "The Bear Bungalow",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-bear-bungalow.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3e56d5e0-abb4-478d-b343-0718f89079e0",
+      "name": "The Big Boss Indian Restaurant & Hotel",
+      "status": "updated",
+      "photos": 6,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-big-boss-indian-restaurant-amp.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "15cd6857-8a12-4c29-87c0-431f32050366",
+      "name": "The Cliff Haven Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-cliff-haven-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "01e6291f-b96f-4b1a-9d9a-3c919abfbe74",
+      "name": "The Cloud Homestay Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-cloud-homestay-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "46214b4f-8b28-4145-92f3-43a41c63c646",
+      "name": "The Columns",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-columns.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "db5c4334-535b-45a5-8ef5-9358c2730bc2",
+      "name": "The Deck",
+      "status": "updated",
+      "photos": 5,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-deck.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7ca0bc16-9a1f-41b2-8b4e-7cfabadc55be",
+      "name": "The Dubliner Inn",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/amari.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "470ae3ec-3b3e-4e85-aa47-4d5cc235be0a",
+      "name": "The Elephant",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-elephant-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fd5a35a9-4262-4da5-ac1b-1810d387c9e3",
+      "name": "The Embassy Angkor Resort & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-embassy-angkor-resort-amp-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5a5ae2c7-7b07-495a-a69a-4ce654cb426a",
+      "name": "The Hidden Oasis Bungalows",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-hidden-oasis-bungalows.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "a628d0a9-7668-4503-9cfa-d8889951f075",
+      "name": "The Hideout",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-hideout-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ed9fad67-ff4f-4cf3-9ff7-ec4c2201864d",
+      "name": "The Hill Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-hill-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "726ba7d5-f5c0-4780-acc5-8ca2c2e07631",
+      "name": "The Hub Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-hub-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "55f8e5f1-c069-478a-8f76-4626e83aea83",
+      "name": "The Last Beach House",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-last-beach-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "a485965a-387a-4746-9246-0e82e088aead",
+      "name": "The Moon Residence & Spa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-moon-residence-and-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4adb8497-f49e-424f-b149-abd5e28ee255",
+      "name": "The Panda Backpacker Hostel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-panda-backpacker-hostel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d69595fc-6370-4b86-841a-769c69ffebcb",
+      "name": "The PeAk Residence, Multi-Apartment by Emma",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-peak-residence-studio-apartment.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fb0603cd-4621-4623-b102-e53dd1744285",
+      "name": "THE PLACE Hostel Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/place-hostel-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "bf2d1dab-0bf0-4323-8691-08695078093a",
+      "name": "The R&B Boutique",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-r-amp-b-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9eb2be04-ecbd-46de-908c-67ca668e2755",
+      "name": "The Seagull Guesthouse Kampot CAMBODIA",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/seagull-guesthouse-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "deaadb16-7bb8-40b3-bf7c-1c9dc42223d1",
+      "name": "The Sky Plus Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-sky-plus.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "a6389793-40ce-4192-b0dc-fa32f9490b57",
+      "name": "The Skye Phnom Penh Hotel & Apartments",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-skye-phnom-penh-amp-apartments-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "05790d87-5eab-4d9a-8af1-b443dd2ca8b8",
+      "name": "The Star Polaris 23 Condominium",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c2491734-13a0-4759-8933-67af26cc2515",
+      "name": "The Tree - Adults only",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-tree-adults-only.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "74d9d1e2-acfb-441c-b4fa-c47b3b04a88e",
+      "name": "The Twizt - Lifestyle Hostel & Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 10,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-twizt-lifestyle-hostel-siem-reap12.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "dff02c60-bff7-4953-87e1-a2818dd0ad7b",
+      "name": "The Urban",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c175cd33-0415-443e-9fc0-63e2605fb462",
+      "name": "The View Serviced Residence 豪景日式酒店公寓",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-view-serviced-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3b34ec31-e99b-48de-b207-cd89647dfcd2",
+      "name": "Thmor Da Guest House",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/thmor-da-guest-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d1b6fe44-d0ca-45ba-b6cf-e2b214c5f46a",
+      "name": "Tiki garden",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/tiki-garden.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "53114457-9b2c-492d-b6cf-924b4686b709",
+      "name": "Ting Bo Hotel Sihanoukville Autonomous Port Branch 廷泊酒店西哈努克高龙岛码头店",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ting-bo-jiu-dian-xi-ha-nu-ke-gao-long-dao-ma-tou-dian.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e24e1bc1-34c6-4fef-9d53-588b8d10375a",
+      "name": "Toek Chha Temple Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/toek-chha-temple-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "96e673e6-9814-492c-b820-e41c3f5d4fa5",
+      "name": "Tonlemeas Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kr/jiniseutei-busansi.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "759faee6-74dd-45d5-9c64-1e9a0f6c498d",
+      "name": "Treuy Koh Bungalow",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/treuy-koh-bangalow.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "333141b9-0117-41de-81fa-6146e431a6ae",
+      "name": "TRIBE Phnom Penh Post Office",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/tribe-phnom-penh-post-office-square.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9aa4dcdb-6cd9-4fa9-85a1-0a295830fdf1",
+      "name": "TRIMULIA Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/trimulia-preah-sihanouk.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0a63e80a-f1e0-4419-a27f-7570467d68f4",
+      "name": "Try Palace Resort Kep",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/try-palace-resort-amp-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e8de34ef-47de-4c03-a13e-ce6f9e4e21dd",
+      "name": "TWIN HOME Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/twin-home-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "3ab4be88-e8ce-47fc-8cad-6fa8b2148cee",
+      "name": "Twin Palms Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/twin-palms-resert.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "793d0fac-7d43-41b4-a1b3-14eede56d283",
+      "name": "Two Seasons Siem Reap Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/two-seasons-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c6b4b193-97da-4f8a-98c1-d43189720a7c",
+      "name": "U Mall Apartments - 400m to Sokha Beach",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/studio-in-prince-mall-1-mall-in-sihanoukville.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e89e08e2-0366-4221-98bf-57874cea0384",
+      "name": "Umi Resort 菩提有米",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/umi-resort-pu-ti-you-mi-xi-ha-nu-ke-cheng.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7f8e84de-b1f4-4f22-87e9-a5b7b7ec7c59",
+      "name": "V V Hotel Battambang",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/v-v-battambang.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "01ffaccd-cead-4365-a10d-ecd1d4543c98",
+      "name": "Vacation Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/vacation-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c3ee738f-d2c8-488d-855a-fb42c335ecee",
+      "name": "VIBOLA Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/vibola-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "60aafcb1-fddf-46de-ae64-79226a091430",
+      "name": "Villa 'The Blue House' - Qbungalows",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/villa-the-blue-house-qbungalows.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d0d48d18-c204-402e-af0d-34d9e2e63ccd",
+      "name": "Villa Agati",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sawasdee-angkor-inn-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e771c6c6-708e-4498-b702-3e51ea911dcd",
+      "name": "Villa Grange",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/splash-inn-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b78851d2-e8e8-4563-a8a8-c027ffa51e2a",
+      "name": "Villa Papillon",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/villa-papillon.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9325b2e6-74da-44ed-b5ab-0934401777bc",
+      "name": "Villa Romduol",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/villa-romduol.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "44d0f758-87e9-4254-a74f-8b663763a307",
+      "name": "Villa Samathi",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/villa-samathi.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "05824ce8-a690-4144-8e56-411ef1c39ae8",
+      "name": "Villa Sultan",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/villa-naya.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5b041b5d-497e-4341-b1be-50e3158477b3",
+      "name": "Viroth's Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/viroth-hotel-new-wing.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9a64863e-2abf-43ec-8880-629c14be0c47",
+      "name": "Viroth's Villa",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/viroth-39-s-villa-siem-reap-angkor.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "04fff2b4-3dff-41d1-9ebb-c8678cad302c",
+      "name": "Visal Sak Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/visal-sak-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "86e50bf5-aa5d-4976-afae-6e755b46df3d",
+      "name": "Vista Guesthouse",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/vista-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b8428364-498e-498b-9dc1-d71db2f148b3",
+      "name": "Von Channa Home",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/von-channa-home.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e802f0fe-6c49-46cd-9ed4-dc4426f1eb9e",
+      "name": "Vvillage",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "667e0bab-5ff3-477e-b175-70abbffde970",
+      "name": "Wangbang jiedian",
+      "status": "updated",
+      "photos": 6,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/wangbang-jiedian.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "16189408-24fd-4c8d-a139-e6b8e0cf4e24",
+      "name": "WAT-KROM Villa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "852b18bc-26d2-4b06-960e-58dc15281d1b",
+      "name": "Wealth Masion Cozy Studio with River View",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/wealth-masion-cozy-studio-with-river-view.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "808b7b55-35ae-4674-9e0e-6b3cba8ba050",
+      "name": "WH Chamkarmon Residence",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/wh003-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4e2b853f-9efc-49f6-9025-c628b039ff3e",
+      "name": "WH Hotel 310",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/wh-310.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "45583a33-a44b-4223-87f0-42d47366c11e",
+      "name": "White Mansion 白色公馆",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/white-mansion.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e4be449b-4b80-42b8-8d4a-1b00c5ac0e05",
+      "name": "Wisney Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/wisney.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d9d6239a-2eb7-42da-abee-00a8f65d18a5",
+      "name": "Won Majestic Hotel Cambodia",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 9,
+      "bookingUrl": "https://www.booking.com/hotel/kh/won-majestic-cambodia.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c6633aac-7c13-4225-b182-192c225dc31b",
+      "name": "Yellow Star Hostel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/yellow-star-hostel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "eb559413-a506-4de4-8393-67d8b026b877",
+      "name": "Yellow Sun Kampot",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/yellow-sun-kampot12345678910111213141516171819202122.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "0742a279-546d-47fb-8f1d-b5ff40f9c810",
+      "name": "YK Art House & Bong Bonlai Vegan",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/you-khin-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "a72bec6a-8f66-445c-b1ed-9c529383fa1c",
+      "name": "怡程酒店ECHENG HOTEL",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/yi-cheng-jiu-dian-echeng.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

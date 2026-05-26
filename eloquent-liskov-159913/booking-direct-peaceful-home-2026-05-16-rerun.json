@@ -1,0 +1,37 @@
+{
+  "run_at": "2026-05-16T23:23:23.871Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort",
+      "guesthouse",
+      "hostel",
+      "villa",
+      "lodge",
+      "motel",
+      "inn",
+      "boutique"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "024d9dd7-e326-4b41-8ee3-617e968eae32",
+      "name": "Peaceful Home for Big Groups",
+      "status": "updated",
+      "photos": 41,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/peaceful-home-for-big-groups.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

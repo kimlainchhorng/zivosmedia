@@ -38,6 +38,7 @@ import Clock from "lucide-react/dist/esm/icons/clock";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import Star from "lucide-react/dist/esm/icons/star";
 import StarOff from "lucide-react/dist/esm/icons/star-off";
+import Gift from "lucide-react/dist/esm/icons/gift";
 import Users from "lucide-react/dist/esm/icons/users";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
@@ -121,6 +122,7 @@ interface ChatContactInfoProps {
   onOpenNotifSettings?: () => void;
   onOpenFiles?: () => void;
   onOpenLinks?: () => void;
+  onOpenGift?: () => void;
 }
 
 export default function ChatContactInfo({
@@ -140,6 +142,7 @@ export default function ChatContactInfo({
   onOpenNotifSettings,
   onOpenFiles,
   onOpenLinks,
+  onOpenGift,
 }: ChatContactInfoProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -479,10 +482,11 @@ export default function ChatContactInfo({
         </div>
 
         {/* Quick action buttons row */}
-        <div className="flex justify-center gap-4 px-6 pb-6">
+        <div className="flex justify-start gap-3 overflow-x-auto px-4 pb-6 sm:justify-center">
           {[
             { icon: Phone, label: "Audio", action: () => onStartCall?.("voice") },
             { icon: Video, label: "Video", action: () => onStartCall?.("video") },
+            { icon: Gift, label: "Gift", action: onOpenGift },
             { icon: Search, label: "Search", action: onOpenSearch },
             { icon: UserRound, label: "Profile", action: handleViewProfile },
             { icon: isFavorite ? StarOff : Star, label: isFavorite ? "Unfav" : "Favorite", action: toggleFavorite },

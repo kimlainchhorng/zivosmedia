@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Network Security Config — enforces HTTPS-only traffic for all hosts.
+
+  Certificate pinning was removed because Supabase runs on Cloudflare infrastructure
+  that rotates TLS certificates regularly. Pinning to specific leaf/intermediate
+  SPKI hashes causes ALL network requests to fail after a rotation, making the app
+  appear to crash on launch. HTTPS enforcement via system trust anchors provides
+  strong transport security without the brittleness of manual pin management.
+
+  Reference: https://developer.android.com/training/articles/security-config
+-->
+<network-security-config>
+    <!-- Enforce HTTPS for all hosts; reject cleartext HTTP -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

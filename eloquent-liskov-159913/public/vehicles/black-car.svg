@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="blackBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#252535"/>
+      <stop offset="100%" stop-color="#0d0d1a"/>
+    </linearGradient>
+    <radialGradient id="blackShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.38)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+  </defs>
+  <!-- Drop shadow (dark gray for luxury) -->
+  <ellipse cx="100" cy="91" rx="82" ry="7" fill="url(#blackShadow)"/>
+  <!-- Rear wheel -->
+  <circle cx="150" cy="77" r="13" fill="#141420"/>
+  <circle cx="150" cy="77" r="6" fill="#444458"/>
+  <circle cx="150" cy="77" r="2.5" fill="#141420"/>
+  <!-- Front wheel -->
+  <circle cx="53" cy="77" r="13" fill="#141420"/>
+  <circle cx="53" cy="77" r="6" fill="#444458"/>
+  <circle cx="53" cy="77" r="2.5" fill="#141420"/>
+  <!-- Luxury body (low profile, slightly lower) -->
+  <rect x="20" y="56" width="162" height="22" rx="9" fill="url(#blackBody)"/>
+  <!-- Window trim accent -->
+  <rect x="63" y="55" width="89" height="2" rx="1" fill="#2a2a3e"/>
+  <!-- Cabin (sleek low profile) -->
+  <path d="M 63,56 L 77,26 L 137,26 L 151,56 Z" fill="#0d0d1a"/>
+  <!-- Subtle roof highlight -->
+  <path d="M 81,27 L 135,27 L 135,29 L 81,29 Z" fill="rgba(255,255,255,0.05)"/>
+  <!-- Front window (dark tinted) -->
+  <path d="M 70,55 L 83,28 L 112,28 L 112,55 Z" fill="rgba(30,40,80,0.70)"/>
+  <!-- Rear window (dark tinted) -->
+  <path d="M 116,55 L 116,28 L 135,28 L 148,55 Z" fill="rgba(30,40,80,0.65)"/>
+  <!-- Subtle blue window reflection -->
+  <path d="M 72,51 L 79,34 L 83,34 L 76,51 Z" fill="rgba(60,100,180,0.18)"/>
+  <!-- Door line -->
+  <line x1="112" y1="56" x2="112" y2="78" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
+  <!-- Headlight (premium thin DRL) -->
+  <rect x="22" y="62" width="10" height="3" rx="1.5" fill="rgba(220,235,255,0.85)"/>
+  <!-- Taillight (thin horizontal) -->
+  <rect x="170" y="62" width="8" height="3" rx="1.5" fill="rgba(180,30,30,0.90)"/>
+  <!-- Chrome door handles -->
+  <rect x="92" y="67" width="10" height="2" rx="1" fill="rgba(80,90,130,0.5)"/>
+  <rect x="124" y="67" width="10" height="2" rx="1" fill="rgba(80,90,130,0.5)"/>
+</svg>

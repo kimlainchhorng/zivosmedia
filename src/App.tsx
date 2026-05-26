@@ -122,6 +122,7 @@ const Index = lazy(() => lazyRetry(() => import("./pages/Index")));
 const AdminDriverModerationPage = lazy(() => import("./pages/admin/AdminDriverModerationPage"));
 const AdminTripHeatmapPage = lazy(() => import("./pages/admin/AdminTripHeatmapPage"));
 const AdminRefundsPage = lazy(() => import("./pages/admin/AdminRefundsPage"));
+const AdminDriverPayoutsPage = lazy(() => import("./pages/admin/AdminDriverPayoutsPage"));
 const AdminMessageModerationPage = lazy(() => import("./pages/admin/AdminMessageModerationPage"));
 const AdminCallClosuresPage = lazy(() => import("./pages/admin/AdminCallClosuresPage"));
 const AdminModerationQAPage = lazy(() => import("./pages/admin/AdminModerationQAPage"));
@@ -1635,6 +1636,7 @@ const App = () => (
                 <Route path="/admin/payments/webhook-status" element={<ProtectedRoute requireAdmin={true}><AdminWebhookStatusPage /></ProtectedRoute>} />
                 <Route path="/admin/drivers/verification" element={<ProtectedRoute requireAdmin={true}><AdminDriverVerificationPage /></ProtectedRoute>} />
                 <Route path="/admin/drivers/moderation" element={<ProtectedRoute requireAdmin={true}><AdminDriverModerationPage /></ProtectedRoute>} />
+                <Route path="/admin/drivers/payouts" element={<ProtectedRoute requireAdmin={true}><AdminDriverPayoutsPage /></ProtectedRoute>} />
                 <Route path="/admin/operations/heatmap" element={<ProtectedRoute requireAdmin={true}><AdminTripHeatmapPage /></ProtectedRoute>} />
                 <Route path="/admin/payments/refunds" element={<ProtectedRoute requireAdmin={true}><AdminRefundsPage /></ProtectedRoute>} />
                 <Route path="/admin/moderation/messages" element={<ProtectedRoute requireAdmin={true}><AdminMessageModerationPage /></ProtectedRoute>} />

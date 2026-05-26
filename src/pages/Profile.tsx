@@ -41,6 +41,9 @@ import { motion, useScroll, useTransform, AnimatePresence, useMotionValueEvent }
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getPublicOrigin } from "@/lib/getPublicOrigin";
+import { invalidateAllStoryCaches } from "@/lib/storiesCache";
+import { copyText } from "@/lib/native/clipboard";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { assessLinkSync } from "@/hooks/useLinkRisk";
 import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
@@ -280,22 +283,6 @@ const Profile = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate("/feed");
   }, [impact, navigate]);
-  const copyTextToClipboard = useCallback(async (text: string) => {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return;
-    }
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.setAttribute("readonly", "");
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-    document.body.appendChild(textArea);
-    textArea.select();
-    const copied = document.execCommand("copy");
-    document.body.removeChild(textArea);
-    if (!copied) throw new Error("Copy command failed");
-  }, []);
   const handleToggleNotif = useCallback(() => {
     selectionChanged();
     setShowLangPicker(false);
@@ -406,17 +393,25 @@ const Profile = () => {
     queryKey: ["profile-social-counts", user?.id],
     queryFn: async () => {
       if (!user?.id) return { friends: 0, followers: 0, following: 0, posts: 0 };
-      const [{ count: fc }, { count: flc }, { count: fgc }, { count: pc }] = await Promise.all([
-        supabase.from("friendships" as never).select("id", { count: "exact", head: true })
+      const [
+        { count: fc, error: friendsError },
+        { count: flc, error: followersError },
+        { count: fgc, error: followingError },
+        { count: pc, error: postsError },
+      ] = await Promise.all([
+        (supabase as any).from("friendships").select("id", { count: "exact", head: true })
           .eq("status", "accepted")
           .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`),
-        supabase.from("followers" as never).select("id", { count: "exact", head: true })
+        (supabase as any).from("user_followers").select("id", { count: "exact", head: true })
           .eq("following_id", user.id),
-        supabase.from("followers" as never).select("id", { count: "exact", head: true })
+        (supabase as any).from("user_followers").select("id", { count: "exact", head: true })
           .eq("follower_id", user.id),
-        (supabase as never as { from: (t: string) => { select: (s: string, o: { count: string; head: boolean }) => { eq: (k: string, v: string) => Promise<{ count: number | null }> } } })
-          .from("user_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        (supabase as any).from("user_posts").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_published", true),
       ]);
+      const firstError = friendsError || followersError || followingError || postsError;
+      if (firstError) throw firstError;
       return { friends: fc || 0, followers: flc || 0, following: fgc || 0, posts: pc || 0 };
     },
     enabled: !!user?.id,
@@ -462,7 +457,12 @@ const Profile = () => {
 
   const workflowMode = zivoOFMode ? "creator" : activeMode;
   const profileShareUrl = useMemo(
-    () => `https://hizivo.com/u/${claimedUsername || user?.id || ""}`,
+    () => {
+      const origin = getPublicOrigin();
+      if (claimedUsername) return `${origin}/u/${encodeURIComponent(claimedUsername)}`;
+      if (user?.id) return `${origin}/user/${encodeURIComponent(user.id)}`;
+      return "";
+    },
     [claimedUsername, user?.id],
   );
 
@@ -473,7 +473,7 @@ const Profile = () => {
       return;
     }
     try {
-      await copyTextToClipboard(profileShareUrl);
+      await copyText(profileShareUrl);
       setProfileLinkCopied(true);
       toast.success("Profile link copied");
       window.setTimeout(() => setProfileLinkCopied(false), 1600);
@@ -481,7 +481,7 @@ const Profile = () => {
       setShareOpen(true);
       toast.info("Copy failed, share options opened");
     }
-  }, [claimedUsername, copyTextToClipboard, profileShareUrl, selectionChanged, user?.id]);
+  }, [claimedUsername, profileShareUrl, selectionChanged, user?.id]);
 
   const getShopDashboardPath = useCallback(() => {
     if (!ownerStore?.id) return "/shop-dashboard";
@@ -649,6 +649,7 @@ const Profile = () => {
 
   const retryProfileQueries = useCallback(() => {
     if (!user?.id) return;
+    invalidateAllStoryCaches(queryClient, user.id);
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] }),
       queryClient.invalidateQueries({ queryKey: ["verification-request", user.id, "latest"] }),
@@ -658,8 +659,15 @@ const Profile = () => {
   }, [queryClient, user?.id]);
 
   const handlePullRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["user-profile"] });
-  }, [queryClient]);
+    if (!user?.id) return;
+    invalidateAllStoryCaches(queryClient, user.id);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["verification-request", user.id, "latest"] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-social-counts", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-recent-apps", user.id] }),
+    ]);
+  }, [queryClient, user?.id]);
 
   return (
     <PullToRefresh
@@ -1314,7 +1322,7 @@ const Profile = () => {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => navigate("/account/profile-edit")}
+                            onClick={() => navigate("/account/username?from=profile")}
                             className="text-primary hover:underline"
                           >
                             Set a username
@@ -1734,7 +1742,12 @@ const Profile = () => {
 
               {/* ── Social Content Tabs (Posts, Videos, Live, Status) ── */}
               <ParallaxSection index={2.5}>
-                <ProfileContentTabs userId={user?.id} />
+                <ProfileContentTabs
+                  userId={user?.id}
+                  profileDisplayName={headerName || profile?.full_name}
+                  profileAvatarUrl={profile?.avatar_url}
+                  onPostsChanged={() => { void refetchSocialCounts(); }}
+                />
               </ParallaxSection>
 
 
@@ -1854,14 +1867,15 @@ const Profile = () => {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: "Edit profile", icon: Pencil, route: "/profile/edit" },
-                  { label: "Privacy", icon: Shield, route: "/settings/privacy" },
+                  { label: "Edit profile", icon: Pencil, route: "/account/profile-edit" },
+                  { label: "Privacy", icon: Shield, route: "/account/privacy" },
+                  { label: "18+ Blur", icon: Eye, route: "/account/privacy#sensitive" },
                   { label: "Notifications", icon: Bell, route: "/account/notifications" },
                   { label: "Wallet", icon: Wallet, route: "/wallet" },
-                  { label: "Saved places", icon: MapPin, route: "/saved-places" },
-                  { label: "Security", icon: Lock, route: "/settings/security" },
+                  { label: "Saved places", icon: MapPin, route: "/account/saved-places" },
+                  { label: "Security", icon: Lock, route: "/account/security" },
                   { label: "Language", icon: Globe, route: "/more" },
-                  { label: "Activity", icon: BarChart3, route: "/account/activity" },
+                  { label: "Activity", icon: BarChart3, route: "/account/activity-log" },
                   { label: "Share profile", icon: Share2, route: "" },
                 ].map((a) => {
                   const Icon = a.icon;

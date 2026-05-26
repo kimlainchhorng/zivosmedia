@@ -100,7 +100,10 @@ vi.mock("@/hooks/usePostComments", () => ({
     submitting: false,
     addComment: vi.fn(),
     deleteComment: vi.fn(),
+    editComment: vi.fn(),
+    reportComment: vi.fn(),
     toggleReaction: vi.fn(),
+    togglePin: vi.fn(),
   }),
 }));
 
@@ -173,11 +176,11 @@ describe.each(NOTCHED_DEVICES)(
       const dialog = screen.getByRole("dialog", { name: /comments/i });
       const panel = getPanel(dialog);
 
-      const padTop = panel.getAttribute("data-padding-top") || "";
-      expect(padTop).toMatch(/safe-area-inset-top|--zivo-safe-top/);
-
-      const resolvedPx = evaluateCssExpression(padTop, device);
-      expect(resolvedPx).toBeGreaterThanOrEqual(Math.max(device.top, 44));
+      // CommentsSheet uses safeAreaTop={false}: it is capped at 70 dvh so the
+      // top of the panel never reaches the notch / status bar — no top padding
+      // needed. The snap-point max-height still guards viewport overflow.
+      const maxHeight = panel.getAttribute("data-max-height") || "";
+      expect(maxHeight).toMatch(/safe-area-inset-top|--zivo-safe-top/);
     });
 
     it("CommentsSheet: close button is labelled, inside padded panel, and Escape dismisses", () => {

@@ -1,0 +1,32 @@
+{
+  "name": "ZIVO – Free Super-App: Travel, Social, Shop, Jobs & Creators",
+  "short_name": "ZIVO",
+  "description": "All-in-one free app: book flights, hotels & cars, order rides & food, share reels, follow creators, open a shop, post or apply for jobs, chat & call.",
+  "categories": ["travel", "social", "lifestyle", "business", "shopping"],
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/?utm_source=pwa",
+  "id": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0b0f0c",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/pwa-icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/pwa-icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Search Flights",  "short_name": "Flights", "url": "/flights",  "icons": [{ "src": "/pwa-icons/icon-192x192.png", "sizes": "192x192" }] },
+    { "name": "Find Hotels",     "short_name": "Hotels",  "url": "/hotels",   "icons": [{ "src": "/pwa-icons/icon-192x192.png", "sizes": "192x192" }] },
+    { "name": "Rent a Car",      "short_name": "Cars",    "url": "/rent-car", "icons": [{ "src": "/pwa-icons/icon-192x192.png", "sizes": "192x192" }] },
+    { "name": "Reels",           "short_name": "Reels",   "url": "/reels",    "icons": [{ "src": "/pwa-icons/icon-192x192.png", "sizes": "192x192" }] },
+    { "name": "Jobs",            "short_name": "Jobs",    "url": "/jobs",     "icons": [{ "src": "/pwa-icons/icon-192x192.png", "sizes": "192x192" }] }
+  ],
+  "related_applications": [
+    { "platform": "itunes",   "url": "https://apps.apple.com/app/id6759480121", "id": "6759480121" },
+    { "platform": "play",     "url": "https://play.google.com/store/apps/details?id=com.zivo.app", "id": "com.zivo.app" }
+  ],
+  "prefer_related_applications": false
+}

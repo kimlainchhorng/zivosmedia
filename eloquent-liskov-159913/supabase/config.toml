@@ -1,0 +1,113 @@
+project_id = "slirphzzwcogdbkeicff"
+
+[functions]
+  [functions.notify-dispatch]
+    verify_jwt = false
+  [functions.send-sms]
+    verify_jwt = false
+  [functions.send-test-notification]
+    verify_jwt = true
+  [functions.notifications-cron]
+    verify_jwt = false
+  [functions.notifications-weekly-digest]
+    verify_jwt = false
+  [functions.supplier-proxy]
+    verify_jwt = false
+  [functions.scan-invoice]
+    verify_jwt = true
+  [functions.account-export]
+    verify_jwt = true
+  [functions.account-delete-self]
+    verify_jwt = true
+  [functions.ar-receipts-helper]
+    verify_jwt = false
+  [functions.stripe-ride-webhook]
+    verify_jwt = false
+  [functions.stripe-lodging-webhook]
+    verify_jwt = false
+  [functions.dispatch-escalate]
+    verify_jwt = false
+  [functions.ads-studio-generate]
+    verify_jwt = false
+  [functions.ads-studio-export]
+    verify_jwt = false
+  [functions.ads-studio-track]
+    verify_jwt = false
+  [functions.ads-studio-auto-winner]
+    verify_jwt = false
+  [functions.ads-studio-publish]
+    verify_jwt = false
+  [functions.aba-payway-checkout]
+    verify_jwt = false
+  [functions.account-summary]
+    verify_jwt = false
+  [functions.admin-create-user-post]
+    verify_jwt = false
+  [functions.admin-list-created-users]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.check-device-integrity]
+    verify_jwt = false
+  [functions.check-zivo-plus]
+    verify_jwt = false
+  [functions.costco-search]
+    verify_jwt = false
+  [functions.create-reel-boost]
+    verify_jwt = false
+  [functions.dispatch-start]
+    verify_jwt = false
+  [functions.duffel-flights]
+    verify_jwt = false
+  [functions.geo-detect]
+    verify_jwt = false
+  [functions.get-ice-servers]
+    verify_jwt = false
+  [functions.handle-email-suppression]
+    verify_jwt = false
+  [functions.handle-email-unsubscribe]
+    verify_jwt = false
+  [functions.kroger-search]
+    verify_jwt = false
+  [functions.live-signal]
+    verify_jwt = false
+  [functions.lookup-store-id]
+    verify_jwt = false
+  [functions.meta-capi-bridge]
+    verify_jwt = false
+  [functions.meta-conversion-bridge]
+    verify_jwt = false
+  [functions.meta-conversion-handler]
+    verify_jwt = false
+  [functions.notifications-summary]
+    verify_jwt = false
+  [functions.oauth-callback]
+    verify_jwt = false
+  [functions.pair-go-live]
+    verify_jwt = false
+  [functions.post-og]
+    verify_jwt = false
+  [functions.channel-og]
+    verify_jwt = false
+  [functions.preview-transactional-email]
+    verify_jwt = false
+  [functions.profile-og]
+    verify_jwt = false
+  [functions.register-push-token]
+    verify_jwt = false
+  [functions.send-push-notification]
+    verify_jwt = false
+  [functions.send-transactional-email]
+    verify_jwt = false
+  [functions.target-search]
+    verify_jwt = false
+  [functions.wallet-summary]
+    verify_jwt = false
+  [functions.walmart-search]
+    verify_jwt = false
+  [functions.lodging-ical-import]
+    verify_jwt = false
+  [functions.lodging-ical-export]
+    verify_jwt = false
+  [functions.create-p2p-transfer]
+    verify_jwt = false

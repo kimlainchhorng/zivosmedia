@@ -94,6 +94,7 @@ import { useChatHubSearchResults } from "./chat/useChatHubSearchResults";
 import { useChatHubRealtimeInvalidation } from "./chat/useChatHubRealtimeInvalidation";
 import { useMarkOpenPersonalChatRead } from "./chat/useMarkOpenPersonalChatRead";
 import { useLastOpenChatPersistence } from "./chat/useLastOpenChatPersistence";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
 
 // Lazy-load heavy sub-pages/components
 const GroupChat = lazy(() => import("@/components/chat/GroupChat"));
@@ -114,6 +115,58 @@ const getIllustratedPacks = () => {
 
 export type ChatCategory = "personal" | "shop" | "support" | "ride";
 type BuiltInChatFolder = "all" | "unread" | "personal" | "groups" | "shop" | "support" | "ride";
+
+function ChatRowAvatar({
+  avatar,
+  name,
+  isGroup,
+  active,
+  embedded = false,
+  collapsedRail = false,
+  variant = "list",
+}: {
+  avatar?: string | null;
+  name: string;
+  isGroup: boolean;
+  active: ChatCategory;
+  embedded?: boolean;
+  collapsedRail?: boolean;
+  variant?: "list" | "archived";
+}) {
+  const groupAvatarSrc = useSignedMedia(isGroup ? avatar : null, "chat-media-files", "thumbnail");
+  const displayAvatar = isGroup ? groupAvatarSrc : avatar;
+  const initials = (name || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  return (
+    <div className={cn(
+      "flex items-center justify-center overflow-hidden",
+      variant === "archived"
+        ? "w-10 h-10 rounded-xl bg-muted ring-2 ring-border/20"
+        : [
+            "rounded-full",
+            embedded ? "h-[44px] w-[44px]" : "w-[52px] h-[52px]",
+            collapsedRail && "lg:w-11 lg:h-11",
+            isGroup ? "bg-primary/10" : "bg-muted",
+          ],
+    )}>
+      {displayAvatar ? (
+        <img src={displayAvatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+      ) : isGroup ? (
+        <Users className="w-5 h-5 text-primary" />
+      ) : active === "personal" ? (
+        <span className={cn("font-bold text-muted-foreground", variant === "archived" ? "text-sm" : "text-base")}>
+          {initials}
+        </span>
+      ) : active === "shop" ? (
+        <StoreIcon className="w-5 h-5 text-muted-foreground" />
+      ) : active === "support" ? (
+        <Headphones className="w-5 h-5 text-muted-foreground" />
+      ) : (
+        <Car className="w-5 h-5 text-muted-foreground" />
+      )}
+    </div>
+  );
+}
 
 interface CategoryTab {
   id: ChatCategory;
@@ -190,6 +243,7 @@ type OpenChatState = {
   recipientName?: string;
   recipientAvatar?: string | null;
   prefillInput?: string;
+  openGiftOnMount?: boolean;
   userId?: string;
   userName?: string;
   name?: string;
@@ -222,6 +276,7 @@ function normalizeOpenChatState(openChat?: OpenChatState | null) {
     name,
     avatar,
     prefillInput: openChat.prefillInput,
+    openGiftOnMount: openChat.openGiftOnMount,
   };
 }
 
@@ -388,7 +443,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const [rideLastSeen, setRideLastSeen] = useState<Record<string, string>>({});
   const [supportLastSeen, setSupportLastSeen] = useState<Record<string, string>>({});
   const [openShopChat, setOpenShopChat] = useState<{ storeId: string; name: string; logo?: string | null } | null>(null);
-  const [openPersonalChat, _setOpenPersonalChat] = useState<{ id: string; name: string; avatar?: string | null; isVerified?: boolean; prefillInput?: string } | null>(null);
+  const [openPersonalChat, _setOpenPersonalChat] = useState<{ id: string; name: string; avatar?: string | null; isVerified?: boolean; prefillInput?: string; openGiftOnMount?: boolean } | null>(null);
   // Wrap the raw setter so every call site automatically picks up a pending
   // forward prefill (set by ChannelPostCard.forwardToDm). Keeps the per-row
   // click handlers untouched.
@@ -568,6 +623,20 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     verify();
   }, [searchParams, user]);
 
+  // Handle premium gift checkout return: /chat?gift=success|canceled
+  useEffect(() => {
+    const giftStatus = searchParams.get("gift");
+    if (giftStatus !== "success" && giftStatus !== "canceled") return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("gift");
+    setSearchParams(nextParams, { replace: true });
+    if (giftStatus === "success") {
+      toast.success("Premium gift sent. It may take a moment to appear in chat.");
+    } else {
+      toast.info("Premium gift checkout was canceled.");
+    }
+  }, [searchParams, setSearchParams]);
+
   // Handle ?with=<userId> deep-link from push notification tap
   useEffect(() => {
     let withId = searchParams.get("with");
@@ -584,7 +653,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     }
 
     if (!withId || !user) return;
+    const openGiftOnMount = searchParams.get("gift") === "1";
     searchParams.delete("with");
+    searchParams.delete("gift");
     setSearchParams(searchParams, { replace: true });
     setActive("personal");
     // If a forward-from-channel stashed a prefill, consume it now so the
@@ -609,9 +680,32 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         avatar: data?.avatar_url || null,
         isVerified: (data as any)?.is_verified === true,
         prefillInput,
+        openGiftOnMount,
       });
     })();
   }, [searchParams, user, setSearchParams]);
+
+  // Handle ?group=<groupId> deep-link from invite redemption or copied group links
+  useEffect(() => {
+    const groupId = searchParams.get("group");
+    if (!groupId || !user) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("group");
+    setSearchParams(nextParams, { replace: true });
+    setFolder("groups");
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("chat_groups")
+        .select("id, name, avatar_url")
+        .eq("id", groupId)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Could not open group");
+        return;
+      }
+      setOpenGroupChat({ id: data.id, name: data.name || "Group", avatar: data.avatar_url || null });
+    })();
+  }, [searchParams, setSearchParams, user]);
 
   // Handle deep-link from profile page chat button OR share-to-chat OR start call
   const [pendingCall, setPendingCall] = useState<"voice" | "video" | null>(null);
@@ -626,6 +720,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const normalizedRouteOpenChat = normalizeOpenChatState(routeState?.openChat);
   const shouldSkipLastOpenRestore = Boolean(
     searchParams.get("with") ||
+    searchParams.get("group") ||
     searchParams.get("unlocked") ||
     normalizedRouteOpenChat ||
     routeState?.shareUrl ||
@@ -937,6 +1032,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       const grouped = new Map<string, { lastMsg: any; unread: number }>();
       for (const msg of data as any[]) {
+        if (msg.hidden_at) continue;
         const otherId = msg.sender_id === user!.id ? msg.receiver_id : msg.sender_id;
         if (!grouped.has(otherId)) {
           grouped.set(otherId, { lastMsg: msg, unread: 0 });
@@ -1015,7 +1111,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       const { data: groupMessages } = await (supabase as any)
         .from("group_messages")
-        .select("group_id, message, created_at, sender_id, message_type")
+        .select("*")
         .in("group_id", groupIds)
         .order("created_at", { ascending: false })
         .limit(3000);
@@ -1025,6 +1121,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       for (const msg of (groupMessages || []) as any[]) {
         if (!msg?.group_id) continue;
+        if (msg.hidden_at) continue;
         if (!latestByGroup.has(msg.group_id)) {
           latestByGroup.set(msg.group_id, msg);
         }
@@ -2436,6 +2533,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                               ] : []}
                             >
                               <div
+                                data-testid={(chat as any).isGroup ? "group-conversation-row" : "conversation-row"}
                                 className={cn(
                                   "w-full flex items-center gap-3 text-left transition-all",
                                   embedded ? "px-3 py-2.5" : "px-4 py-3",
@@ -2456,28 +2554,14 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                       )}
                                     </span>
                                   )}
-                                  <div className={cn(
-                                    "flex items-center justify-center overflow-hidden rounded-full",
-                                    embedded ? "h-[44px] w-[44px]" : "w-[52px] h-[52px]",
-                                    collapsedRail && "lg:w-11 lg:h-11",
-                                    (chat as any).isGroup ? "bg-primary/10" : "bg-muted"
-                                  )}>
-                                    {chat.avatar ? (
-                                      <img src={chat.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                                    ) : (chat as any).isGroup ? (
-                                      <Users className="w-5 h-5 text-primary" />
-                                    ) : active === "personal" ? (
-                                      <span className="text-base font-bold text-muted-foreground">
-                                        {(chat.name || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                                      </span>
-                                    ) : active === "shop" ? (
-                                      <StoreIcon className="w-5 h-5 text-muted-foreground" />
-                                    ) : active === "support" ? (
-                                      <Headphones className="w-5 h-5 text-muted-foreground" />
-                                    ) : (
-                                      <Car className="w-5 h-5 text-muted-foreground" />
-                                    )}
-                                  </div>
+                                  <ChatRowAvatar
+                                    avatar={chat.avatar}
+                                    name={chat.name}
+                                    isGroup={!!(chat as any).isGroup}
+                                    active={active}
+                                    embedded={embedded}
+                                    collapsedRail={collapsedRail}
+                                  />
                                   {liveOnline && (
                                     <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-[2.5px] border-background" />
                                   )}
@@ -2698,17 +2782,13 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             }}
                             className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-card/60 border border-border/30 active:scale-[0.98] transition-all"
                           >
-                            <div className={cn(
-                              "w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden ring-2 ring-border/20"
-                            )}>
-                              {chat.avatar ? (
-                                <img src={chat.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="text-sm font-bold text-muted-foreground">
-                                  {(chat.name || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                                </span>
-                              )}
-                            </div>
+                            <ChatRowAvatar
+                              avatar={chat.avatar}
+                              name={chat.name}
+                              isGroup={!!(chat as any).isGroup}
+                              active={active}
+                              variant="archived"
+                            />
                             <div className="flex-1 text-left min-w-0">
                               <p className="text-sm font-semibold text-foreground truncate">{chat.name}</p>
                               <p className="text-[11px] text-muted-foreground truncate">{parseRichMessagePreview(chat.lastMessage || "")}</p>
@@ -3187,6 +3267,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 recipientAvatar={openPersonalChat.avatar}
                 recipientIsVerified={openPersonalChat.isVerified === true}
                 prefillInput={openPersonalChat.prefillInput}
+                openGiftOnMount={openPersonalChat.openGiftOnMount}
                 onClose={() => { setOpenPersonalChat(null); setPendingCall(null); queryClient.invalidateQueries({ queryKey: ["chat-hub-personal"] }); }}
                 autoStartCall={pendingCall}
                 onCallStarted={() => setPendingCall(null)}
@@ -3235,7 +3316,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 groupName={openGroupChat.name}
                 groupAvatar={openGroupChat.avatar}
                 autoStartCall={openGroupChat.autoStartCall ?? null}
-                onClose={() => setOpenGroupChat(null)}
+                onClose={() => {
+                  setOpenGroupChat(null);
+                  queryClient.invalidateQueries({ queryKey: ["chat-hub-groups"] });
+                }}
               />
             </ChatErrorBoundary>
           </Suspense>

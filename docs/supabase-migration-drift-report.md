@@ -1,42 +1,61 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-05-25T15:04:33.067Z
+Generated: 2026-05-26T20:15:28.283Z
 
 ## Summary
 
-- Local migrations: 720
+- Local migrations: 830
 - Invalid filenames: 0
-- Duplicate versions: 8
+- Duplicate versions: 24
+- Allowed duplicate versions: 8
+- New duplicate versions: 16
 - Duplicate SQL hashes: 0
 - Remote migrations: 0
 - Matched versions: 0
-- Local-only pending: 720
+- Local-only pending: 830
 - Remote-only missing locally: 0
-- Pending risk: high=653, medium=50, low=17
+- Pending risk: high=762, medium=50, low=18
 
 ## Domains
 
-- security/auth: 618
-- commerce/store: 34
-- chat/social: 21
+- security/auth: 692
+- commerce/store: 51
+- chat/social: 36
+- travel/lodging: 22
 - general: 19
-- travel/lodging: 19
-- infrastructure: 9
+- infrastructure: 10
 
 ## Duplicate Versions
 
-- 20260429230000: 20260429230000_security_hardening.sql, 20260429230000_user_posts_visibility_location.sql
-- 20260429240000: 20260429240000_backfill_storage_paths.sql, 20260429240000_increment_user_post_views.sql
-- 20260429250000: 20260429250000_post_actions_tables.sql, 20260429250000_user_posts_realtime.sql
-- 20260429260000: 20260429260000_post_comments_realtime.sql, 20260429260000_post_reactions.sql
-- 20260430020000: 20260430020000_blocked_link_attempts.sql, 20260430020000_fix_social_notification_triggers.sql
-- 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql
-- 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql
-- 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql
+- 20260429230000: 20260429230000_security_hardening.sql, 20260429230000_user_posts_visibility_location.sql (allowed legacy duplicate)
+- 20260429240000: 20260429240000_backfill_storage_paths.sql, 20260429240000_increment_user_post_views.sql (allowed legacy duplicate)
+- 20260429250000: 20260429250000_post_actions_tables.sql, 20260429250000_user_posts_realtime.sql (allowed legacy duplicate)
+- 20260429260000: 20260429260000_post_comments_realtime.sql, 20260429260000_post_reactions.sql (allowed legacy duplicate)
+- 20260430020000: 20260430020000_blocked_link_attempts.sql, 20260430020000_fix_social_notification_triggers.sql (allowed legacy duplicate)
+- 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql (allowed legacy duplicate)
+- 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql (allowed legacy duplicate)
+- 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql (allowed legacy duplicate)
+- 20260525100000: 20260525100000_cafe_baristas.sql, 20260525100000_cafe_orders_realtime_publication.sql (needs reconciliation)
+- 20260525110000: 20260525110000_cafe_auto_expire_pending.sql, 20260525110000_cafe_time_entries.sql (needs reconciliation)
+- 20260525120000: 20260525120000_cafe_orders_status_timestamps.sql, 20260525120000_cafe_reviews.sql (needs reconciliation)
+- 20260525130000: 20260525130000_cafe_orders_recalc_on_adjustment.sql, 20260525130000_cafe_promotions.sql (needs reconciliation)
+- 20260525400000: 20260525400000_cafe_customer_summary.sql, 20260525400000_car_rental_initial.sql (needs reconciliation)
+- 20260525410000: 20260525410000_cafe_till_drops.sql, 20260525410000_car_rental_expenses_maintenance.sql (needs reconciliation)
+- 20260525420000: 20260525420000_cafe_last_order_items.sql, 20260525420000_car_rental_reviews_promotions.sql (needs reconciliation)
+- 20260525430000: 20260525430000_cafe_tip_payouts.sql, 20260525430000_car_rental_blackouts.sql (needs reconciliation)
+- 20260525440000: 20260525440000_cafe_daily_message.sql, 20260525440000_car_rental_damage_photos.sql (needs reconciliation)
+- 20260525450000: 20260525450000_cafe_review_summary.sql, 20260525450000_car_rental_compliance_and_tax.sql (needs reconciliation)
+- 20260525460000: 20260525460000_cafe_reservations.sql, 20260525460000_car_rental_refunds.sql (needs reconciliation)
+- 20260525500000: 20260525500000_cafe_menu_allergens.sql, 20260525500000_car_dealership_initial.sql (needs reconciliation)
+- 20260525510000: 20260525510000_cafe_menu_happy_hour.sql, 20260525510000_car_dealership_promotions.sql (needs reconciliation)
+- 20260525520000: 20260525520000_cafe_rpc_happy_hour.sql, 20260525520000_car_dealership_customer_interactions.sql (needs reconciliation)
+- 20260525530000: 20260525530000_cafe_bundles.sql, 20260525530000_car_dealership_deal_documents.sql (needs reconciliation)
+- 20260525540000: 20260525540000_cafe_rpc_bundles.sql, 20260525540000_car_dealership_public_reviews.sql (needs reconciliation)
 
 ## Remote Query
 
-- Linked remote migration history was read successfully.
+- Error: Initialising login role...
+2026/05/26 15:15:25 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
 
 ## High Risk Pending Migrations
 
@@ -140,7 +159,7 @@ Generated: 2026-05-25T15:04:33.067Z
 - 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
 - 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
 - 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 553 more
+- ...and 662 more
 
 ## Remote-Only Versions
 

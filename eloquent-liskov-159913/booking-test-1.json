@@ -1,0 +1,26 @@
+{
+  "run_at": "2026-05-16T03:30:00.225Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": 1,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "f638096a-3112-4f01-ac6b-506960f18258",
+      "name": "Amana Hotel & Residences",
+      "status": "updated",
+      "photos": 26,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/amana-amp-residences.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

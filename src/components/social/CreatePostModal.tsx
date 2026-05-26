@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X as XIcon, Globe, Users, Lock, FolderPlus, MapPin, Hash,
   ChevronDown, Image as ImageIcon, Play, Film, Radio, Plus, Search, Share2, Loader2,
-  Smile, Music, ShoppingBag,
+  Smile, Music, ShoppingBag, ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { uploadWithProgress } from "@/utils/uploadWithProgress";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
 import { nativeConfirm } from "@/lib/native/dialog";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
+import { detectSensitiveContent, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
 
 interface CreatePostModalProps {
   userId: string;
@@ -32,6 +33,7 @@ interface CreatePostModalProps {
   sharedPostId?: string;
   sharedPostAuthorId?: string;
   sharedPostAuthorName?: string;
+  remixType?: "duet" | "stitch";
   commerceLinkDraft?: {
     linkType: "store_product" | "truck_sale";
     storeId?: string;
@@ -163,6 +165,14 @@ const FEELINGS = [
 ];
 
 const DRAFT_KEY = "zivo-post-draft";
+const isVideoMediaUrl = (url?: string) =>
+  Boolean(url && /\.(mp4|mov|webm|avi|mkv|m4v)(\?.*)?$/i.test(url));
+
+const getRemixCaptionSeed = (remixType?: "duet" | "stitch", authorName?: string) => {
+  if (!remixType) return null;
+  const sourceName = authorName?.trim() || "original creator";
+  return `${remixType === "duet" ? "Duet" : "Stitch"} with ${sourceName}`;
+};
 
 export default function CreatePostModal({
   userId,
@@ -175,6 +185,7 @@ export default function CreatePostModal({
   sharedPostId,
   sharedPostAuthorId,
   sharedPostAuthorName,
+  remixType,
   commerceLinkDraft,
   initialAudioName,
   initialMode,
@@ -248,6 +259,10 @@ export default function CreatePostModal({
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const [unlockPrice, setUnlockPrice] = useState<string>("");
   const [showUnlockInput, setShowUnlockInput] = useState(false);
+  const [markSensitive, setMarkSensitive] = useState(() => detectSensitiveContent(initialCaption).isSensitive);
+  const hasVideoAttachment =
+    files.some((file) => file.type.startsWith("video/")) ||
+    Boolean(sharedMediaUrl && (sharedMediaType === "video" || isVideoMediaUrl(sharedMediaUrl)));
 
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -283,6 +298,12 @@ export default function CreatePostModal({
   }, []);
 
   useEffect(() => { autoResize(); }, [caption, autoResize]);
+
+  useEffect(() => {
+    if (detectSensitiveContent(caption).isSensitive) {
+      setMarkSensitive(true);
+    }
+  }, [caption]);
 
   // Focus album input when shown
   useEffect(() => {
@@ -361,6 +382,7 @@ export default function CreatePostModal({
   };
 
   const hasSharedLink = !!initialCaption || !!sharedMediaUrl;
+  const remixCaptionSeed = getRemixCaptionSeed(remixType, sharedPostAuthorName);
 
   const [uploadStatus, setUploadStatus] = useState("");
 
@@ -420,6 +442,9 @@ export default function CreatePostModal({
       const valid = pollOptions.filter((o) => o.trim());
       if (!caption.trim()) { toast.error("Please write a poll question"); return; }
       if (valid.length < 2) { toast.error("Add at least 2 poll options"); return; }
+    } else if (workflowMode === "reel" && !hasVideoAttachment) {
+      toast.error("Add a video before sharing a reel");
+      return;
     } else if (files.length === 0 && !hasSharedLink && !caption.trim()) {
       toast.error("Please add a photo, video, or write something");
       return;
@@ -512,7 +537,7 @@ export default function CreatePostModal({
       } else if (sharedMediaUrl) {
         mediaUrl = sharedMediaUrl;
         allMediaUrls = [sharedMediaUrl];
-        finalMediaType = sharedMediaType || "image";
+        finalMediaType = sharedMediaType || (isVideoMediaUrl(sharedMediaUrl) ? "video" : "image");
       } else {
         finalMediaType = "image";
       }
@@ -520,6 +545,15 @@ export default function CreatePostModal({
       setUploadStatus("Creating post...");
 
       let finalCaption = caption.trim() || null;
+      if (remixCaptionSeed) {
+        const remixPrefix = remixType === "stitch" ? "stitch with" : "duet with";
+        const hasRemixPrefix = finalCaption?.toLowerCase().startsWith(remixPrefix);
+        if (!finalCaption) {
+          finalCaption = remixCaptionSeed;
+        } else if (!hasRemixPrefix) {
+          finalCaption = `${remixCaptionSeed}\n\n${finalCaption}`;
+        }
+      }
       if (feeling && finalCaption) {
         finalCaption = `${finalCaption}\n\n— feeling ${feeling.emoji} ${feeling.label}`;
       } else if (feeling) {
@@ -539,6 +573,9 @@ export default function CreatePostModal({
         }
       }
 
+      const sensitiveAnalysis = detectSensitiveContent(finalCaption, { creatorMarked: markSensitive });
+      const shouldMarkSensitive = markSensitive || sensitiveAnalysis.isSensitive;
+
       const insertData: any = {
         user_id: userId,
         media_type: finalMediaType,
@@ -549,16 +586,33 @@ export default function CreatePostModal({
         is_published: true,
         visibility,
       };
+      if (shouldMarkSensitive) {
+        insertData.is_sensitive = true;
+        insertData.sensitive_reason = sensitiveAnalysis.reason || "creator_marked";
+      }
       if (location) insertData.location = location;
       if (audioName.trim()) insertData.audio_name = audioName.trim();
       if (sharedPostId) insertData.shared_from_post_id = sharedPostId;
       if (sharedPostAuthorId) insertData.shared_from_user_id = sharedPostAuthorId;
 
-      const { data: insertedPost, error: insertErr } = await (supabase as any)
+      let { data: insertedPost, error: insertErr } = await (supabase as any)
         .from("user_posts")
         .insert(insertData)
         .select("id")
         .single();
+      if (insertErr && shouldMarkSensitive && isSensitiveSchemaDriftError(insertErr)) {
+        const retryData = { ...insertData };
+        delete retryData.is_sensitive;
+        delete retryData.sensitive_reason;
+        delete retryData.sensitive_report_count;
+        const retry = await (supabase as any)
+          .from("user_posts")
+          .insert(retryData)
+          .select("id")
+          .single();
+        insertedPost = retry.data;
+        insertErr = retry.error;
+      }
       if (insertErr) throw insertErr;
 
       if (commerceLinkDraft && insertedPost?.id) {
@@ -611,10 +665,14 @@ export default function CreatePostModal({
   const canPublish = !uploading && (
     workflowMode === "live" ||
     isPoll ||
+    (workflowMode === "reel" && hasVideoAttachment) ||
+    (workflowMode !== "reel" && (
     files.length > 0 ||
     hasSharedLink ||
     !!caption.trim()
+    ))
   );
+  const composerSensitive = markSensitive || detectSensitiveContent(caption).isSensitive;
   const workflowTips = workflowMode === "reel"
     ? ["Video first", "Sound ready", "Short caption"]
     : workflowMode === "story"
@@ -677,6 +735,12 @@ export default function CreatePostModal({
             </span>
           ))}
         </div>
+        {remixCaptionSeed && (
+          <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-background px-2.5 py-1 text-[10px] font-bold text-foreground shadow-sm ring-1 ring-border/30">
+            <Film className={cn("h-3 w-3 shrink-0", activeWorkflowStyle.text)} />
+            <span className="truncate">{remixCaptionSeed}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -916,6 +980,21 @@ export default function CreatePostModal({
           </div>
 
           {/* Album button — inline input instead of prompt() */}
+          <button type="button"
+            onClick={() => setMarkSensitive((value) => !value)}
+            className={cn(
+              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px]",
+              composerSensitive
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/50"
+            )}
+            aria-pressed={composerSensitive}
+            title="Mark as 18+ sensitive media"
+          >
+            <ShieldAlert className="h-3.5 w-3.5" />
+            {composerSensitive ? "18+ on" : "18+"}
+          </button>
+
           {!zivoOFMode && (
           <div className="relative">
             <button type="button"

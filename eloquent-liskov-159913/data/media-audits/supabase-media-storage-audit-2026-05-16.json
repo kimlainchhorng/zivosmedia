@@ -1,0 +1,4468 @@
+{
+  "generated_at": "2026-05-17T00:32:57.543Z",
+  "supabase_project": "slirphzzwcogdbkeicff.supabase.co",
+  "summary": {
+    "tables_discovered": 144,
+    "tables_scanned": 144,
+    "tables_failed": 0,
+    "rows_scanned": 7866,
+    "media": {
+      "total": 112441,
+      "supabase_storage": 7886,
+      "direct_booking": 103380,
+      "external_http": 1122,
+      "relative_or_local": 28,
+      "data_url": 0,
+      "unknown": 25
+    },
+    "unique": {
+      "direct_booking_urls": 58614,
+      "direct_booking_image_ids": 55707,
+      "external_http_urls": 286,
+      "supabase_storage_urls": 3417
+    }
+  },
+  "tables": [
+    {
+      "table": "lodge_rooms",
+      "rows": 4940,
+      "columns": [
+        "photos"
+      ],
+      "media": {
+        "total": 57824,
+        "supabase_storage": 4484,
+        "direct_booking": 52305,
+        "external_http": 1035,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photos": {
+          "total": 57824,
+          "supabase_storage": 4484,
+          "direct_booking": 52305,
+          "external_http": 1035,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "store_profiles",
+      "rows": 955,
+      "columns": [
+        "banner_url",
+        "gallery_images",
+        "logo_url"
+      ],
+      "media": {
+        "total": 54265,
+        "supabase_storage": 3190,
+        "direct_booking": 51075,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "banner_url": {
+          "total": 955,
+          "supabase_storage": 120,
+          "direct_booking": 835,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "gallery_images": {
+          "total": 52355,
+          "supabase_storage": 2950,
+          "direct_booking": 49405,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "logo_url": {
+          "total": 955,
+          "supabase_storage": 120,
+          "direct_booking": 835,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "profiles",
+      "rows": 252,
+      "columns": [
+        "avatar_url",
+        "cover_url"
+      ],
+      "media": {
+        "total": 76,
+        "supabase_storage": 21,
+        "direct_booking": 0,
+        "external_http": 55,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 67,
+          "supabase_storage": 12,
+          "direct_booking": 0,
+          "external_http": 55,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "cover_url": {
+          "total": 9,
+          "supabase_storage": 9,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "store_products",
+      "rows": 34,
+      "columns": [
+        "image_url",
+        "image_urls"
+      ],
+      "media": {
+        "total": 60,
+        "supabase_storage": 56,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 4,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 32,
+          "supabase_storage": 28,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 4,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "image_urls": {
+          "total": 28,
+          "supabase_storage": 28,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "live_pair_sessions",
+      "rows": 39,
+      "columns": [
+        "store_avatar_url"
+      ],
+      "media": {
+        "total": 39,
+        "supabase_storage": 39,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "store_avatar_url": {
+          "total": 39,
+          "supabase_storage": 39,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "live_streams",
+      "rows": 34,
+      "columns": [
+        "host_avatar"
+      ],
+      "media": {
+        "total": 33,
+        "supabase_storage": 33,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "host_avatar": {
+          "total": 33,
+          "supabase_storage": 33,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "drivers",
+      "rows": 253,
+      "columns": [
+        "avatar_url"
+      ],
+      "media": {
+        "total": 25,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 25
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 25,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 25
+        }
+      }
+    },
+    {
+      "table": "live_gifts",
+      "rows": 42,
+      "columns": [
+        "icon_image_url",
+        "video_url"
+      ],
+      "media": {
+        "total": 24,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 24,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "icon_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "video_url": {
+          "total": 24,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 24,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "user_posts",
+      "rows": 17,
+      "columns": [
+        "media_type",
+        "media_url",
+        "media_urls"
+      ],
+      "media": {
+        "total": 23,
+        "supabase_storage": 23,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_url": {
+          "total": 17,
+          "supabase_storage": 17,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_urls": {
+          "total": 6,
+          "supabase_storage": 6,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "post_media",
+      "rows": 21,
+      "columns": [
+        "media_type",
+        "media_url",
+        "thumbnail_url"
+      ],
+      "media": {
+        "total": 21,
+        "supabase_storage": 21,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_url": {
+          "total": 21,
+          "supabase_storage": 21,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "thumbnail_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "bbq_menu_items",
+      "rows": 19,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 19,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 19,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 19,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 19,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "direct_messages",
+      "rows": 357,
+      "columns": [
+        "image_url",
+        "video_url"
+      ],
+      "media": {
+        "total": 8,
+        "supabase_storage": 8,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 5,
+          "supabase_storage": 5,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "video_url": {
+          "total": 3,
+          "supabase_storage": 3,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "gif_trending",
+      "rows": 8,
+      "columns": [
+        "gif_url"
+      ],
+      "media": {
+        "total": 8,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 8,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "gif_url": {
+          "total": 8,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 8,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "store_posts",
+      "rows": 3,
+      "columns": [
+        "media_type",
+        "media_urls",
+        "thumbnail_url"
+      ],
+      "media": {
+        "total": 6,
+        "supabase_storage": 6,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_urls": {
+          "total": 6,
+          "supabase_storage": 6,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "thumbnail_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "bbq_menu_categories",
+      "rows": 5,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 5,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 5,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 5,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 5,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "user_cvs",
+      "rows": 3,
+      "columns": [
+        "photo_url"
+      ],
+      "media": {
+        "total": 2,
+        "supabase_storage": 2,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 2,
+          "supabase_storage": 2,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "chat_media",
+      "rows": 1,
+      "columns": [
+        "file_url",
+        "thumbnail_url"
+      ],
+      "media": {
+        "total": 1,
+        "supabase_storage": 1,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "file_url": {
+          "total": 1,
+          "supabase_storage": 1,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "thumbnail_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "menu_items",
+      "rows": 1,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 1,
+        "supabase_storage": 1,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 1,
+          "supabase_storage": 1,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "user_stories",
+      "rows": 1,
+      "columns": [
+        "media_type",
+        "media_url"
+      ],
+      "media": {
+        "total": 1,
+        "supabase_storage": 1,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_url": {
+          "total": 1,
+          "supabase_storage": 1,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "ads_studio_creatives",
+      "rows": 0,
+      "columns": [
+        "image_urls",
+        "video_scripts"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_urls": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "video_scripts": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "ads_studio_variants",
+      "rows": 0,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "airlines",
+      "rows": 0,
+      "columns": [
+        "logo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "logo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "ama_sessions",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "ar_expenses",
+      "rows": 1,
+      "columns": [
+        "receipt_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "receipt_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "ar_parts",
+      "rows": 0,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "ar_technicians",
+      "rows": 0,
+      "columns": [
+        "avatar_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "ar_work_orders",
+      "rows": 0,
+      "columns": [
+        "photos"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photos": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "audio_rooms",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "backup_runs",
+      "rows": 0,
+      "columns": [
+        "file_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "file_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "bbq_order_items",
+      "rows": 0,
+      "columns": [
+        "item_image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "item_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "bbq_settings",
+      "rows": 1,
+      "columns": [
+        "hero_image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "hero_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "bot_collections",
+      "rows": 3,
+      "columns": [
+        "cover_emoji"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_emoji": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "bot_scheduled_messages",
+      "rows": 0,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "bot_workflows",
+      "rows": 1,
+      "columns": [
+        "reply_image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "reply_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "bots",
+      "rows": 1,
+      "columns": [
+        "avatar_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "brands",
+      "rows": 0,
+      "columns": [
+        "logo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "logo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "car_inventory",
+      "rows": 49,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "car_owner_documents",
+      "rows": 0,
+      "columns": [
+        "document_type",
+        "file_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "file_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "career_applications",
+      "rows": 0,
+      "columns": [
+        "cover_note"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_note": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "career_companies",
+      "rows": 0,
+      "columns": [
+        "cover_url",
+        "logo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "logo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "challenges",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "channel_posts",
+      "rows": 0,
+      "columns": [
+        "media"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "channels",
+      "rows": 1,
+      "columns": [
+        "avatar_url",
+        "banner_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "banner_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "chat_files",
+      "rows": 0,
+      "columns": [
+        "thumbnail_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "thumbnail_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "chat_groups",
+      "rows": 4,
+      "columns": [
+        "avatar_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "chat_messages",
+      "rows": 0,
+      "columns": [
+        "attachment_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "attachment_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "check_ins",
+      "rows": 0,
+      "columns": [
+        "photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "city_required_driver_documents",
+      "rows": 0,
+      "columns": [
+        "document_type"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "clubs",
+      "rows": 0,
+      "columns": [
+        "avatar_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "communities",
+      "rows": 0,
+      "columns": [
+        "avatar_url",
+        "banner_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "banner_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "community_posts",
+      "rows": 0,
+      "columns": [
+        "media_urls"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_urls": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "compliance_alerts",
+      "rows": 7,
+      "columns": [
+        "document_id"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_id": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "compliance_policies",
+      "rows": 5,
+      "columns": [
+        "document_type"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "compliance_reminders",
+      "rows": 356,
+      "columns": [
+        "document_id",
+        "document_table"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_id": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "document_table": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "corp_expenses",
+      "rows": 8,
+      "columns": [
+        "has_receipt",
+        "receipt_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "has_receipt": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "receipt_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "creator_profiles",
+      "rows": 4,
+      "columns": [
+        "avatar_url",
+        "banner_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "avatar_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "banner_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "customer_identity_verifications",
+      "rows": 0,
+      "columns": [
+        "id_document_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "id_document_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "document_reminders",
+      "rows": 0,
+      "columns": [
+        "document_id"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_id": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "driver_document_status",
+      "rows": 0,
+      "columns": [
+        "document_type"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "driver_documents",
+      "rows": 303,
+      "columns": [
+        "document_type"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "driver_expenses",
+      "rows": 0,
+      "columns": [
+        "has_receipt",
+        "receipt_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "has_receipt": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "receipt_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "driver_vehicles",
+      "rows": 2,
+      "columns": [
+        "photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "eats_reviews",
+      "rows": 0,
+      "columns": [
+        "photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "events",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "expenses",
+      "rows": 0,
+      "columns": [
+        "receipt_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "receipt_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "food_orders",
+      "rows": 0,
+      "columns": [
+        "delivery_photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "delivery_photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "gif_favorites",
+      "rows": 0,
+      "columns": [
+        "gif_id",
+        "gif_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "gif_id": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "gif_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "group_messages",
+      "rows": 4,
+      "columns": [
+        "image_url",
+        "video_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "video_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "hotel_rooms",
+      "rows": 0,
+      "columns": [
+        "images"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "images": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "hotels",
+      "rows": 0,
+      "columns": [
+        "images",
+        "logo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "images": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "logo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "import_order_events",
+      "rows": 0,
+      "columns": [
+        "photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "import_products",
+      "rows": 0,
+      "columns": [
+        "images"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "images": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "incident_reports",
+      "rows": 0,
+      "columns": [
+        "attachment_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "attachment_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "insurance_claim_documents",
+      "rows": 0,
+      "columns": [
+        "document_type"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "job_applications",
+      "rows": 0,
+      "columns": [
+        "cover_letter"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_letter": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "journal_entries",
+      "rows": 0,
+      "columns": [
+        "media_urls"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_urls": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "kyc_submissions",
+      "rows": 0,
+      "columns": [
+        "document_urls_json"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_urls_json": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "launch_cities",
+      "rows": 0,
+      "columns": [
+        "hero_image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "hero_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "legal_acknowledgments",
+      "rows": 0,
+      "columns": [
+        "document_key",
+        "document_version"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_key": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "document_version": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "link_previews",
+      "rows": 0,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "live_chat_messages",
+      "rows": 0,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "lodge_maintenance",
+      "rows": 0,
+      "columns": [
+        "photos"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photos": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "lodge_receipt_share_tokens",
+      "rows": 0,
+      "columns": [
+        "receipt_id"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "receipt_id": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "lodge_reservations",
+      "rows": 6,
+      "columns": [
+        "id_photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "id_photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "lodging_experiences",
+      "rows": 0,
+      "columns": [
+        "photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "lodging_lost_found",
+      "rows": 0,
+      "columns": [
+        "photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "lodging_wellness_services",
+      "rows": 0,
+      "columns": [
+        "photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "marketing_templates",
+      "rows": 0,
+      "columns": [
+        "preview_image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "preview_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "marketplace_listings",
+      "rows": 0,
+      "columns": [
+        "images"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "images": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "marketplace_products",
+      "rows": 0,
+      "columns": [
+        "images"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "images": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "marketplace_reviews",
+      "rows": 0,
+      "columns": [
+        "images"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "images": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "marketplace_seller_profiles",
+      "rows": 0,
+      "columns": [
+        "store_avatar_url",
+        "store_banner_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "store_avatar_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "store_banner_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "merchant_documents",
+      "rows": 0,
+      "columns": [
+        "document_type"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "p2p_claim_documents",
+      "rows": 0,
+      "columns": [
+        "document_type",
+        "file_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "file_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "p2p_damage_evidence",
+      "rows": 0,
+      "columns": [
+        "image_type",
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "p2p_protection_plans",
+      "rows": 3,
+      "columns": [
+        "policy_document_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "policy_document_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "p2p_vehicles",
+      "rows": 0,
+      "columns": [
+        "images"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "images": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "package_deliveries",
+      "rows": 0,
+      "columns": [
+        "delivery_photo_url",
+        "pickup_photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "delivery_photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "pickup_photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "paid_content",
+      "rows": 0,
+      "columns": [
+        "thumbnail_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "thumbnail_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "partner_checkout_config",
+      "rows": 3,
+      "columns": [
+        "logo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "logo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "places",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "playlists",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "podcasts",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "post_albums",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "post_drafts",
+      "rows": 0,
+      "columns": [
+        "media_type",
+        "media_urls"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_urls": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "reel_sounds",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "reels",
+      "rows": 0,
+      "columns": [
+        "thumbnail_url",
+        "video_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "thumbnail_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "video_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "rental_cars",
+      "rows": 0,
+      "columns": [
+        "images"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "images": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "renter_documents",
+      "rows": 0,
+      "columns": [
+        "document_type",
+        "file_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "file_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "resolution_evidence",
+      "rows": 0,
+      "columns": [
+        "file_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "file_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "resolution_messages",
+      "rows": 0,
+      "columns": [
+        "attachment_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "attachment_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "restaurant_ads",
+      "rows": 0,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "restaurants",
+      "rows": 3,
+      "columns": [
+        "cover_image_url",
+        "logo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "logo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "safety_incidents",
+      "rows": 0,
+      "columns": [
+        "photo_url",
+        "photos_count"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "photos_count": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "saved_collections",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "scheduled_messages",
+      "rows": 0,
+      "columns": [
+        "image_url",
+        "video_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "video_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "secret_messages",
+      "rows": 0,
+      "columns": [
+        "media_iv",
+        "media_key_wrapped",
+        "media_type"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_iv": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_key_wrapped": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "seller_of_travel_status",
+      "rows": 4,
+      "columns": [
+        "document_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "service_orders",
+      "rows": 27,
+      "columns": [
+        "delivery_photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "delivery_photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "shared_music_tracks",
+      "rows": 6,
+      "columns": [
+        "cover_emoji"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_emoji": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "shopping_orders",
+      "rows": 13,
+      "columns": [
+        "receipt_photo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "receipt_photo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "social_events",
+      "rows": 0,
+      "columns": [
+        "cover_image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "square_items",
+      "rows": 0,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "sticker_items",
+      "rows": 0,
+      "columns": [
+        "animated_video_url",
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "animated_video_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "store_ad_pages",
+      "rows": 0,
+      "columns": [
+        "picture_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "picture_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "store_orders",
+      "rows": 0,
+      "columns": [
+        "receipt_uploaded_at",
+        "receipt_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "receipt_uploaded_at": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "receipt_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "stories",
+      "rows": 0,
+      "columns": [
+        "media_type",
+        "media_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "media_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "media_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "story_highlights",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "support_messages",
+      "rows": 30,
+      "columns": [
+        "attachment_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "attachment_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "tenants",
+      "rows": 0,
+      "columns": [
+        "logo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "logo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "travel_deals",
+      "rows": 12,
+      "columns": [
+        "image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "travel_journals",
+      "rows": 0,
+      "columns": [
+        "cover_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "travel_partners",
+      "rows": 3,
+      "columns": [
+        "logo_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "logo_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "trip_itineraries",
+      "rows": 0,
+      "columns": [
+        "cover_image_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "cover_image_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "trip_receipt_items",
+      "rows": 0,
+      "columns": [
+        "receipt_id"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "receipt_id": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "user_documents",
+      "rows": 0,
+      "columns": [
+        "file_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "file_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "user_privacy_settings",
+      "rows": 0,
+      "columns": [
+        "profile_photo"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "profile_photo": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "vehicle_delivery_tasks",
+      "rows": 0,
+      "columns": [
+        "vehicle_photos"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "vehicle_photos": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "vehicle_documents",
+      "rows": 3,
+      "columns": [
+        "document_type"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "vehicle_inspections",
+      "rows": 0,
+      "columns": [
+        "receipt_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "receipt_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "vehicle_service_logs",
+      "rows": 18,
+      "columns": [
+        "receipt_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "receipt_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "verification_requests",
+      "rows": 0,
+      "columns": [
+        "document_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "verifications",
+      "rows": 0,
+      "columns": [
+        "document_type",
+        "document_url"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "document_type": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        },
+        "document_url": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "table": "zivo_leaderboards",
+      "rows": 0,
+      "columns": [
+        "partner_avatar"
+      ],
+      "media": {
+        "total": 0,
+        "supabase_storage": 0,
+        "direct_booking": 0,
+        "external_http": 0,
+        "relative_or_local": 0,
+        "data_url": 0,
+        "unknown": 0
+      },
+      "column_media": {
+        "partner_avatar": {
+          "total": 0,
+          "supabase_storage": 0,
+          "direct_booking": 0,
+          "external_http": 0,
+          "relative_or_local": 0,
+          "data_url": 0,
+          "unknown": 0
+        }
+      }
+    }
+  ],
+  "failures": [],
+  "samples": [
+    {
+      "table": "bbq_menu_categories",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_categories",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_categories",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1607013251379-e6eecfffe234?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_categories",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_categories",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1558030006-450675393462?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1626082929543-5bab6f17c248?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1513185158878-8d8c2a2a3da3?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1606755456206-b25206cde27e?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1543339494-b4cd4f7ba686?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1583338917496-7a8e02b65bba?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1547308283-b941a14638f3?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&q=80"
+    },
+    {
+      "table": "bbq_menu_items",
+      "column": "image_url",
+      "classification": "external_http",
+      "url": "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=800&q=80"
+    }
+  ]
+}

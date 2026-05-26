@@ -17,6 +17,16 @@ const PRICES: Record<string, string> = {
   annual: "price_1SyjkSBxRnIs4yDmSFHyzxLL",
 };
 
+const GIFT_PREMIUM_DURATIONS: Record<string, { label: string; months: number; amountCents: number }> = {
+  "three-months": { label: "3 months", months: 3, amountCents: 1199 },
+  "six-months": { label: "6 months", months: 6, amountCents: 1599 },
+  "one-year": { label: "1 year", months: 12, amountCents: 2899 },
+};
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const billingCycleFor = (plan: string) => plan === "annual" ? "yearly" : "monthly";
+
 serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method !== "POST") {
@@ -52,12 +62,33 @@ serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
       });
     }
 
-    const { plan } = await req.json();
+    const {
+      plan,
+      gift_recipient_id,
+      gift_recipient_name,
+      gift_duration,
+    } = await req.json();
     const priceId = PRICES[plan];
     if (!priceId) throw new Error(`Invalid plan: ${plan}. Use 'monthly' or 'annual'`);
     logStep("Plan selected", { plan, priceId });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    const { data: planRow, error: planError } = await supabaseClient
+      .from("zivo_subscription_plans")
+      .select("id")
+      .eq("slug", "zivo-plus")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (planError) throw planError;
+    if (!planRow?.id) throw new Error("ZIVO+ plan is not configured");
+
+    const hasGiftRecipient = typeof gift_recipient_id === "string" && gift_recipient_id.length > 0;
+    if (hasGiftRecipient && !UUID_RE.test(gift_recipient_id)) {
+      throw new Error("Invalid gift recipient");
+    }
+    const isGiftCheckout = hasGiftRecipient && gift_recipient_id !== user.id;
 
     // Find or reference existing customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -75,13 +106,72 @@ serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
         const prod = s.items.data[0]?.price?.product;
         return prod === "prod_Twd0bbN76Y6chu" || prod === "prod_UGpAC1qAhDttlE" || prod === "prod_UGpG91XdzsUk4s" || prod === "prod_Twd004sz9HeIVX";
       });
-      if (alreadyPlus) {
+      if (alreadyPlus && !isGiftCheckout) {
         throw new Error("You already have an active ZIVO+ subscription");
       }
     }
     logStep("Customer lookup done", { customerId });
 
     const origin = req.headers.get("origin") || "https://myzivo.lovable.app";
+
+    if (isGiftCheckout) {
+      const giftDuration = GIFT_PREMIUM_DURATIONS[String(gift_duration)] ?? GIFT_PREMIUM_DURATIONS["three-months"];
+      const successParams = new URLSearchParams({ with: gift_recipient_id, gift: "success" });
+      const cancelParams = new URLSearchParams({ with: gift_recipient_id, gift: "canceled" });
+      const giftMetadata: Record<string, string> = {
+        type: "zivo_plus_gift",
+        user_id: gift_recipient_id,
+        plan,
+        plan_id: planRow.id,
+        billing_cycle: giftDuration.months >= 12 ? "yearly" : "monthly",
+        gift_duration: String(gift_duration || "three-months"),
+        gift_duration_label: giftDuration.label,
+        gift_months: String(giftDuration.months),
+        gift_recipient_id,
+        gift_recipient_name: String(gift_recipient_name || "").slice(0, 120),
+        gift_sender_id: user.id,
+        gift_sender_email: user.email,
+      };
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              unit_amount: giftDuration.amountCents,
+              product_data: {
+                name: `ZIVO Premium Gift - ${giftDuration.label}`,
+                description: `Gift ${giftDuration.label} of ZIVO Premium`,
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${origin}/chat?${successParams.toString()}`,
+        cancel_url: `${origin}/chat?${cancelParams.toString()}`,
+        metadata: giftMetadata,
+        payment_intent_data: { metadata: giftMetadata },
+        allow_promotion_codes: true,
+      });
+
+      logStep("Gift checkout session created", { sessionId: session.id, recipientId: gift_recipient_id });
+
+      return new Response(
+        JSON.stringify({ url: session.url }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    const checkoutMetadata: Record<string, string> = {
+      type: "membership",
+      user_id: user.id,
+      plan_id: planRow.id,
+      plan,
+      billing_cycle: billingCycleFor(plan),
+    };
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -90,10 +180,8 @@ serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
       mode: "subscription",
       success_url: `${origin}/zivo-plus?success=true`,
       cancel_url: `${origin}/zivo-plus?canceled=true`,
-      metadata: {
-        user_id: user.id,
-        plan,
-      },
+      metadata: checkoutMetadata,
+      subscription_data: { metadata: checkoutMetadata },
       allow_promotion_codes: true,
     });
 

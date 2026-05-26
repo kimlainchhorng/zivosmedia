@@ -92,11 +92,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
+import { copyText } from "@/lib/native/clipboard";
+import { shareContent } from "@/lib/native/share";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/shared/PullToRefresh";
-import { useHiddenPosts } from "@/hooks/useHiddenPosts";
+import { useHiddenPosts, type FeedPreferenceSource } from "@/hooks/useHiddenPosts";
+import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useChatPrefs } from "@/hooks/useChatPrefs";
@@ -118,6 +121,8 @@ import { perfLog, perfMeasure, perfNow } from "@/lib/perfTrace";
 import { reportFeedQueryError } from "@/lib/feedQueryTelemetry";
 import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
 import LoadFailureCard from "@/components/reliability/LoadFailureCard";
+import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
+import { detectSensitiveContent, isSensitiveReportReason, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
 
 const INITIAL_REELS_PAGE_SIZE = 18;
 const REELS_PAGE_INCREMENT = 12;
@@ -125,6 +130,10 @@ const REELS_PAGE_MAX = 180;
 const REEL_CLOSE_SWIPE_THRESHOLD = 92;
 const REEL_CLOSE_SWIPE_MAX_OFFSET = 180;
 let reelsFirstMediaMetadataLogged = false;
+const REELS_USER_POSTS_SELECT =
+  "id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, user_id, shared_from_post_id, shared_from_user_id, location, is_pinned, comments_enabled, sharing_enabled, is_sensitive, sensitive_reason";
+const REELS_USER_POSTS_SELECT_FALLBACK =
+  "id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, user_id, shared_from_post_id, shared_from_user_id, location, is_pinned, comments_enabled, sharing_enabled";
 
 // ── Lazy components ──────────────────────────────────────────────────────────
 // All lazy() calls are grouped AFTER imports. Interleaving them with imports
@@ -375,6 +384,8 @@ interface FeedItem {
   created_at: string;
   location?: string | null;
   is_pinned?: boolean;
+  is_sensitive?: boolean | null;
+  sensitive_reason?: string | null;
   // Share tracking
   shared_from_post_id?: string | null;
   shared_from_user_id?: string | null;
@@ -413,6 +424,19 @@ const stripFeedUserPrefix = (postId: string): string => postId.replace(/^u-/, ""
 const getReelsSharePostId = (item: FeedItem): string => stripFeedUserPrefix(item.id);
 const getFeedInteractionPostId = (item: FeedItem): string => item.source === "user" ? stripFeedUserPrefix(item.id) : item.id;
 const getFeedLikesTable = (item: FeedItem): "post_likes" | "store_post_likes" => item.source === "user" ? "post_likes" : "store_post_likes";
+const getFeedPreferenceSource = (item: FeedItem): FeedPreferenceSource | null =>
+  item.source === "store" || item.source === "user" ? item.source : null;
+const getFeedAuthorSnoozeKey = (source: FeedPreferenceSource, authorId: string) => `${source}:${authorId}`;
+
+const parseFeedPreferencePostKey = (postKey: string | null): { source: FeedPreferenceSource; postId: string } | null => {
+  if (!postKey) return null;
+  const separator = postKey.indexOf(":");
+  if (separator <= 0) return null;
+  const source = postKey.slice(0, separator);
+  const postId = stripFeedUserPrefix(postKey.slice(separator + 1));
+  if ((source !== "store" && source !== "user") || !postId) return null;
+  return { source, postId };
+};
 
 const rememberReelForReelsTab = (postId: string) => {
   try {
@@ -431,14 +455,15 @@ const POST_REACTIONS_ENABLED = import.meta.env.VITE_ENABLE_POST_REACTIONS === "t
 // share + bumps shares_count atomically; failures are swallowed so a flaky
 // network never blocks the UX or breaks the share itself.
 type ShareChannel = "copy_link" | "native" | "email" | "sms" | "whatsapp" | "telegram" | "facebook" | "x" | "other";
-const recordShareForFeedItem = (item: FeedItem, channel: ShareChannel) => {
-  if (item.source === "poll") return; // post_shares.source CHECK only allows store/user
+const recordShareForFeedItem = async (item: FeedItem, channel: ShareChannel): Promise<boolean> => {
+  if (item.source === "poll") return false; // post_shares.source CHECK only allows store/user
   const postId = getFeedInteractionPostId(item);
-  void (supabase as any).rpc("record_post_share", {
+  const { error } = await (supabase as any).rpc("record_post_share", {
     _post_id: postId,
     _source: item.source,
     _channel: channel,
   });
+  return !error;
 };
 
 const loginWithReturnTo = (path: string) => `/login?redirect=${encodeURIComponent(path)}`;
@@ -454,6 +479,245 @@ const showGuestActionPrompt = (message: string, returnTo = "/feed") => {
     },
   });
 };
+
+const FEED_POST_NOTIFICATIONS_EVENT = "zivo:feed-post-notifications-changed";
+const FEED_SNOOZED_AUTHORS_EVENT = "zivo:feed-snoozed-authors-changed";
+const FEED_SNOOZE_DAYS = 30;
+
+const scopedFeedStorageKey = (scope: "post-notifications" | "snoozed-authors", userId: string) =>
+  `zivo:feed:${scope}:v1:${userId}`;
+
+const readFeedStringSet = (storageKey: string): Set<string> => {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? new Set(parsed.filter((value) => typeof value === "string")) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const writeFeedStringSet = (storageKey: string, values: Set<string>, eventName: string) => {
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify([...values]));
+    window.dispatchEvent(new Event(eventName));
+    return true;
+  } catch {
+    // Local preferences should never block the feed if storage is unavailable.
+    return false;
+  }
+};
+
+const readFeedSnoozeMap = (userId: string | null): Record<string, number> => {
+  if (!userId || typeof window === "undefined") return {};
+  const storageKey = scopedFeedStorageKey("snoozed-authors", userId);
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+    const now = Date.now();
+    const active = Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).filter(
+        ([authorId, until]) => typeof authorId === "string" && typeof until === "number" && until > now,
+      ),
+    ) as Record<string, number>;
+
+    if (Object.keys(active).length !== Object.keys(parsed as Record<string, unknown>).length) {
+      window.localStorage.setItem(storageKey, JSON.stringify(active));
+    }
+    return active;
+  } catch {
+    return {};
+  }
+};
+
+const snoozeFeedAuthor = async (
+  userId: string,
+  authorId: string,
+  authorSource: FeedPreferenceSource,
+  days = FEED_SNOOZE_DAYS,
+) => {
+  if (typeof window === "undefined") return false;
+  try {
+    const storageKey = scopedFeedStorageKey("snoozed-authors", userId);
+    const current = readFeedSnoozeMap(userId);
+    const snoozedUntilMs = Date.now() + days * 24 * 60 * 60 * 1000;
+    current[getFeedAuthorSnoozeKey(authorSource, authorId)] = snoozedUntilMs;
+    window.localStorage.setItem(storageKey, JSON.stringify(current));
+    window.dispatchEvent(new Event(FEED_SNOOZED_AUTHORS_EVENT));
+    await (supabase as any)
+      .from("feed_snoozed_authors")
+      .upsert(
+        {
+          user_id: userId,
+          author_id: authorId,
+          author_source: authorSource,
+          snoozed_until: new Date(snoozedUntilMs).toISOString(),
+        },
+        { onConflict: "user_id,author_id,author_source" },
+      );
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+function useFeedSnoozedAuthorIds(userId: string | null): Set<string> {
+  const [snoozed, setSnoozed] = useState<Record<string, number>>(() => readFeedSnoozeMap(userId));
+
+  useEffect(() => {
+    let alive = true;
+    const sync = () => setSnoozed(readFeedSnoozeMap(userId));
+    const syncRemote = async () => {
+      const local = readFeedSnoozeMap(userId);
+      if (!userId) {
+        if (alive) setSnoozed(local);
+        return;
+      }
+
+      const { data, error } = await (supabase as any)
+        .from("feed_snoozed_authors")
+        .select("author_id, author_source, snoozed_until")
+        .eq("user_id", userId)
+        .gt("snoozed_until", new Date().toISOString());
+
+      if (error) {
+        if (alive) setSnoozed(local);
+        return;
+      }
+
+      const merged = { ...local };
+      (data ?? []).forEach((row: { author_id: string; author_source: FeedPreferenceSource; snoozed_until: string }) => {
+        if (!row?.author_id || (row.author_source !== "store" && row.author_source !== "user")) return;
+        const until = Date.parse(row.snoozed_until);
+        if (Number.isFinite(until) && until > Date.now()) {
+          merged[getFeedAuthorSnoozeKey(row.author_source, row.author_id)] = until;
+        }
+      });
+
+      try {
+        window.localStorage.setItem(scopedFeedStorageKey("snoozed-authors", userId), JSON.stringify(merged));
+      } catch {
+        // Non-fatal; the remote value still drives this render.
+      }
+      if (alive) setSnoozed(merged);
+    };
+    sync();
+    void syncRemote();
+    window.addEventListener(FEED_SNOOZED_AUTHORS_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      alive = false;
+      window.removeEventListener(FEED_SNOOZED_AUTHORS_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [userId]);
+
+  return useMemo(() => new Set(Object.keys(snoozed)), [snoozed]);
+}
+
+function useFeedPostNotificationState(userId: string | null, postKey: string | null) {
+  const read = useCallback(() => {
+    if (!userId || !postKey) return false;
+    return readFeedStringSet(scopedFeedStorageKey("post-notifications", userId)).has(postKey);
+  }, [postKey, userId]);
+
+  const [enabled, setEnabled] = useState(read);
+
+  useEffect(() => {
+    const sync = () => setEnabled(read());
+    const syncRemote = async () => {
+      const parsed = parseFeedPreferencePostKey(postKey);
+      if (!userId || !postKey || !parsed) {
+        setEnabled(false);
+        return;
+      }
+
+      const localEnabled = read();
+      const { data, error } = await (supabase as any)
+        .from("feed_post_notification_subscriptions")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("post_id", parsed.postId)
+        .eq("post_source", parsed.source)
+        .maybeSingle();
+
+      if (error) {
+        setEnabled(localEnabled);
+        return;
+      }
+
+      if (data) {
+        const storageKey = scopedFeedStorageKey("post-notifications", userId);
+        const next = readFeedStringSet(storageKey);
+        next.add(postKey);
+        writeFeedStringSet(storageKey, next, FEED_POST_NOTIFICATIONS_EVENT);
+        setEnabled(true);
+        return;
+      }
+
+      if (localEnabled) {
+        await (supabase as any)
+          .from("feed_post_notification_subscriptions")
+          .upsert(
+            {
+              user_id: userId,
+              post_id: parsed.postId,
+              post_source: parsed.source,
+            },
+            { onConflict: "user_id,post_id,post_source", ignoreDuplicates: true },
+          );
+      }
+      setEnabled(localEnabled);
+    };
+    sync();
+    void syncRemote();
+    window.addEventListener(FEED_POST_NOTIFICATIONS_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(FEED_POST_NOTIFICATIONS_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [postKey, read, userId]);
+
+  const setPersisted = useCallback(async (nextEnabled: boolean) => {
+    const parsed = parseFeedPreferencePostKey(postKey);
+    if (!userId || !postKey || !parsed) return false;
+    const storageKey = scopedFeedStorageKey("post-notifications", userId);
+    const next = readFeedStringSet(storageKey);
+    if (nextEnabled) next.add(postKey);
+    else next.delete(postKey);
+    const savedLocal = writeFeedStringSet(storageKey, next, FEED_POST_NOTIFICATIONS_EVENT);
+    setEnabled(nextEnabled);
+    if (!savedLocal) return false;
+
+    if (nextEnabled) {
+      await (supabase as any)
+        .from("feed_post_notification_subscriptions")
+        .upsert(
+          {
+            user_id: userId,
+            post_id: parsed.postId,
+            post_source: parsed.source,
+          },
+          { onConflict: "user_id,post_id,post_source", ignoreDuplicates: true },
+        );
+    } else {
+      await (supabase as any)
+        .from("feed_post_notification_subscriptions")
+        .delete()
+        .eq("user_id", userId)
+        .eq("post_id", parsed.postId)
+        .eq("post_source", parsed.source);
+    }
+    return true;
+  }, [postKey, userId]);
+
+  return [enabled, setPersisted] as const;
+}
 
 function GuestFeedCta({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
   return (
@@ -489,7 +753,6 @@ function GuestFeedCta({ onLogin, onSignup }: { onLogin: () => void; onSignup: ()
 export default function ReelsFeedPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const hiddenPosts = useHiddenPosts();
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [newPostsCount, setNewPostsCount] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
@@ -506,6 +769,8 @@ export default function ReelsFeedPage() {
     mapLabel?: string;
   } | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const hiddenPosts = useHiddenPosts(userId);
+  const snoozedAuthorIds = useFeedSnoozedAuthorIds(userId);
   const [authReady, setAuthReady] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string; avatar: string | null } | null>(null);
   const { user: authUser, isLoading: authLoading } = useAuth();
@@ -996,18 +1261,27 @@ export default function ReelsFeedPage() {
 
       // Fetch user posts
       try {
-        const { data: userPosts, error: userPostsError } = await withSupabaseAbortSignal((supabase as any)
+        let { data: userPosts, error: userPostsError } = await withSupabaseAbortSignal((supabase as any)
           .from("user_posts")
-          .select("id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, user_id, shared_from_post_id, shared_from_user_id, location, is_pinned")
+          .select(REELS_USER_POSTS_SELECT)
           .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(pageSize), signal);
+        if (userPostsError && isSensitiveSchemaDriftError(userPostsError)) {
+          const retry = await withSupabaseAbortSignal((supabase as any)
+            .from("user_posts")
+            .select(REELS_USER_POSTS_SELECT_FALLBACK)
+            .eq("is_published", true)
+            .order("created_at", { ascending: false })
+            .limit(pageSize), signal);
+          userPosts = retry.data;
+          userPostsError = retry.error;
+        }
 
         // Diagnostic: surface RLS or query failures the outer catch{} swallows.
         // Open dev console to see how many user_posts the RLS policies returned
         // — "I don't see other users' posts" usually means RLS filtered them.
         if (typeof window !== "undefined") {
-          // eslint-disable-next-line no-console
           console.info("[feed] user_posts →", { rows: userPosts?.length ?? 0, error: userPostsError ?? null });
         }
 
@@ -1138,6 +1412,8 @@ export default function ReelsFeedPage() {
               author_id: post.user_id,
               author_is_verified: !!profileSettings?.is_verified,
               created_at: post.created_at,
+              is_sensitive: !!post.is_sensitive,
+              sensitive_reason: post.sensitive_reason || null,
               shared_from_post_id: post.shared_from_post_id || null,
               shared_from_user_id: sharedFromUserId,
               shared_from_user_name: sharedFromUserName,
@@ -1145,9 +1421,11 @@ export default function ReelsFeedPage() {
               shared_from_caption: sharedFromCaption,
               shared_from_source: sharedFromSource,
               shared_from_store_slug: sharedFromStoreSlug,
-              comment_control: profileSettings?.comment_control ?? "everyone",
+              comment_control: post.comments_enabled === false
+                ? "off"
+                : profileSettings?.comment_control ?? "everyone",
               hide_like_counts: profileSettings?.hide_like_counts ?? false,
-              allow_sharing: profileSettings?.allow_sharing ?? true,
+              allow_sharing: post.sharing_enabled !== false && profileSettings?.allow_sharing !== false,
               allow_mentions: profileSettings?.allow_mentions ?? true,
               location: post.location || null,
               is_pinned: post.is_pinned || false,
@@ -2085,8 +2363,15 @@ export default function ReelsFeedPage() {
               </div>
             </div>
           ) : (() => {
-            const hiddenFiltered = hiddenPosts.hidden.size > 0
-              ? items.filter(i => !hiddenPosts.isHidden(i.id))
+            const hiddenFiltered = (hiddenPosts.hidden.size > 0 || snoozedAuthorIds.size > 0)
+              ? items.filter((i) => {
+                  const source = getFeedPreferenceSource(i);
+                  const snoozedKey = source && i.author_id ? getFeedAuthorSnoozeKey(source, i.author_id) : null;
+                  return (
+                    !hiddenPosts.isHidden(i.id, source || undefined) &&
+                    (!i.author_id || !snoozedKey || (!snoozedAuthorIds.has(snoozedKey) && !snoozedAuthorIds.has(i.author_id)))
+                  );
+                })
               : items;
             const baseItems = selectedHashtag
               ? hiddenFiltered.filter(i => postHasHashtag(i.caption, selectedHashtag))
@@ -2733,6 +3018,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const [liked, setLiked] = useState(false);
   const [localLikes, setLocalLikes] = useState(item.likes_count);
   const [localComments, setLocalComments] = useState(item.comments_count);
+  const [canCommentAsFriend, setCanCommentAsFriend] = useState(true);
   const [showCaption, setShowCaption] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -2746,6 +3032,13 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const [closeSwipeOffset, setCloseSwipeOffset] = useState(0);
   const interactionPostId = getFeedInteractionPostId(item);
   const likesTable = getFeedLikesTable(item);
+  const commentSetting = item.comment_control || "everyone";
+  const isOwner = Boolean(currentUserId && item.author_id === currentUserId);
+  const commentsLimitedToFriends = commentSetting === "friends" && !isOwner && !canCommentAsFriend;
+  const canSubmitComment = commentSetting !== "off" && !commentsLimitedToFriends;
+  const commentDisabledReason = commentSetting === "off"
+    ? "Comments are turned off for this post"
+    : commentsLimitedToFriends ? "Only friends can comment on this post" : undefined;
   const isSharedReel = Boolean(item.shared_from_post_id || item.shared_from_user_id);
   const followTargetSource = isSharedReel && item.shared_from_source ? item.shared_from_source : item.source;
   const followTargetUserId = followTargetSource === "user"
@@ -2762,6 +3055,35 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
       .then(({ data }) => { if (typeof data === "boolean") setIsFollowing(data); });
   }, [currentUserId, followTargetUserId]);
 
+  useEffect(() => {
+    if (
+      commentSetting !== "friends" ||
+      !currentUserId ||
+      !item.author_id ||
+      isOwner ||
+      item.source !== "user"
+    ) {
+      setCanCommentAsFriend(true);
+      return;
+    }
+
+    let alive = true;
+    (supabase as any)
+      .from("friendships")
+      .select("id")
+      .eq("status", "accepted")
+      .or(`and(user_id.eq.${currentUserId},friend_id.eq.${item.author_id}),and(user_id.eq.${item.author_id},friend_id.eq.${currentUserId})`)
+      .limit(1)
+      .then(({ data, error }: any) => {
+        if (!alive) return;
+        setCanCommentAsFriend(!error && Boolean(data?.length));
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [commentSetting, currentUserId, isOwner, item.author_id, item.source]);
+
   const handleReelFollow = async () => {
     if (!followTargetUserId || followLoading) return;
     if (!currentUserId) {
@@ -2775,10 +3097,14 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     }
     setFollowLoading(true);
     try {
-      await (supabase as any).from("user_followers").insert({
-        follower_id: currentUserId,
-        following_id: followTargetUserId,
-      });
+      const { error } = await (supabase as any).from("user_followers").upsert(
+        {
+          follower_id: currentUserId,
+          following_id: followTargetUserId,
+        },
+        { onConflict: "follower_id,following_id", ignoreDuplicates: true },
+      );
+      if (error) throw error;
       setIsFollowing(true);
       try {
         const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", currentUserId).single();
@@ -2786,7 +3112,9 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
           body: { user_id: followTargetUserId, notification_type: "new_follower", title: "New Follower 🔔", body: `${sp?.full_name || "Someone"} started following you`, data: { type: "new_follower", follower_id: currentUserId, avatar_url: sp?.avatar_url, action_url: `/user/${currentUserId}` } },
         });
       } catch {}
-    } catch { /* ignore */ } finally {
+    } catch {
+      toast.error("Failed to update follow");
+    } finally {
       setFollowLoading(false);
     }
   };
@@ -3181,18 +3509,12 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const shareText = encodeURIComponent(item.caption || `Check out this post by ${item.author_name}`);
   const shareEncodedUrl = encodeURIComponent(shareUrl);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     try {
-      const ta = document.createElement("textarea");
-      ta.value = shareUrl;
-      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      await copyText(shareUrl);
       toast.success("Link copied!");
-      recordShareForFeedItem(item, "copy_link");
+      const recorded = await recordShareForFeedItem(item, "copy_link");
+      if (recorded) void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
     } catch {
       toast.info("Long-press URL bar to copy");
     }
@@ -3376,7 +3698,9 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         {/* Comment */}
         <button type="button"
           onClick={() => {
+            if (commentSetting === "off") { toast.error("Comments are turned off for this post"); return; }
             if (!currentUserId) { showGuestActionPrompt("Log in to comment", "/feed"); return; }
+            if (commentsLimitedToFriends) { toast.error("Only friends can comment on this post"); return; }
             setShowComments(true);
           }}
           aria-label="Open comments"
@@ -3400,8 +3724,16 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         {/* Watch Party — video posts only */}
         {item.media_type === "video" && (
           <button type="button"
-            onClick={() => {
-              navigator.clipboard?.writeText(shareUrl).catch(() => {});
+            onClick={async () => {
+              try {
+                await copyText(shareUrl);
+              } catch {
+                toast.info("Long-press URL bar to copy");
+                return;
+              }
+              void recordShareForFeedItem(item, "copy_link").then((recorded) => {
+                if (recorded) void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
+              });
               toast.success("Watch Party link copied — send it to friends");
             }}
             aria-label="Copy watch party link"
@@ -3418,8 +3750,11 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
           onClick={async () => {
             const text = item.caption || `Check out this post by ${item.author_name}`;
             try {
-              if (typeof navigator !== "undefined" && (navigator as any).share) {
-                await (navigator as any).share({ title: "ZIVO", text, url: shareUrl });
+              const result = await shareContent({ title: "ZIVO", text, url: shareUrl });
+              if (result.cancelled) return;
+              if (result.shared) {
+                const recorded = await recordShareForFeedItem(item, "native");
+                if (recorded) void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
                 return;
               }
             } catch (e: any) {
@@ -3633,6 +3968,8 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
             currentUserId={currentUserId}
             commentsCount={localComments}
             onCommentsCountChange={setLocalComments}
+            canComment={canSubmitComment}
+            disabledReason={commentDisabledReason}
             dark
           />
         </Suspense>
@@ -3652,6 +3989,9 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
               sharePostAuthorId={item.shared_from_user_id || item.author_id}
               sharePostAuthorName={item.shared_from_user_name || item.author_name}
               onClose={() => setShowShareSheet(false)}
+              onShareRecorded={() => {
+                void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
+              }}
               positioning="absolute"
               zIndex={80}
               onVisitProfile={() => {
@@ -3762,7 +4102,8 @@ function FeedPollCard() {
 const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen, autoPlayVideo, detailMode }: { item: FeedItem; currentUserId: string | null; onOpenFullscreen?: () => void; autoPlayVideo?: boolean; detailMode?: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const hiddenPosts = useHiddenPosts();
+  const hiddenPosts = useHiddenPosts(currentUserId);
+  const sensitiveMediaPreference = useSensitiveMediaPreference(currentUserId);
   const haptic = useHaptic();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -3776,11 +4117,12 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   const [showReportSheet, setShowReportSheet] = useState(false);
   const [reportStep, setReportStep] = useState<"categories" | "sub" | "submitted">("categories");
   const [reportCategory, setReportCategory] = useState("");
-  const [notificationsOn, setNotificationsOn] = useState(false);
   const [commentSetting, setCommentSetting] = useState<"everyone" | "friends" | "off">(item.comment_control || "everyone");
   const [showCommentSettings, setShowCommentSettings] = useState(false);
   const [localLikes, setLocalLikes] = useState(item.likes_count);
   const [localComments, setLocalComments] = useState(item.comments_count);
+  const [localShares, setLocalShares] = useState(item.shares_count);
+  const [canCommentAsFriend, setCanCommentAsFriend] = useState(true);
   // Real "Liked by [name]" social proof — loaded async per post. The previous
   // implementation seeded a name from a hardcoded ["Sarah K.", ...] mock, so
   // every post displayed a fake liker even when the actual liker was the
@@ -3845,6 +4187,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   const isSharedAuthorOwner = Boolean(currentUserId && sharedAuthorId === currentUserId);
   const interactionPostId = getFeedInteractionPostId(item);
   const likesTable = getFeedLikesTable(item);
+  const notificationKey = item.source === "poll" ? null : `${item.source}:${interactionPostId}`;
+  const [notificationsOn, setNotificationsOnPersisted] = useFeedPostNotificationState(currentUserId, notificationKey);
 
   useEffect(() => {
     setLocalLikes(item.likes_count);
@@ -3853,6 +4197,43 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   useEffect(() => {
     setLocalComments(item.comments_count);
   }, [item.comments_count]);
+
+  useEffect(() => {
+    setLocalShares(item.shares_count);
+  }, [item.shares_count]);
+
+  useEffect(() => {
+    setCommentSetting(item.comment_control || "everyone");
+  }, [item.comment_control]);
+
+  useEffect(() => {
+    if (
+      commentSetting !== "friends" ||
+      !currentUserId ||
+      !item.author_id ||
+      isOwner ||
+      item.source !== "user"
+    ) {
+      setCanCommentAsFriend(true);
+      return;
+    }
+
+    let alive = true;
+    (supabase as any)
+      .from("friendships")
+      .select("id")
+      .eq("status", "accepted")
+      .or(`and(user_id.eq.${currentUserId},friend_id.eq.${item.author_id}),and(user_id.eq.${item.author_id},friend_id.eq.${currentUserId})`)
+      .limit(1)
+      .then(({ data, error }: any) => {
+        if (!alive) return;
+        setCanCommentAsFriend(!error && Boolean(data?.length));
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [commentSetting, currentUserId, isOwner, item.author_id, item.source]);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -3972,10 +4353,13 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
     setFollowLoading(true);
     try {
-      const { error } = await (supabase as any).from("user_followers").insert({
-        follower_id: currentUserId,
-        following_id: item.author_id,
-      });
+      const { error } = await (supabase as any).from("user_followers").upsert(
+        {
+          follower_id: currentUserId,
+          following_id: item.author_id,
+        },
+        { onConflict: "follower_id,following_id", ignoreDuplicates: true },
+      );
       if (error) throw error;
       setIsFollowingAuthor(true);
       await sendFollowNotification(item.author_id);
@@ -4000,10 +4384,13 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
     setFollowLoading(true);
     try {
-      const { error } = await (supabase as any).from("user_followers").insert({
-        follower_id: currentUserId,
-        following_id: sharedAuthorId,
-      });
+      const { error } = await (supabase as any).from("user_followers").upsert(
+        {
+          follower_id: currentUserId,
+          following_id: sharedAuthorId,
+        },
+        { onConflict: "follower_id,following_id", ignoreDuplicates: true },
+      );
       if (error) throw error;
       setIsFollowingSharedAuthor(true);
       await sendFollowNotification(sharedAuthorId);
@@ -4289,9 +4676,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     haptic("selection");
     const text = item.caption || `Check out this post by ${item.author_name}`;
     try {
-      if (typeof navigator !== "undefined" && (navigator as any).share) {
-        await (navigator as any).share({ title: "ZIVO", text, url: shareUrl });
-        recordShareForFeedItem(item, "native");
+      const result = await shareContent({ title: "ZIVO", text, url: shareUrl });
+      if (result.cancelled) return;
+      if (result.shared) {
+        const recorded = await recordShareForFeedItem(item, "native");
+        if (recorded) setLocalShares((prev) => prev + 1);
         return;
       }
     } catch (e: any) {
@@ -4356,18 +4745,12 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   ];
 
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     try {
-      const ta = document.createElement("textarea");
-      ta.value = shareUrl;
-      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      await copyText(shareUrl);
       toast.success("Link copied!");
-      recordShareForFeedItem(item, "copy_link");
+      const recorded = await recordShareForFeedItem(item, "copy_link");
+      if (recorded) setLocalShares((prev) => prev + 1);
     } catch {
       toast.info("Long-press URL bar to copy");
     }
@@ -4519,6 +4902,53 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
   };
 
+  const persistCommentSetting = async (nextSetting: "everyone" | "friends" | "off") => {
+    if (!currentUserId || !isOwner || item.source !== "user") {
+      setCommentSetting(nextSetting);
+      return;
+    }
+
+    const previousSetting = commentSetting;
+    setCommentSetting(nextSetting);
+    if (nextSetting === "off") setShowComments(false);
+
+    try {
+      const realId = stripFeedUserPrefix(item.id);
+      const { error: postError } = await (supabase as any)
+        .from("user_posts")
+        .update({ comments_enabled: nextSetting !== "off" })
+        .eq("id", realId)
+        .eq("user_id", currentUserId);
+      if (postError) throw postError;
+
+      if (nextSetting !== "off") {
+        const { data: existing, error: existingError } = await supabase
+          .from("profiles")
+          .select("id")
+          .or(`user_id.eq.${currentUserId},id.eq.${currentUserId}`)
+          .maybeSingle();
+        if (existingError) throw existingError;
+        if (existing?.id) {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({ comment_control: nextSetting })
+            .eq("id", existing.id);
+          if (profileError) throw profileError;
+        }
+      }
+
+      void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
+      toast.success(
+        nextSetting === "everyone" ? "Comments open for everyone" :
+        nextSetting === "friends" ? "Only friends can comment now" :
+        "Comments turned off"
+      );
+    } catch {
+      setCommentSetting(previousSetting);
+      toast.error("Couldn't update comment settings");
+    }
+  };
+
   const handleComment = () => {
     if (commentSetting === "off") {
       toast.error("Comments are turned off for this post");
@@ -4527,6 +4957,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     haptic("selection");
     if (!currentUserId) {
       showGuestActionPrompt("Log in to comment", "/feed");
+      return;
+    }
+    if (commentSetting === "friends" && !isOwner && !canCommentAsFriend) {
+      toast.error("Only friends can comment on this post");
       return;
     }
     if (showComments) {
@@ -4542,6 +4976,20 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   const mediaUrl = item.media_urls[currentMedia] || item.media_urls[0];
   const hasMedia = Boolean(mediaUrl);
+  const sensitiveMediaMatch = useMemo(
+    () => detectSensitiveContent(`${item.caption || ""}\n${item.shared_from_caption || ""}`, {
+      creatorMarked: Boolean(item.is_sensitive),
+      reportMarked: Boolean(item.sensitive_reason && item.sensitive_reason !== "creator_marked"),
+      reason: item.sensitive_reason,
+    }),
+    [item.caption, item.is_sensitive, item.sensitive_reason, item.shared_from_caption],
+  );
+  const shouldGateSensitiveMedia = hasMedia && sensitiveMediaPreference.blurSensitiveMedia && sensitiveMediaMatch.isSensitive;
+  const commentsLimitedToFriends = commentSetting === "friends" && !isOwner && !canCommentAsFriend;
+  const canSubmitComment = commentSetting !== "off" && !commentsLimitedToFriends;
+  const commentDisabledReason = commentSetting === "off"
+    ? "Comments are turned off for this post"
+    : commentsLimitedToFriends ? "Only friends can comment on this post" : undefined;
   const videoAspectClass = videoAspect
     ? (videoAspect >= 1.2 ? "aspect-video" : videoAspect >= 0.95 ? "aspect-square" : "aspect-[4/5]")
     : "aspect-[4/5]";
@@ -4701,7 +5149,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               )}
             >
               {hasMedia ? (
-                item.media_type === "video" ? (
+                <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={sensitiveMediaMatch.label} className="h-full w-full">
+                {item.media_type === "video" ? (
                   <>
                     <video
                       ref={videoRef}
@@ -4768,7 +5217,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       </div>
                     ))}
                   </div>
-                )
+                )}
+                </SensitiveMediaGate>
               ) : null}
             </div>
           </div>
@@ -4930,7 +5380,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             )}
           >
             {hasMedia ? (
-              item.media_type === "video" ? (
+              <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={sensitiveMediaMatch.label} className="h-full w-full">
+              {item.media_type === "video" ? (
                 <>
                   <video
                     ref={videoRef}
@@ -5100,7 +5551,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     </div>
                   ))}
                 </div>
-              )
+              )}
+              </SensitiveMediaGate>
             ) : null}
 
             {/* Double-tap heart animation */}
@@ -5269,13 +5721,13 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           {item.allow_sharing !== false && (
             <button type="button"
               onClick={handleShare}
-              aria-label={`Share post${formatCount(item.shares_count) ? `, ${formatCount(item.shares_count)} shares` : ""}`}
+              aria-label={`Share post${formatCount(localShares) ? `, ${formatCount(localShares)} shares` : ""}`}
               className="min-h-[44px] min-w-[44px] px-2 rounded-full flex items-center justify-center text-foreground gap-1 active:bg-muted/50"
              title="Action">
               <Send aria-hidden className="h-[22px] w-[22px]" />
-              {formatCount(item.shares_count) && (
+              {formatCount(localShares) && (
                 <span aria-hidden className="text-[12px] text-muted-foreground font-semibold whitespace-nowrap">
-                  {formatCount(item.shares_count)}
+                  {formatCount(localShares)}
                 </span>
               )}
             </button>
@@ -5376,6 +5828,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             currentUserId={currentUserId}
             commentsCount={localComments}
             onCommentsCountChange={setLocalComments}
+            canComment={canSubmitComment}
+            disabledReason={commentDisabledReason}
           />
         </Suspense>
       )}
@@ -5402,6 +5856,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               sharePostAuthorId={item.shared_from_user_id || item.author_id}
               sharePostAuthorName={item.shared_from_user_name || item.author_name}
               onClose={() => setShowShareSheet(false)}
+              onShareRecorded={() => {
+                setLocalShares((prev) => prev + 1);
+              }}
               zIndex={70}
             />
           </Suspense>
@@ -5449,7 +5906,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 </div>
                 <p className="text-[12px] text-muted-foreground text-center px-4">Scan with any camera to open this post</p>
                 <button type="button"
-                  onClick={() => { navigator.clipboard.writeText(shareUrl).then(() => toast.success("Link copied")).catch(() => toast.error("Could not copy")); }}
+                  onClick={() => { void handleCopyLink(); }}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-sm font-semibold text-foreground transition-colors active:scale-95"
                 >
                   <Link2 className="h-4 w-4" />
@@ -5532,14 +5989,31 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <span className="text-sm font-medium text-destructive">Report</span>
           </button>
           <button type="button"
-            onClick={() => { setNotificationsOn(!notificationsOn); setShowPostMenu(false); toast.success(notificationsOn ? "Notifications turned off" : "Notifications turned on for this post"); }}
+            onClick={async () => {
+              setShowPostMenu(false);
+              if (!currentUserId) {
+                showGuestActionPrompt("Log in to turn on post notifications", "/feed");
+                return;
+              }
+              if (!notificationKey) {
+                toast.info("Post notifications are available for photos and videos");
+                return;
+              }
+              const nextNotificationsOn = !notificationsOn;
+              const savedPreference = await setNotificationsOnPersisted(nextNotificationsOn);
+              if (!savedPreference) {
+                toast.error("Could not update notifications");
+                return;
+              }
+              toast.success(nextNotificationsOn ? "Notifications turned on for this post" : "Notifications turned off");
+            }}
             className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
           >
             {notificationsOn ? <BellOff className="h-5 w-5 text-foreground" /> : <Bell className="h-5 w-5 text-foreground" />}
             <span className="text-sm font-medium text-foreground">{notificationsOn ? "Turn off notifications" : "Turn on notifications"}</span>
           </button>
           <button type="button"
-            onClick={() => { setShowPostMenu(false); handleCopyLink(); }}
+            onClick={() => { setShowPostMenu(false); void handleCopyLink(); }}
             className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
           >
             <Link2 className="h-5 w-5 text-foreground" />
@@ -5548,7 +6022,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           <button type="button"
             onClick={() => {
               setShowPostMenu(false);
-              hiddenPosts.hide(item.id);
+              hiddenPosts.hide(item.id, getFeedPreferenceSource(item) || undefined);
               toast.success("We'll show fewer like this");
             }}
             className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
@@ -5571,7 +6045,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 <span className="text-sm font-medium text-foreground">Why am I seeing this?</span>
               </button>
               <button type="button"
-                onClick={() => { setShowPostMenu(false); toast.success("Ad hidden — you'll see fewer ads from this business"); }}
+                onClick={() => {
+                  setShowPostMenu(false);
+                  hiddenPosts.hide(item.id, getFeedPreferenceSource(item) || undefined);
+                  toast.success("Ad hidden - you'll see fewer ads from this business");
+                }}
                 className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
               >
                 <Ban className="h-5 w-5 text-foreground" />
@@ -5581,7 +6059,28 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           )}
           {!isOwner && item.author_name && (
             <button type="button"
-              onClick={() => { setShowPostMenu(false); toast.success(`${item.author_name} snoozed for 30 days`); }}
+              onClick={async () => {
+                setShowPostMenu(false);
+                if (!currentUserId) {
+                  showGuestActionPrompt("Log in to personalize your feed", "/feed");
+                  return;
+                }
+                if (!item.author_id) {
+                  toast.error("Could not snooze this creator");
+                  return;
+                }
+                const authorSource = getFeedPreferenceSource(item);
+                if (!authorSource) {
+                  toast.info("Snooze is available for creators and stores");
+                  return;
+                }
+                const savedSnooze = await snoozeFeedAuthor(currentUserId, item.author_id, authorSource, FEED_SNOOZE_DAYS);
+                if (!savedSnooze) {
+                  toast.error("Could not update feed preference");
+                  return;
+                }
+                toast.success(`${item.author_name} snoozed for ${FEED_SNOOZE_DAYS} days`);
+              }}
               className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
             >
               <BellOff className="h-5 w-5 text-foreground" />
@@ -5625,11 +6124,14 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
           {/* Embed post */}
           <button type="button"
-            onClick={() => {
+            onClick={async () => {
               setShowPostMenu(false);
               const embedCode = `<iframe src="https://hizivo.com/embed/${item.id.replace(/^u-/, "")}" width="400" height="500" frameborder="0" allowfullscreen></iframe>`;
               try {
-                navigator.clipboard.writeText(embedCode);
+                await copyText(embedCode);
+                void recordShareForFeedItem(item, "other").then((recorded) => {
+                  if (recorded) setLocalShares((prev) => prev + 1);
+                });
                 toast.success("Embed code copied to clipboard");
               } catch {
                 toast.info("Embed: " + embedCode.slice(0, 60) + "…");
@@ -5751,6 +6253,13 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       // post_reports.post_source CHECK only allows store/user
                       return;
                     }
+                    const sensitiveReport = isSensitiveReportReason(reportCategory, sub.label);
+                    if (sensitiveReport) {
+                      const preferenceSource = getFeedPreferenceSource(item);
+                      if (preferenceSource) {
+                        await hiddenPosts.hide(item.id, preferenceSource);
+                      }
+                    }
                     // Reason text is capped at 200 chars by the table CHECK constraint.
                     const reason = `${reportCategory}: ${sub.label}`.slice(0, 200);
                     const { error } = await (supabase as any).from("post_reports").insert({
@@ -5760,6 +6269,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       reason,
                     });
                     if (error) toast.error("Couldn't submit report");
+                    else if (sensitiveReport) toast.success("We hid this post and sent it for safety review");
                   }}
                   className="flex items-center justify-between w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px] text-left"
                 >
@@ -5796,7 +6306,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         zIndex={220}
         title="Comment Settings"
       >
-        <p className="px-6 pb-4 text-xs text-muted-foreground">Choose who can comment on this post.</p>
+        <p className="px-6 pb-4 text-xs text-muted-foreground">
+          Choose who can comment when comments are enabled. Turning comments off applies to this post.
+        </p>
         <div className="px-2 pb-6 space-y-1">
           {([
             { value: "everyone" as const, icon: Globe, label: "Everyone", desc: "Anyone can comment on this post" },
@@ -5806,14 +6318,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <button type="button"
               key={opt.value}
               onClick={() => {
-                setCommentSetting(opt.value);
                 setShowCommentSettings(false);
-                if (opt.value === "off") setShowComments(false);
-                toast.success(
-                  opt.value === "everyone" ? "Comments open for everyone" :
-                  opt.value === "friends" ? "Only friends can comment now" :
-                  "Comments turned off"
-                );
+                void persistCommentSetting(opt.value);
               }}
               className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
             >

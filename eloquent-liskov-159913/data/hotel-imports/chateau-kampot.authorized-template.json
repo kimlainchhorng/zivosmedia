@@ -1,0 +1,336 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-05-16",
+  "store_id": "9e5e8c7e-99a5-46d9-a4a0-fcb25a212d30",
+  "source_note": "Factual draft assembled from public Booking.com, Expedia, and Tripadvisor search summaries. Do not copy third-party photos into ZIVO unless the property/rights holder authorizes reuse.",
+  "sources": [
+    "https://www.booking.com/hotel/kh/chateau-kampot.html",
+    "https://www.expedia.com/Kampot-Hotels-Chateau-Kampot.h124524333.Hotel-Information",
+    "https://www.tripadvisor.com/Hotel_Review-g608455-d34110518-Reviews-Chateau_Kampot-Kampot_Kampot_Province.html"
+  ],
+  "media_authorized": false,
+  "media": {
+    "logo_url": null,
+    "banner_url": null,
+    "gallery_images": []
+  },
+  "store_profile": {
+    "name": "Chateau Kampot",
+    "category": "hotel",
+    "address": "07451 Kampot, Cambodia",
+    "description": "Luxury boutique hotel in Kampot with family-friendly rooms, balconies, free Wi-Fi, a rooftop pool, spa and wellness services, fitness room, restaurant, bar, and 24-hour front desk service.",
+    "rating": 9.2,
+    "phone": null
+  },
+  "property_profile": {
+    "facilities": [
+      "Outdoor swimming pool",
+      "Spa and wellness centre",
+      "Fitness centre",
+      "Restaurant",
+      "Bar",
+      "Room service",
+      "24-hour front desk",
+      "Concierge services",
+      "Rooftop terrace",
+      "Free Wi-Fi",
+      "Free parking",
+      "Tea/coffee maker in rooms"
+    ],
+    "popular_amenities": [
+      "Pool",
+      "Spa",
+      "Fitness centre",
+      "Restaurant",
+      "Free Wi-Fi",
+      "Free parking",
+      "Room service",
+      "Bar"
+    ],
+    "meal_plans": [
+      "Continental breakfast",
+      "Vegetarian breakfast",
+      "Asian breakfast",
+      "American breakfast",
+      "English breakfast available for surcharge"
+    ],
+    "included_highlights": [
+      "Free Wi-Fi",
+      "Free uncovered self parking",
+      "Rooftop swimming pool",
+      "La Farine Patisserie on site"
+    ],
+    "hero_badges": [
+      "Verified by ZIVO",
+      "Instant booking"
+    ],
+    "property_highlights": {
+      "perfect_for": "Boutique stay in Kampot with city, garden, pool, mountain, and river-view room options.",
+      "top_location_score": 9.7,
+      "breakfast_info": "Continental, vegetarian, Asian, American, and English breakfast options.",
+      "rooms_with": [
+        "Quiet street view",
+        "Garden view",
+        "Landmark view",
+        "City view",
+        "River view",
+        "Mountain view",
+        "Pool view",
+        "Terrace",
+        "Inner courtyard view"
+      ]
+    },
+    "description_sections": [
+      {
+        "title": "Property",
+        "body": "Chateau Kampot is a luxury boutique hotel in Kampot with individually furnished rooms, balconies, separate sitting areas, and work-friendly spaces."
+      },
+      {
+        "title": "Facilities",
+        "body": "Guests can use a rooftop pool, spa services, a fitness room, restaurant and bar, free Wi-Fi, free parking, concierge support, and 24-hour front desk service."
+      },
+      {
+        "title": "Dining",
+        "body": "La Farine Patisserie is listed as the on-site restaurant. Breakfast options include continental, vegetarian, Asian, American, and English breakfast service."
+      }
+    ],
+    "check_in_from": "14:00",
+    "check_in_until": "00:00",
+    "check_out_until": "12:00",
+    "pet_policy": {
+      "allowed": false,
+      "notes": "Pets and service animals are listed as not allowed by Expedia."
+    },
+    "child_policy": {
+      "allowed": true,
+      "free_age": 4,
+      "cot_available": true,
+      "extra_bed_fee_cents": 2500,
+      "notes": "Children are welcome. Children aged 4 and younger are listed as eating breakfast free. Rollaway/extra beds are listed at about USD 25 per night."
+    },
+    "payment_methods": [],
+    "currencies_accepted": [
+      "USD"
+    ],
+    "deposit_required": false
+  },
+  "pricing_note": "Booking.com room prices and discounts are dynamic by check-in date, length of stay, occupancy, currency, and Genius/member eligibility. Observed public snippets showed Booking prices in CNY for sampled dates, including Family Suite with Balcony discounted from about CNY 2,141 to CNY 1,713 for 3 nights, Junior Suite with Balcony about CNY 1,415 for 3 nights, and Executive Suite about CNY 1,564 for 3 nights. Do not overwrite live ZIVO rates without choosing target dates and confirming the property-authorized rates.",
+  "rooms": [
+    {
+      "name": "Deluxe Double Room, Balcony, City View",
+      "room_type": "Deluxe Double",
+      "beds": "1 King Bed",
+      "bed_config": [
+        {
+          "type": "King",
+          "qty": 1
+        }
+      ],
+      "max_guests": 3,
+      "size_sqm": 46,
+      "view": "City view",
+      "base_rate_cents": null,
+      "original_rate_cents": null,
+      "breakfast_included": false,
+      "amenities": [
+        "Balcony",
+        "Free Wi-Fi",
+        "Air conditioning",
+        "Private bathroom",
+        "Minibar",
+        "Tea/coffee maker",
+        "Separate sitting area",
+        "Laptop-friendly workspace"
+      ],
+      "badges": [
+        "City view",
+        "Balcony"
+      ],
+      "source_photo_count": 19,
+      "photos": []
+    },
+    {
+      "name": "Deluxe Twin Room, 1 Bedroom, Non Smoking, City View",
+      "room_type": "Deluxe Twin",
+      "beds": "2 Queen Beds",
+      "bed_config": [
+        {
+          "type": "Queen",
+          "qty": 2
+        }
+      ],
+      "max_guests": 3,
+      "size_sqm": 46,
+      "view": "City view",
+      "base_rate_cents": null,
+      "original_rate_cents": null,
+      "breakfast_included": false,
+      "amenities": [
+        "Free Wi-Fi",
+        "Air conditioning",
+        "Private bathroom",
+        "Minibar",
+        "Tea/coffee maker",
+        "Separate sitting area",
+        "Laptop-friendly workspace"
+      ],
+      "badges": [
+        "City view",
+        "Twin beds"
+      ],
+      "source_photo_count": 15,
+      "photos": []
+    },
+    {
+      "name": "Junior Double Room, Balcony, City View",
+      "room_type": "Junior Double",
+      "beds": "1 King Bed",
+      "bed_config": [
+        {
+          "type": "King",
+          "qty": 1
+        }
+      ],
+      "max_guests": 3,
+      "size_sqm": 55,
+      "view": "City view",
+      "base_rate_cents": null,
+      "original_rate_cents": null,
+      "breakfast_included": true,
+      "amenities": [
+        "Balcony",
+        "Free Wi-Fi",
+        "Air conditioning",
+        "Private bathroom",
+        "Minibar",
+        "Tea/coffee maker",
+        "Separate sitting area",
+        "Laptop-friendly workspace"
+      ],
+      "badges": [
+        "City view",
+        "Balcony",
+        "Breakfast option"
+      ],
+      "source_photo_count": 21,
+      "photos": []
+    },
+    {
+      "name": "Executive Suite, Balcony, City View",
+      "room_type": "Executive Suite",
+      "beds": "1 King Bed",
+      "bed_config": [
+        {
+          "type": "King",
+          "qty": 1
+        }
+      ],
+      "max_guests": 3,
+      "size_sqm": 55,
+      "view": "City view",
+      "base_rate_cents": null,
+      "original_rate_cents": null,
+      "breakfast_included": true,
+      "amenities": [
+        "Balcony",
+        "Free Wi-Fi",
+        "Air conditioning",
+        "Private bathroom",
+        "Minibar",
+        "Tea/coffee maker",
+        "Separate sitting area",
+        "Laptop-friendly workspace"
+      ],
+      "badges": [
+        "Suite",
+        "City view",
+        "Balcony",
+        "Breakfast option"
+      ],
+      "source_photo_count": 25,
+      "photos": []
+    },
+    {
+      "name": "Family Suite, Balcony, City View",
+      "room_type": "Family Suite",
+      "beds": "1 King Bed and 1 Queen Bed",
+      "bed_config": [
+        {
+          "type": "King",
+          "qty": 1
+        },
+        {
+          "type": "Queen",
+          "qty": 1
+        }
+      ],
+      "max_guests": 5,
+      "size_sqm": 70,
+      "view": "City view",
+      "base_rate_cents": null,
+      "original_rate_cents": null,
+      "breakfast_included": true,
+      "amenities": [
+        "Balcony",
+        "Free Wi-Fi",
+        "Air conditioning",
+        "Private bathroom",
+        "Flat-screen TV",
+        "Soundproofing",
+        "Minibar",
+        "Tea/coffee maker",
+        "Sofa bed",
+        "Wheelchair accessible unit"
+      ],
+      "badges": [
+        "Family",
+        "City view",
+        "Balcony",
+        "Breakfast option"
+      ],
+      "source_photo_count": 20,
+      "photos": []
+    },
+    {
+      "name": "Presidential Penthouse",
+      "room_type": "Presidential Penthouse",
+      "beds": "1 King Bed, 2 Queen Beds and 1 Twin Sofa Bed",
+      "bed_config": [
+        {
+          "type": "King",
+          "qty": 1
+        },
+        {
+          "type": "Queen",
+          "qty": 2
+        },
+        {
+          "type": "Sofa bed",
+          "qty": 1
+        }
+      ],
+      "max_guests": 4,
+      "size_sqm": 250,
+      "view": "Mountain view",
+      "base_rate_cents": null,
+      "original_rate_cents": null,
+      "breakfast_included": false,
+      "amenities": [
+        "Free Wi-Fi",
+        "Air conditioning",
+        "Private bathroom",
+        "Minibar",
+        "Tea/coffee maker",
+        "Separate sitting area",
+        "Laptop-friendly workspace"
+      ],
+      "badges": [
+        "Penthouse",
+        "Mountain view",
+        "Two bedrooms"
+      ],
+      "source_photo_count": 8,
+      "photos": []
+    }
+  ]
+}

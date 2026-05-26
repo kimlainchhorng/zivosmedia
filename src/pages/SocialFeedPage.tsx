@@ -24,7 +24,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { toast } from "sonner";
-import { openPostShareSheet } from "@/components/social/PostShareSheet";
+import { openPostShareSheet } from "@/lib/social/postShareSheet";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import NavBar from "@/components/home/NavBar";
 import {
@@ -50,6 +50,7 @@ import { cn } from "@/lib/utils";
 import CreateSheet from "@/components/feed/CreateSheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
+import { copyText } from "@/lib/native/clipboard";
 import { normalizeSupabaseMediaUrl } from "@/utils/normalizeSupabaseMediaUrl";
 import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
 import { reportFeedQueryError } from "@/lib/feedQueryTelemetry";
@@ -655,97 +656,6 @@ function PostFooter({ post }: { post: FeedPost }) {
       },
     });
   };
-  // Legacy direct-copy / native-share fallback retained for any other call
-  // site that still imports it (no-op locally since handleShare now opens
-  // the sheet). Inlined to keep the diff focused.
-  const _legacyShare = async () => {
-    const shareUrl = getPostShareUrl(post.id);
-    const shareText = post.caption?.slice(0, 140) || "Check out this post on ZIVO";
-
-    // Last-resort fallback: works in iframes / restricted browsers where
-    // navigator.clipboard is blocked. Uses the legacy execCommand API and
-    // shows the URL in the toast so the user can long-press to copy it.
-    const fallbackCopy = (): boolean => {
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = shareUrl;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        const ok = document.execCommand("copy");
-        document.body.removeChild(ta);
-        return ok;
-      } catch { return false; }
-    };
-
-    const showLinkInToast = () => {
-      toast("Tap to copy this link", {
-        duration: 12000,
-        description: shareUrl,
-        action: {
-          label: "Copy",
-          onClick: () => { void navigator.clipboard?.writeText(shareUrl).catch(() => fallbackCopy()); },
-        },
-      });
-    };
-
-    let succeeded = false;
-
-    // 1) Try Capacitor (native iOS / Android share sheet)
-    try {
-      const { Share } = await import("@capacitor/share");
-      const canShare = await Share.canShare();
-      if (canShare.value) {
-        await Share.share({ title: "ZIVO post", text: shareText, url: shareUrl, dialogTitle: "Share post" });
-        succeeded = true;
-      }
-    } catch { /* fall through */ }
-
-    // 2) Try Web Share API (mobile browsers)
-    if (!succeeded && typeof navigator !== "undefined" && (navigator as any).share) {
-      try {
-        await (navigator as any).share({ title: "ZIVO post", text: shareText, url: shareUrl });
-        succeeded = true;
-      } catch (e) {
-        // AbortError = user cancelled the share sheet — that's fine, just exit.
-        if ((e as { name?: string })?.name === "AbortError") return;
-      }
-    }
-
-    // 3) Async clipboard
-    if (!succeeded) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        succeeded = true;
-        toast.success("Link copied", { description: "Paste it anywhere to share this post." });
-      } catch { /* fall through */ }
-    }
-
-    // 4) Legacy execCommand
-    if (!succeeded && fallbackCopy()) {
-      succeeded = true;
-      toast.success("Link copied", { description: "Paste it anywhere to share this post." });
-    }
-
-    // 5) Last resort: surface the link in the toast so the user can copy manually
-    if (!succeeded) {
-      showLinkInToast();
-      return; // don't bump the share count if we couldn't actually share
-    }
-
-    setShares((n) => n + 1);
-    try {
-      await (supabase as any).rpc("increment_post_shares", { p_post_id: post.id });
-    } catch {
-      await (supabase as any)
-        .from("user_posts")
-        .update({ shares_count: (post.shares_count ?? 0) + 1 })
-        .eq("id", post.id);
-    }
-  };
-
   // Owner-controlled toggles: when off the matching button is hidden for
   // viewers and disabled for the owner (so the owner sees they're "Off").
   const isOwn = !!user?.id && user.id === post.user_id;
@@ -865,7 +775,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   const handleCopyLink = async () => {
     const url = getPostShareUrl(post.id);
     try {
-      await navigator.clipboard.writeText(url);
+      await copyText(url);
       toast.success("Link copied");
     } catch {
       toast.error("Couldn't copy link");

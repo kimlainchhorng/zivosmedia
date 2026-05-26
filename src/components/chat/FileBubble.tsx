@@ -19,6 +19,8 @@ export interface FileBubbleData {
   page_count?: number | null;
   thumbnail_url?: string | null;
   source?: "upload" | "scan";
+  sensitive?: boolean;
+  sensitive_reason?: string | null;
 }
 
 function iconFor(mime: string) {

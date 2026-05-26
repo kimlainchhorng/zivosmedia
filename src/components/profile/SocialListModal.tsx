@@ -2,7 +2,7 @@
  * SocialListModal — Shows Friends, Followers, or Following list
  * with unfriend/unfollow actions, confirmation dialogs, and sort
  */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -85,11 +85,6 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
     setQuery("");
   }, [tab]);
 
-  useEffect(() => {
-    if (!open || !user?.id) return;
-    loadList();
-  }, [open, user?.id, tab, sort]);
-
   const filteredList = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return list;
@@ -105,7 +100,7 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
     };
   }, [list]);
 
-  const loadList = async () => {
+  const loadList = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     setExpandedItem(null);
@@ -120,13 +115,13 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
           .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
           .order("created_at", { ascending: sort === "oldest" });
 
-        if (data) {
+        if (data?.length) {
           const otherIds = data.map((r: any) => r.user_id === user.id ? r.friend_id : r.user_id);
           const [{ data: profiles }, { data: followData }] = await Promise.all([
-            supabase.from("public_profiles" as any).select("id, full_name, avatar_url").in("id", otherIds),
-            (supabase as any).from("followers").select("id, following_id").eq("follower_id", user.id).in("following_id", otherIds),
+            supabase.from("public_profiles" as any).select("user_id, full_name, avatar_url").in("user_id", otherIds),
+            (supabase as any).from("user_followers").select("id, following_id").eq("follower_id", user.id).in("following_id", otherIds),
           ]);
-          const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+          const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
           const followMap = new Map((followData || []).map((f: any) => [f.following_id, f.id]));
           items = data.map((r: any) => {
             const otherId = r.user_id === user.id ? r.friend_id : r.user_id;
@@ -143,18 +138,18 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
         }
       } else if (tab === "followers") {
         const { data } = await (supabase as any)
-          .from("followers")
+          .from("user_followers")
           .select("id, follower_id, created_at")
           .eq("following_id", user.id)
           .order("created_at", { ascending: sort === "oldest" });
 
-        if (data) {
+        if (data?.length) {
           const ids = data.map((r: any) => r.follower_id);
           const [{ data: profiles }, { data: followData }] = await Promise.all([
-            supabase.from("public_profiles" as any).select("id, full_name, avatar_url").in("id", ids),
-            (supabase as any).from("followers").select("id, following_id").eq("follower_id", user.id).in("following_id", ids),
+            supabase.from("public_profiles" as any).select("user_id, full_name, avatar_url").in("user_id", ids),
+            (supabase as any).from("user_followers").select("id, following_id").eq("follower_id", user.id).in("following_id", ids),
           ]);
-          const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+          const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
           const followMap = new Map((followData || []).map((f: any) => [f.following_id, f.id]));
           items = data.map((r: any) => {
             const p = profileMap.get(r.follower_id);
@@ -170,15 +165,15 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
         }
       } else {
         const { data } = await (supabase as any)
-          .from("followers")
+          .from("user_followers")
           .select("id, following_id, created_at")
           .eq("follower_id", user.id)
           .order("created_at", { ascending: sort === "oldest" });
 
-        if (data) {
+        if (data?.length) {
           const ids = data.map((r: any) => r.following_id);
-          const { data: profiles } = await supabase.from("public_profiles" as any).select("id, full_name, avatar_url").in("id", ids);
-          const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+          const { data: profiles } = await supabase.from("public_profiles" as any).select("user_id, full_name, avatar_url").in("user_id", ids);
+          const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
           items = data.map((r: any) => {
             const p = profileMap.get(r.following_id);
             return {
@@ -198,7 +193,12 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
     } finally {
       setLoading(false);
     }
-  };
+  }, [sort, tab, user?.id]);
+
+  useEffect(() => {
+    if (!open || !user?.id) return;
+    void loadList();
+  }, [loadList, open, user?.id]);
 
   const executeAction = async (action: ConfirmAction) => {
     if (!user?.id) return;
@@ -209,23 +209,23 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
         await (supabase as any).from("friendships").delete().eq("id", item.relationId);
         // Also unfollow if follow relation exists
         if (item.followRelationId) {
-          await (supabase as any).from("followers").delete().eq("id", item.followRelationId);
+          await (supabase as any).from("user_followers").delete().eq("id", item.followRelationId);
         }
         toast.success(`Unfriended ${item.full_name || "user"}`);
         setList((prev) => prev.filter((i) => i.relationId !== item.relationId));
       } else if (type === "unfollow") {
         if (tab === "friends" && item.followRelationId) {
-          await (supabase as any).from("followers").delete().eq("id", item.followRelationId);
+          await (supabase as any).from("user_followers").delete().eq("id", item.followRelationId);
           toast.success(`Unfollowed ${item.full_name || "user"}`);
           // Update follow status in list without removing
           setList((prev) => prev.map((i) => i.relationId === item.relationId ? { ...i, followRelationId: null } : i));
         } else {
-          await (supabase as any).from("followers").delete().eq("id", item.relationId);
+          await (supabase as any).from("user_followers").delete().eq("id", item.relationId);
           toast.success(`Unfollowed ${item.full_name || "user"}`);
           setList((prev) => prev.filter((i) => i.relationId !== item.relationId));
         }
       } else if (type === "remove_follower") {
-        await (supabase as any).from("followers").delete().eq("id", item.relationId);
+        await (supabase as any).from("user_followers").delete().eq("id", item.relationId);
         toast.success(`Removed ${item.full_name || "user"} from followers`);
         setList((prev) => prev.filter((i) => i.relationId !== item.relationId));
       }
@@ -245,7 +245,7 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
     setActionLoading(`${item.relationId}-follow`);
     try {
       const { data, error } = await (supabase as any)
-        .from("followers")
+        .from("user_followers")
         .insert({ follower_id: user.id, following_id: item.id })
         .select("id")
         .maybeSingle();

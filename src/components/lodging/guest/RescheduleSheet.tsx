@@ -25,6 +25,7 @@ interface Props {
   checkOut: string;
   totalCents: number;
   blockedDates?: string[];
+  formatMoney?: (cents: number) => string;
 }
 
 export default function RescheduleSheet({
@@ -36,6 +37,7 @@ export default function RescheduleSheet({
   checkOut,
   totalCents,
   blockedDates = [],
+  formatMoney,
 }: Props) {
   const [range, setRange] = useState<DateRange | undefined>();
   const [reason, setReason] = useState("");
@@ -59,6 +61,7 @@ export default function RescheduleSheet({
   );
 
   const { requestReschedule } = useReservationActions(reservationId);
+  const money = formatMoney ?? ((cents: number) => `$${((cents || 0) / 100).toFixed(2)}`);
 
   const handleSubmit = async () => {
     if (!newCheckIn || !newCheckOut) return;
@@ -117,11 +120,11 @@ export default function RescheduleSheet({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Nightly rate</span>
-                <span>${(preview.nightlyRateCents / 100).toFixed(2)}</span>
+                <span>{money(preview.nightlyRateCents)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">New total</span>
-                <span className="font-semibold">${(preview.newTotalCents / 100).toFixed(2)}</span>
+                <span className="font-semibold">{money(preview.newTotalCents)}</span>
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span>Price difference</span>
@@ -134,7 +137,7 @@ export default function RescheduleSheet({
                         : "font-bold"
                   }
                 >
-                  {preview.deltaCents > 0 ? "+" : ""}${(preview.deltaCents / 100).toFixed(2)}
+                  {preview.deltaCents > 0 ? "+" : ""}{money(preview.deltaCents)}
                 </span>
               </div>
               {preview.autoApprovable ? (

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Zivo</string>
+    <string name="title_activity_main">Zivo</string>
+    <string name="package_name">com.hizovo.app</string>
+    <string name="custom_url_scheme">com.hizovo.app</string>
+</resources>

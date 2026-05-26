@@ -12,10 +12,10 @@ interface Props {
   disputes: LodgingRefundDispute[];
   canRequest: boolean;
   maxAmountCents: number;
+  formatMoney?: (cents: number) => string;
 }
 
 const openStatuses = new Set(["pending", "under_review", "approved"]);
-const money = (cents?: number | null) => `$${((Number(cents) || 0) / 100).toFixed(2)}`;
 const highlightTarget = (href: string) => {
   const target = document.querySelector(href) as HTMLElement | null;
   if (!target) return;
@@ -24,8 +24,9 @@ const highlightTarget = (href: string) => {
   window.setTimeout(() => target.classList.remove("transition-shadow", "ring-2", "ring-primary", "ring-offset-2", "ring-offset-background"), 1600);
 };
 
-export default function RefundDisputeCard({ reservationId, disputes, canRequest, maxAmountCents }: Props) {
+export default function RefundDisputeCard({ reservationId, disputes, canRequest, maxAmountCents, formatMoney }: Props) {
   const [open, setOpen] = useState(false);
+  const money = (cents?: number | null) => (formatMoney ?? ((value: number) => `$${((value || 0) / 100).toFixed(2)}`))(Number(cents) || 0);
   const hasOpen = disputes.some((d) => openStatuses.has(d.status));
   if (!canRequest && !disputes.length) return null;
   const latest = disputes[0];
@@ -96,7 +97,7 @@ export default function RefundDisputeCard({ reservationId, disputes, canRequest,
         {canRequest && !hasOpen && (
           <Button variant="outline" className="w-full gap-2" onClick={() => setOpen(true)}><AlertTriangle className="h-4 w-4" /> Request refund review</Button>
         )}
-        <RefundDisputeSheet open={open} onOpenChange={setOpen} reservationId={reservationId} maxAmountCents={maxAmountCents} />
+        <RefundDisputeSheet open={open} onOpenChange={setOpen} reservationId={reservationId} maxAmountCents={maxAmountCents} formatMoney={formatMoney} />
       </CardContent>
     </Card>
   );

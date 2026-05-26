@@ -84,6 +84,7 @@ import ChatSocialShareSheet from "./ChatSocialShareSheet";
 const ChatGiftPanel = lazy(() => import("./ChatGiftPanel"));
 const ChatWalletSheet = lazy(() => import("./ChatWalletSheet"));
 const CoinTransferBubble = lazy(() => import("./CoinTransferBubble"));
+const GiftBubble = lazy(() => import("./GiftBubble"));
 const P2PTransferMessageCard = lazy(() => import("./P2PTransferMessageCard"));
 const ChatPollBubble = lazy(() => import("./ChatPollBubble"));
 const ChatContactBubble = lazy(() => import("./ChatContactBubble"));
@@ -138,9 +139,12 @@ const ScheduledMessagesSheet = lazy(() => import("./ScheduledMessagesSheet"));
 const PollCreatorSheet = lazy(() => import("./PollCreatorSheet"));
 import { useMessageActions, type DirectMessage } from "@/hooks/useMessageActions";
 import { useLocalChatHide } from "@/hooks/useLocalChatHide";
+import { detectSensitiveContent, isChatMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 const INITIAL_VISIBLE_TIMELINE_ITEMS = 25;
 const VISIBLE_TIMELINE_STEP = 30;
+const DM_BASE_COLUMNS = "id,sender_id,receiver_id,message,image_url,video_url,voice_url,message_type,delivered_at,reply_to_id,location_lat,location_lng,location_label,is_pinned,expires_at,created_at,is_read,locked_price_cents,edited_at,forwarded_from_user_id,file_payload,gift_payload";
+const DM_SAFETY_COLUMNS = `${DM_BASE_COLUMNS},hidden_at,hidden_by,hidden_reason,sensitive_report_count`;
 
 interface PersonalChatProps {
   recipientId: string;
@@ -149,6 +153,8 @@ interface PersonalChatProps {
   recipientIsVerified?: boolean;
   /** Pre-seed the composer with this text once on mount (e.g. quoted from "Reply Privately"). */
   prefillInput?: string;
+  /** Open the gift picker once after a deep link enters this chat. */
+  openGiftOnMount?: boolean;
   onClose: () => void;
   autoStartCall?: "voice" | "video" | null;
   onCallStarted?: () => void;
@@ -178,8 +184,20 @@ interface Message {
   edited_at?: string | null;
   forwarded_from_user_id?: string | null;
   file_payload?: FileBubbleData | null;
+  hidden_at?: string | null;
+  hidden_by?: string | null;
+  hidden_reason?: string | null;
+  sensitive_report_count?: number | null;
   gift_payload?: {
+    kind?: string;
+    icon?: string;
+    name?: string;
+    coins?: number;
+    total_coins?: number;
     amount?: number | string;
+    premium_months?: number;
+    subscription_id?: string;
+    stripe_session_id?: string;
     note?: string;
   } | null;
   _local_voice_url?: string;
@@ -353,7 +371,7 @@ function formatMsgTime(dateStr: string) {
   return format(d, "MMM d, h:mm a");
 }
 
-export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
+export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, openGiftOnMount, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
   const { user } = useAuth();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const navigate = useNavigate();
@@ -463,6 +481,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
   // Auto-delete (chat-wide disappearing). null = off, otherwise seconds. Cycles 1d→7d→30d→off.
   // Persisted per conversation in localStorage so it survives page reloads.
   const [disappearingSec, setDisappearingSec] = useState<number | null>(null);
@@ -563,6 +582,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [showPinnedPanel, setShowPinnedPanel] = useState(false);
   const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
+  const giftDeepLinkOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!openGiftOnMount || giftDeepLinkOpenedRef.current) return;
+    giftDeepLinkOpenedRef.current = true;
+    setShowGiftPanel(true);
+  }, [openGiftOnMount]);
   const [showWalletSheet, setShowWalletSheet] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
@@ -930,21 +955,28 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     initialScrollDone.current = false;
     const load = async () => {
       setLoading(true);
-      const msgColumns = "id,sender_id,receiver_id,message,image_url,video_url,voice_url,message_type,delivered_at,reply_to_id,location_lat,location_lng,location_label,is_pinned,expires_at,created_at,is_read,locked_price_cents,edited_at,forwarded_from_user_id,file_payload,gift_payload";
       const callColumns = "id,caller_id,callee_id,call_type,status,duration_seconds,created_at";
-      const [msgRes, callRes] = await Promise.all([
-        dbFrom("direct_messages")
-          .select(msgColumns)
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`)
-          .order("created_at", { ascending: false })
-          .limit(100),
-        dbFrom("call_history")
+      const pairFilter = `and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`;
+      const callPromise = dbFrom("call_history")
           .select(callColumns)
           .or(`and(caller_id.eq.${user.id},callee_id.eq.${recipientId}),and(caller_id.eq.${recipientId},callee_id.eq.${user.id})`)
           .order("created_at", { ascending: true })
-          .limit(50),
-      ]);
-      const data = ((msgRes.data || []) as Message[]).reverse();
+          .limit(50);
+      let msgRes = await dbFrom("direct_messages")
+        .select(DM_SAFETY_COLUMNS)
+        .or(pairFilter)
+        .is("hidden_at", null)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (msgRes.error && isChatMessageSafetySchemaDriftError(msgRes.error)) {
+        msgRes = await dbFrom("direct_messages")
+          .select(DM_BASE_COLUMNS)
+          .or(pairFilter)
+          .order("created_at", { ascending: false })
+          .limit(100);
+      }
+      const callRes = await callPromise;
+      const data = ((msgRes.data || []) as Message[]).filter((m) => !m.hidden_at).reverse();
       setMessages(data);
       setCallEvents(((callRes.data || []) as CallHistoryRow[]).map((c) => ({ ...c, _isCallEvent: true as const })));
       setLoading(false);
@@ -1007,6 +1039,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       },
       (payload) => {
         const msg = (payload as RealtimeInsertPayload<Message>).new as Message;
+        if (msg.hidden_at) return;
         if (
           (msg.sender_id === user.id && msg.receiver_id === recipientId) ||
           (msg.sender_id === recipientId && msg.receiver_id === user.id)
@@ -1081,7 +1114,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       },
       (payload) => {
         const updated = (payload as RealtimeUpdatePayload<Message>).new as Message;
-        setMessages((prev) => prev.map((m) => m.id === updated.id ? { ...m, ...updated } : m));
+        setMessages((prev) =>
+          updated.hidden_at
+            ? prev.filter((m) => m.id !== updated.id)
+            : prev.map((m) => m.id === updated.id ? { ...m, ...updated } : m),
+        );
       }
     );
 
@@ -1110,13 +1147,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   useEffect(() => {
     if (!user?.id || !recipientId) return;
 
-    const msgColumns = "id,sender_id,receiver_id,message,image_url,video_url,voice_url,message_type,delivered_at,reply_to_id,location_lat,location_lng,location_label,is_pinned,expires_at,created_at,is_read,locked_price_cents,edited_at,forwarded_from_user_id,file_payload,gift_payload";
+    const pairFilter = `and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`;
 
     const tick = async () => {
       const latestCreatedAt = latestMessageCreatedAtRef.current;
       let query = dbFrom("direct_messages")
-        .select(msgColumns)
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`)
+        .select(DM_SAFETY_COLUMNS)
+        .or(pairFilter)
+        .is("hidden_at", null)
         .order("created_at", { ascending: true })
         .limit(30);
 
@@ -1124,8 +1162,22 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         query = query.gt("created_at", latestCreatedAt);
       }
 
-      const { data } = await query;
-      const rows = (data || []) as Message[];
+      let { data, error } = await query;
+      if (error && isChatMessageSafetySchemaDriftError(error)) {
+        let fallbackQuery = dbFrom("direct_messages")
+          .select(DM_BASE_COLUMNS)
+          .or(pairFilter)
+          .order("created_at", { ascending: true })
+          .limit(30);
+        if (latestCreatedAt) {
+          fallbackQuery = fallbackQuery.gt("created_at", latestCreatedAt);
+        }
+        const fallbackResult = await fallbackQuery;
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      }
+      if (error) return;
+      const rows = ((data || []) as Message[]).filter((m) => !m.hidden_at);
       if (rows.length === 0) return;
 
       setMessages((prev) => {
@@ -1282,6 +1334,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       : imageUrl ? "image"
       : locationLat != null ? "location"
       : "text");
+    const textSensitivity = detectSensitiveContent(rawText);
+    const isMediaSend = Boolean(imageUrl || videoUrl || filePayload) || ["image", "video", "file", "locked_image", "locked_video"].includes(msgType);
+    const shouldMarkSensitiveMedia = isMediaSend && (markNextMediaSensitive || textSensitivity.isSensitive);
+    if (textSensitivity.isSensitive && !isMediaSend) {
+      toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
+      inputRef.current?.focus();
+      return;
+    }
     const text = fallbackMessageForSend({
       text: rawText,
       messageType: msgType,
@@ -1309,7 +1369,15 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
         : `cs-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    const mergedFilePayload = { ...(filePayload || {}), client_send_id: clientSendId } as unknown as FileBubbleData;
+    const mergedFilePayload = {
+      ...(filePayload || {}),
+      client_send_id: clientSendId,
+      ...(shouldMarkSensitiveMedia ? {
+        sensitive: true,
+        sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+      } : {}),
+    } as unknown as FileBubbleData;
+    if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
     const optimisticMsg: Message = {
       id: optimisticId,
       sender_id: user.id,
@@ -1726,6 +1794,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const clientSendId = randomMediaId();
     const optimisticId = `opt-media-${clientSendId}`;
     const messageText = MEDIA_MESSAGE_TEXT[kind];
+    const markSensitive = markNextMediaSensitive;
+    if (markSensitive) setMarkNextMediaSensitive(false);
     const optimisticMsg: Message = {
       id: optimisticId,
       sender_id: user.id,
@@ -1746,6 +1816,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
         size: file.size,
         source: "upload",
+        ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
       } as unknown as FileBubbleData,
       expires_at: null,
       created_at: new Date().toISOString(),
@@ -1803,6 +1874,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
             size: file.size,
             source: filePayloadSource,
+            ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
           } as unknown as FileBubbleData,
         };
         if (kind === "image") insertData.image_url = dbMediaUrl;
@@ -1987,6 +2059,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const id = editingId;
     const newText = input.trim();
     if (!id || !newText) return;
+    if (detectSensitiveContent(newText).isSensitive) {
+      toast.error("This message looks sexual or explicit. Please edit it before saving.");
+      return;
+    }
     const original = messages.find((m) => m.id === id);
     if (!original) { setEditingId(null); return; }
     if (original.message === newText) { setEditingId(null); setInput(""); return; }
@@ -2031,6 +2107,54 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   }, [hideMessage]);
 
   // Telegram-style "Clear history" — locally hide every message up to now.
+  const handleReportMessage = useCallback(async (id: string, reason: string) => {
+    if (!user?.id) {
+      toast.error("Sign in to report messages");
+      return;
+    }
+    const msg = messages.find((m) => m.id === id);
+    if (!msg || msg.sender_id === user.id) return;
+
+    hideMessage(id);
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+
+    const blockSender = async () => {
+      await (supabase as any).from("user_safety_actions").upsert(
+        {
+          user_id: user.id,
+          target_user_id: msg.sender_id,
+          action: "block",
+        },
+        { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
+      );
+    };
+
+    try {
+      const { error } = await (supabase as any).from("chat_message_reports").insert({
+        reporter_id: user.id,
+        message_id: msg.id,
+        sender_id: msg.sender_id,
+        receiver_id: msg.receiver_id,
+        reason,
+        description: (msg.message || "").slice(0, 500),
+      });
+      if (error) throw error;
+      await blockSender();
+      toast.success("We hid it, blocked this user, and sent it for safety review");
+    } catch (error) {
+      if (isChatMessageSafetySchemaDriftError(error)) {
+        try {
+          await blockSender();
+          toast.warning("Message hidden here. Deploy the chat safety migration to send it for review.");
+          return;
+        } catch {
+          // Fall through to the generic failure toast.
+        }
+      }
+      toast.error("Couldn't submit message report");
+    }
+  }, [hideMessage, messages, user?.id]);
+
   const handleClearHistory = useCallback(() => {
     if (!recipientId) return;
     clearChatBefore(recipientId);
@@ -2189,6 +2313,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   // (Clear-history) are filtered out before render — server data is untouched.
   const timeline = useMemo<TimelineItem[]>(() => {
     const visible = messages.filter((m) => {
+      if (m.hidden_at) return false;
       if (isHidden(m.id)) return false;
       if (recipientId && isClearedFor(recipientId, m.created_at)) return false;
       return true;
@@ -2328,6 +2453,21 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
           {/* Action buttons */}
           <div className="flex items-center gap-0.5">
+            {!isSelfChat && (
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={() => setShowGiftPanel(true)}
+                className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${
+                  zivoOFMode
+                    ? "hover:bg-[#00AEEF]/10 active:bg-[#00AEEF]/15"
+                    : "hover:bg-amber-500/10 active:bg-amber-500/15"
+                }`}
+                aria-label={zivoOFMode ? "Send a tip" : "Send a gift"}
+                title={zivoOFMode ? "Send a tip" : "Send a gift"}
+              >
+                <Gift className={`h-5 w-5 ${zivoOFMode ? "text-[#00AEEF]" : "text-amber-500"}`} />
+              </motion.button>
+            )}
             {!isSelfChat && !zivoOFMode && (
               <>
                 <motion.button
@@ -2355,17 +2495,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     : <Phone className="h-[19px] w-[19px] text-emerald-500" />}
                 </motion.button>
               </>
-            )}
-            {!isSelfChat && zivoOFMode && (
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                onClick={() => setShowGiftPanel(true)}
-                className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-[#00AEEF]/10 active:bg-[#00AEEF]/15 transition-colors"
-                aria-label="Send a tip"
-                title="Send a tip"
-              >
-                <Gift className="h-5 w-5 text-[#00AEEF]" />
-              </motion.button>
             )}
           </div>
         </div>
@@ -2689,8 +2818,19 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       </div>
                     )}
 
-                    {/* Coin transfer message */}
-                    {msg.message_type === "coin_transfer" && msg.gift_payload ? (
+                    {/* Gift and coin transfer messages */}
+                    {msg.message_type === "gift" && msg.gift_payload ? (
+                      <div className={`flex ${isMe ? "justify-end" : "justify-start"} ${msg.id.startsWith("opt-") ? "opacity-60" : ""}`}>
+                        <div className="flex flex-col gap-1">
+                          <Suspense fallback={null}>
+                            <GiftBubble payload={msg.gift_payload} isMine={isMe} />
+                          </Suspense>
+                          <span className={`text-[9px] mt-0.5 ${isMe ? "text-right text-muted-foreground/70" : "text-left text-muted-foreground/70"}`}>
+                            {formatMsgTime(msg.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : msg.message_type === "coin_transfer" && msg.gift_payload ? (
                       <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                         <Suspense fallback={null}>
                           <CoinTransferBubble
@@ -2849,6 +2989,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         isPinned={msg.is_pinned}
                         expiresAt={msg.expires_at}
                         messageType={msg.message_type}
+                        filePayload={msg.file_payload}
                         senderId={msg.sender_id}
                         lockedPriceCents={msg.locked_price_cents}
                         initialReactions={reactionsMap[msg.id]}
@@ -2860,6 +3001,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         onForward={handleForward}
                         onPin={handlePin}
                         onEdit={handleEdit}
+                        onReport={handleReportMessage}
                         onSave={handleSave}
                         hideSave={isSelfChat}
                         forwardedFromUserId={msg.forwarded_from_user_id ?? null}
@@ -3014,6 +3156,19 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               ))}
             </div>
           )}
+          {markNextMediaSensitive && (
+            <button
+              type="button"
+              onClick={() => setMarkNextMediaSensitive(false)}
+              className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-bold text-fuchsia-600"
+              aria-label="Turn off 18+ marker for next media"
+              title="Turn off 18+ marker"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              18+ blur on for next media
+              <X className="h-3 w-3" />
+            </button>
+          )}
           <div className="flex items-end gap-1.5">
             {/* Action buttons — attach + emoji picker; extra tools accessible via attach menu */}
             <div className="flex items-end gap-0.5 shrink-0">
@@ -3050,6 +3205,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     "On"
                   }
                   onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+                  onToggleSensitiveMedia={() => {
+                    setMarkNextMediaSensitive((prev) => {
+                      const next = !prev;
+                      toast.success(next ? "Next media will be blurred as 18+" : "18+ media blur marker off");
+                      return next;
+                    });
+                  }}
+                  sensitiveMediaMarked={markNextMediaSensitive}
                   onSendGift={() => setShowGiftPanel(true)}
                   onOpenWallet={() => {
                     if (isSelfChat) { setShowWalletSheet(true); return; }
@@ -3085,8 +3248,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             <ChatMediaUploader
               recipientId={recipientId}
               onMediaSent={(opts) => {
-                if (opts.imageUrl) handleSend({ imageUrl: opts.imageUrl });
-                else if (opts.videoUrl) handleSend({ videoUrl: opts.videoUrl });
+                const markSensitive = markNextMediaSensitive;
+                if (markSensitive) setMarkNextMediaSensitive(false);
+                const sensitivePayload = markSensitive
+                  ? { sensitive: true, sensitive_reason: "sender_marked" }
+                  : {};
+                if (opts.imageUrl) handleSend({ imageUrl: opts.imageUrl, filePayload: sensitivePayload as unknown as FileBubbleData });
+                else if (opts.videoUrl) handleSend({ videoUrl: opts.videoUrl, filePayload: sensitivePayload as unknown as FileBubbleData });
                 else if (opts.fileUrl) {
                   handleSend({
                     filePayload: {
@@ -3095,6 +3263,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       mime_type: opts.fileType || "application/octet-stream",
                       size: opts.fileSize,
                       source: "upload",
+                      ...sensitivePayload,
                     },
                   });
                 }
@@ -3341,6 +3510,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             onStartCall={(type) => { setShowContactInfo(false); void handleStartCall(type); }}
             onOpenMediaGallery={() => { setMediaGalleryTab("photos"); setShowContactInfo(false); setShowMediaGallery(true); }}
             onOpenSearch={() => { setShowContactInfo(false); navigate("/chat/search"); }}
+            onOpenGift={() => { setShowContactInfo(false); setShowGiftPanel(true); }}
             onOpenCallHistory={() => { setShowContactInfo(false); setShowCallHistory(true); }}
             onOpenPersonalization={() => { setShowContactInfo(false); setShowPersonalization(true); }}
             onOpenSecurity={() => { setShowContactInfo(false); setShowSecurity(true); }}
@@ -3439,6 +3609,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             onClose={() => setShowGiftPanel(false)}
             recipientId={recipientId}
             recipientName={recipientName}
+            recipientAvatar={recipientAvatar}
           />
         </Suspense>
       )}

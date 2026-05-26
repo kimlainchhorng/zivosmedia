@@ -1,0 +1,25 @@
+
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/464618ea-b431-4b3d-9bbd-37d6d072fb36/fire-dragon.mp4' WHERE name = 'Fire Dragon';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/f3a1dfaa-e882-44cb-a564-51c94ca6634d/sapphire-swan.mp4' WHERE name = 'Sapphire Swan';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/9c391d60-7c14-4a94-b1be-801e3653381a/royal-crown.mp4' WHERE name = 'Royal Crown';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/aab3dbaa-3f6f-4ac5-bf75-36a4c5a26094/gold-fountain.mp4' WHERE name = 'Gold Fountain';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/77630a1b-bdf7-47a9-916a-c4a14b6a12b4/emerald-eagle.mp4' WHERE name = 'Emerald Eagle';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/a5dac07f-27ab-403c-9dd6-45642ccc803b/diamond-rain.mp4' WHERE name = 'Diamond Rain';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/dbfd235b-cb8e-4122-84fa-f1e848f12e80/crystal-pegasus.mp4' WHERE name = 'Crystal Pegasus';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/b516da5b-8a2e-4ed2-b4f2-148440b5b81e/platinum-panda.mp4' WHERE name = 'Platinum Panda';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/2d1971d8-8cbd-4275-a67f-e3889f83ec5b/luxury-lambo.mp4' WHERE name = 'Luxury Lambo';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/2e9e1d7d-6f65-413a-b111-3c59f742a182/treasure-dragon.mp4' WHERE name = 'Treasure Dragon';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/0049dd4c-4340-4f50-956a-7671d32444c5/neon-rocket.mp4' WHERE name = 'Neon Rocket';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/ea2ab248-7164-4283-9b4a-7578aa018008/gold-ferrari.mp4' WHERE name = 'Gold Ferrari';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/3450efd7-e2c7-4212-88af-59e468d2b0d2/gold-helicopter.mp4' WHERE name = 'Gold Helicopter';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/393ae883-a249-44ea-ba73-e1efc8b5cd1f/rolls-royce.mp4' WHERE name = 'Rolls Royce';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/cec184ab-5c40-403f-8e44-5ca1490bdabb/black-panther.mp4' WHERE name = 'Black Panther';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/34195686-186f-49f3-9ec3-938d5d4b3e9e/bugatti.mp4' WHERE name = 'Bugatti';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/95cad0fb-16e9-4dc2-8415-8a5c5aa7a0e4/diamond-dragon.mp4' WHERE name = 'Diamond Dragon';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/fb554f75-1be6-4f1b-b25c-3dcc9db9df9d/luxury-yacht.mp4' WHERE name = 'Luxury Yacht';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/3493383c-18dc-4098-adce-03e13c5641f2/private-island.mp4' WHERE name = 'Private Island';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/3564f376-ed50-4e72-b2c6-c69279a35150/cosmic-dragon.mp4' WHERE name = 'Cosmic Dragon';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/9375b3ec-e208-4470-8947-d05631897c3d/galaxy-crown.mp4' WHERE name = 'Galaxy Crown';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/959c5883-951b-4011-8e43-db68a302eebb/golden-castle.mp4' WHERE name = 'Golden Castle';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/3648c661-d8c4-4e80-be3b-c24b3aa5968e/diamond-throne.mp4' WHERE name = 'Diamond Throne';
+UPDATE public.live_gifts SET video_url = '/__l5e/assets-v1/4cb4fcb5-617f-4e17-84ea-425cddead269/celestial-phoenix.mp4' WHERE name = 'Celestial Phoenix';

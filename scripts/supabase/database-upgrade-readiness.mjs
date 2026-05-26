@@ -6,10 +6,11 @@
  * connect to or mutate the remote database. Use it before Postgres major
  * upgrades, migration reconciliation, or production schema pushes.
  */
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { KNOWN_DUPLICATE_MIGRATION_VERSION_SET } from "./migration-policy.mjs";
+import { getSupabaseCli as readSupabaseCli } from "./supabase-cli.mjs";
 
 const root = process.cwd();
 const args = new Set(process.argv.slice(2));
@@ -76,6 +77,8 @@ function parseDriftReport() {
     generated: text.match(/^Generated: (.+)$/m)?.[1] ?? "unknown",
     local: pick("Local migrations"),
     duplicateVersions: pick("Duplicate versions"),
+    allowedDuplicateVersions: pick("Allowed duplicate versions"),
+    newDuplicateVersions: pick("New duplicate versions"),
     duplicateHashes: pick("Duplicate SQL hashes"),
     remote: pick("Remote migrations"),
     matched: pick("Matched versions"),
@@ -86,31 +89,7 @@ function parseDriftReport() {
 }
 
 function getSupabaseCli() {
-  const localBin = path.join(root, "node_modules", ".bin", process.platform === "win32" ? "supabase.cmd" : "supabase");
-  const candidates = ["supabase", ...(existsSync(localBin) ? [localBin] : [])];
-
-  let result = null;
-  for (const command of candidates) {
-    result = spawnSync(command, ["--version"], {
-      cwd: root,
-      encoding: "utf8",
-    });
-    if (result.status === 0) break;
-  }
-
-  if (!result || result.status !== 0) {
-    return {
-      installed: false,
-      version: null,
-      error: (result.stderr || result.stdout || "Supabase CLI is not installed or not on PATH.").trim(),
-    };
-  }
-
-  return {
-    installed: true,
-    version: (result.stdout || result.stderr).trim(),
-    error: null,
-  };
+  return readSupabaseCli(root);
 }
 
 function stripQuotes(value) {
@@ -243,6 +222,8 @@ function buildSummary() {
   const migrations = readLocalMigrations();
   const invalidFilenames = migrations.filter((item) => !item.version);
   const duplicateVersions = [...groupBy(migrations, (item) => item.version).values()].filter((items) => items.length > 1);
+  const blockingDuplicateVersions = duplicateVersions.filter((items) => !KNOWN_DUPLICATE_MIGRATION_VERSION_SET.has(items[0].version));
+  const allowedDuplicateVersions = duplicateVersions.filter((items) => KNOWN_DUPLICATE_MIGRATION_VERSION_SET.has(items[0].version));
   const duplicateHashes = [...groupBy(migrations, (item) => item.hash).values()].filter((items) => items.length > 1);
   const drift = parseDriftReport();
   const cli = getSupabaseCli();
@@ -257,7 +238,7 @@ function buildSummary() {
   const warnings = [];
 
   if (invalidFilenames.length) blockers.push(`${invalidFilenames.length} migration filename(s) do not match the Supabase timestamp format.`);
-  if (duplicateVersions.length) blockers.push(`${duplicateVersions.length} duplicate migration version(s) need reconciliation before db push/pull.`);
+  if (blockingDuplicateVersions.length) blockers.push(`${blockingDuplicateVersions.length} new duplicate migration version(s) need reconciliation before db push/pull.`);
   if (duplicateHashes.length) warnings.push(`${duplicateHashes.length} duplicate migration SQL hash(es) found.`);
   if (unsupportedExtensions.length) blockers.push("Postgres 17-unsupported extension declarations were found in local migrations.");
   if (!cli.installed) warnings.push("Supabase CLI is not installed, so linked migration history and advisors cannot be refreshed from this machine.");
@@ -265,6 +246,7 @@ function buildSummary() {
     warnings.push("Supabase migration drift report is missing.");
   } else {
     if (drift.local !== migrations.length) warnings.push(`Supabase migration drift report is stale: report local=${drift.local}, current local=${migrations.length}.`);
+    if (drift.newDuplicateVersions !== blockingDuplicateVersions.length) warnings.push(`Supabase migration drift report is stale: report new duplicates=${drift.newDuplicateVersions}, current new duplicates=${blockingDuplicateVersions.length}.`);
     if (drift.remoteError) {
       blockers.push("Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before upgrade.");
     } else if (drift.local > 0 && drift.remote > 0 && drift.matched === 0) {
@@ -287,6 +269,8 @@ function buildSummary() {
     localMigrations: migrations.length,
     invalidFilenames,
     duplicateVersions,
+    blockingDuplicateVersions,
+    allowedDuplicateVersions,
     duplicateHashes,
     drift,
     extensions,
@@ -312,6 +296,8 @@ function renderReport(summary) {
     `- Local migrations: ${summary.localMigrations}`,
     `- Invalid migration filenames: ${summary.invalidFilenames.length}`,
     `- Duplicate migration versions: ${summary.duplicateVersions.length}`,
+    `- Allowed legacy duplicate migration versions: ${summary.allowedDuplicateVersions.length}`,
+    `- New duplicate migration versions: ${summary.blockingDuplicateVersions.length}`,
     `- Duplicate SQL hashes: ${summary.duplicateHashes.length}`,
     summary.drift
       ? `- Last linked drift report: local=${summary.drift.local}, remote=${summary.drift.remote}, matched=${summary.drift.matched}, remoteError=${summary.drift.remoteError ? "yes" : "no"}, generated=${summary.drift.generated}`
@@ -336,7 +322,13 @@ function renderReport(summary) {
     "",
     renderList(
       summary.duplicateVersions,
-      (items) => `- ${items[0].version}: ${items.map((item) => item.name).join(", ")}`,
+      (items) => {
+        const version = items[0].version;
+        const suffix = KNOWN_DUPLICATE_MIGRATION_VERSION_SET.has(version)
+          ? " (allowed legacy duplicate)"
+          : " (needs reconciliation)";
+        return `- ${version}: ${items.map((item) => item.name).join(", ")}${suffix}`;
+      },
       80,
     ),
     "",
@@ -410,6 +402,8 @@ console.log(JSON.stringify({
   warnings: summary.warnings.length,
   localMigrations: summary.localMigrations,
   duplicateVersions: summary.duplicateVersions.length,
+  allowedDuplicateVersions: summary.allowedDuplicateVersions.length,
+  newDuplicateVersions: summary.blockingDuplicateVersions.length,
   duplicateHashes: summary.duplicateHashes.length,
   unsupportedPg17Extensions: summary.unsupportedExtensions.length,
   publicTablesNeedingRlsReview: summary.publicTables.missingRlsInMigrations.length,

@@ -4,7 +4,7 @@
  */
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Trash2, ChevronDown, ChevronUp, X, Pencil, Pin, PinOff } from "lucide-react";
+import { Send, Trash2, ChevronDown, ChevronUp, X, Pencil, Pin, PinOff, Flag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -20,6 +20,12 @@ import { isBlueVerified } from "@/lib/verification";
 
 const REACTION_EMOJIS = ["❤️", "😂", "😮", "😢", "🔥"];
 
+const COMMENT_REPORT_REASONS = [
+  { label: "Sexual/18+", reason: "Nudity or sexual content" },
+  { label: "Exploitation", reason: "Content involving minors or exploitation" },
+  { label: "Harassment", reason: "Harassment or abuse" },
+] as const;
+
 interface CommentsSheetProps {
   open: boolean;
   onClose: () => void;
@@ -29,12 +35,14 @@ interface CommentsSheetProps {
   commentsCount: number;
   onCommentsCountChange?: (count: number) => void;
   dark?: boolean; // for fullscreen reels mode
+  canComment?: boolean;
+  disabledReason?: string;
 }
 
 export default function CommentsSheet({
-  open, onClose, postId, postSource, currentUserId, commentsCount, onCommentsCountChange, dark = false,
+  open, onClose, postId, postSource, currentUserId, commentsCount, onCommentsCountChange, dark = false, canComment = true, disabledReason,
 }: CommentsSheetProps) {
-  const { comments, loading, submitting, addComment, deleteComment, editComment, toggleReaction, togglePin } = usePostComments({
+  const { comments, loading, submitting, addComment, deleteComment, editComment, reportComment, toggleReaction, togglePin } = usePostComments({
     postId, postSource, currentUserId,
   });
   const [text, setText] = useState("");
@@ -82,6 +90,10 @@ export default function CommentsSheet({
   const handleSubmit = async () => {
     if (!text.trim()) return;
     if (!currentUserId) { toast.error("Please sign in to comment"); return; }
+    if (!canComment) {
+      toast.error(disabledReason || "You can't comment on this post");
+      return;
+    }
     await addComment(text, replyTo?.id);
     setText("");
     setReplyTo(null);
@@ -165,9 +177,17 @@ export default function CommentsSheet({
                 currentUserId={currentUserId}
                 isPostAuthor={isPostAuthor}
                 dark={dark}
-                onReply={(id, name) => { setReplyTo({ id, name }); inputRef.current?.focus(); }}
+                onReply={(id, name) => {
+                  if (!canComment) {
+                    toast.error(disabledReason || "You can't comment on this post");
+                    return;
+                  }
+                  setReplyTo({ id, name });
+                  inputRef.current?.focus();
+                }}
                 onDelete={deleteComment}
                 onEdit={editComment}
+                onReport={reportComment}
                 onTogglePin={togglePin}
                 onToggleReaction={toggleReaction}
                 showReactionsFor={showReactionsFor}
@@ -195,10 +215,15 @@ export default function CommentsSheet({
               <button type="button"
                 key={e}
                 onClick={() => {
+                  if (!canComment) return;
                   setText((prev) => prev + e);
                   inputRef.current?.focus();
                 }}
-                className="h-9 w-9 shrink-0 rounded-full text-xl flex items-center justify-center hover:bg-muted/50 active:scale-90 transition-transform"
+                disabled={!canComment}
+                className={cn(
+                  "h-9 w-9 shrink-0 rounded-full text-xl flex items-center justify-center hover:bg-muted/50 active:scale-90 transition-transform",
+                  !canComment && "opacity-40 cursor-not-allowed",
+                )}
                 aria-label={`Insert ${e}`}
               >
                 {e}
@@ -213,16 +238,17 @@ export default function CommentsSheet({
             <input
               ref={inputRef}
               type="text"
-              placeholder={replyTo ? `Reply to ${replyTo.name}...` : "Add a comment..."}
+              placeholder={!canComment ? (disabledReason || "Comments are limited") : replyTo ? `Reply to ${replyTo.name}...` : "Add a comment..."}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              disabled={!canComment}
               className={cn("flex-1 rounded-full px-4 py-2.5 text-[13px] outline-none", inputBg)}
             />
             {text.trim() && (
               <button type="button"
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || !canComment}
                 className="h-9 w-9 rounded-full bg-ig-gradient flex items-center justify-center shrink-0 shadow-sm hover:opacity-90 active:scale-95 transition-all"
                 aria-label="Send comment"
               >
@@ -239,7 +265,7 @@ export default function CommentsSheet({
 // ─── Single Comment Item ────────────────────────────────────────
 function CommentItem({
   comment, currentUserId, isPostAuthor = false, dark,
-  onReply, onDelete, onEdit, onTogglePin, onToggleReaction,
+  onReply, onDelete, onEdit, onReport, onTogglePin, onToggleReaction,
   showReactionsFor, setShowReactionsFor, isReply = false,
 }: {
   comment: PostComment;
@@ -249,6 +275,7 @@ function CommentItem({
   onReply: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   onEdit?: (id: string, nextContent: string) => void | Promise<void>;
+  onReport?: (comment: PostComment, reason: string) => Promise<boolean>;
   onTogglePin?: (id: string) => void | Promise<boolean | null>;
   onToggleReaction: (commentId: string, emoji: string) => void;
   showReactionsFor: string | null;
@@ -259,6 +286,8 @@ function CommentItem({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(comment.content);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showReportChoices, setShowReportChoices] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const haptic = useHaptic();
   const mutedText = dark ? "text-white/50" : "text-muted-foreground";
   const isOwn = currentUserId === comment.user_id;
@@ -358,6 +387,15 @@ function CommentItem({
             >
               😊
             </button>
+            {!isOwn && onReport && (
+              <button type="button"
+                onClick={() => { haptic("selection"); setShowReportChoices((value) => !value); }}
+                className={cn("text-[11px] font-semibold flex items-center gap-0.5", mutedText)}
+                aria-label="Report comment"
+              >
+                <Flag className="h-3 w-3" /> Report
+              </button>
+            )}
             {isOwn && onEdit && (
               <button type="button"
                 onClick={() => { haptic("selection"); setEditText(comment.content); setEditing(true); }}
@@ -393,6 +431,42 @@ function CommentItem({
             )}
           </div>
         )}
+
+        <AnimatePresence>
+          {showReportChoices && !isOwn && onReport && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className={cn("flex flex-wrap gap-1.5 mt-2", dark ? "text-white" : "text-foreground")}
+            >
+              {COMMENT_REPORT_REASONS.map((item) => (
+                <button
+                  key={item.reason}
+                  type="button"
+                  disabled={reporting}
+                  onClick={async () => {
+                    setReporting(true);
+                    try {
+                      const reported = await onReport(comment, item.reason);
+                      if (reported) setShowReportChoices(false);
+                    } finally {
+                      setReporting(false);
+                    }
+                  }}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[11px] font-semibold active:scale-95 disabled:opacity-50",
+                    dark
+                      ? "border-white/15 bg-white/10 hover:bg-white/15"
+                      : "border-border bg-muted hover:bg-muted/80",
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Reaction pills */}
         {comment.reactions && comment.reactions.length > 0 && (
@@ -471,6 +545,7 @@ function CommentItem({
                       onReply={onReply}
                       onDelete={onDelete}
                       onEdit={onEdit}
+                      onReport={onReport}
                       onTogglePin={onTogglePin}
                       onToggleReaction={onToggleReaction}
                       showReactionsFor={showReactionsFor}

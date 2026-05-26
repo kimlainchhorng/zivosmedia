@@ -95,11 +95,15 @@ Deno.serve(withSecurity("process-refund", async (req, ctx) => {
     // APPROVE / PARTIAL — execute Stripe refund
     const { data: ride } = await admin
       .from("ride_requests")
-      .select("id, user_id, payment_intent_id, stripe_payment_intent_id, captured_amount_cents, payment_amount")
+      .select("id, user_id, payment_intent_id, stripe_payment_intent_id, captured_amount_cents, payment_amount, payment_currency, payment_status")
       .eq("id", refundReq.ride_request_id)
       .maybeSingle();
     if (!ride) {
       return new Response(JSON.stringify({ error: "ride not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const currency = String((ride as any).payment_currency || "USD").toUpperCase();
+    if (currency !== "USD" || (ride as any).payment_status === "bakong_paid") {
+      return new Response(JSON.stringify({ error: "card payment required for automated refunds" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const piId = (ride.payment_intent_id || ride.stripe_payment_intent_id) as string | null;
     if (!piId) {

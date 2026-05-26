@@ -8,6 +8,14 @@
 const ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-application-name, x-request-id";
 
+declare const Deno:
+  | {
+      env: {
+        get(name: string): string | undefined;
+      };
+    }
+  | undefined;
+
 function readEnv(name: string): string {
   try {
     return typeof Deno !== "undefined" ? Deno.env.get(name) ?? "" : "";
@@ -45,9 +53,29 @@ const ALLOWED_ORIGIN_SUFFIXES = [
   ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];
 
+function isPrivateLanHost(hostname: string): boolean {
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]") return true;
+  if (hostname.startsWith("192.168.")) return true;
+  if (hostname.startsWith("10.")) return true;
+  const parts = hostname.split(".").map((part) => Number(part));
+  return parts.length === 4 && parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
+}
+
+function isLocalDevelopmentOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    return isPrivateLanHost(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.has(origin)) return true;
+  if (isLocalDevelopmentOrigin(origin)) return true;
   try {
     const url = new URL(origin);
     return ALLOWED_ORIGIN_SUFFIXES.some(s => url.hostname.endsWith(s));

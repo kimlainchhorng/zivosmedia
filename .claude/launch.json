@@ -6,6 +6,19 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5174"],
       "port": 5174
+    },
+    {
+      "name": "dev",
+      "runtimeExecutable": "${workspaceFolder}\\.claude\\run-npm.cmd",
+      "runtimeArgs": ["run", "dev"],
+      "port": 8081,
+      "autoPort": true
+    },
+    {
+      "name": "preview",
+      "runtimeExecutable": "${workspaceFolder}\\.claude\\run-npm.cmd",
+      "runtimeArgs": ["run", "preview"],
+      "port": 4173
     }
   ]
 }

@@ -1,0 +1,102 @@
+{
+  "run_at": "2026-05-16T23:08:08.072Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": 10,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false
+  },
+  "summary": {
+    "total": 10,
+    "updated": 6,
+    "not_found": 0,
+    "errors": 4
+  },
+  "results": [
+    {
+      "id": "8808c9d5-0d93-4108-bdb0-76bcf9c0432e",
+      "name": "ARK House",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ark-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.$: Execution context was destroyed, most likely because of a navigation"
+    },
+    {
+      "id": "69232110-de04-4540-8cec-06994dc8c3fa",
+      "name": "Blue & Chill Resort",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/blue-amp-chill-resort.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "media upload failed: fetch failed"
+    },
+    {
+      "id": "c1c96343-eb1b-432a-9c0c-9783a76742a7",
+      "name": "Borei Angkor Resort & Spa",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/borei.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.booking.com/hotel/kh/borei.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1\", waiting until \"networkidle\"\u001b[22m\n"
+    },
+    {
+      "id": "664c96a7-2d68-4cfd-a0ef-009485e92136",
+      "name": "Central Boutique Siem Reap",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/central-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.booking.com/hotel/kh/central-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1\", waiting until \"networkidle\"\u001b[22m\n"
+    },
+    {
+      "id": "d9838773-2ff3-4659-993d-e30b9f70e7d1",
+      "name": "Chaiya Palace Hotel",
+      "status": "updated",
+      "photos": 121,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/chaiya-palace.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2f6d7d31-ce7c-4013-97eb-25ac788dcb55",
+      "name": "Champa Lodge",
+      "status": "updated",
+      "photos": 29,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/champa-lodge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "72937783-6257-4dc7-863a-9bac6e30b4f8",
+      "name": "Condo tel at star bay",
+      "status": "updated",
+      "photos": 6,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/condo-tel-at-star-bay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "84acf4fb-4fe0-407c-b588-196281831d5c",
+      "name": "Dary's Village Guesthouse & Restaurant",
+      "status": "updated",
+      "photos": 44,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/darys-village-guesthouse-amp-restaurant-krong-kracheh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6cc3af7b-ee7a-4b26-a31b-9b7769ebf2d0",
+      "name": "De KT Villa Kampot",
+      "status": "updated",
+      "photos": 47,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/de-kt-villa-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "80ceff59-43f9-4948-ab8e-5ea586524506",
+      "name": "Derm Svay Guesthouse - yoga & cafe",
+      "status": "updated",
+      "photos": 99,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/derm-svay-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

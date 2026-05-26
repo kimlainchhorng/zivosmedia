@@ -68,8 +68,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useCurrentLocation } from "@/hooks/useCurrentLocation";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useSavedLocations } from "@/hooks/useSavedLocations";
-import { reverseGeocode } from "@/services/mapsApi";
-import RidePaymentSection from "@/components/rides/RidePaymentSection";
+import { forwardGeocode, reverseGeocode } from "@/services/mapsApi";
+import RidePaymentSection, { type CambodiaPaymentMethod, type RideAuthorizedPayment } from "@/components/rides/RidePaymentSection";
+import type { AbaKhqrPaymentReceipt } from "@/components/rides/AbaPaymentModal";
 import CancelRideModal from "@/components/rides/CancelRideModal";
 import { Input } from "@/components/ui/input";
 import { CountryPhoneInput } from "@/components/auth/CountryPhoneInput";
@@ -141,6 +142,14 @@ function toKHR(usd: number): string {
 function dualPrice(usd: number, showKhr: boolean): string {
   if (!showKhr) return `$${usd.toFixed(2)}`;
   return `${toKHR(usd)} ($${usd.toFixed(2)})`;
+}
+
+function ridePaymentLabel(method: string, isCambodia: boolean): string {
+  if (!isCambodia) return "Card on file";
+  if (method === "aba") return "Bakong KHQR";
+  if (method === "cash") return "Cash";
+  if (method === "card") return "Card";
+  return "Payment confirmed";
 }
 
 /** Distance value for display */
@@ -683,12 +692,12 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
         if (data && data.length > 0) {
           setRecentDestinations(
             data
-              .filter((r: any) => r.dropoff_address && r.dropoff_lat && r.dropoff_lng)
+              .filter((r: any) => r.dropoff_address && Number.isFinite(Number(r.dropoff_lat)) && Number.isFinite(Number(r.dropoff_lng)))
               .map((r: any) => ({
                 id: r.id,
                 address: r.dropoff_address,
-                lat: r.dropoff_lat,
-                lng: r.dropoff_lng,
+                lat: Number(r.dropoff_lat),
+                lng: Number(r.dropoff_lng),
                 time: new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
               }))
           );
@@ -844,7 +853,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoValidating, setPromoValidating] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
-  const [selectedCambodiaPayment, setSelectedCambodiaPayment] = useState<string>("cash");
+  const [selectedCambodiaPayment, setSelectedCambodiaPayment] = useState<CambodiaPaymentMethod>("cash");
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [searchSheetY, setSearchSheetY] = useState(-20); // -20 = full, 0 = half, positive = peek
   const searchDragControls = useDragControls();
@@ -1342,7 +1351,17 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
       toast.success("Trip Complete! 🎉", { description: "You've arrived at your destination. Rate your ride!" });
       setViewStep("trip-complete");
       if (rideRequestId) {
-        supabase.from("ride_requests").update({ status: "completed" }).eq("id", rideRequestId);
+        supabase.functions.invoke("complete-ride-request", {
+          body: { ride_request_id: rideRequestId },
+        }).then(({ data, error }) => {
+          if (error || (data as any)?.error) {
+            console.error("[RideBooking] complete ride failed:", error || (data as any)?.error);
+            return;
+          }
+          if ((data as any)?.manual_driver_payout_required) {
+            console.info("[RideBooking] Bakong driver payout pending", data);
+          }
+        });
       }
     }
   }, [viewStep, destination, liveDriverLocation, rideRequestId]);
@@ -1791,7 +1810,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
   };
 
   /** Confirm the current pin placement (destination or stop) and return to normal search */
-  const handleConfirmPinPlacement = useCallback(() => {
+  const handleConfirmPinPlacement = useCallback(async () => {
     reverseGeocodeRequestSeqRef.current += 1;
     if (reverseGeocodeTimerRef.current) {
       clearTimeout(reverseGeocodeTimerRef.current);
@@ -1804,11 +1823,26 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
       setPinPlacementMode(null);
       setPlacingStopId(null);
     } else if (pinPlacementMode === "destination") {
+      if (!destination && destinationDisplay.trim().length >= 3) {
+        const typedDestination = destinationDisplay.trim();
+        setIsLoadingRoute(true);
+        try {
+          const coords = await forwardGeocode(typedDestination);
+          if (!coords) {
+            toast.error("Please choose a destination from the suggestions");
+            return;
+          }
+          setDestination({ address: typedDestination, lat: coords.lat, lng: coords.lng });
+          setDestinationDisplay(typedDestination);
+        } finally {
+          setIsLoadingRoute(false);
+        }
+      }
       setPinPlacementMode(null);
     } else if (pinPlacementMode === "pickup") {
       setPinPlacementMode(null);
     }
-  }, [pinPlacementMode, placingStopId]);
+  }, [pinPlacementMode, placingStopId, destination, destinationDisplay]);
 
   const handleSavedPlace = (address: string, lat: number, lng: number) => {
     setDestinationDisplay(address);
@@ -1919,19 +1953,36 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
     }
   };
 
-  const handleConfirmSearch = () => {
+  const handleConfirmSearch = async () => {
     const resolvedPickup = pickup ?? ensureAutoPickup();
 
     if (!pickupConfirmed) {
       setPickupConfirmed(true);
     }
-    if (!resolvedPickup || !destination) return;
+    let resolvedDestination = destination;
+    const typedDestination = destinationDisplay.trim();
+    if (!resolvedDestination && typedDestination.length >= 3) {
+      setIsLoadingRoute(true);
+      try {
+        const coords = await forwardGeocode(typedDestination);
+        if (coords) {
+          resolvedDestination = { address: typedDestination, lat: coords.lat, lng: coords.lng };
+          setDestination(resolvedDestination);
+          setDestinationDisplay(typedDestination);
+        } else {
+          toast.error("Please choose a destination from the suggestions");
+        }
+      } finally {
+        setIsLoadingRoute(false);
+      }
+    }
+    if (!resolvedPickup || !resolvedDestination) return;
     const wp = stops.filter(s => s.place && s.place.lat && s.place.lng).map(s => ({ lat: s.place!.lat, lng: s.place!.lng }));
-    if (isSameLocation(resolvedPickup, destination) && wp.length === 0) {
+    if (isSameLocation(resolvedPickup, resolvedDestination) && wp.length === 0) {
       toast.error("Add a stop to create a round trip, or choose a different destination");
       return;
     }
-    fetchRoute(resolvedPickup, destination, wp);
+    fetchRoute(resolvedPickup, resolvedDestination, wp);
   };
 
   /* ─── Auto-refresh route data every 30s for live traffic updates ─── */
@@ -2078,9 +2129,31 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
   };
 
   /** After Stripe confirms payment, proceed to searching */
-  const handlePaymentSuccess = async () => {
+  const handlePaymentSuccess = async (paymentIntent?: RideAuthorizedPayment) => {
     if (rideRequestId) {
-      await supabase.from("ride_requests").update({ status: "searching" }).eq("id", rideRequestId);
+      const paymentStatus = paymentIntent?.status === "requires_capture"
+        ? "authorized"
+        : paymentIntent?.status === "succeeded"
+          ? "captured"
+          : paymentIntent?.status === "processing"
+            ? "pending"
+            : undefined;
+      const updatePayload: Record<string, unknown> = { status: "searching" };
+      if (paymentIntent?.id) {
+        updatePayload.payment_intent_id = paymentIntent.id;
+        updatePayload.stripe_payment_intent_id = paymentIntent.id;
+        if (paymentStatus) updatePayload.payment_status = paymentStatus;
+        const capturedCents = Number(paymentIntent.amount_received ?? 0);
+        if (paymentStatus === "captured" && capturedCents > 0) {
+          updatePayload.captured_amount_cents = capturedCents;
+        }
+      }
+      const { error } = await supabase.from("ride_requests").update(updatePayload as any).eq("id", rideRequestId);
+      if (error) {
+        toast.error("Payment authorized, but ride update failed. Please contact support.");
+        console.error("[RideBooking] card authorization ride update failed:", error);
+        return;
+      }
     }
     setPaymentStep("idle");
     setClientSecret(null);
@@ -2143,8 +2216,8 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
     }
   };
 
-  /** Handle ABA Payway ride — pay first, then dispatch */
-  const handleAbaRide = async () => {
+  /** Handle Bakong KHQR ride - pay first, then dispatch */
+  const handleAbaRide = async (receipt?: AbaKhqrPaymentReceipt) => {
     if (import.meta.env.DEV) console.log("[handleAbaRide] State check:", { user: !!user, pickup: JSON.stringify(pickup), destination: JSON.stringify(destination) });
     if (!user || !pickup || !destination) {
       toast.error("Please sign in and select locations");
@@ -2162,48 +2235,75 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
         lng: s.place!.lng,
       }));
 
-      // 1. Create ride request with pending_payment status
-      const { data: rideData, error: rideError } = await supabase.from("ride_requests").insert({
-        user_id: user.id,
-        pickup_address: pickup.address,
-        pickup_lat: pickup.lat,
-        pickup_lng: pickup.lng,
-        dropoff_address: destination.address,
-        dropoff_lat: destination.lat,
-        dropoff_lng: destination.lng,
-        ride_type: selectedVehicle,
-        quoted_total: currentPrice,
-        distance_miles: routeData?.distance_miles ?? null,
-        duration_minutes: routeData?.duration_minutes ?? null,
-        status: "searching",
-        payment_status: "aba_paid",
-        customer_name: otherName.trim() || user.user_metadata?.full_name || "",
-        customer_phone: otherPhone.trim() || user.user_metadata?.phone || "",
-        requires_car_seat: currentVehicle.carSeat,
-        car_seat_type: currentVehicle.carSeat ? "standard" : null,
-        notes: [
-          stopsData.length > 0 ? `Stops: ${stopsData.map(s => s.address).join(" → ")}` : "",
-          otherName.trim() ? `Rider: ${otherName.trim()}${otherPhone.trim() ? ` (${otherPhone.trim()})` : ""}` : "",
-          "Payment: ABA KHQR",
-        ].filter(Boolean).join(" | ") || null,
-      }).select("id").single();
+      if (!receipt) {
+        throw new Error("Missing Bakong payment receipt");
+      }
 
-      if (rideError) throw rideError;
-      setRideRequestId(rideData.id);
+      const rideNotes = [
+        stopsData.length > 0 ? `Stops: ${stopsData.map(s => s.address).join(" → ")}` : "",
+        scheduledDate ? `Scheduled: ${scheduledDate.toISOString()}` : "",
+        otherName.trim() ? `Rider: ${otherName.trim()}${otherPhone.trim() ? ` (${otherPhone.trim()})` : ""}` : "",
+      ].filter(Boolean);
+
+      const { data: verifiedRide, error: verifiedRideError } = await supabase.functions.invoke("create-bakong-ride", {
+        body: {
+          pickup,
+          dropoff: destination,
+          ride_type: selectedVehicle,
+          quoted_total: finalPrice,
+          price_before_discount: currentPrice,
+          promo_code: appliedPromo?.code || null,
+          promo_discount: appliedPromo ? promoDiscount : 0,
+          amount_khr: receipt.amountKhr,
+          amount_usd: receipt.amountUsd,
+          reference: receipt.reference,
+          qr: receipt.qr,
+          since_sec: receipt.openedAtSec,
+          customer_name: otherName.trim() || user.user_metadata?.full_name || "",
+          customer_phone: otherPhone.trim() || user.user_metadata?.phone || "",
+          distance_miles: routeData?.distance_miles ?? null,
+          duration_minutes: routeData?.duration_minutes ?? null,
+          scheduled_at: scheduledDate?.toISOString() ?? null,
+          requires_car_seat: currentVehicle.carSeat,
+          car_seat_type: currentVehicle.carSeat ? "standard" : null,
+          notes: rideNotes,
+        },
+      });
+
+      if (verifiedRideError || !verifiedRide?.ok) {
+        throw new Error(verifiedRide?.error || verifiedRideError?.message || "Payment could not be verified");
+      }
+
+      setRideRequestId(verifiedRide.ride_request_id);
+
+      void supabase.functions.invoke("notify-aba-payment", {
+        body: {
+          ride_request_id: verifiedRide.ride_request_id,
+          amount: finalPrice,
+          amount_khr: verifiedRide.amount_khr ?? receipt.amountKhr,
+          reference: verifiedRide.reference ?? receipt.reference,
+          verified_by: verifiedRide.verified_by ?? receipt.verifiedBy,
+          customer_name: otherName.trim() || user.user_metadata?.full_name || "",
+          pickup: pickup.address,
+          dropoff: destination.address,
+          vehicle_type: getVehicleName(selectedVehicle, currentVehicle.name, isCambodiaCountry),
+        },
+      }).catch(() => {});
 
       setPaymentStep("idle");
       setClientSecret(null);
       setViewStep("searching");
-      toast.success("ABA payment confirmed! Finding your driver...");
+      toast.success("Bakong payment confirmed! Finding your driver...");
+
     } catch (err: unknown) {
-      console.error("[RideBooking] ABA ride error:", err);
-      toast.error(err instanceof Error ? err.message : "ABA payment failed");
+      console.error("[RideBooking] Bakong ride error:", err);
+      toast.error(err instanceof Error ? err.message : "Bakong payment failed");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  /** Handle ABA payment return — confirms the ride after payment */
+  /** Handle legacy ABA payment return - confirms the ride after payment */
   const handleAbaPaymentReturn = useCallback(async (rideId: string) => {
     try {
       // Update ride to searching status
@@ -2217,7 +2317,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
       setClientSecret(null);
       setViewStep("searching");
       sessionStorage.removeItem("aba_pending_ride_id");
-      toast.success("ABA payment confirmed! Finding your driver...");
+      toast.success("Payment confirmed! Finding your driver...");
     } catch (err) {
       console.error("[RideBooking] ABA return error:", err);
       toast.error("Failed to confirm ride after payment");
@@ -2278,9 +2378,19 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
         const result = data as any;
+        const manualRefund = result.manual_refund as { refund_amount_khr?: number; fee_amount_khr?: number } | null | undefined;
         const refundDollars = (result.refund_cents || 0) / 100;
         const feeDisplay = useKm ? dualPrice(fee, true) : `$${fee.toFixed(2)}`;
-        if (refundDollars > 0) {
+        const khrDisplay = (amount: number) => `${Math.round(amount).toLocaleString()} KHR`;
+        if (manualRefund) {
+          const refundKhr = Number(manualRefund.refund_amount_khr || 0);
+          const feeKhr = Number(manualRefund.fee_amount_khr || 0);
+          if (refundKhr > 0) {
+            toast.success(`Ride cancelled - ${khrDisplay(refundKhr)} Bakong refund pending${feeKhr > 0 ? ` (after ${khrDisplay(feeKhr)} fee)` : ""}`);
+          } else {
+            toast.info("Ride cancelled - no Bakong refund due");
+          }
+        } else if (refundDollars > 0) {
           toast.success(`Ride cancelled — $${refundDollars.toFixed(2)} refunded${fee > 0 ? ` (after ${feeDisplay} fee)` : ""}`);
         } else if (fee > 0) {
           toast.error(`Ride cancelled — ${feeDisplay} cancellation fee applied`);
@@ -2565,6 +2675,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                   <AddressAutocomplete
                     placeholder="Search or drag map..."
                     value={destinationDisplay}
+                    onInputChange={setDestinationDisplay}
                     onSelect={(place) => {
                       // Cancel any pending reverse geocode so it doesn't overwrite the selected address
                       reverseGeocodeRequestSeqRef.current += 1;
@@ -2598,7 +2709,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                   )}
                   <Button
                     onClick={handleConfirmPinPlacement}
-                    disabled={pinPlacementMode === "pickup" ? !pickup : pinPlacementMode === "destination" ? !destination : !stops.find(s => s.id === placingStopId)?.place}
+                    disabled={isLoadingRoute || (pinPlacementMode === "pickup" ? !pickup : pinPlacementMode === "destination" ? (!destination && destinationDisplay.trim().length < 3) : !stops.find(s => s.id === placingStopId)?.place)}
                     className={cn(
                       "h-12 rounded-2xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20",
                       pinPlacementMode === "destination" && destination && stops.length < MAX_STOPS ? "flex-1" : "w-full"
@@ -2724,6 +2835,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                       <AddressAutocomplete
                         placeholder={t("ride.destination") || "Where to?"}
                         value={destinationDisplay}
+                        onInputChange={setDestinationDisplay}
                         onSelect={handleDestinationSelect}
                         onFocus={() => {
                           if (!pickup) ensureAutoPickup();
@@ -2833,7 +2945,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                 {/* Search / Confirm button */}
                 <Button
                   onClick={handleConfirmSearch}
-                  disabled={!pickup || !destination || isLoadingRoute}
+                  disabled={!pickup || (!destination && destinationDisplay.trim().length < 3) || isLoadingRoute}
                   className="w-full h-14 rounded-2xl text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20"
                   size="lg"
                 >
@@ -3827,6 +3939,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                     onCashConfirm={handleCashRide}
                     onAbaConfirm={handleAbaRide}
                     onBackToMethods={() => { setClientSecret(null); setPaymentStep("idle"); }}
+                    selectedPaymentMethod={selectedCambodiaPayment}
                     onPaymentMethodChange={(m) => setSelectedCambodiaPayment(m)}
                   />
                 );
@@ -3849,7 +3962,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
             <div className="w-48 h-48 rounded-2xl overflow-hidden border-2 border-border/50 bg-white p-2">
               <img
 	                src="/images/aba-khqr.jpeg"
-	                alt="ABA KHQR Payment Code"
+	                alt="Bakong KHQR Payment Code"
 	                className="w-full h-full object-contain"
 	                loading="lazy"
 	                decoding="async"
@@ -3900,7 +4013,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
               className="text-destructive hover:text-destructive/80"
               onClick={async () => {
                 if (rideRequestId) {
-                  await supabase.from("ride_requests").update({ status: "cancelled" }).eq("id", rideRequestId);
+                  await supabase.from("ride_requests").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", rideRequestId);
                 }
                 sessionStorage.removeItem("aba_pending_ride_id");
                 setViewStep("confirm-ride");
@@ -4238,7 +4351,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment</span>
-                <span className="text-foreground">Card on file</span>
+                <span className="text-foreground">{ridePaymentLabel(selectedCambodiaPayment, useKm)}</span>
               </div>
             </div>
           </div>

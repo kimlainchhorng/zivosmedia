@@ -33,9 +33,19 @@ interface TaxDoc {
 }
 
 function formatCents(cents: number, currency: string = "USD"): string {
+  const normalizedCurrency = currency.toUpperCase();
+  if (["BIF", "CLP", "DJF", "GNF", "JPY", "KHR", "KMF", "KRW", "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"].includes(normalizedCurrency)) {
+    return `${Math.round(cents ?? 0).toLocaleString("en-US")} ${normalizedCurrency}`;
+  }
   const v = (cents ?? 0) / 100;
-  try { return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(v); }
+  try { return new Intl.NumberFormat("en-US", { style: "currency", currency: normalizedCurrency }).format(v); }
   catch { return `$${v.toFixed(2)}`; }
+}
+
+function formatTotals(totals: Record<string, number>): string {
+  const entries = Object.entries(totals).filter(([, amount]) => amount > 0);
+  if (entries.length === 0) return "$0.00";
+  return entries.map(([currency, amount]) => formatCents(amount, currency)).join(" + ");
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -77,13 +87,15 @@ export default function TaxInfoPage() {
   });
 
   const summary = useMemo(() => {
-    const total = receipts.reduce((s, r) => s + (r.total_cents ?? 0), 0);
-    const byType: Record<string, number> = {};
+    const totalsByCurrency: Record<string, number> = {};
+    const byType: Record<string, Record<string, number>> = {};
     for (const r of receipts) {
-      byType[r.type] = (byType[r.type] ?? 0) + (r.total_cents ?? 0);
+      const currency = (r.currency || "USD").toUpperCase();
+      totalsByCurrency[currency] = (totalsByCurrency[currency] ?? 0) + (r.total_cents ?? 0);
+      byType[r.type] = byType[r.type] ?? {};
+      byType[r.type][currency] = (byType[r.type][currency] ?? 0) + (r.total_cents ?? 0);
     }
-    const currency = receipts[0]?.currency || "USD";
-    return { total, byType, currency, count: receipts.length };
+    return { total: totalsByCurrency.USD ?? 0, totalsByCurrency, byType, count: receipts.length };
   }, [receipts]);
 
   const docs: TaxDoc[] = [
@@ -171,8 +183,8 @@ export default function TaxInfoPage() {
         >
           <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           <p className="text-xs font-semibold uppercase tracking-wider text-white/80">{year} total</p>
-          <p className="text-3xl font-bold mt-1">
-            {isLoading ? "…" : formatCents(summary.total, summary.currency)}
+          <p className="text-2xl sm:text-3xl font-bold mt-1 break-words">
+            {isLoading ? "…" : formatTotals(summary.totalsByCurrency)}
           </p>
           <p className="text-sm text-white/80 mt-1">{summary.count} receipt{summary.count === 1 ? "" : "s"} on file</p>
         </motion.div>
@@ -183,14 +195,16 @@ export default function TaxInfoPage() {
             <h2 className="text-sm font-bold text-foreground mb-3">Breakdown by type</h2>
             <div className="space-y-2.5">
               {Object.entries(summary.byType)
-                .sort((a, b) => b[1] - a[1])
-                .map(([type, cents]) => {
-                  const pct = summary.total > 0 ? (cents / summary.total) * 100 : 0;
+                .sort((a, b) => Object.values(b[1]).reduce((sum, amount) => sum + amount, 0) - Object.values(a[1]).reduce((sum, amount) => sum + amount, 0))
+                .map(([type, totals]) => {
+                  const rawTotal = Object.values(summary.totalsByCurrency).reduce((sum, amount) => sum + amount, 0);
+                  const typeTotal = Object.values(totals).reduce((sum, amount) => sum + amount, 0);
+                  const pct = rawTotal > 0 ? (typeTotal / rawTotal) * 100 : 0;
                   return (
                     <div key={type}>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-foreground capitalize">{type}</span>
-                        <span className="text-sm font-bold text-foreground">{formatCents(cents, summary.currency)}</span>
+                        <span className="text-sm font-bold text-foreground">{formatTotals(totals)}</span>
                       </div>
                       <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
                         <motion.div

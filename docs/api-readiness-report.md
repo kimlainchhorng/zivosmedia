@@ -1,17 +1,17 @@
 # API Readiness Report
 
-Generated: 2026-05-22T01:36:23.162Z
+Generated: 2026-05-26T20:14:06.212Z
 
 ## Summary
 
 - Critical findings: 0
-- Warnings: 2
-- Edge Functions inventoried: 253
-- High-risk Edge Functions: 108
-- Functions using withSecurity(): 110
-- Functions using strictCorsHeaders(): 93
-- Functions using service role: 202
-- Supabase migration drift: reportLocal=690, currentLocal=690, remote=0, matched=0, duplicateVersions=8, remoteError=yes
+- Warnings: 4
+- Edge Functions inventoried: 262
+- High-risk Edge Functions: 112
+- Functions using withSecurity(): 116
+- Functions using strictCorsHeaders(): 99
+- Functions using service role: 212
+- Supabase migration drift: reportLocal=830, currentLocal=830, remote=1409, matched=0, duplicateVersions=24, allowedDuplicateVersions=8, newDuplicateVersions=16, remoteError=no
 
 ## Critical
 
@@ -19,12 +19,14 @@ Generated: 2026-05-22T01:36:23.162Z
 
 ## Warnings
 
-- [duplicate-migration-versions] Local Supabase migrations contain 8 duplicate version(s). (docs/supabase-migration-drift-report.md)
-- [migration-history-unavailable] Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before production schema work. (docs/supabase-migration-drift-report.md)
+- [high-risk-function-without-wrapper] High-risk Edge Function does not use withSecurity(). (supabase/functions/twilio-webhook/index.ts)
+- [service-role-wildcard-cors] High-risk service-role function appears to use wildcard CORS without the shared security wrapper. (supabase/functions/twilio-webhook/index.ts)
+- [duplicate-migration-versions] Local Supabase migrations contain 16 new duplicate version(s). (docs/supabase-migration-drift-report.md)
+- [migration-history-disconnected] Local and remote Supabase migration histories have no matching versions. Treat db push/pull as risky until reconciled. (docs/supabase-migration-drift-report.md)
 
 ## High-Risk Functions Missing withSecurity()
 
-- None
+- supabase/functions/twilio-webhook/index.ts
 
 ## Next Hardening Moves
 

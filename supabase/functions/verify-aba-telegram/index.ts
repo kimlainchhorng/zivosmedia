@@ -22,6 +22,9 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
+const MAX_KHQR_AGE_SECONDS = 10 * 60;
+const MAX_KHQR_FUTURE_SKEW_SECONDS = 30;
+
 type TgMessage = {
   message_id: number;
   date: number;
@@ -51,21 +54,33 @@ function pickText(u: TgUpdate): { text: string; chatId: string | null; date: num
 }
 
 function amountMatches(text: string, amount: number): boolean {
-  // Match "12.34", "12.3", "12", optionally with $ or USD nearby.
+  // Match "12.34", "12.3", "12", or KHR-style "3,006".
   // We only require the numeric value to appear as its own token.
   const target = Number(amount);
   if (!isFinite(target) || target <= 0) return false;
+  const rounded = Math.round(target);
   const variants = new Set<string>([
     target.toFixed(2),
     target.toFixed(1),
     String(target),
-    target.toFixed(0),
+    String(rounded),
+    rounded.toLocaleString("en-US"),
   ]);
+  const haystacks = [text, text.replace(/,/g, "")];
   for (const v of variants) {
-    const re = new RegExp(`(?:^|[^0-9])${v.replace(".", "\\.")}(?:[^0-9]|$)`);
-    if (re.test(text)) return true;
+    const escaped = v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(?:^|[^0-9])${escaped}(?:[^0-9]|$)`);
+    if (haystacks.some((haystack) => re.test(haystack))) return true;
   }
   return false;
+}
+
+function validateSinceSec(sinceSec: number): string | null {
+  if (!Number.isFinite(sinceSec) || sinceSec <= 0) return "Payment timestamp is required";
+  const now = Math.floor(Date.now() / 1000);
+  if (sinceSec > now + MAX_KHQR_FUTURE_SKEW_SECONDS) return "Payment timestamp is in the future";
+  if (now - sinceSec > MAX_KHQR_AGE_SECONDS) return "Payment QR has expired";
+  return null;
 }
 
 Deno.serve(withSecurity("verify-aba-telegram", async (req, ctx) => {
@@ -110,6 +125,19 @@ Deno.serve(withSecurity("verify-aba-telegram", async (req, ctx) => {
 
     if (!reference || typeof reference !== "string") {
       return new Response(JSON.stringify({ error: "Missing reference" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!/^[A-Za-z0-9_-]{8,25}$/.test(reference)) {
+      return new Response(JSON.stringify({ error: "Invalid reference" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sinceError = validateSinceSec(sinceSec);
+    if (sinceError) {
+      return new Response(JSON.stringify({ error: sinceError }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

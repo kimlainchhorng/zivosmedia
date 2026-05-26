@@ -1,0 +1,2 @@
+INSERT INTO public.lodging_promotions (store_id, name, promo_type, discount_value, rule_type, min_nights, active, member_only, starts_at, ends_at)
+VALUES ('7322b460-2c23-4d3d-bdc5-55a31cc65fab', 'Grand Opening 20% Off', 'percent', 20, 'general', 1, true, false, now() - interval '1 day', now() + interval '60 days');

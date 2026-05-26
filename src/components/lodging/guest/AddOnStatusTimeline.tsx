@@ -4,9 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ReservationChangeRequest } from "@/hooks/lodging/useReservationChangeRequests";
 
-interface Props { requests: ReservationChangeRequest[]; isUpdating?: boolean; }
-
-const money = (cents?: number | null) => `$${((Number(cents) || 0) / 100).toFixed(2)}`;
+interface Props {
+  requests: ReservationChangeRequest[];
+  isUpdating?: boolean;
+  formatMoney?: (cents: number) => string;
+}
 
 function addonItems(payload: any) {
   const items = Array.isArray(payload) ? payload : Array.isArray(payload?.selections) ? payload.selections : Array.isArray(payload?.items) ? payload.items : [];
@@ -22,7 +24,8 @@ function failureReason(request: ReservationChangeRequest) {
   return request.addon_payload?.failure_reason || request.addon_payload?.error || request.host_response || "The saved payment method was not charged.";
 }
 
-export default function AddOnStatusTimeline({ requests, isUpdating }: Props) {
+export default function AddOnStatusTimeline({ requests, isUpdating, formatMoney }: Props) {
+  const money = (cents?: number | null) => (formatMoney ?? ((value: number) => `$${((value || 0) / 100).toFixed(2)}`))(Number(cents) || 0);
   const addons = requests.filter((r) => r.type === "addon");
   return (
     <Card id="addon-status" className="scroll-mt-24">

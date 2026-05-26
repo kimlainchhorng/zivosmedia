@@ -18,7 +18,7 @@ import {
   Search, MessageSquareText, CalendarClock, ExternalLink,
   CheckCircle2, XCircle, AlertCircle, TrendingUp, RefreshCw,
   ChevronDown, ChevronUp, Wrench, Star, BarChart3, Download,
-  Filter, SortAsc, SortDesc, Eye, Bell, Zap, Plus
+  Filter, SortAsc, SortDesc, Eye, Bell, Zap, Plus, Trash2
 } from "lucide-react";
 import { format, isToday, isThisWeek, isThisMonth, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
@@ -121,6 +121,18 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     await fetchBookings();
     setRefreshing(false);
     toast.success("Bookings refreshed");
+  };
+
+  const deleteBooking = async (id: string) => {
+    if (!window.confirm("Delete this booking? This cannot be undone.")) return;
+    const { error } = await supabase
+      .from("service_bookings")
+      .delete()
+      .eq("id", id);
+    if (error) { toast.error(error.message || "Failed to delete booking"); return; }
+    toast.success("Booking deleted");
+    if (expandedId === id) setExpandedId(null);
+    fetchBookings();
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -863,6 +875,14 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                             className="gap-1.5"
                           >
                             <MessageSquareText className="h-3.5 w-3.5" /> Notes
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => deleteBooking(b.id)}
+                            className="gap-1.5 border-red-500/40 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
                           </Button>
                         </div>
 

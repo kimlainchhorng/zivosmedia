@@ -1,0 +1,99 @@
+name: Deploy Production
+
+# Production deploy is gated by CI success on main.
+# This avoids shipping a commit that did not pass the full CI pipeline.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: deploy-production-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Netlify production (after CI)
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://myzivo.com
+
+    steps:
+      - name: Checkout commit that passed CI
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - name: Detect deploy-relevant changes
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD^ HEAD)
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -Eq '^(src/|public/|supabase/|package.json|package-lock.json|vite.config.ts|index.html|capacitor.config.ts|\.github/workflows/)'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip deploy (no runtime-affecting changes)
+        if: steps.changes.outputs.relevant != 'true'
+        run: echo "No runtime-affecting files changed in latest commit. Skipping production deployment."
+
+      - name: Set up Node.js
+        if: steps.changes.outputs.relevant == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.changes.outputs.relevant == 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Build production bundle
+        if: steps.changes.outputs.relevant == 'true'
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run build
+
+      - name: Check Netlify secrets
+        if: steps.changes.outputs.relevant == 'true'
+        id: netlify-secrets
+        run: |
+          if [ -n "${{ secrets.NETLIFY_AUTH_TOKEN }}" ] && [ -n "${{ secrets.NETLIFY_SITE_ID }}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fail when Netlify secrets are missing
+        if: steps.changes.outputs.relevant == 'true' && steps.netlify-secrets.outputs.available != 'true'
+        run: |
+          echo "NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID are required for production deploy."
+          exit 1
+
+      - name: Deploy production to Netlify
+        if: steps.changes.outputs.relevant == 'true' && steps.netlify-secrets.outputs.available == 'true'
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: ./dist
+          production-branch: main
+          production-deploy: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Production deploy – ${{ github.event.workflow_run.head_sha }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

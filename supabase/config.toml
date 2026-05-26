@@ -23,6 +23,14 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.stripe-ride-webhook]
     verify_jwt = false
+  [functions.stripe-webhook]
+    verify_jwt = false
+  [functions.create-zivo-plus-checkout]
+    verify_jwt = true
+  [functions.chat-send-gift]
+    verify_jwt = true
+  [functions.chat-send-premium-gift]
+    verify_jwt = true
   [functions.stripe-lodging-webhook]
     verify_jwt = false
   [functions.dispatch-escalate]
@@ -39,6 +47,20 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.aba-payway-checkout]
     verify_jwt = false
+  [functions.bakong-verify]
+    verify_jwt = true
+  [functions.verify-aba-telegram]
+    verify_jwt = true
+  [functions.create-bakong-ride]
+    verify_jwt = true
+  [functions.resolve-bakong-ride-refund]
+    verify_jwt = true
+  [functions.complete-ride-request]
+    verify_jwt = true
+  [functions.resolve-driver-earning-payout]
+    verify_jwt = true
+  [functions.generate-trip-receipt]
+    verify_jwt = true
   [functions.account-summary]
     verify_jwt = false
   [functions.admin-create-user-post]

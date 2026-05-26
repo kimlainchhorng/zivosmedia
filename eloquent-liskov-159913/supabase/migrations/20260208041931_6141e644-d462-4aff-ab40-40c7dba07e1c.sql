@@ -1,0 +1,105 @@
+-- Update zone_pricing_rates with competitive pricing (cheaper than Uber/Lyft)
+UPDATE zone_pricing_rates SET 
+  base_fare = CASE ride_type
+    WHEN 'wait_save' THEN 1.49
+    WHEN 'standard' THEN 1.99
+    WHEN 'green' THEN 1.99
+    WHEN 'priority' THEN 1.99
+    WHEN 'pet' THEN 1.99
+    WHEN 'comfort' THEN 2.49
+    WHEN 'xl' THEN 2.49
+    WHEN 'black' THEN 3.49
+    WHEN 'black_suv' THEN 4.49
+    WHEN 'xxl' THEN 2.99
+    WHEN 'premium' THEN 3.49
+    WHEN 'elite' THEN 5.49
+    WHEN 'lux' THEN 10.99
+    WHEN 'sprinter' THEN 8.99
+    WHEN 'secure' THEN 17.99
+  END,
+  per_mile = CASE ride_type
+    WHEN 'wait_save' THEN 0.69
+    WHEN 'standard' THEN 0.89
+    WHEN 'green' THEN 0.85
+    WHEN 'priority' THEN 0.85
+    WHEN 'pet' THEN 0.85
+    WHEN 'comfort' THEN 1.10
+    WHEN 'xl' THEN 1.10
+    WHEN 'black' THEN 1.60
+    WHEN 'black_suv' THEN 2.00
+    WHEN 'xxl' THEN 1.35
+    WHEN 'premium' THEN 1.60
+    WHEN 'elite' THEN 2.40
+    WHEN 'lux' THEN 4.25
+    WHEN 'sprinter' THEN 3.50
+    WHEN 'secure' THEN 6.00
+  END,
+  per_minute = CASE ride_type
+    WHEN 'wait_save' THEN 0.12
+    WHEN 'standard' THEN 0.18
+    WHEN 'green' THEN 0.16
+    WHEN 'priority' THEN 0.16
+    WHEN 'pet' THEN 0.16
+    WHEN 'comfort' THEN 0.22
+    WHEN 'xl' THEN 0.22
+    WHEN 'black' THEN 0.28
+    WHEN 'black_suv' THEN 0.35
+    WHEN 'xxl' THEN 0.24
+    WHEN 'premium' THEN 0.28
+    WHEN 'elite' THEN 0.42
+    WHEN 'lux' THEN 0.75
+    WHEN 'sprinter' THEN 0.60
+    WHEN 'secure' THEN 0.95
+  END,
+  booking_fee = CASE ride_type
+    WHEN 'wait_save' THEN 0.50
+    WHEN 'standard' THEN 0.75
+    WHEN 'green' THEN 0.75
+    WHEN 'priority' THEN 0.75
+    WHEN 'pet' THEN 0.75
+    WHEN 'comfort' THEN 1.00
+    WHEN 'xl' THEN 1.00
+    WHEN 'black' THEN 1.25
+    WHEN 'black_suv' THEN 1.50
+    WHEN 'xxl' THEN 1.25
+    WHEN 'premium' THEN 1.25
+    WHEN 'elite' THEN 1.75
+    WHEN 'lux' THEN 3.50
+    WHEN 'sprinter' THEN 3.00
+    WHEN 'secure' THEN 6.50
+  END,
+  minimum_fare = CASE ride_type
+    WHEN 'wait_save' THEN 3.99
+    WHEN 'standard' THEN 4.99
+    WHEN 'green' THEN 4.99
+    WHEN 'priority' THEN 4.99
+    WHEN 'pet' THEN 4.99
+    WHEN 'comfort' THEN 6.49
+    WHEN 'xl' THEN 6.49
+    WHEN 'black' THEN 9.99
+    WHEN 'black_suv' THEN 12.99
+    WHEN 'xxl' THEN 7.49
+    WHEN 'premium' THEN 9.99
+    WHEN 'elite' THEN 17.99
+    WHEN 'lux' THEN 54.99
+    WHEN 'sprinter' THEN 34.99
+    WHEN 'secure' THEN 69.99
+  END,
+  multiplier = CASE ride_type
+    WHEN 'wait_save' THEN 0.92
+    WHEN 'standard' THEN 1.00
+    WHEN 'green' THEN 1.02
+    WHEN 'priority' THEN 1.12
+    WHEN 'pet' THEN 1.15
+    WHEN 'comfort' THEN 1.45
+    WHEN 'xl' THEN 1.45
+    WHEN 'black' THEN 1.65
+    WHEN 'black_suv' THEN 2.10
+    WHEN 'xxl' THEN 1.75
+    WHEN 'premium' THEN 1.65
+    WHEN 'elite' THEN 2.10
+    WHEN 'lux' THEN 3.50
+    WHEN 'sprinter' THEN 2.50
+    WHEN 'secure' THEN 4.00
+  END
+WHERE zone_id = '00000000-0000-0000-0000-000000000001';

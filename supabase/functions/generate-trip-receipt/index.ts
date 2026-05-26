@@ -8,28 +8,75 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ZERO_DECIMAL_CURRENCIES = new Set(["BIF", "CLP", "DJF", "GNF", "JPY", "KHR", "KMF", "KRW", "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"]);
+
+function normalizeCurrency(value: unknown, paymentStatus: unknown): string {
+  if (String(paymentStatus ?? "") === "bakong_paid") return "KHR";
+  return String(value || "USD").toUpperCase();
+}
+
+function formatMoney(minorAmount: number, currency: string): string {
+  if (ZERO_DECIMAL_CURRENCIES.has(currency)) {
+    return `${Math.round(minorAmount).toLocaleString("en-US")} ${currency}`;
+  }
+
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(minorAmount / 100);
+  } catch {
+    return `$${(minorAmount / 100).toFixed(2)}`;
+  }
+}
+
+function paymentLabel(status: unknown): string {
+  if (status === "bakong_paid") return "Bakong KHQR";
+  if (status === "cash") return "Cash";
+  if (["paid", "captured", "authorized", "requires_capture"].includes(String(status ?? ""))) return "Card";
+  return String(status || "-").replace(/_/g, " ");
+}
+
+function formatBakongBillId(reference: unknown): string | null {
+  const trimmed = String(reference ?? "").trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split("-").filter(Boolean);
+  return (parts[parts.length - 1] || trimmed.slice(-8)).toUpperCase();
+}
+
+function isBakongPayment(paymentStatus: unknown, currency: string, reference: unknown): boolean {
+  return currency === "KHR" || String(paymentStatus ?? "").startsWith("bakong") || Boolean(String(reference ?? "").trim());
+}
+
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    if (!isServiceRoleRequest(req, serviceKey)) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { ride_request_id } = await req.json();
+    const { ride_request_id, force = false } = await req.json();
     if (!ride_request_id) {
       return new Response(JSON.stringify({ error: "ride_request_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Idempotency
     const { data: existing } = await admin.from("receipts").select("id, pdf_path").eq("type", "ride").eq("reference_id", ride_request_id).maybeSingle();
-    if (existing) {
+    if (existing && !force) {
       return new Response(JSON.stringify({ ok: true, duplicate: true, pdf_path: existing.pdf_path }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { data: ride, error: rideErr } = await admin
       .from("ride_requests")
-      .select("id, user_id, assigned_driver_id, pickup_address, dropoff_address, distance_miles, duration_minutes, captured_amount_cents, payment_amount, surcharge_amount_cents, quoted_base_fare, payment_intent_id, stripe_payment_intent_id, completed_at, created_at, payment_status")
+      .select("id, user_id, assigned_driver_id, pickup_address, dropoff_address, distance_miles, duration_minutes, captured_amount_cents, payment_amount, payment_currency, surcharge_amount_cents, quoted_base_fare, payment_intent_id, stripe_payment_intent_id, completed_at, created_at, payment_status, bakong_reference, bakong_amount_khr, bakong_verified_by")
       .eq("id", ride_request_id)
       .maybeSingle();
     if (rideErr || !ride) {
@@ -42,11 +89,19 @@ Deno.serve(async (req) => {
       if (d) driverName = `${d.full_name ?? "—"} · ${[d.vehicle_color, d.vehicle_model, d.vehicle_plate].filter(Boolean).join(" ")}`;
     }
 
-    const totalCents = (ride.captured_amount_cents as number) ?? Math.round(((ride.payment_amount as number) ?? 0) * 100);
-    const surchargeCents = (ride.surcharge_amount_cents as number) ?? 0;
-    const baseFareCents = Math.round(((ride.quoted_base_fare as number) ?? 0) * 100);
-    const fmt = (c: number) => `$${(c / 100).toFixed(2)}`;
+    const currency = normalizeCurrency(ride.payment_currency, ride.payment_status);
+    const isZeroDecimal = ZERO_DECIMAL_CURRENCIES.has(currency);
+    const totalMinor = isZeroDecimal
+      ? Math.round(Number(ride.bakong_amount_khr ?? ride.payment_amount ?? 0))
+      : ((ride.captured_amount_cents as number) ?? Math.round(((ride.payment_amount as number) ?? 0) * 100));
+    const surchargeMinor = isZeroDecimal ? 0 : ((ride.surcharge_amount_cents as number) ?? 0);
+    const baseFareMinor = isZeroDecimal ? 0 : Math.round(((ride.quoted_base_fare as number) ?? 0) * 100);
+    const fmt = (amount: number) => formatMoney(amount, currency);
     const completedAt = new Date((ride.completed_at as string) ?? (ride.created_at as string));
+    const bakongReference = String(ride.bakong_reference ?? "").trim();
+    const bakongBillId = formatBakongBillId(bakongReference);
+    const isBakong = isBakongPayment(ride.payment_status, currency, bakongReference);
+    const providerReference = bakongReference || ride.payment_intent_id || ride.stripe_payment_intent_id || "";
 
     // Build PDF
     const pdf = await PDFDocument.create();
@@ -89,19 +144,32 @@ Deno.serve(async (req) => {
       page.drawText(label, { x: 40, y, size: 10, font, color: dark });
       page.drawText(value, { x: 555 - bold.widthOfTextAtSize(value, 10), y, size: 10, font, color: dark });
     };
-    if (baseFareCents > 0) lineItem("Base fare", fmt(baseFareCents));
-    const computedFare = Math.max(0, totalCents - surchargeCents);
+    if (baseFareMinor > 0) lineItem("Base fare", fmt(baseFareMinor));
+    const computedFare = Math.max(0, totalMinor - surchargeMinor);
     lineItem("Trip fare", fmt(computedFare));
-    if (surchargeCents > 0) lineItem("Card surcharge (3.5%)", fmt(surchargeCents));
+    if (surchargeMinor > 0) lineItem("Card surcharge (3.5%)", fmt(surchargeMinor));
 
     y -= 8;
     page.drawLine({ start: { x: 40, y }, end: { x: 555, y }, thickness: 0.5, color: muted });
     y -= 18;
     page.drawText("Total", { x: 40, y, size: 12, font: bold, color: dark });
-    page.drawText(fmt(totalCents), { x: 555 - bold.widthOfTextAtSize(fmt(totalCents), 12), y, size: 12, font: bold, color: emerald });
+    page.drawText(fmt(totalMinor), { x: 555 - bold.widthOfTextAtSize(fmt(totalMinor), 12), y, size: 12, font: bold, color: emerald });
 
     y -= 30;
-    page.drawText(`Payment: ${(ride.payment_status as string) ?? "—"} · ${ride.payment_intent_id || ride.stripe_payment_intent_id || "—"}`, { x: 40, y, size: 9, font, color: muted });
+    page.drawText(`Payment: ${paymentLabel(ride.payment_status)}`, { x: 40, y, size: 9, font, color: muted });
+    if (bakongBillId) {
+      y -= 14;
+      page.drawText(`Bill ID: ${bakongBillId}`, { x: 40, y, size: 9, font: bold, color: dark });
+    }
+    if (providerReference) {
+      y -= 14;
+      const label = bakongBillId ? "Full ref" : "Reference";
+      page.drawText(`${label}: ${String(providerReference).slice(0, 95)}`, { x: 40, y, size: 9, font, color: muted });
+    }
+    if (ride.bakong_verified_by) {
+      y -= 14;
+      page.drawText(`Verified by: ${ride.bakong_verified_by}`, { x: 40, y, size: 9, font, color: muted });
+    }
 
     // Footer
     page.drawLine({ start: { x: 40, y: 80 }, end: { x: 555, y: 80 }, thickness: 0.5, color: muted });
@@ -111,7 +179,7 @@ Deno.serve(async (req) => {
     const bytes = await pdf.save();
 
     // Upload
-    const path = `${ride.user_id}/${ride.id}.pdf`;
+    const path = isBakong ? `bakong-v2/${ride.user_id}/${ride.id}.pdf` : `${ride.user_id}/${ride.id}.pdf`;
     const { error: upErr } = await admin.storage.from("trip-receipts").upload(path, bytes, {
       contentType: "application/pdf",
       upsert: true,
@@ -123,14 +191,14 @@ Deno.serve(async (req) => {
 
     const { data: receiptRow, error: insErr } = await admin
       .from("receipts")
-      .insert({
+      .upsert({
         type: "ride",
         reference_id: ride.id,
         user_id: ride.user_id,
         pdf_path: path,
-        total_cents: totalCents,
-        currency: "usd",
-      } as any)
+        total_cents: totalMinor,
+        currency,
+      } as any, { onConflict: "type,reference_id" })
       .select("id")
       .single();
     if (insErr) console.warn("[generate-trip-receipt] receipts insert", insErr);
@@ -144,7 +212,10 @@ Deno.serve(async (req) => {
             template: "generic",
             to: rider.email,
             subject: `Your ZIVO ride receipt — ${completedAt.toLocaleDateString()}`,
-            data: { heading: `Thanks for riding with ZIVO`, body: `Your trip total was ${fmt(totalCents)}. The full receipt PDF is available in your ride history.` },
+            data: {
+              heading: `Thanks for riding with ZIVO`,
+              body: `Your trip total was ${fmt(totalMinor)}.${bakongBillId ? ` Bakong Bill ID: ${bakongBillId}.` : ""} The full receipt PDF is available in your ride history.`,
+            },
           },
         });
         if (receiptRow?.id) {
@@ -155,7 +226,7 @@ Deno.serve(async (req) => {
       console.warn("[generate-trip-receipt] email failed", e);
     }
 
-    return new Response(JSON.stringify({ ok: true, pdf_path: path, total_cents: totalCents }), {
+    return new Response(JSON.stringify({ ok: true, pdf_path: path, total_cents: totalMinor, currency, bill_id: bakongBillId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

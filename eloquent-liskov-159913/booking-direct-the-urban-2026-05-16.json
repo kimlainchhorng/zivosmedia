@@ -1,0 +1,37 @@
+{
+  "run_at": "2026-05-16T23:24:04.467Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort",
+      "guesthouse",
+      "hostel",
+      "villa",
+      "lodge",
+      "motel",
+      "inn",
+      "boutique"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "dff02c60-bff7-4953-87e1-a2818dd0ad7b",
+      "name": "The Urban",
+      "status": "updated",
+      "photos": 91,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/the-urban.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

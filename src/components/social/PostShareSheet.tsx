@@ -12,6 +12,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateAllStoryCaches } from "@/lib/storiesCache";
+import { copyText } from "@/lib/native/clipboard";
+import { shareContent } from "@/lib/native/share";
+import { registerPostShareSheetTargetSetter, type PostShareSheetTarget } from "@/lib/social/postShareSheet";
 import Send from "lucide-react/dist/esm/icons/send";
 import BookOpen from "lucide-react/dist/esm/icons/book-open";
 import Share2 from "lucide-react/dist/esm/icons/share-2";
@@ -20,25 +23,6 @@ import Mail from "lucide-react/dist/esm/icons/mail";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import Download from "lucide-react/dist/esm/icons/download";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
-
-export interface PostShareSheetTarget {
-  postId: string;
-  url: string;
-  title?: string;
-  text?: string;
-  imageUrl?: string | null;
-  /** Called when an in-app DM share is selected. */
-  onSendToFriend?: () => void;
-  /** Called after any successful share so the parent can bump shares_count. */
-  onShared?: (channel: string) => void;
-}
-
-let setSheetTarget: ((t: PostShareSheetTarget | null) => void) | null = null;
-
-/** Imperative open — call from anywhere (e.g. the share button). */
-export function openPostShareSheet(target: PostShareSheetTarget) {
-  if (setSheetTarget) setSheetTarget(target);
-}
 
 const externalIntents = (url: string, text: string) => {
   const u = encodeURIComponent(url);
@@ -60,26 +44,6 @@ const getShareHost = (url: string) => {
   } catch {
     return "zivo.app";
   }
-};
-
-const robustCopy = async (text: string): Promise<boolean> => {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch { /* fall through */ }
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.focus(); ta.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(ta);
-    return ok;
-  } catch { return false; }
 };
 
 const clampStoryText = (value: string, max = 180) => {
@@ -128,7 +92,7 @@ export default function PostShareSheet() {
   const [target, _setTarget] = useState<PostShareSheetTarget | null>(null);
   const [sharingToStory, setSharingToStory] = useState(false);
 
-  useEffect(() => { setSheetTarget = _setTarget; return () => { setSheetTarget = null; }; }, []);
+  useEffect(() => registerPostShareSheetTargetSetter(_setTarget), []);
 
   if (!target) return null;
 
@@ -138,47 +102,50 @@ export default function PostShareSheet() {
   const host = getShareHost(url);
   const previewText = clampStoryText(text || title, 112);
 
-  const handleNativeSheet = async () => {
+  const copyPostLink = async () => {
     try {
-      // Capacitor first (iOS/Android app)
-      const { Share } = await import("@capacitor/share");
-      const can = await Share.canShare();
-      if (can.value) {
-        await Share.share({ title, text, url, dialogTitle: "Share post" });
-        onShared?.("native");
-        close();
-        return;
-      }
-    } catch { /* fall through to web share */ }
-    if (typeof navigator !== "undefined" && (navigator as { share?: (data: ShareData) => Promise<void> }).share) {
-      try {
-        await (navigator as unknown as { share: (data: ShareData) => Promise<void> }).share({ title, text, url });
-        onShared?.("native");
-        close();
-        return;
-      } catch (e) {
-        if ((e as { name?: string })?.name === "AbortError") { close(); return; }
-      }
-    }
-    // No native sheet — copy link as a graceful fallback.
-    const ok = await robustCopy(url);
-    if (ok) {
+      await copyText(url);
       toast.success("Link copied", { description: "Paste it anywhere to share this post." });
       onShared?.("clipboard");
-    } else {
-      toast("Tap to copy this link", { duration: 12000, description: url, action: { label: "Copy", onClick: () => robustCopy(url) } });
+      return true;
+    } catch {
+      toast("Tap to copy this link", {
+        duration: 12000,
+        description: url,
+        action: {
+          label: "Copy",
+          onClick: () => {
+            void copyText(url).then(() => {
+              toast.success("Link copied", { description: "Paste it anywhere to share this post." });
+              onShared?.("clipboard");
+            }).catch(() => {});
+          },
+        },
+      });
+      return false;
     }
+  };
+
+  const handleNativeSheet = async () => {
+    try {
+      const result = await shareContent({ title, text, url, dialogTitle: "Share post" });
+      if (result.shared) {
+        onShared?.("native");
+        close();
+        return;
+      }
+      if (result.cancelled) {
+        close();
+        return;
+      }
+    } catch { /* fall through to copy fallback */ }
+    // No native sheet — copy link as a graceful fallback.
+    await copyPostLink();
     close();
   };
 
   const handleCopy = async () => {
-    const ok = await robustCopy(url);
-    if (ok) {
-      toast.success("Link copied", { description: "Paste it anywhere to share this post." });
-      onShared?.("clipboard");
-    } else {
-      toast("Tap to copy this link", { duration: 12000, description: url, action: { label: "Copy", onClick: () => robustCopy(url) } });
-    }
+    await copyPostLink();
     close();
   };
 

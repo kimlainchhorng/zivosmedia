@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns";
 import {
   CheckCircle, Hotel, CalendarRange, Users, MapPin, Copy,
   ChevronRight, Share2, Sparkles, Clock, ShoppingBag,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +19,7 @@ import SEOHead from "@/components/SEOHead";
 
 interface ReservationSummary {
   id: string;
-  number: string;
+  number: string | null;
   guest_name: string | null;
   check_in: string;
   check_out: string;
@@ -26,12 +27,21 @@ interface ReservationSummary {
   adults: number;
   children: number;
   total_cents: number;
-  payment_status: string;
-  status: string;
+  payment_status: string | null;
+  status: string | null;
   notes: string | null;
   room: { name: string; photos: string[] | null } | null;
   store: { name: string; address: string | null; latitude: number | null; longitude: number | null } | null;
 }
+
+const PAID_PAYMENT_STATUSES = new Set(["paid", "captured"]);
+
+const paymentStatusLabel = (status?: string | null) => {
+  if (status === "pending_cash") return "Pay at check-in";
+  if (status === "authorized") return "Card authorized";
+  if (status && PAID_PAYMENT_STATUSES.has(status)) return "Paid";
+  return (status || "pending").replace(/_/g, " ");
+};
 
 export default function HotelBookingConfirmedPage() {
   const { storeId = "" } = useParams<{ storeId: string }>();
@@ -45,7 +55,10 @@ export default function HotelBookingConfirmedPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setReservation(null);
     if (!reservationId) { setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true);
     (async () => {
       try {
         const { data, error } = await (supabase as any)
@@ -57,14 +70,17 @@ export default function HotelBookingConfirmedPage() {
             store:store_profiles(name, address, latitude, longitude)
           `)
           .eq("id", reservationId)
-          .single();
-        if (!error && data) setReservation(data as unknown as ReservationSummary);
+          .maybeSingle();
+        if (!cancelled && !error && data) setReservation(data as unknown as ReservationSummary);
       } catch {
         // best-effort
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [reservationId]);
 
   const copyRef = () => {
@@ -83,7 +99,7 @@ export default function HotelBookingConfirmedPage() {
       `Reservation: ${reservation.number || reservationId.slice(0, 8).toUpperCase()}`,
       reservation.adults > 0 ? `Guests: ${reservation.adults} adult${reservation.adults > 1 ? "s" : ""}${reservation.children ? `, ${reservation.children} child${reservation.children > 1 ? "ren" : ""}` : ""}` : "",
       `Total: ${formatPrice(reservation.total_cents)}`,
-      `Status: ${reservation.payment_status === "pending_cash" ? "Pay at check-in" : "Paid"}`,
+      `Status: ${paymentStatusLabel(reservation.payment_status)}`,
       reservation.notes ? `Notes: ${reservation.notes}` : "",
     ].filter(Boolean).join("\\n");
     const escapeIcs = (s: string) => s.replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
@@ -163,7 +179,62 @@ export default function HotelBookingConfirmedPage() {
   };
 
   const isCash = reservation?.payment_status === "pending_cash";
+  const isAuthorized = reservation?.payment_status === "authorized";
+  const isPaid = reservation?.payment_status ? PAID_PAYMENT_STATUSES.has(reservation.payment_status) : false;
   const nights = reservation?.nights ?? 1;
+  const recoveryRoute = storeId ? `/hotel/${storeId}` : "/hotels";
+  const headline = isCash
+    ? "Booking Confirmed!"
+    : isAuthorized
+      ? "Card Authorized!"
+      : isPaid
+        ? "Payment Received!"
+        : "Booking Confirmed!";
+  const subcopy = isCash
+    ? "Your room is reserved. Pay the full amount at the front desk upon check-in."
+    : isAuthorized
+      ? "Your card is authorized and your stay is confirmed. We look forward to hosting you!"
+      : isPaid
+        ? "Your payment was received. We look forward to hosting you!"
+        : "Your stay is confirmed. We look forward to hosting you!";
+
+  if (!loading && !reservation) {
+    const missingId = !reservationId;
+    return (
+      <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
+        <SEOHead
+          title={missingId ? "Hotel Booking Link Missing - ZIVO" : "Hotel Reservation Unavailable - ZIVO"}
+          description="Open your hotel reservation from ZIVO trips or return to the hotel page."
+        />
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-amber-500/10 blur-[80px]" />
+        </div>
+        <div className="relative max-w-md mx-auto px-5 pt-14 flex flex-col items-center text-center">
+          <div className="h-20 w-20 rounded-full bg-amber-500/10 flex items-center justify-center mb-5 ring-4 ring-amber-500/10">
+            <AlertCircle className="h-10 w-10 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-foreground mb-2 tracking-tight">
+            {missingId ? "Reservation link missing" : "Reservation not found or unavailable"}
+          </h1>
+          <p className="text-[13px] text-muted-foreground max-w-xs mb-6">
+            {missingId
+              ? "This confirmation link is missing a reservation reference. Return to the hotel or open your trips to find the booking."
+              : "We could not open this reservation. It may belong to another account, be unavailable under privacy rules, or no longer exist."}
+          </p>
+          <div className="flex flex-col gap-2.5 w-full">
+            <Button onClick={() => navigate(recoveryRoute)} className="w-full rounded-2xl h-12 font-bold gap-2">
+              <Hotel className="h-4 w-4" />
+              {storeId ? "Back to Hotel" : "Find Hotels"}
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/my-trips")} className="w-full rounded-2xl h-11">
+              View My Trips
+            </Button>
+          </div>
+        </div>
+        <ZivoMobileNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
@@ -200,7 +271,7 @@ export default function HotelBookingConfirmedPage() {
           transition={{ delay: 0.3 }}
           className="text-2xl font-extrabold text-foreground mb-1 tracking-tight"
         >
-          Booking Confirmed!
+          {headline}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 10 }}
@@ -208,9 +279,7 @@ export default function HotelBookingConfirmedPage() {
           transition={{ delay: 0.4 }}
           className="text-[13px] text-muted-foreground text-center max-w-xs mb-6"
         >
-          {isCash
-            ? "Your room is reserved. Pay the full amount at the front desk upon check-in."
-            : "Your payment was received. We look forward to hosting you!"}
+          {subcopy}
         </motion.p>
 
         {/* Reservation reference */}
@@ -295,6 +364,22 @@ export default function HotelBookingConfirmedPage() {
                 <Clock className="w-4 h-4 text-amber-600 shrink-0" />
                 <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
                   Pay {formatPrice(reservation.total_cents)} at front desk upon arrival
+                </p>
+              </div>
+            )}
+            {isAuthorized && (
+              <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                  Card authorized. Your stay is confirmed.
+                </p>
+              </div>
+            )}
+            {isPaid && (
+              <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                  Payment received for {formatPrice(reservation.total_cents)}.
                 </p>
               </div>
             )}

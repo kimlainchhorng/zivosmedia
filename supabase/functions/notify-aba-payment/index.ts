@@ -45,7 +45,17 @@ Deno.serve(withSecurity("notify-aba-payment", async (req, ctx) => {
     }
 
     const body = await req.json();
-    const { ride_request_id, amount, customer_name, pickup, dropoff, vehicle_type } = body;
+    const {
+      ride_request_id,
+      amount,
+      amount_khr,
+      reference,
+      verified_by,
+      customer_name,
+      pickup,
+      dropoff,
+      vehicle_type,
+    } = body;
 
     if (!ride_request_id) {
       return new Response(JSON.stringify({ error: "ride_request_id is required" }), {
@@ -59,8 +69,11 @@ Deno.serve(withSecurity("notify-aba-payment", async (req, ctx) => {
       `💰 *ABA Payment Confirmation*`,
       ``,
       `🆔 Ride: \`${ride_request_id.substring(0, 8)}\``,
+      reference ? `🔖 Reference: \`${reference}\`` : "",
+      verified_by ? `✅ Verified by: ${verified_by}` : "",
       customer_name ? `👤 Customer: ${customer_name}` : "",
       amount ? `💵 Amount: $${Number(amount).toFixed(2)}` : "",
+      amount_khr ? `៛ KHR: ${Number(amount_khr).toLocaleString("en-US")}` : "",
       vehicle_type ? `🚗 Vehicle: ${vehicle_type}` : "",
       pickup ? `📍 From: ${pickup}` : "",
       dropoff ? `📍 To: ${dropoff}` : "",

@@ -40,18 +40,34 @@ const ProfileStories = () => {
 
   const [showCreate, setShowCreate] = useState(false);
 
-  // All active stories across friends + self (drives the ring carousel)
+  // Active stories from the current user + followed accounts.
   const { data: allStories = [], isLoading } = useQuery({
     queryKey: ["profile-story-rings", user?.id],
     enabled: !!user?.id,
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: follows, error: followsError } = await (supabase as any)
+        .from("user_followers")
+        .select("following_id")
+        .eq("follower_id", user!.id);
+
+      if (followsError) throw followsError;
+
+      const storyUserIds = [
+        ...new Set([
+          user!.id,
+          ...((follows ?? []) as Array<{ following_id: string }>).map((row) => row.following_id),
+        ]),
+      ];
+
+      const { data, error } = await supabase
         .from("stories" as any)
         .select("id, user_id, media_url, media_type, text_overlay, audio_url, created_at, expires_at, view_count")
+        .in("user_id", storyUserIds)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: true });
+      if (error) throw error;
       return ((data as any[]) || []) as RawStory[];
     },
   });
@@ -69,10 +85,11 @@ const ProfileStories = () => {
     queryKey: ["story-author-profiles", authorKey],
     enabled: userIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
+      const { data, error } = await supabase
+        .from("public_profiles" as any)
         .select("id, user_id, full_name, avatar_url")
-        .or(`id.in.(${userIds.join(",")}),user_id.in.(${userIds.join(",")})`);
+        .in("user_id", userIds);
+      if (error) throw error;
       const map = new Map<string, any>();
       for (const p of data || []) {
         if ((p as any).id) map.set((p as any).id, p);

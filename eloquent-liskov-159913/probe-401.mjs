@@ -1,0 +1,20 @@
+import { webkit, devices } from '@playwright/test';
+const browser = await webkit.launch({ headless: true });
+const context = await browser.newContext({ ...devices['iPhone 15 Pro'] });
+const page = await context.newPage();
+const fails = [];
+page.on('response', (r) => {
+  if (r.status() >= 400 && r.status() < 600) fails.push(`${r.status()} ${r.request().method()} ${r.url()}`);
+});
+await page.goto('http://127.0.0.1:8082/login', { waitUntil: 'domcontentloaded' });
+await page.locator('input[type="email"]').first().fill('klainkonkat@gmail.com');
+await page.locator('input[type="password"]').first().fill('Chhorng@1998');
+await page.locator('button[type="submit"]').first().click();
+await page.waitForTimeout(4000);
+fails.length = 0;
+console.log('=== navigating /flights ===');
+await page.goto('http://127.0.0.1:8082/flights', { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(4000);
+console.log('=== /flights HTTP failures ===');
+fails.forEach((f) => console.log(`  ${f.slice(0, 250)}`));
+await browser.close();

@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(xargs grep -l \"store_time_entries\")",
       "Bash(xargs grep -l \"EmployeeQRDisplay\\\\|clock\")",
@@ -50,7 +51,8 @@
       "Bash(xargs grep -l \"activity\\\\|interaction\\\\|log\\\\|touchpoint\")",
       "Bash(xargs -I {} sh -c 'grep -l \"marketing_campaigns\" \"{}\" && echo \"---\" && head -2 \"{}\"')",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\chhor\\\\Documents\\\\GitHub\\\\myzivo\\\\supabase\\\\functions\" -Filter \"*stripe*\" -Recurse)",
-      "Bash(xargs ls -1)"
+      "Bash(xargs ls -1)",
+      "mcp__b4adc92a-5646-46e2-ab4e-b57154fb0f4a__list_projects"
     ]
   }
 }

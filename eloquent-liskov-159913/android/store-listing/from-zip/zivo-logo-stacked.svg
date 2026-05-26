@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="500" viewBox="0 0 600 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zivoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FEDA75"/>
+      <stop offset="25%" stop-color="#FA7E1E"/>
+      <stop offset="50%" stop-color="#D62976"/>
+      <stop offset="75%" stop-color="#962FBF"/>
+      <stop offset="100%" stop-color="#4F5BD5"/>
+    </linearGradient>
+  </defs>
+  <rect x="180" y="40" width="240" height="240" rx="54" fill="url(#zivoGrad)"/>
+  <text x="300" y="232" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="184" font-weight="800" fill="white">Z</text>
+  <text x="300" y="430" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="120" font-weight="800" fill="#0A0A0A" letter-spacing="-3">ZIVO</text>
+</svg>

@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { KNOWN_DUPLICATE_MIGRATION_VERSIONS } from "./migration-policy.mjs";
+import { runSupabaseCli } from "./supabase-cli.mjs";
 
 const root = process.cwd();
 const migrationsDir = path.join(root, "supabase", "migrations");
@@ -12,11 +13,15 @@ const args = new Set(process.argv.slice(2));
 const useLinked = args.has("--linked");
 const writeReport = args.has("--write-report");
 const strict = args.has("--strict");
+const allowKnownDuplicates = args.has("--allow-known-duplicates");
 const allowedDuplicateVersions = new Set(
-  [...args]
+  [
+    ...(allowKnownDuplicates ? KNOWN_DUPLICATE_MIGRATION_VERSIONS : []),
+    ...[...args]
     .filter((arg) => arg.startsWith("--allow-duplicate-version="))
     .map((arg) => arg.split("=")[1])
     .filter(Boolean),
+  ],
 );
 
 const migrationPattern = /^(\d{14})_.+\.sql$/;
@@ -94,10 +99,7 @@ function readRemoteVersions() {
   if (!useLinked) return { versions: [], error: null };
 
   const query = "select version from supabase_migrations.schema_migrations order by version";
-  const result = spawnSync("supabase", ["db", "query", "--agent=no", "--linked", "-o", "json", query], {
-    cwd: root,
-    encoding: "utf8",
-  });
+  const result = runSupabaseCli(root, ["db", "query", "--agent=no", "--linked", "-o", "json", query]);
 
   if (result.status !== 0) {
     return {
@@ -146,6 +148,8 @@ function renderReport(summary) {
     `- Local migrations: ${summary.local.length}`,
     `- Invalid filenames: ${summary.invalid.length}`,
     `- Duplicate versions: ${summary.duplicateVersions.length}`,
+    `- Allowed duplicate versions: ${summary.allowedDuplicateVersions.length}`,
+    `- New duplicate versions: ${summary.blockingDuplicateVersions.length}`,
     `- Duplicate SQL hashes: ${summary.duplicateHashes.length}`,
     `- Remote migrations: ${summary.remoteVersions.length}`,
     `- Matched versions: ${summary.matchedVersions.length}`,
@@ -163,7 +167,13 @@ function renderReport(summary) {
     "",
     renderList(
       summary.duplicateVersions,
-      (items) => `- ${items[0].version}: ${items.map((item) => item.name).join(", ")}`,
+      (items) => {
+        const version = items[0].version;
+        const suffix = summary.allowedDuplicateVersions.some((allowed) => allowed[0].version === version)
+          ? " (allowed legacy duplicate)"
+          : " (needs reconciliation)";
+        return `- ${version}: ${items.map((item) => item.name).join(", ")}${suffix}`;
+      },
       50,
     ),
     "",
@@ -194,6 +204,9 @@ const duplicateHashes = findDuplicates(local, "hash");
 const blockingDuplicateVersions = duplicateVersions.filter(
   (items) => !allowedDuplicateVersions.has(items[0].version),
 );
+const allowedDuplicateVersionGroups = duplicateVersions.filter(
+  (items) => allowedDuplicateVersions.has(items[0].version),
+);
 const { versions: remoteVersions, error: remoteError } = readRemoteVersions();
 
 const localVersionSet = new Set(local.map((item) => item.version));
@@ -209,6 +222,7 @@ const summary = {
   invalid,
   duplicateVersions,
   blockingDuplicateVersions,
+  allowedDuplicateVersions: allowedDuplicateVersionGroups,
   duplicateHashes,
   remoteVersions,
   remoteError,
@@ -228,7 +242,7 @@ console.log(JSON.stringify({
   localMigrations: local.length,
   invalidFilenames: invalid.length,
   duplicateVersions: duplicateVersions.length,
-  allowedDuplicateVersions: duplicateVersions.length - blockingDuplicateVersions.length,
+  allowedDuplicateVersions: allowedDuplicateVersionGroups.length,
   newDuplicateVersions: blockingDuplicateVersions.length,
   duplicateHashes: duplicateHashes.length,
   remoteMigrations: remoteVersions.length,

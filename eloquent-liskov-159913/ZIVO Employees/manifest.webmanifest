@@ -1,0 +1,29 @@
+{
+  "name": "ZIVO Employees",
+  "short_name": "ZIVO Staff",
+  "description": "Local employee operations workspace for ZIVO team scheduling, time clock, payroll, requests, documents, training, and reports.",
+  "start_url": "./index.html?v=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#10131a",
+  "theme_color": "#10131a",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "assets/zivo-employees-icon-64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/zivo-employees-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/zivo-employees-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

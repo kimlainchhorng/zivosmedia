@@ -2,9 +2,9 @@
  * MyLodgingTripPage — guest-facing trip detail page for a lodge reservation.
  * Route: /my-trips/lodging/:reservationId
  */
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, CalendarRange, XCircle, CreditCard, Clock, ShoppingBag, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CalendarRange, XCircle, CreditCard, Clock, ShoppingBag, ShieldCheck, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,29 +34,37 @@ import { ReviewSubmissionSheet } from "@/components/reviews/ReviewSubmissionShee
 import { LodgingReviewSheet } from "@/components/reviews/LodgingReviewSheet";
 import { ReviewsList } from "@/components/reviews/ReviewsList";
 import { ReviewsSummary } from "@/components/reviews/ReviewsSummary";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import {
+  getLodgingTripStateCopy,
+  humanizeLodgingStatus,
+  isFinalLodgingReservationStatus,
+  lodgingPaymentStatusLabel,
+  lodgingReservationStatusLabel,
+} from "@/lib/lodging/reservationDisplay";
 
 interface FullReservation {
   id: string;
   store_id: string;
-  room_id: string;
-  number: string;
+  room_id: string | null;
+  number: string | null;
   guest_name: string | null;
+  guest_email: string | null;
+  guest_phone: string | null;
   check_in: string;
   check_out: string;
   nights: number;
-  status: string;
-  payment_status: string;
+  status: string | null;
+  payment_status: string | null;
   total_cents: number;
   paid_cents: number;
   room_number: string | null;
   adults: number | null;
   children: number | null;
-  guest_email: string | null;
-  guest_phone: string | null;
   addons: any;
   addon_selections: any;
   fee_breakdown: any;
-  deposit_cents: number;
+  deposit_cents: number | null;
   stripe_payment_intent_id: string | null;
   last_payment_error: string | null;
 }
@@ -69,9 +77,33 @@ const REQ_STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "
   cancelled: "outline",
 };
 
+const TRIP_STATE_STYLE = {
+  success: {
+    card: "border-emerald-500/25 bg-emerald-500/[0.06]",
+    icon: "bg-emerald-500/10 text-emerald-600",
+    badge: "border-emerald-500/30 text-emerald-700 dark:text-emerald-300",
+  },
+  warning: {
+    card: "border-amber-500/25 bg-amber-500/[0.08]",
+    icon: "bg-amber-500/10 text-amber-600",
+    badge: "border-amber-500/30 text-amber-700 dark:text-amber-300",
+  },
+  destructive: {
+    card: "border-destructive/25 bg-destructive/[0.06]",
+    icon: "bg-destructive/10 text-destructive",
+    badge: "border-destructive/30 text-destructive",
+  },
+  muted: {
+    card: "border-border bg-muted/30",
+    icon: "bg-muted text-muted-foreground",
+    badge: "border-border text-muted-foreground",
+  },
+};
+
 export default function MyLodgingTripPage() {
   const { reservationId = "" } = useParams();
   const queryClient = useQueryClient();
+  const { format: formatCurrency } = useCurrency();
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [addonsOpen, setAddonsOpen] = useState(false);
@@ -95,7 +127,7 @@ export default function MyLodgingTripPage() {
   });
 
   // Realtime status updates
-  useReservationLive(reservationId);
+  const { data: liveReservation } = useReservationLive(reservationId);
   useLodgingTripToasts(reservationId);
 
   const { data: store } = useQuery({
@@ -163,6 +195,23 @@ export default function MyLodgingTripPage() {
     window.setTimeout(() => target?.classList.remove("transition-shadow", "ring-2", "ring-primary", "ring-offset-2", "ring-offset-background"), 1600);
   }, []);
 
+  const formatMoney = useCallback(
+    (cents: number | null | undefined) => formatCurrency((Number(cents) || 0) / 100, "USD"),
+    [formatCurrency],
+  );
+
+  const visibleReservation = useMemo<FullReservation | null>(() => {
+    if (!reservation) return null;
+    return {
+      ...reservation,
+      status: liveReservation?.status ?? reservation.status,
+      payment_status: liveReservation?.payment_status ?? reservation.payment_status,
+      total_cents: liveReservation?.total_cents ?? reservation.total_cents,
+      deposit_cents: liveReservation?.deposit_cents ?? reservation.deposit_cents,
+      stripe_payment_intent_id: liveReservation?.stripe_payment_intent_id ?? reservation.stripe_payment_intent_id,
+    };
+  }, [liveReservation, reservation]);
+
 
   if (isLoading) {
     return (
@@ -173,32 +222,38 @@ export default function MyLodgingTripPage() {
     );
   }
 
-  if (!reservation) {
+  if (!reservation || !visibleReservation) {
     return (
       <div className="container max-w-3xl mx-auto p-8 text-center safe-area-top">
-        <h1 className="text-2xl font-bold mb-2">Reservation not found</h1>
-        <p className="text-muted-foreground mb-4">It may have been deleted or you don't have access.</p>
+        <h1 className="text-2xl font-bold mb-2">Reservation not found or unavailable</h1>
+        <p className="text-muted-foreground mb-4">This reservation may belong to another account, be unavailable under privacy rules, or no longer exist.</p>
         <Button asChild><Link to="/my-trips">Back to my trips</Link></Button>
       </div>
     );
   }
 
-  const isActive = !["cancelled", "checked_out", "no_show"].includes(reservation.status);
-  const balanceCents = Math.max(0, reservation.total_cents - reservation.paid_cents);
-  const guests = Math.max(1, Number(reservation.adults || 1) + Number(reservation.children || 0));
+  const reservationRef = visibleReservation.number || visibleReservation.id.slice(0, 8).toUpperCase();
+  const reservationStatus = visibleReservation.status || "hold";
+  const paymentStatus = visibleReservation.payment_status || "pending";
+  const tripState = getLodgingTripStateCopy(reservationStatus, paymentStatus);
+  const tripStyle = TRIP_STATE_STYLE[tripState.tone];
+  const TripIcon = tripState.tone === "destructive" ? AlertTriangle : tripState.tone === "warning" ? Clock : tripState.tone === "muted" ? Info : CheckCircle2;
+  const isActive = !isFinalLodgingReservationStatus(reservationStatus);
+  const balanceCents = Math.max(0, visibleReservation.total_cents - visibleReservation.paid_cents);
+  const guests = Math.max(1, Number(visibleReservation.adults || 1) + Number(visibleReservation.children || 0));
   const addons = Array.isArray(room?.addons) ? room.addons : [];
   const latestRequest = requests[0];
-  const roomLabel = reservation.room_number ? `Room ${reservation.room_number}` : room?.name || room?.room_type || "Assigned room";
+  const roomLabel = visibleReservation.room_number ? `Room ${visibleReservation.room_number}` : room?.name || room?.room_type || "Assigned room";
   const chatContext = {
-    reservationId: reservation.id,
-    reservationNumber: reservation.number,
+    reservationId: visibleReservation.id,
+    reservationNumber: reservationRef,
     dates: `${reservation.check_in} → ${reservation.check_out}`,
     roomLabel,
-    status: reservation.status,
-    href: `/my-trips/lodging/${reservation.id}`,
+    status: reservationStatus,
+    href: `/my-trips/lodging/${visibleReservation.id}`,
   };
-  const maxDisputeCents = Math.max(0, reservation.paid_cents - (requests.find((r) => r.type === "cancel")?.refund_cents || 0));
-  const canDispute = reservation.status === "cancelled" || String(reservation.payment_status || "").includes("refund") || reservation.payment_status === "cancelled_no_refund";
+  const maxDisputeCents = Math.max(0, visibleReservation.paid_cents - (requests.find((r) => r.type === "cancel")?.refund_cents || 0));
+  const canDispute = reservationStatus === "cancelled" || String(paymentStatus || "").includes("refund") || paymentStatus === "cancelled_no_refund";
 
   return (
     <div className="container max-w-3xl mx-auto p-4 space-y-4 pb-24 safe-area-top">
@@ -209,23 +264,60 @@ export default function MyLodgingTripPage() {
         <LodgingTripHelpDrawer reservationNumber={reservation.number} propertyName={store?.name || "Your stay"} dates={`${reservation.check_in} → ${reservation.check_out}`} paymentStatus={reservation.payment_status} />
       </div>
 
+      <Card className={`overflow-hidden ${tripStyle.card}`}>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <span className={`mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tripStyle.icon}`}>
+              <TripIcon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-bold leading-tight">{tripState.title}</h2>
+                <Badge variant="outline" className={`text-[10px] ${tripStyle.badge}`}>
+                  {tripState.badge}
+                </Badge>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{tripState.description}</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                <div className="rounded-lg bg-background/70 p-2">
+                  <p className="text-muted-foreground">Reference</p>
+                  <p className="font-semibold">{reservationRef}</p>
+                </div>
+                <div className="rounded-lg bg-background/70 p-2">
+                  <p className="text-muted-foreground">Stay</p>
+                  <p className="font-semibold">{lodgingReservationStatusLabel(reservationStatus)}</p>
+                </div>
+                <div className="rounded-lg bg-background/70 p-2">
+                  <p className="text-muted-foreground">Payment</p>
+                  <p className="font-semibold">{lodgingPaymentStatusLabel(paymentStatus)}</p>
+                </div>
+                <div className="rounded-lg bg-background/70 p-2">
+                  <p className="text-muted-foreground">Balance</p>
+                  <p className="font-semibold">{formatMoney(balanceCents)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div id="stay-summary" className="scroll-mt-24">
         <StayHeroCard
           propertyName={store?.name || "Your stay"}
           roomLabel={roomLabel}
-          checkIn={reservation.check_in}
-          checkOut={reservation.check_out}
-          nights={reservation.nights}
-          status={reservation.status}
+          checkIn={visibleReservation.check_in}
+          checkOut={visibleReservation.check_out}
+          nights={visibleReservation.nights}
+          status={reservationStatus}
         />
       </div>
 
       <CheckInQrCard
-        reservationNumber={reservation.number}
-        reservationId={reservation.id}
-        checkIn={reservation.check_in}
-        checkOut={reservation.check_out}
-        status={reservation.status}
+        reservationNumber={reservationRef}
+        reservationId={visibleReservation.id}
+        checkIn={visibleReservation.check_in}
+        checkOut={visibleReservation.check_out}
+        status={reservationStatus}
       />
 
       {/* Manage actions */}
@@ -245,7 +337,7 @@ export default function MyLodgingTripPage() {
               <ShoppingBag className="w-4 h-4" />
               <span className="text-xs">Add services</span>
             </Button>
-            <div id="message-property" className="scroll-mt-24"><MessagePropertyButton storeId={reservation.store_id} storeName={store?.name || "Property"} reservationContext={chatContext} onOpenChat={() => setChatOpen(true)} /></div>
+            <div id="message-property" className="scroll-mt-24"><MessagePropertyButton storeId={visibleReservation.store_id} storeName={store?.name || "Property"} reservationContext={chatContext} onOpenChat={() => setChatOpen(true)} /></div>
           </CardContent>
         </Card>
       )}
@@ -258,23 +350,23 @@ export default function MyLodgingTripPage() {
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Total</span>
-            <span className="font-semibold">${(reservation.total_cents / 100).toFixed(2)}</span>
+            <span className="font-semibold">{formatMoney(visibleReservation.total_cents)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Paid</span>
-            <span>${(reservation.paid_cents / 100).toFixed(2)}</span>
+            <span>{formatMoney(visibleReservation.paid_cents)}</span>
           </div>
           {balanceCents > 0 && (
             <div className="flex justify-between border-t pt-2">
               <span className="font-semibold">Balance due</span>
-              <span className="font-bold text-destructive">${(balanceCents / 100).toFixed(2)}</span>
+              <span className="font-bold text-destructive">{formatMoney(balanceCents)}</span>
             </div>
           )}
           <div className="pt-2 flex flex-wrap gap-2">
-            <Badge variant="outline" className="capitalize">{reservation.payment_status.replace(/_/g, " ")}</Badge>
-            {latestRequest && <Badge variant="secondary" className="capitalize">Latest: {latestRequest.type} {latestRequest.status.replace(/_/g, " ")}</Badge>}
+            <Badge variant="outline">{lodgingPaymentStatusLabel(paymentStatus)}</Badge>
+            {latestRequest && <Badge variant="secondary">Latest: {humanizeLodgingStatus(latestRequest.type)} {humanizeLodgingStatus(latestRequest.status)}</Badge>}
           </div>
-          {reservation.last_payment_error && <p className="text-xs text-destructive">{reservation.last_payment_error}</p>}
+          {visibleReservation.last_payment_error && <p className="text-xs text-destructive">{visibleReservation.last_payment_error}</p>}
         </CardContent>
       </Card>
 
@@ -289,9 +381,9 @@ export default function MyLodgingTripPage() {
               <div key={r.id} className="flex items-start justify-between gap-2 p-2 rounded-lg border bg-muted/30">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium capitalize">{r.type}</span>
+                    <span className="text-sm font-medium">{humanizeLodgingStatus(r.type)}</span>
                     <Badge variant={REQ_STATUS_VARIANT[r.status]} className="text-[10px] capitalize">
-                      {r.status.replace(/_/g, " ")}
+                      {humanizeLodgingStatus(r.status)}
                     </Badge>
                   </div>
                   {r.proposed_check_in && (
@@ -310,7 +402,7 @@ export default function MyLodgingTripPage() {
         </Card>
       )}
 
-      <AddOnStatusTimeline requests={requests} isUpdating={addonStatusRefreshing || requestsLoading || requestsFetching} />
+      <AddOnStatusTimeline requests={requests} isUpdating={addonStatusRefreshing || requestsLoading || requestsFetching} formatMoney={formatMoney} />
 
       <Card id="cancellation-policy" className="scroll-mt-24">
         <CardHeader className="pb-3">
@@ -326,36 +418,36 @@ export default function MyLodgingTripPage() {
       </Card>
 
       <ReceiptActions
-        reservationNumber={reservation.number}
-        reservationId={reservation.id}
+        reservationNumber={reservationRef}
+        reservationId={visibleReservation.id}
         propertyName={store?.name || "Your stay"}
-        checkIn={reservation.check_in}
-        checkOut={reservation.check_out}
+        checkIn={visibleReservation.check_in}
+        checkOut={visibleReservation.check_out}
         roomName={roomLabel}
-        guestName={reservation.guest_name}
-        guestEmail={reservation.guest_email}
+        guestName={visibleReservation.guest_name}
+        guestEmail={visibleReservation.guest_email}
         checkInTime={room?.check_in_time}
         checkOutTime={room?.check_out_time}
-        totalText={`$${(reservation.total_cents / 100).toFixed(2)} · ${reservation.payment_status.replace(/_/g, " ")}`}
+        totalText={`${formatMoney(visibleReservation.total_cents)} · ${lodgingPaymentStatusLabel(paymentStatus)}`}
         cancellationText={room?.cancellation_policy}
         latestReceiptId={receipts[0]?.id}
         receiptHistoryLoading={receiptsLoading || receiptsFetching}
         onReceiptDownloaded={refreshReceiptHistory}
       />
 
-      <div id="receipt-history" className="scroll-mt-24"><ReceiptHistoryCard reservationId={reservation.id} receipts={receipts} /></div>
+      <div id="receipt-history" className="scroll-mt-24"><ReceiptHistoryCard reservationId={visibleReservation.id} receipts={receipts} /></div>
 
-      <LodgingTripNotificationSettings reservationId={reservation.id} />
+      <LodgingTripNotificationSettings reservationId={visibleReservation.id} />
 
-      <RefundDisputeCard reservationId={reservation.id} disputes={disputes} canRequest={canDispute} maxAmountCents={maxDisputeCents} />
+      <RefundDisputeCard reservationId={visibleReservation.id} disputes={disputes} canRequest={canDispute} maxAmountCents={maxDisputeCents} formatMoney={formatMoney} />
 
       {/* Reviews */}
       <ReviewsSummary
         serviceType="hotel"
-        serviceId={reservation.id}
+        serviceId={visibleReservation.id}
         onWriteClick={() => setReviewSheetOpen(true)}
       />
-      <ReviewsList serviceType="hotel" serviceId={reservation.id} />
+      <ReviewsList serviceType="hotel" serviceId={visibleReservation.id} />
 
       {/* Rate this stay (writes to lodging_reviews shown on the hotel detail page) */}
       <div className="rounded-2xl border border-border bg-card p-4 flex items-center justify-between gap-3">
@@ -371,20 +463,22 @@ export default function MyLodgingTripPage() {
       <RescheduleSheet
         open={rescheduleOpen}
         onOpenChange={setRescheduleOpen}
-        reservationId={reservation.id}
-        roomId={reservation.room_id}
-        checkIn={reservation.check_in}
-        checkOut={reservation.check_out}
-        totalCents={reservation.total_cents}
+        reservationId={visibleReservation.id}
+        roomId={visibleReservation.room_id || ""}
+        checkIn={visibleReservation.check_in}
+        checkOut={visibleReservation.check_out}
+        totalCents={visibleReservation.total_cents}
         blockedDates={blockedDates}
+        formatMoney={formatMoney}
       />
       <AddOnsSheet
         open={addonsOpen}
         onOpenChange={setAddonsOpen}
-        reservationId={reservation.id}
+        reservationId={visibleReservation.id}
         addons={addons}
-        nights={reservation.nights}
+        nights={visibleReservation.nights}
         guests={guests}
+        formatMoney={formatMoney}
         onPurchased={(result) => {
           setAddonStatusRefreshing(true);
           Promise.all([
@@ -400,13 +494,14 @@ export default function MyLodgingTripPage() {
       <CancelReservationSheet
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        reservationId={reservation.id}
-        checkIn={reservation.check_in}
-        totalCents={reservation.total_cents}
-        paidCents={reservation.paid_cents}
+        reservationId={visibleReservation.id}
+        checkIn={visibleReservation.check_in}
+        totalCents={visibleReservation.total_cents}
+        paidCents={visibleReservation.paid_cents}
+        formatMoney={formatMoney}
       />
       <StoreLiveChat
-        storeId={reservation.store_id}
+        storeId={visibleReservation.store_id}
         storeName={store?.name || "Property"}
         storeLogo={store?.logo_url || null}
         open={chatOpen}
@@ -418,15 +513,15 @@ export default function MyLodgingTripPage() {
         isOpen={reviewSheetOpen}
         onClose={() => setReviewSheetOpen(false)}
         serviceType="hotel"
-        serviceId={reservation.id}
+        serviceId={visibleReservation.id}
         title={store?.name || "Your stay"}
       />
       <LodgingReviewSheet
         isOpen={lodgingReviewOpen}
         onClose={() => setLodgingReviewOpen(false)}
-        storeId={reservation.store_id}
-        reservationId={reservation.id}
-        guestName={reservation.guest_name}
+        storeId={visibleReservation.store_id}
+        reservationId={visibleReservation.id}
+        guestName={visibleReservation.guest_name}
         propertyName={store?.name || "Your stay"}
       />
     </div>

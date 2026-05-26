@@ -1,0 +1,92 @@
+name: CI
+
+# Full type-check + lint + unit tests + production build on every push/PR.
+# Blocks merge if any step fails.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Type-check · Lint · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # ── TypeScript ──────────────────────────────────────────────────────────
+      - name: TypeScript type-check
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run type-check
+
+      # ── Lint ────────────────────────────────────────────────────────────────
+      - name: ESLint
+        run: npm run lint -- --max-warnings=0
+
+      # ── Database migration safety ───────────────────────────────────────────
+      - name: Supabase migration drift check (PR advisory)
+        if: github.event_name == 'pull_request'
+        run: npm run supabase:migrations:check
+        continue-on-error: true
+
+      - name: Supabase migration drift check (main strict)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm run supabase:migrations:check:main
+
+      # ── Unit tests ──────────────────────────────────────────────────────────
+      - name: Vitest unit tests
+        run: npm test
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+
+      # ── Production build ────────────────────────────────────────────────────
+      - name: Production build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run build
+
+      # ── Upload build artifacts (for other jobs or debugging) ────────────────
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
+          retention-days: 3
+          if-no-files-found: error

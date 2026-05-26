@@ -40,6 +40,8 @@ export default function RepostDialog({
     try {
       await onConfirm(withQuote ? quote.trim() || undefined : undefined);
       onClose();
+    } catch {
+      // onConfirm owns the toast; keep the dialog open so the user can retry.
     } finally {
       setSubmitting(false);
     }
