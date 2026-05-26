@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(xargs grep -l \"store_time_entries\")",
       "Bash(xargs grep -l \"EmployeeQRDisplay\\\\|clock\")",
@@ -31,7 +32,9 @@
       "Bash(ps -p 30160 -o pid,etime,command)",
       "Bash(grep -rnE \"/grocery/shop/|grocery/shop\\\\$\" src --include=\"*.tsx\" --include=\"*.ts\")",
       "Bash(node --experimental-strip-types --no-warnings --check scripts/scrape-booking-bulk.ts)",
-      "Bash(break)"
+      "Bash(break)",
+      "mcp__b4adc92a-5646-46e2-ab4e-b57154fb0f4a__list_projects",
+      "mcp__b4adc92a-5646-46e2-ab4e-b57154fb0f4a__apply_migration"
     ]
   }
 }

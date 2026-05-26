@@ -1,6 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+const USD_TO_KHR = 4062.5;
+
+function isRideRevenueStatus(row: any): boolean {
+  const paymentStatus = String(row.payment_status || "").toLowerCase();
+  const rideStatus = String(row.status || "").toLowerCase();
+  if (["paid", "captured", "bakong_paid", "aba_paid"].includes(paymentStatus)) return true;
+  return paymentStatus === "cash" && rideStatus === "completed";
+}
+
+function rideRevenueUsd(row: any): number {
+  if (!isRideRevenueStatus(row)) return 0;
+  const currency = String(row.payment_currency || (row.payment_status === "bakong_paid" ? "KHR" : "USD")).toUpperCase();
+  if (currency === "KHR") {
+    return (Number(row.bakong_amount_khr ?? row.payment_amount ?? 0) || 0) / USD_TO_KHR;
+  }
+  const cents = Number(row.captured_amount_cents ?? 0);
+  if (Number.isFinite(cents) && cents > 0) return cents / 100;
+  return Number(row.payment_amount ?? row.quoted_total ?? 0) || 0;
+}
+
 export const useAnalyticsStats = () => {
   return useQuery({
     queryKey: ["analytics-stats"],
@@ -21,17 +41,15 @@ export const useAnalyticsStats = () => {
 
       // Get trip stats
       const { data: trips, error: tripError } = await supabase
-        .from("trips")
-        .select("status, fare_amount, payment_status, created_at");
+        .from("ride_requests")
+        .select("status, payment_amount, payment_currency, payment_status, captured_amount_cents, quoted_total, bakong_amount_khr, created_at");
 
       if (tripError) throw tripError;
 
       const verifiedDrivers = drivers?.filter(d => d.status === "verified").length || 0;
       const onlineDrivers = drivers?.filter(d => d.is_online).length || 0;
       const totalTrips = trips?.length || 0;
-      const totalRevenue = trips
-        ?.filter(t => t.payment_status === "paid")
-        .reduce((sum, t) => sum + (t.fare_amount || 0), 0) || 0;
+      const totalRevenue = trips?.reduce((sum, t) => sum + rideRevenueUsd(t), 0) || 0;
 
       return {
         totalUsers: userCount || 0,
@@ -52,10 +70,10 @@ export const useRevenueData = () => {
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
       const { data, error } = await supabase
-        .from("trips")
-        .select("fare_amount, payment_status, created_at")
+        .from("ride_requests")
+        .select("status, payment_amount, payment_currency, payment_status, captured_amount_cents, quoted_total, bakong_amount_khr, created_at")
         .gte("created_at", sixMonthsAgo.toISOString())
-        .eq("payment_status", "paid");
+        .in("payment_status", ["paid", "captured", "bakong_paid", "aba_paid", "cash"]);
 
       if (error) throw error;
 
@@ -63,14 +81,14 @@ export const useRevenueData = () => {
       const monthlyData: Record<string, { revenue: number; trips: number }> = {};
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-      data?.forEach(trip => {
+      data?.filter(isRideRevenueStatus).forEach(trip => {
         const date = new Date(trip.created_at);
         const monthKey = months[date.getMonth()];
         
         if (!monthlyData[monthKey]) {
           monthlyData[monthKey] = { revenue: 0, trips: 0 };
         }
-        monthlyData[monthKey].revenue += trip.fare_amount || 0;
+        monthlyData[monthKey].revenue += rideRevenueUsd(trip);
         monthlyData[monthKey].trips += 1;
       });
 
@@ -89,15 +107,14 @@ export const useTripsByType = () => {
     queryKey: ["trips-by-type"],
     queryFn: async () => {
       const { data: trips, error } = await supabase
-        .from("trips")
-        .select("driver_id");
+        .from("ride_requests")
+        .select("ride_type");
 
       if (error) throw error;
 
-      // Get driver vehicle types for completed trips
-      const driverIds = trips?.map(t => t.driver_id).filter(Boolean) as string[];
-      
-      if (driverIds.length === 0) {
+      const rideTypes = trips?.map(t => t.ride_type).filter(Boolean) as string[];
+
+      if (rideTypes.length === 0) {
         return [
           { name: "Economy", value: 25, color: "hsl(var(--primary))" },
           { name: "Comfort", value: 25, color: "hsl(var(--chart-2))" },
@@ -106,19 +123,10 @@ export const useTripsByType = () => {
         ];
       }
 
-      const { data: drivers, error: driverError } = await supabase
-        .from("drivers")
-        .select("id, vehicle_type")
-        .in("id", driverIds);
-
-      if (driverError) throw driverError;
-
-      // Count trips by vehicle type
       const typeCounts: Record<string, number> = {};
       trips?.forEach(trip => {
-        const driver = drivers?.find(d => d.id === trip.driver_id);
-        if (driver) {
-          const type = driver.vehicle_type;
+        const type = trip.ride_type;
+        if (type) {
           typeCounts[type] = (typeCounts[type] || 0) + 1;
         }
       });
@@ -148,7 +156,7 @@ export const useDailyTrips = () => {
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
       const { data, error } = await supabase
-        .from("trips")
+        .from("ride_requests")
         .select("created_at")
         .gte("created_at", oneWeekAgo.toISOString());
 
@@ -187,7 +195,7 @@ export const useDriverActivity = () => {
       today.setHours(0, 0, 0, 0);
 
       const { data: todayTrips } = await supabase
-        .from("trips")
+        .from("ride_requests")
         .select("created_at, status")
         .gte("created_at", today.toISOString());
 

@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 
 type TimeRange = "7d" | "30d" | "90d" | "1y";
 
+const USD_TO_KHR = 4062.5;
+
 function rangeDays(range: TimeRange): number {
   return range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
 }
@@ -42,6 +44,25 @@ function getPrevDateRange(range: TimeRange): string {
 function pct(curr: number, prev: number): number {
   if (prev === 0) return curr > 0 ? 100 : 0;
   return ((curr - prev) / prev) * 100;
+}
+
+function isRideRevenueStatus(row: any): boolean {
+  const paymentStatus = String(row.payment_status || "").toLowerCase();
+  const rideStatus = String(row.status || "").toLowerCase();
+  if (["paid", "captured", "bakong_paid", "aba_paid"].includes(paymentStatus)) return true;
+  return paymentStatus === "cash" && rideStatus === "completed";
+}
+
+function rideRequestRevenueUsd(row: any): number {
+  if (!isRideRevenueStatus(row)) return 0;
+  const currency = String(row.payment_currency || (row.payment_status === "bakong_paid" ? "KHR" : "USD")).toUpperCase();
+  if (currency === "KHR") {
+    const khr = Number(row.bakong_amount_khr ?? row.payment_amount ?? 0);
+    return Number.isFinite(khr) ? khr / USD_TO_KHR : 0;
+  }
+  const cents = Number(row.captured_amount_cents ?? 0);
+  if (Number.isFinite(cents) && cents > 0) return cents / 100;
+  return Number(row.payment_amount ?? row.quoted_total ?? 0) || 0;
 }
 
 const PIE_COLORS = [
@@ -176,7 +197,7 @@ export default function AdminAnalyticsDashboard() {
     queryKey: ["admin-trips", timeRange],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("trips")
+        .from("ride_requests")
         .select("id, status, created_at")
         .gte("created_at", since);
       if (error) return [];
@@ -247,15 +268,15 @@ export default function AdminAnalyticsDashboard() {
     enabled: isAdmin,
   });
 
-  // Ride revenue — paid trips only
+  // Ride revenue: paid ride requests, including KHR Bakong/KHQR payments.
   const { data: tripRevenueRaw } = useQuery({
     queryKey: ["admin-trip-revenue", timeRange],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("trips")
-        .select("fare_amount, created_at")
+        .from("ride_requests")
+        .select("created_at, status, payment_amount, payment_currency, payment_status, captured_amount_cents, quoted_total, bakong_amount_khr")
         .gte("created_at", since)
-        .eq("payment_status", "paid");
+        .in("payment_status", ["paid", "captured", "bakong_paid", "aba_paid", "cash"]);
       if (error) return [];
       return data || [];
     },
@@ -620,7 +641,7 @@ export default function AdminAnalyticsDashboard() {
           .gte("created_at", prevSince).lt("created_at", since),
         supabase.from("analytics_events").select("id", { count: "exact", head: true })
           .eq("event_name", "page_view").gte("created_at", prevSince).lt("created_at", since),
-        supabase.from("trips").select("id", { count: "exact", head: true })
+        supabase.from("ride_requests").select("id", { count: "exact", head: true })
           .gte("created_at", prevSince).lt("created_at", since),
         supabase.from("store_orders").select("id", { count: "exact", head: true })
           .gte("created_at", prevSince).lt("created_at", since),
@@ -805,7 +826,7 @@ export default function AdminAnalyticsDashboard() {
   const gmv = useMemo(() => {
     const travel = stats?.revenue ?? 0;
     const rides = (tripRevenueRaw || []).reduce(
-      (s, t: any) => s + (Number(t.fare_amount) || 0),
+      (s, t: any) => s + rideRequestRevenueUsd(t),
       0,
     );
     const store = (storeRevenueRaw || []).reduce(
@@ -940,7 +961,7 @@ export default function AdminAnalyticsDashboard() {
     });
     (tripRevenueRaw || []).forEach((t: any) => {
       const day = (t.created_at as string).slice(0, 10);
-      ensure(day).rides += Number(t.fare_amount) || 0;
+      ensure(day).rides += rideRequestRevenueUsd(t);
     });
     (storeRevenueRaw || []).forEach((o: any) => {
       const day = (o.created_at as string).slice(0, 10);
@@ -1411,7 +1432,7 @@ export default function AdminAnalyticsDashboard() {
               title="Rides"
               value={`$${gmv.rides.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               icon={Car}
-              subtitle={`${(tripRevenueRaw || []).length} paid trips`}
+              subtitle={`${(tripRevenueRaw || []).filter(isRideRevenueStatus).length} paid rides`}
               color="orange"
             />
             <StatCard

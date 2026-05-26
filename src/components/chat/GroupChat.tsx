@@ -326,6 +326,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     navigator.clipboard?.writeText(m || "");
     toast.success("Copied to forward");
   }, []);
+  const handleToggleSensitiveMedia = useCallback(() => {
+    const next = !markNextMediaSensitive;
+    setMarkNextMediaSensitive(next);
+    toast.success(next ? "Next group media will be blurred as 18+" : "18+ media blur marker off");
+  }, [markNextMediaSensitive]);
   const [isMuted, setIsMuted] = useState(() => {
     try { return localStorage.getItem(`zivo:group-muted:${groupId}`) === "1"; } catch { return false; }
   });
@@ -1220,6 +1225,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     if (!user?.id || !payload.text?.trim()) return;
     const text = payload.text.trim();
     const msgType = messageType || (payload.messageType === "sticker" || payload.messageType === "gif" ? payload.messageType : "text");
+    const textSensitivity = detectSensitiveContent(text);
+    if (msgType === "text" && textSensitivity.isSensitive) {
+      toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
+      inputRef.current?.focus();
+      return;
+    }
     const optimisticId = `opt-sticker-${Date.now()}`;
     const optimisticMsg: GroupMessage = {
       id: optimisticId, group_id: groupId, sender_id: user.id,
@@ -1346,18 +1357,23 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     onClose();
   };
 
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => !m.hidden_at),
+    [messages],
+  );
+
   const filteredMessages = groupSearchQ.trim()
-    ? messages.filter((m) => m.message?.toLowerCase().includes(groupSearchQ.toLowerCase()))
-    : messages;
+    ? visibleMessages.filter((m) => m.message?.toLowerCase().includes(groupSearchQ.toLowerCase()))
+    : visibleMessages;
 
   const pinnedPreview = useMemo(() => {
-    const candidate = [...messages]
+    const candidate = [...visibleMessages]
       .reverse()
       .find((m) => m.is_pinned && !m.id.startsWith("opt-") && (m.message || "").trim().length > 0);
     if (!candidate) return null;
     const text = candidate.message.trim();
     return text.length > 78 ? `${text.slice(0, 78)}...` : text;
-  }, [messages]);
+  }, [visibleMessages]);
 
   const initials = (currentGroupName || "G").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -1503,7 +1519,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <div className="flex items-center justify-center h-40">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : visibleMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-muted-foreground/50">
             <Users className="w-8 h-8 mb-2" />
             <p className="text-sm">Group created</p>
@@ -1516,7 +1532,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             const isMe = msg.sender_id === user?.id;
             const senderName = getSenderName(msg.sender_id);
             const senderAvatar = getSenderAvatar(msg.sender_id);
-            const repliedMsg = msg.reply_to_id ? messages.find((m) => m.id === msg.reply_to_id) : null;
+            const repliedMsg = msg.reply_to_id ? visibleMessages.find((m) => m.id === msg.reply_to_id) : null;
             const isOptimistic = msg.id.startsWith("opt-");
             const msgDate = new Date(msg.created_at).toDateString();
             const prevMsgDate = idx > 0 ? new Date(filteredMessages[idx - 1].created_at).toDateString() : null;
@@ -1596,6 +1612,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                         filePayload={msg.file_payload}
                         onReply={(id, m, me) => setReplyTo({ id, message: m || "Media", senderName })}
                         onDelete={handleDeleteMsg}
+                        onReport={handleReportMessage}
                         onPin={canPinMessages && !msg.id.startsWith("opt-") ? handlePinMsg : undefined}
                         onForward={handleForwardCopy}
                         onMiniAppAction={handleMiniAppAction}
@@ -1884,6 +1901,19 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             ))}
           </div>
         )}
+        {markNextMediaSensitive && (
+          <button
+            type="button"
+            onClick={() => setMarkNextMediaSensitive(false)}
+            className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-bold text-fuchsia-600"
+            aria-label="Turn off 18+ marker for next group media"
+            title="Turn off 18+ marker"
+          >
+            <ShieldAlert className="h-3.5 w-3.5" />
+            18+ blur on for next media
+            <X className="h-3 w-3" />
+          </button>
+        )}
         <div className="flex items-end gap-1.5">
           {/* Attach button with full attach menu */}
           <div className="relative shrink-0">
@@ -1919,7 +1949,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 setDisappearingSec(next);
                 toast.success(next == null ? "Auto-delete: Off" : next === 24*60*60 ? "Auto-delete: 1 day" : next === 7*24*60*60 ? "Auto-delete: 7 days" : "Auto-delete: 30 days");
               }}
+              onToggleSensitiveMedia={handleToggleSensitiveMedia}
               disappearingEnabled={disappearingSec != null}
+              sensitiveMediaMarked={markNextMediaSensitive}
               disappearingLabel={disappearingSec == null ? "Off" : disappearingSec === 24*60*60 ? "1d" : disappearingSec === 7*24*60*60 ? "7d" : "30d"}
             />
           </div>

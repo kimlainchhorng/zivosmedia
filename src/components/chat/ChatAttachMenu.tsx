@@ -9,6 +9,7 @@ import Video from "lucide-react/dist/esm/icons/video";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Timer from "lucide-react/dist/esm/icons/timer";
 import Lock from "lucide-react/dist/esm/icons/lock";
+import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
 import Gift from "lucide-react/dist/esm/icons/gift";
 import Coins from "lucide-react/dist/esm/icons/coins";
 import ScanLine from "lucide-react/dist/esm/icons/scan-line";
@@ -34,6 +35,7 @@ interface ChatAttachMenuProps {
   onLocationShare: () => void;
   onToggleDisappearing: () => void;
   onLockedImageSelect?: () => void;
+  onToggleSensitiveMedia?: () => void;
   onSendGift?: () => void;
   onOpenWallet?: () => void;
   onScanDocument?: () => void;
@@ -43,6 +45,7 @@ interface ChatAttachMenuProps {
   onShareSocial?: () => void;
   onShareZivoCard?: () => void;
   disappearingEnabled: boolean;
+  sensitiveMediaMarked?: boolean;
   /** Override label of the disappearing-messages menu item (e.g. "1d", "7d", "30d", "Off"). Defaults to "24h". */
   disappearingLabel?: string;
 }
@@ -50,6 +53,7 @@ interface ChatAttachMenuProps {
 const menuItems = [
   { id: "image", label: "Photo", hint: "Camera roll", icon: ImagePlus, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   { id: "video", label: "Video", hint: "Clip or GIF", icon: Video, color: "text-violet-500", bg: "bg-violet-500/10" },
+  { id: "sensitive", label: "18+", hint: "Blur next media", icon: ShieldAlert, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
   { id: "file", label: "File", hint: "PDF and docs", icon: FileUp, color: "text-sky-500", bg: "bg-sky-500/10" },
   { id: "scan", label: "Scan", hint: "Quick document", icon: ScanLine, color: "text-cyan-500", bg: "bg-cyan-500/10", isNew: true },
   { id: "location", label: "Location", hint: "Share pin", icon: MapPin, color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -76,13 +80,13 @@ const PRIMARY_VISIBLE_COUNT = 8;
 
 export default function ChatAttachMenu({
   open, onClose, onImageSelect, onVideoSelect, onLocationShare, onToggleDisappearing, onLockedImageSelect,
-  onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, disappearingLabel,
+  onToggleSensitiveMedia, onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, disappearingLabel,
 }: ChatAttachMenuProps) {
   const { isPlus, plan } = useZivoPlus();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const navigate = useNavigate();
   const visibleItems = zivoOFMode
-    ? menuItems.filter((it) => ["image", "video", "locked", "money", "gift"].includes(it.id))
+    ? menuItems.filter((it) => ["image", "video", "sensitive", "locked", "money", "gift"].includes(it.id))
     : menuItems;
   const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
@@ -152,6 +156,7 @@ export default function ChatAttachMenu({
     if (id === "poll") return !onCreatePoll;
     if (id === "contact") return !onShareContact;
     if (id === "social") return !onShareSocial;
+    if (id === "sensitive") return !onToggleSensitiveMedia;
     if (id === "zivo") return !onShareZivoCard;
     return false;
   };
@@ -215,6 +220,10 @@ export default function ChatAttachMenu({
       case "poll": onCreatePoll?.(); break;
       case "contact": onShareContact?.(); break;
       case "social": onShareSocial?.(); break;
+      case "sensitive":
+        onToggleSensitiveMedia?.();
+        trackItemUsage(id);
+        return;
       case "zivo": onShareZivoCard?.(); break;
       case "image": onImageSelect(); break;
       case "video": onVideoSelect(); break;
@@ -314,6 +323,8 @@ export default function ChatAttachMenu({
                   >
                     <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl border border-border/60 flex items-center justify-center group-active:scale-90 transition-transform ${item.bg} ${
                       item.id === "disappearing" && disappearingEnabled ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+                    } ${
+                      item.id === "sensitive" && sensitiveMediaMarked ? "ring-2 ring-fuchsia-500 ring-offset-2 ring-offset-background" : ""
                     } ${isLockedGated ? "opacity-50" : ""} ${isUnavailable ? "opacity-60" : ""}`}>
                       <item.icon className={`w-[18px] h-[18px] sm:w-5 sm:h-5 ${item.color}`} />
                     </div>
@@ -328,6 +339,9 @@ export default function ChatAttachMenu({
                     )}
                     {item.id === "disappearing" && disappearingEnabled && (
                       <span className="text-[8px] text-primary font-bold -mt-1">ON</span>
+                    )}
+                    {item.id === "sensitive" && sensitiveMediaMarked && (
+                      <span className="text-[8px] text-fuchsia-500 font-bold -mt-1">ON</span>
                     )}
                     {isLockedGated && (
                       <span className="absolute -top-1 -right-1 text-[7px] font-bold px-1 py-0.5 rounded-full bg-amber-500 text-white">PRO</span>

@@ -1,43 +1,45 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-05-22T01:36:21.173Z
+Generated: 2026-05-26T19:21:51.461Z
 
 ## Summary
 
-- Local migrations: 690
+- Local migrations: 700
 - Invalid filenames: 0
 - Duplicate versions: 8
+- Allowed duplicate versions: 8
+- New duplicate versions: 0
 - Duplicate SQL hashes: 0
 - Remote migrations: 0
 - Matched versions: 0
-- Local-only pending: 690
+- Local-only pending: 700
 - Remote-only missing locally: 0
-- Pending risk: high=623, medium=50, low=17
+- Pending risk: high=633, medium=50, low=17
 
 ## Domains
 
-- security/auth: 590
+- security/auth: 597
 - commerce/store: 34
-- chat/social: 20
+- chat/social: 23
 - general: 19
 - travel/lodging: 18
 - infrastructure: 9
 
 ## Duplicate Versions
 
-- 20260429230000: 20260429230000_security_hardening.sql, 20260429230000_user_posts_visibility_location.sql
-- 20260429240000: 20260429240000_backfill_storage_paths.sql, 20260429240000_increment_user_post_views.sql
-- 20260429250000: 20260429250000_post_actions_tables.sql, 20260429250000_user_posts_realtime.sql
-- 20260429260000: 20260429260000_post_comments_realtime.sql, 20260429260000_post_reactions.sql
-- 20260430020000: 20260430020000_blocked_link_attempts.sql, 20260430020000_fix_social_notification_triggers.sql
-- 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql
-- 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql
-- 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql
+- 20260429230000: 20260429230000_security_hardening.sql, 20260429230000_user_posts_visibility_location.sql (allowed legacy duplicate)
+- 20260429240000: 20260429240000_backfill_storage_paths.sql, 20260429240000_increment_user_post_views.sql (allowed legacy duplicate)
+- 20260429250000: 20260429250000_post_actions_tables.sql, 20260429250000_user_posts_realtime.sql (allowed legacy duplicate)
+- 20260429260000: 20260429260000_post_comments_realtime.sql, 20260429260000_post_reactions.sql (allowed legacy duplicate)
+- 20260430020000: 20260430020000_blocked_link_attempts.sql, 20260430020000_fix_social_notification_triggers.sql (allowed legacy duplicate)
+- 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql (allowed legacy duplicate)
+- 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql (allowed legacy duplicate)
+- 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql (allowed legacy duplicate)
 
 ## Remote Query
 
 - Error: Initialising login role...
-2026/05/21 20:36:21 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
+2026/05/26 14:21:51 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
 
 ## High Risk Pending Migrations
 
@@ -141,7 +143,7 @@ Generated: 2026-05-22T01:36:21.173Z
 - 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
 - 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
 - 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 523 more
+- ...and 533 more
 
 ## Remote-Only Versions
 

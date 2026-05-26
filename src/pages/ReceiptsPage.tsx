@@ -13,6 +13,8 @@ import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { formatBakongBillId } from "@/lib/khqr";
+import { toast } from "sonner";
 
 interface ReceiptRow {
   id: string;
@@ -23,6 +25,8 @@ interface ReceiptRow {
   pdf_path: string;
   email_sent_at: string | null;
   created_at: string;
+  bakong_reference?: string | null;
+  bakong_bill_id?: string | null;
 }
 
 const TYPE_ICONS: Record<string, typeof Receipt> = {
@@ -41,13 +45,31 @@ function getTypeIcon(type: string): typeof Receipt {
   return TYPE_ICONS[type.toLowerCase()] ?? Receipt;
 }
 
+const ZERO_DECIMAL_CURRENCIES = new Set(["BIF", "CLP", "DJF", "GNF", "JPY", "KHR", "KMF", "KRW", "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"]);
+
 function formatCents(cents: number, currency: string): string {
+  const normalizedCurrency = (currency || "USD").toUpperCase();
+  if (ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency)) {
+    return `${Math.round(cents ?? 0).toLocaleString("en-US")} ${normalizedCurrency}`;
+  }
   const v = (cents ?? 0) / 100;
   try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: (currency || "USD").toUpperCase() }).format(v);
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: normalizedCurrency }).format(v);
   } catch {
     return `$${v.toFixed(2)}`;
   }
+}
+
+function formatTotals(receipts: ReceiptRow[]): string {
+  const totals = receipts.reduce((acc: Record<string, number>, r) => {
+    const currency = (r.currency || "USD").toUpperCase();
+    acc[currency] = (acc[currency] ?? 0) + (r.total_cents ?? 0);
+    return acc;
+  }, {});
+
+  const entries = Object.entries(totals);
+  if (entries.length === 0) return "$0.00";
+  return entries.map(([currency, amount]) => formatCents(amount, currency)).join(" + ");
 }
 
 function formatDate(iso: string): string {
@@ -82,7 +104,30 @@ export default function ReceiptsPage() {
         .select("id, type, reference_id, currency, total_cents, pdf_path, email_sent_at, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-      return data ?? [];
+      const rows = data ?? [];
+      const rideIds = rows
+        .filter((row) => row.type?.toLowerCase() === "ride")
+        .map((row) => row.reference_id)
+        .filter(Boolean);
+      if (rideIds.length === 0) return rows;
+
+      const { data: rides } = await (supabase as any)
+        .from("ride_requests")
+        .select("id, bakong_reference")
+        .eq("user_id", user.id)
+        .in("id", rideIds);
+      const rideMap = new Map<string, string | null>(
+        ((rides as any[]) || []).map((ride) => [ride.id, ride.bakong_reference ?? null])
+      );
+
+      return rows.map((row) => {
+        const bakongReference = rideMap.get(row.reference_id) ?? null;
+        return {
+          ...row,
+          bakong_reference: bakongReference,
+          bakong_bill_id: formatBakongBillId(bakongReference),
+        };
+      });
     },
     enabled: !!user?.id,
     staleTime: 60_000,
@@ -95,15 +140,29 @@ export default function ReceiptsPage() {
     const q = query.toLowerCase();
     return (
       r.reference_id?.toLowerCase().includes(q) ||
+      r.bakong_reference?.toLowerCase().includes(q) ||
+      r.bakong_bill_id?.toLowerCase().includes(q) ||
       r.type?.toLowerCase().includes(q)
     );
   });
 
-  const totalSpent = receipts.reduce((sum, r) => sum + (r.total_cents ?? 0), 0);
-  const displayCurrency = receipts[0]?.currency ?? "USD";
+  const totalSpent = formatTotals(receipts);
 
-  const openPdf = async (pdfPath: string) => {
+  const openPdf = async (pdfPath: string, type: string) => {
     if (!pdfPath) return;
+    if (type.toLowerCase() === "ride") {
+      const receipt = receipts.find((row) => row.pdf_path === pdfPath);
+      if (!receipt?.reference_id) return;
+      const { data, error } = await supabase.functions.invoke("get-receipt-signed-url", {
+        body: { ride_request_id: receipt.reference_id },
+      });
+      if (error || (data as any)?.error || !(data as any)?.url) {
+        toast.error((data as any)?.error || "Could not open receipt");
+        return;
+      }
+      window.open((data as any).url, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (/^https?:\/\//.test(pdfPath)) {
       window.open(pdfPath, "_blank", "noopener,noreferrer");
       return;
@@ -117,7 +176,8 @@ export default function ReceiptsPage() {
           };
         };
       };
-      const { data } = await sb.storage.from("receipts").createSignedUrl(pdfPath, 60);
+      const bucket = type.toLowerCase() === "ride" ? "trip-receipts" : "receipts";
+      const { data } = await sb.storage.from(bucket).createSignedUrl(pdfPath, 60);
       if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch {
       /* swallow — link button does its best, the dev console will show storage errors */
@@ -161,7 +221,7 @@ export default function ReceiptsPage() {
           >
             <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
             <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Total spent</p>
-            <p className="text-3xl font-bold mt-1">{formatCents(totalSpent, displayCurrency)}</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1 break-words">{totalSpent}</p>
             <p className="text-sm text-white/80 mt-1">{receipts.length} receipts</p>
           </motion.div>
         )}
@@ -171,7 +231,7 @@ export default function ReceiptsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
             type="search"
-            placeholder="Search by reference or type"
+            placeholder="Search by reference, Bill ID, or type"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full h-11 pl-9 pr-3 rounded-xl bg-card border border-border text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-rose-500/30"
@@ -242,14 +302,14 @@ export default function ReceiptsPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground capitalize">{r.type}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {r.reference_id} · {formatDate(r.created_at)}
+                      {r.bakong_bill_id ? `Bill ${r.bakong_bill_id} · ` : ""}{r.reference_id} · {formatDate(r.created_at)}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-foreground">{formatCents(r.total_cents, r.currency)}</p>
                     <button
                       type="button"
-                      onClick={() => openPdf(r.pdf_path)}
+                      onClick={() => openPdf(r.pdf_path, r.type)}
                       className="mt-1 text-[11px] font-bold text-ig-gradient inline-flex items-center gap-0.5 hover:opacity-80 active:opacity-60"
                       aria-label={`Download receipt ${r.reference_id}`}
                     >

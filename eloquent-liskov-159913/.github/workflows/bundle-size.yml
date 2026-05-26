@@ -1,0 +1,205 @@
+name: Bundle Size
+
+# Reports JS/CSS bundle size on every PR — comments a diff table so you can
+# see if a change inflates the bundle before it merges.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - ".github/workflows/bundle-size.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: bundle-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Block merges if total JS/CSS grows by more than this amount.
+  MAX_TOTAL_DELTA_KB: "120"
+  # Extra guardrail for vendor chunk growth.
+  MAX_VENDOR_DELTA_KB: "80"
+
+jobs:
+  bundle-size:
+    name: Bundle size report
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build PR branch
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run build
+
+      - name: Measure PR bundle
+        id: pr-size
+        run: |
+          TOTAL=$(du -sb dist/assets/*.js dist/assets/*.css 2>/dev/null | awk '{sum+=$1} END{printf "%.0f", sum}')
+          VENDOR=$(du -sb dist/assets/vendor-*.js 2>/dev/null | awk '{sum+=$1} END{printf "%.0f", sum}')
+          MAIN=$(du -sb dist/assets/index*.js 2>/dev/null | awk '{sum+=$1} END{printf "%.0f", sum}')
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "vendor=$VENDOR" >> $GITHUB_OUTPUT
+          echo "main=$MAIN" >> $GITHUB_OUTPUT
+          echo "PR branch totals — total:$TOTAL vendor:$VENDOR main:$MAIN"
+
+      - name: Checkout base (main) branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          path: base-branch
+
+      - name: Install base branch deps
+        working-directory: base-branch
+        run: npm ci --no-audit --no-fund
+
+      - name: Build base branch
+        working-directory: base-branch
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run build
+
+      - name: Measure base bundle
+        id: base-size
+        run: |
+          TOTAL=$(du -sb base-branch/dist/assets/*.js base-branch/dist/assets/*.css 2>/dev/null | awk '{sum+=$1} END{printf "%.0f", sum}')
+          VENDOR=$(du -sb base-branch/dist/assets/vendor-*.js 2>/dev/null | awk '{sum+=$1} END{printf "%.0f", sum}')
+          MAIN=$(du -sb base-branch/dist/assets/index*.js 2>/dev/null | awk '{sum+=$1} END{printf "%.0f", sum}')
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "vendor=$VENDOR" >> $GITHUB_OUTPUT
+          echo "main=$MAIN" >> $GITHUB_OUTPUT
+
+      - name: Evaluate bundle budgets
+        id: budget
+        env:
+          PR_TOTAL: ${{ steps.pr-size.outputs.total }}
+          PR_VENDOR: ${{ steps.pr-size.outputs.vendor }}
+          BASE_TOTAL: ${{ steps.base-size.outputs.total }}
+          BASE_VENDOR: ${{ steps.base-size.outputs.vendor }}
+        run: |
+          PR_TOTAL=${PR_TOTAL:-0}
+          PR_VENDOR=${PR_VENDOR:-0}
+          BASE_TOTAL=${BASE_TOTAL:-0}
+          BASE_VENDOR=${BASE_VENDOR:-0}
+
+          TOTAL_DELTA_KB=$(( (PR_TOTAL - BASE_TOTAL) / 1024 ))
+          VENDOR_DELTA_KB=$(( (PR_VENDOR - BASE_VENDOR) / 1024 ))
+
+          echo "total_delta_kb=$TOTAL_DELTA_KB" >> "$GITHUB_OUTPUT"
+          echo "vendor_delta_kb=$VENDOR_DELTA_KB" >> "$GITHUB_OUTPUT"
+
+          TOTAL_FAIL=false
+          VENDOR_FAIL=false
+
+          if [ "$TOTAL_DELTA_KB" -gt "${MAX_TOTAL_DELTA_KB}" ]; then
+            TOTAL_FAIL=true
+          fi
+          if [ "$VENDOR_DELTA_KB" -gt "${MAX_VENDOR_DELTA_KB}" ]; then
+            VENDOR_FAIL=true
+          fi
+
+          if [ "$TOTAL_FAIL" = true ] || [ "$VENDOR_FAIL" = true ]; then
+            echo "status=fail" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=pass" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post bundle-size PR comment
+        uses: actions/github-script@v7
+        env:
+          PR_TOTAL: ${{ steps.pr-size.outputs.total }}
+          PR_VENDOR: ${{ steps.pr-size.outputs.vendor }}
+          PR_MAIN: ${{ steps.pr-size.outputs.main }}
+          BASE_TOTAL: ${{ steps.base-size.outputs.total }}
+          BASE_VENDOR: ${{ steps.base-size.outputs.vendor }}
+          BASE_MAIN: ${{ steps.base-size.outputs.main }}
+          TOTAL_DELTA_KB: ${{ steps.budget.outputs.total_delta_kb }}
+          VENDOR_DELTA_KB: ${{ steps.budget.outputs.vendor_delta_kb }}
+          BUDGET_STATUS: ${{ steps.budget.outputs.status }}
+          MAX_TOTAL_DELTA_KB: ${{ env.MAX_TOTAL_DELTA_KB }}
+          MAX_VENDOR_DELTA_KB: ${{ env.MAX_VENDOR_DELTA_KB }}
+        with:
+          script: |
+            const fmt = (bytes) => {
+              const kb = Math.round(Number(bytes) / 1024);
+              return `${kb.toLocaleString()} kB`;
+            };
+            const diff = (pr, base) => {
+              const d = Math.round((Number(pr) - Number(base)) / 1024);
+              if (d === 0) return '±0 kB';
+              const sign = d > 0 ? '▲ +' : '▼ ';
+              const emoji = d > 50 ? ' ⚠️' : d > 0 ? '' : ' ✅';
+              return `${sign}${Math.abs(d)} kB${emoji}`;
+            };
+
+            const status = process.env.BUDGET_STATUS === 'fail' ? '❌ Budget exceeded' : '✅ Within budget';
+            const budgetLine = `Budget: total ≤ +${process.env.MAX_TOTAL_DELTA_KB} kB, vendor ≤ +${process.env.MAX_VENDOR_DELTA_KB} kB`;
+            const observedLine = `Observed: total ${Number(process.env.TOTAL_DELTA_KB) >= 0 ? '+' : ''}${process.env.TOTAL_DELTA_KB} kB, vendor ${Number(process.env.VENDOR_DELTA_KB) >= 0 ? '+' : ''}${process.env.VENDOR_DELTA_KB} kB`;
+
+            const body = [
+              `## 📦 Bundle Size Report`,
+              ``,
+              `${status}`,
+              `${budgetLine}`,
+              `${observedLine}`,
+              ``,
+              `| Chunk | Base (main) | PR | Δ |`,
+              `|-------|------------|-----|---|`,
+              `| **Total JS + CSS** | ${fmt(process.env.BASE_TOTAL)} | ${fmt(process.env.PR_TOTAL)} | ${diff(process.env.PR_TOTAL, process.env.BASE_TOTAL)} |`,
+              `| Vendor chunks | ${fmt(process.env.BASE_VENDOR)} | ${fmt(process.env.PR_VENDOR)} | ${diff(process.env.PR_VENDOR, process.env.BASE_VENDOR)} |`,
+              `| Entry index | ${fmt(process.env.BASE_MAIN)} | ${fmt(process.env.PR_MAIN)} | ${diff(process.env.PR_MAIN, process.env.BASE_MAIN)} |`,
+              ``,
+              `> ⚠️ = grew >50 kB — review before merging.`,
+            ].join('\n');
+
+            // Find and overwrite existing bundle-size comment if any
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('📦 Bundle Size Report')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail PR if bundle budget exceeded
+        if: steps.budget.outputs.status == 'fail'
+        run: |
+          echo "Bundle size budgets exceeded."
+          echo "Total delta: ${{ steps.budget.outputs.total_delta_kb }} kB (limit +${{ env.MAX_TOTAL_DELTA_KB }} kB)"
+          echo "Vendor delta: ${{ steps.budget.outputs.vendor_delta_kb }} kB (limit +${{ env.MAX_VENDOR_DELTA_KB }} kB)"
+          exit 1

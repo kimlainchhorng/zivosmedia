@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-16T23:00:51.014Z",
+  "store_id": "5c532e75-fa71-4713-acd1-1e2bb56e44e7",
+  "store_account_id": "CBD5C532E75",
+  "property_name": "Nature Lodge",
+  "source_note": "Generated for ZIVO missing-media remediation. Booking.com/bstatic media must not be used unless the property/rightsholder or Booking.com has granted written reuse permission for ZIVO. Put property-owned/authorized files in the referenced local media folder, set media_authorized=true, and keep proof of permission.",
+  "permission_required": true,
+  "permission_status": "pending-written-authorization",
+  "permission_evidence": null,
+  "media_authorized": false,
+  "expected_media_folder": "data/hotel-imports/missing-media-2026-05-16/nature-lodge-mondulkiri-media/",
+  "media": {
+    "logo_file": "nature-lodge-mondulkiri-media/profile.jpg",
+    "banner_file": "nature-lodge-mondulkiri-media/cover.jpg",
+    "gallery_images": [
+      {
+        "file": "nature-lodge-mondulkiri-media/gallery/01.jpg",
+        "caption": "Nature Lodge property photo",
+        "order": 0
+      },
+      {
+        "file": "nature-lodge-mondulkiri-media/gallery/02.jpg",
+        "caption": "Nature Lodge property photo",
+        "order": 1
+      },
+      {
+        "file": "nature-lodge-mondulkiri-media/gallery/03.jpg",
+        "caption": "Nature Lodge property photo",
+        "order": 2
+      }
+    ]
+  },
+  "store_profile": {
+    "name": "Nature Lodge",
+    "category": "hotel",
+    "market": "KH",
+    "address": "Chomka Tai Village, Spean Meanchy Commune, Sen Monorom",
+    "phone": "+85512230272",
+    "description": "Eco-friendly bungalow resort established in 2007, offering accommodation submerged in a lusciously green tropical setting. A social enterprise providing vocational training and safe employment for the local Mondulkiri community.",
+    "rating": 8.1,
+    "latitude": 12.455288,
+    "longitude": 107.204965,
+    "is_active": true
+  },
+  "remediation_needs": [
+    "profile/logo image",
+    "cover/banner image",
+    "property gallery images",
+    "room photos",
+    "original price or discount fields"
+  ],
+  "rooms": [
+    {
+      "name": "Country Cottage",
+      "room_type": "Standard",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Double"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 3500,
+      "original_rate_cents": null,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Charming country-style cottage with extra space, a larger terrace and a peaceful garden outlook.",
+      "amenities": [
+        "Fan",
+        "Private bathroom",
+        "Mosquito net",
+        "Larger terrace",
+        "Garden view",
+        "Towels",
+        "Writing desk"
+      ],
+      "is_active": true,
+      "existing_photo_count": 3,
+      "photos": []
+    },
+    {
+      "name": "Deluxe Double Room",
+      "room_type": "Deluxe",
+      "beds": "1 Queen",
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Queen"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": 30,
+      "units_total": 4,
+      "base_rate_cents": 2800,
+      "original_rate_cents": 5040,
+      "weekend_rate_cents": 3136,
+      "breakfast_rate_cents": 3300,
+      "weekly_discount_pct": 8,
+      "monthly_discount_pct": 15,
+      "description": "Comfortable double room with queen bed, air conditioning, Wi-Fi, work desk, and attached bathroom.",
+      "amenities": [
+        "Free toiletries",
+        "Towels",
+        "Toilet",
+        "Shower",
+        "Toilet paper",
+        "Air conditioning",
+        "Free Wi-Fi",
+        "Wardrobe or closet",
+        "Desk",
+        "Tea/Coffee maker",
+        "Attached bathroom",
+        "Non-smoking"
+      ],
+      "is_active": true,
+      "existing_photo_count": 0,
+      "photos": [
+        {
+          "file": "nature-lodge-mondulkiri-media/rooms/deluxe-double-room/01.jpg",
+          "caption": "Deluxe Double Room",
+          "order": 0
+        },
+        {
+          "file": "nature-lodge-mondulkiri-media/rooms/deluxe-double-room/02.jpg",
+          "caption": "Deluxe Double Room",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "name": "Family Lodge",
+      "room_type": "Family",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Double"
+        },
+        {
+          "qty": 2,
+          "type": "Single"
+        }
+      ],
+      "max_guests": 6,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 5000,
+      "original_rate_cents": null,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Spacious family lodge sleeping up to 6, ideal for families or groups exploring Mondulkiri province.",
+      "amenities": [
+        "Fan",
+        "Private bathroom",
+        "Multiple beds",
+        "Mosquito net",
+        "Large terrace",
+        "Garden view",
+        "Towels"
+      ],
+      "is_active": true,
+      "existing_photo_count": 3,
+      "photos": []
+    },
+    {
+      "name": "Family Room",
+      "room_type": "Family",
+      "beds": "1 Queen and 1 Twin",
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Queen"
+        },
+        {
+          "qty": 1,
+          "type": "Twin"
+        }
+      ],
+      "max_guests": 3,
+      "size_sqm": 45,
+      "units_total": 2,
+      "base_rate_cents": 4600,
+      "original_rate_cents": 8280,
+      "weekend_rate_cents": 5152,
+      "breakfast_rate_cents": 5100,
+      "weekly_discount_pct": 8,
+      "monthly_discount_pct": 15,
+      "description": "Family-friendly room with flexible bedding, air conditioning, Wi-Fi, and attached bathroom.",
+      "amenities": [
+        "Free toiletries",
+        "Towels",
+        "Toilet",
+        "Shower",
+        "Toilet paper",
+        "Air conditioning",
+        "Free Wi-Fi",
+        "Wardrobe or closet",
+        "Desk",
+        "Tea/Coffee maker",
+        "Attached bathroom",
+        "Non-smoking"
+      ],
+      "is_active": true,
+      "existing_photo_count": 0,
+      "photos": [
+        {
+          "file": "nature-lodge-mondulkiri-media/rooms/family-room/01.jpg",
+          "caption": "Family Room",
+          "order": 0
+        },
+        {
+          "file": "nature-lodge-mondulkiri-media/rooms/family-room/02.jpg",
+          "caption": "Family Room",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "name": "Standard Bungalow",
+      "room_type": "Standard",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Double"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 2500,
+      "original_rate_cents": null,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Cozy wooden bungalow immersed in tropical greenery with fan, private bathroom, and open terrace overlooking the garden.",
+      "amenities": [
+        "Fan",
+        "Private bathroom",
+        "Mosquito net",
+        "Terrace",
+        "Garden view",
+        "Towels"
+      ],
+      "is_active": true,
+      "existing_photo_count": 3,
+      "photos": []
+    },
+    {
+      "name": "Twin Room",
+      "room_type": "Twin",
+      "beds": "2 Twin",
+      "bed_config": [
+        {
+          "qty": 2,
+          "type": "Twin"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": 32,
+      "units_total": 4,
+      "base_rate_cents": 3500,
+      "original_rate_cents": 6300,
+      "weekend_rate_cents": 3920,
+      "breakfast_rate_cents": 4000,
+      "weekly_discount_pct": 8,
+      "monthly_discount_pct": 15,
+      "description": "Twin room with two beds, Wi-Fi, air conditioning, storage, and attached bathroom.",
+      "amenities": [
+        "Free toiletries",
+        "Towels",
+        "Toilet",
+        "Shower",
+        "Toilet paper",
+        "Air conditioning",
+        "Free Wi-Fi",
+        "Wardrobe or closet",
+        "Desk",
+        "Tea/Coffee maker",
+        "Attached bathroom",
+        "Non-smoking"
+      ],
+      "is_active": true,
+      "existing_photo_count": 0,
+      "photos": [
+        {
+          "file": "nature-lodge-mondulkiri-media/rooms/twin-room/01.jpg",
+          "caption": "Twin Room",
+          "order": 0
+        },
+        {
+          "file": "nature-lodge-mondulkiri-media/rooms/twin-room/02.jpg",
+          "caption": "Twin Room",
+          "order": 1
+        }
+      ]
+    }
+  ]
+}

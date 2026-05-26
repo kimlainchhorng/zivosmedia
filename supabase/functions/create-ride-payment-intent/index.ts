@@ -74,8 +74,10 @@ Deno.serve(withSecurity("create-ride-payment-intent", async (req, ctx) => {
         .from("ride_requests")
         .update({
           payment_status: "authorized",
+          payment_amount: 0,
+          payment_currency: "USD",
           promo_code: promo_code || null,
-          discount_cents: discount_cents || 0,
+          promo_discount: discount_cents ? discount_cents / 100 : 0,
         })
         .eq("id", ride_request_id)
         .eq("user_id", userId);
@@ -237,7 +239,13 @@ Deno.serve(withSecurity("create-ride-payment-intent", async (req, ctx) => {
       .from("ride_requests")
       .update({
         payment_intent_id: paymentIntent.id,
+        stripe_payment_intent_id: paymentIntent.id,
         payment_status: paymentStatus,
+        payment_amount: netAmount / 100,
+        payment_currency: "USD",
+        surcharge_amount_cents: cardFeeCents,
+        promo_code: promo_code || null,
+        promo_discount: discount_cents ? discount_cents / 100 : 0,
       })
       .eq("id", ride_request_id)
       .eq("user_id", userId);

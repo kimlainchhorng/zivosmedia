@@ -156,10 +156,26 @@ export async function forwardGeocode(address: string): Promise<{ lat: number; ln
   try {
     // Use autocomplete + place details as a two-step forward geocode
     const suggestions = await getAutocompleteSuggestions(address);
-    if (suggestions.length === 0) return null;
+    if (suggestions.length === 0) {
+      const { data, error } = await supabase.functions.invoke("maps-geocode", {
+        body: { address: address.trim() },
+      });
+      if (!error && data?.ok && data.lat != null && data.lng != null) {
+        return { lat: data.lat, lng: data.lng };
+      }
+      return null;
+    }
     
     const details = await getPlaceDetails(suggestions[0].place_id);
-    if (!details) return null;
+    if (!details) {
+      const { data, error } = await supabase.functions.invoke("maps-geocode", {
+        body: { address: suggestions[0].description || address.trim() },
+      });
+      if (!error && data?.ok && data.lat != null && data.lng != null) {
+        return { lat: data.lat, lng: data.lng };
+      }
+      return null;
+    }
     
     return { lat: details.lat, lng: details.lng };
   } catch {

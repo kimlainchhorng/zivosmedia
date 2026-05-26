@@ -1,0 +1,1 @@
+ALTER TABLE public.store_posts ADD COLUMN IF NOT EXISTS audio_name TEXT DEFAULT NULL;

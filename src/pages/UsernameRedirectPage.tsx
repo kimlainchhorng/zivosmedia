@@ -72,7 +72,7 @@ export default function UsernameRedirectPage() {
       // Compare case-insensitively — usernames are unique but stored in
       // their original casing, so we use ilike to be lenient on URL casing.
       const { data, error } = await supabase
-        .from("profiles")
+        .from("usernames")
         .select("user_id")
         .ilike("username", username)
         .maybeSingle();
@@ -81,7 +81,7 @@ export default function UsernameRedirectPage() {
         setStatus("error");
         return;
       }
-      const userId = (data as { user_id?: string } | null)?.user_id;
+      const userId = (data as { user_id?: string | null } | null)?.user_id;
       if (userId) {
         openAppThenFallback(userId);
       } else {

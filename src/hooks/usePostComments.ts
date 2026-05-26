@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  detectSensitiveContent,
+  isCommentSafetySchemaDriftError,
+  isSensitiveReportReason,
+} from "@/lib/social/sensitiveContent";
+
+const COMMENTS_BASE_SELECT = "id, content, user_id, parent_id, likes_count, created_at, is_pinned, updated_at";
+const COMMENTS_SAFETY_SELECT = `${COMMENTS_BASE_SELECT}, hidden_at, hidden_by, hidden_reason, sensitive_report_count`;
 
 export interface PostComment {
   id: string;
@@ -10,6 +19,10 @@ export interface PostComment {
   created_at: string;
   is_pinned?: boolean;
   edited_at?: string | null;
+  hidden_at?: string | null;
+  hidden_by?: string | null;
+  hidden_reason?: string | null;
+  sensitive_report_count?: number;
   author_name: string;
   author_avatar: string | null;
   author_is_verified?: boolean;
@@ -23,6 +36,15 @@ interface UsePostCommentsOptions {
   currentUserId: string | null;
 }
 
+const removeCommentFromList = (list: PostComment[], commentId: string): PostComment[] =>
+  list
+    .filter((c) => c.id !== commentId)
+    .map((c) =>
+      c.replies && c.replies.length > 0
+        ? { ...c, replies: removeCommentFromList(c.replies, commentId) }
+        : c,
+    );
+
 export function usePostComments({ postId, postSource, currentUserId }: UsePostCommentsOptions) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,12 +52,32 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
-    const { data: rawComments } = await (supabase as any)
+    const safetyResult = await (supabase as any)
       .from("post_comments")
-      .select("id, content, user_id, parent_id, likes_count, created_at, is_pinned, updated_at")
+      .select(COMMENTS_SAFETY_SELECT)
       .eq("post_id", postId)
       .eq("post_source", postSource)
+      .is("hidden_at", null)
       .order("created_at", { ascending: true });
+
+    let rawComments = safetyResult.data;
+    let commentsError = safetyResult.error;
+    if (commentsError && isCommentSafetySchemaDriftError(commentsError)) {
+      const fallbackResult = await (supabase as any)
+        .from("post_comments")
+        .select(COMMENTS_BASE_SELECT)
+        .eq("post_id", postId)
+        .eq("post_source", postSource)
+        .order("created_at", { ascending: true });
+      rawComments = fallbackResult.data;
+      commentsError = fallbackResult.error;
+    }
+
+    if (commentsError) {
+      setComments([]);
+      setLoading(false);
+      return;
+    }
 
     if (!rawComments || rawComments.length === 0) {
       setComments([]);
@@ -88,6 +130,10 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
         edited_at: c.updated_at && new Date(c.updated_at).getTime() - new Date(c.created_at).getTime() > 2000
           ? c.updated_at
           : null,
+        hidden_at: c.hidden_at || null,
+        hidden_by: c.hidden_by || null,
+        hidden_reason: c.hidden_reason || null,
+        sensitive_report_count: Number(c.sensitive_report_count || 0),
         author_name: (profile as any)?.full_name || "User",
         author_avatar: (profile as any)?.avatar_url || null,
         author_is_verified: !!(profile as any)?.is_verified,
@@ -128,12 +174,12 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
       .channel(`post-comments-${postSource}-${postId}-${crypto.randomUUID()}`)
       .on(
         "postgres_changes" as any,
-        { event: "INSERT", schema: "public", table: "post_comments", filter: `post_id=eq.${postId}` },
+        { event: "*", schema: "public", table: "post_comments", filter: `post_id=eq.${postId}` },
         (payload: any) => {
-          const row = payload?.new;
+          const row = payload?.new || payload?.old;
           if (!row) return;
           if (row.post_source && row.post_source !== postSource) return;
-          if (row.user_id && row.user_id === currentUserId) return;
+          if (payload?.eventType === "INSERT" && row.user_id && row.user_id === currentUserId) return;
           fetchComments();
         },
       )
@@ -143,6 +189,10 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
 
   const addComment = async (content: string, parentId?: string) => {
     if (!currentUserId || !content.trim()) return;
+    if (detectSensitiveContent(content).isSensitive) {
+      toast.error("This comment looks sexual or explicit. Please edit it before posting.");
+      return;
+    }
     setSubmitting(true);
 
     // Optimistic insert — show the comment in the list immediately so the
@@ -224,17 +274,8 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
     // Optimistic remove — mirrors addComment / toggleReaction pattern.
     // The recursive filter handles both top-level comments and nested
     // replies (so deleting a reply doesn't leave it briefly visible).
-    const removeFromList = (list: PostComment[]): PostComment[] =>
-      list
-        .filter((c) => c.id !== commentId)
-        .map((c) =>
-          c.replies && c.replies.length > 0
-            ? { ...c, replies: removeFromList(c.replies) }
-            : c,
-        );
-
     const previous = comments;
-    setComments((prev) => removeFromList(prev));
+    setComments((prev) => removeCommentFromList(prev, commentId));
 
     try {
       const { error } = await (supabase as any).from("post_comments").delete().eq("id", commentId);
@@ -248,6 +289,10 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
   const editComment = async (commentId: string, nextContent: string) => {
     if (!currentUserId || !nextContent.trim()) return;
     const trimmed = nextContent.trim();
+    if (detectSensitiveContent(trimmed).isSensitive) {
+      toast.error("This comment looks sexual or explicit. Please edit it before saving.");
+      return;
+    }
 
     // Optimistic content update — same recursion to cover nested replies.
     const editInList = (list: PostComment[]): PostComment[] =>
@@ -273,6 +318,65 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
       await fetchComments();
     } catch {
       setComments(previous);
+    }
+  };
+
+  const reportComment = async (comment: PostComment, reason: string): Promise<boolean> => {
+    if (!currentUserId) {
+      toast.error("Sign in to report comments");
+      return false;
+    }
+    if (comment.user_id === currentUserId) {
+      toast.error("You can delete your own comment instead");
+      return false;
+    }
+
+    const sensitiveReport = isSensitiveReportReason(reason);
+    const previousComments = comments;
+    setComments((prev) => removeCommentFromList(prev, comment.id));
+
+    const blockCommenter = async () => {
+      if (!sensitiveReport) return;
+      await (supabase as any).from("user_safety_actions").upsert(
+        {
+          user_id: currentUserId,
+          target_user_id: comment.user_id,
+          action: "block",
+        },
+        { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
+      );
+    };
+
+    try {
+      const { error } = await (supabase as any).from("comment_reports").insert({
+        reporter_id: currentUserId,
+        comment_id: comment.id,
+        post_id: postId,
+        post_source: postSource,
+        reason,
+        description: comment.content.slice(0, 500),
+      });
+      if (error) throw error;
+      await blockCommenter();
+      toast.success(
+        sensitiveReport
+          ? "We hid the comment, blocked this user, and sent it for safety review"
+          : "Thanks - we'll review this comment",
+      );
+      return true;
+    } catch (error) {
+      if (isCommentSafetySchemaDriftError(error)) {
+        try {
+          await blockCommenter();
+          toast.warning("Comment hidden here. Deploy the comment safety migration to send it for review.");
+          return true;
+        } catch {
+          // Fall through to rollback below.
+        }
+      }
+      setComments(previousComments);
+      toast.error("Couldn't submit comment report");
+      return false;
     }
   };
 
@@ -362,6 +466,7 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
     addComment,
     deleteComment,
     editComment,
+    reportComment,
     toggleReaction,
     togglePin,
     refetch: fetchComments,

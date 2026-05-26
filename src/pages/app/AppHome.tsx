@@ -113,6 +113,7 @@ import { useLodgePropertyProfile } from "@/hooks/lodging/useLodgePropertyProfile
 import { useLodgeReservations } from "@/hooks/lodging/useLodgeReservations";
 import { useLodgingPhase5Counts } from "@/hooks/lodging/useLodgingPhase5Counts";
 import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
+import { buildHotelsPath } from "@/lib/lodging/hotelRoutes";
 
 import tabFlightsBg from "@/assets/tab-flights-bg.jpg";
 import tabHotelsBg from "@/assets/tab-hotels-bg.jpg";
@@ -133,6 +134,8 @@ const tabCssVarMap: Record<string, string> = {
   flights: "var(--flights)",
   hotels: "var(--hotels)",
 };
+
+const DEFAULT_HOTELS_PATH = buildHotelsPath();
 // ─── Saved Places Icon Map ───
 // ─── Dynamic search placeholder by tab ───
 // Search placeholder is now handled inside the component with t()
@@ -253,7 +256,7 @@ const getSmartNow = (hour: number): SmartNowConfig => {
     primary: { label: "Plan tomorrow", to: "/trips" },
     chips: [
       { label: "Late-night eats", to: "/eats" },
-      { label: "Hotel stays", to: "/hotels" },
+      { label: "Hotel stays", to: DEFAULT_HOTELS_PATH },
     ],
     gradient: "from-foreground to-foreground/80",
     iconBg: "bg-indigo-500/15",
@@ -316,7 +319,7 @@ const QUICK_PICKS: QuickPick[] = [
   { icon: Coffee,          label: "Coffee",     to: "/eats?q=coffee",     iconColor: "text-amber-600",   iconBg: "bg-amber-500/10" },
   { icon: UtensilsCrossed, label: "Pizza",      to: "/eats?q=pizza",      iconColor: "text-orange-500",  iconBg: "bg-orange-500/10" },
   { icon: Plane,           label: "Flights",    to: "/flights",            iconColor: "text-indigo-500",  iconBg: "bg-indigo-500/10" },
-  { icon: Hotel,           label: "Hotels",     to: "/hotels",             iconColor: "text-violet-500",  iconBg: "bg-violet-500/10" },
+  { icon: Hotel,           label: "Hotels",     to: DEFAULT_HOTELS_PATH,    iconColor: "text-violet-500",  iconBg: "bg-violet-500/10" },
   { icon: Car,             label: "Ride",       to: "/rides/hub",          iconColor: "text-emerald-500", iconBg: "bg-emerald-500/10" },
   { icon: Package,         label: "Delivery",   to: "/delivery",           iconColor: "text-sky-500",     iconBg: "bg-sky-500/10" },
 ];
@@ -341,7 +344,7 @@ const DAILY_MISSIONS: DailyMission[] = [
   // Thursday → reservations
   { icon: Calendar, title: "Reserve a table for the weekend", cta: "Find a spot", to: "/eats", accent: "rose" },
   // Friday → hotels / stays
-  { icon: Hotel, title: "Plan a weekend stay", cta: "Browse hotels", to: "/hotels", accent: "indigo" },
+  { icon: Hotel, title: "Plan a weekend stay", cta: "Browse hotels", to: DEFAULT_HOTELS_PATH, accent: "indigo" },
   // Saturday → bundle
   { icon: Trophy, title: "Bundle a flight + hotel", cta: "See bundles", to: "/flights?bundle=1", accent: "amber" },
 ];
@@ -581,11 +584,12 @@ const AppHome = () => {
   // chunk is in memory by the time the click fires (~80–150 ms head-start
   // on mobile).
   const { prefetch } = useRoutePrefetch();
+  const hotelsPath = useMemo(() => buildHotelsPath(), []);
   const tabRoutes: Record<"rides" | "eats" | "flights" | "hotels", string> = {
     rides: "/rides/hub",
     eats: "/eats",
     flights: "/flights",
-    hotels: "/hotels",
+    hotels: hotelsPath,
   };
 
   const homeTabs = [
@@ -835,7 +839,7 @@ const AppHome = () => {
                 { label: t("home.ride"), image: zivoRideIcon, href: "/rides/hub", badge: null, badgeVariant: "promo" as const },
                 { label: t("home.eats"), image: zivoEatsIcon, href: "/eats", badge: null, badgeVariant: "promo" as const },
                 { label: t("home.flights"), image: zivoFlightsIcon, href: "/flights", badge: null, badgeVariant: "discount" as const },
-                { label: t("home.hotels"), image: zivoHotelsIcon, href: "/hotels", badge: null, badgeVariant: "promo" as const },
+                { label: t("home.hotels"), image: zivoHotelsIcon, href: hotelsPath, badge: null, badgeVariant: "promo" as const },
               ].filter(Boolean) as Array<{ label: string; image: string; href: string; badge: string | null; badgeVariant: "promo" | "discount" }>).map((s) => (
                 <motion.button
                   key={s.label}

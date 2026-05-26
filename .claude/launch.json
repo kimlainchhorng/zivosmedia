@@ -3,14 +3,14 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "${workspaceFolder}\\.claude\\run-npm.cmd",
       "runtimeArgs": ["run", "dev"],
       "port": 8081,
       "autoPort": true
     },
     {
       "name": "preview",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "${workspaceFolder}\\.claude\\run-npm.cmd",
       "runtimeArgs": ["run", "preview"],
       "port": 4173
     }

@@ -91,6 +91,7 @@ const adminNavEntries: NavEntry[] = [
       { label: "Trip Heatmap", icon: Map, path: "/admin/operations/heatmap" },
       { label: "Driver Verification", icon: UserCheck, path: "/admin/drivers/verification" },
       { label: "Driver Moderation", icon: UserX, path: "/admin/drivers/moderation" },
+      { label: "Driver Payouts", icon: Wallet, path: "/admin/drivers/payouts" },
       { label: "Call Closures", icon: PhoneOff, path: "/admin/operations/call-closures" },
     ],
   },

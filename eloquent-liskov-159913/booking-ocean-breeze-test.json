@@ -1,0 +1,26 @@
+{
+  "run_at": "2026-05-16T16:04:46.690Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": true,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "92bcb119-e4fe-4be0-a169-5a22fe314969",
+      "name": "Ocean Breeze Hotel",
+      "status": "updated",
+      "photos": 15,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ocean-breeze-bai-ma-shi.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

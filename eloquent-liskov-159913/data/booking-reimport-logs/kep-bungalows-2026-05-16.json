@@ -1,0 +1,37 @@
+{
+  "run_at": "2026-05-16T23:22:31.801Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": true,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort",
+      "guesthouse",
+      "hostel",
+      "villa",
+      "lodge",
+      "motel",
+      "inn",
+      "boutique"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "34bbfb3a-57d9-4ac2-822f-6db5170c58d4",
+      "name": "Kep Bungalows",
+      "status": "updated",
+      "photos": 55,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/le-kep-bungalows.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

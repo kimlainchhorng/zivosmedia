@@ -1,17 +1,17 @@
 # API Readiness Report
 
-Generated: 2026-05-22T01:36:23.162Z
+Generated: 2026-05-26T19:21:57.714Z
 
 ## Summary
 
 - Critical findings: 0
-- Warnings: 2
-- Edge Functions inventoried: 253
-- High-risk Edge Functions: 108
-- Functions using withSecurity(): 110
-- Functions using strictCorsHeaders(): 93
-- Functions using service role: 202
-- Supabase migration drift: reportLocal=690, currentLocal=690, remote=0, matched=0, duplicateVersions=8, remoteError=yes
+- Warnings: 1
+- Edge Functions inventoried: 258
+- High-risk Edge Functions: 111
+- Functions using withSecurity(): 116
+- Functions using strictCorsHeaders(): 99
+- Functions using service role: 208
+- Supabase migration drift: reportLocal=700, currentLocal=700, remote=0, matched=0, duplicateVersions=8, allowedDuplicateVersions=8, newDuplicateVersions=0, remoteError=yes
 
 ## Critical
 
@@ -19,7 +19,6 @@ Generated: 2026-05-22T01:36:23.162Z
 
 ## Warnings
 
-- [duplicate-migration-versions] Local Supabase migrations contain 8 duplicate version(s). (docs/supabase-migration-drift-report.md)
 - [migration-history-unavailable] Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before production schema work. (docs/supabase-migration-drift-report.md)
 
 ## High-Risk Functions Missing withSecurity()

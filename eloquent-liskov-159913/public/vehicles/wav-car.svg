@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="wavBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ADBFC2"/>
+      <stop offset="100%" stop-color="#7D8FA2"/>
+    </linearGradient>
+    <radialGradient id="wavShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.30)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+  </defs>
+  <!-- Drop shadow (wider for van) -->
+  <ellipse cx="100" cy="91" rx="84" ry="8" fill="url(#wavShadow)"/>
+  <!-- Rear wheel -->
+  <circle cx="152" cy="74" r="14" fill="#2a2a3a"/>
+  <circle cx="152" cy="74" r="6.5" fill="#888898"/>
+  <circle cx="152" cy="74" r="2.5" fill="#2a2a3a"/>
+  <!-- Front wheel -->
+  <circle cx="50" cy="74" r="14" fill="#2a2a3a"/>
+  <circle cx="50" cy="74" r="6.5" fill="#888898"/>
+  <circle cx="50" cy="74" r="2.5" fill="#2a2a3a"/>
+  <!-- Van main body (tall) -->
+  <rect x="20" y="26" width="162" height="50" rx="9" fill="url(#wavBody)"/>
+  <!-- Roof band (dark flat roof) -->
+  <rect x="20" y="14" width="162" height="16" rx="7" fill="#111827"/>
+  <!-- Roof-body blend -->
+  <rect x="20" y="26" width="162" height="6" rx="0" fill="#111827"/>
+  <rect x="20" y="26" width="162" height="6" rx="0" fill="url(#wavBody)" opacity="0.5"/>
+  <!-- Front windshield (large, upright van-style) -->
+  <rect x="24" y="17" width="26" height="18" rx="3" fill="rgba(140,180,210,0.55)"/>
+  <!-- Side passenger windows (long row) -->
+  <rect x="54" y="17" width="88" height="15" rx="4" fill="rgba(140,180,210,0.50)"/>
+  <!-- Rear window -->
+  <rect x="148" y="17" width="28" height="15" rx="4" fill="rgba(140,180,210,0.45)"/>
+  <!-- Window frame separation -->
+  <line x1="90" y1="17" x2="90" y2="32" stroke="rgba(17,24,39,0.4)" stroke-width="2"/>
+  <line x1="120" y1="17" x2="120" y2="32" stroke="rgba(17,24,39,0.4)" stroke-width="2"/>
+  <!-- Sliding door line -->
+  <line x1="133" y1="26" x2="133" y2="76" stroke="rgba(0,0,0,0.18)" stroke-width="2"/>
+  <!-- Door handle recess -->
+  <rect x="110" y="54" width="18" height="3" rx="1.5" fill="rgba(0,0,0,0.18)"/>
+  <!-- Accessibility symbol (wheelchair figure) -->
+  <!-- Head -->
+  <circle cx="98" cy="44" r="4.5" fill="none" stroke="rgba(255,255,255,0.38)" stroke-width="1.8"/>
+  <!-- Body line -->
+  <path d="M 98,48.5 L 97,56 L 102,56 L 106,63" stroke="rgba(255,255,255,0.38)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wheel of wheelchair -->
+  <circle cx="103" cy="64.5" r="4" fill="none" stroke="rgba(255,255,255,0.38)" stroke-width="1.8"/>
+  <!-- Arm extended -->
+  <path d="M 98,51 L 104,49" stroke="rgba(255,255,255,0.38)" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- Headlight -->
+  <ellipse cx="25" cy="50" rx="4" ry="3" fill="rgba(255,248,200,0.85)"/>
+  <ellipse cx="25" cy="50" rx="2" ry="1.5" fill="rgba(255,255,220,1)"/>
+  <!-- Taillight -->
+  <rect x="174" y="46" width="5" height="14" rx="2" fill="rgba(200,50,50,0.80)"/>
+  <!-- Front bumper -->
+  <rect x="20" y="68" width="8" height="3" rx="1.5" fill="rgba(255,255,255,0.15)"/>
+</svg>

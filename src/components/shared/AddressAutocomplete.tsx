@@ -30,6 +30,7 @@ interface AddressAutocompleteProps {
   onSelect: (place: Place) => void;
   onClear?: () => void;
   onFocus?: () => void;
+  onInputChange?: (value: string) => void;
   proximity?: { lat: number; lng: number };
   disabled?: boolean;
   className?: string;
@@ -42,6 +43,7 @@ export function AddressAutocomplete({
   onSelect,
   onClear,
   onFocus,
+  onInputChange,
   proximity,
   disabled = false,
   className,
@@ -119,6 +121,7 @@ export function AddressAutocomplete({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
+    onInputChange?.(newValue);
 
     // Debounce API calls
     if (debounceRef.current) {
@@ -222,6 +225,7 @@ export function AddressAutocomplete({
     setSuggestions([]);
     setIsOpen(false);
     setError(null);
+    onInputChange?.("");
     onClear?.();
   };
 

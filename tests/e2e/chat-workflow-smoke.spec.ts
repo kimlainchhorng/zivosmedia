@@ -77,6 +77,23 @@ test.describe("chat workflow smoke", () => {
       await page.keyboard.press("Escape").catch(() => {});
     }
 
+    // Non-mutating gift workflow probe: open, confirm UI appears, but do not send or checkout.
+    const giftButton = page.getByRole("button", { name: /send a gift/i }).first();
+    if (await giftButton.isVisible().catch(() => false)) {
+      await giftButton.click({ force: true });
+      const giftDialog = page.getByRole("dialog", { name: /gift premium/i });
+      await expect(giftDialog).toBeVisible();
+
+      await giftDialog.getByRole("button", { name: /with 1000 coins/i }).click({ force: true });
+      await expect(giftDialog.getByText("Send Premium Gift")).toBeVisible();
+
+      await giftDialog.getByRole("button", { name: /all gifts/i }).click({ force: true });
+      await expect(giftDialog.getByRole("button", { name: /popular/i })).toBeVisible();
+      await expect(giftDialog.getByText(/Lucky Cat|Cute Panda|Baby Dragon/i).first()).toBeVisible();
+
+      await page.keyboard.press("Escape").catch(() => {});
+    }
+
     await expect(page.locator("body")).toBeVisible();
   });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { format, differenceInCalendarDays, parseISO, isValid, addDays } from "date-fns";
 import {
@@ -26,6 +26,8 @@ import { CountryPhoneInput } from "@/components/auth/CountryPhoneInput";
 import { LodgingEmbeddedCheckout } from "@/components/lodging/LodgingEmbeddedCheckout";
 import { cn } from "@/lib/utils";
 import SEOHead from "@/components/SEOHead";
+import { createLodgeGuestReservation } from "@/lib/lodging/createLodgeReservation";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 const parseParamDate = (s: string | null) => {
   if (!s) return null;
@@ -45,6 +47,7 @@ type CheckoutReservation = {
   number: string | null;
   status: string | null;
   payment_status: string | null;
+  total_cents?: number | null;
   last_payment_error?: string | null;
   card_brand?: string | null;
   card_last4?: string | null;
@@ -71,9 +74,49 @@ const normalizeAccountPhone = (value: string) => {
   return `+${digits}`;
 };
 
+const getBookingErrorMessage = (err: unknown) => {
+  const raw =
+    err && typeof err === "object" && "message" in err
+      ? String((err as { message?: unknown }).message || "")
+      : String(err || "");
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("auth")) {
+    return "Please sign in again before booking this stay.";
+  }
+  if (
+    lower.includes("no longer available") ||
+    lower.includes("not available") ||
+    lower.includes("sold out") ||
+    lower.includes("blocked dates")
+  ) {
+    return "This room is no longer available for the selected dates. Please choose another room or change your dates.";
+  }
+  if (lower.includes("valid room") || lower.includes("room is required")) {
+    return "Choose a room before booking this stay.";
+  }
+  if (lower.includes("guest count exceeds")) {
+    return "This room cannot fit the selected guests. Please reduce guests or choose a larger room.";
+  }
+  if (lower.includes("minimum stay") || lower.includes("maximum stay")) {
+    return raw || "This stay does not match the room's booking rules.";
+  }
+  if (
+    lower.includes("failed to fetch") ||
+    lower.includes("network") ||
+    lower.includes("schema cache") ||
+    lower.includes("could not find the function")
+  ) {
+    return "Booking service is temporarily unavailable. Please try again in a moment.";
+  }
+
+  return raw || "Failed to create booking";
+};
+
 export default function HotelRoomCheckoutPage() {
   const { storeId = "" } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [params, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { data: userProfile, isLoading: profileLoading } = useUserProfile();
@@ -87,6 +130,8 @@ export default function HotelRoomCheckoutPage() {
   const adults = Number(params.get("adults")) || 2;
   const children = Number(params.get("children")) || 0;
   const nights = Math.max(1, differenceInCalendarDays(checkOut, checkIn));
+  const checkInIso = format(checkIn, "yyyy-MM-dd");
+  const checkOutIso = format(checkOut, "yyyy-MM-dd");
 
   // Load store
   const storeQ = useQuery({
@@ -131,12 +176,36 @@ export default function HotelRoomCheckoutPage() {
   const [payMethod, setPayMethod] = useState<PayMethod>("cash");
   const [submitting, setSubmitting] = useState(false);
   const [checkoutReservation, setCheckoutReservation] = useState<CheckoutReservation | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const guestFieldTouchedRef = useRef({ name: false, phone: false, email: false });
   const paymentSectionRef = useRef<HTMLDivElement | null>(null);
   const paymentSuccessToastRef = useRef<string | null>(null);
+  const paymentSuccessRedirectRef = useRef<string | null>(null);
 
   const isLoading = storeQ.isLoading || roomsQ.isLoading;
   const onlinePaymentDone = ONLINE_PAYMENT_SUCCESS.has(checkoutReservation?.payment_status || "");
+  const checkoutAmountCents = checkoutReservation?.total_cents ?? totalCents;
+  const hotelDetailUrl = useMemo(() => {
+    const stayParams = new URLSearchParams({
+      ci: checkInIso,
+      co: checkOutIso,
+      adults: String(adults),
+      children: String(children),
+    });
+    return `/hotel/${storeId}?${stayParams.toString()}`;
+  }, [adults, checkInIso, checkOutIso, children, storeId]);
+  const loginUrl = useMemo(() => (
+    withRedirectParam("/login", `${location.pathname}${location.search ?? ""}${location.hash ?? ""}`)
+  ), [location.hash, location.pathname, location.search]);
+  const loadError = storeQ.error || roomsQ.error;
+  const roomLookupFinished = !!roomId && !roomsQ.isLoading;
+  const checkoutBlockingMessage = !roomId
+    ? "Choose a room before booking this stay."
+    : roomLookupFinished && (!room || room.is_active === false)
+      ? "This room is no longer available. Please choose another room."
+      : !user
+        ? "Please sign in to book this stay."
+        : null;
   const accountGuestDetails = useMemo(() => {
     const metadata = (user?.user_metadata ?? {}) as Record<string, unknown>;
     const accountPhone = firstNonEmptyString(userProfile?.phone, metadata.phone, metadata.phone_number);
@@ -156,7 +225,7 @@ export default function HotelRoomCheckoutPage() {
     const refreshReservation = async () => {
       const { data } = await (supabase as any)
         .from("lodge_reservations")
-        .select("id, number, status, payment_status, last_payment_error, card_brand, card_last4")
+        .select("id, number, status, payment_status, total_cents, last_payment_error, card_brand, card_last4")
         .eq("id", checkoutReservation.id)
         .maybeSingle();
       if (!cancelled && data) setCheckoutReservation(data as CheckoutReservation);
@@ -189,7 +258,7 @@ export default function HotelRoomCheckoutPage() {
     const restoreReservation = async () => {
       const { data } = await (supabase as any)
         .from("lodge_reservations")
-        .select("id, number, status, payment_status, last_payment_error, card_brand, card_last4")
+        .select("id, number, status, payment_status, total_cents, last_payment_error, card_brand, card_last4")
         .eq("id", reservationIdParam)
         .eq("store_id", storeId)
         .maybeSingle();
@@ -216,7 +285,10 @@ export default function HotelRoomCheckoutPage() {
     if (paymentSuccessToastRef.current === checkoutReservation.id) return;
     paymentSuccessToastRef.current = checkoutReservation.id;
     toast.success("Payment received. Your booking is confirmed.");
-  }, [checkoutReservation?.id, onlinePaymentDone]);
+    if (paymentSuccessRedirectRef.current === checkoutReservation.id) return;
+    paymentSuccessRedirectRef.current = checkoutReservation.id;
+    navigate(`/hotel/${storeId}/booking-confirmed?reservation_id=${checkoutReservation.id}`, { replace: true });
+  }, [checkoutReservation?.id, navigate, onlinePaymentDone, storeId]);
 
   useEffect(() => {
     if (accountGuestDetails.name && !guestFieldTouchedRef.current.name && !name.trim()) {
@@ -230,9 +302,20 @@ export default function HotelRoomCheckoutPage() {
     }
   }, [accountGuestDetails, email, name, phone]);
 
+  useEffect(() => {
+    setCheckoutError(null);
+  }, [adults, checkInIso, checkOutIso, children, payMethod, roomId]);
+
   const handleConfirm = async () => {
+    setCheckoutError(null);
     if (payMethod === "card" && checkoutReservation?.id) {
       paymentSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (checkoutBlockingMessage) {
+      setCheckoutError(checkoutBlockingMessage);
+      toast.error(checkoutBlockingMessage);
+      if (!user) navigate(loginUrl);
       return;
     }
     if (!name.trim()) { toast.error("Please enter your name"); return; }
@@ -243,69 +326,30 @@ export default function HotelRoomCheckoutPage() {
 
     setSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (payMethod === "card" && !user) {
-        toast.error("Please sign in to pay online securely in the app.");
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        const message = "Please sign in again before booking this stay.";
+        setCheckoutError(message);
+        toast.error(message);
+        navigate(loginUrl);
         return;
       }
 
-      const ciStr = format(checkIn, "yyyy-MM-dd");
-      const coStr = format(checkOut, "yyyy-MM-dd");
-
-      // Last-mile availability check: re-query active reservations for this room
-      // and abort if the dates overlap (prevents double-booking after the user
-      // sat on the checkout page).
-      if (roomId) {
-        const { data: clashes } = await (supabase as any)
-          .from("lodge_reservations")
-          .select("id, check_in, check_out, status")
-          .eq("room_id", roomId)
-          .gt("check_out", ciStr)
-          .lt("check_in", coStr)
-          .not("status", "in", "(cancelled,no_show)");
-        if ((clashes || []).length > 0) {
-          toast.error("This room is no longer available for the selected dates. Please pick different dates or another room.");
-          setSubmitting(false);
-          return;
-        }
-      }
-
-      // The `number` column on lodge_reservations is NOT NULL with no DB
-      // default, so we generate the user-facing reservation code here. Format
-      // matches existing rows: `RES-` + 6-digit random.
-      const reservationNumber = `RES-${String(Math.floor(100000 + Math.random() * 900000))}`;
-
-      const payload: any = {
+      const res = await createLodgeGuestReservation({
         store_id: storeId,
-        room_id: roomId || null,
-        number: reservationNumber,
-        guest_id: user?.id ?? null,
+        room_id: roomId,
         guest_name: name.trim(),
         guest_phone: phone.trim(),
         guest_email: email.trim() || null,
         adults,
         children,
-        check_in: ciStr,
-        check_out: coStr,
+        check_in: checkInIso,
+        check_out: checkOutIso,
         status: payMethod === "cash" ? "confirmed" : "hold",
         source: "zivo_app",
-        rate_cents: basePerNight,
-        extras_cents: 0,
-        tax_cents: taxCents,
-        total_cents: totalCents,
-        paid_cents: 0,
-        payment_status: payMethod === "cash" ? "pending_cash" : "pending",
-        payment_provider: payMethod === "cash" ? "cash" : "stripe",
+        payment_method: payMethod,
         notes: notes.trim() || null,
-      };
-
-      const { data: res, error } = await (supabase as any)
-        .from("lodge_reservations")
-        .insert(payload)
-        .select("id, number")
-        .single();
-
-      if (error) throw error;
+      });
 
       if (payMethod === "card") {
         const nextParams = new URLSearchParams(params);
@@ -314,8 +358,9 @@ export default function HotelRoomCheckoutPage() {
         setCheckoutReservation({
           id: res.id,
           number: res.number,
-          status: "hold",
-          payment_status: "pending",
+          status: res.status,
+          payment_status: res.payment_status,
+          total_cents: res.total_cents,
           last_payment_error: null,
           card_brand: null,
           card_last4: null,
@@ -327,7 +372,9 @@ export default function HotelRoomCheckoutPage() {
       toast.success("Booking confirmed!");
       navigate(`/hotel/${storeId}/booking-confirmed?reservation_id=${res.id}`);
     } catch (err: any) {
-      toast.error(err.message || "Failed to create booking");
+      const message = getBookingErrorMessage(err);
+      setCheckoutError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -374,6 +421,33 @@ export default function HotelRoomCheckoutPage() {
       </div>
 
       <div className="max-w-lg mx-auto px-4 pt-5 space-y-4">
+
+        {loadError && (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+            Hotel booking details could not be loaded. Please refresh and try again.
+          </div>
+        )}
+
+        {checkoutBlockingMessage && (
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.08] p-4 text-sm text-amber-900 dark:text-amber-100">
+            <p className="font-semibold">{checkoutBlockingMessage}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3 rounded-xl bg-background"
+              onClick={() => navigate(user ? hotelDetailUrl : loginUrl)}
+            >
+              {user ? "Back to rooms" : "Sign in"}
+            </Button>
+          </div>
+        )}
+
+        {checkoutError && !checkoutBlockingMessage && (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+            {checkoutError}
+          </div>
+        )}
 
         {/* Room summary card */}
         {isLoading ? (
@@ -663,7 +737,7 @@ export default function HotelRoomCheckoutPage() {
             <LodgingEmbeddedCheckout
               reservationId={checkoutReservation.id}
               storeId={storeId}
-              amountCents={totalCents}
+              amountCents={checkoutAmountCents}
               mode="full"
               method="card"
               hideMethodToggle
@@ -706,7 +780,7 @@ export default function HotelRoomCheckoutPage() {
           <Button
             size="lg"
             className="w-full h-13 rounded-2xl font-bold gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/20"
-            disabled={submitting || !room || isLoading || (payMethod === "card" && !!checkoutReservation)}
+            disabled={!!checkoutBlockingMessage || submitting || !room || isLoading || (payMethod === "card" && !!checkoutReservation)}
             onClick={handleConfirm}
           >
             {submitting ? (

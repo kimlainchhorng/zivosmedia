@@ -75,6 +75,97 @@ async function upsertPurchaseRecord(
   }
 }
 
+function addMonthsUtc(date: Date, months: number) {
+  const next = new Date(date.getTime());
+  const originalDate = next.getUTCDate();
+  next.setUTCMonth(next.getUTCMonth() + months);
+  if (next.getUTCDate() < originalDate) {
+    next.setUTCDate(0);
+  }
+  return next;
+}
+
+function normalizeZivoPlusStatus(status: string | null | undefined) {
+  switch (status) {
+    case "active":
+    case "trialing":
+      return "active";
+    case "canceled":
+    case "cancelled":
+      return "cancelled";
+    case "past_due":
+    case "unpaid":
+      return "paused";
+    default:
+      return "expired";
+  }
+}
+
+async function syncZivoPlusSubscription(
+  supabase: any,
+  input: {
+    userId: string;
+    planId: string;
+    status: string;
+    billingCycle: string;
+    currentPeriodStart: string;
+    currentPeriodEnd?: string;
+    stripeSubscriptionId?: string | null;
+    extendByMonths?: number;
+  },
+) {
+  const normalizedStatus = normalizeZivoPlusStatus(input.status);
+  const now = new Date();
+  const { data: existing, error: existingError } = await supabase
+    .from("zivo_subscriptions")
+    .select("id, current_period_end")
+    .eq("user_id", input.userId)
+    .order("current_period_end", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+
+  const basePeriodEnd = existing?.current_period_end && new Date(existing.current_period_end) > now
+    ? new Date(existing.current_period_end)
+    : now;
+  const currentPeriodEnd = input.extendByMonths
+    ? addMonthsUtc(basePeriodEnd, input.extendByMonths).toISOString()
+    : input.currentPeriodEnd;
+
+  if (!currentPeriodEnd) {
+    throw new Error("current_period_end is required for ZIVO+ subscription sync");
+  }
+
+  const payload = {
+    user_id: input.userId,
+    plan_id: input.planId,
+    status: normalizedStatus,
+    billing_cycle: input.billingCycle === "yearly" ? "yearly" : "monthly",
+    current_period_start: input.currentPeriodStart,
+    current_period_end: currentPeriodEnd,
+    stripe_subscription_id: input.stripeSubscriptionId ?? null,
+    cancelled_at: normalizedStatus === "cancelled" ? now.toISOString() : null,
+  };
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from("zivo_subscriptions")
+      .update(payload)
+      .eq("id", existing.id);
+    if (error) throw error;
+    return existing.id;
+  }
+
+  const { data, error } = await supabase
+    .from("zivo_subscriptions")
+    .insert(payload)
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
 async function upsertShopPulse(
   supabase: any,
   storeId: string,
@@ -331,6 +422,122 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             } catch {}
           }
           break;
+        }
+
+        if (metadata.type === "zivo_plus_gift") {
+          const recipientId = metadata.gift_recipient_id || metadata.user_id;
+          const planId = metadata.plan_id;
+          const giftMonths = Number.parseInt(metadata.gift_months || "0", 10);
+          const giftLabel = metadata.gift_duration_label || metadata.gift_duration || "premium";
+
+          if (session.payment_status !== "paid") {
+            console.log("[Webhook] ZIVO+ gift checkout not paid yet:", session.id);
+          } else if (!recipientId || !planId || !Number.isFinite(giftMonths) || giftMonths <= 0) {
+            console.error("[Webhook] ZIVO+ gift metadata missing", { session: session.id, recipientId, planId, giftMonths });
+          } else {
+            const now = new Date().toISOString();
+            try {
+              const localSubscriptionId = await syncZivoPlusSubscription(supabase, {
+                userId: recipientId,
+                planId,
+                status: "active",
+                billingCycle: metadata.billing_cycle || (giftMonths >= 12 ? "yearly" : "monthly"),
+                currentPeriodStart: now,
+                extendByMonths: giftMonths,
+              });
+              console.log("[Webhook] ZIVO+ gift activated", { recipientId, session: session.id, localSubscriptionId });
+
+              if (metadata.gift_sender_id) {
+                try {
+                  const giftCoins = giftMonths >= 12 ? 2500 : giftMonths >= 6 ? 1500 : 1000;
+                  const giftPayload = {
+                    kind: "premium_gift",
+                    gift_key: `zivo_premium_${metadata.gift_duration || `${giftMonths}_months`}`,
+                    name: `ZIVO Premium ${giftLabel}`,
+                    icon: "Premium",
+                    coins: giftCoins,
+                    total_coins: giftCoins,
+                    premium_months: giftMonths,
+                    subscription_id: localSubscriptionId,
+                    stripe_session_id: session.id,
+                  };
+                  const { data: existingGiftMessage, error: existingGiftError } = await supabase
+                    .from("direct_messages")
+                    .select("id")
+                    .eq("sender_id", metadata.gift_sender_id)
+                    .eq("receiver_id", recipientId)
+                    .eq("message_type", "gift")
+                    .contains("gift_payload", { stripe_session_id: session.id })
+                    .maybeSingle();
+
+                  if (existingGiftError) {
+                    console.warn("[Webhook] Premium gift message lookup failed", existingGiftError);
+                  } else if (!existingGiftMessage) {
+                    const { data: giftMessage, error: giftMessageError } = await supabase
+                      .from("direct_messages")
+                      .insert({
+                        sender_id: metadata.gift_sender_id,
+                        receiver_id: recipientId,
+                        message: `Gifted ${metadata.gift_recipient_name || "this chat"} ${giftLabel} of ZIVO Premium`,
+                        message_type: "gift",
+                        gift_payload: giftPayload,
+                      })
+                      .select("id")
+                      .single();
+
+                    if (giftMessageError) {
+                      console.error("[Webhook] Premium gift chat message insert failed", giftMessageError);
+                    } else {
+                      await supabase.rpc("fn_record_gift_transaction", {
+                        p_sender: metadata.gift_sender_id,
+                        p_receiver: recipientId,
+                        p_gift_key: giftPayload.gift_key,
+                        p_gift_name: giftPayload.name,
+                        p_coins: giftCoins,
+                        p_combo: 1,
+                        p_note: null,
+                        p_message_id: giftMessage.id,
+                      });
+                    }
+                  }
+                } catch (messageErr) {
+                  console.error("[Webhook] Premium gift chat message failed", messageErr);
+                }
+              }
+
+              try {
+                await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+                  body: JSON.stringify({
+                    user_id: recipientId,
+                    notification_type: "membership_gift_received",
+                    title: "ZIVO Premium gift received",
+                    body: `You received ${giftLabel} of ZIVO Premium.`,
+                    data: { type: "membership_gift_received", action_url: "/zivo-plus", subscription_id: localSubscriptionId },
+                  }),
+                });
+              } catch {}
+
+              if (metadata.gift_sender_id) {
+                try {
+                  await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+                    body: JSON.stringify({
+                      user_id: metadata.gift_sender_id,
+                      notification_type: "membership_gift_sent",
+                      title: "Premium gift sent",
+                      body: `Your ${giftLabel} ZIVO Premium gift was delivered.`,
+                      data: { type: "membership_gift_sent", recipient_id: recipientId, action_url: "/chat" },
+                    }),
+                  });
+                } catch {}
+              }
+            } catch (giftErr) {
+              console.error("[Webhook] ZIVO+ gift activation failed", giftErr);
+            }
+          }
         }
 
         if (metadata.type === "ride") {
@@ -1415,23 +1622,19 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
         // Only handle membership subscriptions
         if (metadata.type === "membership" && metadata.user_id && metadata.plan_id) {
           console.log("[Webhook] Membership subscription event:", event.type, "Sub:", subscription.id);
-          
-          const subscriptionData = {
-            user_id: metadata.user_id,
-            plan_id: metadata.plan_id,
-            status: subscription.status,
-            stripe_subscription_id: subscription.id,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          };
 
-          // Upsert subscription record
-          const { error: upsertError } = await supabase
-            .from("zivo_subscriptions")
-            .upsert(subscriptionData, { onConflict: "user_id" });
-
-          if (upsertError) {
-            console.error("[Webhook] Error upserting membership:", upsertError);
-          } else {
+          try {
+            const currentPeriodStart = (subscription as any).current_period_start ?? subscription.start_date;
+            const currentPeriodEnd = (subscription as any).current_period_end ?? (subscription as any).items?.data?.[0]?.current_period_end;
+            await syncZivoPlusSubscription(supabase, {
+              userId: metadata.user_id,
+              planId: metadata.plan_id,
+              status: subscription.status,
+              billingCycle: metadata.billing_cycle || (metadata.plan === "annual" ? "yearly" : "monthly"),
+              currentPeriodStart: new Date(currentPeriodStart * 1000).toISOString(),
+              currentPeriodEnd: new Date(currentPeriodEnd * 1000).toISOString(),
+              stripeSubscriptionId: subscription.id,
+            });
             console.log("[Webhook] Membership subscription synced:", metadata.user_id, "Status:", subscription.status);
             // Notify user: ZIVO+ activated
             if (subscription.status === "active") {
@@ -1443,6 +1646,8 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
                 });
               } catch {}
             }
+          } catch (upsertError) {
+            console.error("[Webhook] Error syncing membership:", upsertError);
           }
         }
         break;

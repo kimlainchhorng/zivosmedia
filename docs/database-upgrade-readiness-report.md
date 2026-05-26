@@ -1,18 +1,20 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-05-22T01:36:21.655Z
+Generated: 2026-05-26T19:21:55.193Z
 
 ## Summary
 
 - Supabase CLI: 2.100.0
-- Local migrations: 690
+- Local migrations: 700
 - Invalid migration filenames: 0
 - Duplicate migration versions: 8
+- Allowed legacy duplicate migration versions: 8
+- New duplicate migration versions: 0
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=690, remote=0, matched=0, remoteError=yes, generated=2026-05-22T01:36:21.173Z
+- Last linked drift report: local=700, remote=0, matched=0, remoteError=yes, generated=2026-05-26T19:21:51.461Z
 - Declared extensions: citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 762
+- Public tables created in migrations: 768
 - Public tables needing RLS review: 0
 - Recent public tables needing Data API grant review: 0
 - Views needing security_invoker review: 0
@@ -20,7 +22,6 @@ Generated: 2026-05-22T01:36:21.655Z
 
 ## Blockers
 
-- 8 duplicate migration version(s) need reconciliation before db push/pull.
 - Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before upgrade.
 
 ## Warnings
@@ -29,14 +30,14 @@ Generated: 2026-05-22T01:36:21.655Z
 
 ## Duplicate Versions
 
-- 20260429230000: 20260429230000_security_hardening.sql, 20260429230000_user_posts_visibility_location.sql
-- 20260429240000: 20260429240000_backfill_storage_paths.sql, 20260429240000_increment_user_post_views.sql
-- 20260429250000: 20260429250000_post_actions_tables.sql, 20260429250000_user_posts_realtime.sql
-- 20260429260000: 20260429260000_post_comments_realtime.sql, 20260429260000_post_reactions.sql
-- 20260430020000: 20260430020000_blocked_link_attempts.sql, 20260430020000_fix_social_notification_triggers.sql
-- 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql
-- 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql
-- 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql
+- 20260429230000: 20260429230000_security_hardening.sql, 20260429230000_user_posts_visibility_location.sql (allowed legacy duplicate)
+- 20260429240000: 20260429240000_backfill_storage_paths.sql, 20260429240000_increment_user_post_views.sql (allowed legacy duplicate)
+- 20260429250000: 20260429250000_post_actions_tables.sql, 20260429250000_user_posts_realtime.sql (allowed legacy duplicate)
+- 20260429260000: 20260429260000_post_comments_realtime.sql, 20260429260000_post_reactions.sql (allowed legacy duplicate)
+- 20260430020000: 20260430020000_blocked_link_attempts.sql, 20260430020000_fix_social_notification_triggers.sql (allowed legacy duplicate)
+- 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql (allowed legacy duplicate)
+- 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql (allowed legacy duplicate)
+- 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql (allowed legacy duplicate)
 
 ## Postgres 17 Extension Review
 

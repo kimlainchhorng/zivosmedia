@@ -1,0 +1,1 @@
+DELETE FROM user_posts WHERE media_url IS NULL AND id IN ('51dcd91a-03bf-4e1a-be9b-694124050695', '91aa1d80-169c-4345-9b01-7232c3b3f986');

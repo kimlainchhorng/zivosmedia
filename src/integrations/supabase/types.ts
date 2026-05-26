@@ -16645,6 +16645,56 @@ export type Database = {
           },
         ]
       }
+      chat_message_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          message_id: string
+          reason: string
+          receiver_id: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          message_id: string
+          reason: string
+          receiver_id: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          message_id?: string
+          reason?: string
+          receiver_id?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
           created_at: string
@@ -16655,6 +16705,9 @@ export type Database = {
           forwarded_from_message_id: string | null
           forwarded_from_user_id: string | null
           gift_payload: Json | null
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
           image_url: string | null
           is_pinned: boolean
@@ -16671,6 +16724,7 @@ export type Database = {
           reply_to_message_id: string | null
           reply_to_snapshot: Json | null
           self_destruct_seconds: number | null
+          sensitive_report_count: number
           sender_id: string
           video_url: string | null
           voice_url: string | null
@@ -16684,6 +16738,9 @@ export type Database = {
           forwarded_from_message_id?: string | null
           forwarded_from_user_id?: string | null
           gift_payload?: Json | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
@@ -16700,6 +16757,7 @@ export type Database = {
           reply_to_message_id?: string | null
           reply_to_snapshot?: Json | null
           self_destruct_seconds?: number | null
+          sensitive_report_count?: number
           sender_id: string
           video_url?: string | null
           voice_url?: string | null
@@ -16713,6 +16771,9 @@ export type Database = {
           forwarded_from_message_id?: string | null
           forwarded_from_user_id?: string | null
           gift_payload?: Json | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
@@ -16729,6 +16790,7 @@ export type Database = {
           reply_to_message_id?: string | null
           reply_to_snapshot?: Json | null
           self_destruct_seconds?: number | null
+          sensitive_report_count?: number
           sender_id?: string
           video_url?: string | null
           voice_url?: string | null
@@ -18054,6 +18116,7 @@ export type Database = {
           base_amount: number
           bonus_amount: number | null
           created_at: string
+          currency: string
           description: string | null
           driver_id: string
           earning_type: string
@@ -18062,6 +18125,9 @@ export type Database = {
           net_amount: number
           payment_method: string | null
           platform_fee: number | null
+          payout_reference: string | null
+          payout_status: string
+          ride_request_id: string | null
           tip_amount: number | null
           trip_id: string | null
         }
@@ -18070,6 +18136,7 @@ export type Database = {
           base_amount?: number
           bonus_amount?: number | null
           created_at?: string
+          currency?: string
           description?: string | null
           driver_id: string
           earning_type?: string
@@ -18078,6 +18145,9 @@ export type Database = {
           net_amount?: number
           payment_method?: string | null
           platform_fee?: number | null
+          payout_reference?: string | null
+          payout_status?: string
+          ride_request_id?: string | null
           tip_amount?: number | null
           trip_id?: string | null
         }
@@ -18086,6 +18156,7 @@ export type Database = {
           base_amount?: number
           bonus_amount?: number | null
           created_at?: string
+          currency?: string
           description?: string | null
           driver_id?: string
           earning_type?: string
@@ -18094,6 +18165,9 @@ export type Database = {
           net_amount?: number
           payment_method?: string | null
           platform_fee?: number | null
+          payout_reference?: string | null
+          payout_status?: string
+          ride_request_id?: string | null
           tip_amount?: number | null
           trip_id?: string | null
         }
@@ -18118,6 +18192,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_admin_driver_compliance"
             referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "driver_earnings_ride_request_id_fkey"
+            columns: ["ride_request_id"]
+            isOneToOne: false
+            referencedRelation: "ride_requests"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "driver_earnings_trip_id_fkey"
@@ -26887,12 +26968,72 @@ export type Database = {
         }
         Relationships: []
       }
+      group_message_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          group_id: string
+          id: string
+          message_id: string
+          reason: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          group_id: string
+          id?: string
+          message_id: string
+          reason: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          group_id?: string
+          id?: string
+          message_id?: string
+          reason?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_message_reports_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "chat_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_message_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_messages: {
         Row: {
           created_at: string
           expires_at: string | null
           file_payload: Json | null
           group_id: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
           image_url: string | null
           is_pinned: boolean
@@ -26904,6 +27045,7 @@ export type Database = {
           reply_to_id: string | null
           reply_to_message_id: string | null
           reply_to_snapshot: Json | null
+          sensitive_report_count: number
           sender_id: string
           video_url: string | null
           voice_url: string | null
@@ -26913,6 +27055,9 @@ export type Database = {
           expires_at?: string | null
           file_payload?: Json | null
           group_id: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
@@ -26924,6 +27069,7 @@ export type Database = {
           reply_to_id?: string | null
           reply_to_message_id?: string | null
           reply_to_snapshot?: Json | null
+          sensitive_report_count?: number
           sender_id: string
           video_url?: string | null
           voice_url?: string | null
@@ -26933,6 +27079,9 @@ export type Database = {
           expires_at?: string | null
           file_payload?: Json | null
           group_id?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
@@ -26944,6 +27093,7 @@ export type Database = {
           reply_to_id?: string | null
           reply_to_message_id?: string | null
           reply_to_snapshot?: Json | null
+          sensitive_report_count?: number
           sender_id?: string
           video_url?: string | null
           voice_url?: string | null
@@ -43145,40 +43295,102 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_reports: {
+        Row: {
+          comment_id: string
+          created_at: string
+          description: string | null
+          id: string
+          post_id: string
+          post_source: string
+          reason: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          post_id: string
+          post_source?: string
+          reason: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          post_id?: string
+          post_source?: string
+          reason?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_comments: {
         Row: {
           content: string
           created_at: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
           is_pinned: boolean
           likes_count: number
           parent_id: string | null
           post_id: string
           post_source: string
+          sensitive_report_count: number
           updated_at: string
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           is_pinned?: boolean
           likes_count?: number
           parent_id?: string | null
           post_id: string
           post_source?: string
+          sensitive_report_count?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           is_pinned?: boolean
           likes_count?: number
           parent_id?: string | null
           post_id?: string
           post_source?: string
+          sensitive_report_count?: number
           updated_at?: string
           user_id?: string
         }
@@ -43415,6 +43627,7 @@ export type Database = {
           description: string | null
           id: string
           post_id: string
+          post_source: string
           reason: string
           reporter_id: string
           reviewed_at: string | null
@@ -43426,6 +43639,7 @@ export type Database = {
           description?: string | null
           id?: string
           post_id: string
+          post_source?: string
           reason: string
           reporter_id: string
           reviewed_at?: string | null
@@ -43437,6 +43651,7 @@ export type Database = {
           description?: string | null
           id?: string
           post_id?: string
+          post_source?: string
           reason?: string
           reporter_id?: string
           reviewed_at?: string | null
@@ -44046,6 +44261,7 @@ export type Database = {
       privacy_settings: {
         Row: {
           allow_message_requests: boolean | null
+          blur_sensitive_media: boolean
           id: string
           profile_visibility: string | null
           show_activity_status: boolean | null
@@ -44055,6 +44271,7 @@ export type Database = {
         }
         Insert: {
           allow_message_requests?: boolean | null
+          blur_sensitive_media?: boolean
           id?: string
           profile_visibility?: string | null
           show_activity_status?: boolean | null
@@ -44064,6 +44281,7 @@ export type Database = {
         }
         Update: {
           allow_message_requests?: boolean | null
+          blur_sensitive_media?: boolean
           id?: string
           profile_visibility?: string | null
           show_activity_status?: boolean | null
@@ -48871,9 +49089,17 @@ export type Database = {
           admin_override_reason: string | null
           admin_price_override: number | null
           assigned_driver_id: string | null
+          bakong_amount_khr: number | null
+          bakong_reference: string | null
+          bakong_verified_at: string | null
+          bakong_verified_by: string | null
+          cancel_fee_cents: number | null
+          cancel_reason: string | null
+          cancelled_at: string | null
           captured_amount_cents: number | null
           car_seat_type: string | null
           commission_amount: number | null
+          completed_at: string | null
           created_at: string
           customer_email: string | null
           customer_name: string
@@ -48933,9 +49159,17 @@ export type Database = {
           admin_override_reason?: string | null
           admin_price_override?: number | null
           assigned_driver_id?: string | null
+          bakong_amount_khr?: number | null
+          bakong_reference?: string | null
+          bakong_verified_at?: string | null
+          bakong_verified_by?: string | null
+          cancel_fee_cents?: number | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
           captured_amount_cents?: number | null
           car_seat_type?: string | null
           commission_amount?: number | null
+          completed_at?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name: string
@@ -48995,9 +49229,17 @@ export type Database = {
           admin_override_reason?: string | null
           admin_price_override?: number | null
           assigned_driver_id?: string | null
+          bakong_amount_khr?: number | null
+          bakong_reference?: string | null
+          bakong_verified_at?: string | null
+          bakong_verified_by?: string | null
+          cancel_fee_cents?: number | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
           captured_amount_cents?: number | null
           car_seat_type?: string | null
           commission_amount?: number | null
+          completed_at?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string
@@ -61268,6 +61510,7 @@ export type Database = {
           hidden_by: string | null
           hidden_reason: string | null
           id: string
+          is_sensitive: boolean
           is_pinned: boolean
           is_published: boolean | null
           likes_count: number | null
@@ -61281,6 +61524,8 @@ export type Database = {
           shared_from_user_id: string | null
           shares_count: number
           sharing_enabled: boolean
+          sensitive_reason: string | null
+          sensitive_report_count: number
           tips_enabled: boolean
           updated_at: string | null
           user_id: string
@@ -61299,6 +61544,7 @@ export type Database = {
           hidden_by?: string | null
           hidden_reason?: string | null
           id?: string
+          is_sensitive?: boolean
           is_pinned?: boolean
           is_published?: boolean | null
           likes_count?: number | null
@@ -61312,6 +61558,8 @@ export type Database = {
           shared_from_user_id?: string | null
           shares_count?: number
           sharing_enabled?: boolean
+          sensitive_reason?: string | null
+          sensitive_report_count?: number
           tips_enabled?: boolean
           updated_at?: string | null
           user_id: string
@@ -61330,6 +61578,7 @@ export type Database = {
           hidden_by?: string | null
           hidden_reason?: string | null
           id?: string
+          is_sensitive?: boolean
           is_pinned?: boolean
           is_published?: boolean | null
           likes_count?: number | null
@@ -61343,6 +61592,8 @@ export type Database = {
           shared_from_user_id?: string | null
           shares_count?: number
           sharing_enabled?: boolean
+          sensitive_reason?: string | null
+          sensitive_report_count?: number
           tips_enabled?: boolean
           updated_at?: string | null
           user_id?: string

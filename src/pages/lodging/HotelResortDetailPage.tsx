@@ -489,14 +489,29 @@ export default function HotelResortDetailPage() {
     setDetailsRoom(room);
   }, []);
   const closeRoomDetails = useCallback(() => setDetailsRoom(null), []);
-  const reserveCurrentDetailsRoom = useCallback(() => {
-    if (!detailsRoom) return;
+
+  const buildRoomBookingUrl = useCallback((roomId: string) => {
+    const bookingParams = new URLSearchParams({
+      room: roomId,
+      ci: format(checkIn, "yyyy-MM-dd"),
+      co: format(checkOut, "yyyy-MM-dd"),
+      adults: String(adults),
+      children: String(children),
+    });
+    return `/hotel/${storeId}/book?${bookingParams.toString()}`;
+  }, [adults, checkIn, checkOut, children, storeId]);
+
+  const hotelDetailUrlWithStay = useCallback(() => {
     const ciStr = format(checkIn, "yyyy-MM-dd");
     const coStr = format(checkOut, "yyyy-MM-dd");
-    setDetailsRoom(null);
-    setAllRoomsOpen(false);
-    navigate(`/hotel/${storeId}/book?room=${detailsRoom.id}&ci=${ciStr}&co=${coStr}&adults=${adults}&children=${children}`);
-  }, [detailsRoom, checkIn, checkOut, adults, children, navigate, storeId]);
+    const params = new URLSearchParams({
+      ci: ciStr,
+      co: coStr,
+      adults: String(adults),
+      children: String(children),
+    });
+    return `/hotel/${storeId}?${params.toString()}`;
+  }, [adults, checkIn, checkOut, children, storeId]);
   const detailsRoomPhotos = useMemo<string[]>(() => {
     if (!detailsRoom) return [];
     return uniqueImageUrls([
@@ -551,19 +566,47 @@ export default function HotelResortDetailPage() {
     for (const room of activeRooms) {
       const ranges = byRoomRanges.get(room.id) || [];
       // Half-open overlap: conflict iff range.in < coIso && range.out > ciIso
-      const conflict = ranges.some((r) => r.in < coIso && r.out > ciIso);
+      const overlapping = ranges.filter((r) => r.in < coIso && r.out > ciIso);
+      const unitsTotal = Math.max(Number(room.units_total) || 1, 1);
+      const conflict = overlapping.length >= unitsTotal;
       let nextAvailable: string | null = null;
       if (conflict) {
         const sorted = [...ranges].sort((a, b) => a.out.localeCompare(b.out));
-        const overlapping = sorted.filter((r) => r.in < coIso && r.out > ciIso);
-        if (overlapping.length) {
-          nextAvailable = overlapping[overlapping.length - 1].out;
+        const sortedOverlapping = sorted.filter((r) => r.in < coIso && r.out > ciIso);
+        if (sortedOverlapping.length) {
+          nextAvailable = sortedOverlapping[sortedOverlapping.length - 1].out;
         }
       }
       byRoom.set(room.id, { soldOut: conflict, nextAvailable });
     }
     return byRoom;
   }, [activeRooms, bookedRanges, checkIn, checkOut]);
+
+  const handleBookRoom = useCallback((room: any) => {
+    if (!room?.id) {
+      toast.error("Choose a room before booking.");
+      return;
+    }
+
+    const availability = roomAvailability.get(room.id);
+    if (availability?.soldOut) {
+      toast.error(
+        availability.nextAvailable
+          ? `That room is sold out for these dates. It opens again ${format(parseISO(availability.nextAvailable), "MMM d")}.`
+          : "That room is sold out for the selected dates.",
+      );
+      return;
+    }
+
+    setDetailsRoom(null);
+    setAllRoomsOpen(false);
+    navigate(buildRoomBookingUrl(room.id));
+  }, [buildRoomBookingUrl, navigate, roomAvailability]);
+
+  const reserveCurrentDetailsRoom = useCallback(() => {
+    if (!detailsRoom) return;
+    handleBookRoom(detailsRoom);
+  }, [detailsRoom, handleBookRoom]);
 
   // Identify the cheapest active room for a deterministic "Top pick" badge
   const topPickRoomId = useMemo(() => {
@@ -656,10 +699,7 @@ export default function HotelResortDetailPage() {
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
-      const ciStr = format(checkIn, "yyyy-MM-dd");
-      const coStr = format(checkOut, "yyyy-MM-dd");
-      const dest = store?.slug || storeId;
-      navigate(`/store/${dest}?ci=${ciStr}&co=${coStr}&adults=${adults}&children=${children}`);
+      navigate(hotelDetailUrlWithStay());
     }
   };
 
@@ -1219,21 +1259,17 @@ export default function HotelResortDetailPage() {
                 return (
                   <div
                     key={room.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => openRoomDetails(room)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        openRoomDetails(room);
-                      }
-                    }}
-                    aria-label={`View details for ${room.name}`}
                     className={cn(
-                      "snap-start shrink-0 w-60 md:w-auto rounded-xl border border-border bg-card overflow-hidden text-left cursor-pointer hover:border-emerald-500/60 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition",
+                      "snap-start shrink-0 w-60 md:w-auto rounded-xl border border-border bg-card overflow-hidden text-left hover:border-emerald-500/60 hover:shadow-md transition",
                       soldOut && "opacity-80",
                     )}
                   >
+                    <button
+                      type="button"
+                      onClick={() => openRoomDetails(room)}
+                      className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      aria-label={`View details for ${room.name}`}
+                    >
                     <div className="h-28 bg-muted relative">
                       <RoomPhoto room={room} fallbackImages={visibleGalleryImages} />
                       {room.breakfast_included && (
@@ -1255,7 +1291,7 @@ export default function HotelResortDetailPage() {
                         </>
                       )}
                     </div>
-                    <div className="p-2.5">
+                    <div className="p-2.5 pb-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs font-bold text-foreground truncate flex-1">{room.name}</p>
                         {isTopPick && (
@@ -1268,7 +1304,7 @@ export default function HotelResortDetailPage() {
                       <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
                         {room.beds || room.room_type || "Room"} · {room.max_guests} guests
                       </p>
-                      <div className="mt-1.5">
+                      <div className="mt-1.5 mb-2">
                         {hasDiscount ? (
                           <>
                             <span className="text-sm font-bold text-emerald-600">
@@ -1286,24 +1322,24 @@ export default function HotelResortDetailPage() {
                           </span>
                         )}
                       </div>
+                    </div>
+                    </button>
+                    <div className="px-2.5 pb-2.5">
                       {soldOut ? (
-                        <div className="mt-2 w-full rounded-lg bg-muted/60 text-muted-foreground text-[10px] font-semibold py-1.5 px-2 text-center">
+                        <div className="w-full rounded-lg bg-muted/60 text-muted-foreground text-[10px] font-semibold py-1.5 px-2 text-center">
                           {avail?.nextAvailable
                             ? `Available from ${format(parseISO(avail.nextAvailable), "MMM d")}`
                             : "Sold out for these dates"}
                         </div>
                       ) : (
-                        <button type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const ciStr = format(checkIn, "yyyy-MM-dd");
-                            const coStr = format(checkOut, "yyyy-MM-dd");
-                            navigate(`/hotel/${storeId}/book?room=${room.id}&ci=${ciStr}&co=${coStr}&adults=${adults}&children=${children}`);
-                          }}
-                          className="mt-2 w-full rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] transition text-white text-[11px] font-bold py-1.5 px-2"
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleBookRoom(room)}
+                          className="h-8 w-full rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] transition text-white text-[11px] font-bold"
                         >
                           Book Now
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -1859,21 +1895,17 @@ export default function HotelResortDetailPage() {
                 return (
                   <div
                     key={room.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => openRoomDetails(room)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        openRoomDetails(room);
-                      }
-                    }}
-                    aria-label={`View details for ${room.name}`}
                     className={cn(
-                      "rounded-xl border border-border bg-card overflow-hidden text-left cursor-pointer hover:border-emerald-500/60 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition",
+                      "rounded-xl border border-border bg-card overflow-hidden text-left hover:border-emerald-500/60 hover:shadow-md transition",
                       soldOut && "opacity-80",
                     )}
                   >
+                    <button
+                      type="button"
+                      onClick={() => openRoomDetails(room)}
+                      className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      aria-label={`View details for ${room.name}`}
+                    >
                     <div className="h-28 bg-muted relative">
                         <RoomPhoto room={room} fallbackImages={visibleGalleryImages} />
                       {hasDiscount && !soldOut && (
@@ -1890,7 +1922,7 @@ export default function HotelResortDetailPage() {
                         </>
                       )}
                     </div>
-                    <div className="p-2.5">
+                    <div className="p-2.5 pb-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs font-bold text-foreground truncate flex-1">{room.name}</p>
                         {isTopPick && (
@@ -1903,7 +1935,7 @@ export default function HotelResortDetailPage() {
                       <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
                         {room.beds || room.room_type || "Room"} · {room.max_guests} guests
                       </p>
-                      <div className="mt-1.5">
+                      <div className="mt-1.5 mb-2">
                         {hasDiscount ? (
                           <>
                             <span className="text-sm font-bold text-emerald-600">
@@ -1921,18 +1953,25 @@ export default function HotelResortDetailPage() {
                           </span>
                         )}
                       </div>
-                      <button type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const ciStr = format(checkIn, "yyyy-MM-dd");
-                          const coStr = format(checkOut, "yyyy-MM-dd");
-                          setAllRoomsOpen(false);
-                          navigate(`/hotel/${storeId}/book?room=${room.id}&ci=${ciStr}&co=${coStr}&adults=${adults}&children=${children}`);
-                        }}
-                        className="mt-2 w-full rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] transition text-white text-[11px] font-bold py-1.5 px-2"
-                      >
-                        Book Now
-                      </button>
+                    </div>
+                    </button>
+                    <div className="px-2.5 pb-2.5">
+                      {soldOut ? (
+                        <div className="w-full rounded-lg bg-muted/60 text-muted-foreground text-[10px] font-semibold py-1.5 px-2 text-center">
+                          {avail?.nextAvailable
+                            ? `Available from ${format(parseISO(avail.nextAvailable), "MMM d")}`
+                            : "Sold out for these dates"}
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleBookRoom(room)}
+                          className="h-8 w-full rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] transition text-white text-[11px] font-bold"
+                        >
+                          Book Now
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );

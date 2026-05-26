@@ -23,10 +23,16 @@ Deno.serve(withSecurity("capture-ride-payment", async (req, ctx) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
+      supabaseUrl,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
+    );
+    const admin = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
     );
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -56,9 +62,9 @@ Deno.serve(withSecurity("capture-ride-payment", async (req, ctx) => {
     }
 
     // Get ride request to find payment intent
-    const { data: ride, error: rideError } = await supabase
+    const { data: ride, error: rideError } = await admin
       .from("ride_requests")
-      .select("payment_intent_id, user_id, quoted_total")
+      .select("payment_intent_id, stripe_payment_intent_id, user_id, quoted_total, status, payment_status, payment_currency, bakong_reference, captured_amount_cents")
       .eq("id", ride_request_id)
       .single();
 
@@ -76,9 +82,35 @@ Deno.serve(withSecurity("capture-ride-payment", async (req, ctx) => {
       });
     }
 
-    if (!ride.payment_intent_id) {
+    if (["cancelled", "canceled"].includes(String(ride.status || "").toLowerCase())) {
+      return new Response(JSON.stringify({ error: "Cannot capture a cancelled ride" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (String(ride.payment_currency || "").toUpperCase() === "KHR" || ride.bakong_reference) {
+      return new Response(JSON.stringify({ error: "Bakong rides are verified through KHQR, not Stripe capture" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const paymentIntentId = ride.payment_intent_id || ride.stripe_payment_intent_id;
+    if (!paymentIntentId) {
       return new Response(JSON.stringify({ error: "No payment intent found" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (ride.payment_status === "captured" && Number(ride.captured_amount_cents || 0) > 0) {
+      return new Response(JSON.stringify({
+        ok: true,
+        idempotent: true,
+        amount_captured: ride.captured_amount_cents,
+        status: "captured",
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -98,22 +130,37 @@ Deno.serve(withSecurity("capture-ride-payment", async (req, ctx) => {
       captureParams.amount_to_capture = final_amount_cents;
     }
 
-    const captured = await stripe.paymentIntents.capture(
-      ride.payment_intent_id,
-      captureParams
-    );
+    let captured;
+    try {
+      captured = await stripe.paymentIntents.capture(
+        paymentIntentId,
+        captureParams
+      );
+    } catch (e: any) {
+      if (String(e?.code || "") !== "payment_intent_unexpected_state") throw e;
+      captured = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (captured.status !== "succeeded") throw e;
+    }
 
     // Update ride request payment status
-    await supabase
+    const capturedCents = Number(captured.amount_received || captured.amount || 0);
+    const { error: updateError } = await admin
       .from("ride_requests")
-      .update({ payment_status: "captured" })
+      .update({ payment_status: "captured", captured_amount_cents: capturedCents })
       .eq("id", ride_request_id);
+    if (updateError) {
+      console.error("[capture-ride] DB update failed:", updateError);
+      return new Response(JSON.stringify({ error: "Payment captured but ride update failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    console.log(`[capture-ride] Captured PI ${ride.payment_intent_id} for ride ${ride_request_id} ($${((captured.amount_received || 0) / 100).toFixed(2)})`);
+    console.log(`[capture-ride] Captured PI ${paymentIntentId} for ride ${ride_request_id} ($${(capturedCents / 100).toFixed(2)})`);
 
     return new Response(JSON.stringify({
       ok: true,
-      amount_captured: captured.amount_received,
+      amount_captured: capturedCents,
       status: captured.status,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

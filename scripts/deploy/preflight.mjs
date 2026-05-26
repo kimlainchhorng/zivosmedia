@@ -9,6 +9,7 @@
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
+import { knownDuplicateVersionArgs } from "../supabase/migration-policy.mjs";
 
 const root = process.cwd();
 const args = new Set(process.argv.slice(2));
@@ -93,7 +94,7 @@ function renderReport({ api, database, drift }) {
     "",
     `- API readiness: critical=${api?.critical ?? "unknown"}, warnings=${api?.warnings ?? "unknown"}`,
     `- Database readiness: blockers=${database?.blockers ?? "unknown"}, warnings=${database?.warnings ?? "unknown"}`,
-    `- Migration drift: duplicateVersions=${drift?.duplicateVersions ?? "unknown"}, remoteError=${drift?.remoteError ? "yes" : "no"}`,
+    `- Migration drift: duplicateVersions=${drift?.duplicateVersions ?? "unknown"}, allowedDuplicateVersions=${drift?.allowedDuplicateVersions ?? "unknown"}, newDuplicateVersions=${drift?.newDuplicateVersions ?? "unknown"}, remoteError=${drift?.remoteError ? "yes" : "no"}`,
     "",
     "## Steps",
     "",
@@ -140,7 +141,7 @@ const drift = runStep(
   "migration-drift",
   "Supabase migration drift report",
   "node",
-  ["scripts/supabase/audit-migration-drift.mjs", "--linked", "--write-report"],
+  ["scripts/supabase/audit-migration-drift.mjs", "--linked", "--write-report", ...knownDuplicateVersionArgs()],
   { capture: true, parseJson: true },
 );
 

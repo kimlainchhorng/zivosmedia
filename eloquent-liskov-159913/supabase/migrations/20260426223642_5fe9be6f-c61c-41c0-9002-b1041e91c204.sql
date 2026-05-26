@@ -1,0 +1,2 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS display_brand_name text;
+COMMENT ON COLUMN public.profiles.display_brand_name IS 'Optional override shown in identity cards instead of full_name (used for staff/founder/brand accounts). full_name remains the legal/KYC name.';

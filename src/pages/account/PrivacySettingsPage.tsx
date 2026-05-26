@@ -6,17 +6,19 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, Eye, EyeOff, MessageSquare, Users, UserX, Loader2, ToggleLeft, ToggleRight, Database, Cookie, ChevronRight } from "lucide-react";
+import { ArrowLeft, Shield, Eye, EyeOff, MessageSquare, Users, UserX, Loader2, ToggleLeft, ToggleRight, Database, Cookie, ChevronRight, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
 
 export default function PrivacySettingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { blurSensitiveMedia, setBlurSensitiveMedia } = useSensitiveMediaPreference(user?.id);
 
   // Scroll to hash anchor (e.g. #blocked) on mount
   useEffect(() => {
@@ -80,6 +82,11 @@ export default function PrivacySettingsPage() {
     await (supabase as any).from("blocked_users").delete().eq("id", blockId);
     queryClient.invalidateQueries({ queryKey: ["blocked-users"] });
     toast.success("User unblocked");
+  };
+
+  const updateSensitiveMediaPreference = async (next: boolean) => {
+    await setBlurSensitiveMedia(next);
+    toast.success(next ? "Sensitive media will be blurred" : "Sensitive media blur is off");
   };
 
   const visibilityOptions = [
@@ -157,6 +164,23 @@ export default function PrivacySettingsPage() {
                 </div>
               </button>
             ))}
+          </div>
+        </section>
+
+        {/* Sensitive Media */}
+        <section id="sensitive" style={{ scrollMarginTop: 80 }} className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-primary" /> Sensitive Media
+          </h3>
+          <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/40">
+            <div>
+              <p className="text-sm font-medium">Blur 18+ media</p>
+              <p className="text-xs text-muted-foreground">Hide sexual or adult media until you tap View</p>
+            </div>
+            <Switch
+              checked={blurSensitiveMedia}
+              onCheckedChange={updateSensitiveMediaPreference}
+            />
           </div>
         </section>
 

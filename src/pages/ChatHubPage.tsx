@@ -1110,7 +1110,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       const { data: groupMessages } = await (supabase as any)
         .from("group_messages")
-        .select("group_id, message, created_at, sender_id, message_type")
+        .select("*")
         .in("group_id", groupIds)
         .order("created_at", { ascending: false })
         .limit(3000);
@@ -1120,6 +1120,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       for (const msg of (groupMessages || []) as any[]) {
         if (!msg?.group_id) continue;
+        if (msg.hidden_at) continue;
         if (!latestByGroup.has(msg.group_id)) {
           latestByGroup.set(msg.group_id, msg);
         }

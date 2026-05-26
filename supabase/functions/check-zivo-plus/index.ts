@@ -33,11 +33,6 @@ Deno.serve(async (req) => {
     logStep("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) {
-      logStep("STRIPE_SECRET_KEY missing — returning not subscribed (graceful)");
-      return notSubscribed();
-    }
-
 
     const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization") ?? "";
     if (!authHeader) {
@@ -72,6 +67,38 @@ Deno.serve(async (req) => {
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
+    }
+
+    const now = new Date().toISOString();
+    const { data: localSubscription, error: localSubError } = await supabaseClient
+      .from("zivo_subscriptions")
+      .select("id, billing_cycle, current_period_end, stripe_subscription_id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .gt("current_period_end", now)
+      .order("current_period_end", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (localSubError) {
+      logStep("Local subscription lookup failed, falling back to Stripe", { error: localSubError.message });
+    } else if (localSubscription) {
+      const plan = localSubscription.billing_cycle === "yearly" ? "annual" : "monthly";
+      logStep("Active local ZIVO+ found", { plan, subscriptionEnd: localSubscription.current_period_end });
+      return new Response(
+        JSON.stringify({
+          subscribed: true,
+          plan,
+          subscription_end: localSubscription.current_period_end,
+          subscription_id: localSubscription.stripe_subscription_id || localSubscription.id,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    if (!stripeKey) {
+      logStep("STRIPE_SECRET_KEY missing - returning not subscribed (graceful)");
+      return notSubscribed();
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });

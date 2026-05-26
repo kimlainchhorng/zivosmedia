@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ProfileFeedCard from "./ProfileFeedCard";
 import UnifiedShareSheet from "@/components/shared/ShareSheet";
-import { openPostShareSheet } from "@/components/social/PostShareSheet";
+import { openPostShareSheet } from "@/lib/social/postShareSheet";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import CreatePostModal from "@/components/social/CreatePostModal";
 import CommentsSheet from "@/components/social/CommentsSheet";
@@ -11,7 +11,7 @@ import ReelThumbnail from "@/components/social/ReelThumbnail";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Heart, MessageCircle, Eye, X, SwitchCamera, Mic, MicOff, Sparkles,
+  Plus, Heart, MessageCircle, Eye, X, SwitchCamera, Mic, MicOff, Sparkles, Loader2,
   Share2, Play, Radio, ChevronDown, Globe, Users, Lock, Link2, MoreHorizontal,
   MapPin, Image, Film, Grid3X3, Clapperboard, Camera, Trash2, Pencil, MoreVertical, Bookmark,
   Flag, Bell, EyeOff, Settings2,
@@ -31,6 +31,8 @@ import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 import { logProfileActionError } from "@/lib/security/errorReporting";
 import { getE2ESeedPosts } from "@/lib/testing/e2eSeed";
 import { track } from "@/lib/analytics";
+import { useHiddenPosts } from "@/hooks/useHiddenPosts";
+import { copyText } from "@/lib/native/clipboard";
 
 /**
  * Fullscreen post viewer wrapper with drag-down-to-close.
@@ -190,6 +192,28 @@ type FilterGroup = "all" | "trending" | "new" | "pro";
 
 const LOCAL_POSTS_KEY = "zivo_social_posts_v1";
 
+const getLocalPostsKey = (ownerId?: string | null) =>
+  ownerId ? `${LOCAL_POSTS_KEY}:${ownerId}` : null;
+
+const readLocalPosts = (storageKey: string | null): FeedItem[] => {
+  if (!storageKey) return [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(storageKey) || "[]") as unknown;
+    return Array.isArray(parsed) ? (parsed as FeedItem[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalPosts = (storageKey: string | null, posts: FeedItem[]) => {
+  if (!storageKey) return;
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(posts));
+  } catch {
+    // Local persistence is best effort.
+  }
+};
+
 type UserPostRow = {
   id: string;
   user_id: string;
@@ -220,12 +244,62 @@ const TABS: { id: TabFilter; label: string; icon: typeof Grid3X3 }[] = [
   { id: "reel", label: "Reels", icon: Clapperboard },
 ];
 
-export default function ProfileContentTabs({ userId }: { userId?: string }) {
+type ProfileShareChannel =
+  | "copy_link" | "native" | "email" | "sms"
+  | "whatsapp" | "telegram" | "facebook" | "x" | "other";
+
+const profileNotificationStorageKey = (userId: string) => `zivo:feed:post-notifications:v1:${userId}`;
+const PROFILE_POST_NOTIFICATIONS_EVENT = "zivo:feed-post-notifications-changed";
+
+const profileNotificationPostKey = (postId: string) => `user:${postId.replace(/^u-/, "")}`;
+const profileNotificationPostId = (postId: string) => postId.replace(/^u-/, "");
+
+const readProfileNotificationSet = (userId: string | undefined): Set<string> => {
+  if (!userId) return new Set();
+  try {
+    const raw = localStorage.getItem(profileNotificationStorageKey(userId));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? new Set(parsed.filter((value) => typeof value === "string")) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const normalizeProfileShareChannel = (channel: string): ProfileShareChannel => {
+  const normalized = channel.toLowerCase();
+  if (normalized === "clipboard") return "copy_link";
+  if (normalized === "messages") return "sms";
+  if (
+    normalized === "copy_link" ||
+    normalized === "native" ||
+    normalized === "email" ||
+    normalized === "sms" ||
+    normalized === "whatsapp" ||
+    normalized === "telegram" ||
+    normalized === "facebook" ||
+    normalized === "x"
+  ) {
+    return normalized;
+  }
+  return "other";
+};
+
+export default function ProfileContentTabs({
+  userId,
+  profileDisplayName,
+  profileAvatarUrl,
+  onPostsChanged,
+}: {
+  userId?: string;
+  profileDisplayName?: string | null;
+  profileAvatarUrl?: string | null;
+  onPostsChanged?: () => void;
+}) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const profileOwnerId = userId || user?.id;
+  const localPostsKey = useMemo(() => getLocalPostsKey(profileOwnerId), [profileOwnerId]);
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
-  const [showComposer, setShowComposer] = useState(false);
   const [composerType, setComposerType] = useState<"photo" | "reel" | null>(null);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [profileName, setProfileName] = useState<string | null>(null);
@@ -240,6 +314,9 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
     const seeded = getE2ESeedPosts();
     return seeded && seeded.length > 0 ? (seeded as FeedItem[]) : demoFeed;
   });
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedError, setFeedError] = useState<string | null>(null);
+  const [feedReloadKey, setFeedReloadKey] = useState(0);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const [sharePostId, setSharePostId] = useState<string | null>(null);
   const [commentPost, setCommentPost] = useState<FeedItem | null>(null);
@@ -247,7 +324,9 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set());
   const [notifPosts, setNotifPosts] = useState<Set<string>>(new Set());
-  const [hiddenPosts, setHiddenPosts] = useState<Set<string>>(new Set());
+  const profileHiddenPosts = useHiddenPosts(user?.id);
+  const currentProfileName = profileDisplayName || profileName;
+  const currentProfileAvatar = profileAvatarUrl || profileAvatar;
   const [showReportSheet, setShowReportSheet] = useState(false);
   const [reportStep, setReportStep] = useState<"categories" | "sub" | "submitted">("categories");
   const [reportCategory, setReportCategory] = useState("");
@@ -256,6 +335,7 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
   const [reportedPosts, setReportedPosts] = useState<Set<string>>(new Set());
   // 10s undo window for the most-recently submitted report.
   const [undoSecondsLeft, setUndoSecondsLeft] = useState(0);
+  const [undoPostId, setUndoPostId] = useState<string | null>(null);
   const undoTargetRef = useRef<{ postId: string; expiresAt: number } | null>(null);
   const undoTickerRef = useRef<number | null>(null);
 
@@ -304,6 +384,7 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
       undoTargetRef.current = null;
       stopUndoTicker();
       setUndoSecondsLeft(0);
+      setUndoPostId(null);
       try {
         if (user?.id) {
           await (supabase as any)
@@ -324,12 +405,14 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
     (postId: string) => {
       stopUndoTicker();
       undoTargetRef.current = { postId, expiresAt: Date.now() + 10_000 };
+      setUndoPostId(postId);
       setUndoSecondsLeft(10);
       undoTickerRef.current = window.setInterval(() => {
         const target = undoTargetRef.current;
         if (!target) {
           stopUndoTicker();
           setUndoSecondsLeft(0);
+          setUndoPostId(null);
           return;
         }
         const remaining = Math.max(0, Math.ceil((target.expiresAt - Date.now()) / 1000));
@@ -337,6 +420,7 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
         if (remaining <= 0) {
           undoTargetRef.current = null;
           stopUndoTicker();
+          setUndoPostId(null);
         }
       }, 250) as unknown as number;
 
@@ -360,8 +444,226 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
 
   useEffect(() => () => stopUndoTicker(), [stopUndoTicker]);
 
-  const visibleFeed = feed.filter((i) => !hiddenPosts.has(i.id));
+  useEffect(() => {
+    const sync = () => setNotifPosts(readProfileNotificationSet(user?.id));
+    const syncRemote = async () => {
+      if (!user?.id) {
+        setNotifPosts(new Set());
+        return;
+      }
+
+      const local = readProfileNotificationSet(user.id);
+      const { data, error } = await (supabase as any)
+        .from("feed_post_notification_subscriptions")
+        .select("post_id")
+        .eq("user_id", user.id)
+        .eq("post_source", "user");
+
+      if (error) {
+        setNotifPosts(local);
+        return;
+      }
+
+      const merged = new Set(local);
+      (data ?? []).forEach((row: { post_id: string }) => {
+        if (row?.post_id) merged.add(profileNotificationPostKey(row.post_id));
+      });
+
+      const localOnlyKeys = [...local].filter((key) => key.startsWith("user:"));
+      await Promise.allSettled(
+        localOnlyKeys.map((key) =>
+          (supabase as any)
+            .from("feed_post_notification_subscriptions")
+            .upsert(
+              {
+                user_id: user.id,
+                post_id: key.replace(/^user:/, ""),
+                post_source: "user",
+              },
+              { onConflict: "user_id,post_id,post_source", ignoreDuplicates: true },
+            ),
+        ),
+      );
+
+      try {
+        localStorage.setItem(profileNotificationStorageKey(user.id), JSON.stringify(Array.from(merged)));
+      } catch {
+        /* non-fatal */
+      }
+      setNotifPosts(merged);
+    };
+    sync();
+    void syncRemote();
+    window.addEventListener(PROFILE_POST_NOTIFICATIONS_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(PROFILE_POST_NOTIFICATIONS_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    const nextName = currentProfileName?.trim();
+    const nextAvatar = currentProfileAvatar || "";
+    if (!nextName && !nextAvatar) return;
+
+    setFeed((prev) => {
+      let changed = false;
+      const next = prev.map((item) => {
+        const userPatch = { ...item.user };
+        let itemChanged = false;
+        if (nextName && userPatch.name !== nextName) {
+          userPatch.name = nextName;
+          changed = true;
+          itemChanged = true;
+        }
+        if (nextAvatar && userPatch.avatar !== nextAvatar) {
+          userPatch.avatar = nextAvatar;
+          changed = true;
+          itemChanged = true;
+        }
+        return itemChanged ? { ...item, user: userPatch } : item;
+      });
+      return changed ? next : prev;
+    });
+  }, [currentProfileAvatar, currentProfileName]);
+
+  const persistProfileNotifications = useCallback(
+    (next: Set<string>) => {
+      if (!user?.id) return false;
+      try {
+        localStorage.setItem(profileNotificationStorageKey(user.id), JSON.stringify(Array.from(next)));
+        window.dispatchEvent(new Event(PROFILE_POST_NOTIFICATIONS_EVENT));
+        return true;
+      } catch {
+        /* non-fatal */
+        return false;
+      }
+    },
+    [user?.id],
+  );
+
+  const togglePostNotifications = useCallback(
+    async (postId: string) => {
+      if (!user?.id) {
+        toast.error("Please sign in to turn on notifications");
+        return;
+      }
+      const key = profileNotificationPostKey(postId);
+      const remotePostId = profileNotificationPostId(postId);
+      const isOn = notifPosts.has(key);
+      const next = new Set(notifPosts);
+      if (isOn) next.delete(key);
+      else next.add(key);
+      setNotifPosts(next);
+      const savedLocal = persistProfileNotifications(next);
+      if (!savedLocal) {
+        toast.error("Could not update notifications");
+        return;
+      }
+
+      try {
+        if (isOn) {
+          await (supabase as any)
+            .from("feed_post_notification_subscriptions")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("post_id", remotePostId)
+            .eq("post_source", "user");
+        } else {
+          await (supabase as any)
+            .from("feed_post_notification_subscriptions")
+            .upsert(
+              {
+                user_id: user.id,
+                post_id: remotePostId,
+                post_source: "user",
+              },
+              { onConflict: "user_id,post_id,post_source", ignoreDuplicates: true },
+            );
+        }
+      } catch (err) {
+        logProfileActionError("notifications.update", { postId: remotePostId, userId: user.id }, err);
+      }
+      toast.success(isOn ? "Notifications turned off" : "Notifications turned on for this post");
+    },
+    [notifPosts, persistProfileNotifications, user?.id],
+  );
+
+  const recordProfilePostShare = useCallback(
+    async (postId: string, channel: ProfileShareChannel) => {
+      if (isLocalDraftPostId(postId)) return;
+      try {
+        await (supabase as any).rpc("record_post_share", {
+          _post_id: postId.replace(/^u-/, ""),
+          _source: "user",
+          _channel: channel,
+        });
+        track("share_completed", { post_id: postId, author_id: profileOwnerId, channel, surface: "profile_feed" });
+      } catch (err) {
+        logProfileActionError("share.record", { postId, channel, profileOwnerId }, err);
+      }
+    },
+    [profileOwnerId],
+  );
+
+  const visibleFeed = feed.filter((i) => (
+    !profileHiddenPosts.isHidden(i.id, "user") &&
+    !profileHiddenPosts.isHidden(toUserPostInteractionId(i.id), "user")
+  ));
   const filtered = activeTab === "all" ? visibleFeed : visibleFeed.filter((i) => i.type === activeTab);
+  const refreshFeed = useCallback(() => {
+    setFeedReloadKey((key) => key + 1);
+  }, []);
+  const openCreatePost = useCallback((type: "photo" | "reel" | null = null) => {
+    if (!user?.id) {
+      toast.info("Sign in to create a post");
+      navigate("/login?redirect=/profile");
+      return;
+    }
+    setComposerType(type);
+    setShowCreatePost(true);
+  }, [navigate, user?.id]);
+  const openLiveBroadcast = useCallback(() => {
+    if (!user?.id) {
+      toast.info("Sign in to go live");
+      navigate("/login?redirect=/profile");
+      return;
+    }
+    setShowLive(true);
+  }, [navigate, user?.id]);
+  const closeCreatePost = useCallback(() => {
+    setShowCreatePost(false);
+    setComposerType(null);
+  }, []);
+  const emptyState = useMemo(() => {
+    if (activeTab === "photo") {
+      return {
+        title: "No photos yet",
+        description: "Add a photo to start building your profile gallery.",
+        action: "Add photo",
+        mode: "photo" as const,
+        icon: Image,
+      };
+    }
+    if (activeTab === "reel") {
+      return {
+        title: "No reels yet",
+        description: "Create a reel when you are ready to share motion.",
+        action: "Create reel",
+        mode: "reel" as const,
+        icon: Clapperboard,
+      };
+    }
+    return {
+      title: "No posts yet",
+      description: "Share your first update, photo, or reel from here.",
+      action: "Create post",
+      mode: null,
+      icon: Plus,
+    };
+  }, [activeTab]);
+  const EmptyStateIcon = emptyState.icon;
 
   useEffect(() => {
     let alive = true;
@@ -384,6 +686,9 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
     const DEMO_IDS = new Set(["p1","p2","p3","p4","p5","p6","v1","v2","v3"]);
 
     const loadPersisted = async () => {
+      setFeedLoading(true);
+      setFeedError(null);
+
       // Fetch the profile avatar
       if (profileOwnerId) {
         try {
@@ -406,11 +711,13 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
       }
 
       try {
-        const localRaw = localStorage.getItem(LOCAL_POSTS_KEY);
-        if (localRaw && alive) {
-          const localPosts = (JSON.parse(localRaw) as FeedItem[]).filter(p => !DEMO_IDS.has(p.id));
-          localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(localPosts));
-          if (localPosts.length > 0) {
+        const cachedPosts = readLocalPosts(localPostsKey);
+        const localPosts = cachedPosts.filter((p) => !DEMO_IDS.has(p.id));
+        if (cachedPosts.length !== localPosts.length) {
+          writeLocalPosts(localPostsKey, localPosts);
+        }
+        if (localPosts.length > 0) {
+          if (alive) {
             mergeFeed(localPosts);
           }
         }
@@ -429,7 +736,8 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
           query.eq("user_id", profileOwnerId);
         }
 
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) throw error;
 
         if (!alive || !data) return;
 
@@ -495,7 +803,12 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
           .filter((item) => Boolean(item.url) || Boolean(item.caption.trim()));
 
         if (remotePosts.length > 0) mergeFeed(remotePosts);
-      } catch {
+      } catch (err) {
+        if (!alive) return;
+        console.error("[ProfileContentTabs] failed to load posts", err);
+        setFeedError(err instanceof Error ? err.message : "Posts could not load");
+      } finally {
+        if (alive) setFeedLoading(false);
       }
     };
 
@@ -503,7 +816,7 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
     return () => {
       alive = false;
     };
-  }, [profileOwnerId]);
+  }, [localPostsKey, profileOwnerId, feedReloadKey, user?.email, user?.id]);
 
   const buildPublicPostShareUrl = useCallback((postId: string) => {
     if (profileShareCode) {
@@ -697,14 +1010,10 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
 
   const persistLocalPost = useCallback((post: FeedItem) => {
     if (!post.url || post.url.startsWith("blob:")) return;
-    try {
-      const existing = JSON.parse(localStorage.getItem(LOCAL_POSTS_KEY) || "[]") as FeedItem[];
-      const next = [post, ...existing.filter((item) => item.id !== post.id)].slice(0, 100);
-      localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(next));
-    } catch {
-      // Local persistence is best effort.
-    }
-  }, []);
+    const existing = readLocalPosts(localPostsKey);
+    const next = [post, ...existing.filter((item) => item.id !== post.id)].slice(0, 100);
+    writeLocalPosts(localPostsKey, next);
+  }, [localPostsKey]);
 
   const handleCreatePost = useCallback(async (payload: NewPostPayload) => {
     const authorName = user?.email?.split("@")[0] || "You";
@@ -721,7 +1030,7 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
       url: mediaUrl,
       filterCss: payload.filterCss,
       views: payload.type === "reel" ? 0 : undefined,
-      user: { name: authorName, avatar: profileAvatar || "" },
+      user: { name: authorName, avatar: currentProfileAvatar || "" },
     };
 
     setFeed((prev) => [createdPost, ...prev]);
@@ -741,36 +1050,32 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
         // Ignore remote write issues; local feed already updated.
       }
     }
-  }, [persistLocalPost, uploadMediaToSupabase, user?.email, user?.id]);
+    onPostsChanged?.();
+  }, [currentProfileAvatar, onPostsChanged, persistLocalPost, uploadMediaToSupabase, user?.email, user?.id]);
 
   const handleDeletePost = useCallback(async (postId: string) => {
     setFeed((prev) => prev.filter((p) => p.id !== postId));
     setSelectedPost(null);
     setShowPostMenu(false);
-    try {
-      const existing = JSON.parse(localStorage.getItem(LOCAL_POSTS_KEY) || "[]") as FeedItem[];
-      localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(existing.filter((p) => p.id !== postId)));
-    } catch {}
+    writeLocalPosts(localPostsKey, readLocalPosts(localPostsKey).filter((p) => p.id !== postId));
     if (user?.id) {
       try { await (supabase as any).from("user_posts").delete().eq("id", postId); } catch {}
     }
+    onPostsChanged?.();
     toast.success("Post deleted");
-  }, [user?.id]);
+  }, [localPostsKey, onPostsChanged, user?.id]);
 
   const handleEditCaption = useCallback(async (postId: string, newCaption: string) => {
     setFeed((prev) => prev.map((p) => p.id === postId ? { ...p, caption: newCaption } : p));
     setSelectedPost((prev) => prev ? { ...prev, caption: newCaption } : null);
     setEditingCaption(false);
     setShowPostMenu(false);
-    try {
-      const existing = JSON.parse(localStorage.getItem(LOCAL_POSTS_KEY) || "[]") as FeedItem[];
-      localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(existing.map((p) => p.id === postId ? { ...p, caption: newCaption } : p)));
-    } catch {}
+    writeLocalPosts(localPostsKey, readLocalPosts(localPostsKey).map((p) => p.id === postId ? { ...p, caption: newCaption } : p));
     if (user?.id) {
       try { await (supabase as any).from("user_posts").update({ caption: newCaption }).eq("id", postId); } catch {}
     }
     toast.success("Caption updated");
-  }, [user?.id]);
+  }, [localPostsKey, user?.id]);
 
   const openComments = useCallback((item: FeedItem) => {
     if (isLocalDraftPostId(item.id)) {
@@ -841,38 +1146,59 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
       );
       toast.error(error?.message || "Bookmark failed");
     }
-  }, [bookmarkedPosts, user?.id]);
+  }, [bookmarkedPosts, profileOwnerId, user?.id]);
 
 
   return (
     <div className="space-y-4">
       {/* Create Post Bar */}
-      <button type="button"
-        onClick={() => setShowCreatePost(true)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/10 bg-card hover:bg-muted/20 transition-colors rounded-2xl"
-      >
-        <div className="h-10 w-10 rounded-full overflow-hidden bg-muted border-2 border-primary/20 shrink-0">
-          {profileAvatar ? (
-	            <img src={profileAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-muted-foreground/50">
-              <Camera className="h-4 w-4" />
-            </div>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground flex-1 text-left">What's on your mind?</p>
-        <div className="flex gap-1.5">
-          <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+      <div className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/10 bg-card rounded-2xl">
+        <button
+          type="button"
+          onClick={() => openCreatePost()}
+          className="min-w-0 flex flex-1 items-center gap-3 rounded-xl text-left transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        >
+          <div className="h-10 w-10 rounded-full overflow-hidden bg-muted border-2 border-primary/20 shrink-0">
+            {currentProfileAvatar ? (
+              <img src={currentProfileAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-muted-foreground/50">
+                <Camera className="h-4 w-4" />
+              </div>
+            )}
+          </div>
+          <span className="text-sm text-muted-foreground flex-1 truncate">What's on your mind?</span>
+        </button>
+        <div className="flex shrink-0 gap-1.5">
+          <button
+            type="button"
+            aria-label="Create photo post"
+            title="Photo"
+            onClick={() => openCreatePost("photo")}
+            className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center transition hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+          >
             <Image className="h-3.5 w-3.5 text-emerald-600" />
-          </div>
-          <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+          </button>
+          <button
+            type="button"
+            aria-label="Create reel"
+            title="Reel"
+            onClick={() => openCreatePost("reel")}
+            className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center transition hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+          >
             <Film className="h-3.5 w-3.5 text-blue-600" />
-          </div>
-          <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center">
+          </button>
+          <button
+            type="button"
+            aria-label="Go live from camera"
+            title="Live camera"
+            onClick={openLiveBroadcast}
+            className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center transition hover:bg-orange-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50"
+          >
             <Camera className="h-3.5 w-3.5 text-orange-600" />
-          </div>
+          </button>
         </div>
-      </button>
+      </div>
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-1 bg-muted/30 rounded-xl p-1">
@@ -899,7 +1225,39 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
       </div>
 
       {/* Feed - conditional layout */}
-      {activeTab === "all" && filtered.length > 0 ? (
+      {feedLoading && filtered.length === 0 ? (
+        <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-2xl bg-card text-sm text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <span>Loading posts...</span>
+        </div>
+      ) : feedError && filtered.length === 0 ? (
+        <div className="flex min-h-[160px] flex-col items-center justify-center gap-3 rounded-2xl border border-border/50 bg-card px-4 text-center">
+          <p className="text-sm font-semibold text-foreground">Posts could not load</p>
+          <p className="max-w-xs text-xs text-muted-foreground">{feedError}</p>
+          <button
+            type="button"
+            onClick={refreshFeed}
+            className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground active:scale-[0.98]"
+          >
+            Retry
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex min-h-[190px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-card px-5 py-8 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <EmptyStateIcon className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-bold text-foreground">{emptyState.title}</p>
+          <p className="mt-1 max-w-[260px] text-xs leading-5 text-muted-foreground">{emptyState.description}</p>
+          <button
+            type="button"
+            onClick={() => openCreatePost(emptyState.mode)}
+            className="mt-4 inline-flex min-h-[38px] items-center justify-center rounded-full bg-foreground px-4 text-xs font-bold text-background transition active:scale-[0.98]"
+          >
+            {emptyState.action}
+          </button>
+        </div>
+      ) : activeTab === "all" ? (
         /* Feed-style view for "All" tab — full parity with main feed */
         <div className="divide-y divide-border/30">
           {filtered.map((item) => (
@@ -933,6 +1291,9 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                     image: p?.url ?? null,
                     deepLink: buildPublicPostShareUrl(postId),
                   }),
+                  onShared: (channel) => {
+                    void recordProfilePostShare(postId, normalizeProfileShareChannel(channel));
+                  },
                 });
               }}
               onSelectPost={(feedItem) => setSelectedPost(feedItem as any)}
@@ -1154,6 +1515,9 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                         image: selectedPost.url ?? null,
                         deepLink: buildPublicPostShareUrl(selectedPost.id),
                       }),
+                      onShared: (channel) => {
+                        void recordProfilePostShare(selectedPost.id, normalizeProfileShareChannel(channel));
+                      },
                     })}
                   >
                     <Share2 className="w-6 h-6" />
@@ -1173,15 +1537,15 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
             <CreatePostModal
               userId={user.id}
               userProfile={{
-                name: profileName || user?.email?.split("@")[0] || "You",
-                avatar: profileAvatar,
+                name: currentProfileName || user?.email?.split("@")[0] || "You",
+                avatar: currentProfileAvatar,
               }}
-              onClose={() => setShowCreatePost(false)}
+              initialMode={composerType === "photo" ? "photo" : composerType === "reel" ? "reel" : undefined}
+              onClose={closeCreatePost}
               onCreated={() => {
-                setShowCreatePost(false);
-                // Refresh feed
-                setFeed([]);
-                window.location.reload();
+                closeCreatePost();
+                refreshFeed();
+                onPostsChanged?.();
               }}
             />
           )}
@@ -1309,33 +1673,27 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                   <button type="button"
                     role="menuitem"
                     aria-label={
-                      notifPosts.has(selectedPost.id)
+                      notifPosts.has(profileNotificationPostKey(selectedPost.id))
                         ? "Turn off notifications for this post"
                         : "Turn on notifications for this post"
                     }
                     onClick={() => {
-                      const id = selectedPost.id;
-                      const isOn = notifPosts.has(id);
-                      setNotifPosts((prev) => {
-                        const next = new Set(prev);
-                        if (isOn) next.delete(id); else next.add(id);
-                        return next;
-                      });
-                      toast.success(isOn ? "Notifications turned off" : "Notifications turned on for this post");
+                      void togglePostNotifications(selectedPost.id);
                       setShowPostMenu(false);
                     }}
                     data-testid="profile-menu-notifications"
                     className="w-full flex items-center gap-4 px-5 py-3.5 min-h-[48px] text-sm text-foreground hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-none transition-colors"
                   >
                     <Bell className="w-5 h-5" aria-hidden="true" />
-                    {notifPosts.has(selectedPost.id) ? "Turn off notifications" : "Turn on notifications"}
+                    {notifPosts.has(profileNotificationPostKey(selectedPost.id)) ? "Turn off notifications" : "Turn on notifications"}
                   </button>
                   <button type="button"
                     role="menuitem"
                     aria-label="Copy link to this post"
                     onClick={() => {
                       const url = buildPublicPostShareUrl(selectedPost.id);
-                      navigator.clipboard.writeText(url).then(() => toast.success("Link copied!")).catch(() => toast.info("Could not copy link"));
+                      copyText(url).then(() => toast.success("Link copied!")).catch(() => toast.info("Could not copy link"));
+                      void recordProfilePostShare(selectedPost.id, "copy_link");
                       setShowPostMenu(false);
                     }}
                     className="w-full flex items-center gap-4 px-5 py-3.5 min-h-[48px] text-sm text-foreground hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-none transition-colors"
@@ -1348,11 +1706,8 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                     aria-label="Hide this post — not interested"
                     onClick={() => {
                       const id = selectedPost.id;
-                      setHiddenPosts((prev) => {
-                        const next = new Set(prev);
-                        next.add(id);
-                        return next;
-                      });
+                      profileHiddenPosts.hide(id, "user");
+                      profileHiddenPosts.hide(toUserPostInteractionId(id), "user");
                       setShowPostMenu(false);
                       setSelectedPost(null);
                       toast.success("You won't see this post anymore");
@@ -1381,6 +1736,9 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                           image: selectedPost.url ?? null,
                           deepLink: buildPublicPostShareUrl(selectedPost.id),
                         }),
+                        onShared: (channel) => {
+                          void recordProfilePostShare(selectedPost.id, normalizeProfileShareChannel(channel));
+                        },
                       });
                     }}
                     className="w-full flex items-center gap-4 px-5 py-3.5 min-h-[48px] text-sm text-foreground hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-none transition-colors"
@@ -1577,12 +1935,11 @@ export default function ProfileContentTabs({ userId }: { userId?: string }) {
                     <p className="text-sm text-muted-foreground mb-5">
                       Thanks for helping keep ZIVO safe. Our team will review this post. You can see its status as <span className="font-medium text-foreground">Reported</span> in the post menu.
                     </p>
-                    {undoSecondsLeft > 0 && undoTargetRef.current && (
+                    {undoSecondsLeft > 0 && undoPostId && (
                       <button type="button"
                         data-testid="profile-report-undo"
                         onClick={() => {
-                          const t = undoTargetRef.current;
-                          if (t) void performUndo(t.postId);
+                          void performUndo(undoPostId);
                           setShowReportSheet(false);
                         }}
                         className="w-full mb-2 border border-border bg-background text-foreground rounded-xl py-3 min-h-[44px] text-sm font-semibold hover:bg-muted/40 transition-colors"
@@ -4318,6 +4675,8 @@ function drawFaceFilter(
   ctx.restore();
 }
 
+const DEFAULT_CAMERA_FACING_MODE = "user" as const;
+
 function LiveBroadcast({
   onClose,
   onPublishClip,
@@ -4331,7 +4690,7 @@ function LiveBroadcast({
   const animFrameRef = useRef<number>(undefined);
   const [isLive, setIsLive] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(DEFAULT_CAMERA_FACING_MODE);
   const [elapsed, setElapsed] = useState(0);
   const [viewers] = useState(() => Math.floor(Math.random() * 20) + 1);
   const [comments, setComments] = useState<{ id: number; user: string; text: string }[]>([]);
@@ -4355,7 +4714,11 @@ function LiveBroadcast({
   const [aiResultOverlay, setAiResultOverlay] = useState<string | null>(null);
   const [aiSelectedMode, setAiSelectedMode] = useState<string | null>(null);
   const [aiOverlayMode, setAiOverlayMode] = useState<"fullscreen" | "card">("card");
+  const onCloseRef = useRef(onClose);
 
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const COLOR_FILTERS = [
     { name: "Original", css: "none", emoji: "✨" },
@@ -4903,12 +5266,12 @@ function LiveBroadcast({
       }
     } catch {
       toast.error("Camera access denied");
-      onClose();
+      onCloseRef.current();
     }
-  }, [onClose]);
+  }, []);
 
   useEffect(() => {
-    startCamera(facingMode);
+    startCamera(DEFAULT_CAMERA_FACING_MODE);
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       if (timerRef.current) clearInterval(timerRef.current);
@@ -4917,7 +5280,7 @@ function LiveBroadcast({
         mediaRecorderRef.current?.stop();
       }
     };
-  }, []);
+  }, [startCamera]);
 
   const goLive = () => {
     setIsLive(true);

@@ -1,0 +1,69 @@
+name: Notifications Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "supabase/config.toml"
+      - "src/hooks/usePushNotifications.ts"
+      - ".github/workflows/notifications-smoke.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "supabase/config.toml"
+      - "src/hooks/usePushNotifications.ts"
+      - ".github/workflows/notifications-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notifications-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Notification stack smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DENO_DIR: ~/.cache/deno
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v1.x
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/deno
+          key: ${{ runner.os }}-deno-notifications-${{ hashFiles('supabase/functions/**/*.ts', 'supabase/functions/**/*.json', 'supabase/config.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-deno-notifications-
+
+      - name: Verify notification functions compile
+        run: |
+          deno check supabase/functions/notify-dispatch/index.ts
+          deno check supabase/functions/register-push-token/index.ts
+          deno check supabase/functions/send-marketing-campaign/index.ts
+          deno check supabase/functions/send-push-notification/index.ts
+          deno check supabase/functions/send-transactional-email/index.ts
+          deno check supabase/functions/send-sms/index.ts
+
+      - name: Verify notification config entries
+        run: |
+          grep -q '\[functions.notify-dispatch\]' supabase/config.toml
+          grep -q '\[functions.register-push-token\]' supabase/config.toml
+          grep -q '\[functions.send-sms\]' supabase/config.toml
+          grep -q '\[functions.send-transactional-email\]' supabase/config.toml
+
+      - name: Lint notification edge functions
+        run: deno lint supabase/functions/notify-dispatch/index.ts supabase/functions/register-push-token/index.ts supabase/functions/send-marketing-campaign/index.ts supabase/functions/send-push-notification/index.ts supabase/functions/send-transactional-email/index.ts supabase/functions/send-sms/index.ts

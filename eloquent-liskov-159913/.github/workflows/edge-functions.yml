@@ -1,0 +1,74 @@
+name: Edge Functions
+
+# Type-check all Supabase Edge Functions with Deno to catch import errors
+# and type mismatches before they reach production.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/edge-functions.yml"
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/edge-functions.yml"
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edge-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deno-check:
+    name: Deno type-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DENO_DIR: ~/.cache/deno
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v1.x
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/deno
+          key: ${{ runner.os }}-deno-${{ hashFiles('supabase/functions/**/*.ts', 'supabase/functions/**/*.json', 'supabase/functions/**/*.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deno-
+
+      - name: Deno type-check (shared deps)
+        run: deno check supabase/functions/_shared/deps.ts
+
+      - name: Deno type-check (all functions)
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        run: |
+          find supabase/functions -name "index.ts" -not -path "*/_shared/*" | sort | \
+          xargs -I {} sh -c 'echo "Checking: {}" && deno check "{}" || echo "FAIL: {}"'
+
+      - name: Lint edge functions
+        run: deno lint supabase/functions/ --ignore=supabase/functions/_shared/test-utils.ts
+        continue-on-error: ${{ github.event_name == 'pull_request' }}

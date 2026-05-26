@@ -262,6 +262,8 @@ function readMigrationDrift() {
   const drift = {
     local: pick("Local migrations"),
     duplicateVersions: pick("Duplicate versions"),
+    allowedDuplicateVersions: pick("Allowed duplicate versions"),
+    newDuplicateVersions: pick("New duplicate versions"),
     remote: pick("Remote migrations"),
     matched: pick("Matched versions"),
     localOnly: pick("Local-only pending"),
@@ -280,8 +282,8 @@ function readMigrationDrift() {
       { file: rel(file) },
     );
   }
-  if (drift.duplicateVersions > 0) {
-    add("warnings", "duplicate-migration-versions", `Local Supabase migrations contain ${drift.duplicateVersions} duplicate version(s).`, { file: rel(file) });
+  if (drift.newDuplicateVersions > 0) {
+    add("warnings", "duplicate-migration-versions", `Local Supabase migrations contain ${drift.newDuplicateVersions} new duplicate version(s).`, { file: rel(file) });
   }
   if (drift.remoteError) {
     add(
@@ -328,7 +330,7 @@ function renderReport(summary) {
     `- Functions using withSecurity(): ${summary.functions.withSecurity}`,
     `- Functions using strictCorsHeaders(): ${summary.functions.strictCors}`,
     `- Functions using service role: ${summary.functions.serviceRole}`,
-    drift ? `- Supabase migration drift: reportLocal=${drift.local}, currentLocal=${drift.currentLocal}, remote=${drift.remote}, matched=${drift.matched}, duplicateVersions=${drift.duplicateVersions}, remoteError=${drift.remoteError ? "yes" : "no"}` : "- Supabase migration drift: report missing",
+    drift ? `- Supabase migration drift: reportLocal=${drift.local}, currentLocal=${drift.currentLocal}, remote=${drift.remote}, matched=${drift.matched}, duplicateVersions=${drift.duplicateVersions}, allowedDuplicateVersions=${drift.allowedDuplicateVersions}, newDuplicateVersions=${drift.newDuplicateVersions}, remoteError=${drift.remoteError ? "yes" : "no"}` : "- Supabase migration drift: report missing",
     "",
     "## Critical",
     "",

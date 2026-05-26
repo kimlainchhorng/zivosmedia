@@ -1,0 +1,1 @@
+ALTER TABLE public.user_cvs ADD COLUMN IF NOT EXISTS date_of_birth DATE;

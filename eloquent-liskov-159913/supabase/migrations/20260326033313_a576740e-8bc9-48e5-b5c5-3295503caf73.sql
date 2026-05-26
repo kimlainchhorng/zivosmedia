@@ -1,0 +1,1 @@
+ALTER TABLE store_products ADD COLUMN IF NOT EXISTS badge text DEFAULT NULL;

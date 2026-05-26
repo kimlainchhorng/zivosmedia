@@ -96,7 +96,7 @@ export default function ChatSearchPage() {
         // 2) Group messages
         (supabase as any)
           .from("group_messages")
-          .select("id, group_id, sender_id, message, created_at")
+          .select("*")
           .ilike("message", term)
           .order("created_at", { ascending: false })
           .limit(40),
@@ -113,7 +113,7 @@ export default function ChatSearchPage() {
       // Hydrate display names. We do best-effort lookups but fall back to
       // the raw id if a row was filtered by RLS.
       const dmRows = (dmsRes?.data ?? []) as any[];
-      const grpRows = (groupsRes?.data ?? []) as any[];
+      const grpRows = ((groupsRes?.data ?? []) as any[]).filter((m) => !m.hidden_at);
       const chRows = (channelsRes?.data ?? []) as any[];
 
       const peerIds = Array.from(new Set(dmRows.map((m) => (m.sender_id === user.id ? m.receiver_id : m.sender_id))));
@@ -125,7 +125,7 @@ export default function ChatSearchPage() {
           ? (supabase as any).from("profiles").select("user_id, full_name").in("user_id", peerIds)
           : Promise.resolve({ data: [] }),
         groupIds.length
-          ? (supabase as any).from("group_chats").select("id, name").in("id", groupIds)
+          ? (supabase as any).from("chat_groups").select("id, name").in("id", groupIds)
           : Promise.resolve({ data: [] }),
         channelIds.length
           ? (supabase as any).from("channels").select("id, name, handle").in("id", channelIds)

@@ -1,0 +1,170 @@
+[
+  {
+    "name": "Palace Gate Hotel & Resort by EHM",
+    "city": "Phnom Penh",
+    "storeId": "8e1aa8a2-31a8-4051-ab85-145ebaab6b37",
+    "rooms": 12,
+    "photos": 22,
+    "status": "added"
+  },
+  {
+    "name": "Monivong Clover Hotel Formerly G Mekong Hotel",
+    "city": "Phnom Penh",
+    "storeId": "93c81321-9c38-45c2-a447-0bfb0c99af3e",
+    "rooms": 6,
+    "photos": 20,
+    "status": "added"
+  },
+  {
+    "name": "Hotel Emion Phnom Penh",
+    "city": "Phnom Penh",
+    "storeId": "83db5fb9-fe85-41c3-8f76-4e832d995926",
+    "rooms": 7,
+    "photos": 21,
+    "status": "added"
+  },
+  {
+    "name": "White Mansion 白色公馆",
+    "city": "Phnom Penh",
+    "storeId": "45583a33-a44b-4223-87f0-42d47366c11e",
+    "rooms": 6,
+    "photos": 22,
+    "status": "added"
+  },
+  {
+    "name": "Bassac Signature Hotel & Residence",
+    "city": "Phnom Penh",
+    "storeId": "03cf9750-6887-4e35-8366-0e46e8ea44c1",
+    "rooms": 10,
+    "photos": 21,
+    "status": "added"
+  },
+  {
+    "name": "Anik Palace Hotel",
+    "city": "Phnom Penh",
+    "storeId": "0681c145-a6b0-45da-9f22-24dc00a5cfea",
+    "rooms": 13,
+    "photos": 20,
+    "status": "added"
+  },
+  {
+    "name": "Hotel Sor",
+    "city": "Phnom Penh",
+    "storeId": "71214495-b9c9-4d84-abbd-17ad80aaa926",
+    "rooms": 6,
+    "photos": 23,
+    "status": "added"
+  },
+  {
+    "name": "Koulen Central Hotel",
+    "city": "Siem Reap",
+    "storeId": "0cb4df80-645e-4249-9576-ae424262b7ea",
+    "rooms": 10,
+    "photos": 22,
+    "status": "added"
+  },
+  {
+    "name": "Prince Angkor Hotel & Spa",
+    "city": "Siem Reap",
+    "storeId": "50ed3667-bba8-4ad4-8165-4402af2bb2e6",
+    "rooms": 9,
+    "photos": 20,
+    "status": "added"
+  },
+  {
+    "name": "Angkor Village Hotel - Small Luxury Hotels of the World",
+    "city": "Siem Reap",
+    "storeId": "804f6192-3ede-4b96-bc6a-bfd298662bc9",
+    "rooms": 4,
+    "photos": 22,
+    "status": "added"
+  },
+  {
+    "name": "Memoire d' Angkor Boutique Hotel",
+    "city": "Siem Reap",
+    "storeId": "3be38822-1599-4e41-91b8-748eb684d1d5",
+    "rooms": 5,
+    "photos": 22,
+    "status": "added"
+  },
+  {
+    "name": "Golden Temple Retreat",
+    "city": "Siem Reap",
+    "storeId": "5b375af2-b338-4166-b368-32df277f28d9",
+    "rooms": 2,
+    "photos": 22,
+    "status": "added"
+  },
+  {
+    "name": "Golden Temple Residence",
+    "city": "Siem Reap",
+    "storeId": "58071e18-1b60-40bc-a315-f0124e373fdc",
+    "rooms": 5,
+    "photos": 25,
+    "status": "added"
+  },
+  {
+    "name": "The Moon Residence & Spa",
+    "city": "Siem Reap",
+    "storeId": "a485965a-387a-4746-9246-0e82e088aead",
+    "rooms": 5,
+    "photos": 29,
+    "status": "added"
+  },
+  {
+    "name": "Two Seasons Siem Reap Hotel",
+    "city": "Siem Reap",
+    "storeId": "793d0fac-7d43-41b4-a1b3-14eede56d283",
+    "rooms": 6,
+    "photos": 22,
+    "status": "added"
+  },
+  {
+    "name": "The Elephant",
+    "city": "Siem Reap",
+    "storeId": "470ae3ec-3b3e-4e85-aa47-4d5cc235be0a",
+    "rooms": 8,
+    "photos": 24,
+    "status": "added"
+  },
+  {
+    "name": "Lynnaya Urban River Resort",
+    "city": "Siem Reap",
+    "storeId": "fd3e718a-d187-4714-b731-4ad19eebf808",
+    "rooms": 6,
+    "photos": 24,
+    "status": "added"
+  },
+  {
+    "name": "Golden Temple Boutique",
+    "city": "Siem Reap",
+    "storeId": "984c0697-8168-4215-b8b0-e519354c8a37",
+    "rooms": 5,
+    "photos": 21,
+    "status": "added"
+  },
+  {
+    "name": "Viroth's Hotel",
+    "city": "Siem Reap",
+    "storeId": "5b041b5d-497e-4341-b1be-50e3158477b3",
+    "rooms": 8,
+    "photos": 19,
+    "status": "added"
+  },
+  {
+    "name": "Khmer Mansion Boutique Hotel",
+    "city": "Siem Reap",
+    "storeId": "acbcdc81-405e-4c93-9f22-5a91d6c0a2c9",
+    "rooms": 5,
+    "photos": 20,
+    "status": "added"
+  },
+  {
+    "name": "La Plante Siem Reap",
+    "city": "Siem Reap",
+    "storeId": "0a4398b0-cd1a-434f-b0bc-93bdbf749828",
+    "rooms": 7,
+    "photos": 22,
+    "status": "added"
+  }
+]
