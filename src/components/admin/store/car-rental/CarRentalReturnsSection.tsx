@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import CarRentalDamageDiagram, { type DamageMark } from "./CarRentalDamageDiagram";
+import { toast } from "sonner";
 
 interface Props { storeId: string }
 
@@ -41,6 +42,8 @@ interface ActiveRental {
   deposit_paid_cents: number;
   total_cents: number;
   amount_paid_cents: number;
+  stripe_payment_intent_id: string | null;
+  stripe_refund_id: string | null;
 }
 
 interface VehiclePricing {
@@ -62,7 +65,7 @@ export default function CarRentalReturnsSection({ storeId }: Props) {
     setLoading(true);
     const { data, error: err } = await supabase
       .from("car_rental_reservations")
-      .select("id, customer_name, customer_phone, vehicle_id, vehicle_label, pickup_at, dropoff_at, rental_days, pickup_odometer, pickup_fuel_level, base_total_cents, addons_total_cents, daily_rate_cents, security_deposit_cents, deposit_paid_cents, total_cents, amount_paid_cents")
+      .select("id, customer_name, customer_phone, vehicle_id, vehicle_label, pickup_at, dropoff_at, rental_days, pickup_odometer, pickup_fuel_level, base_total_cents, addons_total_cents, daily_rate_cents, security_deposit_cents, deposit_paid_cents, total_cents, amount_paid_cents, stripe_payment_intent_id, stripe_refund_id")
       .eq("store_id", storeId)
       .eq("status", "picked_up")
       .order("dropoff_at", { ascending: true });
@@ -176,11 +179,42 @@ export default function CarRentalReturnsSection({ storeId }: Props) {
                 amount_paid_cents: settle.amount_paid_cents,
               } as never)
               .eq("id", active.id);
-            setSaving(false);
             if (err) {
+              setSaving(false);
               console.error(err);
               return;
             }
+
+            // If a Stripe deposit is on file and the operator wants to refund
+            // (or partially refund) it, ask Stripe to cancel/refund. The
+            // webhook flips payment_status; we don't touch the row here to
+            // avoid races. Non-blocking — return still completes if the
+            // refund fails for any reason.
+            if (
+              active.stripe_payment_intent_id
+              && !active.stripe_refund_id
+              && settle.refund_deposit_cents > 0
+            ) {
+              try {
+                const { error: refundErr } = await supabase.functions.invoke(
+                  "refund-car-rental-deposit",
+                  {
+                    body: {
+                      reservation_id: active.id,
+                      amount_cents: settle.refund_deposit_cents,
+                      reason: settle.damage_notes || undefined,
+                    },
+                  },
+                );
+                if (refundErr) throw refundErr;
+                toast.success(`Refund issued · ${formatMoney(settle.refund_deposit_cents)}`);
+              } catch (e: any) {
+                const msg = e?.context?.json?.error || e?.message || "Refund failed.";
+                toast.error(`Deposit refund failed: ${msg}`, { duration: 8000 });
+              }
+            }
+
+            setSaving(false);
             setActive(null);
             void load();
           }}
@@ -204,6 +238,11 @@ function ReturnDialog({
     extra_fees_cents: number;
     new_total_cents: number;
     amount_paid_cents: number;
+    /**
+     * Net deposit to refund via Stripe. Zero when the operator unchecked
+     * "refund deposit" or extra fees fully consumed the held deposit.
+     */
+    refund_deposit_cents: number;
   }) => Promise<void>;
   saving: boolean;
 }) {
@@ -434,6 +473,11 @@ function ReturnDialog({
             extra_fees_cents: extraFeesTotal,
             new_total_cents: newTotal,
             amount_paid_cents: rental.amount_paid_cents + stillOwed,
+            // Refund what's left of the held deposit after extra fees.
+            // If the operator unchecked the box, refund nothing.
+            refund_deposit_cents: refundDeposit
+              ? Math.max(0, rental.deposit_paid_cents - extraFeesTotal)
+              : 0,
           })}>
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
             Close rental

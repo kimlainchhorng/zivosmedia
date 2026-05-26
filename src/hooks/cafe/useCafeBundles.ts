@@ -141,8 +141,10 @@ export function useCafeBundles(storeId: string | undefined) {
       await writeItems((data as { id: string }).id, draft.items);
     } catch (e) {
       console.error("[useCafeBundles] create items", e);
-      // Best-effort cleanup so we don't leave an empty header.
-      void supabase.from("cafe_bundles" as never).delete().eq("id", (data as { id: string }).id);
+      // Cleanup the orphan header so failed creates don't leave empty bundles.
+      const cleanup = await supabase
+        .from("cafe_bundles" as never).delete().eq("id", (data as { id: string }).id);
+      if (cleanup.error) console.error("[useCafeBundles] cleanup", cleanup.error);
       setError("Couldn't save bundle items.");
       setSaving(false);
       return false;

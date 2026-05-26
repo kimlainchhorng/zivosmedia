@@ -6,7 +6,7 @@
  * Flow: pick location + dates → choose vehicle → choose add-ons → enter
  *       contact info → submit (creates a 'pending' / 'app'-sourced reservation).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useStoreCurrency } from "@/lib/car-rental/money";
@@ -17,6 +17,7 @@ import {
   Users, Fuel, Cog, Briefcase, Snowflake, AlertTriangle, Tag, Star, Heart, Search, Zap, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import CarRentalInlinePaymentForm from "@/components/car-rental/CarRentalInlinePaymentForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,7 +91,16 @@ const addDays = (iso: string, n: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-type Step = "dates" | "vehicle" | "addons" | "details" | "review" | "confirmed";
+type Step = "dates" | "vehicle" | "addons" | "details" | "review" | "payment" | "confirmed";
+
+interface PaymentSession {
+  reservationId: string;
+  clientSecret: string;
+  paymentIntentId: string;
+  amountCents: number;
+  currency: string;
+  captureMode: "manual" | "immediate";
+}
 type Mode = "storefront" | "wizard";
 
 export default function PublicCarRentalBookingPage() {
@@ -150,6 +160,10 @@ export default function PublicCarRentalBookingPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submittedCode, setSubmittedCode] = useState<string | null>(null);
+  const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(null);
+  const clientAttemptIdRef = useRef<string>(
+    typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -486,9 +500,120 @@ export default function PublicCarRentalBookingPage() {
       await supabase.from("car_rental_reservation_addons").insert(rows as never);
     }
 
+    const reservationId = (data as any).id as string;
     setSubmittedCode((data as any).confirmation_code);
-    setStep("confirmed");
+
+    // Kick off the Stripe deposit PaymentIntent. If the store is wired up
+    // for payments, we move to the inline payment step. If anything goes
+    // wrong (e.g. payments not configured), we fall back to the legacy
+    // "Booking received!" confirmation so the rental team can still handle
+    // payment manually offline.
+    try {
+      const { data: depositRes, error: depositErr } = await supabase.functions.invoke(
+        "create-car-rental-deposit",
+        {
+          body: {
+            reservation_id: reservationId,
+            client_attempt_id: clientAttemptIdRef.current,
+          },
+        },
+      );
+
+      if (depositErr) throw depositErr;
+      const dep = depositRes as any;
+
+      if (dep?.already_paid) {
+        setStep("confirmed");
+      } else if (dep?.client_secret && dep?.payment_intent_id) {
+        setPaymentSession({
+          reservationId,
+          clientSecret: dep.client_secret,
+          paymentIntentId: dep.payment_intent_id,
+          amountCents: dep.amount_cents,
+          currency: dep.currency || "usd",
+          captureMode: dep.capture_mode === "immediate" ? "immediate" : "manual",
+        });
+        setStep("payment");
+      } else {
+        // Payments not configured for this store — keep the legacy flow.
+        setStep("confirmed");
+      }
+    } catch (e) {
+      console.error("[create-car-rental-deposit] failed", e);
+      // Don't block the booking — it's already saved in DB. The team can
+      // settle payment manually if Stripe is unavailable.
+      setStep("confirmed");
+    }
+
     setSubmitting(false);
+  };
+
+  // When the customer is on the payment step (or has just submitted payment),
+  // subscribe to the reservation row and flip to "confirmed" as soon as the
+  // Stripe webhook updates payment_status. Falls back to a 2-second poll if
+  // Realtime is unavailable.
+  useEffect(() => {
+    if (!paymentSession) return;
+    if (step !== "payment" && step !== "confirmed") return;
+
+    const reservationId = paymentSession.reservationId;
+    let cancelled = false;
+
+    const handleStatus = (paymentStatus: string | null | undefined, statusVal: string | null | undefined) => {
+      if (cancelled) return;
+      if (paymentStatus === "authorized" || paymentStatus === "captured" || paymentStatus === "paid") {
+        setStep("confirmed");
+      } else if (paymentStatus === "failed") {
+        setError("Payment was declined. Please try a different card.");
+      }
+    };
+
+    const channel = supabase
+      .channel(`car_rental_reservation_${reservationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "car_rental_reservations",
+          filter: `id=eq.${reservationId}`,
+        },
+        (payload: any) => handleStatus(payload?.new?.payment_status, payload?.new?.status),
+      )
+      .subscribe();
+
+    // Polling fallback (handles the case where Realtime isn't subscribed yet)
+    const poll = window.setInterval(async () => {
+      const { data } = await supabase
+        .from("car_rental_reservations")
+        .select("payment_status, status")
+        .eq("id", reservationId)
+        .maybeSingle();
+      handleStatus((data as any)?.payment_status, (data as any)?.status);
+    }, 2500);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(poll);
+      try { supabase.removeChannel(channel); } catch { /* noop */ }
+    };
+  }, [paymentSession, step]);
+
+  const handlePaymentSuccess = async (_paymentIntentId: string) => {
+    // The webhook is the source of truth — we just wait for the subscription
+    // above to flip the step to "confirmed". Optimistically advance the UI
+    // after a short delay so even a delayed webhook doesn't leave the user
+    // staring at "Processing…" forever.
+    window.setTimeout(() => {
+      setStep((cur) => (cur === "payment" ? "confirmed" : cur));
+    }, 4000);
+  };
+
+  const handlePaymentCancel = () => {
+    // User wants to step back to the review screen to make changes.
+    // We keep the reservation row in place (status: pending) — it gets a
+    // chance to be retried, or the rental team can cancel it manually.
+    setStep("review");
   };
 
   if (loading) {
@@ -1000,6 +1125,42 @@ export default function PublicCarRentalBookingPage() {
           </Card>
         )}
 
+        {step === "payment" && paymentSession && (
+          <Card className="rounded-2xl border-border/60">
+            <CardHeader>
+              <CardTitle className="text-base">
+                {paymentSession.captureMode === "manual" ? "Secure your booking" : "Pay for your booking"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-xl border border-border bg-muted/20 p-3 text-sm">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-muted-foreground">
+                    {paymentSession.captureMode === "manual" ? "Refundable deposit hold" : "Total today"}
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {formatMoney(paymentSession.amountCents)}
+                  </span>
+                </div>
+                {paymentSession.captureMode === "manual" && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Rental balance of {formatMoney(Math.max(0, total - paymentSession.amountCents))} is collected at pickup.
+                  </p>
+                )}
+              </div>
+
+              <CarRentalInlinePaymentForm
+                clientSecret={paymentSession.clientSecret}
+                amountCents={paymentSession.amountCents}
+                currency={paymentSession.currency}
+                captureMode={paymentSession.captureMode}
+                onCancel={handlePaymentCancel}
+                onSuccess={handlePaymentSuccess}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {step === "confirmed" && (
           <Card className="rounded-2xl border-emerald-500/30 bg-emerald-500/5">
             <CardContent className="p-8 text-center space-y-3">
@@ -1034,7 +1195,7 @@ export default function PublicCarRentalBookingPage() {
           </Card>
         )}
 
-        {step !== "confirmed" && (
+        {step !== "confirmed" && step !== "payment" && (
           <div className="mt-5 flex items-center justify-between">
             {step !== "dates" ? (
               <Button variant="outline" onClick={goBack} disabled={submitting}>
@@ -1048,7 +1209,7 @@ export default function PublicCarRentalBookingPage() {
             ) : (
               <Button onClick={submit} disabled={submitting}>
                 {submitting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
-                Confirm booking
+                Continue to payment
               </Button>
             )}
           </div>

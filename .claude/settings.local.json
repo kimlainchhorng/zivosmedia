@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(xargs grep -l \"store_time_entries\")",
       "Bash(xargs grep -l \"EmployeeQRDisplay\\\\|clock\")",
@@ -52,7 +51,35 @@
       "Bash(xargs -I {} sh -c 'grep -l \"marketing_campaigns\" \"{}\" && echo \"---\" && head -2 \"{}\"')",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\chhor\\\\Documents\\\\GitHub\\\\myzivo\\\\supabase\\\\functions\" -Filter \"*stripe*\" -Recurse)",
       "Bash(xargs ls -1)",
-      "mcp__b4adc92a-5646-46e2-ab4e-b57154fb0f4a__list_projects"
-    ]
+      "mcp__b4adc92a-5646-46e2-ab4e-b57154fb0f4a__list_projects",
+      "Bash(git log *)",
+      "Bash(git status *)",
+      "Bash(grep -rn \"^[[:space:]]*//\" src --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" --include=\"*.jsx\")",
+      "Bash(grep -rn \"console\\\\\\\\.error\\\\|console\\\\\\\\.log\" src --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(xargs grep -l \"AutoRepair.*Section\")",
+      "Bash(ls -la \"C:\\\\Users\\\\chhor\\\\.claude\\\\plans\\\\\" 2>/dev/null || echo \"Plans directory not found\")",
+      "Bash(ls -la \"C:\\\\Users\\\\chhor\\\\.claude\\\\projects\\\\C--Users-chhor-Documents-GitHub-myzivo\\\\\" 2>/dev/null | head -20 || echo \"Session project directory not found\")",
+      "Bash(grep -E \"\\\\.tsx?$\")",
+      "Bash(xargs grep -l \"auto_repair\\\\|autorepair\\\\|work_order\\\\|labor_guide\")",
+      "Bash(xargs grep -l \"autorepair\\\\|auto.repair\\\\|auto-repair\")",
+      "Bash(grep -E \"\\\\.\\(tsx?|sql|md\\)$\")",
+      "Bash(ls \"C:\\\\Users\\\\chhor\\\\Documents\\\\GitHub\\\\myzivo\\\\docs\" 2>nul)",
+      "Bash(awk '{print $9}')",
+      "Bash(xargs -I {} bash -c \"echo '=== {} ===' && head -3 {}\")",
+      "Bash(ls -lt \"C:/Users/chhor/.claude/projects/C--Users-chhor-Documents-GitHub-myzivo-eloquent-liskov-159913/\" 2>/dev/null | head -10)",
+      "Bash(grep -i \"auto.repair\\\\|autorepair\\\\|ar_\" \"C:/Users/chhor/.claude/plans\"/*.md 2>/dev/null | head -20)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\chhor\\\\Documents\\\\GitHub\\\\myzivo\\\\src\\\\components\\\\admin\\\\store\\\\car-rental\" -Filter \"*.tsx\")",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object -ExpandProperty Count)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(xargs grep -l \"car_rental_store_settings\")",
+      "Bash(xargs grep -l \"car_rental\\\\|payment\\\\|stripe\")",
+      "Bash(xargs grep -l \"loadStripe\\\\|StripeProvider\")",
+      "Bash(xargs grep -l \"loadStripe\")",
+      "Bash(xargs ls -la)",
+      "Bash(xargs grep -l \"car_rental\\\\|payment\")",
+      "Bash(xargs basename -a)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }

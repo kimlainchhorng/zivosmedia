@@ -34,10 +34,8 @@ interface StoreInfo {
   name: string;
   slug: string;
   logo_url: string | null;
-  city: string | null;
-  state: string | null;
+  address: string | null;
   phone: string | null;
-  email: string | null;
 }
 
 interface DetailVehicle {
@@ -533,7 +531,7 @@ export default function PublicCarDealershipDetailPage() {
 
       const { data: storeRow } = await supabase
         .from("store_profiles")
-        .select("id,name,slug,logo_url,city,state,phone,email")
+        .select("id,name,slug,logo_url,address,phone")
         .eq("slug", slug)
         .maybeSingle();
 
@@ -655,7 +653,7 @@ export default function PublicCarDealershipDetailPage() {
     );
   }
 
-  const cityState = [store.city, store.state].filter(Boolean).join(", ");
+  const cityState = store.address ?? "";
   const savings = vehicle.msrp_cents > 0 && vehicle.msrp_cents > vehicle.asking_price_cents
     ? vehicle.msrp_cents - vehicle.asking_price_cents
     : 0;
@@ -920,9 +918,6 @@ export default function PublicCarDealershipDetailPage() {
                 <a href={`tel:${store.phone}`} className="flex items-center gap-1 hover:text-foreground">
                   <Phone className="h-3.5 w-3.5" />{store.phone}
                 </a>
-              )}
-              {store.email && (
-                <a href={`mailto:${store.email}`} className="hover:text-foreground">{store.email}</a>
               )}
               {cityState && (
                 <span className="flex items-center gap-1">

@@ -1475,6 +1475,102 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             }
           }
         }
+
+        // ──── Salon online tip succeeded ────
+        // Customer triggered this via charge-salon-tip. The edge function
+        // already credits tip_cents inline when the PI returns 'succeeded'
+        // synchronously, but Stripe may also confirm async (3DS step-up
+        // after the initial off-session attempt) — in that case the webhook
+        // is the only path that credits the tip. Idempotent via the
+        // tip_charged_at IS NULL guard.
+        if (paymentIntent.metadata?.type === "salon_tip") {
+          const tipBookingId = paymentIntent.metadata.salon_booking_id as string | undefined;
+          if (tipBookingId) {
+            const { data: existingTip } = await supabase
+              .from("salon_bookings")
+              .select("id, tip_cents, tip_charged_at")
+              .eq("id", tipBookingId)
+              .maybeSingle();
+            if (!existingTip) {
+              console.warn("[Webhook] salon_tip booking not found", { booking: tipBookingId });
+            } else if ((existingTip as any).tip_charged_at) {
+              console.log("[Webhook] salon_tip already credited", { booking: tipBookingId });
+            } else {
+              const amount = paymentIntent.amount_received || paymentIntent.amount || 0;
+              const priorTip = Number((existingTip as any).tip_cents ?? 0) || 0;
+              await supabase
+                .from("salon_bookings")
+                .update({
+                  tip_cents: priorTip + amount,
+                  tip_charged_at: new Date().toISOString(),
+                  tip_stripe_payment_intent_id: paymentIntent.id,
+                  // Clear any prior failure state — a successful retry
+                  // shouldn't leave a red "Tip charge failed" badge up.
+                  tip_charge_failed_at: null,
+                  tip_charge_failed_reason: null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", tipBookingId);
+              console.log("[Webhook] salon_tip credited", { booking: tipBookingId, amount });
+
+              // 2% platform fee ledger — mirrors the no-show / deposit pattern.
+              const storeId = paymentIntent.metadata.store_id || null;
+              if (amount > 0) {
+                try {
+                  const feePct = 2.00;
+                  let waived = false;
+                  let waiverId: string | null = null;
+                  if (storeId) {
+                    const { data: waiver } = await supabase
+                      .from("merchant_fee_waivers")
+                      .select("id, waiver_pct")
+                      .eq("store_id", storeId)
+                      .gte("expires_at", new Date().toISOString())
+                      .lte("starts_at", new Date().toISOString())
+                      .order("waiver_pct", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    if (waiver && (waiver as any).waiver_pct >= 100) {
+                      waived = true;
+                      waiverId = (waiver as any).id;
+                    }
+                  }
+                  const feeAmountCents = waived ? 0 : Math.round(amount * feePct / 100);
+                  await supabase.from("platform_fee_ledger").insert({
+                    order_type: "salon_tip",
+                    order_id: paymentIntent.id,
+                    merchant_id: storeId,
+                    gross_amount_cents: amount,
+                    fee_pct: waived ? 0 : feePct,
+                    fee_amount_cents: feeAmountCents,
+                    waived,
+                    waiver_id: waiverId,
+                  });
+                  if (feeAmountCents > 0) {
+                    await supabase.from("admin_wallet_ledger").upsert(
+                      {
+                        source_type: "platform_fee",
+                        source_id: paymentIntent.id,
+                        transaction_id: paymentIntent.id,
+                        amount_cents: feeAmountCents,
+                        currency: (paymentIntent.currency ?? "usd").toUpperCase(),
+                        metadata: {
+                          order_type: "salon_tip",
+                          merchant_id: storeId,
+                          gross_amount_cents: amount,
+                          fee_pct: feePct,
+                        },
+                      },
+                      { onConflict: "transaction_id,source_type,source_id" }
+                    );
+                  }
+                } catch (feeErr) {
+                  console.error("[Webhook] salon_tip platform fee recording failed:", feeErr);
+                }
+              }
+            }
+          }
+        }
         break;
       }
 
@@ -1554,6 +1650,29 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
               })
               .eq("id", noShowBookingId);
             console.log("[Webhook] salon_no_show charge failed", { booking: noShowBookingId, reason });
+          }
+        }
+
+        // ──── Salon online tip failed (e.g., card declined off-session) ────
+        // The charge-salon-tip edge function persists the failure synchronously
+        // on a catch — this is the async safety net for cases where the PI
+        // authorization succeeded then later flipped to requires_action /
+        // requires_payment_method.
+        if (paymentIntent.metadata?.type === "salon_tip") {
+          const tipBookingId = paymentIntent.metadata.salon_booking_id as string | undefined;
+          if (tipBookingId) {
+            const reason = paymentIntent.last_payment_error?.message
+              || paymentIntent.last_payment_error?.code
+              || "unknown";
+            await supabase
+              .from("salon_bookings")
+              .update({
+                tip_charge_failed_at: new Date().toISOString(),
+                tip_charge_failed_reason: reason,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", tipBookingId);
+            console.log("[Webhook] salon_tip charge failed", { booking: tipBookingId, reason });
           }
         }
         break;
@@ -2084,6 +2203,69 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
         }
 
         console.log("[Webhook] identity event handled", { type: event.type, user: userId, status: vs.status });
+        break;
+      }
+
+      case "account.updated": {
+        // Stripe sends this whenever a connected Express/Standard/Custom
+        // account's onboarding state changes — payouts enable, requirements
+        // become due, capabilities flip, etc. We only act on accounts our
+        // connect-onboard-stylist function created (metadata.source set).
+        const account = event.data.object as Stripe.Account;
+        const source = (account.metadata?.source as string | undefined) ?? "";
+        const stylistId = (account.metadata?.stylist_id as string | undefined) ?? "";
+
+        if (source !== "salon_stylist" || !stylistId) {
+          // Other connect flows (creator wallets, owner accounts) update their
+          // own state via stripe_connect_accounts elsewhere. This handler is
+          // intentionally scoped to stylist accounts only.
+          console.log("[Webhook] account.updated — not a salon_stylist account", {
+            account: account.id,
+            source,
+          });
+          break;
+        }
+
+        const detailsSubmitted = account.details_submitted ?? false;
+        const chargesEnabled = account.charges_enabled ?? false;
+        const payoutsEnabled = account.payouts_enabled ?? false;
+        const disabledReason = account.requirements?.disabled_reason ?? null;
+
+        // Status precedence:
+        //   - disabled_reason set → restricted (Stripe blocked them)
+        //   - payouts_enabled === true → active (good state)
+        //   - details_submitted === false → pending (still onboarding)
+        //   - otherwise → pending (submitted but Stripe still reviewing)
+        let nextStatus: "pending" | "active" | "restricted" = "pending";
+        if (disabledReason) {
+          nextStatus = "restricted";
+        } else if (payoutsEnabled) {
+          nextStatus = "active";
+        }
+
+        const { error: upErr } = await supabase
+          .from("salon_stylists")
+          .update({
+            stripe_connect_status: nextStatus,
+            stripe_connect_charges_enabled: chargesEnabled,
+            stripe_connect_payouts_enabled: payoutsEnabled,
+            stripe_connect_details_submitted: detailsSubmitted,
+            stripe_connect_updated_at: new Date().toISOString(),
+          })
+          .eq("id", stylistId)
+          .eq("stripe_connect_account_id", account.id);
+
+        if (upErr) {
+          console.error("[Webhook] account.updated — stylist update failed", upErr);
+        } else {
+          console.log("[Webhook] stylist Stripe Connect updated", {
+            stylist: stylistId,
+            account: account.id,
+            status: nextStatus,
+            payouts: payoutsEnabled,
+            disabled: disabledReason,
+          });
+        }
         break;
       }
 

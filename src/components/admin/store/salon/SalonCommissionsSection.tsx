@@ -10,8 +10,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useSalonStylists } from "@/hooks/salon/useSalonStylists";
 import type { SalonBooking } from "@/hooks/salon/useSalonBookings";
+
+type PayoutMethod = "cash" | "venmo" | "zelle" | "check" | "ach" | "stripe" | "other";
+
+const METHOD_OPTIONS: { value: PayoutMethod; label: string; referenceHint: string }[] = [
+  { value: "cash", label: "Cash", referenceHint: "Receipt #, witness, etc. (optional)" },
+  { value: "venmo", label: "Venmo", referenceHint: "@handle or transaction id" },
+  { value: "zelle", label: "Zelle", referenceHint: "Phone or email" },
+  { value: "check", label: "Check", referenceHint: "Check #" },
+  { value: "ach", label: "ACH / bank transfer", referenceHint: "Confirmation #" },
+  { value: "stripe", label: "Stripe", referenceHint: "Stripe transfer / payout id" },
+  { value: "other", label: "Other", referenceHint: "Describe…" },
+];
 
 /** CSV-escape: wrap in quotes and double up internal quotes. */
 const csvCell = (raw: string | number | null | undefined): string => {
@@ -75,16 +93,27 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
     commission_cents: number;
     tips_cents: number;
     notes: string | null;
+    method: PayoutMethod;
+    reference: string | null;
     paid_at: string;
   }>>([]);
   const [payingStylistId, setPayingStylistId] = useState<string | null>(null);
+  // Mark-paid dialog state. Opens when the owner clicks "Mark paid" on a row;
+  // captures the method (cash / Venmo / Zelle / Stripe / etc.) + optional
+  // reference so the stylist portal can show "you got paid via Zelle 555-1234".
+  const [payoutDialog, setPayoutDialog] = useState<{
+    totals: StylistTotals;
+    method: PayoutMethod;
+    reference: string;
+    notes: string;
+  } | null>(null);
 
   const stylistById = useMemo(() => new Map(stylists.map((s) => [s.id, s] as const)), [stylists]);
 
   const loadPayouts = async () => {
     const { data, error: err } = await supabase
       .from("salon_commission_payouts")
-      .select("id, stylist_id, period_from, period_to, total_paid_cents, commission_cents, tips_cents, notes, paid_at")
+      .select("id, stylist_id, period_from, period_to, total_paid_cents, commission_cents, tips_cents, notes, method, reference, paid_at")
       .eq("store_id", storeId)
       .order("paid_at", { ascending: false })
       .limit(20);
@@ -96,11 +125,28 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
   };
   useEffect(() => { void loadPayouts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [storeId]);
 
-  const markPaid = async (totals: StylistTotals) => {
+  /** Open the "Mark paid" dialog. Default method picks Stripe when the
+   *  stylist's connect account is active, else cash — matches the realistic
+   *  workflow most owners use. */
+  const openMarkPaid = (totals: StylistTotals) => {
+    const stylist = stylistById.get(totals.stylistId);
+    const defaultMethod: PayoutMethod =
+      stylist?.stripe_connect_status === "active" ? "stripe" : "cash";
+    setPayoutDialog({
+      totals,
+      method: defaultMethod,
+      reference: "",
+      notes: "",
+    });
+  };
+
+  /** Confirm the dialog → insert the payout row. Duplicate check guards
+   *  against accidental double-clicks on the same period. */
+  const submitMarkPaid = async () => {
+    if (!payoutDialog) return;
+    const { totals, method, reference, notes } = payoutDialog;
     const payout = totals.commissionEarnedCents + totals.tipsCents;
-    // Totals here are computed from completed bookings and don't subtract
-    // existing payouts — without this check, a refresh + second "Mark paid"
-    // would silently log a duplicate payment record for the same period.
+
     const dup = payouts.find((p) =>
       p.stylist_id === totals.stylistId && p.period_from === from && p.period_to === to
     );
@@ -111,14 +157,12 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
         `Record another ${formatPrice(payout)} payment anyway?`
       );
       if (!ok) return;
-    } else {
-      const confirmed = window.confirm(
-        `Record paying ${totals.name} ${formatPrice(payout)} for ${totals.serviceCount} service${totals.serviceCount === 1 ? "" : "s"} from ${from} to ${to}?`
-      );
-      if (!confirmed) return;
     }
+
     setPayingStylistId(totals.stylistId);
     const { data: { user } } = await supabase.auth.getUser();
+    const cleanReference = reference.trim().slice(0, 200);
+    const cleanNotes = notes.trim().slice(0, 500);
     const { error: err } = await supabase
       .from("salon_commission_payouts")
       .insert({
@@ -131,6 +175,9 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
         tips_cents: totals.tipsCents,
         commission_cents: totals.commissionEarnedCents,
         total_paid_cents: payout,
+        method,
+        reference: cleanReference || null,
+        notes: cleanNotes || null,
         paid_by_user_id: user?.id ?? null,
       } as never);
     setPayingStylistId(null);
@@ -139,6 +186,7 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
       return;
     }
     toast.success(`Recorded ${formatPrice(payout)} paid to ${totals.name}.`);
+    setPayoutDialog(null);
     await loadPayouts();
   };
 
@@ -361,7 +409,7 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
                         <Button
                           size="sm" variant="outline" className="h-7 gap-1.5"
                           disabled={payingStylistId === t.stylistId || (t.commissionEarnedCents + t.tipsCents) === 0}
-                          onClick={() => void markPaid(t)}
+                          onClick={() => openMarkPaid(t)}
                         >
                           {payingStylistId === t.stylistId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Mark paid"}
                         </Button>
@@ -385,6 +433,7 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
               <ul className="divide-y divide-border">
                 {payouts.map((p) => {
                   const stylist = stylistById.get(p.stylist_id);
+                  const methodLabel = METHOD_OPTIONS.find((m) => m.value === p.method)?.label ?? p.method;
                   return (
                     <li key={p.id} className="flex items-center gap-3 p-3">
                       <div className="min-w-0 flex-1">
@@ -397,8 +446,22 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
                           {new Date(`${p.period_to}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                           {" · "}
                           paid {new Date(p.paid_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                          {p.notes ? ` · ${p.notes}` : ""}
                         </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 font-bold uppercase tracking-wider text-foreground">
+                            {methodLabel}
+                          </span>
+                          {p.reference && (
+                            <span className="truncate text-muted-foreground" title={p.reference}>
+                              {p.reference}
+                            </span>
+                          )}
+                          {p.notes && (
+                            <span className="truncate text-muted-foreground" title={p.notes}>
+                              · {p.notes}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-foreground">{formatPrice(p.total_paid_cents)}</p>
@@ -421,6 +484,94 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
           )}
         </CardContent>
       </Card>
+
+      {/* Mark-paid dialog — captures method + reference so the stylist
+          portal can show "you got paid via Zelle 555-1234". */}
+      <Dialog
+        open={!!payoutDialog}
+        onOpenChange={(open) => { if (!open) setPayoutDialog(null); }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record payout</DialogTitle>
+          </DialogHeader>
+          {payoutDialog && (() => {
+            const { totals, method, reference, notes } = payoutDialog;
+            const payout = totals.commissionEarnedCents + totals.tipsCents;
+            const hint = METHOD_OPTIONS.find((m) => m.value === method)?.referenceHint ?? "";
+            const stylist = stylistById.get(totals.stylistId);
+            const stripeReady = stylist?.stripe_connect_status === "active";
+            return (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                  <p className="text-sm font-semibold text-foreground">{totals.name}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {from} → {to} · {totals.serviceCount} service{totals.serviceCount === 1 ? "" : "s"}
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{formatPrice(payout)}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Commission {formatPrice(totals.commissionEarnedCents)} + tips {formatPrice(totals.tipsCents)}
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="payoutMethod">Method</Label>
+                  <Select
+                    value={method}
+                    onValueChange={(v) => setPayoutDialog({ ...payoutDialog, method: v as PayoutMethod })}
+                  >
+                    <SelectTrigger id="payoutMethod"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {METHOD_OPTIONS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          {m.label}
+                          {m.value === "stripe" && !stripeReady && " · stylist not connected"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {method === "stripe" && !stripeReady && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                      This stylist hasn't connected Stripe yet. Send them their /stylist/… link so they can set up payouts.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="payoutReference">Reference</Label>
+                  <Input
+                    id="payoutReference"
+                    value={reference}
+                    onChange={(e) => setPayoutDialog({ ...payoutDialog, reference: e.target.value })}
+                    placeholder={hint}
+                    maxLength={200}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="payoutNotes">Notes (optional)</Label>
+                  <Input
+                    id="payoutNotes"
+                    value={notes}
+                    onChange={(e) => setPayoutDialog({ ...payoutDialog, notes: e.target.value })}
+                    placeholder="Anything else worth remembering"
+                    maxLength={500}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPayoutDialog(null)} disabled={!!payingStylistId}>
+              Cancel
+            </Button>
+            <Button onClick={() => void submitMarkPaid()} disabled={!!payingStylistId}>
+              {payingStylistId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Record payout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

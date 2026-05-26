@@ -760,7 +760,9 @@ export default function PublicCafeOrderPage() {
     setSubmitting(false);
     if (error || !data) {
       console.error("[cafe order] submit failed", error);
-      toast.error("Couldn't place the order. Please try again.");
+      toast.error("Couldn't place the order", {
+        description: error?.message ?? "Please try again.",
+      });
       return;
     }
     const newOrderId = data as unknown as string;

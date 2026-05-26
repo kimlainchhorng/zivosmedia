@@ -1,6 +1,6 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-05-26T20:23:33.657Z
+Generated: 2026-05-26T21:27:08.523Z
 
 ## Summary
 
@@ -11,7 +11,7 @@ Generated: 2026-05-26T20:23:33.657Z
 - Allowed legacy duplicate migration versions: 8
 - New duplicate migration versions: 0
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=831, remote=1409, matched=0, remoteError=no, generated=2026-05-26T20:23:31.098Z
+- Last linked drift report: local=831, remote=0, matched=0, remoteError=yes, generated=2026-05-26T21:27:07.378Z
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
 - Public tables created in migrations: 860
@@ -22,7 +22,7 @@ Generated: 2026-05-26T20:23:33.657Z
 
 ## Blockers
 
-- Local and remote migration histories have zero matching versions.
+- Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before upgrade.
 
 ## Warnings
 

@@ -70,6 +70,20 @@ export interface CarRentalReservation {
   confirmation_code: string;
   created_at: string;
   updated_at: string;
+
+  payment_status?:
+    | "unpaid" | "authorized" | "processing" | "captured" | "paid"
+    | "refund_pending" | "refunded" | "failed" | null;
+  payment_provider?: string | null;
+  stripe_customer_id?: string | null;
+  stripe_payment_intent_id?: string | null;
+  stripe_balance_payment_intent_id?: string | null;
+  stripe_payment_method_id?: string | null;
+  stripe_charge_id?: string | null;
+  stripe_refund_id?: string | null;
+  last_payment_error?: string | null;
+  stripe_last_event_at?: string | null;
+  stripe_last_event_type?: string | null;
 }
 
 export interface CarRentalReservationDraft {

@@ -9,10 +9,11 @@ import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import {
   CheckCircle2, AlertCircle, Loader2, Calendar, Clock, DollarSign, RotateCcw,
-  Store, UserCog, XCircle, ArrowLeft,
+  Store, UserCog, XCircle, ArrowLeft, Heart, CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -57,6 +58,26 @@ interface PublicBooking {
    *  charged this amount if they don't show up. Zero means no policy
    *  applies to this booking. */
   no_show_fee_cents: number;
+  /** Final tip amount (cents). Updated either inline by charge-salon-tip on
+   *  synchronous success, or by the stripe-webhook payment_intent.succeeded
+   *  handler on async confirmation. */
+  tip_cents: number;
+  tip_charged_at: string | null;
+  /** Set when the off-session tip charge fails (card declined, 3DS required,
+   *  etc.). Surfaces the decline message so the customer can re-try with a
+   *  different amount or fall back to paying in person. */
+  tip_charge_failed_reason: string | null;
+  /** Card last 4 captured during deposit Checkout (via setup_future_usage:
+   *  'off_session'). Used to render "we'll charge card ending 4242" copy. */
+  card_brand: string | null;
+  card_last_four: string | null;
+}
+
+interface TipPolicy {
+  tips_enabled: boolean;
+  tip_presets: number[];
+  tip_applies_pre_tax: boolean;
+  stripe_active: boolean;
 }
 
 const STATUS_COPY: Record<string, { label: string; tone: string; description: string }> = {
@@ -84,6 +105,15 @@ export default function PublicSalonBookingDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  // Tip policy is loaded once we know the store_id. Drives preset chips +
+  // the "tips disabled" / "stripe not active" hidden states. Loaded lazily
+  // (only when tipping is actually possible to keep the noisy load off the
+  // page for everyone else).
+  const [tipPolicy, setTipPolicy] = useState<TipPolicy | null>(null);
+  const [tipDraftCents, setTipDraftCents] = useState<number>(0);
+  const [tipCustomInput, setTipCustomInput] = useState<string>("");
+  const [submittingTip, setSubmittingTip] = useState(false);
+  const [tipChargeError, setTipChargeError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -144,6 +174,63 @@ export default function PublicSalonBookingDetailPage() {
       toast.error((e as Error).message || "Couldn't start the deposit.");
     } finally {
       setRetryingDeposit(false);
+    }
+  };
+
+  // Lazy-load the tip policy. Only relevant when the booking is in a state
+  // where tipping might happen (status `completed` or `confirmed`) and the
+  // customer has a card on file from the deposit. Skipping it for everyone
+  // else avoids burning an RPC on every booking-detail load.
+  const canShowTipCard =
+    booking
+    && (booking.status === "completed" || booking.status === "confirmed")
+    && !!booking.card_last_four
+    && (booking.tip_cents ?? 0) === 0;
+  useEffect(() => {
+    if (!canShowTipCard || !booking || tipPolicy) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error: err } = await supabase.rpc("salon_public_get_tip_policy", {
+        p_store_id: booking.store_id,
+      } as never);
+      if (cancelled || err) return;
+      const row = (Array.isArray(data) ? data[0] : null) as TipPolicy | null;
+      if (row) setTipPolicy(row);
+    })();
+    return () => { cancelled = true; };
+  }, [canShowTipCard, booking, tipPolicy]);
+
+  const handleSubmitTip = async () => {
+    if (!booking || tipDraftCents <= 0) return;
+    setSubmittingTip(true);
+    setTipChargeError(null);
+    try {
+      const { data, error: err } = await supabase.functions.invoke("charge-salon-tip", {
+        body: { booking_id: booking.id, tip_cents: tipDraftCents },
+      });
+      // The function returns 402 on card decline — supabase-js treats non-2xx
+      // as `error`, but the body still parses. Check for the {ok:false}
+      // shape first to surface the friendly reason; fall through to generic
+      // toast otherwise.
+      const payload = data as { ok?: boolean; error_message?: string; error?: string } | null;
+      if (payload?.ok === false) {
+        setTipChargeError(payload.error_message || "Your bank declined the card.");
+        return;
+      }
+      if (err) {
+        // Non-2xx without the ok:false shape — last-resort generic.
+        const msg = (err as { message?: string }).message || "Couldn't process the tip.";
+        setTipChargeError(msg);
+        return;
+      }
+      toast.success("Thanks for the tip!");
+      setTipDraftCents(0);
+      setTipCustomInput("");
+      await load();
+    } catch (e) {
+      setTipChargeError((e as Error).message || "Couldn't process the tip.");
+    } finally {
+      setSubmittingTip(false);
     }
   };
 
@@ -253,6 +340,114 @@ export default function PublicSalonBookingDetailPage() {
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-emerald-800 dark:text-emerald-200">
                 <CheckCircle2 className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
                 Deposit paid: {formatPrice(booking.deposit_paid_cents)}
+              </div>
+            )}
+
+            {/* "Tip recorded" acknowledgement — shows once the off-session
+                charge has succeeded (either inline or via webhook). */}
+            {(booking.tip_cents ?? 0) > 0 && booking.tip_charged_at && (
+              <div className="rounded-xl border border-pink-500/30 bg-pink-500/8 p-3 text-xs text-pink-800 dark:text-pink-200">
+                <Heart className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                Tip of {formatPrice(booking.tip_cents)} sent to {booking.store_name}
+                {booking.card_last_four ? ` · card ending ${booking.card_last_four}` : ""}.
+                Thank you!
+              </div>
+            )}
+
+            {/* "Leave a tip" card — shows only when the booking has been
+                served (status `completed` or `confirmed`), a card is on
+                file from the deposit, no tip has been recorded yet, and the
+                salon has tips_enabled + an active Stripe account. */}
+            {canShowTipCard && tipPolicy && tipPolicy.tips_enabled && tipPolicy.stripe_active && (() => {
+              const billCents = booking.price_cents + (booking.addons_total_cents ?? 0);
+              return (
+                <div className="rounded-2xl border border-pink-500/30 bg-pink-500/5 p-4">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                    <p className="text-sm font-bold text-foreground">Leave a tip for {booking.stylist_name ?? "your stylist"}?</p>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Charged to the card ending {booking.card_last_four}.
+                  </p>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {tipPolicy.tip_presets.map((pct) => {
+                      const cents = Math.round(billCents * (pct / 100));
+                      const active = tipDraftCents === cents;
+                      return (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => { setTipDraftCents(cents); setTipCustomInput(""); setTipChargeError(null); }}
+                          className={cn(
+                            "rounded-xl border p-2 text-center transition",
+                            active
+                              ? "border-pink-500/60 bg-pink-500/15 text-pink-800 dark:text-pink-200"
+                              : "border-border bg-card text-foreground hover:border-pink-500/30",
+                          )}
+                        >
+                          <div className="text-lg font-bold leading-none">{pct}%</div>
+                          <div className="mt-0.5 text-[10px] text-muted-foreground">{formatPrice(cents)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.01"
+                      value={tipCustomInput}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setTipCustomInput(raw);
+                        const dollars = parseFloat(raw);
+                        if (Number.isFinite(dollars) && dollars >= 0) {
+                          setTipDraftCents(Math.round(dollars * 100));
+                          setTipChargeError(null);
+                        } else {
+                          setTipDraftCents(0);
+                        }
+                      }}
+                      placeholder="Custom amount ($)"
+                      className="h-10"
+                    />
+                  </div>
+
+                  {tipChargeError && (
+                    <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/8 p-2 text-xs text-destructive">
+                      <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                      {tipChargeError} — try a different amount or tip in person.
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={() => void handleSubmitTip()}
+                    disabled={submittingTip || tipDraftCents <= 0}
+                    className="mt-3 w-full gap-1.5 bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600"
+                  >
+                    {submittingTip
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Heart className="h-4 w-4" />}
+                    {tipDraftCents > 0 ? `Send ${formatPrice(tipDraftCents)} tip` : "Send tip"}
+                  </Button>
+                  <p className="mt-2 text-center text-[10px] text-muted-foreground">
+                    Or pay your tip in person — no charge on close.
+                  </p>
+                </div>
+              );
+            })()}
+
+            {/* Tip charge failed previously — surface so the customer can
+                see what went wrong even if they navigated away. */}
+            {(booking.tip_cents ?? 0) === 0
+              && booking.tip_charge_failed_reason
+              && canShowTipCard && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/8 p-3 text-xs text-destructive">
+                <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                Last tip attempt failed: {booking.tip_charge_failed_reason}. Try a different amount above.
               </div>
             )}
 

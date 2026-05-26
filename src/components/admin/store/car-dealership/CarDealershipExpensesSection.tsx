@@ -1,8 +1,10 @@
 /**
  * Dealership expenses tracker.
  */
-import { memo, useMemo, useState } from "react";
-import { Plus, Wallet, Pencil, Trash2, Loader2, Receipt } from "lucide-react";
+import { memo, useMemo, useRef, useState } from "react";
+import {
+  Plus, Wallet, Pencil, Trash2, Loader2, Receipt, Upload, X, FileText, ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +24,14 @@ import {
 } from "@/hooks/car-dealership/useDealershipExpenses";
 import VehiclePicker from "./VehiclePicker";
 import { useVehicleOptions } from "@/hooks/car-dealership/useVehicleOptions";
+import { uploadExpenseReceipt, deleteExpenseReceipt } from "@/lib/car-dealership/uploadExpenseReceipt";
+
+const MAX_RECEIPT_BYTES = 10 * 1024 * 1024; // 10 MB
+const RECEIPT_ACCEPT = "image/*,application/pdf";
+
+function isImageUrl(url: string): boolean {
+  return /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(url);
+}
 
 const formatPrice = (cents: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -70,6 +80,8 @@ function CarDealershipExpensesSectionInner({ storeId }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DealershipExpense | null>(null);
   const [draft, setDraft] = useState<DealershipExpenseDraft>(emptyDraft());
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   const monthTotal = useMemo(() => {
     const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
@@ -112,6 +124,34 @@ function CarDealershipExpensesSectionInner({ storeId }: Props) {
     else toast.error("Couldn't delete.");
   };
 
+  const handleReceiptPick = async (file: File | null) => {
+    if (!file) return;
+    if (file.size > MAX_RECEIPT_BYTES) {
+      toast.error("Receipt must be under 10 MB.");
+      return;
+    }
+    setUploadingReceipt(true);
+    const prevUrl = draft.receipt_url;
+    try {
+      const { publicUrl } = await uploadExpenseReceipt({ storeId, file });
+      setDraft((d) => ({ ...d, receipt_url: publicUrl }));
+      // Best-effort delete of the replaced receipt
+      if (prevUrl) void deleteExpenseReceipt(prevUrl);
+    } catch (err) {
+      console.error("[expense-receipt] upload failed", err);
+      toast.error(err instanceof Error ? err.message : "Couldn't upload receipt.");
+    } finally {
+      setUploadingReceipt(false);
+      if (receiptInputRef.current) receiptInputRef.current.value = "";
+    }
+  };
+
+  const clearReceipt = () => {
+    const url = draft.receipt_url;
+    setDraft((d) => ({ ...d, receipt_url: null }));
+    if (url) void deleteExpenseReceipt(url);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -152,9 +192,21 @@ function CarDealershipExpensesSectionInner({ storeId }: Props) {
           <div className="divide-y">
             {expenses.map((e) => (
               <div key={e.id} className="flex items-center gap-3 p-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted">
-                  <Receipt className="h-4 w-4 text-muted-foreground" />
-                </div>
+                {e.receipt_url ? (
+                  <a
+                    href={e.receipt_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View receipt"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+                  >
+                    <Receipt className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted">
+                    <Receipt className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{e.description}</p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
@@ -220,6 +272,85 @@ function CarDealershipExpensesSectionInner({ storeId }: Props) {
             <div className="space-y-1.5">
               <Label>Notes</Label>
               <Textarea rows={2} value={draft.notes ?? ""} onChange={(e) => setDraft({ ...draft, notes: e.target.value || null })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Receipt</Label>
+              <input
+                ref={receiptInputRef}
+                type="file"
+                accept={RECEIPT_ACCEPT}
+                className="hidden"
+                onChange={(e) => void handleReceiptPick(e.target.files?.[0] ?? null)}
+              />
+              {draft.receipt_url ? (
+                <div className="flex items-center gap-3 rounded-md border border-border p-2.5">
+                  {isImageUrl(draft.receipt_url) ? (
+                    <a href={draft.receipt_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                      <img
+                        src={draft.receipt_url}
+                        alt="Receipt"
+                        className="h-12 w-12 rounded object-cover border border-border"
+                      />
+                    </a>
+                  ) : (
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded bg-muted">
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <a
+                      href={draft.receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      View receipt <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <p className="text-[10px] text-muted-foreground">
+                      Attached. Picking a new file replaces it.
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => receiptInputRef.current?.click()}
+                      disabled={uploadingReceipt}
+                      title="Replace"
+                    >
+                      {uploadingReceipt
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Upload className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={clearReceipt}
+                      disabled={uploadingReceipt}
+                      title="Remove"
+                    >
+                      <X className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-center"
+                  onClick={() => receiptInputRef.current?.click()}
+                  disabled={uploadingReceipt}
+                >
+                  {uploadingReceipt ? (
+                    <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Uploading...</>
+                  ) : (
+                    <><Upload className="h-4 w-4 mr-1.5" />Attach receipt (image or PDF)</>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
           <DialogFooter>

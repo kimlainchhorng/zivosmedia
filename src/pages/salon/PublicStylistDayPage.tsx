@@ -5,11 +5,13 @@
  * stylist UUID is the unguessable token. Read-only.
  */
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { toast } from "sonner";
 import {
   Loader2, AlertCircle, Phone, Clock, NotebookPen,
   ChevronLeft, ChevronRight, CheckCircle2, XCircle,
+  BadgeDollarSign, ShieldCheck, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +23,14 @@ interface StylistMeta {
   store_id: string;
   store_name: string;
   store_slug: string;
+}
+
+type ConnectStatusValue = "not_connected" | "pending" | "active" | "restricted";
+interface ConnectStatus {
+  status: ConnectStatusValue;
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+  details_submitted: boolean;
 }
 
 interface DayRow {
@@ -66,11 +76,14 @@ const formatDay = (iso: string) => {
 
 export default function PublicStylistDayPage() {
   const { stylistId = "" } = useParams<{ stylistId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [meta, setMeta] = useState<StylistMeta | null>(null);
   const [rows, setRows] = useState<DayRow[]>([]);
   const [date, setDate] = useState(todayIso());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [connect, setConnect] = useState<ConnectStatus | null>(null);
+  const [connecting, setConnecting] = useState(false);
 
   // Load stylist meta once.
   useEffect(() => {
@@ -127,6 +140,57 @@ export default function PublicStylistDayPage() {
     return { upcoming, done, total: rows.length };
   }, [rows]);
 
+  // Load Stripe Connect status. Re-runs after the stylist returns from
+  // Stripe's hosted onboarding (?connect=done) so the banner refreshes.
+  const connectParam = searchParams.get("connect");
+  useEffect(() => {
+    if (!stylistId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error: err } = await supabase.rpc(
+        "salon_public_get_stylist_connect_status",
+        { p_stylist_id: stylistId } as never,
+      );
+      if (cancelled) return;
+      if (err) return;
+      const row = (Array.isArray(data) ? data[0] : null) as ConnectStatus | null;
+      setConnect(row);
+    })();
+    return () => { cancelled = true; };
+  }, [stylistId, connectParam]);
+
+  // One-shot toast on return from Stripe; then strip the query param so a
+  // reload doesn't re-fire it.
+  useEffect(() => {
+    if (!connectParam) return;
+    if (connectParam === "done") {
+      toast.success("Thanks — Stripe is finalizing your account.");
+    } else if (connectParam === "refresh") {
+      toast.message("Onboarding was paused. Tap the banner to pick up where you left off.");
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("connect");
+    setSearchParams(next, { replace: true });
+  }, [connectParam, searchParams, setSearchParams]);
+
+  const startStripeConnect = async () => {
+    if (!stylistId) return;
+    setConnecting(true);
+    try {
+      const { data, error: err } = await supabase.functions.invoke("connect-onboard-stylist", {
+        body: { stylist_id: stylistId },
+      });
+      if (err) throw err;
+      const url = (data as { url?: string } | null)?.url;
+      if (!url) throw new Error("Stripe didn't return an onboarding URL.");
+      window.location.href = url;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Couldn't start Stripe setup: ${msg}`);
+      setConnecting(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="grid min-h-screen place-items-center bg-background p-6">
@@ -146,6 +210,13 @@ export default function PublicStylistDayPage() {
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{meta?.store_name ?? " "}</p>
           <h1 className="text-2xl font-bold tracking-tight">{meta?.display_name ?? " "}</h1>
         </header>
+
+        <StripeConnectBanner
+          stylistId={stylistId}
+          connect={connect}
+          connecting={connecting}
+          onConnect={startStripeConnect}
+        />
 
         <div className="mb-3 flex items-center justify-between gap-2">
           <Button variant="ghost" size="sm" onClick={() => setDate(shiftDay(date, -1))} className="gap-1">
@@ -239,6 +310,88 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-border bg-card p-2">
       <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-lg font-bold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function StripeConnectBanner({
+  stylistId,
+  connect,
+  connecting,
+  onConnect,
+}: {
+  stylistId: string;
+  connect: ConnectStatus | null;
+  connecting: boolean;
+  onConnect: () => void;
+}) {
+  // The first call to the RPC may still be in flight — render nothing rather
+  // than flash an empty banner.
+  if (!connect) return null;
+
+  if (connect.status === "active") {
+    // Compact strip: "active ✓" + link to the read-only earnings page.
+    return (
+      <div className="mb-3 flex items-center justify-between gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/8 px-3 py-2 text-emerald-700 dark:text-emerald-300">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider">
+          <ShieldCheck className="h-3.5 w-3.5" /> Stripe payouts active
+        </span>
+        <Link
+          to={`/stylist/${stylistId}/earnings`}
+          className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-[11px] font-bold text-foreground hover:bg-muted"
+        >
+          My earnings <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+    );
+  }
+
+  const copy =
+    connect.status === "pending"
+      ? {
+          title: "Stripe is reviewing your account",
+          body: "We'll let you know when payouts are turned on. Tap below to add anything they still need.",
+          cta: "Continue Stripe setup",
+        }
+      : connect.status === "restricted"
+      ? {
+          title: "Stripe needs more information",
+          body: "Your payouts are paused until you provide the missing details.",
+          cta: "Open Stripe",
+        }
+      : {
+          title: "Set up Stripe payouts",
+          body: "Connect your bank account so the salon can pay you directly. Takes about 2 minutes.",
+          cta: "Set up payouts",
+        };
+
+  const tone =
+    connect.status === "restricted"
+      ? "border-destructive/30 bg-destructive/8 text-destructive"
+      : connect.status === "pending"
+      ? "border-amber-500/30 bg-amber-500/8 text-amber-700 dark:text-amber-300"
+      : "border-primary/30 bg-primary/8 text-foreground";
+
+  return (
+    <div className={cn("mb-3 rounded-2xl border p-3", tone)}>
+      <div className="flex items-start gap-3">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-background">
+          <BadgeDollarSign className="h-4 w-4 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold leading-tight">{copy.title}</p>
+          <p className="mt-0.5 text-xs leading-snug opacity-90">{copy.body}</p>
+          <Button
+            size="sm"
+            onClick={onConnect}
+            disabled={connecting}
+            className="mt-2 h-8 gap-1 px-3 text-xs"
+          >
+            {connecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {copy.cta} {!connecting && <ArrowRight className="h-3 w-3" />}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

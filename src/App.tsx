@@ -117,6 +117,7 @@ const PublicDocumentView = lazy(() => import("./pages/PublicDocumentView"));
 const PairPage = lazy(() => lazyRetry(() => import("./pages/PairPage")));
 const EstimateApprovalPage = lazy(() => lazyRetry(() => import("./pages/EstimateApprovalPage")));
 const RepairStatusPage = lazy(() => lazyRetry(() => import("./pages/RepairStatusPage")));
+const InspectionViewPage = lazy(() => lazyRetry(() => import("./pages/InspectionViewPage")));
 
 const Index = lazy(() => lazyRetry(() => import("./pages/Index")));
 const AdminDriverModerationPage = lazy(() => import("./pages/admin/AdminDriverModerationPage"));
@@ -392,6 +393,7 @@ const SalonDailySummaryPage = lazy(() => import("./pages/admin/SalonDailySummary
 const SalonQueueDisplayPage = lazy(() => import("./pages/admin/SalonQueueDisplayPage"));
 const SalonGiftCardCheckPage = lazy(() => import("./pages/salon/SalonGiftCardCheckPage"));
 const PublicStylistDayPage = lazy(() => import("./pages/salon/PublicStylistDayPage"));
+const PublicStylistEarningsPage = lazy(() => import("./pages/salon/PublicStylistEarningsPage"));
 const PublicReviewSubmitPage = lazy(() => import("./pages/salon/PublicReviewSubmitPage"));
 const SalonMyAreaPage = lazy(() => import("./pages/salon/SalonMyAreaPage"));
 
@@ -1463,6 +1465,7 @@ const App = () => (
                 <Route path="/pair/:token" element={<PairPage />} />
                 <Route path="/estimate/:token" element={<EstimateApprovalPage />} />
                 <Route path="/repair/:token" element={<RepairStatusPage />} />
+                <Route path="/inspection/:token" element={<InspectionViewPage />} />
                 <Route path={SOCIAL_ROUTE_PATHS.reelDetail} element={<FeedPage />} />
                 <Route path="/sound/:soundName" element={<SoundPage />} />
                 <Route path="/dl/:kind/:id" element={<DeepLinkLandingPage />} />
@@ -1602,6 +1605,7 @@ const App = () => (
                 <Route path="/admin/salon-summary/:storeId/:date" element={<SalonDailySummaryPage />} />
                 <Route path="/admin/salon-queue/:storeId" element={<SalonQueueDisplayPage />} />
                 <Route path="/gift-card" element={<SalonGiftCardCheckPage />} />
+                <Route path="/stylist/:stylistId/earnings" element={<PublicStylistEarningsPage />} />
                 <Route path="/stylist/:stylistId" element={<PublicStylistDayPage />} />
                 <Route path="/review/:bookingId" element={<PublicReviewSubmitPage />} />
                 <Route path="/grocery/store/:slug" element={<GroceryStorePage />} />

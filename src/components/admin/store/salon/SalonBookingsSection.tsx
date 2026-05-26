@@ -9,7 +9,7 @@ import {
   CalendarRange, Plus, ChevronLeft, ChevronRight, Loader2, AlertCircle,
   CheckCircle2, XCircle, AlarmClockOff, UserCheck, Trash2, Edit,
   Clock, DollarSign, Mail, Phone, User, NotebookText, Package, Star, BadgeCheck, MessageSquare,
-  Undo2, CreditCard, RotateCcw,
+  Undo2, CreditCard, RotateCcw, Heart, Repeat,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,9 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -37,6 +40,7 @@ import { useSalonStylists } from "@/hooks/salon/useSalonStylists";
 import { useSalonClients } from "@/hooks/salon/useSalonClients";
 import { useSalonPaymentSettings } from "@/hooks/salon/useSalonPaymentSettings";
 import { useSalonStylistSchedule, describeScheduleConflict } from "@/hooks/salon/useSalonStylistSchedule";
+import { useSalonBookingSeries, type SalonBookingSeries } from "@/hooks/salon/useSalonBookingSeries";
 import { supabase } from "@/integrations/supabase/client";
 import { consumeBookingPreset } from "@/lib/salon/bookingPreset";
 import SalonBookingRetailDialog from "./SalonBookingRetailDialog";
@@ -121,6 +125,18 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
   const { stylists } = useSalonStylists(storeId);
   const { clients } = useSalonClients(storeId);
   const { settings: paymentSettings } = useSalonPaymentSettings(storeId);
+  const { series: bookingSeries, create: createSeries, end: endSeries, refresh: refreshSeries } = useSalonBookingSeries(storeId);
+  const seriesById = useMemo(() => {
+    const m: Record<string, SalonBookingSeries> = {};
+    bookingSeries.forEach((s) => { m[s.id] = s; });
+    return m;
+  }, [bookingSeries]);
+  // "Make standing" dialog state — opens when the owner clicks the button
+  // on a non-series booking; the dialog asks for cadence + creates the series.
+  const [standingForBooking, setStandingForBooking] = useState<SalonBooking | null>(null);
+  // "Cancel series occurrence" dialog state — for series bookings, the
+  // owner picks "just this one" or "this + all future".
+  const [seriesCancelBooking, setSeriesCancelBooking] = useState<SalonBooking | null>(null);
   // Store display name — surfaced in SMS templates so the message has context.
   const [storeName, setStoreName] = useState("");
   useEffect(() => {
@@ -1019,6 +1035,52 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                                     Charge failed — retry
                                   </button>
                                 )}
+                                {/* Online tip badge — set when the customer
+                                    tipped via the booking-detail page rather
+                                    than handing cash at checkout. The owner
+                                    can tell the difference at a glance. */}
+                                {b.tip_stripe_payment_intent_id && (b.tip_cents ?? 0) > 0 && (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-pink-300 bg-pink-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pink-800 dark:border-pink-900/60 dark:bg-pink-950/30 dark:text-pink-300"
+                                    title={`${formatPrice(b.tip_cents)} tipped online via Stripe`}
+                                  >
+                                    <Heart className="h-3 w-3" />
+                                    {formatPrice(b.tip_cents)} online tip
+                                  </span>
+                                )}
+                                {/* Tip charge failed surface — only show when
+                                    the failure is still actionable (no tip
+                                    has actually landed yet). */}
+                                {b.tip_charge_failed_reason
+                                  && (b.tip_cents ?? 0) === 0 && (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+                                    title={`Tip charge failed: ${b.tip_charge_failed_reason}`}
+                                  >
+                                    <AlertCircle className="h-3 w-3" />
+                                    Tip failed
+                                  </span>
+                                )}
+                                {/* Standing-appointment badge — visible on
+                                    every occurrence of the series so the owner
+                                    can scan their day and see which slots
+                                    belong to a regular cadence. */}
+                                {b.series_id && seriesById[b.series_id] && (() => {
+                                  const s = seriesById[b.series_id];
+                                  const cadenceLabel = s.cadence_weeks === 1 ? "weekly"
+                                    : s.cadence_weeks === 2 ? "every 2 wks"
+                                    : s.cadence_weeks === 4 ? "monthly"
+                                    : `every ${s.cadence_weeks} wks`;
+                                  return (
+                                    <span
+                                      className="inline-flex items-center gap-1 rounded-full border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:border-indigo-900/60 dark:bg-indigo-950/30 dark:text-indigo-300"
+                                      title={`Standing appointment · ${cadenceLabel}${s.paused_at ? " · paused" : ""}${s.ended_at ? " · ended" : ""}`}
+                                    >
+                                      <Repeat className="h-3 w-3" />
+                                      {cadenceLabel}
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               <p className="mt-0.5 text-sm text-foreground/85">{b.service_name}</p>
                               {(addonsByBooking[b.id] ?? []).length > 0 && (
@@ -1106,7 +1168,21 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                                 >
                                   <AlarmClockOff className="h-3.5 w-3.5" /> No-show
                                 </Button>
-                                <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => handleStatus(b, "cancelled")} disabled={saving}>
+                                <Button
+                                  size="sm" variant="outline" className="h-7 gap-1.5"
+                                  onClick={() => {
+                                    // Series occurrence → ask "just this one
+                                    // or all future?" via the dialog. Solo
+                                    // bookings cancel directly to avoid an
+                                    // extra click.
+                                    if (b.series_id) {
+                                      setSeriesCancelBooking(b);
+                                    } else {
+                                      void handleStatus(b, "cancelled");
+                                    }
+                                  }}
+                                  disabled={saving}
+                                >
                                   <XCircle className="h-3.5 w-3.5" /> Cancel
                                 </Button>
                               </>
@@ -1135,6 +1211,20 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                             )}
                             {b.client_phone && (
                               <MessageButton booking={b} storeName={storeName} />
+                            )}
+                            {/* Make standing — available on bookings that
+                                aren't already part of a series, in a state
+                                where future occurrences make sense. */}
+                            {!b.series_id
+                              && (b.status === "confirmed" || b.status === "completed") && (
+                              <Button
+                                size="sm" variant="outline" className="h-7 gap-1.5"
+                                onClick={() => setStandingForBooking(b)}
+                                disabled={saving}
+                                title="Set up a standing/recurring appointment from this booking"
+                              >
+                                <Repeat className="h-3.5 w-3.5" /> Make standing
+                              </Button>
                             )}
                             {b.status === "completed" && (
                               <>
@@ -1577,7 +1667,183 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MakeStandingDialog
+        booking={standingForBooking}
+        onClose={() => setStandingForBooking(null)}
+        onCreate={async (cadenceWeeks) => {
+          if (!standingForBooking) return false;
+          const b = standingForBooking;
+          const created = await createSeries({
+            client_id: b.client_id,
+            stylist_id: b.stylist_id,
+            service_id: b.service_id,
+            anchor_start: b.start_at,
+            cadence_weeks: cadenceWeeks,
+            service_name: b.service_name,
+            price_cents: b.price_cents,
+            duration_minutes: b.duration_minutes,
+            client_name: b.client_name,
+            client_phone: b.client_phone,
+            client_email: b.client_email,
+            stylist_name: b.stylist_name,
+            notes: null,
+          });
+          if (!created) {
+            toast.error("Couldn't create the standing appointment.");
+            return false;
+          }
+          // Stamp the anchor booking as occurrence 0 of the new series.
+          // The trigger generates occurrences 1..N — without this, the
+          // current booking row wouldn't get the series badge.
+          const { error: stampErr } = await supabase
+            .from("salon_bookings")
+            .update({
+              series_id: created.id,
+              series_occurrence_number: 0,
+            } as never)
+            .eq("id", b.id);
+          if (stampErr) {
+            // Anchor stamp failure isn't fatal — the future occurrences
+            // still exist; the owner sees one un-badged booking. Surface
+            // it as a warning so they can re-try if they care.
+            console.error("[SalonBookings] anchor stamp failed", stampErr);
+            toast.warning("Standing series created, but couldn't tag this booking. Future occurrences will appear shortly.");
+          } else {
+            toast.success("Standing appointment created — 12 weeks generated.");
+          }
+          // Refresh both sources so the badges + future occurrences appear.
+          await refreshSeries();
+          return true;
+        }}
+      />
+
+      <AlertDialog
+        open={!!seriesCancelBooking}
+        onOpenChange={(open) => !open && setSeriesCancelBooking(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This booking is part of a standing series. Cancel just this one occurrence, or end the entire series?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogCancel disabled={saving}>Keep booking</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              onClick={async () => {
+                if (!seriesCancelBooking) return;
+                await changeStatus(seriesCancelBooking.id, "cancelled");
+                setSeriesCancelBooking(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cancel just this one"}
+            </AlertDialogAction>
+            <AlertDialogAction
+              disabled={saving || !seriesCancelBooking?.series_id}
+              onClick={async () => {
+                if (!seriesCancelBooking?.series_id) return;
+                const count = await endSeries(seriesCancelBooking.series_id, true);
+                // Also cancel this occurrence (it's at-or-before "now",
+                // so end_series's "future > now()" filter may skip it).
+                await changeStatus(seriesCancelBooking.id, "cancelled");
+                setSeriesCancelBooking(null);
+                toast.success(
+                  `Series ended · cancelled ${count ?? 0} future occurrence${count === 1 ? "" : "s"}.`
+                );
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "End series + cancel all future"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+/** "Make standing" dialog. Owner picks a cadence; we create the series row
+ *  (the DB trigger materializes the next 12 weeks of occurrences). */
+function MakeStandingDialog({
+  booking,
+  onClose,
+  onCreate,
+}: {
+  booking: SalonBooking | null;
+  onClose: () => void;
+  onCreate: (cadenceWeeks: number) => Promise<boolean>;
+}) {
+  const [cadence, setCadence] = useState<number>(2);
+  const [submitting, setSubmitting] = useState(false);
+  useEffect(() => {
+    // Reset the cadence to the most common ("every 2 weeks") each open.
+    if (booking) setCadence(2);
+  }, [booking]);
+
+  if (!booking) return null;
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Make this a standing appointment</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm">
+            <p className="font-semibold text-foreground">
+              {booking.client_name} · {booking.service_name}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {new Date(booking.start_at).toLocaleString(undefined, {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+              {booking.stylist_name ? ` · ${booking.stylist_name}` : ""}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cadence">Repeat</Label>
+            <Select value={String(cadence)} onValueChange={(v) => setCadence(Number(v))}>
+              <SelectTrigger id="cadence"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Every week</SelectItem>
+                <SelectItem value="2">Every 2 weeks</SelectItem>
+                <SelectItem value="3">Every 3 weeks</SelectItem>
+                <SelectItem value="4">Every 4 weeks (monthly)</SelectItem>
+                <SelectItem value="6">Every 6 weeks</SelectItem>
+                <SelectItem value="8">Every 8 weeks</SelectItem>
+                <SelectItem value="12">Every 12 weeks (quarterly)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              We'll generate the next 12 weeks of slots starting from this booking. Conflicts get skipped silently.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button
+            onClick={async () => {
+              setSubmitting(true);
+              const ok = await onCreate(cadence);
+              setSubmitting(false);
+              if (ok) onClose();
+            }}
+            disabled={submitting}
+          >
+            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Repeat className="mr-2 h-4 w-4" />}
+            Create series
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

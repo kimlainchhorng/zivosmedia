@@ -79,8 +79,9 @@ export function useCafeAnalytics(storeId: string | undefined, daysBack = 30) {
         .gte("expense_date", sinceDate),
     ]);
     if (ordRes.error || expRes.error) {
-      console.error("[useCafeAnalytics] load", ordRes.error || expRes.error);
-      setError("Couldn't load analytics.");
+      const err = ordRes.error || expRes.error;
+      console.error("[useCafeAnalytics] load", err);
+      setError(`Couldn't load analytics: ${err?.message ?? "unknown error"}`);
       setLoading(false);
       return;
     }

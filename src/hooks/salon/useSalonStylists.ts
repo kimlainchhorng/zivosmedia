@@ -4,6 +4,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export type StylistStripeConnectStatus = "not_connected" | "pending" | "active" | "restricted";
+
 export interface SalonStylist {
   id: string;
   store_id: string;
@@ -20,6 +22,14 @@ export interface SalonStylist {
   created_at: string;
   updated_at: string;
   service_ids: string[];
+  // Stripe Connect (Path A: record-keeping; owner still pays out-of-band).
+  // Webhook is the source of truth; reads land via salon_stylists SELECT.
+  stripe_connect_account_id: string | null;
+  stripe_connect_status: StylistStripeConnectStatus;
+  stripe_connect_charges_enabled: boolean;
+  stripe_connect_payouts_enabled: boolean;
+  stripe_connect_details_submitted: boolean;
+  stripe_connect_updated_at: string | null;
 }
 
 export type SalonStylistDraft = Omit<

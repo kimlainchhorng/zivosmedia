@@ -32,8 +32,7 @@ interface StoreInfo {
   name: string;
   slug: string;
   logo_url: string | null;
-  city: string | null;
-  state: string | null;
+  address: string | null;
   phone: string | null;
 }
 
@@ -71,7 +70,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
       // 1. Resolve store
       const { data: storeRow } = await supabase
         .from("store_profiles")
-        .select("id,name,slug,logo_url,city,state,phone")
+        .select("id,name,slug,logo_url,address,phone")
         .eq("slug", slug)
         .maybeSingle();
       if (cancelled) return;
@@ -202,7 +201,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
 
   if (!store || !deal) return null; // belt-and-braces
 
-  const cityState = [store.city, store.state].filter(Boolean).join(", ");
+  const cityState = store.address ?? "";
   const activeStar = hoverRating || rating;
 
   return (

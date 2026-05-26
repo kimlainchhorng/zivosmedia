@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StoreLite {
@@ -82,6 +83,7 @@ export default function CafeGiftCardCheckPage() {
     setChecking(false);
     if (res.error) {
       console.error("[CafeGiftCardCheck]", res.error);
+      toast.error("Couldn't check that card", { description: res.error.message });
       setResult("not_found");
       return;
     }

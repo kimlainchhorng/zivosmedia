@@ -17,19 +17,22 @@ export function useCafeBaristaLifetimeTips(storeId: string | undefined) {
   const [byBarista, setByBarista] = useState<Map<string, number>>(new Map());
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!storeId) { setLoading(false); return; }
     setLoading(true);
+    setError(null);
     // PostgREST inner-join on the parent so we can filter by store. Without
     // !inner the join is left-outer and the store_id filter would not work
     // correctly for non-matching parents.
-    const { data, error } = await supabase
+    const { data, error: rpcError } = await supabase
       .from("cafe_tip_payout_lines" as never)
       .select("barista_id, payout_cents, cafe_tip_payouts!inner(store_id)")
       .eq("cafe_tip_payouts.store_id", storeId);
-    if (error) {
-      console.error("[useCafeBaristaLifetimeTips] load", error);
+    if (rpcError) {
+      console.error("[useCafeBaristaLifetimeTips] load", rpcError);
+      setError(`Couldn't load lifetime tips: ${rpcError.message}`);
       setLoading(false);
       return;
     }
@@ -47,5 +50,5 @@ export function useCafeBaristaLifetimeTips(storeId: string | undefined) {
 
   useEffect(() => { void load(); }, [load]);
 
-  return { byBarista, total, loading, refresh: load };
+  return { byBarista, total, loading, error, refresh: load };
 }

@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCarRentalReservations, type CarRentalReservation } from "@/hooks/car-rental/useCarRentalReservations";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Props { storeId: string }
 
@@ -119,6 +120,29 @@ export default function CarRentalCheckoutSection({ storeId }: Props) {
               status: "picked_up",
               picked_up_at: new Date().toISOString(),
             });
+
+            // Stripe is wired? Charge the outstanding balance off-session.
+            // Failure is non-blocking — pickup already happened, the team
+            // gets a clear toast and can retry later or settle manually.
+            if (active.stripe_payment_intent_id) {
+              try {
+                const { data, error } = await supabase.functions.invoke(
+                  "capture-car-rental-balance",
+                  { body: { reservation_id: active.id } },
+                );
+                if (error) throw error;
+                const res = data as any;
+                if (res?.already_settled) {
+                  toast.success("Balance already settled.");
+                } else if (res?.ok) {
+                  toast.success(`Balance captured · ${formatMoney(res.amount_cents)}`);
+                }
+              } catch (e: any) {
+                const msg = e?.context?.json?.error || e?.message || "Card decline — capture balance manually.";
+                toast.error(`Balance capture failed: ${msg}`, { duration: 8000 });
+              }
+            }
+
             setActive(null);
           }}
           saving={saving}

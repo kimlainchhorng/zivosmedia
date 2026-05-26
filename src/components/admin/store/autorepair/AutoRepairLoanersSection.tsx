@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
@@ -25,14 +26,18 @@ const STATUS_STYLE: Record<string, { label: string; className: string }> = {
 
 const blankVehicle = { make: "", model: "", year: "", plate: "", color: "" };
 const blankCheckout = { customer_name: "", due_back_date: "", mileage_out: "" };
+const blankCheckin = { mileage_in: "", return_notes: "" };
 
 export default function AutoRepairLoanersSection({ storeId }: Props) {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutTarget, setCheckoutTarget] = useState<any>(null);
+  const [checkinOpen, setCheckinOpen] = useState(false);
+  const [checkinTarget, setCheckinTarget] = useState<any>(null);
   const [vehicleForm, setVehicleForm] = useState(blankVehicle);
   const [checkoutForm, setCheckoutForm] = useState(blankCheckout);
+  const [checkinForm, setCheckinForm] = useState(blankCheckin);
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["ar-loaners", storeId],
@@ -101,16 +106,37 @@ export default function AutoRepairLoanersSection({ storeId }: Props) {
   });
 
   const checkin = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async () => {
+      if (!checkinTarget) return;
+      const mileageInNum = checkinForm.mileage_in ? parseInt(checkinForm.mileage_in, 10) : null;
+      if (
+        mileageInNum != null &&
+        checkinTarget.mileage_out != null &&
+        mileageInNum < checkinTarget.mileage_out
+      ) {
+        throw new Error(`Mileage in (${mileageInNum.toLocaleString()}) is less than mileage out (${checkinTarget.mileage_out.toLocaleString()})`);
+      }
       const { error } = await (supabase as any)
         .from("ar_loaner_vehicles")
-        .update({ status: "available", current_customer_name: null, due_back_date: null, mileage_out: null })
-        .eq("id", id);
+        .update({
+          status: "available",
+          mileage_in: mileageInNum,
+          return_notes: checkinForm.return_notes.trim() || null,
+          returned_at: new Date().toISOString(),
+          last_customer_name: checkinTarget.current_customer_name ?? null,
+          current_customer_name: null,
+          due_back_date: null,
+          mileage_out: null,
+        })
+        .eq("id", checkinTarget.id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Vehicle checked in");
       qc.invalidateQueries({ queryKey: ["ar-loaners", storeId] });
+      setCheckinOpen(false);
+      setCheckinTarget(null);
+      setCheckinForm(blankCheckin);
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to check in"),
   });
@@ -134,6 +160,15 @@ export default function AutoRepairLoanersSection({ storeId }: Props) {
     setCheckoutTarget(v);
     setCheckoutForm(blankCheckout);
     setCheckoutOpen(true);
+  };
+
+  const openCheckin = (v: any) => {
+    setCheckinTarget(v);
+    setCheckinForm({
+      mileage_in: v.mileage_out != null ? String(v.mileage_out) : "",
+      return_notes: "",
+    });
+    setCheckinOpen(true);
   };
 
   return (
@@ -220,6 +255,20 @@ export default function AutoRepairLoanersSection({ storeId }: Props) {
                           <span>Out at: {v.mileage_out.toLocaleString()} mi</span>
                         )}
                       </div>
+                      {v.status === "available" && v.returned_at && (
+                        <div className="flex gap-3 text-[11px] text-muted-foreground/80 flex-wrap mt-1">
+                          <span>
+                            Last return: {new Date(v.returned_at).toLocaleDateString()}
+                            {v.last_customer_name ? ` · ${v.last_customer_name}` : ""}
+                            {v.mileage_in != null ? ` · ${v.mileage_in.toLocaleString()} mi in` : ""}
+                          </span>
+                          {v.return_notes && (
+                            <span className="italic truncate max-w-[20rem]" title={v.return_notes}>
+                              "{v.return_notes}"
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-1 shrink-0">
                       {v.status === "available" ? (
@@ -236,8 +285,7 @@ export default function AutoRepairLoanersSection({ storeId }: Props) {
                           size="sm"
                           variant="outline"
                           className="h-7 gap-1 text-xs"
-                          onClick={() => checkin.mutate(v.id)}
-                          disabled={checkin.isPending}
+                          onClick={() => openCheckin(v)}
                         >
                           <LogIn className="w-3 h-3" /> Check In
                         </Button>
@@ -367,6 +415,53 @@ export default function AutoRepairLoanersSection({ storeId }: Props) {
               onClick={() => checkout.mutate()}
             >
               {checkout.isPending ? "Checking out…" : "Check Out"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={checkinOpen} onOpenChange={(o) => { setCheckinOpen(o); if (!o) { setCheckinTarget(null); setCheckinForm(blankCheckin); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Check In — {checkinTarget?.year ?? ""} {checkinTarget?.make} {checkinTarget?.model}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {checkinTarget?.current_customer_name && (
+              <p className="text-xs text-muted-foreground">
+                Returning from <span className="font-medium text-foreground">{checkinTarget.current_customer_name}</span>
+                {checkinTarget?.mileage_out != null && (
+                  <> · out at {checkinTarget.mileage_out.toLocaleString()} mi</>
+                )}
+              </p>
+            )}
+            <div className="space-y-1">
+              <Label className="text-xs">Mileage in</Label>
+              <Input
+                type="number"
+                placeholder={checkinTarget?.mileage_out != null ? String(checkinTarget.mileage_out) : "e.g. 42250"}
+                value={checkinForm.mileage_in}
+                onChange={(e) => setCheckinForm({ ...checkinForm, mileage_in: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Condition / damage notes</Label>
+              <Textarea
+                rows={3}
+                placeholder="e.g. Returned clean, quarter tank, no new damage"
+                value={checkinForm.return_notes}
+                onChange={(e) => setCheckinForm({ ...checkinForm, return_notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCheckinOpen(false)}>Cancel</Button>
+            <Button
+              disabled={checkin.isPending}
+              onClick={() => checkin.mutate()}
+            >
+              {checkin.isPending ? "Checking in…" : "Check In"}
             </Button>
           </DialogFooter>
         </DialogContent>

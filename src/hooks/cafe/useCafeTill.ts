@@ -136,7 +136,8 @@ export function useCafeTill(storeId: string | undefined) {
     try { expected = await computeExpected(current); }
     catch (e) {
       console.error("[useCafeTill] close expected", e);
-      setError("Couldn't compute expected cash."); setWorking(false); return false;
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Couldn't compute expected cash: ${msg}`); setWorking(false); return false;
     }
     const counted = Math.max(0, countedCashCents);
     const variance = counted - expected;

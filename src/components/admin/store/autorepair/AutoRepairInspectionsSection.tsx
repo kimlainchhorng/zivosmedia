@@ -22,21 +22,7 @@ import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import Printer from "lucide-react/dist/esm/icons/printer";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import { toast } from "sonner";
-
-const POINTS = [
-  "Brakes (Front)", "Brakes (Rear)", "Tires (Tread)", "Tire Pressure", "Battery Health",
-  "Engine Oil", "Coolant Level", "Transmission Fluid", "Power Steering Fluid", "Brake Fluid",
-  "Air Filter", "Cabin Filter", "Wiper Blades", "Headlights", "Taillights",
-  "Belts", "Hoses", "Suspension", "Exhaust System", "Check Engine Code",
-];
-
-type Status = "good" | "attention" | "urgent";
-const COLORS: Record<Status, string> = {
-  good: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30",
-  attention: "text-amber-600 bg-amber-500/10 border-amber-500/30",
-  urgent: "text-red-600 bg-red-500/10 border-red-500/30",
-};
-const ICONS: Record<Status, any> = { good: CheckCircle2, attention: AlertTriangle, urgent: XCircle };
+import { POINTS, COLORS, ICONS, type Status } from "@/lib/autorepair/inspectionPoints";
 
 export type EstimatePrefill = {
   vehicle_label: string;

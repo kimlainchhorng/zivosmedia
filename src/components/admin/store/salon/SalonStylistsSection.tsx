@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   UserCog, Plus, Edit, Trash2, Loader2, AlertCircle, Copy, Check,
   Eye, EyeOff, Search, Mail, Phone, Percent,
+  ShieldCheck, AlertTriangle, Clock,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -257,6 +258,7 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
                             Hidden
                           </span>
                         )}
+                        <StripeConnectPill status={st.stripe_connect_status} />
                       </div>
                       {st.title && <p className="truncate text-xs text-muted-foreground">{st.title}</p>}
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
@@ -512,5 +514,43 @@ function CopyDayLinkButton({ stylistId }: { stylistId: string }) {
     >
       {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
     </Button>
+  );
+}
+
+/**
+ * Tiny status pill for the stylist's Stripe Connect onboarding state. The
+ * source of truth is the webhook (account.updated), so this is read-only —
+ * the actual onboarding happens on the stylist's own /stylist/:id page.
+ */
+function StripeConnectPill({ status }: { status: SalonStylist["stripe_connect_status"] }) {
+  if (status === "not_connected") return null;
+  if (status === "active") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/8 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300"
+        title="Stylist has connected Stripe; payouts are enabled."
+      >
+        <ShieldCheck className="h-3 w-3" /> Stripe ready
+      </span>
+    );
+  }
+  if (status === "pending") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/8 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300"
+        title="Stripe is reviewing the stylist's account."
+      >
+        <Clock className="h-3 w-3" /> Stripe pending
+      </span>
+    );
+  }
+  // restricted
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/8 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive"
+      title="Stripe needs more info before this stylist can receive payouts."
+    >
+      <AlertTriangle className="h-3 w-3" /> Stripe paused
+    </span>
   );
 }

@@ -1,15 +1,25 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
-const files = execFileSync("rg", ["--files", "src", "-g", "*.tsx"], {
-  cwd: root,
-  encoding: "utf8",
-}).trim().split("\n").filter(Boolean);
+function listTsxFiles(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    const abs = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...listTsxFiles(abs));
+    } else if (entry.isFile() && entry.name.endsWith(".tsx")) {
+      out.push(relative(root, abs).split("\\").join("/"));
+    }
+  }
+  return out;
+}
+
+const files = listTsxFiles(join(root, "src"));
 
 const findings = [];
 

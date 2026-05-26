@@ -42,7 +42,8 @@ export default function CoinPurchaseSuccess() {
           setCoins(data.coins ?? 0);
           setBalance(data.balance ?? null);
           setStatus("success");
-          queryClient.invalidateQueries();
+          queryClient.invalidateQueries({ queryKey: ["coin-transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["coin-purchases"] });
         } else {
           setStatus("pending");
         }

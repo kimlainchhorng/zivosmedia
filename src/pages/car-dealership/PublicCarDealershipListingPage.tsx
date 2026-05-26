@@ -11,7 +11,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   Car, MapPin, Loader2, Search, Phone, Tag, Star, SlidersHorizontal,
-  AlertCircle, ChevronRight,
+  AlertCircle, ChevronRight, MessageCircle, CheckCircle2, Mail,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,13 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -30,12 +37,9 @@ interface StoreInfo {
   name: string;
   slug: string;
   logo_url: string | null;
-  cover_image_url: string | null;
   description: string | null;
-  city: string | null;
-  state: string | null;
+  address: string | null;
   phone: string | null;
-  email: string | null;
 }
 
 interface PublicVehicle {
@@ -111,6 +115,190 @@ function StarsRow({ rating, size = "sm" }: { rating: number; size?: "sm" | "xs" 
   );
 }
 
+// ─── lead-capture dialog (general inquiry) ───────────────────────────────────
+
+interface ListingLeadDialogProps {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  storeId: string;
+  storeName: string;
+  prefillDesiredMake?: string;
+}
+
+function ListingLeadDialog({
+  open, onOpenChange, storeId, storeName, prefillDesiredMake,
+}: ListingLeadDialogProps) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [desiredMake, setDesiredMake] = useState("");
+  const [budget, setBudget] = useState("");
+  const [message, setMessage] = useState("");
+  const [tradeIn, setTradeIn] = useState(false);
+  const [financing, setFinancing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName("");
+      setEmail("");
+      setPhone("");
+      setDesiredMake(prefillDesiredMake ?? "");
+      setBudget("");
+      setMessage("");
+      setTradeIn(false);
+      setFinancing(false);
+      setSubmitted(false);
+    }
+  }, [open, prefillDesiredMake]);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      toast.error("Please enter your name.");
+      return;
+    }
+    if (!email.trim() && !phone.trim()) {
+      toast.error("Please provide an email or phone number so we can contact you.");
+      return;
+    }
+
+    setSubmitting(true);
+    const budgetDollars = budget.replace(/[^\d]/g, "");
+    const payload = {
+      store_id: storeId,
+      vehicle_id: null,
+      vehicle_label: null,
+      display_name: name.trim(),
+      email: email.trim() || null,
+      phone: phone.trim() || null,
+      notes: message.trim() || null,
+      source: "web" as const,
+      status: "new" as const,
+      desired_make: desiredMake.trim() || null,
+      desired_model: null,
+      budget_max_cents: budgetDollars ? parseInt(budgetDollars, 10) * 100 : null,
+      trade_in_interested: tradeIn,
+      financing_needed: financing,
+    };
+
+    const { error } = await supabase
+      .from("car_dealership_leads")
+      .insert(payload as never);
+
+    setSubmitting(false);
+
+    if (error) {
+      console.error("[listing lead capture] insert failed", error);
+      toast.error("Something went wrong. Please try again or call the dealer directly.");
+      return;
+    }
+
+    setSubmitted(true);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-primary" />
+            Contact {storeName}
+          </DialogTitle>
+        </DialogHeader>
+
+        {submitted ? (
+          <div className="py-6 text-center space-y-3">
+            <div className="grid h-14 w-14 mx-auto place-items-center rounded-full bg-emerald-500/15 text-emerald-600">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+            <p className="text-lg font-bold">Thanks — we got your message!</p>
+            <p className="text-sm text-muted-foreground">
+              A representative will be in touch with you shortly.
+            </p>
+            <Button onClick={() => onOpenChange(false)} className="mt-2">Done</Button>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label>Name *</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone</Label>
+                  <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>What are you looking for?</Label>
+                <Input
+                  value={desiredMake}
+                  onChange={(e) => setDesiredMake(e.target.value)}
+                  placeholder="e.g. Tesla Model 3, SUV under $40k"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Max budget</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                  <Input
+                    inputMode="numeric"
+                    className="pl-7"
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value.replace(/[^\d,]/g, ""))}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Message</Label>
+                <Textarea
+                  rows={3}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Anything else we should know?"
+                />
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={tradeIn}
+                    onCheckedChange={(c) => setTradeIn(c === true)}
+                  />
+                  I have a trade-in
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={financing}
+                    onCheckedChange={(c) => setFinancing(c === true)}
+                  />
+                  I need financing
+                </label>
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center pt-1">
+                We respect your privacy. By submitting you agree to be contacted by the dealership.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={submitting || !name.trim()}>
+                {submitting ? "Sending..." : "Send"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── component ───────────────────────────────────────────────────────────────
 
 export default function PublicCarDealershipListingPage() {
@@ -133,6 +321,15 @@ export default function PublicCarDealershipListingPage() {
   const [sort, setSort] = useState<SortKey>("newest");
   const [showFilters, setShowFilters] = useState(false);
 
+  // Lead-capture dialog
+  const [leadDialogOpen, setLeadDialogOpen] = useState(false);
+  const [leadPrefillMake, setLeadPrefillMake] = useState<string>("");
+
+  const openLeadDialog = (prefill?: string) => {
+    setLeadPrefillMake(prefill ?? "");
+    setLeadDialogOpen(true);
+  };
+
   // ── load data ────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -142,7 +339,7 @@ export default function PublicCarDealershipListingPage() {
 
       const { data: storeRow } = await supabase
         .from("store_profiles")
-        .select("id,name,slug,logo_url,cover_image_url,description,city,state,phone,email")
+        .select("id,name,slug,logo_url,description,address,phone")
         .eq("slug", slug)
         .maybeSingle();
 
@@ -266,7 +463,7 @@ export default function PublicCarDealershipListingPage() {
     return "SPECIAL";
   };
 
-  const cityState = [store.city, store.state].filter(Boolean).join(", ");
+  const cityState = store.address ?? "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -316,6 +513,15 @@ export default function PublicCarDealershipListingPage() {
               {store.phone}
             </a>
           )}
+          <Button
+            size="sm"
+            onClick={() => openLeadDialog()}
+            className="inline-flex items-center gap-1.5"
+          >
+            <Mail className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Contact dealer</span>
+            <span className="sm:hidden">Contact</span>
+          </Button>
         </div>
       </header>
 
@@ -437,12 +643,22 @@ export default function PublicCarDealershipListingPage() {
                 <Car className="mx-auto h-10 w-10 text-muted-foreground/40" />
                 <p className="mt-3 font-medium">No vehicles available right now</p>
                 <p className="mt-1 text-sm text-muted-foreground">Check back soon — new inventory is added regularly.</p>
+                <Button onClick={() => openLeadDialog()} className="mt-4">
+                  <Mail className="h-4 w-4 mr-1.5" />Contact dealer
+                </Button>
               </>
             ) : (
               <>
                 <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/40" />
                 <p className="mt-3 font-medium">No matches</p>
                 <p className="mt-1 text-sm text-muted-foreground">Try widening your filters or clearing the search.</p>
+                <Button
+                  variant="outline"
+                  onClick={() => openLeadDialog(search.trim() || (makeFilter !== "all" ? makeFilter : ""))}
+                  className="mt-4"
+                >
+                  <MessageCircle className="h-4 w-4 mr-1.5" />Tell us what you're looking for
+                </Button>
               </>
             )}
           </Card>
@@ -576,9 +792,6 @@ export default function PublicCarDealershipListingPage() {
                   <Phone className="h-3.5 w-3.5" />{store.phone}
                 </a>
               )}
-              {store.email && (
-                <a href={`mailto:${store.email}`} className="hover:text-foreground">{store.email}</a>
-              )}
               {cityState && (
                 <span className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />{cityState}
@@ -588,6 +801,14 @@ export default function PublicCarDealershipListingPage() {
           </div>
         </div>
       </footer>
+
+      <ListingLeadDialog
+        open={leadDialogOpen}
+        onOpenChange={setLeadDialogOpen}
+        storeId={store.id}
+        storeName={store.name}
+        prefillDesiredMake={leadPrefillMake}
+      />
     </div>
   );
 }

@@ -1,13 +1,13 @@
 # Production Preflight Report
 
-Generated: 2026-05-26T20:27:46.926Z
+Generated: 2026-05-26T21:29:39.608Z
 Mode: strict
 
 ## Summary
 
 - API readiness: critical=0, warnings=3
 - Database readiness: blockers=1, warnings=1
-- Migration drift: duplicateVersions=8, allowedDuplicateVersions=8, newDuplicateVersions=0, remoteError=no
+- Migration drift: duplicateVersions=8, allowedDuplicateVersions=8, newDuplicateVersions=0, remoteError=yes
 
 ## Steps
 
@@ -29,17 +29,17 @@ Mode: strict
   "allowedDuplicateVersions": 8,
   "newDuplicateVersions": 0,
   "duplicateHashes": 0,
-  "remoteMigrations": 1409,
+  "remoteMigrations": 0,
   "matchedVersions": 0,
   "localOnlyPending": 831,
-  "remoteOnlyMissingLocally": 1409,
+  "remoteOnlyMissingLocally": 0,
   "pendingRisk": {
     "high": 763,
     "medium": 50,
     "low": 18
   },
   "report": "docs\\supabase-migration-drift-report.md",
-  "remoteError": null
+  "remoteError": "Initialising login role...\n2026/05/26 16:27:07 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable."
 }
 ```
 
@@ -91,11 +91,11 @@ Mode: strict
     "duplicateVersions": 8,
     "allowedDuplicateVersions": 8,
     "newDuplicateVersions": 0,
-    "remote": 1409,
+    "remote": 0,
     "matched": 0,
     "localOnly": 831,
-    "remoteOnly": 1409,
-    "remoteError": false,
+    "remoteOnly": 0,
+    "remoteError": true,
     "currentLocal": 831
   },
   "report": "docs/api-readiness-report.md"
@@ -105,183 +105,42 @@ Mode: strict
 ### Media lazy-load readiness
 
 - Command: `node scripts/performance/media-readiness-check.mjs`
-- Status: passed
+- Status: failed
 
 ```text
-Media readiness report: 503 issue(s) across 150 file(s).
+node:internal/child_process:1143
+    result.error = new ErrnoException(result.error, 'spawnSync ' + options.file);
+                   ^
 
-src\components\admin\store\cafe\CafeBaristasSection.tsx
-  125: img missing loading="lazy"/SmartImage
-  125: img missing decoding="async"/SmartImage
+<ref *1> Error: spawnSync rg ENOENT
+    at Object.spawnSync (node:internal/child_process:1143:20)
+    at spawnSync (node:child_process:911:24)
+    at execFileSync (node:child_process:954:15)
+    at file:///C:/Users/chhor/Documents/GitHub/myzivo/scripts/performance/media-readiness-check.mjs:9:15
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:633:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'spawnSync rg',
+  path: 'rg',
+  spawnargs: [ '--files', 'src', '-g', '*.tsx' ],
+  error: [Circular *1],
+  status: null,
+  signal: null,
+  output: null,
+  pid: 0,
+  stdout: undefined,
+  stderr: undefined
+}
 
-src\components\admin\store\cafe\CafeMenuSection.tsx
-  528: img missing loading="lazy"/SmartImage
-  528: img missing decoding="async"/SmartImage
-  674: img missing loading="lazy"/SmartImage
-  674: img missing decoding="async"/SmartImage
-
-src\components\admin\store\cafe\CafeTablesSection.tsx
-  158: img missing loading="lazy"/SmartImage
-  158: img missing decoding="async"/SmartImage
-
-src\components\admin\store\car-dealership\CarDealershipInventorySection.tsx
-  142: img missing loading="lazy"/SmartImage
-  142: img missing decoding="async"/SmartImage
-  226: img missing loading="lazy"/SmartImage
-  226: img missing decoding="async"/SmartImage
-  301: img missing decoding="async"/SmartImage
-  751: img missing decoding="async"/SmartImage
-
-src\components\admin\store\car-dealership\VehiclePhotoManager.tsx
-  149: img missing decoding="async"/SmartImage
-
-src\components\admin\store\car-rental\CarRentalCustomersSection.tsx
-  345: img missing loading="lazy"/SmartImage
-  345: img missing decoding="async"/SmartImage
-  351: img missing loading="lazy"/SmartImage
-  351: img missing decoding="async"/SmartImage
-
-src\components\admin\store\car-rental\CarRentalFleetSection.tsx
-  484: img missing loading="lazy"/SmartImage
-  484: img missing decoding="async"/SmartImage
-  670: img missing loading="lazy"/SmartImage
-  670: img missing decoding="async"/SmartImage
-
-src\components\admin\store\car-rental\CarRentalReturnsSection.tsx
-  376: img missing loading="lazy"/SmartImage
-  376: img missing decoding="async"/SmartImage
-
-src\components\admin\store\salon\SalonServiceMenuSection.tsx
-  295: img missing decoding="async"/SmartImage
-  494: img missing decoding="async"/SmartImage
-
-src\components\admin\store\salon\SalonStylistsSection.tsx
-  245: img missing loading="lazy"/SmartImage
-  245: img missing decoding="async"/SmartImage
-
-src\pages\FavoritesPage.tsx
-  157: img missing decoding="async"/SmartImage
-
-src\pages\FlightResults.tsx
-  1059: img missing loading="lazy"/SmartImage
-  1059: img missing decoding="async"/SmartImage
-
-src\pages\FriendRequestsPage.tsx
-  189: img missing decoding="async"/SmartImage
-  229: img missing decoding="async"/SmartImage
-
-src\pages\GifLibraryPage.tsx
-  266: img missing decoding="async"/SmartImage
-  317: img missing decoding="async"/SmartImage
-
-src\pages\GoLivePage.tsx
-  1443: img missing loading="lazy"/SmartImage
-  1443: img missing decoding="async"/SmartImage
-  1785: img missing loading="lazy"/SmartImage
-  1785: img missing decoding="async"/SmartImage
-  1978: img missing loading="lazy"/SmartImage
-  1978: img missing decoding="async"/SmartImage
-  2371: img missing loading="lazy"/SmartImage
-  2371: img missing decoding="async"/SmartImage
-  2446: img missing loading="lazy"/SmartImage
-  2446: img missing decoding="async"/SmartImage
-  2491: img missing loading="lazy"/SmartImage
-  2491: img missing decoding="async"/SmartImage
-  ... 6 more
-
-src\pages\GroceryMarketplace.tsx
-  72: img missing loading="lazy"/SmartImage
-  72: img missing decoding="async"/SmartImage
-  135: img missing loading="lazy"/SmartImage
-  135: img missing decoding="async"/SmartImage
-
-src\pages\GroceryOrderHistory.tsx
-  243: img missing loading="lazy"/SmartImage
-  243: img missing decoding="async"/SmartImage
-
-src\pages\GroceryPage.tsx
-  105: img missing loading="lazy"/SmartImage
-  105: img missing decoding="async"/SmartImage
-  131: img missing loading="lazy"/SmartImage
-  131: img missing decoding="async"/SmartImage
-  179: img missing loading="lazy"/SmartImage
-  179: img missing decoding="async"/SmartImage
-
-src\pages\GroceryStorePage.tsx
-  126: img missing loading="lazy"/SmartImage
-  126: img missing decoding="async"/SmartImage
-  179: img missing decoding="async"/SmartImage
-  402: img missing loading="lazy"/SmartImage
-  402: img missing decoding="async"/SmartImage
-
-src\pages\GroupOrdersPage.tsx
-  187: img missing decoding="async"/SmartImage
-
-src\pages\HashtagPage.tsx
-  232: img missing decoding="async"/SmartImage
-
-src\pages\HighlightsPage.tsx
-  281: img missing decoding="async"/SmartImage
-  346: img missing loading="lazy"/SmartImage
-  346: img missing decoding="async"/SmartImage
-  372: img missing loading="lazy"/SmartImage
-  372: img missing decoding="async"/SmartImage
-
-src\pages\HotelLanding.tsx
-  118: img missing decoding="async"/SmartImage
-  225: img missing decoding="async"/SmartImage
-
-src\pages\ItinerariesPage.tsx
-  134: img missing decoding="async"/SmartImage
-
-src\pages\LeaderboardsPage.tsx
-  213: img missing decoding="async"/SmartImage
-
-src\pages\LiveStreamPage.tsx
-  763: img missing loading="lazy"/SmartImage
-  763: img missing decoding="async"/SmartImage
-  794: img missing decoding="async"/SmartImage
-  805: img missing decoding="async"/SmartImage
-  824: img missing loading="lazy"/SmartImage
-  824: img missing decoding="async"/SmartImage
-  832: img missing loading="lazy"/SmartImage
-  832: img missing decoding="async"/SmartImage
-  878: img missing loading="lazy"/SmartImage
-  878: img missing decoding="async"/SmartImage
-  2700: img missing decoding="async"/SmartImage
-  2756: img missing decoding="async"/SmartImage
-
-src\pages\Login.tsx
-  79: img missing loading="lazy"/SmartImage
-  79: img missing decoding="async"/SmartImage
-  547: img missing loading="lazy"/SmartImage
-  547: img missing decoding="async"/SmartImage
-
-src\pages\MarketplaceCartPage.tsx
-  244: img missing decoding="async"/SmartImage
-
-src\pages\MarketplacePage.tsx
-  1047: img missing decoding="async"/SmartImage
-  1110: img missing decoding="async"/SmartImage
-  1142: img missing decoding="async"/SmartImage
-  1174: img missing decoding="async"/SmartImage
-  1479: img missing decoding="async"/SmartImage
-  1998: img missing loading="lazy"/SmartImage
-  1998: img missing decoding="async"/SmartImage
-  2412: img missing loading="lazy"/SmartImage
-  2412: img missing decoding="asyn
-...truncated
+Node.js v24.16.0
 ```
 
 ### TypeScript type-check
 
 - Command: `node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit --incremental --tsBuildInfoFile .tsbuildinfo.app -p tsconfig.app.json`
 - Status: failed
-
-### Production build
-
-- Command: `node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build --logLevel warn`
-- Status: passed
 
 ## Production Gate
 

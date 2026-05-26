@@ -78,7 +78,6 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
   const [quickVehicleId, setQuickVehicleId] = useState("none");
   const [expandedVehicle, setExpandedVehicle] = useState<string | null>(null);
 
-  useEffect(() => { const id = setInterval(() => {}, 1000); return () => clearInterval(id); }, []);
   const [, setTick] = useState(0);
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
 

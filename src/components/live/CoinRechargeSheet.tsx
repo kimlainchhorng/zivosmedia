@@ -60,7 +60,8 @@ function PayForm({
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Verification failed");
       if (!data?.credited) throw new Error("Payment received, but coins are still processing");
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["coin-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["coin-purchases"] });
       const credited = data.coins ?? selected.coins + (selected.bonus || 0);
       toast.success("Coins added", {
         description: `+${credited.toLocaleString()} Z Coins`,
