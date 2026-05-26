@@ -711,6 +711,14 @@ function ReelCard({
   const renderSrc = blobSrc || (isBlobLoading ? "" : sourceUrl);
 
   useEffect(() => {
+    if (!showMoreMenu && !showSpeedPicker) return;
+    document.body.dataset.reelSheetOpen = "true";
+    return () => {
+      delete document.body.dataset.reelSheetOpen;
+    };
+  }, [showMoreMenu, showSpeedPicker]);
+
+  useEffect(() => {
     if (!sensitiveMediaLocked) return;
     const video = videoRef.current;
     if (!video) return;

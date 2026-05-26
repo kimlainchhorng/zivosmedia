@@ -43,7 +43,6 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
 import {
   getModerationActionOutcome,
   getModerationContentLabel,
@@ -76,7 +75,6 @@ interface ProfileSummary {
 }
 
 interface ContentDetails {
-  kind: ModerationContentKind;
   title: string;
   body: string;
   ownerId: string | null;
@@ -105,7 +103,6 @@ interface ModerationReport {
   aiCategory: string | null;
   createdAt: string | null;
   updatedAt: string | null;
-  details: ContentDetails | null;
 }
 
 interface UserRow {
@@ -115,11 +112,10 @@ interface UserRow {
   created_at: string | null;
 }
 
-type FilterValue = "all";
-type StatusFilter = FilterValue | "pending" | "actioned" | "dismissed" | "resolved";
-type SeverityFilter = FilterValue | "high" | "medium" | "low";
-type ContentFilter = FilterValue | ModerationContentKind;
-type DateFilter = FilterValue | "24h" | "7d";
+type StatusFilter = "all" | "pending" | "actioned" | "dismissed" | "resolved";
+type SeverityFilter = "all" | "high" | "medium" | "low";
+type ContentFilter = "all" | ModerationContentKind;
+type DateFilter = "all" | "24h" | "7d";
 
 const REPORT_SELECT =
   "id, content_type, content_id, reported_by, auto_flagged, reason, severity, status, priority, ai_category, created_at, updated_at";
@@ -156,169 +152,11 @@ const DATE_FILTERS: Array<{ label: string; value: DateFilter }> = [
 const asRows = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
 const asRecord = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" ? (value as Record<string, unknown>) : {};
-const compactIds = (ids: Array<string | null | undefined>) => [...new Set(ids.filter(Boolean) as string[])];
-const fieldText = (value: unknown) => (typeof value === "string" ? value : "");
-const mediaLabel = (row: Record<string, unknown>) => {
-  const type = fieldText(row.media_type || row.message_type);
-  if (fieldText(row.image_url) || fieldText(row.media_url)) return type ? `${type} media` : "Media";
-  if (fieldText(row.video_url)) return "Video";
-  if (fieldText(row.voice_url)) return "Voice message";
-  if (row.file_payload) return "Attachment";
-  const urls = row.media_urls;
-  if (Array.isArray(urls) && urls.length > 0) return `${urls.length} media items`;
-  return type || null;
-};
+const textField = (row: Record<string, unknown>, key: string) =>
+  typeof row[key] === "string" ? String(row[key]) : "";
 
-async function fetchRowsByIds<T>(table: string, select: string, ids: string[]) {
-  if (ids.length === 0) return new Map<string, T>();
-  const { data, error } = await (supabase as any).from(table).select(select).in("id", ids);
-  if (error) throw error;
-  return new Map(asRows<T & { id: string }>(data).map((row) => [row.id, row as T]));
-}
-
-async function fetchProfiles(userIds: string[]) {
-  if (userIds.length === 0) return new Map<string, ProfileSummary>();
-  const { data, error } = await (supabase as any)
-    .from("profiles")
-    .select("id, full_name, avatar_url")
-    .in("id", userIds);
-  if (error) throw error;
-  return new Map(asRows<ProfileSummary>(data).map((profile) => [profile.id, profile]));
-}
-
-const profileName = (profiles: Map<string, ProfileSummary>, id?: string | null) =>
-  (id && profiles.get(id)?.full_name) || "Unknown user";
-
-const profileAvatar = (profiles: Map<string, ProfileSummary>, id?: string | null) =>
-  (id && profiles.get(id)?.avatar_url) || null;
-
-async function hydrateReports(rows: QueueRow[]): Promise<ModerationReport[]> {
-  const idsByKind = rows.reduce<Record<ModerationContentKind, string[]>>(
-    (acc, row) => {
-      const kind = normalizeModerationContentType(row.content_type);
-      if (kind !== "unknown") acc[kind].push(row.content_id);
-      return acc;
-    },
-    { user_post: [], post_comment: [], direct_message: [], group_message: [], unknown: [] },
-  );
-
-  const [posts, comments, directMessages, groupMessages] = await Promise.all([
-    fetchRowsByIds<Record<string, unknown>>(
-      "user_posts",
-      "id, user_id, caption, media_type, media_url, media_urls, hidden_at, hidden_reason, is_sensitive, sensitive_reason, sensitive_report_count, created_at",
-      compactIds(idsByKind.user_post),
-    ),
-    fetchRowsByIds<Record<string, unknown>>(
-      "post_comments",
-      "id, user_id, content, post_id, post_source, hidden_at, hidden_reason, sensitive_report_count, created_at",
-      compactIds(idsByKind.post_comment),
-    ),
-    fetchRowsByIds<Record<string, unknown>>(
-      "direct_messages",
-      "id, sender_id, receiver_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload",
-      compactIds(idsByKind.direct_message),
-    ),
-    fetchRowsByIds<Record<string, unknown>>(
-      "group_messages",
-      "id, group_id, sender_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload",
-      compactIds(idsByKind.group_message),
-    ),
-  ]);
-
-  const groupIds = compactIds([...groupMessages.values()].map((row) => fieldText(row.group_id)));
-  const groups =
-    groupIds.length > 0
-      ? await fetchRowsByIds<Record<string, unknown>>("chat_groups", "id, name", groupIds)
-      : new Map<string, Record<string, unknown>>();
-
-  const ownerIds = rows.flatMap((row) => {
-    const kind = normalizeModerationContentType(row.content_type);
-    const content =
-      kind === "user_post"
-        ? posts.get(row.content_id)
-        : kind === "post_comment"
-          ? comments.get(row.content_id)
-          : kind === "direct_message"
-            ? directMessages.get(row.content_id)
-            : kind === "group_message"
-              ? groupMessages.get(row.content_id)
-              : null;
-    const record = asRecord(content);
-    return [
-      row.reported_by,
-      fieldText(record.user_id),
-      fieldText(record.sender_id),
-      fieldText(record.receiver_id),
-    ];
-  });
-  const profiles = await fetchProfiles(compactIds(ownerIds));
-
-  return rows.map((row) => {
-    const kind = normalizeModerationContentType(row.content_type);
-    const content =
-      kind === "user_post"
-        ? posts.get(row.content_id)
-        : kind === "post_comment"
-          ? comments.get(row.content_id)
-          : kind === "direct_message"
-            ? directMessages.get(row.content_id)
-            : kind === "group_message"
-              ? groupMessages.get(row.content_id)
-              : null;
-    const record = asRecord(content);
-    const ownerId =
-      fieldText(record.user_id) ||
-      fieldText(record.sender_id) ||
-      null;
-    const groupName = fieldText(groups.get(fieldText(record.group_id))?.name);
-    const body =
-      fieldText(record.caption) ||
-      fieldText(record.content) ||
-      fieldText(record.message) ||
-      (content ? "No text content" : "Content row not found");
-    const hiddenAt = fieldText(record.hidden_at) || null;
-    const hiddenReason = fieldText(record.hidden_reason) || null;
-    const sensitive = Boolean(record.is_sensitive) || Boolean(hiddenAt);
-    const details: ContentDetails | null = content
-      ? {
-          kind,
-          title: groupName ? `${getModerationContentLabel(kind)} in ${groupName}` : getModerationContentLabel(kind),
-          body,
-          ownerId,
-          ownerName: profileName(profiles, ownerId),
-          ownerAvatar: profileAvatar(profiles, ownerId),
-          hiddenAt,
-          hiddenReason,
-          sensitive,
-          mediaLabel: mediaLabel(record),
-          metadata: [
-            record.created_at ? `Created ${formatDistanceToNow(new Date(fieldText(record.created_at)), { addSuffix: true })}` : null,
-            record.sensitive_report_count ? `${record.sensitive_report_count} sensitive reports` : null,
-            groupName ? `Group: ${groupName}` : null,
-            fieldText(record.receiver_id) ? `Receiver: ${profileName(profiles, fieldText(record.receiver_id))}` : null,
-          ].filter(Boolean) as string[],
-        }
-      : null;
-
-    return {
-      id: row.id,
-      contentType: row.content_type,
-      kind,
-      contentId: row.content_id,
-      reporterId: row.reported_by,
-      reporterName: profileName(profiles, row.reported_by),
-      reporterAvatar: profileAvatar(profiles, row.reported_by),
-      autoFlagged: Boolean(row.auto_flagged),
-      reason: row.reason,
-      severity: row.severity || "low",
-      status: row.status || "pending",
-      priority: row.priority || 0,
-      aiCategory: row.ai_category,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      details,
-    };
-  });
+function initials(name: string) {
+  return name.trim().slice(0, 1).toUpperCase() || "U";
 }
 
 function severityVariant(severity: string): "destructive" | "default" | "secondary" {
@@ -334,8 +172,97 @@ function statusVariant(status: string): "destructive" | "default" | "secondary" 
   return "outline";
 }
 
-function initials(name: string) {
-  return name.trim().slice(0, 1).toUpperCase() || "U";
+function mediaLabel(row: Record<string, unknown>) {
+  if (textField(row, "image_url") || textField(row, "media_url")) return "Image";
+  if (textField(row, "video_url")) return "Video";
+  if (textField(row, "voice_url")) return "Voice message";
+  if (row.file_payload) return "Attachment";
+  const urls = row.media_urls;
+  if (Array.isArray(urls) && urls.length > 0) return `${urls.length} media items`;
+  return textField(row, "media_type") || textField(row, "message_type") || null;
+}
+
+async function fetchProfile(userId?: string | null): Promise<ProfileSummary | null> {
+  if (!userId) return null;
+  const { data } = await (supabase as any)
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .eq("id", userId)
+    .maybeSingle();
+  return (data as ProfileSummary | null) ?? null;
+}
+
+async function fetchGroupName(groupId?: string | null): Promise<string | null> {
+  if (!groupId) return null;
+  const { data } = await (supabase as any)
+    .from("chat_groups")
+    .select("name")
+    .eq("id", groupId)
+    .maybeSingle();
+  const row = asRecord(data);
+  return textField(row, "name") || null;
+}
+
+async function loadContentDetails(report: ModerationReport): Promise<ContentDetails | null> {
+  const table =
+    report.kind === "user_post"
+      ? "user_posts"
+      : report.kind === "post_comment"
+        ? "post_comments"
+        : report.kind === "direct_message"
+          ? "direct_messages"
+          : report.kind === "group_message"
+            ? "group_messages"
+            : null;
+  if (!table) return null;
+
+  const select =
+    report.kind === "user_post"
+      ? "id, user_id, caption, media_type, media_url, media_urls, hidden_at, hidden_reason, is_sensitive, sensitive_reason, sensitive_report_count, created_at"
+      : report.kind === "post_comment"
+        ? "id, user_id, content, post_id, post_source, hidden_at, hidden_reason, sensitive_report_count, created_at"
+        : report.kind === "direct_message"
+          ? "id, sender_id, receiver_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload"
+          : "id, group_id, sender_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload";
+
+  const { data, error } = await (supabase as any).from(table).select(select).eq("id", report.contentId).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const row = asRecord(data);
+  const ownerId = textField(row, "user_id") || textField(row, "sender_id") || null;
+  const receiverId = textField(row, "receiver_id") || null;
+  const [owner, receiver, groupName] = await Promise.all([
+    fetchProfile(ownerId),
+    fetchProfile(receiverId),
+    report.kind === "group_message" ? fetchGroupName(textField(row, "group_id")) : Promise.resolve(null),
+  ]);
+  const body =
+    textField(row, "caption") ||
+    textField(row, "content") ||
+    textField(row, "message") ||
+    "No text content";
+  const hiddenAt = textField(row, "hidden_at") || null;
+  const hiddenReason = textField(row, "hidden_reason") || null;
+  const sensitive = Boolean(row.is_sensitive) || Boolean(hiddenAt);
+
+  return {
+    title: groupName ? `${getModerationContentLabel(report.kind)} in ${groupName}` : getModerationContentLabel(report.kind),
+    body,
+    ownerId,
+    ownerName: owner?.full_name || "Unknown user",
+    ownerAvatar: owner?.avatar_url || null,
+    hiddenAt,
+    hiddenReason,
+    sensitive,
+    mediaLabel: mediaLabel(row),
+    metadata: [
+      row.created_at ? `Created ${formatDistanceToNow(new Date(textField(row, "created_at")), { addSuffix: true })}` : null,
+      row.sensitive_report_count ? `${row.sensitive_report_count} sensitive reports` : null,
+      groupName ? `Group: ${groupName}` : null,
+      receiver ? `Receiver: ${receiver.full_name || "Unknown user"}` : null,
+    ].filter(Boolean) as string[],
+  };
 }
 
 export default function AdminModerationPage() {
@@ -347,6 +274,8 @@ export default function AdminModerationPage() {
   const [loadingReports, setLoadingReports] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [selectedReport, setSelectedReport] = useState<ModerationReport | null>(null);
+  const [selectedDetails, setSelectedDetails] = useState<ContentDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
@@ -368,34 +297,34 @@ export default function AdminModerationPage() {
       return;
     }
 
-    try {
-      setReports(await hydrateReports(asRows<QueueRow>(data)));
-    } catch (err) {
-      const message = err && typeof err === "object" && "message" in err ? String(err.message) : "Unknown error";
-      toast.error("Could not load report details: " + message);
-      setReports(
-        asRows<QueueRow>(data).map((row) => ({
-          id: row.id,
-          contentType: row.content_type,
-          kind: normalizeModerationContentType(row.content_type),
-          contentId: row.content_id,
-          reporterId: row.reported_by,
-          reporterName: "Unknown user",
-          reporterAvatar: null,
-          autoFlagged: Boolean(row.auto_flagged),
-          reason: row.reason,
-          severity: row.severity || "low",
-          status: row.status || "pending",
-          priority: row.priority || 0,
-          aiCategory: row.ai_category,
-          createdAt: row.created_at,
-          updatedAt: row.updated_at,
-          details: null,
-        })),
-      );
-    } finally {
-      setLoadingReports(false);
-    }
+    const queueRows = asRows<QueueRow>(data);
+    const reporterIds = [...new Set(queueRows.map((row) => row.reported_by).filter(Boolean) as string[])];
+    const { data: profiles } = reporterIds.length
+      ? await (supabase as any).from("profiles").select("id, full_name, avatar_url").in("id", reporterIds)
+      : { data: [] };
+    const profileMap = new Map(asRows<ProfileSummary>(profiles).map((profile) => [profile.id, profile]));
+
+    setReports(queueRows.map((row) => {
+      const reporter = row.reported_by ? profileMap.get(row.reported_by) : null;
+      return {
+        id: row.id,
+        contentType: row.content_type,
+        kind: normalizeModerationContentType(row.content_type),
+        contentId: row.content_id,
+        reporterId: row.reported_by,
+        reporterName: reporter?.full_name || "Unknown user",
+        reporterAvatar: reporter?.avatar_url || null,
+        autoFlagged: Boolean(row.auto_flagged),
+        reason: row.reason,
+        severity: row.severity || "low",
+        status: row.status || "pending",
+        priority: row.priority || 0,
+        aiCategory: row.ai_category,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    }));
+    setLoadingReports(false);
   }, []);
 
   const loadUsers = useCallback(async () => {
@@ -409,6 +338,20 @@ export default function AdminModerationPage() {
     if (data) setUsers(data as UserRow[]);
     setLoadingUsers(false);
   }, [searchQuery, users.length]);
+
+  const openReport = useCallback(async (report: ModerationReport) => {
+    setSelectedReport(report);
+    setSelectedDetails(null);
+    setLoadingDetails(true);
+    try {
+      setSelectedDetails(await loadContentDetails(report));
+    } catch (err) {
+      const message = err && typeof err === "object" && "message" in err ? String(err.message) : "Unknown error";
+      toast.error("Could not load report details: " + message);
+    } finally {
+      setLoadingDetails(false);
+    }
+  }, []);
 
   useEffect(() => {
     void loadReports();
@@ -429,14 +372,7 @@ export default function AdminModerationPage() {
       if (contentFilter !== "all" && report.kind !== contentFilter) return false;
       if (cutoff && report.createdAt && new Date(report.createdAt) < cutoff) return false;
       if (!q) return true;
-      return [
-        report.reason,
-        report.contentId,
-        report.reporterName,
-        report.details?.body,
-        report.details?.ownerName,
-        report.aiCategory,
-      ]
+      return [report.reason, report.contentId, report.reporterName, report.aiCategory]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q));
     });
@@ -450,22 +386,13 @@ export default function AdminModerationPage() {
     return { pending, actioned, dismissed, high, total: reports.length };
   }, [reports]);
 
-  const applyTargetVisibility = async (report: ModerationReport, action: ModerationReviewAction, moderatorId: string) => {
-    const now = new Date().toISOString();
-    const hidePatch = {
-      hidden_at: report.details?.hiddenAt || now,
-      hidden_by: moderatorId,
-      hidden_reason: report.details?.hiddenReason || "moderator_action",
-    };
-    const unhidePatch = {
-      hidden_at: null,
-      hidden_by: null,
-      hidden_reason: null,
-    };
-    const patch = action === "unhide_false_positive" ? unhidePatch : hidePatch;
-
+  const applyTargetVisibility = async (
+    report: ModerationReport,
+    action: ModerationReviewAction,
+    moderatorId: string,
+    details: ContentDetails | null,
+  ) => {
     if (action === "dismiss") return;
-
     const table =
       report.kind === "user_post"
         ? "user_posts"
@@ -478,14 +405,25 @@ export default function AdminModerationPage() {
               : null;
     if (!table) return;
 
-    const postPatch =
+    const hidePatch = {
+      hidden_at: details?.hiddenAt || new Date().toISOString(),
+      hidden_by: moderatorId,
+      hidden_reason: details?.hiddenReason || "moderator_action",
+    };
+    const unhidePatch = {
+      hidden_at: null,
+      hidden_by: null,
+      hidden_reason: null,
+    };
+    const basePatch = action === "unhide_false_positive" ? unhidePatch : hidePatch;
+    const patch =
       report.kind === "user_post"
         ? action === "unhide_false_positive"
-          ? { ...patch, is_sensitive: false, sensitive_reason: null }
-          : { ...patch, is_sensitive: true, sensitive_reason: "moderator_sensitive" }
-        : patch;
+          ? { ...basePatch, is_sensitive: false, sensitive_reason: null }
+          : { ...basePatch, is_sensitive: true, sensitive_reason: "moderator_sensitive" }
+        : basePatch;
 
-    const { error } = await (supabase as any).from(table).update(postPatch).eq("id", report.contentId);
+    const { error } = await (supabase as any).from(table).update(patch).eq("id", report.contentId);
     if (error) throw error;
   };
 
@@ -499,7 +437,8 @@ export default function AdminModerationPage() {
       } = await supabase.auth.getUser();
       if (userError || !user) throw userError || new Error("Admin user not available");
 
-      await applyTargetVisibility(report, action, user.id);
+      const details = selectedReport?.id === report.id ? selectedDetails : await loadContentDetails(report);
+      await applyTargetVisibility(report, action, user.id, details);
 
       const now = new Date().toISOString();
       const { error: queueError } = await (supabase as any)
@@ -516,7 +455,7 @@ export default function AdminModerationPage() {
         queue_item_id: report.id,
         moderator_id: user.id,
         action_type: outcome.auditActionType,
-        target_user_id: report.details?.ownerId ?? null,
+        target_user_id: details?.ownerId ?? null,
         target_content_id: report.contentId,
         target_content_type: report.kind,
         reason: report.reason,
@@ -651,18 +590,16 @@ export default function AdminModerationPage() {
                         {report.autoFlagged && <Badge variant="secondary" className="text-xs">Auto flagged</Badge>}
                       </div>
                       <p className="text-sm font-semibold text-foreground">{report.reason}</p>
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {report.details?.body || "Content details unavailable"}
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">Content ID: {report.contentId}</p>
                       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span>Reporter: {report.reporterName}</span>
-                        <span>Owner: {report.details?.ownerName || "Unknown"}</span>
                         <span>{report.createdAt ? formatDistanceToNow(new Date(report.createdAt), { addSuffix: true }) : "No timestamp"}</span>
                         {report.priority > 0 && <span>Priority {report.priority}</span>}
+                        {report.aiCategory && <span>{report.aiCategory}</span>}
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-2 md:flex-col">
-                      <Button size="sm" variant="outline" onClick={() => setSelectedReport(report)}>
+                      <Button size="sm" variant="outline" onClick={() => void openReport(report)}>
                         <Eye className="h-3.5 w-3.5 mr-1" /> Review
                       </Button>
                       <Button
@@ -763,20 +700,26 @@ export default function AdminModerationPage() {
 
                 <div className="rounded-lg border border-border p-3">
                   <p className="text-xs font-semibold uppercase text-muted-foreground">Content</p>
-                  <p className="mt-1 text-sm font-semibold text-foreground">{selectedReport.details?.title || "Unavailable"}</p>
-                  <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                    {selectedReport.details?.body || "The linked content row could not be loaded."}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {selectedReport.details?.sensitive && <Badge variant="secondary">Hidden or sensitive</Badge>}
-                    {selectedReport.details?.mediaLabel && <Badge variant="outline">{selectedReport.details.mediaLabel}</Badge>}
-                    {selectedReport.details?.hiddenReason && <Badge variant="outline">{selectedReport.details.hiddenReason}</Badge>}
-                  </div>
-                  {selectedReport.details?.metadata.length ? (
-                    <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                      {selectedReport.details.metadata.map((item) => <p key={item}>{item}</p>)}
-                    </div>
-                  ) : null}
+                  {loadingDetails ? (
+                    <div className="py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                  ) : (
+                    <>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{selectedDetails?.title || "Unavailable"}</p>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                        {selectedDetails?.body || "The linked content row could not be loaded."}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {selectedDetails?.sensitive && <Badge variant="secondary">Hidden or sensitive</Badge>}
+                        {selectedDetails?.mediaLabel && <Badge variant="outline">{selectedDetails.mediaLabel}</Badge>}
+                        {selectedDetails?.hiddenReason && <Badge variant="outline">{selectedDetails.hiddenReason}</Badge>}
+                      </div>
+                      {selectedDetails?.metadata.length ? (
+                        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                          {selectedDetails.metadata.map((item) => <p key={item}>{item}</p>)}
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -794,10 +737,10 @@ export default function AdminModerationPage() {
                     <p className="text-xs font-semibold uppercase text-muted-foreground">Content owner</p>
                     <div className="mt-2 flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedReport.details?.ownerAvatar ?? undefined} />
-                        <AvatarFallback>{initials(selectedReport.details?.ownerName || "U")}</AvatarFallback>
+                        <AvatarImage src={selectedDetails?.ownerAvatar ?? undefined} />
+                        <AvatarFallback>{initials(selectedDetails?.ownerName || "U")}</AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium">{selectedReport.details?.ownerName || "Unknown user"}</span>
+                      <span className="text-sm font-medium">{selectedDetails?.ownerName || "Unknown user"}</span>
                     </div>
                   </div>
                 </div>

@@ -15,6 +15,7 @@ import { resolve } from "node:path";
 const SRC = readFileSync(resolve(__dirname, "../pages/FeedPage.tsx"), "utf8");
 const REPOST_HOOK_SRC = readFileSync(resolve(__dirname, "../hooks/usePostReposts.ts"), "utf8");
 const SHARE_SHEET_SRC = readFileSync(resolve(__dirname, "../components/shared/ShareSheet.tsx"), "utf8");
+const CSS_SRC = readFileSync(resolve(__dirname, "../index.css"), "utf8");
 
 describe("/reels (FeedPage.tsx) — videos-only contract", () => {
   it("applies media_type='video' to both the feed query and the deep-link lookup, for both store and user posts (>= 4 sites)", () => {
@@ -82,6 +83,8 @@ describe("/reels (FeedPage.tsx) — videos-only contract", () => {
     expect(SRC).toContain("reporterId: string | null");
     expect(SRC).toContain("Sign in to submit a report");
     expect(SRC).toContain("{reportPostId && (");
+    expect(SRC).toContain("document.body.dataset.reelSheetOpen");
+    expect(CSS_SRC).toContain('body[data-reel-sheet-open="true"] [data-zivo-mobile-nav]');
   });
 
   it("keeps repost toggle failure explicit instead of showing a false success", () => {

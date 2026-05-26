@@ -2402,6 +2402,11 @@ body[data-share-sheet-open="true"] [data-zivo-mobile-nav] {
   display: none !important;
 }
 
+/* Hide the mobile bottom nav while Reels action/playback sheets are open. */
+body[data-reel-sheet-open="true"] [data-zivo-mobile-nav] {
+  display: none !important;
+}
+
 /* Utility: hide horizontal scrollbar but keep scrolling */
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
