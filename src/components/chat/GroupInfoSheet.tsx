@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGroupAdmin, type GroupMemberRow, type GroupRole } from "@/hooks/useGroupAdmin";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
+import { getGroupMediaGalleryPath, isLockedMediaMessage } from "@/lib/chat/lockedMedia";
 
 interface ProfileLite {
   user_id: string;
@@ -53,7 +54,11 @@ interface GroupInfoMessage {
   image_url: string | null;
   video_url?: string | null;
   created_at: string;
-  file_payload?: unknown;
+  file_payload?: {
+    locked_preview_url?: string | null;
+    locked_preview_image_url?: string | null;
+    [key: string]: unknown;
+  } | null;
 }
 
 interface Props {
@@ -201,7 +206,13 @@ export default function GroupInfoSheet({
   }, [members]);
 
   const mediaMessages = useMemo(
-    () => messages.filter((message) => message.image_url || message.video_url || message.message_type === "image" || message.message_type === "video"),
+    () => messages.filter((message) =>
+      message.image_url ||
+      message.video_url ||
+      message.message_type === "image" ||
+      message.message_type === "video" ||
+      isLockedMediaMessage(message.message_type)
+    ),
     [messages],
   );
 
@@ -647,12 +658,13 @@ function EmptyState({ icon: Icon, label }: { icon: ComponentType<{ className?: s
 }
 
 function GroupMediaTile({ message }: { message: GroupInfoMessage }) {
-  const rawSrc = message.image_url || message.video_url || "";
-  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, message.video_url ? "display" : "thumbnail");
+  const locked = isLockedMediaMessage(message.message_type);
+  const rawSrc = getGroupMediaGalleryPath(message, !locked) || "";
+  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, message.video_url && !locked ? "display" : "thumbnail");
 
   return (
     <a href={resolvedSrc || undefined} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg bg-muted">
-      {message.video_url ? (
+      {message.video_url && !locked ? (
         <div className="flex h-full w-full items-center justify-center bg-muted">
           <Video className="h-6 w-6 text-muted-foreground" />
         </div>

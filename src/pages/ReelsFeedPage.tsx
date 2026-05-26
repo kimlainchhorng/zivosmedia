@@ -4340,8 +4340,17 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
   };
 
+  const clearPendingFeedVideoTap = () => {
+    if (feedTapTimer.current) {
+      clearTimeout(feedTapTimer.current);
+      feedTapTimer.current = null;
+    }
+    lastTapRef.current = 0;
+  };
+
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    clearPendingFeedVideoTap();
     if (!item.author_id || followLoading) return;
     if (!currentUserId) {
       showGuestActionPrompt("Log in to follow creators", "/feed");
@@ -4372,6 +4381,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   const handleSharedAuthorFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    clearPendingFeedVideoTap();
     if (!sharedAuthorId || followLoading) return;
     if (!currentUserId) {
       showGuestActionPrompt("Log in to follow creators", "/feed");
@@ -4524,6 +4534,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   }, []);
 
   const handleLike = async () => {
+    clearPendingFeedVideoTap();
     if (!currentUserId) {
       showGuestActionPrompt("Log in to like posts", "/feed");
       return;
@@ -4636,6 +4647,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   // Emojis are constrained by the DB CHECK: ❤️ 😂 😮 😢 😡 🔥 (👏 is not allowed).
   const REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "🔥"];
   const handleReaction = async (emoji: string) => {
+    clearPendingFeedVideoTap();
     if (!POST_REACTIONS_ENABLED) {
       toast.error("Reactions are being upgraded");
       return;
@@ -4673,6 +4685,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   };
 
   const handleShare = async () => {
+    clearPendingFeedVideoTap();
     haptic("selection");
     const text = item.caption || `Check out this post by ${item.author_name}`;
     try {
@@ -4690,6 +4703,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   };
 
   const handleBuyNow = async () => {
+    clearPendingFeedVideoTap();
     const commerce = item.commerce_link;
     if (!commerce) return;
 
@@ -4746,6 +4760,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
 
   const handleCopyLink = async () => {
+    clearPendingFeedVideoTap();
     try {
       await copyText(shareUrl);
       toast.success("Link copied!");
@@ -4759,6 +4774,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   const savingBookmark = useRef(false);
   const handleSave = async () => {
+    clearPendingFeedVideoTap();
     if (!currentUserId) {
       showGuestActionPrompt("Log in to save posts", "/feed");
       return;
@@ -4950,6 +4966,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   };
 
   const handleComment = () => {
+    clearPendingFeedVideoTap();
     if (commentSetting === "off") {
       toast.error("Comments are turned off for this post");
       return;

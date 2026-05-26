@@ -27037,6 +27037,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_pinned: boolean
+          locked_price_coins: number | null
           location_label: string | null
           location_lat: number | null
           location_lng: number | null
@@ -27061,6 +27062,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_pinned?: boolean
+          locked_price_coins?: number | null
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
@@ -27085,6 +27087,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_pinned?: boolean
+          locked_price_coins?: number | null
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
@@ -35994,35 +35997,50 @@ export type Database = {
       media_unlocks: {
         Row: {
           amount_cents: number
+          amount_coins: number | null
           buyer_id: string
+          completed_at: string | null
           created_at: string
+          group_id: string | null
           id: string
           message_id: string
+          message_table: string
           seller_id: string
           status: string
           stripe_session_id: string | null
+          unlock_provider: string
           updated_at: string
         }
         Insert: {
           amount_cents?: number
+          amount_coins?: number | null
           buyer_id: string
+          completed_at?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           message_id: string
+          message_table?: string
           seller_id: string
           status?: string
           stripe_session_id?: string | null
+          unlock_provider?: string
           updated_at?: string
         }
         Update: {
           amount_cents?: number
+          amount_coins?: number | null
           buyer_id?: string
+          completed_at?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           message_id?: string
+          message_table?: string
           seller_id?: string
           status?: string
           stripe_session_id?: string | null
+          unlock_provider?: string
           updated_at?: string
         }
         Relationships: []

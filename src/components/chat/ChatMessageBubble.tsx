@@ -45,6 +45,7 @@ import { assessChatMessageRisk, assessIncomingChatRisk } from "@/lib/security/ch
 import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
 import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
 import { detectSensitiveContent } from "@/lib/social/sensitiveContent";
+import { formatStarsPrice } from "@/lib/chat/lockedMedia";
 import { useAutoTranslateMessage } from "@/hooks/useAutoTranslateMessage";
 import {
   parseLegacyMusicShare,
@@ -224,6 +225,11 @@ interface ChatMessageBubbleProps {
   messageType?: string;
   senderId?: string;
   lockedPriceCents?: number | null;
+  lockedPriceCoins?: number | null;
+  lockedPreviewUrl?: string | null;
+  initiallyLocked?: boolean;
+  onUnlockLockedMedia?: (id: string) => Promise<boolean | { unlocked?: boolean }>;
+  onLockedMediaUnlocked?: (id: string) => void;
   /** ISO timestamp of last edit, if any */
   editedAt?: string | null;
   /** ISO timestamp of message creation — used to enforce 48h edit window */
@@ -453,6 +459,7 @@ function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: st
 
 const ChatMessageBubble = memo(function ChatMessageBubble({
   id, message, time, isMe, isRead, isDelivered, imageUrl, videoUrl, filePayload, isPinned, expiresAt, messageType, senderId, lockedPriceCents,
+  lockedPriceCoins, lockedPreviewUrl, initiallyLocked, onUnlockLockedMedia, onLockedMediaUnlocked,
   editedAt, createdAt,
   initialReactions,
   onReply, onDelete, onDeleteForMe, onForward, onPin, onEdit, onSave, hideSave, forwardedFromName, forwardedFromUserId,
@@ -477,10 +484,13 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     [message, isMe],
   );
   const isLockedType = messageType === "locked_image" || messageType === "locked_video";
-  const [isLocked, setIsLocked] = useState(isLockedType && !isMe);
+  const defaultLockedState = initiallyLocked ?? (isLockedType && !isMe);
+  const [isLocked, setIsLocked] = useState(defaultLockedState);
   const [unlockLoading, setUnlockLoading] = useState(false);
+  const isStarsLocked = typeof lockedPriceCoins === "number" && lockedPriceCoins > 0;
   const unlockPrice = lockedPriceCents && lockedPriceCents > 0 ? lockedPriceCents : 99;
-  const unlockPriceLabel = `$${(unlockPrice / 100).toFixed(2)}`;
+  const unlockPriceLabel = isStarsLocked ? formatStarsPrice(lockedPriceCoins) : `$${(unlockPrice / 100).toFixed(2)}`;
+  const unlockButtonLabel = isStarsLocked ? `Unlock for ${unlockPriceLabel}` : `Unlock · ${unlockPriceLabel}`;
   const [reactions, setReactions] = useState<{ emoji: string; count: number; reactedByMe: boolean }[]>(initialReactions || []);
   const [openDown, setOpenDown] = useState(false);
   const [showStickerBurst, setShowStickerBurst] = useState(false);
@@ -488,8 +498,14 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const [translating, setTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
   const canDeleteMessage = isMe || !!onDeleteForMe;
-  const displayImageUrl = useSignedMedia(imageUrl, "chat-media-files", "display");
-  const displayVideoUrl = useSignedMedia(videoUrl, "chat-media-files", "display");
+  const shouldUseLockedPreview = isLockedType && isLocked && !isMe && !!lockedPreviewUrl;
+  const displayImageUrl = useSignedMedia(shouldUseLockedPreview ? null : imageUrl, "chat-media-files", "display");
+  const displayVideoUrl = useSignedMedia(shouldUseLockedPreview ? null : videoUrl, "chat-media-files", "display");
+  const lockedPreviewDisplayUrl = useSignedMedia(shouldUseLockedPreview ? lockedPreviewUrl : null, "chat-media-files", "display");
+  const lockedImagePreviewUrl = messageType === "locked_image" ? lockedPreviewDisplayUrl : null;
+  const lockedVideoPreviewUrl = messageType === "locked_video" ? lockedPreviewDisplayUrl : null;
+  const imageFrameUrl = displayImageUrl || lockedImagePreviewUrl;
+  const videoFrameUrl = displayVideoUrl || lockedVideoPreviewUrl;
   const sensitiveMediaPreference = useSensitiveMediaPreference(user?.id);
   const filePayloadMeta = filePayload as {
     sensitive?: boolean;
@@ -503,13 +519,13 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     }),
     [filePayloadMeta?.is_sensitive, filePayloadMeta?.sensitive, filePayloadMeta?.sensitive_reason, message],
   );
-  const shouldGateSensitiveMedia = Boolean(displayImageUrl || displayVideoUrl)
+  const shouldGateSensitiveMedia = Boolean(imageFrameUrl || videoFrameUrl)
     && !isLocked
     && sensitiveMediaPreference.blurSensitiveMedia
     && chatSensitiveMediaMatch.isSensitive;
   const [isTinyImage, setIsTinyImage] = useState(false);
   const shouldHideAutoMediaMessage =
-    (Boolean(displayImageUrl || displayVideoUrl) || messageType === "image" || messageType === "video") &&
+    (Boolean(imageFrameUrl || videoFrameUrl) || messageType === "image" || messageType === "video") &&
     AUTO_MEDIA_MESSAGES.has((message || "").trim());
 
   const canEdit = isMe && !!createdAt && (Date.now() - new Date(createdAt).getTime() < 48 * 60 * 60 * 1000) && !!message?.trim() && !imageUrl && !videoUrl;
@@ -561,7 +577,11 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
 
   useEffect(() => {
     setIsTinyImage(false);
-  }, [displayImageUrl]);
+  }, [imageFrameUrl]);
+
+  useEffect(() => {
+    setIsLocked(defaultLockedState);
+  }, [defaultLockedState, id]);
 
   useEffect(() => {
     if (!parsedSticker || parsedSticker.animatedSrc) {
@@ -575,7 +595,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
 
   // Check if already unlocked
   useEffect(() => {
-    if (!isLockedType || isMe || !id || id.startsWith("opt-")) return;
+    if (!isLockedType || isMe || !id || id.startsWith("opt-") || onUnlockLockedMedia) return;
     const checkUnlock = async () => {
       try {
         const { data } = await supabase.functions.invoke("verify-media-unlock", {
@@ -587,13 +607,25 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
       }
     };
     checkUnlock();
-  }, [id, isLockedType, isMe]);
+  }, [id, isLockedType, isMe, onUnlockLockedMedia]);
 
   // Unlock payment handler — uses in-app browser on native, redirect on web
   const handleUnlockPayment = useCallback(async () => {
     if (unlockLoading) return;
     setUnlockLoading(true);
     try {
+      if (onUnlockLockedMedia) {
+        const result = await onUnlockLockedMedia(id);
+        const unlocked = result === true || Boolean(result && typeof result === "object" && result.unlocked);
+        if (unlocked) {
+          setIsLocked(false);
+          onLockedMediaUnlocked?.(id);
+          toast.success("Media unlocked");
+        }
+        setUnlockLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("unlock-media-checkout", {
         body: { message_id: id, seller_id: senderId || "", amount_cents: unlockPrice },
       });
@@ -631,10 +663,10 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         window.location.href = data.url;
       }
     } catch {
-      toast.error("Payment failed to start");
+      toast.error(isStarsLocked ? "Unlock failed" : "Payment failed to start");
       setUnlockLoading(false);
     }
-  }, [id, senderId, unlockPrice, unlockLoading]);
+  }, [id, isStarsLocked, onLockedMediaUnlocked, onUnlockLockedMedia, senderId, unlockPrice, unlockLoading]);
 
   // Load reactions only if not pre-loaded from parent
   useEffect(() => {
@@ -830,7 +862,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         )}
 
         {/* Video — compact reel-style thumbnail (normal or locked) */}
-        {displayVideoUrl && (
+        {videoFrameUrl && (
           <div
             onClick={(e) => {
               e.stopPropagation();
@@ -840,19 +872,30 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           >
             <div className={`rounded-2xl overflow-hidden relative bg-muted shadow-sm border border-border/10 ${isMe ? "rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
               <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
-              <video
-                src={`${displayVideoUrl}#t=0.1`}
-                className={`w-full aspect-[9/16] object-cover transition-all duration-300 ${isLocked ? "blur-xl scale-105" : ""}`}
-                style={{ maxHeight: CHAT_MEDIA_MAX_HEIGHT, pointerEvents: "none" }}
-                playsInline
-                preload="none"
-                muted
-                crossOrigin="anonymous"
-                onLoadedData={(e) => {
-                  const v = e.currentTarget;
-                  if (v.readyState >= 2) v.currentTime = 0.1;
-                }}
-              />
+              {displayVideoUrl ? (
+                <video
+                  src={`${displayVideoUrl}#t=0.1`}
+                  className={`w-full aspect-[9/16] object-cover transition-all duration-300 ${isLocked ? "blur-xl scale-105" : ""}`}
+                  style={{ maxHeight: CHAT_MEDIA_MAX_HEIGHT, pointerEvents: "none" }}
+                  playsInline
+                  preload="none"
+                  muted
+                  crossOrigin="anonymous"
+                  onLoadedData={(e) => {
+                    const v = e.currentTarget;
+                    if (v.readyState >= 2) v.currentTime = 0.1;
+                  }}
+                />
+              ) : (
+                <img
+                  src={videoFrameUrl}
+                  alt=""
+                  className="block w-full aspect-[9/16] object-cover blur-xl scale-105 transition-all duration-300"
+                  style={{ maxHeight: CHAT_MEDIA_MAX_HEIGHT }}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
               {/* Locked overlay for video */}
               {isLocked && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-2xl">
@@ -870,10 +913,12 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   >
                     {unlockLoading ? (
                       <span className="animate-spin h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full" />
+                    ) : isStarsLocked ? (
+                      <span className="text-[13px] leading-none">{"\u2b50"}</span>
                     ) : (
                       <DollarSign className="h-3.5 w-3.5" />
                     )}
-                    Unlock · {unlockPriceLabel}
+                    {unlockButtonLabel}
                   </button>
                 </div>
               )}
@@ -911,13 +956,13 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         )}
 
         {/* Image — normal or locked */}
-        {displayImageUrl && !displayVideoUrl && (
+        {imageFrameUrl && !videoFrameUrl && (
           <div className={`${isTinyImage ? "w-28 max-w-[32vw]" : CHAT_MEDIA_FRAME_CLASS} rounded-2xl overflow-hidden mb-1 shadow-sm relative bg-muted border border-border/10 ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
             <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
             <img
-              src={displayImageUrl}
+              src={imageFrameUrl}
               alt=""
-              onClick={(e) => { if (!isLocked) { e.stopPropagation(); import("@/lib/chat/openMedia").then(m => m.openMedia({ url: displayImageUrl, type: "image", id })); } }}
+              onClick={(e) => { if (!isLocked) { e.stopPropagation(); import("@/lib/chat/openMedia").then(m => m.openMedia({ url: imageFrameUrl, type: "image", id })); } }}
               className={`block w-full object-contain transition-all duration-300 cursor-zoom-in ${isLocked ? "blur-xl scale-105" : ""}`}
               style={{
                 maxHeight: CHAT_MEDIA_MAX_HEIGHT,
@@ -947,10 +992,12 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                 >
                   {unlockLoading ? (
                     <span className="animate-spin h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full" />
+                  ) : isStarsLocked ? (
+                    <span className="text-[13px] leading-none">{"\u2b50"}</span>
                   ) : (
                     <DollarSign className="h-3.5 w-3.5" />
                   )}
-                  Unlock · {unlockPriceLabel}
+                  {unlockButtonLabel}
                 </button>
               </div>
             )}

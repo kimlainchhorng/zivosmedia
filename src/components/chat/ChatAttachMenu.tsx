@@ -156,6 +156,7 @@ export default function ChatAttachMenu({
     if (id === "poll") return !onCreatePoll;
     if (id === "contact") return !onShareContact;
     if (id === "social") return !onShareSocial;
+    if (id === "scan") return !onScanDocument;
     if (id === "sensitive") return !onToggleSensitiveMedia;
     if (id === "zivo") return !onShareZivoCard;
     return false;
@@ -210,11 +211,7 @@ export default function ChatAttachMenu({
       case "gift": onSendGift?.(); break;
       case "money": onOpenWallet?.(); break;
       case "scan":
-        if (onScanDocument) {
-          onScanDocument();
-        } else {
-          onImageSelect();
-        }
+        onScanDocument?.();
         break;
       case "file": onFileSelect?.(); break;
       case "poll": onCreatePoll?.(); break;
