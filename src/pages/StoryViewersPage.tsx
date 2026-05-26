@@ -12,9 +12,10 @@ import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 interface ViewRow { id: string; story_id: string; viewer_id: string; viewed_at: string; }
-interface StoryRow { id: string; media_url: string | null; media_type: string | null; caption: string | null; created_at: string; }
+interface StoryRow { id: string; media_url: string | null; media_type: string | null; caption: string | null; created_at: string; hidden_at?: string | null; }
 interface UserProfile { id: string; user_id: string | null; full_name: string | null; avatar_url: string | null; }
 
 function formatRelative(iso: string): string {
@@ -39,9 +40,25 @@ export default function StoryViewersPage() {
     queryKey: ["my-stories-7d", user?.id],
     queryFn: async () => {
       if (!user?.id) return [] as StoryRow[];
-      const sb = supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { order: (k: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: StoryRow[] | null }> } } } } };
-      const { data } = await sb.from("user_stories").select("id, media_url, media_type, caption, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30);
-      return data ?? [];
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories")
+          .select(select)
+          .eq("user_id", user.id);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: false }).limit(30);
+      };
+      let { data, error } = await queryStories("id, media_url, media_type, text_overlay, created_at, hidden_at", true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories("id, media_url, media_type, text_overlay, created_at", false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
+      return ((data ?? []) as Array<StoryRow & { text_overlay?: string | null }>).filter((story) => !story.hidden_at).map((story) => ({
+        ...story,
+        caption: story.caption ?? story.text_overlay ?? null,
+      }));
     },
     enabled: !!user?.id,
     staleTime: 60_000,

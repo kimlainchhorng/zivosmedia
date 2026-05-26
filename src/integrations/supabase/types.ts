@@ -56658,10 +56658,16 @@ export type Database = {
           duration_seconds: number
           expires_at: string
           filter_preset: string | null
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
+          is_sensitive: boolean
           media_type: string
           media_url: string
           overlays: Json
+          sensitive_reason: string | null
+          sensitive_report_count: number
           text_color: string | null
           text_overlay: string | null
           text_position: string | null
@@ -56675,10 +56681,16 @@ export type Database = {
           duration_seconds?: number
           expires_at?: string
           filter_preset?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_sensitive?: boolean
           media_type?: string
           media_url: string
           overlays?: Json
+          sensitive_reason?: string | null
+          sensitive_report_count?: number
           text_color?: string | null
           text_overlay?: string | null
           text_position?: string | null
@@ -56692,10 +56704,16 @@ export type Database = {
           duration_seconds?: number
           expires_at?: string
           filter_preset?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_sensitive?: boolean
           media_type?: string
           media_url?: string
           overlays?: Json
+          sensitive_reason?: string | null
+          sensitive_report_count?: number
           text_color?: string | null
           text_overlay?: string | null
           text_position?: string | null
@@ -56708,21 +56726,33 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
+          sensitive_report_count: number
           story_id: string
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          sensitive_report_count?: number
           story_id: string
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          sensitive_report_count?: number
           story_id?: string
           user_id?: string
         }
@@ -56732,6 +56762,103 @@ export type Database = {
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "user_stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_comment_reports: {
+        Row: {
+          comment_author_id: string
+          comment_id: string
+          created_at: string
+          description: string | null
+          id: string
+          reason: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          story_id: string
+        }
+        Insert: {
+          comment_author_id: string
+          comment_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          story_id: string
+        }
+        Update: {
+          comment_author_id?: string
+          comment_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_comment_reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "story_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          owner_id: string
+          reason: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          story_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          owner_id: string
+          reason: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          story_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          owner_id?: string
+          reason?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_reports_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
             referencedColumns: ["id"]
           },
         ]
