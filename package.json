@@ -43,6 +43,7 @@
     "cloudflare:deploy": "npm run build && npx wrangler deploy --keep-vars",
     "cloudflare:pages:deploy": "VITE_SUPABASE_URL=https://slirphzzwcogdbkeicff.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI npm run build && rm -rf dist/downloads && npx wrangler pages deploy dist --project-name zivo-preview --branch main --commit-dirty=true",
     "cloudflare:status": "npx wrangler deployments status --name zivo-web",
+    "smoke:lodging:test-reservation": "node scripts/lodging/create-test-reservation.mjs",
     "import:hotels": "bun scripts/import-hotel-data.ts",
     "import:hotels:dry": "bun scripts/import-hotel-data.ts --dry-run",
     "scrape:snowbell": "bun scripts/scrape-booking-single.ts",
