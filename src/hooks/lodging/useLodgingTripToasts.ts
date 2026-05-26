@@ -37,6 +37,7 @@ export function useLodgingTripToasts(reservationId: string | undefined) {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "lodge_reservation_change_requests", filter: `reservation_id=eq.${reservationId}` }, (payload) => {
         const row = payload.new as any;
         qc.invalidateQueries({ queryKey: ["lodge-change-requests", reservationId] });
+        qc.invalidateQueries({ queryKey: ["lodge-reservation-full", reservationId] });
         if (row.type === "reschedule" && row.status === "approved") show("success", "Date change approved", "Your lodging reservation has been updated.");
         if (row.type === "reschedule" && row.status === "declined") show("error", "Date change declined", row.host_response || "Your original dates are unchanged.");
       })

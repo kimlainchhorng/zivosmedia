@@ -1,5 +1,5 @@
 /**
- * MyLodgingTripPage — guest-facing trip detail page for a lodge reservation.
+ * MyLodgingTripPage is the guest-facing trip detail page for a lodge reservation.
  * Route: /my-trips/lodging/:reservationId
  */
 import { useCallback, useMemo, useState } from "react";
@@ -207,6 +207,7 @@ export default function MyLodgingTripPage() {
       status: liveReservation?.status ?? reservation.status,
       payment_status: liveReservation?.payment_status ?? reservation.payment_status,
       total_cents: liveReservation?.total_cents ?? reservation.total_cents,
+      paid_cents: liveReservation?.paid_cents ?? reservation.paid_cents,
       deposit_cents: liveReservation?.deposit_cents ?? reservation.deposit_cents,
       stripe_payment_intent_id: liveReservation?.stripe_payment_intent_id ?? reservation.stripe_payment_intent_id,
     };
@@ -247,7 +248,7 @@ export default function MyLodgingTripPage() {
   const chatContext = {
     reservationId: visibleReservation.id,
     reservationNumber: reservationRef,
-    dates: `${reservation.check_in} → ${reservation.check_out}`,
+    dates: `${visibleReservation.check_in} to ${visibleReservation.check_out}`,
     roomLabel,
     status: reservationStatus,
     href: `/my-trips/lodging/${visibleReservation.id}`,
@@ -261,7 +262,7 @@ export default function MyLodgingTripPage() {
         <Link to="/my-trips" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> All trips
         </Link>
-        <LodgingTripHelpDrawer reservationNumber={reservation.number} propertyName={store?.name || "Your stay"} dates={`${reservation.check_in} → ${reservation.check_out}`} paymentStatus={reservation.payment_status} />
+        <LodgingTripHelpDrawer reservationNumber={reservationRef} propertyName={store?.name || "Your stay"} dates={`${visibleReservation.check_in} to ${visibleReservation.check_out}`} paymentStatus={paymentStatus} />
       </div>
 
       <Card className={`overflow-hidden ${tripStyle.card}`}>
@@ -388,7 +389,7 @@ export default function MyLodgingTripPage() {
                   </div>
                   {r.proposed_check_in && (
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      → {r.proposed_check_in} to {r.proposed_check_out}
+                      Change to {r.proposed_check_in} to {r.proposed_check_out}
                     </p>
                   )}
                   {r.host_response && <p className="text-xs italic text-muted-foreground mt-0.5">"{r.host_response}"</p>}
@@ -428,7 +429,7 @@ export default function MyLodgingTripPage() {
         guestEmail={visibleReservation.guest_email}
         checkInTime={room?.check_in_time}
         checkOutTime={room?.check_out_time}
-        totalText={`${formatMoney(visibleReservation.total_cents)} · ${lodgingPaymentStatusLabel(paymentStatus)}`}
+        totalText={`${formatMoney(visibleReservation.total_cents)} - ${lodgingPaymentStatusLabel(paymentStatus)}`}
         cancellationText={room?.cancellation_policy}
         latestReceiptId={receipts[0]?.id}
         receiptHistoryLoading={receiptsLoading || receiptsFetching}
@@ -453,7 +454,7 @@ export default function MyLodgingTripPage() {
       <div className="rounded-2xl border border-border bg-card p-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-bold">Rate your stay</p>
-          <p className="text-[11px] text-muted-foreground">Help other travellers — score 5 aspects in 30 seconds.</p>
+          <p className="text-[11px] text-muted-foreground">Help other travellers score 5 aspects in 30 seconds.</p>
         </div>
         <Button size="sm" onClick={() => setLodgingReviewOpen(true)}>
           Rate stay

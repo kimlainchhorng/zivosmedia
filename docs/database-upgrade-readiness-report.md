@@ -1,17 +1,17 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-05-26T20:14:03.337Z
+Generated: 2026-05-26T20:23:33.657Z
 
 ## Summary
 
 - Supabase CLI: 2.100.0
-- Local migrations: 830
+- Local migrations: 831
 - Invalid migration filenames: 0
-- Duplicate migration versions: 24
+- Duplicate migration versions: 8
 - Allowed legacy duplicate migration versions: 8
-- New duplicate migration versions: 16
+- New duplicate migration versions: 0
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=830, remote=1409, matched=0, remoteError=no, generated=2026-05-26T20:13:59.087Z
+- Last linked drift report: local=831, remote=1409, matched=0, remoteError=no, generated=2026-05-26T20:23:31.098Z
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
 - Public tables created in migrations: 860
@@ -22,7 +22,6 @@ Generated: 2026-05-26T20:14:03.337Z
 
 ## Blockers
 
-- 16 new duplicate migration version(s) need reconciliation before db push/pull.
 - Local and remote migration histories have zero matching versions.
 
 ## Warnings
@@ -39,22 +38,6 @@ Generated: 2026-05-26T20:14:03.337Z
 - 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql (allowed legacy duplicate)
 - 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql (allowed legacy duplicate)
 - 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql (allowed legacy duplicate)
-- 20260525100000: 20260525100000_cafe_baristas.sql, 20260525100000_cafe_orders_realtime_publication.sql (needs reconciliation)
-- 20260525110000: 20260525110000_cafe_auto_expire_pending.sql, 20260525110000_cafe_time_entries.sql (needs reconciliation)
-- 20260525120000: 20260525120000_cafe_orders_status_timestamps.sql, 20260525120000_cafe_reviews.sql (needs reconciliation)
-- 20260525130000: 20260525130000_cafe_orders_recalc_on_adjustment.sql, 20260525130000_cafe_promotions.sql (needs reconciliation)
-- 20260525400000: 20260525400000_cafe_customer_summary.sql, 20260525400000_car_rental_initial.sql (needs reconciliation)
-- 20260525410000: 20260525410000_cafe_till_drops.sql, 20260525410000_car_rental_expenses_maintenance.sql (needs reconciliation)
-- 20260525420000: 20260525420000_cafe_last_order_items.sql, 20260525420000_car_rental_reviews_promotions.sql (needs reconciliation)
-- 20260525430000: 20260525430000_cafe_tip_payouts.sql, 20260525430000_car_rental_blackouts.sql (needs reconciliation)
-- 20260525440000: 20260525440000_cafe_daily_message.sql, 20260525440000_car_rental_damage_photos.sql (needs reconciliation)
-- 20260525450000: 20260525450000_cafe_review_summary.sql, 20260525450000_car_rental_compliance_and_tax.sql (needs reconciliation)
-- 20260525460000: 20260525460000_cafe_reservations.sql, 20260525460000_car_rental_refunds.sql (needs reconciliation)
-- 20260525500000: 20260525500000_cafe_menu_allergens.sql, 20260525500000_car_dealership_initial.sql (needs reconciliation)
-- 20260525510000: 20260525510000_cafe_menu_happy_hour.sql, 20260525510000_car_dealership_promotions.sql (needs reconciliation)
-- 20260525520000: 20260525520000_cafe_rpc_happy_hour.sql, 20260525520000_car_dealership_customer_interactions.sql (needs reconciliation)
-- 20260525530000: 20260525530000_cafe_bundles.sql, 20260525530000_car_dealership_deal_documents.sql (needs reconciliation)
-- 20260525540000: 20260525540000_cafe_rpc_bundles.sql, 20260525540000_car_dealership_public_reviews.sql (needs reconciliation)
 
 ## Postgres 17 Extension Review
 
@@ -109,9 +92,9 @@ Generated: 2026-05-26T20:14:03.337Z
 - cafe_gift_card_redemptions: supabase/migrations/20260525080000_cafe_gift_cards.sql
 - cafe_expenses: supabase/migrations/20260525090000_cafe_expenses.sql
 - cafe_baristas: supabase/migrations/20260525100000_cafe_baristas.sql
-- cafe_time_entries: supabase/migrations/20260525110000_cafe_time_entries.sql
-- cafe_reviews: supabase/migrations/20260525120000_cafe_reviews.sql
-- cafe_promotions: supabase/migrations/20260525130000_cafe_promotions.sql
+- cafe_time_entries: supabase/migrations/20260525110001_cafe_time_entries.sql
+- cafe_reviews: supabase/migrations/20260525120001_cafe_reviews.sql
+- cafe_promotions: supabase/migrations/20260525130001_cafe_promotions.sql
 - cafe_inventory_items: supabase/migrations/20260525140000_cafe_inventory_items.sql
 - cafe_recipes: supabase/migrations/20260525150000_cafe_recipes.sql
 - cafe_inventory_movements: supabase/migrations/20260525160000_cafe_inventory_movements.sql
@@ -125,27 +108,27 @@ Generated: 2026-05-26T20:14:03.337Z
 - cafe_hours: supabase/migrations/20260525280000_cafe_hours.sql
 - cafe_settings: supabase/migrations/20260525300000_cafe_settings.sql
 - cafe_till_sessions: supabase/migrations/20260525320000_cafe_till_sessions.sql
-- car_rental_locations: supabase/migrations/20260525400000_car_rental_initial.sql
-- car_rental_vehicles: supabase/migrations/20260525400000_car_rental_initial.sql
-- car_rental_addons: supabase/migrations/20260525400000_car_rental_initial.sql
-- car_rental_customers: supabase/migrations/20260525400000_car_rental_initial.sql
-- car_rental_reservations: supabase/migrations/20260525400000_car_rental_initial.sql
-- car_rental_reservation_addons: supabase/migrations/20260525400000_car_rental_initial.sql
+- car_rental_locations: supabase/migrations/20260525400001_car_rental_initial.sql
+- car_rental_vehicles: supabase/migrations/20260525400001_car_rental_initial.sql
+- car_rental_addons: supabase/migrations/20260525400001_car_rental_initial.sql
+- car_rental_customers: supabase/migrations/20260525400001_car_rental_initial.sql
+- car_rental_reservations: supabase/migrations/20260525400001_car_rental_initial.sql
+- car_rental_reservation_addons: supabase/migrations/20260525400001_car_rental_initial.sql
 - cafe_till_drops: supabase/migrations/20260525410000_cafe_till_drops.sql
-- car_rental_expenses: supabase/migrations/20260525410000_car_rental_expenses_maintenance.sql
-- car_rental_maintenance: supabase/migrations/20260525410000_car_rental_expenses_maintenance.sql
-- car_rental_promotions: supabase/migrations/20260525420000_car_rental_reviews_promotions.sql
-- car_rental_promo_redemptions: supabase/migrations/20260525420000_car_rental_reviews_promotions.sql
+- car_rental_expenses: supabase/migrations/20260525410001_car_rental_expenses_maintenance.sql
+- car_rental_maintenance: supabase/migrations/20260525410001_car_rental_expenses_maintenance.sql
+- car_rental_promotions: supabase/migrations/20260525420001_car_rental_reviews_promotions.sql
+- car_rental_promo_redemptions: supabase/migrations/20260525420001_car_rental_reviews_promotions.sql
 - cafe_tip_payouts: supabase/migrations/20260525430000_cafe_tip_payouts.sql
 - cafe_tip_payout_lines: supabase/migrations/20260525430000_cafe_tip_payouts.sql
-- car_rental_vehicle_blackouts: supabase/migrations/20260525430000_car_rental_blackouts.sql
+- car_rental_vehicle_blackouts: supabase/migrations/20260525430001_car_rental_blackouts.sql
 - cafe_reservations: supabase/migrations/20260525460000_cafe_reservations.sql
 - cafe_customer_notes: supabase/migrations/20260525490000_cafe_customer_notes.sql
-- car_dealership_vehicles: supabase/migrations/20260525500000_car_dealership_initial.sql
-- car_dealership_customers: supabase/migrations/20260525500000_car_dealership_initial.sql
-- car_dealership_leads: supabase/migrations/20260525500000_car_dealership_initial.sql
-- car_dealership_test_drives: supabase/migrations/20260525500000_car_dealership_initial.sql
-- car_dealership_sales: supabase/migrations/20260525500000_car_dealership_initial.sql
+- car_dealership_vehicles: supabase/migrations/20260525500001_car_dealership_initial.sql
+- car_dealership_customers: supabase/migrations/20260525500001_car_dealership_initial.sql
+- car_dealership_leads: supabase/migrations/20260525500001_car_dealership_initial.sql
+- car_dealership_test_drives: supabase/migrations/20260525500001_car_dealership_initial.sql
+- car_dealership_sales: supabase/migrations/20260525500001_car_dealership_initial.sql
 - ...and 12 more
 
 ## View Review Candidates

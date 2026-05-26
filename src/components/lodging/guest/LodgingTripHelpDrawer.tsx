@@ -2,12 +2,13 @@ import { Bell, CalendarClock, CircleHelp, CreditCard, FileText, MessageCircle, R
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger } from "@/components/ui/drawer";
+import { lodgingPaymentStatusLabel } from "@/lib/lodging/reservationDisplay";
 
 interface Props {
-  reservationNumber: string;
+  reservationNumber: string | null;
   propertyName: string;
   dates: string;
-  paymentStatus: string;
+  paymentStatus: string | null;
 }
 
 const sections = [
@@ -42,6 +43,7 @@ function highlightSection(href: string) {
 
 export default function LodgingTripHelpDrawer({ reservationNumber, propertyName, dates, paymentStatus }: Props) {
   const [open, setOpen] = useState(false);
+  const reference = reservationNumber || "reservation";
   const go = (href: string) => {
     setOpen(false);
     window.setTimeout(() => {
@@ -58,8 +60,8 @@ export default function LodgingTripHelpDrawer({ reservationNumber, propertyName,
       </DrawerTrigger>
       <DrawerContent className="max-h-[88vh]">
         <DrawerHeader>
-          <DrawerTitle>Help for reservation {reservationNumber}</DrawerTitle>
-          <DrawerDescription>{propertyName} · {dates} · {paymentStatus.replace(/_/g, " ")}</DrawerDescription>
+          <DrawerTitle>Help for reservation {reference}</DrawerTitle>
+          <DrawerDescription>{propertyName} - {dates} - {lodgingPaymentStatusLabel(paymentStatus)}</DrawerDescription>
         </DrawerHeader>
         <div className="px-4 pb-6 space-y-4 overflow-y-auto">
           {sections.map((section) => (

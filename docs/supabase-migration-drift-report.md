@@ -1,24 +1,24 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-05-26T20:15:28.283Z
+Generated: 2026-05-26T20:23:31.098Z
 
 ## Summary
 
-- Local migrations: 830
+- Local migrations: 831
 - Invalid filenames: 0
-- Duplicate versions: 24
+- Duplicate versions: 8
 - Allowed duplicate versions: 8
-- New duplicate versions: 16
+- New duplicate versions: 0
 - Duplicate SQL hashes: 0
-- Remote migrations: 0
+- Remote migrations: 1409
 - Matched versions: 0
-- Local-only pending: 830
-- Remote-only missing locally: 0
-- Pending risk: high=762, medium=50, low=18
+- Local-only pending: 831
+- Remote-only missing locally: 1409
+- Pending risk: high=763, medium=50, low=18
 
 ## Domains
 
-- security/auth: 692
+- security/auth: 693
 - commerce/store: 51
 - chat/social: 36
 - travel/lodging: 22
@@ -35,27 +35,10 @@ Generated: 2026-05-26T20:15:28.283Z
 - 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql (allowed legacy duplicate)
 - 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql (allowed legacy duplicate)
 - 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql (allowed legacy duplicate)
-- 20260525100000: 20260525100000_cafe_baristas.sql, 20260525100000_cafe_orders_realtime_publication.sql (needs reconciliation)
-- 20260525110000: 20260525110000_cafe_auto_expire_pending.sql, 20260525110000_cafe_time_entries.sql (needs reconciliation)
-- 20260525120000: 20260525120000_cafe_orders_status_timestamps.sql, 20260525120000_cafe_reviews.sql (needs reconciliation)
-- 20260525130000: 20260525130000_cafe_orders_recalc_on_adjustment.sql, 20260525130000_cafe_promotions.sql (needs reconciliation)
-- 20260525400000: 20260525400000_cafe_customer_summary.sql, 20260525400000_car_rental_initial.sql (needs reconciliation)
-- 20260525410000: 20260525410000_cafe_till_drops.sql, 20260525410000_car_rental_expenses_maintenance.sql (needs reconciliation)
-- 20260525420000: 20260525420000_cafe_last_order_items.sql, 20260525420000_car_rental_reviews_promotions.sql (needs reconciliation)
-- 20260525430000: 20260525430000_cafe_tip_payouts.sql, 20260525430000_car_rental_blackouts.sql (needs reconciliation)
-- 20260525440000: 20260525440000_cafe_daily_message.sql, 20260525440000_car_rental_damage_photos.sql (needs reconciliation)
-- 20260525450000: 20260525450000_cafe_review_summary.sql, 20260525450000_car_rental_compliance_and_tax.sql (needs reconciliation)
-- 20260525460000: 20260525460000_cafe_reservations.sql, 20260525460000_car_rental_refunds.sql (needs reconciliation)
-- 20260525500000: 20260525500000_cafe_menu_allergens.sql, 20260525500000_car_dealership_initial.sql (needs reconciliation)
-- 20260525510000: 20260525510000_cafe_menu_happy_hour.sql, 20260525510000_car_dealership_promotions.sql (needs reconciliation)
-- 20260525520000: 20260525520000_cafe_rpc_happy_hour.sql, 20260525520000_car_dealership_customer_interactions.sql (needs reconciliation)
-- 20260525530000: 20260525530000_cafe_bundles.sql, 20260525530000_car_dealership_deal_documents.sql (needs reconciliation)
-- 20260525540000: 20260525540000_cafe_rpc_bundles.sql, 20260525540000_car_dealership_public_reviews.sql (needs reconciliation)
 
 ## Remote Query
 
-- Error: Initialising login role...
-2026/05/26 15:15:25 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
+- Linked remote migration history was read successfully.
 
 ## High Risk Pending Migrations
 
@@ -159,9 +142,109 @@ Generated: 2026-05-26T20:15:28.283Z
 - 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
 - 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
 - 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 662 more
+- ...and 663 more
 
 ## Remote-Only Versions
 
-- None
+- 20260126182059
+- 20260126183930
+- 20260126184148
+- 20260126184302
+- 20260126184429
+- 20260126184455
+- 20260126184528
+- 20260126184745
+- 20260126184804
+- 20260126184926
+- 20260126185025
+- 20260126185226
+- 20260126190958
+- 20260126191009
+- 20260126191230
+- 20260126191456
+- 20260126191725
+- 20260126192403
+- 20260126192431
+- 20260126194307
+- 20260126195811
+- 20260126204103
+- 20260126204142
+- 20260126204329
+- 20260126204335
+- 20260126204405
+- 20260126204846
+- 20260126205325
+- 20260126210049
+- 20260126210104
+- 20260126211226
+- 20260126222108
+- 20260126222345
+- 20260126224544
+- 20260126230109
+- 20260126234441
+- 20260126235437
+- 20260127003523
+- 20260127182943
+- 20260127194845
+- 20260127205740
+- 20260127210510
+- 20260127211135
+- 20260127213207
+- 20260127215035
+- 20260127220222
+- 20260127220734
+- 20260127221317
+- 20260127223805
+- 20260127224424
+- 20260127224925
+- 20260127233014
+- 20260127233542
+- 20260127234807
+- 20260127235132
+- 20260128002136
+- 20260128002349
+- 20260129023607
+- 20260129030542
+- 20260129040838
+- 20260129042235
+- 20260129042252
+- 20260129043309
+- 20260129043341
+- 20260129043720
+- 20260129184052
+- 20260129184207
+- 20260129184607
+- 20260129184951
+- 20260129185022
+- 20260129185402
+- 20260129185953
+- 20260129190059
+- 20260129191432
+- 20260129191629
+- 20260129192300
+- 20260129192519
+- 20260129194844
+- 20260129222401
+- 20260129225208
+- 20260129225227
+- 20260130203701
+- 20260130203802
+- 20260130204934
+- 20260130205018
+- 20260130214846
+- 20260130214905
+- 20260130214957
+- 20260130215035
+- 20260131161120
+- 20260131161641
+- 20260131161718
+- 20260131162012
+- 20260131162056
+- 20260131162153
+- 20260131164944
+- 20260131202031
+- 20260131202048
+- 20260131203610
+- 20260131204000
+- ...and 1309 more
 

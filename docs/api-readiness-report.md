@@ -1,17 +1,17 @@
 # API Readiness Report
 
-Generated: 2026-05-26T20:14:06.212Z
+Generated: 2026-05-26T20:23:35.238Z
 
 ## Summary
 
 - Critical findings: 0
-- Warnings: 4
+- Warnings: 3
 - Edge Functions inventoried: 262
 - High-risk Edge Functions: 112
 - Functions using withSecurity(): 116
 - Functions using strictCorsHeaders(): 99
 - Functions using service role: 212
-- Supabase migration drift: reportLocal=830, currentLocal=830, remote=1409, matched=0, duplicateVersions=24, allowedDuplicateVersions=8, newDuplicateVersions=16, remoteError=no
+- Supabase migration drift: reportLocal=831, currentLocal=831, remote=1409, matched=0, duplicateVersions=8, allowedDuplicateVersions=8, newDuplicateVersions=0, remoteError=no
 
 ## Critical
 
@@ -21,7 +21,6 @@ Generated: 2026-05-26T20:14:06.212Z
 
 - [high-risk-function-without-wrapper] High-risk Edge Function does not use withSecurity(). (supabase/functions/twilio-webhook/index.ts)
 - [service-role-wildcard-cors] High-risk service-role function appears to use wildcard CORS without the shared security wrapper. (supabase/functions/twilio-webhook/index.ts)
-- [duplicate-migration-versions] Local Supabase migrations contain 16 new duplicate version(s). (docs/supabase-migration-drift-report.md)
 - [migration-history-disconnected] Local and remote Supabase migration histories have no matching versions. Treat db push/pull as risky until reconciled. (docs/supabase-migration-drift-report.md)
 
 ## High-Risk Functions Missing withSecurity()

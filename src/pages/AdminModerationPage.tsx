@@ -1,29 +1,111 @@
-import { useState, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatDistanceToNow, subDays } from "date-fns";
 import {
-  ArrowLeft, Shield, Users, Flag, AlertTriangle, CheckCircle, XCircle,
-  Search, Eye, Ban, BarChart3, TrendingUp, Clock, Loader2,
+  AlertTriangle,
+  ArrowLeft,
+  Ban,
+  BarChart3,
+  CheckCircle,
+  Clock,
+  Eye,
+  Flag,
+  Loader2,
+  RotateCcw,
+  Search,
+  Shield,
+  TrendingUp,
+  Users,
+  XCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import SEOHead from "@/components/SEOHead";
 
-interface Report {
+import SEOHead from "@/components/SEOHead";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
+import {
+  getModerationActionOutcome,
+  getModerationContentLabel,
+  getModerationStatusLabel,
+  isPendingModerationStatus,
+  normalizeModerationContentType,
+  type ModerationContentKind,
+  type ModerationReviewAction,
+} from "@/lib/admin/moderationQueue";
+
+interface QueueRow {
   id: string;
-  contentType: string;
+  content_type: string;
+  content_id: string;
+  reported_by: string | null;
+  auto_flagged: boolean | null;
   reason: string;
   severity: string | null;
   status: string | null;
-  createdAt: string;
+  priority: number | null;
+  ai_category: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+interface ProfileSummary {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+interface ContentDetails {
+  kind: ModerationContentKind;
+  title: string;
+  body: string;
+  ownerId: string | null;
+  ownerName: string;
+  ownerAvatar: string | null;
+  hiddenAt: string | null;
+  hiddenReason: string | null;
+  sensitive: boolean;
+  mediaLabel: string | null;
+  metadata: string[];
+}
+
+interface ModerationReport {
+  id: string;
+  contentType: string;
+  kind: ModerationContentKind;
   contentId: string;
+  reporterId: string | null;
+  reporterName: string;
+  reporterAvatar: string | null;
+  autoFlagged: boolean;
+  reason: string;
+  severity: string;
+  status: string;
+  priority: number;
+  aiCategory: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  details: ContentDetails | null;
 }
 
 interface UserRow {
@@ -33,159 +115,466 @@ interface UserRow {
   created_at: string | null;
 }
 
+type FilterValue = "all";
+type StatusFilter = FilterValue | "pending" | "actioned" | "dismissed" | "resolved";
+type SeverityFilter = FilterValue | "high" | "medium" | "low";
+type ContentFilter = FilterValue | ModerationContentKind;
+type DateFilter = FilterValue | "24h" | "7d";
+
+const REPORT_SELECT =
+  "id, content_type, content_id, reported_by, auto_flagged, reason, severity, status, priority, ai_category, created_at, updated_at";
+
+const CONTENT_FILTERS: Array<{ label: string; value: ContentFilter }> = [
+  { label: "All content", value: "all" },
+  { label: "Posts", value: "user_post" },
+  { label: "Comments", value: "post_comment" },
+  { label: "Direct messages", value: "direct_message" },
+  { label: "Group messages", value: "group_message" },
+];
+
+const STATUS_FILTERS: Array<{ label: string; value: StatusFilter }> = [
+  { label: "Pending", value: "pending" },
+  { label: "All statuses", value: "all" },
+  { label: "Actioned", value: "actioned" },
+  { label: "Dismissed", value: "dismissed" },
+  { label: "Resolved", value: "resolved" },
+];
+
+const SEVERITY_FILTERS: Array<{ label: string; value: SeverityFilter }> = [
+  { label: "All severity", value: "all" },
+  { label: "High", value: "high" },
+  { label: "Medium", value: "medium" },
+  { label: "Low", value: "low" },
+];
+
+const DATE_FILTERS: Array<{ label: string; value: DateFilter }> = [
+  { label: "Any time", value: "all" },
+  { label: "Last 24h", value: "24h" },
+  { label: "Last 7d", value: "7d" },
+];
+
+const asRows = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+const compactIds = (ids: Array<string | null | undefined>) => [...new Set(ids.filter(Boolean) as string[])];
+const fieldText = (value: unknown) => (typeof value === "string" ? value : "");
+const mediaLabel = (row: Record<string, unknown>) => {
+  const type = fieldText(row.media_type || row.message_type);
+  if (fieldText(row.image_url) || fieldText(row.media_url)) return type ? `${type} media` : "Media";
+  if (fieldText(row.video_url)) return "Video";
+  if (fieldText(row.voice_url)) return "Voice message";
+  if (row.file_payload) return "Attachment";
+  const urls = row.media_urls;
+  if (Array.isArray(urls) && urls.length > 0) return `${urls.length} media items`;
+  return type || null;
+};
+
+async function fetchRowsByIds<T>(table: string, select: string, ids: string[]) {
+  if (ids.length === 0) return new Map<string, T>();
+  const { data, error } = await (supabase as any).from(table).select(select).in("id", ids);
+  if (error) throw error;
+  return new Map(asRows<T & { id: string }>(data).map((row) => [row.id, row as T]));
+}
+
+async function fetchProfiles(userIds: string[]) {
+  if (userIds.length === 0) return new Map<string, ProfileSummary>();
+  const { data, error } = await (supabase as any)
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", userIds);
+  if (error) throw error;
+  return new Map(asRows<ProfileSummary>(data).map((profile) => [profile.id, profile]));
+}
+
+const profileName = (profiles: Map<string, ProfileSummary>, id?: string | null) =>
+  (id && profiles.get(id)?.full_name) || "Unknown user";
+
+const profileAvatar = (profiles: Map<string, ProfileSummary>, id?: string | null) =>
+  (id && profiles.get(id)?.avatar_url) || null;
+
+async function hydrateReports(rows: QueueRow[]): Promise<ModerationReport[]> {
+  const idsByKind = rows.reduce<Record<ModerationContentKind, string[]>>(
+    (acc, row) => {
+      const kind = normalizeModerationContentType(row.content_type);
+      if (kind !== "unknown") acc[kind].push(row.content_id);
+      return acc;
+    },
+    { user_post: [], post_comment: [], direct_message: [], group_message: [], unknown: [] },
+  );
+
+  const [posts, comments, directMessages, groupMessages] = await Promise.all([
+    fetchRowsByIds<Record<string, unknown>>(
+      "user_posts",
+      "id, user_id, caption, media_type, media_url, media_urls, hidden_at, hidden_reason, is_sensitive, sensitive_reason, sensitive_report_count, created_at",
+      compactIds(idsByKind.user_post),
+    ),
+    fetchRowsByIds<Record<string, unknown>>(
+      "post_comments",
+      "id, user_id, content, post_id, post_source, hidden_at, hidden_reason, sensitive_report_count, created_at",
+      compactIds(idsByKind.post_comment),
+    ),
+    fetchRowsByIds<Record<string, unknown>>(
+      "direct_messages",
+      "id, sender_id, receiver_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload",
+      compactIds(idsByKind.direct_message),
+    ),
+    fetchRowsByIds<Record<string, unknown>>(
+      "group_messages",
+      "id, group_id, sender_id, message, message_type, hidden_at, hidden_reason, sensitive_report_count, created_at, image_url, video_url, voice_url, file_payload",
+      compactIds(idsByKind.group_message),
+    ),
+  ]);
+
+  const groupIds = compactIds([...groupMessages.values()].map((row) => fieldText(row.group_id)));
+  const groups =
+    groupIds.length > 0
+      ? await fetchRowsByIds<Record<string, unknown>>("chat_groups", "id, name", groupIds)
+      : new Map<string, Record<string, unknown>>();
+
+  const ownerIds = rows.flatMap((row) => {
+    const kind = normalizeModerationContentType(row.content_type);
+    const content =
+      kind === "user_post"
+        ? posts.get(row.content_id)
+        : kind === "post_comment"
+          ? comments.get(row.content_id)
+          : kind === "direct_message"
+            ? directMessages.get(row.content_id)
+            : kind === "group_message"
+              ? groupMessages.get(row.content_id)
+              : null;
+    const record = asRecord(content);
+    return [
+      row.reported_by,
+      fieldText(record.user_id),
+      fieldText(record.sender_id),
+      fieldText(record.receiver_id),
+    ];
+  });
+  const profiles = await fetchProfiles(compactIds(ownerIds));
+
+  return rows.map((row) => {
+    const kind = normalizeModerationContentType(row.content_type);
+    const content =
+      kind === "user_post"
+        ? posts.get(row.content_id)
+        : kind === "post_comment"
+          ? comments.get(row.content_id)
+          : kind === "direct_message"
+            ? directMessages.get(row.content_id)
+            : kind === "group_message"
+              ? groupMessages.get(row.content_id)
+              : null;
+    const record = asRecord(content);
+    const ownerId =
+      fieldText(record.user_id) ||
+      fieldText(record.sender_id) ||
+      null;
+    const groupName = fieldText(groups.get(fieldText(record.group_id))?.name);
+    const body =
+      fieldText(record.caption) ||
+      fieldText(record.content) ||
+      fieldText(record.message) ||
+      (content ? "No text content" : "Content row not found");
+    const hiddenAt = fieldText(record.hidden_at) || null;
+    const hiddenReason = fieldText(record.hidden_reason) || null;
+    const sensitive = Boolean(record.is_sensitive) || Boolean(hiddenAt);
+    const details: ContentDetails | null = content
+      ? {
+          kind,
+          title: groupName ? `${getModerationContentLabel(kind)} in ${groupName}` : getModerationContentLabel(kind),
+          body,
+          ownerId,
+          ownerName: profileName(profiles, ownerId),
+          ownerAvatar: profileAvatar(profiles, ownerId),
+          hiddenAt,
+          hiddenReason,
+          sensitive,
+          mediaLabel: mediaLabel(record),
+          metadata: [
+            record.created_at ? `Created ${formatDistanceToNow(new Date(fieldText(record.created_at)), { addSuffix: true })}` : null,
+            record.sensitive_report_count ? `${record.sensitive_report_count} sensitive reports` : null,
+            groupName ? `Group: ${groupName}` : null,
+            fieldText(record.receiver_id) ? `Receiver: ${profileName(profiles, fieldText(record.receiver_id))}` : null,
+          ].filter(Boolean) as string[],
+        }
+      : null;
+
+    return {
+      id: row.id,
+      contentType: row.content_type,
+      kind,
+      contentId: row.content_id,
+      reporterId: row.reported_by,
+      reporterName: profileName(profiles, row.reported_by),
+      reporterAvatar: profileAvatar(profiles, row.reported_by),
+      autoFlagged: Boolean(row.auto_flagged),
+      reason: row.reason,
+      severity: row.severity || "low",
+      status: row.status || "pending",
+      priority: row.priority || 0,
+      aiCategory: row.ai_category,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      details,
+    };
+  });
+}
+
+function severityVariant(severity: string): "destructive" | "default" | "secondary" {
+  if (severity === "high") return "destructive";
+  if (severity === "medium") return "default";
+  return "secondary";
+}
+
+function statusVariant(status: string): "destructive" | "default" | "secondary" | "outline" {
+  if (isPendingModerationStatus(status)) return "destructive";
+  if (status === "actioned" || status === "resolved") return "default";
+  if (status === "dismissed") return "secondary";
+  return "outline";
+}
+
+function initials(name: string) {
+  return name.trim().slice(0, 1).toUpperCase() || "U";
+}
+
 export default function AdminModerationPage() {
   const navigate = useNavigate();
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ModerationReport[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("reports");
+  const [activeTab, setActiveTab] = useState("queue");
   const [loadingReports, setLoadingReports] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [stats, setStats] = useState({ pending: 0, resolved: 0, users: 0, flagged: 0 });
+  const [selectedReport, setSelectedReport] = useState<ModerationReport | null>(null);
+  const [actioningId, setActioningId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
+  const [contentFilter, setContentFilter] = useState<ContentFilter>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
 
   const loadReports = useCallback(async () => {
-    const { data } = await supabase
+    setLoadingReports(true);
+    const { data, error } = await (supabase as any)
       .from("content_moderation_queue")
-      .select("id, content_type, reason, severity, status, created_at, content_id")
+      .select(REPORT_SELECT)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(150);
 
-    if (data) {
-      setReports(data.map(r => ({
-        id: r.id,
-        contentType: r.content_type,
-        reason: r.reason,
-        severity: r.severity,
-        status: r.status,
-        createdAt: formatDistanceToNow(new Date(r.created_at!), { addSuffix: true }),
-        contentId: r.content_id,
-      })));
-      const pending = data.filter(r => r.status === "pending" || !r.status).length;
-      const resolved = data.filter(r => r.status === "resolved").length;
-      const flagged = data.filter(r => r.severity === "high").length;
-      setStats(s => ({ ...s, pending, resolved, flagged }));
+    if (error) {
+      toast.error("Could not load moderation queue: " + error.message);
+      setReports([]);
+      setLoadingReports(false);
+      return;
     }
-    setLoadingReports(false);
+
+    try {
+      setReports(await hydrateReports(asRows<QueueRow>(data)));
+    } catch (err) {
+      const message = err && typeof err === "object" && "message" in err ? String(err.message) : "Unknown error";
+      toast.error("Could not load report details: " + message);
+      setReports(
+        asRows<QueueRow>(data).map((row) => ({
+          id: row.id,
+          contentType: row.content_type,
+          kind: normalizeModerationContentType(row.content_type),
+          contentId: row.content_id,
+          reporterId: row.reported_by,
+          reporterName: "Unknown user",
+          reporterAvatar: null,
+          autoFlagged: Boolean(row.auto_flagged),
+          reason: row.reason,
+          severity: row.severity || "low",
+          status: row.status || "pending",
+          priority: row.priority || 0,
+          aiCategory: row.ai_category,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          details: null,
+        })),
+      );
+    } finally {
+      setLoadingReports(false);
+    }
   }, []);
 
   const loadUsers = useCallback(async () => {
     if (users.length > 0) return;
     setLoadingUsers(true);
     const q = searchQuery.trim();
-    let query = supabase.from("profiles").select("id, full_name, avatar_url, created_at").limit(20);
+    let query = (supabase as any).from("profiles").select("id, full_name, avatar_url, created_at").limit(20);
     if (q) query = query.ilike("full_name", `%${q}%`);
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) toast.error("Could not load users: " + error.message);
     if (data) setUsers(data as UserRow[]);
     setLoadingUsers(false);
   }, [searchQuery, users.length]);
 
-  useEffect(() => { loadReports(); }, [loadReports]);
   useEffect(() => {
-    if (activeTab === "users") loadUsers();
+    void loadReports();
+  }, [loadReports]);
+
+  useEffect(() => {
+    if (activeTab === "users") void loadUsers();
   }, [activeTab, loadUsers]);
 
-  const pendingReports = reports.filter(r => !r.status || r.status === "pending");
-  const resolvedReports = reports.filter(r => r.status && r.status !== "pending");
+  const filteredReports = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const cutoff =
+      dateFilter === "24h" ? subDays(new Date(), 1) : dateFilter === "7d" ? subDays(new Date(), 7) : null;
 
-  const handleAction = async (id: string, action: "resolved" | "dismissed") => {
-    // Find the report so we know what content type/id to act on.
-    const report = reports.find(r => r.id === id);
+    return reports.filter((report) => {
+      if (statusFilter !== "all" && report.status !== statusFilter) return false;
+      if (severityFilter !== "all" && report.severity !== severityFilter) return false;
+      if (contentFilter !== "all" && report.kind !== contentFilter) return false;
+      if (cutoff && report.createdAt && new Date(report.createdAt) < cutoff) return false;
+      if (!q) return true;
+      return [
+        report.reason,
+        report.contentId,
+        report.reporterName,
+        report.details?.body,
+        report.details?.ownerName,
+        report.aiCategory,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
+    });
+  }, [contentFilter, dateFilter, reports, searchQuery, severityFilter, statusFilter]);
 
-    // If admin "resolves" (i.e., upholds the report), actually take the
-    // content down. Previously this only flipped a status flag and the
-    // offending post stayed live.
-    if (action === "resolved" && report?.contentType === "post" && report.contentId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error: hideErr } = await (supabase as any)
-        .from("user_posts")
-        .update({
-          hidden_at: new Date().toISOString(),
-          hidden_reason: report.reason || "Moderator action",
-          hidden_by: user?.id ?? null,
-        })
-        .eq("id", report.contentId);
-      if (hideErr) {
-        toast.error("Could not hide post: " + hideErr.message);
-        return;
-      }
-    }
+  const stats = useMemo(() => {
+    const pending = reports.filter((r) => isPendingModerationStatus(r.status)).length;
+    const actioned = reports.filter((r) => r.status === "actioned" || r.status === "resolved").length;
+    const dismissed = reports.filter((r) => r.status === "dismissed").length;
+    const high = reports.filter((r) => r.severity === "high").length;
+    return { pending, actioned, dismissed, high, total: reports.length };
+  }, [reports]);
 
-    const { error } = await supabase
-      .from("content_moderation_queue")
-      .update({ status: action })
-      .eq("id", id);
-    if (error) {
-      toast.error("Could not update report status: " + error.message);
-      return;
-    }
+  const applyTargetVisibility = async (report: ModerationReport, action: ModerationReviewAction, moderatorId: string) => {
+    const now = new Date().toISOString();
+    const hidePatch = {
+      hidden_at: report.details?.hiddenAt || now,
+      hidden_by: moderatorId,
+      hidden_reason: report.details?.hiddenReason || "moderator_action",
+    };
+    const unhidePatch = {
+      hidden_at: null,
+      hidden_by: null,
+      hidden_reason: null,
+    };
+    const patch = action === "unhide_false_positive" ? unhidePatch : hidePatch;
 
-    // Audit the moderation action so we have a paper trail.
+    if (action === "dismiss") return;
+
+    const table =
+      report.kind === "user_post"
+        ? "user_posts"
+        : report.kind === "post_comment"
+          ? "post_comments"
+          : report.kind === "direct_message"
+            ? "direct_messages"
+            : report.kind === "group_message"
+              ? "group_messages"
+              : null;
+    if (!table) return;
+
+    const postPatch =
+      report.kind === "user_post"
+        ? action === "unhide_false_positive"
+          ? { ...patch, is_sensitive: false, sensitive_reason: null }
+          : { ...patch, is_sensitive: true, sensitive_reason: "moderator_sensitive" }
+        : patch;
+
+    const { error } = await (supabase as any).from(table).update(postPatch).eq("id", report.contentId);
+    if (error) throw error;
+  };
+
+  const handleReviewAction = async (report: ModerationReport, action: ModerationReviewAction) => {
+    setActioningId(report.id);
+    const outcome = getModerationActionOutcome(action);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      await (supabase as any).from("moderation_actions").insert({
-        action_type: action === "resolved" ? "content_hidden" : "report_dismissed",
-        target_type: report?.contentType || "unknown",
-        target_id: report?.contentId || id,
-        moderator_id: user?.id ?? null,
-        notes: report?.reason || null,
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw userError || new Error("Admin user not available");
+
+      await applyTargetVisibility(report, action, user.id);
+
+      const now = new Date().toISOString();
+      const { error: queueError } = await (supabase as any)
+        .from("content_moderation_queue")
+        .update({
+          status: outcome.queueStatus,
+          assigned_to: user.id,
+          updated_at: now,
+        })
+        .eq("id", report.id);
+      if (queueError) throw queueError;
+
+      const { error: auditError } = await (supabase as any).from("moderation_actions").insert({
+        queue_item_id: report.id,
+        moderator_id: user.id,
+        action_type: outcome.auditActionType,
+        target_user_id: report.details?.ownerId ?? null,
+        target_content_id: report.contentId,
+        target_content_type: report.kind,
+        reason: report.reason,
+        notes: `${getModerationContentLabel(report.kind)} review: ${outcome.auditActionType}`,
       });
-    } catch (e) {
-      console.warn("moderation_actions audit insert failed", e);
+      if (auditError) throw auditError;
+
+      toast.success(outcome.successLabel);
+      setSelectedReport((current) => (current?.id === report.id ? { ...current, status: outcome.queueStatus } : current));
+      await loadReports();
+    } catch (err) {
+      const message = err && typeof err === "object" && "message" in err ? String(err.message) : "Unknown error";
+      toast.error("Could not update report: " + message);
+    } finally {
+      setActioningId(null);
     }
-
-    setReports(prev => prev.map(r => r.id === id ? { ...r, status: action } : r));
-    toast.success(
-      action === "resolved"
-        ? (report?.contentType === "post" ? "Post hidden + report resolved" : "Report resolved")
-        : "Report dismissed"
-    );
   };
 
-  const severityVariant = (s: string | null): "destructive" | "default" | "secondary" => {
-    if (s === "high") return "destructive";
-    if (s === "medium") return "default";
-    return "secondary";
-  };
-
-  const STAT_ITEMS = [
-    { label: "Pending Reports", value: stats.pending.toString(), icon: Clock, color: "text-yellow-500" },
-    { label: "Resolved Today", value: stats.resolved.toString(), icon: CheckCircle, color: "text-green-500" },
-    { label: "Flagged (High)", value: stats.flagged.toString(), icon: AlertTriangle, color: "text-red-500" },
-    { label: "Moderation Queue", value: reports.length.toString(), icon: Flag, color: "text-primary" },
+  const statItems = [
+    { label: "Pending", value: stats.pending.toString(), icon: Clock, color: "text-yellow-500" },
+    { label: "Actioned", value: stats.actioned.toString(), icon: CheckCircle, color: "text-green-500" },
+    { label: "Dismissed", value: stats.dismissed.toString(), icon: XCircle, color: "text-muted-foreground" },
+    { label: "High Severity", value: stats.high.toString(), icon: AlertTriangle, color: "text-red-500" },
   ];
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <SEOHead title="Moderation – ZIVO" description="Admin moderation panel." canonical="/admin/moderation" noIndex />
+      <SEOHead title="Moderation - ZIVO" description="Admin moderation panel." canonical="/admin/moderation" noIndex />
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2">
           <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <Shield className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-bold text-ig-gradient">Admin & Moderation</h1>
+          <h1 className="text-xl font-bold">Safety Review</h1>
+          <Button aria-label="Refresh moderation queue" variant="ghost" size="icon" className="ml-auto" onClick={() => void loadReports()}>
+            <RotateCcw className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 p-4">
-        {STAT_ITEMS.map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-            <Card className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                <span className="text-xs text-muted-foreground">{stat.label}</span>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-            </Card>
-          </motion.div>
+      <div className="grid grid-cols-2 gap-3 p-4 lg:grid-cols-4">
+        {statItems.map((stat) => (
+          <Card key={stat.label} className="p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <span className="text-xs text-muted-foreground">{stat.label}</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+          </Card>
         ))}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4">
         <TabsList className="w-full">
-          <TabsTrigger value="reports" className="flex-1 gap-1">
-            <Flag className="h-3 w-3" /> Reports
-            {pendingReports.length > 0 && <Badge variant="destructive" className="text-xs ml-1">{pendingReports.length}</Badge>}
+          <TabsTrigger value="queue" className="flex-1 gap-1">
+            <Flag className="h-3 w-3" /> Queue
+            {stats.pending > 0 && <Badge variant="destructive" className="text-xs ml-1">{stats.pending}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="users" className="flex-1 gap-1">
             <Users className="h-3 w-3" /> Users
@@ -195,71 +584,114 @@ export default function AdminModerationPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="reports" className="mt-4 space-y-3">
+        <TabsContent value="queue" className="mt-4 space-y-4">
+          <div className="grid gap-2 md:grid-cols-5">
+            <div className="relative md:col-span-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search queue"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+              <SelectTrigger aria-label="Status filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as SeverityFilter)}>
+              <SelectTrigger aria-label="Severity filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SEVERITY_FILTERS.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={contentFilter} onValueChange={(value) => setContentFilter(value as ContentFilter)}>
+              <SelectTrigger aria-label="Content filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CONTENT_FILTERS.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="max-w-[220px]">
+            <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateFilter)}>
+              <SelectTrigger aria-label="Date filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_FILTERS.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
           {loadingReports ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : filteredReports.length === 0 ? (
+            <div className="text-center py-16">
+              <Shield className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">No matching reports</p>
+            </div>
           ) : (
-            <>
-              {pendingReports.length === 0 && resolvedReports.length === 0 && (
-                <div className="text-center py-16">
-                  <Shield className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
-                  <p className="text-muted-foreground text-sm">No reports in queue</p>
-                </div>
-              )}
-
-              {pendingReports.length > 0 && (
-                <>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Pending ({pendingReports.length})</h3>
-                  {pendingReports.map((report) => (
-                    <Card key={report.id} className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={severityVariant(report.severity)} className="text-xs capitalize">{report.severity ?? "low"}</Badge>
-                          <Badge variant="outline" className="text-xs">{report.contentType}</Badge>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{report.createdAt}</span>
+            <div className="space-y-3">
+              {filteredReports.map((report) => (
+                <Card key={report.id} className="p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <Badge variant={severityVariant(report.severity)} className="text-xs capitalize">{report.severity}</Badge>
+                        <Badge variant={statusVariant(report.status)} className="text-xs">{getModerationStatusLabel(report.status)}</Badge>
+                        <Badge variant="outline" className="text-xs">{getModerationContentLabel(report.kind)}</Badge>
+                        {report.autoFlagged && <Badge variant="secondary" className="text-xs">Auto flagged</Badge>}
                       </div>
-                      <p className="text-sm font-medium text-foreground mb-3">{report.reason}</p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => handleAction(report.id, "resolved")}>
-                          <CheckCircle className="h-3 w-3" /> Resolve
-                        </Button>
-                        <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => handleAction(report.id, "dismissed")}>
-                          <XCircle className="h-3 w-3" /> Dismiss
-                        </Button>
+                      <p className="text-sm font-semibold text-foreground">{report.reason}</p>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {report.details?.body || "Content details unavailable"}
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span>Reporter: {report.reporterName}</span>
+                        <span>Owner: {report.details?.ownerName || "Unknown"}</span>
+                        <span>{report.createdAt ? formatDistanceToNow(new Date(report.createdAt), { addSuffix: true }) : "No timestamp"}</span>
+                        {report.priority > 0 && <span>Priority {report.priority}</span>}
                       </div>
-                    </Card>
-                  ))}
-                </>
-              )}
-
-              {resolvedReports.length > 0 && (
-                <>
-                  <h3 className="text-sm font-semibold text-muted-foreground mt-6">Resolved ({resolvedReports.length})</h3>
-                  {resolvedReports.map((report) => (
-                    <Card key={report.id} className="p-4 opacity-60">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">{report.contentType}</Badge>
-                          <span className="text-sm text-foreground">{report.reason}</span>
-                        </div>
-                        <Badge variant={report.status === "resolved" ? "default" : "secondary"} className="text-xs">{report.status}</Badge>
-                      </div>
-                    </Card>
-                  ))}
-                </>
-              )}
-            </>
+                    </div>
+                    <div className="flex shrink-0 gap-2 md:flex-col">
+                      <Button size="sm" variant="outline" onClick={() => setSelectedReport(report)}>
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Review
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actioningId === report.id}
+                        onClick={() => void handleReviewAction(report, "confirm_hidden")}
+                      >
+                        {actioningId === report.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5 mr-1" />}
+                        Action
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           )}
         </TabsContent>
 
         <TabsContent value="users" className="mt-4 space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search users..." value={searchQuery}
+            <Input
+              placeholder="Search users"
+              value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setUsers([]); }}
-              onKeyDown={(e) => e.key === "Enter" && loadUsers()}
-              className="pl-9" />
+              onKeyDown={(e) => e.key === "Enter" && void loadUsers()}
+              className="pl-9"
+            />
           </div>
           {loadingUsers ? (
             <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -272,11 +704,11 @@ export default function AdminModerationPage() {
                 </Avatar>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">{u.full_name ?? "Unknown User"}</p>
-                  <p className="text-xs text-muted-foreground">Joined {u.created_at ? formatDistanceToNow(new Date(u.created_at), { addSuffix: true }) : "—"}</p>
+                  <p className="text-xs text-muted-foreground">Joined {u.created_at ? formatDistanceToNow(new Date(u.created_at), { addSuffix: true }) : "-"}</p>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="sm" variant="ghost"><Eye className="h-3 w-3" /></Button>
-                  <Button size="sm" variant="ghost"><Ban className="h-3 w-3" /></Button>
+                  <Button size="sm" variant="ghost" aria-label="View user"><Eye className="h-3 w-3" /></Button>
+                  <Button size="sm" variant="ghost" aria-label="Block user"><Ban className="h-3 w-3" /></Button>
                 </div>
               </Card>
             ))
@@ -290,11 +722,12 @@ export default function AdminModerationPage() {
             </CardHeader>
             <CardContent className="p-0 space-y-3">
               {[
-                { label: "Total Reports", value: reports.length.toString() },
-                { label: "Pending", value: pendingReports.length.toString() },
-                { label: "Resolved", value: resolvedReports.length.toString() },
-                { label: "High Severity", value: reports.filter(r => r.severity === "high").length.toString() },
-                { label: "Resolution Rate", value: reports.length > 0 ? `${Math.round((resolvedReports.length / reports.length) * 100)}%` : "—" },
+                { label: "Total reports", value: stats.total.toString() },
+                { label: "Pending", value: stats.pending.toString() },
+                { label: "Actioned", value: stats.actioned.toString() },
+                { label: "Dismissed", value: stats.dismissed.toString() },
+                { label: "High severity", value: stats.high.toString() },
+                { label: "Action rate", value: stats.total > 0 ? `${Math.round((stats.actioned / stats.total) * 100)}%` : "-" },
               ].map((metric) => (
                 <div key={metric.label} className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{metric.label}</span>
@@ -305,6 +738,107 @@ export default function AdminModerationPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
+        <DialogContent className="max-w-2xl p-0">
+          <DialogHeader className="px-5 pt-5">
+            <DialogTitle>Review report</DialogTitle>
+            <DialogDescription>
+              {selectedReport ? `${getModerationContentLabel(selectedReport.kind)} - ${getModerationStatusLabel(selectedReport.status)}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReport && (
+            <ScrollArea className="max-h-[72vh] px-5 pb-5">
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={severityVariant(selectedReport.severity)} className="capitalize">{selectedReport.severity}</Badge>
+                  <Badge variant={statusVariant(selectedReport.status)}>{getModerationStatusLabel(selectedReport.status)}</Badge>
+                  {selectedReport.aiCategory && <Badge variant="outline">{selectedReport.aiCategory}</Badge>}
+                </div>
+
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">Reason</p>
+                  <p className="mt-1 text-sm text-foreground">{selectedReport.reason}</p>
+                </div>
+
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">Content</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">{selectedReport.details?.title || "Unavailable"}</p>
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                    {selectedReport.details?.body || "The linked content row could not be loaded."}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedReport.details?.sensitive && <Badge variant="secondary">Hidden or sensitive</Badge>}
+                    {selectedReport.details?.mediaLabel && <Badge variant="outline">{selectedReport.details.mediaLabel}</Badge>}
+                    {selectedReport.details?.hiddenReason && <Badge variant="outline">{selectedReport.details.hiddenReason}</Badge>}
+                  </div>
+                  {selectedReport.details?.metadata.length ? (
+                    <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                      {selectedReport.details.metadata.map((item) => <p key={item}>{item}</p>)}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-border p-3">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Reporter</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={selectedReport.reporterAvatar ?? undefined} />
+                        <AvatarFallback>{initials(selectedReport.reporterName)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">{selectedReport.reporterName}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border p-3">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Content owner</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={selectedReport.details?.ownerAvatar ?? undefined} />
+                        <AvatarFallback>{initials(selectedReport.details?.ownerName || "U")}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">{selectedReport.details?.ownerName || "Unknown user"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border p-3 text-xs text-muted-foreground">
+                  <p>Queue ID: {selectedReport.id}</p>
+                  <p>Content ID: {selectedReport.contentId}</p>
+                  <p>Created: {selectedReport.createdAt ? new Date(selectedReport.createdAt).toLocaleString() : "-"}</p>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Button
+                    variant="default"
+                    disabled={actioningId === selectedReport.id}
+                    onClick={() => void handleReviewAction(selectedReport, "confirm_hidden")}
+                  >
+                    {actioningId === selectedReport.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                    Confirm Action
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={actioningId === selectedReport.id}
+                    onClick={() => void handleReviewAction(selectedReport, "unhide_false_positive")}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Unhide
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={actioningId === selectedReport.id}
+                    onClick={() => void handleReviewAction(selectedReport, "dismiss")}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,13 +1,13 @@
 # Production Preflight Report
 
-Generated: 2026-05-26T20:15:32.214Z
+Generated: 2026-05-26T20:27:46.926Z
 Mode: strict
 
 ## Summary
 
-- API readiness: critical=0, warnings=4
-- Database readiness: blockers=2, warnings=1
-- Migration drift: duplicateVersions=24, allowedDuplicateVersions=8, newDuplicateVersions=16, remoteError=no
+- API readiness: critical=0, warnings=3
+- Database readiness: blockers=1, warnings=1
+- Migration drift: duplicateVersions=8, allowedDuplicateVersions=8, newDuplicateVersions=0, remoteError=no
 
 ## Steps
 
@@ -23,18 +23,18 @@ Mode: strict
 
 ```json
 {
-  "localMigrations": 830,
+  "localMigrations": 831,
   "invalidFilenames": 0,
-  "duplicateVersions": 24,
+  "duplicateVersions": 8,
   "allowedDuplicateVersions": 8,
-  "newDuplicateVersions": 16,
+  "newDuplicateVersions": 0,
   "duplicateHashes": 0,
   "remoteMigrations": 1409,
   "matchedVersions": 0,
-  "localOnlyPending": 830,
+  "localOnlyPending": 831,
   "remoteOnlyMissingLocally": 1409,
   "pendingRisk": {
-    "high": 762,
+    "high": 763,
     "medium": 50,
     "low": 18
   },
@@ -50,12 +50,12 @@ Mode: strict
 
 ```json
 {
-  "blockers": 2,
+  "blockers": 1,
   "warnings": 1,
-  "localMigrations": 830,
-  "duplicateVersions": 24,
+  "localMigrations": 831,
+  "duplicateVersions": 8,
   "allowedDuplicateVersions": 8,
-  "newDuplicateVersions": 16,
+  "newDuplicateVersions": 0,
   "duplicateHashes": 0,
   "unsupportedPg17Extensions": 0,
   "publicTablesNeedingRlsReview": 0,
@@ -75,7 +75,7 @@ Mode: strict
 ```json
 {
   "critical": 0,
-  "warnings": 4,
+  "warnings": 3,
   "edgeFunctions": {
     "total": 262,
     "highRisk": 112,
@@ -87,16 +87,16 @@ Mode: strict
     ]
   },
   "migrationDrift": {
-    "local": 830,
-    "duplicateVersions": 24,
+    "local": 831,
+    "duplicateVersions": 8,
     "allowedDuplicateVersions": 8,
-    "newDuplicateVersions": 16,
+    "newDuplicateVersions": 0,
     "remote": 1409,
     "matched": 0,
-    "localOnly": 830,
+    "localOnly": 831,
     "remoteOnly": 1409,
     "remoteError": false,
-    "currentLocal": 830
+    "currentLocal": 831
   },
   "report": "docs/api-readiness-report.md"
 }
@@ -281,7 +281,7 @@ src\pages\MarketplacePage.tsx
 ### Production build
 
 - Command: `node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build --logLevel warn`
-- Status: failed
+- Status: passed
 
 ## Production Gate
 

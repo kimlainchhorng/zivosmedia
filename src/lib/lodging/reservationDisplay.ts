@@ -27,8 +27,10 @@ const RESERVATION_STATUS_LABELS: Record<string, string> = {
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   unpaid: "Unpaid",
   pending: "Pending",
+  pending_cash: "Pay at front desk",
   processing: "Processing",
-  authorized: "Deposit authorized",
+  authorized: "Card authorized",
+  requires_capture: "Card authorized",
   paid: "Paid",
   captured: "Paid",
   refund_pending: "Refund pending",
@@ -41,6 +43,9 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
 
 const FINAL_RESERVATION_STATUSES = new Set(["checked_out", "cancelled", "no_show"]);
 const PAYMENT_ATTENTION_STATUSES = new Set(["failed", "past_due", "requires_payment"]);
+const PAYMENT_AUTHORIZED_STATUSES = new Set(["authorized", "requires_capture"]);
+const PAYMENT_PAID_STATUSES = new Set(["paid", "captured"]);
+const PAYMENT_WAITING_STATUSES = new Set(["pending", "processing", "unpaid"]);
 
 export function humanizeLodgingStatus(status: string | null | undefined): string {
   const key = normalize(status);
@@ -90,6 +95,42 @@ export function getLodgingTripStateCopy(
     };
   }
 
+  if (reservation === "checked_out") {
+    return {
+      title: "Stay complete",
+      badge: paymentLabel,
+      description: "This reservation is complete. Receipts and review options are available below.",
+      tone: "muted",
+    };
+  }
+
+  if (payment === "pending_cash") {
+    return {
+      title: "Room confirmed",
+      badge: paymentLabel,
+      description: "Your room is confirmed. Pay at the front desk when you arrive.",
+      tone: "success",
+    };
+  }
+
+  if (PAYMENT_AUTHORIZED_STATUSES.has(payment)) {
+    return {
+      title: "Card authorized",
+      badge: reservationLabel,
+      description: "Your card has been authorized and your stay is confirmed.",
+      tone: "success",
+    };
+  }
+
+  if (PAYMENT_PAID_STATUSES.has(payment)) {
+    return {
+      title: "Payment received",
+      badge: reservationLabel,
+      description: "Payment has been received for this stay. Trip actions and receipts are available below.",
+      tone: "success",
+    };
+  }
+
   if (PAYMENT_ATTENTION_STATUSES.has(payment)) {
     return {
       title: "Payment needs attention",
@@ -99,21 +140,21 @@ export function getLodgingTripStateCopy(
     };
   }
 
+  if (PAYMENT_WAITING_STATUSES.has(payment)) {
+    return {
+      title: "Payment pending",
+      badge: paymentLabel,
+      description: "Payment is still being processed. Use the payment summary below for the current state.",
+      tone: "warning",
+    };
+  }
+
   if (payment === "refund_pending") {
     return {
       title: "Refund in progress",
       badge: reservationLabel,
       description: "The refund has started and may take a few business days to settle.",
       tone: "warning",
-    };
-  }
-
-  if (reservation === "checked_out") {
-    return {
-      title: "Stay complete",
-      badge: paymentLabel,
-      description: "This reservation is complete. Receipts and review options are available below.",
-      tone: "muted",
     };
   }
 
@@ -140,7 +181,7 @@ export function getLodgingTripStateCopy(
       title: "Reservation on hold",
       badge: paymentLabel,
       description: "The property is holding this reservation while payment or confirmation finishes.",
-      tone: payment === "authorized" || payment === "paid" || payment === "captured" ? "success" : "warning",
+      tone: PAYMENT_AUTHORIZED_STATUSES.has(payment) || PAYMENT_PAID_STATUSES.has(payment) ? "success" : "warning",
     };
   }
 
