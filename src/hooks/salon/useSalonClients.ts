@@ -21,6 +21,12 @@ export interface SalonClient {
   loyalty_points: number;
   no_show_count: number;
   tags: string[];
+  /** Transactional: receive booking reminders by SMS. Default true. */
+  sms_opt_in: boolean;
+  /** Transactional: receive booking reminders by email. Default true. */
+  email_opt_in: boolean;
+  /** Marketing: birthday + win-back offers. Default false (TCPA/CAN-SPAM). */
+  marketing_opt_in: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -96,6 +102,9 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
       notes: draft.notes?.trim() || null,
       preferred_stylist_id: draft.preferred_stylist_id,
       is_blocked: draft.is_blocked,
+      sms_opt_in: draft.sms_opt_in ?? true,
+      email_opt_in: draft.email_opt_in ?? true,
+      marketing_opt_in: draft.marketing_opt_in ?? false,
     };
     const { data, error: err } = await supabase
       .from("salon_clients")
@@ -126,6 +135,9 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
     if (patch.preferred_stylist_id !== undefined) cleanPatch.preferred_stylist_id = patch.preferred_stylist_id;
     if (patch.is_blocked !== undefined) cleanPatch.is_blocked = patch.is_blocked;
     if (patch.tags !== undefined) cleanPatch.tags = patch.tags;
+    if (patch.sms_opt_in !== undefined) cleanPatch.sms_opt_in = patch.sms_opt_in;
+    if (patch.email_opt_in !== undefined) cleanPatch.email_opt_in = patch.email_opt_in;
+    if (patch.marketing_opt_in !== undefined) cleanPatch.marketing_opt_in = patch.marketing_opt_in;
 
     setClients((prev) =>
       prev.map((c) => (c.id === id ? ({ ...c, ...cleanPatch } as SalonClient) : c))

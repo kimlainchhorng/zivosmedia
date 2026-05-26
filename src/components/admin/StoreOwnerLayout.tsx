@@ -177,11 +177,16 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
       if (id === "salon-waitlist") return salonBadges.waitlist || undefined;
       if (id === "salon-reviews") return salonBadges.reviewsUnreplied || undefined;
       if (id === "salon-retail") return salonBadges.retailLowStock || undefined;
+      if (id === "salon-reminders") return salonBadges.remindersDueSoon || undefined;
+      if (id === "salon-campaigns") return salonBadges.campaignsSending || undefined;
     }
     if (isCafe) {
       if (id === "cafe-orders") return cafeBadges.ordersOpen || undefined;
       if (id === "cafe-kds") return cafeBadges.kdsActive || undefined;
-      if (id === "cafe-tables") return cafeBadges.tablesOccupied || undefined;
+      // Pending reservations take priority over occupied-tables — a customer
+      // is waiting for the owner to confirm; that's more urgent than seating.
+      if (id === "cafe-tables") return (cafeBadges.reservationsPending || cafeBadges.tablesOccupied) || undefined;
+      if (id === "cafe-reviews") return cafeBadges.reviewsUnreplied || undefined;
     }
     if (isCarRental) {
       if (id === "car-rental-reservations") return carRentalBadges.reservationsPending || undefined;

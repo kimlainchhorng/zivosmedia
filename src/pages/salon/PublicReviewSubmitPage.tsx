@@ -101,7 +101,11 @@ export default function PublicReviewSubmitPage() {
     );
   }
 
-  const notYetCompleted = booking.status !== "completed";
+  // Distinguish "not yet here" vs "won't happen" — the same "come back after"
+  // message for a cancelled booking is misleading. Anything that isn't
+  // completed or upcoming (pending/confirmed) is treated as terminal-no-review.
+  const upcoming = booking.status === "pending" || booking.status === "confirmed";
+  const notReviewable = booking.status !== "completed";
 
   return (
     <div className="min-h-screen bg-background">
@@ -140,9 +144,15 @@ export default function PublicReviewSubmitPage() {
               <div className="rounded-2xl border border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
                 This visit has already been reviewed. Thanks again!
               </div>
-            ) : notYetCompleted ? (
+            ) : notReviewable ? (
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/8 p-4 text-center text-sm text-amber-700 dark:text-amber-300">
-                This visit hasn't been checked out yet. Come back after your appointment to leave a review.
+                {upcoming
+                  ? "This visit hasn't been checked out yet. Come back after your appointment to leave a review."
+                  : booking.status === "cancelled"
+                  ? "This visit was cancelled, so there's nothing to review yet. Book again and we'd love your feedback after."
+                  : booking.status === "no_show"
+                  ? "This visit was marked as a no-show. Reach out to the salon if you'd like to reschedule."
+                  : "Reviews are only available after a completed visit."}
               </div>
             ) : (
               <>

@@ -10,7 +10,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, CalendarRange, ClipboardList, Timer,
   BookOpen, Gift, Package, UserCog, Calendar, Banknote,
-  Users, ScrollText, Star, DollarSign, Wallet, BarChart3, Clock, CreditCard,
+  Users, ScrollText, Star, DollarSign, Wallet, BarChart3, Clock, CreditCard, Bell, Megaphone,
 } from "lucide-react";
 
 export interface SalonTabMeta {
@@ -212,6 +212,28 @@ export const SALON_TAB_META: Record<string, SalonTabMeta> = {
       "Booking trends & no-show rate",
       "Client retention cohort",
       "Top services & top stylists",
+    ],
+  },
+  "salon-reminders": {
+    title: "Automated Reminders",
+    description: "Auto-send booking reminders, birthday offers, and win-back nudges.",
+    Icon: Bell,
+    bullets: [
+      "24h-before booking reminders (SMS + email)",
+      "Birthday greetings with optional discount",
+      "Win-back offers for dormant clients",
+      "Activity log + delivery status",
+    ],
+  },
+  "salon-campaigns": {
+    title: "Marketing Campaigns",
+    description: "Send one-off SMS or email blasts to a chosen cohort of clients.",
+    Icon: Megaphone,
+    bullets: [
+      "Pick a cohort (dormant, tagged, recent visitors, birthday month)",
+      "Compose subject + body + SMS in one place",
+      "Preview recipient count before sending",
+      "Per-recipient delivery status drilldown",
     ],
   },
 };

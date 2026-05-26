@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { computeOpenSlots, type ScheduleRow, type BusyRange } from "@/lib/salon/availability";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SalonProfile {
   id: string;
@@ -67,11 +68,20 @@ const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 export default function PublicSalonBookingPage() {
   const { slug = "" } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
+  // Optionally authenticated. When set, the booking gets created_by_user_id =
+  // user.id; the sanitize trigger then attaches it to a salon_clients row so
+  // the booking shows up in their /salon/me portal.
+  const { user } = useAuth();
   /** Honor ?service= and ?stylist= deep-links from "Book again" — but only on
    * first arrival, so navigating past step 1 isn't yanked back. */
   const deepLinkConsumed = useRef(false);
 
   const [store, setStore] = useState<SalonProfile | null>(null);
+  // Public-readable subset of the salon's payment policy. Drives the
+  // cancellation-policy disclosure: a no-show fee can only fire when a
+  // card is on file, which requires a deposit, so we only show the
+  // policy block when BOTH are configured.
+  const [paymentPolicy, setPaymentPolicy] = useState<{ deposit_percent: number; no_show_fee_cents: number } | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
   const [reviews, setReviews] = useState<{ id: string; rating_stars: number; comment: string | null; client_name: string; stylist_name: string | null; created_at: string; owner_response: string | null }[]>([]);
@@ -100,6 +110,11 @@ export default function PublicSalonBookingPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  // Transactional opt-in defaults true (customer is asking for the booking;
+  // a confirmation/reminder is presumed). Marketing defaults false (TCPA /
+  // CAN-SPAM require explicit consent before promotional sends).
+  const [remindersOptIn, setRemindersOptIn] = useState(true);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<{ id: string; startAt: string } | null>(null);
 
@@ -127,6 +142,25 @@ export default function PublicSalonBookingPage() {
         return;
       }
       setStore(storeRow as unknown as SalonProfile);
+
+      // Public payment-policy snippet — drives the cancellation disclosure
+      // shown above the submit button. Owner-only fields like
+      // stripe_account_id stay locked; this RPC only returns the customer-
+      // relevant numbers.
+      void (async () => {
+        const { data: policyRows, error: pErr } = await supabase
+          .rpc("salon_public_get_payment_policy", { p_store_id: (storeRow as any).id });
+        if (cancelled) return;
+        if (!pErr && Array.isArray(policyRows) && policyRows.length > 0) {
+          const p = policyRows[0] as any;
+          setPaymentPolicy({
+            deposit_percent: Number(p.deposit_percent ?? 0),
+            no_show_fee_cents: Number(p.no_show_fee_cents ?? 0),
+          });
+        } else {
+          setPaymentPolicy({ deposit_percent: 0, no_show_fee_cents: 0 });
+        }
+      })();
 
       const [servicesRes, stylistsRes, reviewsRes, schedulesRes] = await Promise.all([
         supabase.from("salon_services").select("id,name,description,duration_minutes,price_cents,image_url,category")
@@ -402,11 +436,34 @@ export default function PublicSalonBookingPage() {
       status: "pending",
       source: "app",
       client_notes: notes.trim() || null,
+      // Opt-in flags drive the salon_reminders auto-scheduling trigger on
+      // INSERT. The server-side sanitize coalesces missing flags to safe
+      // defaults (transactional true, marketing false) so even if a future
+      // form drops these the trigger does the right thing.
+      sms_opt_in: remindersOptIn,
+      email_opt_in: remindersOptIn,
+      marketing_opt_in: marketingOptIn,
+      // When the submitter is signed in, attribute the booking to them so it
+      // appears in /salon/me. The sanitize trigger also uses this to find-or-
+      // create the matching salon_clients row. Anon submits keep this NULL
+      // (the RLS WITH CHECK enforces "NULL or auth.uid()").
+      created_by_user_id: user?.id ?? null,
+      // Audit trail of the no-show policy acceptance. Stamped client-side
+      // ONLY when both a deposit + no-show fee are configured (i.e., when
+      // the disclosure block was rendered to the customer). The sanitize
+      // trigger preserves this value; if the salon has no fee configured
+      // the trigger clears it (no point storing consent for nothing).
+      no_show_fee_consent_at:
+        paymentPolicy
+        && paymentPolicy.deposit_percent > 0
+        && paymentPolicy.no_show_fee_cents > 0
+          ? new Date().toISOString()
+          : null,
     };
     const { data, error } = await supabase
-      .from("salon_bookings").insert(payload as never).select("id, start_at").single();
-    setSubmitting(false);
+      .from("salon_bookings").insert(payload as never).select("id, start_at, deposit_cents").single();
     if (error) {
+      setSubmitting(false);
       console.error("[PublicSalonBookingPage] insert failed", error);
       if ((error as any).code === "23P01") {
         // 23P01 = exclusion_violation, raised by THREE different sources:
@@ -426,7 +483,34 @@ export default function PublicSalonBookingPage() {
       }
       return;
     }
-    setConfirmed({ id: (data as any).id, startAt: (data as any).start_at });
+
+    // If the salon requires a deposit (computed server-side by the sanitize
+    // trigger), redirect to Stripe Checkout to collect it now. On success
+    // Stripe routes the customer back to /booking/<id>?deposit=success and
+    // the webhook auto-confirms the booking. If the deposit-create call
+    // fails we still show the confirmed state — the customer can pay later
+    // via the booking detail page.
+    const newBookingId = (data as any).id as string;
+    const depositOwed = ((data as any).deposit_cents as number) ?? 0;
+    if (depositOwed > 0) {
+      try {
+        const { data: depositRes, error: depErr } = await supabase.functions.invoke(
+          "create-salon-deposit",
+          { body: { booking_id: newBookingId } },
+        );
+        if (depErr) throw depErr;
+        const url = (depositRes as any)?.url as string | undefined;
+        if (url) {
+          window.location.href = url;
+          return;
+        }
+      } catch (e) {
+        console.warn("[PublicSalonBookingPage] deposit redirect failed", e);
+        toast.error("Booking saved, but the deposit page didn't load. Open the booking link to pay.");
+      }
+    }
+    setSubmitting(false);
+    setConfirmed({ id: newBookingId, startAt: (data as any).start_at });
   };
 
   if (loading) {
@@ -460,17 +544,32 @@ export default function PublicSalonBookingPage() {
               {selectedService?.name} at {store.name}<br />
               {formatDate(confirmed.startAt.slice(0, 10))} · {formatTime(confirmed.startAt)}
             </p>
-            <a
-              href={`/booking/${confirmed.id}`}
-              className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/40"
-            >
-              View or cancel this booking
-            </a>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <a
+                href={`/booking/${confirmed.id}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/40"
+              >
+                View or cancel this booking
+              </a>
+              {/* Logged-in customers get a one-tap link into their portal —
+                  much friendlier than asking them to bookmark the magic
+                  booking URL. */}
+              {user && (
+                <a
+                  href="/salon/me"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/15"
+                >
+                  Go to your salon area →
+                </a>
+              )}
+            </div>
             <p className="mt-4 text-xs text-muted-foreground">
               We'll be in touch to confirm. Booking reference: <span className="font-mono">{confirmed.id.slice(0, 8)}</span>
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Bookmark this link — anyone with it can view or cancel.
+              {user
+                ? "This booking is linked to your account — find it any time under your salon area."
+                : "Bookmark this link — anyone with it can view or cancel."}
             </p>
           </div>
         </div>
@@ -694,7 +793,39 @@ export default function PublicSalonBookingPage() {
                 <Label htmlFor="pbNotes">Anything for the stylist? (optional)</Label>
                 <Textarea id="pbNotes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={1000} />
               </div>
-              <p className="text-[11px] text-muted-foreground">We'll use your phone or email to confirm and send reminders.</p>
+              <p className="text-[11px] text-muted-foreground">We'll use your phone or email to confirm your booking.</p>
+
+              {/* Two checkboxes for explicit opt-in. Transactional reminder
+                  defaults to checked (the customer asked for the booking, so
+                  basic confirmation/reminder consent is presumed). Marketing
+                  defaults to unchecked — TCPA + CAN-SPAM require explicit
+                  opt-in before promotional sends. */}
+              <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4"
+                    checked={remindersOptIn}
+                    onChange={(e) => setRemindersOptIn(e.target.checked)}
+                  />
+                  <span className="text-sm text-foreground">
+                    Send me a reminder before my appointment
+                    <span className="block text-[11px] text-muted-foreground">By SMS and/or email — you can opt out anytime.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4"
+                    checked={marketingOptIn}
+                    onChange={(e) => setMarketingOptIn(e.target.checked)}
+                  />
+                  <span className="text-sm text-foreground">
+                    Send me occasional offers from {store.name}
+                    <span className="block text-[11px] text-muted-foreground">Birthday discounts and win-back offers — optional.</span>
+                  </span>
+                </label>
+              </div>
 
               <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Summary</p>
@@ -705,6 +836,29 @@ export default function PublicSalonBookingPage() {
                   with {resolveStylistForSubmit()?.display_name ?? "—"} · {selectedService?.duration_minutes} min · {formatPrice(selectedService?.price_cents ?? 0)}
                 </p>
               </div>
+
+              {/* Cancellation policy disclosure — only renders when BOTH a
+                  deposit and a no-show fee are configured. The deposit
+                  Checkout step is what saves the card off-session; without
+                  it, no card is on file and no no-show fee can fire. We
+                  capture customer consent here (audit-trail timestamp
+                  stamped at submit time) so the off-session charge later
+                  isn't a surprise. */}
+              {paymentPolicy
+                && paymentPolicy.deposit_percent > 0
+                && paymentPolicy.no_show_fee_cents > 0 && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900/60 dark:bg-amber-950/30">
+                  <p className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                    Cancellation policy
+                  </p>
+                  <p className="mt-1 text-amber-900 dark:text-amber-200">
+                    A no-show fee of <strong>{formatPrice(paymentPolicy.no_show_fee_cents)}</strong> will be charged to your card if you don't show up.
+                  </p>
+                  <p className="mt-1 text-[11px] text-amber-800/80 dark:text-amber-200/70">
+                    By booking, you authorize {store.name} to charge this fee to the card you use for the deposit.
+                  </p>
+                </div>
+              )}
 
               <Button onClick={handleConfirm} disabled={!canSubmit || submitting} className="w-full gap-1.5">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}

@@ -9,6 +9,7 @@ import {
   CalendarRange, Plus, ChevronLeft, ChevronRight, Loader2, AlertCircle,
   CheckCircle2, XCircle, AlarmClockOff, UserCheck, Trash2, Edit,
   Clock, DollarSign, Mail, Phone, User, NotebookText, Package, Star, BadgeCheck, MessageSquare,
+  Undo2, CreditCard, RotateCcw,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,12 +174,16 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
   const [repeatWeeks, setRepeatWeeks] = useState<0 | 1 | 2 | 4>(0);
   const [repeatCount, setRepeatCount] = useState(4);
   const [checkoutBooking, setCheckoutBooking] = useState<SalonBooking | null>(null);
+  // No-show dialog: opened when the owner clicks "No-show" on a booking
+  // that has both a card on file AND a no-show fee snapshot. The dialog
+  // lets them either skip the charge (just flip status) or charge + flip.
+  const [noShowBooking, setNoShowBooking] = useState<SalonBooking | null>(null);
   const [blockoutOpen, setBlockoutOpen] = useState(false);
   const [view, setView] = useState<"list" | "day" | "week">("list");
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "no_show" | "cancelled" | "walk_in" | "app">("all");
   const [allSchedules, setAllSchedules] = useState<{ stylist_id: string; day_of_week: number; is_working: boolean; start_time: string | null; end_time: string | null }[]>([]);
   const [dayBlockouts, setDayBlockouts] = useState<{ id: string; stylist_id: string; start_at: string; end_at: string; reason: string | null }[]>([]);
-  const [addonsByBooking, setAddonsByBooking] = useState<Record<string, Array<{ id: string; name: string; price_cents: number; duration_minutes: number; quantity: number }>>>({});
+  const [addonsByBooking, setAddonsByBooking] = useState<Record<string, Array<{ id: string; service_id: string | null; name: string; price_cents: number; duration_minutes: number; quantity: number }>>>({});
 
   // Global search across all dates (debounced). Active when ≥2 chars.
   const [searchQuery, setSearchQuery] = useState("");
@@ -231,12 +236,12 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
       const ids = bookings.map((b) => b.id);
       const { data, error: err } = await supabase
         .from("salon_booking_addons")
-        .select("id, booking_id, name, price_cents, duration_minutes, quantity")
+        .select("id, booking_id, service_id, name, price_cents, duration_minutes, quantity")
         .in("booking_id", ids);
       if (cancelled || err) return;
       const map: typeof addonsByBooking = {};
       for (const row of (data ?? []) as any[]) {
-        (map[row.booking_id] ||= []).push({ id: row.id, name: row.name, price_cents: row.price_cents, duration_minutes: row.duration_minutes, quantity: row.quantity });
+        (map[row.booking_id] ||= []).push({ id: row.id, service_id: row.service_id ?? null, name: row.name, price_cents: row.price_cents, duration_minutes: row.duration_minutes, quantity: row.quantity });
       }
       setAddonsByBooking(map);
     })();
@@ -622,6 +627,24 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
       internal_notes: null,
     });
     if (created) {
+      // Carry the original booking's add-ons over so the rebook reflects what
+      // the client actually got last time — without this, a regular client
+      // who always adds a "deep conditioning treatment" would rebook with
+      // just the base service and a shorter time slot.
+      const originalAddons = addonsByBooking[b.id] ?? [];
+      if (originalAddons.length > 0) {
+        const rows = originalAddons.map((a) => ({
+          booking_id: created.id,
+          store_id: storeId,
+          service_id: a.service_id,
+          name: a.name,
+          price_cents: a.price_cents,
+          duration_minutes: a.duration_minutes,
+          quantity: a.quantity,
+        }));
+        const { error: addonErr } = await supabase.from("salon_booking_addons").insert(rows as never);
+        if (addonErr) toast.error(`Booked, but couldn't copy add-ons: ${addonErr.message}`);
+      }
       toast.success(`Rebooked ${b.client_name} for ${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
     }
     // create() surfaces its own conflict error via the section's error banner.
@@ -765,7 +788,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
           {searchQuery.trim().length >= 2 && (
             <div className="rounded-xl border border-border">
               <div className="border-b border-border bg-muted/30 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                {searching ? "Searching…" : `${searchResults.length} match${searchResults.length === 1 ? "" : "es"} across all dates`}
+                {searching ? "Searching…" : `${searchResults.length}${searchResults.length === 50 ? "+" : ""} match${searchResults.length === 1 ? "" : "es"} across all dates${searchResults.length === 50 ? " — refine to see more" : ""}`}
               </div>
               {searchResults.length === 0 && !searching ? (
                 <p className="px-3 py-6 text-center text-sm text-muted-foreground">
@@ -930,6 +953,72 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                                 <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", status.tone)}>
                                   {status.label}
                                 </span>
+                                {/* Distinguish "pending — needs my action" from
+                                    "pending — waiting on the customer to pay
+                                    the deposit". Public bookings that owe a
+                                    deposit but haven't paid sit at pending
+                                    until the customer completes Checkout; the
+                                    owner doesn't need to do anything yet, and
+                                    confirming manually would skip the payment. */}
+                                {b.status === "pending"
+                                  && b.source === "app"
+                                  && (b.deposit_cents ?? 0) > 0
+                                  && (b.deposit_paid_cents ?? 0) === 0 && (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                                    title={`Customer hasn't paid the ${formatPrice(b.deposit_cents)} deposit yet — booking will auto-expire if unpaid`}
+                                  >
+                                    <DollarSign className="h-3 w-3" />
+                                    Awaiting deposit
+                                  </span>
+                                )}
+                                {/* No-show fee badges — mirror the DepositControl
+                                    visual language: red destructive for charged,
+                                    amber strike-through when refunded. The owner
+                                    sees the fee state at a glance on the row. */}
+                                {(b.no_show_fee_charged_cents ?? 0) > 0 && (() => {
+                                  const charged = b.no_show_fee_charged_cents;
+                                  const refunded = b.no_show_fee_refunded_cents ?? 0;
+                                  const fullyRefunded = refunded > 0 && refunded >= charged;
+                                  return (
+                                    <span
+                                      className={cn(
+                                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                        fullyRefunded
+                                          ? "border-border bg-muted text-muted-foreground line-through"
+                                          : "border-red-300 bg-red-50 text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300",
+                                      )}
+                                      title={fullyRefunded
+                                        ? `No-show fee ${formatPrice(charged)} was refunded`
+                                        : `${formatPrice(charged)} no-show fee charged via Stripe`}
+                                    >
+                                      <AlarmClockOff className="h-3 w-3" />
+                                      {formatPrice(charged)} no-show
+                                    </span>
+                                  );
+                                })()}
+                                {(b.no_show_fee_refunded_cents ?? 0) > 0 && (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                                    title={`${formatPrice(b.no_show_fee_refunded_cents)} refunded of ${formatPrice(b.no_show_fee_charged_cents ?? 0)} no-show fee`}
+                                  >
+                                    <Undo2 className="h-3 w-3" />
+                                    {formatPrice(b.no_show_fee_refunded_cents)} refunded
+                                  </span>
+                                )}
+                                {b.no_show_fee_charge_failed_reason
+                                  && (b.no_show_fee_charged_cents ?? 0) === 0 && (
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-800 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
+                                    title={`Charge failed: ${b.no_show_fee_charge_failed_reason}. Click to retry.`}
+                                    onClick={() => setNoShowBooking(b)}
+                                    disabled={saving}
+                                  >
+                                    <RotateCcw className="h-3 w-3" />
+                                    Charge failed — retry
+                                  </button>
+                                )}
                               </div>
                               <p className="mt-0.5 text-sm text-foreground/85">{b.service_name}</p>
                               {(addonsByBooking[b.id] ?? []).length > 0 && (
@@ -960,7 +1049,32 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                           </div>
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {b.status === "pending" && (
-                              <Button size="sm" variant="outline" className="h-7 gap-1.5 text-sky-700" onClick={() => handleStatus(b, "confirmed")} disabled={saving}>
+                              <Button
+                                size="sm" variant="outline"
+                                className="h-7 gap-1.5 text-sky-700"
+                                onClick={() => {
+                                  // Belt-and-suspenders: if a public booking
+                                  // is waiting on an unpaid deposit, manually
+                                  // confirming bypasses the payment. Some
+                                  // owners legitimately want that (regular
+                                  // customer paying in person, comp visit);
+                                  // surface the trade-off rather than silently
+                                  // letting them skip.
+                                  const awaitingDeposit = b.source === "app"
+                                    && (b.deposit_cents ?? 0) > 0
+                                    && (b.deposit_paid_cents ?? 0) === 0;
+                                  if (awaitingDeposit) {
+                                    const ok = confirm(
+                                      `This client hasn't paid the ${formatPrice(b.deposit_cents)} deposit yet.\n\n` +
+                                      `Confirming will skip the deposit entirely — no charge will be made.\n\n` +
+                                      `Confirm anyway?`,
+                                    );
+                                    if (!ok) return;
+                                  }
+                                  void handleStatus(b, "confirmed");
+                                }}
+                                disabled={saving}
+                              >
                                 <UserCheck className="h-3.5 w-3.5" /> Confirm
                               </Button>
                             )}
@@ -969,7 +1083,27 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                                 <Button size="sm" variant="outline" className="h-7 gap-1.5 text-emerald-700" onClick={() => setCheckoutBooking(b)} disabled={saving}>
                                   <CheckCircle2 className="h-3.5 w-3.5" /> Complete
                                 </Button>
-                                <Button size="sm" variant="outline" className="h-7 gap-1.5 text-destructive" onClick={() => handleStatus(b, "no_show")} disabled={saving}>
+                                <Button
+                                  size="sm" variant="outline"
+                                  className="h-7 gap-1.5 text-destructive"
+                                  onClick={() => {
+                                    // Open the no-show dialog when we have a
+                                    // chargeable scenario (card on file + fee
+                                    // snapshot + not already charged). Otherwise
+                                    // flip status immediately — no point in a
+                                    // confirm modal when there's nothing to
+                                    // charge.
+                                    const chargeable = !!b.stripe_payment_method_id
+                                      && (b.no_show_fee_cents ?? 0) > 0
+                                      && (b.no_show_fee_charged_cents ?? 0) === 0;
+                                    if (chargeable) {
+                                      setNoShowBooking(b);
+                                    } else {
+                                      void handleStatus(b, "no_show");
+                                    }
+                                  }}
+                                  disabled={saving}
+                                >
                                   <AlarmClockOff className="h-3.5 w-3.5" /> No-show
                                 </Button>
                                 <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => handleStatus(b, "cancelled")} disabled={saving}>
@@ -1087,6 +1221,22 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                   maxLength={30}
                 />
               </div>
+            </div>
+
+            {/* Email is optional but powers the confirmation email and the
+                "View or cancel" mailto deep-link. Without this input, admin-
+                created bookings for new/walk-in clients had no way to capture
+                an address even when the owner had one on file. */}
+            <div className="space-y-1.5">
+              <Label htmlFor="bkEmail">Email (optional)</Label>
+              <Input
+                id="bkEmail"
+                type="email"
+                value={draft.client_email}
+                onChange={(e) => setDraft({ ...draft, client_email: e.target.value })}
+                placeholder="client@example.com"
+                maxLength={254}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -1359,6 +1509,35 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
         onCompleted={() => { setCheckoutBooking(null); }}
       />
 
+      <NoShowDialog
+        booking={noShowBooking}
+        onClose={() => setNoShowBooking(null)}
+        onFlipStatusOnly={async (b) => {
+          await changeStatus(b.id, "no_show");
+        }}
+        onChargeAndFlip={async (b) => {
+          // Flip status FIRST so the edge function's status check passes
+          // (it refuses unless status === 'no_show'). If the flip fails,
+          // we surface the existing error toast and bail; the user can
+          // retry from the "Charge failed — retry" badge later.
+          const flipped = await changeStatus(b.id, "no_show");
+          if (!flipped) return { ok: false, error_message: "Couldn't update booking status." };
+          const { data, error } = await supabase.functions.invoke(
+            "charge-salon-no-show-fee",
+            { body: { booking_id: b.id } },
+          );
+          if (error) {
+            return { ok: false, error_message: error.message || "Charge failed." };
+          }
+          const result = (data ?? {}) as { ok?: boolean; error_message?: string; error_code?: string };
+          return {
+            ok: !!result.ok,
+            error_message: result.error_message,
+            error_code: result.error_code,
+          };
+        }}
+      />
+
       <SalonBlockoutDialog
         storeId={storeId}
         open={blockoutOpen}
@@ -1404,7 +1583,9 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
 
 /** Compact inline control: shows the deposit on file if any, otherwise a
  * "Record deposit" button that pre-fills the recommended amount from the
- * store's deposit_percent. */
+ * store's deposit_percent. When the deposit was collected via Stripe Checkout,
+ * the row also surfaces refund state and warns against locally-clearing the
+ * record (which would desync from Stripe's actual money state). */
 function DepositControl({
   booking,
   depositPercent,
@@ -1421,20 +1602,62 @@ function DepositControl({
   const bookingTotalCents = booking.price_cents + (booking.addons_total_cents ?? 0);
   const recommended = Math.round((bookingTotalCents * (depositPercent || 0)) / 100);
   if (booking.deposit_paid_cents > 0) {
+    const isStripe = !!booking.stripe_payment_intent_id;
+    const refunded = booking.deposit_refunded_cents ?? 0;
+    const fullyRefunded = refunded > 0 && refunded >= booking.deposit_paid_cents;
+    const partiallyRefunded = refunded > 0 && refunded < booking.deposit_paid_cents;
+    // Color the badge by money-state: fully refunded loses the green; partial
+    // gets an amber refund chip next to the original-paid chip.
+    const paidClasses = fullyRefunded
+      ? "text-muted-foreground line-through"
+      : "text-emerald-700 dark:text-emerald-300";
+    const paidTitle = isStripe
+      ? `$${(booking.deposit_paid_cents / 100).toFixed(2)} deposit paid via Stripe`
+      : `$${(booking.deposit_paid_cents / 100).toFixed(2)} deposit on file — click to clear`;
     return (
-      <Button
-        size="sm" variant="ghost"
-        className="h-7 gap-1.5 text-emerald-700 dark:text-emerald-300"
-        disabled={saving}
-        title={`$${(booking.deposit_paid_cents / 100).toFixed(2)} deposit on file — click to clear`}
-        onClick={() => {
-          if (confirm(`Clear the $${(booking.deposit_paid_cents / 100).toFixed(2)} deposit on file?`)) {
-            void onRecord(0);
-          }
-        }}
-      >
-        <BadgeCheck className="h-3.5 w-3.5" /> ${(booking.deposit_paid_cents / 100).toFixed(2)} deposit
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button
+          size="sm" variant="ghost"
+          className={`h-7 gap-1.5 ${paidClasses}`}
+          disabled={saving}
+          title={paidTitle}
+          onClick={() => {
+            // Stripe-collected deposits: clearing the DB column doesn't refund
+            // the customer. Make that explicit so an owner doesn't accidentally
+            // hide a real charge from their own records.
+            if (isStripe) {
+              if (!confirm(
+                `This deposit was paid online via Stripe.\n\n` +
+                `Clearing it here only zeroes our records — it does NOT refund the customer. ` +
+                `To refund, issue it from the Stripe dashboard (the refund will sync back here automatically).\n\n` +
+                `Clear the local record anyway?`,
+              )) return;
+              void onRecord(0);
+              return;
+            }
+            if (confirm(`Clear the $${(booking.deposit_paid_cents / 100).toFixed(2)} deposit on file?`)) {
+              void onRecord(0);
+            }
+          }}
+        >
+          <BadgeCheck className="h-3.5 w-3.5" /> ${(booking.deposit_paid_cents / 100).toFixed(2)} deposit
+        </Button>
+        {refunded > 0 && (
+          <span
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+            title={
+              fullyRefunded
+                ? `Fully refunded $${(refunded / 100).toFixed(2)} via Stripe`
+                : `Partially refunded $${(refunded / 100).toFixed(2)} of $${(booking.deposit_paid_cents / 100).toFixed(2)}`
+            }
+          >
+            <Undo2 className="h-3 w-3" />
+            {partiallyRefunded
+              ? `−$${(refunded / 100).toFixed(2)} refund`
+              : `$${(refunded / 100).toFixed(2)} refunded`}
+          </span>
+        )}
+      </div>
     );
   }
   if (booking.status === "cancelled" || booking.status === "no_show") return null;
@@ -1463,6 +1686,130 @@ function DepositControl({
     >
       <DollarSign className="h-3.5 w-3.5" /> Record deposit
     </Button>
+  );
+}
+
+/** Owner-confirmed no-show fee dialog: shown when an owner flips a booking
+ *  to no_show AND there's a saved card AND a fee snapshot. Two paths:
+ *    • Skip — just mark no-show (flips status, no charge)
+ *    • Charge $X & mark no-show (flips status + invokes the off-session edge fn)
+ *  Both flips happen via the parent's `changeStatus` so the owner can also
+ *  retry later via the "Charge failed — retry" badge without re-flipping. */
+function NoShowDialog({
+  booking,
+  onClose,
+  onFlipStatusOnly,
+  onChargeAndFlip,
+}: {
+  booking: SalonBooking | null;
+  onClose: () => void;
+  onFlipStatusOnly: (b: SalonBooking) => Promise<void>;
+  onChargeAndFlip: (b: SalonBooking) => Promise<{ ok: boolean; error_message?: string; error_code?: string }>;
+}) {
+  const [busy, setBusy] = useState<"skip" | "charge" | null>(null);
+
+  if (!booking) return null;
+
+  // Already-charged booking: showing this dialog means the owner clicked
+  // "Retry" on a failed-charge badge. Skip the "skip" path — the only
+  // useful action is to retry the charge.
+  const isRetry = !!booking.no_show_fee_charge_failed_reason
+    && (booking.no_show_fee_charged_cents ?? 0) === 0;
+
+  const cardLabel = booking.card_brand && booking.card_last_four
+    ? `${booking.card_brand.toUpperCase()} ••${booking.card_last_four}`
+    : "card on file";
+
+  const fee = booking.no_show_fee_cents ?? 0;
+  const feeStr = formatPrice(fee);
+
+  const handleSkip = async () => {
+    setBusy("skip");
+    try {
+      await onFlipStatusOnly(booking);
+      toast.success("Marked as no-show (no charge).");
+      onClose();
+    } catch (e) {
+      console.error("[NoShowDialog] skip failed", e);
+      toast.error("Couldn't update booking status.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleCharge = async () => {
+    setBusy("charge");
+    try {
+      const res = await onChargeAndFlip(booking);
+      if (res.ok) {
+        toast.success(`Charged ${feeStr} no-show fee to ${cardLabel}.`);
+        onClose();
+      } else {
+        // Booking-row badge will surface the failure too, but show an
+        // immediate toast so the owner knows the click registered.
+        toast.error(res.error_message || "Charge failed. See the booking row for details.");
+        onClose();
+      }
+    } catch (e) {
+      console.error("[NoShowDialog] charge failed", e);
+      toast.error("Charge request failed. Please try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <AlertDialog open={!!booking} onOpenChange={(open) => !open && busy === null && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {isRetry ? "Retry no-show charge?" : "Mark as no-show?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {booking.client_name} didn't show for {booking.service_name}.
+            {isRetry && (
+              <span className="mt-2 block rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-900 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                <strong>Last attempt failed:</strong> {booking.no_show_fee_charge_failed_reason}
+              </span>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-foreground">No-show fee</span>
+            <span className="font-semibold text-foreground">{feeStr}</span>
+          </div>
+          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+            <CreditCard className="h-3.5 w-3.5" />
+            Will charge {cardLabel} (saved at deposit time).
+          </div>
+        </div>
+
+        <AlertDialogFooter className="gap-2">
+          {!isRetry && (
+            <Button
+              type="button" variant="outline"
+              onClick={handleSkip}
+              disabled={busy !== null}
+              className="gap-1.5"
+            >
+              {busy === "skip" && <Loader2 className="h-4 w-4 animate-spin" />}
+              Skip — just mark no-show
+            </Button>
+          )}
+          <AlertDialogCancel disabled={busy !== null}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); void handleCharge(); }}
+            disabled={busy !== null}
+            className="gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {busy === "charge" ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlarmClockOff className="h-4 w-4" />}
+            {isRetry ? `Retry charge ${feeStr}` : `Charge ${feeStr} & mark no-show`}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

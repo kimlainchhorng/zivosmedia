@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCafeOrders, type CafeOrderStatus } from "@/hooks/cafe/useCafeOrders";
 import { cn } from "@/lib/utils";
+import { useCafeCustomerNotes } from "@/hooks/cafe/useCafeCustomerNotes";
 
 interface Props { storeId: string }
 
@@ -48,6 +49,7 @@ function playChime() {
 
 export default function CafeKdsSection({ storeId }: Props) {
   const { orders, itemsByOrder, modifiersByItem, loading, setStatus } = useCafeOrders(storeId);
+  const { byPhone: notesByPhone } = useCafeCustomerNotes(storeId);
   const [now, setNow] = useState(Date.now());
   const [soundOn, setSoundOn] = useState<boolean>(() => {
     try { return localStorage.getItem(SOUND_PREF_KEY) !== "0"; } catch { return true; }
@@ -152,9 +154,19 @@ export default function CafeKdsSection({ storeId }: Props) {
                       <Clock className="h-3 w-3" /> {age}m
                     </span>
                   </div>
-                  <div className="text-sm font-semibold">
-                    {o.customer_name || o.channel.replace("_", " ")}
+                  <div className="text-sm font-semibold flex items-center gap-1.5">
+                    <span className="truncate">{o.customer_name || o.channel.replace("_", " ")}</span>
+                    {o.customer_phone && notesByPhone.get(o.customer_phone)?.is_vip && (
+                      <span className="text-[10px] uppercase tracking-wider font-bold rounded px-1 py-0.5 bg-violet-500/15 text-violet-700 dark:text-violet-300 shrink-0">
+                        ★ VIP
+                      </span>
+                    )}
                   </div>
+                  {o.customer_phone && notesByPhone.get(o.customer_phone)?.notes && (
+                    <div className="rounded-md bg-amber-500/10 border border-amber-500/30 px-2 py-1 text-[11px] text-amber-900 dark:text-amber-100">
+                      📝 {notesByPhone.get(o.customer_phone)?.notes}
+                    </div>
+                  )}
                   {o.scheduled_for && (
                     <div className="rounded-md bg-violet-500/10 border border-violet-500/30 px-2 py-1 text-[11px] text-violet-700 dark:text-violet-300 flex items-center gap-1">
                       📅 Pickup {new Date(o.scheduled_for).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}

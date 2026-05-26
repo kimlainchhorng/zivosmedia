@@ -73,8 +73,16 @@ interface UseDealershipInventoryResult {
   saving: boolean;
   error: string | null;
   create: (draft: DealershipVehicleDraft) => Promise<DealershipVehicle | null>;
+  /** Bulk-insert multiple vehicles in a single round trip. Returns the
+   *  count actually inserted (0 if the request failed). */
+  createMany: (drafts: DealershipVehicleDraft[]) => Promise<number>;
   update: (id: string, patch: Partial<DealershipVehicleDraft>) => Promise<boolean>;
+  /** Apply the same patch to many vehicles in a single round trip. Returns
+   *  the number of rows actually updated (0 on failure). */
+  updateMany: (ids: string[], patch: Partial<DealershipVehicleDraft>) => Promise<number>;
   remove: (id: string) => Promise<boolean>;
+  /** Delete many vehicles in a single round trip. Returns count deleted. */
+  removeMany: (ids: string[]) => Promise<number>;
   refresh: () => Promise<void>;
 }
 
@@ -129,6 +137,27 @@ export function useDealershipInventory(storeId: string | undefined): UseDealersh
     return created;
   }, [storeId]);
 
+  const createMany = useCallback(async (drafts: DealershipVehicleDraft[]) => {
+    if (!storeId || drafts.length === 0) return 0;
+    setSaving(true); setError(null);
+    const payload = drafts.map((d) => ({ store_id: storeId, ...d }));
+    const { data, error: err } = await supabase
+      .from("car_dealership_vehicles")
+      .insert(payload as never)
+      .select("*");
+    if (err) {
+      console.error("[useDealershipInventory] createMany failed", err);
+      setError(err.message || "Bulk insert failed.");
+      setSaving(false);
+      return 0;
+    }
+    const created = (data ?? []) as unknown as DealershipVehicle[];
+    // Prepend in source order so the newest batch shows first.
+    setVehicles((prev) => [...created, ...prev]);
+    setSaving(false);
+    return created.length;
+  }, [storeId]);
+
   const update = useCallback(async (id: string, patch: Partial<DealershipVehicleDraft>) => {
     setSaving(true); setError(null);
     setVehicles((prev) => prev.map((v) => (v.id === id ? ({ ...v, ...patch } as DealershipVehicle) : v)));
@@ -145,6 +174,32 @@ export function useDealershipInventory(storeId: string | undefined): UseDealersh
     }
     setSaving(false);
     return true;
+  }, [load]);
+
+  const updateMany = useCallback(async (
+    ids: string[],
+    patch: Partial<DealershipVehicleDraft>,
+  ) => {
+    if (ids.length === 0) return 0;
+    setSaving(true); setError(null);
+    const idSet = new Set(ids);
+    // Optimistic local update
+    setVehicles((prev) => prev.map((v) =>
+      idSet.has(v.id) ? ({ ...v, ...patch } as DealershipVehicle) : v,
+    ));
+    const { error: err, count } = await supabase
+      .from("car_dealership_vehicles")
+      .update(patch as never, { count: "exact" })
+      .in("id", ids);
+    if (err) {
+      console.error("[useDealershipInventory] updateMany failed", err);
+      setError("Bulk update failed.");
+      setSaving(false);
+      void load(); // refetch to recover
+      return 0;
+    }
+    setSaving(false);
+    return count ?? ids.length;
   }, [load]);
 
   const remove = useCallback(async (id: string) => {
@@ -166,5 +221,26 @@ export function useDealershipInventory(storeId: string | undefined): UseDealersh
     return true;
   }, [vehicles]);
 
-  return { vehicles, loading, saving, error, create, update, remove, refresh: load };
+  const removeMany = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return 0;
+    setSaving(true); setError(null);
+    const snapshot = vehicles;
+    const idSet = new Set(ids);
+    setVehicles((p) => p.filter((v) => !idSet.has(v.id)));
+    const { error: err, count } = await supabase
+      .from("car_dealership_vehicles")
+      .delete({ count: "exact" })
+      .in("id", ids);
+    if (err) {
+      console.error("[useDealershipInventory] removeMany failed", err);
+      setError("Bulk delete failed.");
+      setVehicles(snapshot);
+      setSaving(false);
+      return 0;
+    }
+    setSaving(false);
+    return count ?? ids.length;
+  }, [vehicles]);
+
+  return { vehicles, loading, saving, error, create, createMany, update, updateMany, remove, removeMany, refresh: load };
 }

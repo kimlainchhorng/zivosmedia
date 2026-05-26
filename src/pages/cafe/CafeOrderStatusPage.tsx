@@ -12,13 +12,15 @@ import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   Coffee, Loader2, AlertCircle, CheckCircle2, ChefHat, Bell, ClipboardCheck,
-  Receipt as ReceiptIcon, Clock, Star,
+  Receipt as ReceiptIcon, Clock, Star, RefreshCcw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 
 interface StatusRow {
   id: string;
@@ -31,9 +33,9 @@ interface StatusRow {
   served_at: string | null;
   total_cents: number;
   est_minutes: number;
+  store_slug: string | null;
+  currency_code: string | null;
 }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const STEPS = [
   { key: "pending", label: "Placed", Icon: ClipboardCheck },
@@ -177,6 +179,26 @@ export default function CafeOrderStatusPage() {
                 ? `We'll bring it to Table ${data.table_label}.`
                 : "Pick it up at the counter."}
             </p>
+            {/* Phase 70: huge ticket number + scannable QR. Customer holds
+                phone up; barista verifies the ticket and can scan to open
+                the order in admin. */}
+            {!data.table_label && (
+              <>
+                <p className="mt-4 text-[10px] uppercase tracking-wider font-semibold text-emerald-700/70 dark:text-emerald-300/70">
+                  Show this at the counter
+                </p>
+                <p className="font-black text-emerald-700 dark:text-emerald-300 tabular-nums leading-none mt-1" style={{ fontSize: "5rem" }}>
+                  #{data.ticket_number}
+                </p>
+                <div className="mt-3 inline-block rounded-lg bg-white p-2 shadow-sm">
+                  <QRCodeSVG
+                    value={typeof window !== "undefined" ? window.location.href : data.id}
+                    size={128}
+                    level="M"
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -237,7 +259,7 @@ export default function CafeOrderStatusPage() {
               <Clock className="h-4 w-4" />
               <span>Placed {elapsed} min ago</span>
             </div>
-            <span className="font-semibold tabular-nums">{fmt(data.total_cents)}</span>
+            <span className="font-semibold tabular-nums">{formatCafeMoney(data.total_cents, data.currency_code ?? "USD")}</span>
           </CardContent>
           {!isCancelled
             && data.est_minutes > 0
@@ -272,6 +294,14 @@ export default function CafeOrderStatusPage() {
             </Button>
           )}
         </div>
+
+        {data.store_slug && !isCancelled && (
+          <Button asChild variant="secondary" className="w-full">
+            <a href={`/cafe/${data.store_slug}?reorder=${data.id}`}>
+              <RefreshCcw className="h-4 w-4 mr-1" /> Order again
+            </a>
+          </Button>
+        )}
 
         <p className="text-center text-[11px] text-muted-foreground">
           Updates every few seconds — no need to refresh.

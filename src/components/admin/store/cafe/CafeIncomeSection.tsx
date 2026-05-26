@@ -6,16 +6,19 @@ import { useMemo, useState } from "react";
 import { DollarSign, TrendingUp, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCafeAnalytics } from "@/hooks/cafe/useCafeAnalytics";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 
 interface Props { storeId: string }
 
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const CHANNEL_LABEL: Record<string, string> = {
   qr_table: "QR Table", counter: "Counter", pickup: "Pickup", delivery: "Delivery", phone: "Phone",
 };
 
 export default function CafeIncomeSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const [days, setDays] = useState<7 | 30 | 90>(30);
   const { dataset, loading } = useCafeAnalytics(storeId, days);
 

@@ -17,6 +17,7 @@ export interface CarRentalCustomer {
   driver_license_country: string | null;
   driver_license_expiry: string | null;
   driver_license_photo_url: string | null;
+  driver_license_photo_back_url: string | null;
   address: string | null;
   city: string | null;
   state: string | null;
@@ -40,12 +41,15 @@ export interface CarRentalCustomerDraft {
   driver_license_state?: string | null;
   driver_license_country?: string | null;
   driver_license_expiry?: string | null;
+  driver_license_photo_url?: string | null;
+  driver_license_photo_back_url?: string | null;
   address?: string | null;
   city?: string | null;
   state?: string | null;
   postal_code?: string | null;
   country?: string | null;
   notes?: string | null;
+  tags?: string[];
   is_blocked?: boolean;
 }
 
@@ -88,12 +92,15 @@ export function useCarRentalCustomers(storeId: string | undefined) {
       driver_license_state: draft.driver_license_state?.trim() || null,
       driver_license_country: draft.driver_license_country?.trim() || null,
       driver_license_expiry: draft.driver_license_expiry || null,
+      driver_license_photo_url: draft.driver_license_photo_url?.trim() || null,
+      driver_license_photo_back_url: draft.driver_license_photo_back_url?.trim() || null,
       address: draft.address?.trim() || null,
       city: draft.city?.trim() || null,
       state: draft.state?.trim() || null,
       postal_code: draft.postal_code?.trim() || null,
       country: draft.country?.trim() || null,
       notes: draft.notes?.trim() || null,
+      tags: draft.tags ?? [],
       is_blocked: draft.is_blocked ?? false,
     };
     const { data, error: err } = await supabase

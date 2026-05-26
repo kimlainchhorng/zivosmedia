@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCafeBaristas } from "@/hooks/cafe/useCafeBaristas";
 import { useCafeTimeClock, type CafeTimeEntry } from "@/hooks/cafe/useCafeTimeClock";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const fmtHrs = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -30,6 +30,8 @@ const startOfWeek = (d = new Date()) => {
 };
 
 export default function CafeTimeClockSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { baristas, loading: bLoading } = useCafeBaristas(storeId);
   const { entries, openByBarista, loading: tLoading, saving, clockIn, clockOut, removeEntry } = useCafeTimeClock(storeId);
   const [now, setNow] = useState(Date.now());

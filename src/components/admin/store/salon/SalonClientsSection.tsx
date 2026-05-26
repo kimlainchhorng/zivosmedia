@@ -46,6 +46,11 @@ const EMPTY_DRAFT: SalonClientDraft = {
   notes: "",
   preferred_stylist_id: null,
   is_blocked: false,
+  // Transactional defaults on (we assume the owner adding a client wants to
+  // be able to reach them); marketing defaults off (explicit opt-in required).
+  sms_opt_in: true,
+  email_opt_in: true,
+  marketing_opt_in: false,
 };
 
 const initialsOf = (name: string) => {
@@ -117,6 +122,9 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
       notes: c.notes ?? "",
       preferred_stylist_id: c.preferred_stylist_id,
       is_blocked: c.is_blocked,
+      sms_opt_in: c.sms_opt_in ?? true,
+      email_opt_in: c.email_opt_in ?? true,
+      marketing_opt_in: c.marketing_opt_in ?? false,
     });
     setDialogOpen(true);
   };
@@ -513,6 +521,44 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
                 maxLength={2000}
               />
               <p className="text-xs text-muted-foreground">Private — only visible to your team.</p>
+            </div>
+
+            {/* Communication preferences — drives whether the automated
+                reminders system can send to this client. Transactional channels
+                default on (we have their contact info); marketing requires
+                explicit opt-in (TCPA / CAN-SPAM). */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Reminders & contact</p>
+              <label className="flex items-start justify-between gap-3 rounded-xl border border-border p-3 cursor-pointer hover:border-primary/40">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Allow SMS reminders</p>
+                  <p className="text-xs text-muted-foreground">Booking reminders by text. Required for SMS marketing too.</p>
+                </div>
+                <Switch
+                  checked={draft.sms_opt_in}
+                  onCheckedChange={(v) => setDraft({ ...draft, sms_opt_in: v })}
+                />
+              </label>
+              <label className="flex items-start justify-between gap-3 rounded-xl border border-border p-3 cursor-pointer hover:border-primary/40">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Allow email reminders</p>
+                  <p className="text-xs text-muted-foreground">Booking reminders by email. Required for email marketing too.</p>
+                </div>
+                <Switch
+                  checked={draft.email_opt_in}
+                  onCheckedChange={(v) => setDraft({ ...draft, email_opt_in: v })}
+                />
+              </label>
+              <label className="flex items-start justify-between gap-3 rounded-xl border border-border p-3 cursor-pointer hover:border-primary/40">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Allow marketing offers</p>
+                  <p className="text-xs text-muted-foreground">Birthday + win-back offers. Off unless the client explicitly said yes.</p>
+                </div>
+                <Switch
+                  checked={draft.marketing_opt_in}
+                  onCheckedChange={(v) => setDraft({ ...draft, marketing_opt_in: v })}
+                />
+              </label>
             </div>
 
             <label className="flex items-start justify-between gap-3 rounded-xl border border-border p-3 cursor-pointer hover:border-primary/40">

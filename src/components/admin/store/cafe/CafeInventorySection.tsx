@@ -18,12 +18,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCafeInventory, type CafeInventoryItemDraft, type CafeMovementReason } from "@/hooks/cafe/useCafeInventory";
 import { useCafeStockVariance } from "@/hooks/cafe/useCafeStockVariance";
 import { useCafePurchasing } from "@/hooks/cafe/useCafePurchasing";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
 
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const fmtQty = (n: number, unit: string) => `${Number(n).toFixed(Number(n) % 1 === 0 ? 0 : 2)} ${unit}`;
 const UNITS = ["unit", "kg", "g", "L", "ml", "oz", "lb", "box", "case", "bottle"];
 
@@ -34,6 +35,8 @@ const blank = (): CafeInventoryItemDraft => ({
 });
 
 export default function CafeInventorySection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { items, movements, lowStockItems, loading, saving, createItem, updateItem, removeItem, recordMovement } = useCafeInventory(storeId);
   const { rows: varianceRows, totalCostLostCents } = useCafeStockVariance(storeId, 30);
   const { suppliers, createOrder: createPurchaseOrder, saving: purchasingSaving } = useCafePurchasing(storeId);

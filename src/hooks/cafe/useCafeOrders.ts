@@ -133,6 +133,10 @@ export interface UseCafeOrdersResult {
   addPayment: (orderId: string, input: { method: CafePayment["method"]; amount_cents: number; tip_cents?: number; reference?: string }) => Promise<void>;
   refundPayment: (paymentId: string, refundCents: number) => Promise<void>;
   removeOrderItem: (orderId: string, itemId: string) => Promise<{ ok: boolean; error?: string }>;
+  // Phase 71: line-level void/comp with audit trail. kind 'void' = item
+  // never made; 'comp' = item delivered free. Both reduce subtotal the
+  // same way via the recompute trigger.
+  voidOrderItem: (orderId: string, itemId: string, kind: "void" | "comp", reason: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const STATUS_TIMESTAMPS: Partial<Record<CafeOrderStatus, keyof CafeOrder>> = {
@@ -354,9 +358,29 @@ export function useCafeOrders(storeId: string | undefined): UseCafeOrdersResult 
     return { ok: true };
   }, [load]);
 
+  const voidOrderItem = useCallback<UseCafeOrdersResult["voidOrderItem"]>(async (orderId, itemId, kind, reason) => {
+    // Optimistic local drop, same as removeOrderItem — the RPC handles the
+    // audit insert + delete server-side.
+    setItemsByOrder((prev) => {
+      const arr = prev[orderId] ?? [];
+      return { ...prev, [orderId]: arr.filter((it) => it.id !== itemId) };
+    });
+    const { error: err } = await supabase.rpc("cafe_void_order_item" as never, {
+      p_order_item_id: itemId,
+      p_kind: kind,
+      p_reason: reason,
+    } as never);
+    if (err) {
+      console.error("[useCafeOrders] voidOrderItem", err);
+      await load();
+      return { ok: false, error: err.message ?? "Couldn't void item." };
+    }
+    return { ok: true };
+  }, [load]);
+
   return useMemo(() => ({
     orders, itemsByOrder, modifiersByItem, paymentsByOrder,
     loading, error, refresh: load,
-    createOrder, setStatus, cancelOrder, addPayment, refundPayment, removeOrderItem,
-  }), [orders, itemsByOrder, modifiersByItem, paymentsByOrder, loading, error, load, createOrder, setStatus, cancelOrder, addPayment, refundPayment, removeOrderItem]);
+    createOrder, setStatus, cancelOrder, addPayment, refundPayment, removeOrderItem, voidOrderItem,
+  }), [orders, itemsByOrder, modifiersByItem, paymentsByOrder, loading, error, load, createOrder, setStatus, cancelOrder, addPayment, refundPayment, removeOrderItem, voidOrderItem]);
 }

@@ -4,7 +4,7 @@
  * view + cancel. Backed by SECURITY DEFINER RPCs that scope what anon can do.
  */
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import {
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PublicBooking {
   id: string;
@@ -41,6 +42,21 @@ interface PublicBooking {
   source: string;
   cancelled_at: string | null;
   cancellation_window_hours: number;
+  /** Set by the booking-time sanitize trigger when the salon has Stripe
+   *  connected and a non-zero deposit_percent. Zero otherwise. */
+  deposit_cents: number;
+  /** Stamped by the Stripe webhook on a successful Checkout session. */
+  deposit_paid_cents: number;
+  /** Updated by the stripe-webhook charge.refunded handler when the owner
+   *  issues a manual refund. Drives the cancellation warning copy so we
+   *  don't tell the customer they'll forfeit money the owner already gave
+   *  back. */
+  deposit_refunded_cents: number;
+  /** Snapshot of the salon's no-show fee at booking-insert time. Used to
+   *  remind the customer on the confirmation view that their card may be
+   *  charged this amount if they don't show up. Zero means no policy
+   *  applies to this booking. */
+  no_show_fee_cents: number;
 }
 
 const STATUS_COPY: Record<string, { label: string; tone: string; description: string }> = {
@@ -57,7 +73,13 @@ const formatDateTime = (iso: string) =>
 
 export default function PublicSalonBookingDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
+  const [params] = useSearchParams();
+  // Optionally authenticated — drives the "go to your salon area" link.
+  const { user } = useAuth();
   const [booking, setBooking] = useState<PublicBooking | null>(null);
+  // Stripe return states: ?deposit=success or ?deposit=cancel
+  const depositReturn = params.get("deposit");
+  const [retryingDeposit, setRetryingDeposit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
@@ -100,6 +122,31 @@ export default function PublicSalonBookingDetailPage() {
     await load();
   };
 
+  // "Pay deposit now" — kicks off (or resumes) the Stripe Checkout session
+  // for this booking. Used when the customer landed back on this page after
+  // hitting Stripe's cancel button, or when they re-open the email link
+  // before paying.
+  const handlePayDeposit = async () => {
+    if (!booking) return;
+    setRetryingDeposit(true);
+    try {
+      const { data, error: err } = await supabase.functions.invoke("create-salon-deposit", {
+        body: { booking_id: booking.id },
+      });
+      if (err) throw err;
+      const url = (data as any)?.url as string | undefined;
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error("Stripe didn't return a payment URL.");
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Couldn't start the deposit.");
+    } finally {
+      setRetryingDeposit(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-background">
@@ -131,9 +178,19 @@ export default function PublicSalonBookingDetailPage() {
     <div className="min-h-screen bg-background">
       <Helmet><title>Your booking · {booking.store_name}</title></Helmet>
       <div className="mx-auto max-w-md px-4 py-10 sm:py-14">
-        <Link to={`/salon/${booking.store_slug}`} className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-3 w-3" /> Back to {booking.store_name}
-        </Link>
+        <div className="mb-4 flex items-center justify-between gap-3 text-xs">
+          <Link to={`/salon/${booking.store_slug}`} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-3 w-3" /> Back to {booking.store_name}
+          </Link>
+          {/* Authenticated viewers get a one-tap shortcut to /salon/me so they
+              can see all their visits, not just this one. RLS guarantees they
+              only land on this page for bookings tied to their account. */}
+          {user && (
+            <Link to="/salon/me" className="inline-flex items-center gap-1 text-primary hover:underline">
+              Your salon area <ArrowLeft className="h-3 w-3 rotate-180" />
+            </Link>
+          )}
+        </div>
 
         <Card className="rounded-2xl border-border/60">
           <CardHeader>
@@ -142,6 +199,22 @@ export default function PublicSalonBookingDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Stripe return banners — show once after the customer comes back
+                from Checkout. Success banner is informational; cancel banner
+                offers the customer a one-tap retry via "Pay deposit now". */}
+            {depositReturn === "success" && booking.deposit_paid_cents > 0 && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-3 text-sm text-emerald-800 dark:text-emerald-200">
+                <CheckCircle2 className="-mt-0.5 mr-1 inline h-4 w-4" />
+                Deposit of {formatPrice(booking.deposit_paid_cents)} paid. Your booking is confirmed.
+              </div>
+            )}
+            {depositReturn === "cancel" && booking.deposit_cents > 0 && booking.deposit_paid_cents === 0 && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/8 p-3 text-sm text-amber-800 dark:text-amber-200">
+                <AlertCircle className="-mt-0.5 mr-1 inline h-4 w-4" />
+                Payment cancelled — no charge yet. Your booking is held as pending; pay the deposit when you're ready.
+              </div>
+            )}
+
             <div className={cn("rounded-xl border p-4", meta.tone)}>
               <div className="flex items-center gap-2">
                 {booking.status === "completed" ? <CheckCircle2 className="h-5 w-5" /> :
@@ -151,6 +224,53 @@ export default function PublicSalonBookingDetailPage() {
               </div>
               <p className="mt-1 text-xs">{meta.description}</p>
             </div>
+
+            {/* Unpaid deposit prompt — the booking is pending until the
+                customer settles the deposit. */}
+            {booking.deposit_cents > 0
+             && booking.deposit_paid_cents === 0
+             && (booking.status === "pending" || booking.status === "confirmed")
+             && (
+              <div className="rounded-xl border border-primary/40 bg-primary/8 p-3">
+                <p className="text-sm font-semibold text-foreground">Deposit due: {formatPrice(booking.deposit_cents)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Pay the deposit now to confirm this booking.
+                </p>
+                <Button
+                  onClick={() => void handlePayDeposit()}
+                  disabled={retryingDeposit}
+                  className="mt-2 gap-1.5"
+                  size="sm"
+                >
+                  {retryingDeposit ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
+                  Pay deposit now
+                </Button>
+              </div>
+            )}
+
+            {/* Already-paid deposit acknowledgement — informational. */}
+            {booking.deposit_paid_cents > 0 && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-emerald-800 dark:text-emerald-200">
+                <CheckCircle2 className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                Deposit paid: {formatPrice(booking.deposit_paid_cents)}
+              </div>
+            )}
+
+            {/* No-show fee reminder — courtesy reminder only; consent was
+                captured up front at booking time via the cancellation-policy
+                disclosure on PublicSalonBookingPage. Show only while the
+                booking is in a state where a charge could still happen
+                (i.e., not cancelled/completed and the fee isn't already
+                charged). */}
+            {booking.no_show_fee_cents > 0
+              && booking.status !== "cancelled"
+              && booking.status !== "completed"
+              && booking.deposit_paid_cents > 0 && (
+              <div className="rounded-xl border border-dashed border-amber-300/60 bg-amber-50/50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                No-show fee: {formatPrice(booking.no_show_fee_cents)} may be charged to your card if you don't show up.
+              </div>
+            )}
 
             <div className="space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
               <p className="text-base font-bold text-foreground">{booking.service_name}</p>
@@ -239,6 +359,28 @@ export default function PublicSalonBookingDetailPage() {
               We'll let {booking.store_name} know. If you change your mind, you can book again.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {/* Non-refundable deposit warning. The platform never auto-refunds
+              deposits on cancel — they're a reservation fee. Surface this up
+              front so the customer doesn't expect a refund and dispute the
+              charge later. Only show when there's a real unrecovered amount
+              (paid minus already-refunded > 0). */}
+          {booking.deposit_paid_cents > 0
+            && (booking.deposit_paid_cents - (booking.deposit_refunded_cents ?? 0)) > 0 && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">
+                    Your {formatPrice(booking.deposit_paid_cents - (booking.deposit_refunded_cents ?? 0))} deposit is non-refundable.
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed">
+                    Cancelling won't return your deposit automatically. If you have a
+                    question about your deposit, please contact {booking.store_name} directly.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={cancelling}>Keep booking</AlertDialogCancel>
             <AlertDialogAction

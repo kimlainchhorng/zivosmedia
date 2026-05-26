@@ -203,6 +203,7 @@ const quickLinksMain: QuickLink[] = [
   { icon: ScrollText, label: "Subscriptions", href: "/account/subscriptions", description: "Plans & renewals", accent: "hsl(263 70% 58%)" },
   { icon: BadgeCheck, label: "Verification", href: "/account/verification", description: "Get verified", accent: "hsl(221 83% 53%)" },
   { icon: Calendar, label: "Bookings", href: "/booking-management", description: "Manage all", accent: "hsl(199 89% 48%)" },
+  { icon: Sparkles, label: "Salon visits", href: "/salon/me", description: "Visits & loyalty", accent: "hsl(340 75% 55%)" },
   { icon: Ticket, label: "Gift Cards", href: "/account/gift-cards", description: "Buy & redeem", accent: "hsl(340 75% 55%)" },
   { icon: FileText, label: "Invoices", href: "/account/invoices", description: "Tax invoices", accent: "hsl(215 16% 47%)" },
   { icon: Tag, label: "Promo Codes", href: "/account/promos", description: "Active offers", accent: "hsl(0 84% 60%)", badge: "Save" },

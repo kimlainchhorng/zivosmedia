@@ -769,6 +769,81 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
               }
             }
           }
+        } else if (metadata.type === "salon_deposit") {
+          // Salon booking deposit collected at booking time. Idempotent via
+          // the booking's deposit_paid_cents > 0 short-circuit — Stripe retries
+          // the webhook on transient failures. We also save the Stripe
+          // Customer + PaymentMethod off-session so a no-show fee can later
+          // be charged via charge-salon-no-show-fee. card_brand/last4 are
+          // denormalized so the owner UI's confirm dialog can show
+          // "Visa ••4242" without an extra Stripe roundtrip.
+          const bookingId = metadata.salon_booking_id as string | undefined;
+          if (!bookingId) {
+            console.warn("[Webhook] salon_deposit missing booking id", { session: session.id });
+          } else if (session.payment_status !== "paid") {
+            console.log("[Webhook] salon_deposit session not yet paid:", session.id);
+          } else {
+            const { data: existing } = await supabase
+              .from("salon_bookings")
+              .select("id, status, deposit_paid_cents")
+              .eq("id", bookingId)
+              .maybeSingle();
+            if (!existing) {
+              console.warn("[Webhook] salon_deposit booking not found", { booking: bookingId });
+            } else if ((existing as any).deposit_paid_cents > 0) {
+              // Idempotent: already credited.
+              console.log("[Webhook] salon_deposit already credited", { booking: bookingId });
+            } else {
+              const amount = session.amount_total ?? 0;
+              const sessionPiId = typeof session.payment_intent === "string"
+                ? session.payment_intent
+                : (session.payment_intent as any)?.id ?? null;
+              const sessionCustomerId = typeof session.customer === "string"
+                ? session.customer
+                : (session.customer as any)?.id ?? null;
+
+              // Best-effort: fetch the PaymentIntent → PaymentMethod to capture
+              // the card brand/last4. Wrapped in try so a Stripe blip doesn't
+              // block the booking confirmation; the no-show flow tolerates
+              // missing card_brand (UI falls back to "card on file").
+              let paymentMethodId: string | null = null;
+              let cardBrand: string | null = null;
+              let cardLast4: string | null = null;
+              if (sessionPiId) {
+                try {
+                  const pi = await stripe.paymentIntents.retrieve(sessionPiId);
+                  paymentMethodId = typeof pi.payment_method === "string"
+                    ? pi.payment_method
+                    : (pi.payment_method as any)?.id ?? null;
+                  if (paymentMethodId) {
+                    const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+                    if (pm.card) {
+                      cardBrand = pm.card.brand ?? null;
+                      cardLast4 = pm.card.last4 ?? null;
+                    }
+                  }
+                } catch (pmErr) {
+                  console.warn("[Webhook] salon_deposit PM fetch failed (non-fatal)", pmErr);
+                }
+              }
+
+              await supabase
+                .from("salon_bookings")
+                .update({
+                  deposit_paid_cents: amount,
+                  deposit_paid_at: new Date().toISOString(),
+                  stripe_payment_intent_id: sessionPiId,
+                  stripe_customer_id: sessionCustomerId,
+                  stripe_payment_method_id: paymentMethodId,
+                  card_brand: cardBrand,
+                  card_last_four: cardLast4,
+                  status: "confirmed",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", bookingId);
+              console.log("[Webhook] salon_deposit credited", { booking: bookingId, amount, hasCard: !!paymentMethodId });
+            }
+          }
         }
         // ──── Record 2% platform fee ────
         const merchantId = metadata.merchant_id || metadata.restaurant_id || metadata.store_id || null;
@@ -892,6 +967,25 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
           } catch (capiErr) {
             console.error("[Webhook] Meta CAPI trigger failed:", capiErr);
           }
+        }
+        break;
+      }
+
+      case "checkout.session.expired": {
+        // Customer abandoned the Checkout flow. Currently only the salon
+        // deposit flow cares — clear the stored session_id so a retry mints
+        // a fresh session. Other domains don't track session_id on the row.
+        const session = event.data.object as Stripe.Checkout.Session;
+        const metadata = session.metadata ?? {};
+        if (metadata.type === "salon_deposit" && metadata.salon_booking_id) {
+          await supabase
+            .from("salon_bookings")
+            .update({
+              stripe_checkout_session_id: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", metadata.salon_booking_id)
+            .eq("stripe_checkout_session_id", session.id); // only clear if still ours
         }
         break;
       }
@@ -1081,6 +1175,99 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             }
           }
         }
+
+        // ──── Salon no-show fee succeeded ────
+        // Mirrors the salon_deposit credit pattern. The owner triggered this
+        // charge from charge-salon-no-show-fee; the webhook finalizes the
+        // booking row + records the 2% platform fee. Idempotent via the
+        // no_show_fee_charged_cents > 0 short-circuit.
+        if (paymentIntent.metadata?.type === "salon_no_show") {
+          const noShowBookingId = paymentIntent.metadata.salon_booking_id as string | undefined;
+          if (noShowBookingId) {
+            const { data: existingNoShow } = await supabase
+              .from("salon_bookings")
+              .select("id, no_show_fee_charged_cents")
+              .eq("id", noShowBookingId)
+              .maybeSingle();
+            if (!existingNoShow) {
+              console.warn("[Webhook] salon_no_show booking not found", { booking: noShowBookingId });
+            } else if (((existingNoShow as any).no_show_fee_charged_cents ?? 0) > 0) {
+              console.log("[Webhook] salon_no_show already credited", { booking: noShowBookingId });
+            } else {
+              const amount = paymentIntent.amount_received || paymentIntent.amount || 0;
+              await supabase
+                .from("salon_bookings")
+                .update({
+                  no_show_fee_charged_cents: amount,
+                  no_show_fee_payment_intent_id: paymentIntent.id,
+                  // Clear any prior failure state — a successful retry
+                  // shouldn't leave the red "Charge failed" badge up.
+                  no_show_fee_charge_failed_at: null,
+                  no_show_fee_charge_failed_reason: null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", noShowBookingId);
+              console.log("[Webhook] salon_no_show credited", { booking: noShowBookingId, amount });
+
+              // 2% platform fee ledger (mirrors the salon_deposit pattern at
+              // checkout.session.completed). storeId comes from PI metadata.
+              const storeId = paymentIntent.metadata.store_id || null;
+              if (amount > 0) {
+                try {
+                  const feePct = 2.00;
+                  let waived = false;
+                  let waiverId: string | null = null;
+                  if (storeId) {
+                    const { data: waiver } = await supabase
+                      .from("merchant_fee_waivers")
+                      .select("id, waiver_pct")
+                      .eq("store_id", storeId)
+                      .gte("expires_at", new Date().toISOString())
+                      .lte("starts_at", new Date().toISOString())
+                      .order("waiver_pct", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    if (waiver && (waiver as any).waiver_pct >= 100) {
+                      waived = true;
+                      waiverId = (waiver as any).id;
+                    }
+                  }
+                  const feeAmountCents = waived ? 0 : Math.round(amount * feePct / 100);
+                  await supabase.from("platform_fee_ledger").insert({
+                    order_type: "salon_no_show",
+                    order_id: paymentIntent.id,
+                    merchant_id: storeId,
+                    gross_amount_cents: amount,
+                    fee_pct: waived ? 0 : feePct,
+                    fee_amount_cents: feeAmountCents,
+                    waived,
+                    waiver_id: waiverId,
+                  });
+                  if (feeAmountCents > 0) {
+                    await supabase.from("admin_wallet_ledger").upsert(
+                      {
+                        source_type: "platform_fee",
+                        source_id: paymentIntent.id,
+                        transaction_id: paymentIntent.id,
+                        amount_cents: feeAmountCents,
+                        currency: (paymentIntent.currency ?? "usd").toUpperCase(),
+                        metadata: {
+                          order_type: "salon_no_show",
+                          merchant_id: storeId,
+                          gross_amount_cents: amount,
+                          fee_pct: feePct,
+                        },
+                      },
+                      { onConflict: "transaction_id,source_type,source_id" }
+                    );
+                  }
+                } catch (feeErr) {
+                  console.error("[Webhook] salon_no_show platform fee recording failed:", feeErr);
+                }
+              }
+            }
+          }
+        }
         break;
       }
 
@@ -1138,6 +1325,29 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             message: `Payment failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
             severity: 'high',
           });
+        }
+
+        // ──── Salon no-show fee failed (e.g., card declined off-session) ────
+        // The edge function persists the same fields synchronously on a
+        // catch — the webhook is the async safety net for cases where the
+        // PI authorization succeeded then later flipped to requires_action
+        // / requires_payment_method.
+        if (paymentIntent.metadata?.type === "salon_no_show") {
+          const noShowBookingId = paymentIntent.metadata.salon_booking_id as string | undefined;
+          if (noShowBookingId) {
+            const reason = paymentIntent.last_payment_error?.message
+              || paymentIntent.last_payment_error?.code
+              || "unknown";
+            await supabase
+              .from("salon_bookings")
+              .update({
+                no_show_fee_charge_failed_at: new Date().toISOString(),
+                no_show_fee_charge_failed_reason: reason,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", noShowBookingId);
+            console.log("[Webhook] salon_no_show charge failed", { booking: noShowBookingId, reason });
+          }
         }
         break;
       }
@@ -1222,6 +1432,31 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
               metadata: { refund_id: charge.refunds?.data?.[0]?.id },
             });
           }
+
+          // Salon booking deposit refunds — the owner can refund the deposit
+          // manually from Stripe's dashboard; our DB stays in sync via this
+          // webhook. amount_refunded is the cumulative refund across all
+          // refund events on the charge, so we always overwrite (not increment).
+          await supabase
+            .from("salon_bookings")
+            .update({
+              deposit_refunded_cents: charge.amount_refunded,
+              deposit_refunded_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("stripe_payment_intent_id", paymentIntentId);
+
+          // Salon no-show fee refunds — same pattern, different column. The
+          // no-show charge lives on a separate PI (created off-session by
+          // charge-salon-no-show-fee) so we key off no_show_fee_payment_intent_id.
+          await supabase
+            .from("salon_bookings")
+            .update({
+              no_show_fee_refunded_cents: charge.amount_refunded,
+              no_show_fee_refunded_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("no_show_fee_payment_intent_id", paymentIntentId);
         }
         break;
       }

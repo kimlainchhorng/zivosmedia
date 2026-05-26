@@ -18,13 +18,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCafeMenu, type CafeCategoryDraft, type CafeMenuItemDraft } from "@/hooks/cafe/useCafeMenu";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
+import CafeBundlesCard from "./CafeBundlesCard";
 import { uploadStoreAsset } from "@/pages/admin/utils/uploadStoreAsset";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const blankCategory = (): CafeCategoryDraft => ({
   name: "", description: null, image_url: null, is_active: true,
@@ -37,6 +38,8 @@ const blankItem = (categoryId: string | null): CafeMenuItemDraft => ({
   image_url: null, is_active: true, is_featured: false,
   tags: [],
   is_vegetarian: false, is_vegan: false, is_gluten_free: false,
+  allergens: null,
+  happy_hour_price_cents: null, happy_hour_start: null, happy_hour_end: null,
   caffeine_mg: null, calories: null,
 });
 
@@ -158,6 +161,8 @@ function parseMenuCsv(text: string, existingNamesByCat: Map<string, Set<string>>
 }
 
 export default function CafeMenuSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const menu = useCafeMenu(storeId);
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [catDraft, setCatDraft] = useState<CafeCategoryDraft>(blankCategory());
@@ -376,7 +381,11 @@ export default function CafeMenuSection({ storeId }: Props) {
       price_cents: item.price_cents, cost_cents: item.cost_cents, prep_minutes: item.prep_minutes,
       image_url: item.image_url, is_active: item.is_active, is_featured: item.is_featured,
       tags: item.tags, is_vegetarian: item.is_vegetarian, is_vegan: item.is_vegan,
-      is_gluten_free: item.is_gluten_free, caffeine_mg: item.caffeine_mg, calories: item.calories,
+      is_gluten_free: item.is_gluten_free, allergens: item.allergens,
+      happy_hour_price_cents: item.happy_hour_price_cents,
+      happy_hour_start: item.happy_hour_start,
+      happy_hour_end: item.happy_hour_end,
+      caffeine_mg: item.caffeine_mg, calories: item.calories,
     });
     setItemDialogOpen(true);
   };
@@ -629,6 +638,8 @@ export default function CafeMenuSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
 
+      <CafeBundlesCard storeId={storeId} />
+
       {/* Item dialog */}
       <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
         <DialogContent className="max-w-2xl">
@@ -730,6 +741,74 @@ export default function CafeMenuSection({ storeId }: Props) {
                 <span className="text-sm">Gluten-free</span>
                 <Switch checked={itemDraft.is_gluten_free} onCheckedChange={(v) => setItemDraft({ ...itemDraft, is_gluten_free: v })} />
               </label>
+            </div>
+            <div>
+              <Label htmlFor="allergens" className="text-sm">Allergens</Label>
+              <Input
+                id="allergens"
+                value={itemDraft.allergens ?? ""}
+                onChange={(e) => setItemDraft({ ...itemDraft, allergens: e.target.value })}
+                placeholder="e.g. peanuts, dairy, sesame"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Comma-separated. Shown to customers as ⚠ Contains: … on the order page.
+              </p>
+            </div>
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Happy hour pricing</Label>
+                <p className="text-[11px] text-muted-foreground">All three fields required</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-[11px]">Price ($)</Label>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    value={itemDraft.happy_hour_price_cents == null ? "" : (itemDraft.happy_hour_price_cents / 100).toString()}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setItemDraft({
+                        ...itemDraft,
+                        happy_hour_price_cents: v === "" ? null : Math.max(0, Math.round(parseFloat(v || "0") * 100)),
+                      });
+                    }}
+                    placeholder="3.00"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px]">Start hour (0–23)</Label>
+                  <Input
+                    type="number" min="0" max="23"
+                    value={itemDraft.happy_hour_start ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setItemDraft({
+                        ...itemDraft,
+                        happy_hour_start: v === "" ? null : Math.max(0, Math.min(23, parseInt(v, 10) || 0)),
+                      });
+                    }}
+                    placeholder="15"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px]">End hour (0–23)</Label>
+                  <Input
+                    type="number" min="0" max="23"
+                    value={itemDraft.happy_hour_end ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setItemDraft({
+                        ...itemDraft,
+                        happy_hour_end: v === "" ? null : Math.max(0, Math.min(23, parseInt(v, 10) || 0)),
+                      });
+                    }}
+                    placeholder="17"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                End hour is exclusive. 15→17 means 3pm–4:59pm. End before start (e.g. 22→2) wraps past midnight.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex items-center justify-between rounded-lg border border-border p-2">

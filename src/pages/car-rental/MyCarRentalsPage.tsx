@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { formatMoneyWith } from "@/lib/car-rental/money";
 
 interface Reservation {
   id: string;
@@ -41,13 +42,13 @@ interface StoreMini {
   logo_url: string | null;
 }
 
-const formatMoney = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export default function MyCarRentalsPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [stores, setStores] = useState<Map<string, StoreMini>>(new Map());
+  const [currencyMap, setCurrencyMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lookupCode, setLookupCode] = useState("");
@@ -96,15 +97,20 @@ export default function MyCarRentalsPage() {
 
       const storeIds = Array.from(new Set(rs.map((r) => r.store_id)));
       if (storeIds.length > 0) {
-        const { data: storeRows } = await supabase
-          .from("store_profiles")
-          .select("id, name, slug, logo_url")
-          .in("id", storeIds);
+        const [storeRowsR, settingsR] = await Promise.all([
+          supabase.from("store_profiles").select("id, name, slug, logo_url").in("id", storeIds),
+          supabase.from("car_rental_store_settings").select("store_id, currency_code").in("store_id", storeIds),
+        ]);
         const map = new Map<string, StoreMini>();
-        for (const s of (storeRows ?? []) as any[]) {
+        for (const s of (storeRowsR.data ?? []) as any[]) {
           map.set(s.id, { id: s.id, name: s.name, slug: s.slug, logo_url: s.logo_url });
         }
         setStores(map);
+        const cmap = new Map<string, string>();
+        for (const s of (settingsR.data ?? []) as any[]) {
+          cmap.set(s.store_id, (s.currency_code ?? "USD").toUpperCase());
+        }
+        setCurrencyMap(cmap);
       }
       setLoading(false);
     })();
@@ -201,10 +207,10 @@ export default function MyCarRentalsPage() {
           </CardContent>
         </Card>
 
-        <Group title="Active rentals" reservations={groups.active} stores={stores} highlight />
-        <Group title="Upcoming" reservations={groups.upcoming} stores={stores} />
-        <Group title="Past" reservations={groups.past} stores={stores} />
-        <Group title="Cancelled" reservations={groups.cancelled} stores={stores} muted />
+        <Group title="Active rentals" reservations={groups.active} stores={stores} currencyMap={currencyMap} highlight />
+        <Group title="Upcoming" reservations={groups.upcoming} stores={stores} currencyMap={currencyMap} />
+        <Group title="Past" reservations={groups.past} stores={stores} currencyMap={currencyMap} />
+        <Group title="Cancelled" reservations={groups.cancelled} stores={stores} currencyMap={currencyMap} muted />
 
         {reservations.length === 0 && (
           <Card className="rounded-2xl border-dashed border-border">
@@ -222,10 +228,11 @@ export default function MyCarRentalsPage() {
   );
 }
 
-function Group({ title, reservations, stores, highlight, muted }: {
+function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
   title: string;
   reservations: Reservation[];
   stores: Map<string, StoreMini>;
+  currencyMap: Map<string, string>;
   highlight?: boolean;
   muted?: boolean;
 }) {
@@ -277,7 +284,7 @@ function Group({ title, reservations, stores, highlight, muted }: {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">{formatMoney(r.total_cents)}</p>
+                    <p className="text-sm font-bold text-foreground">{formatMoneyWith(r.total_cents, currencyMap.get(r.store_id) ?? "USD")}</p>
                     <p className="mt-1 text-[11px] text-primary inline-flex items-center gap-0.5">
                       View <ExternalLink className="h-3 w-3" />
                     </p>

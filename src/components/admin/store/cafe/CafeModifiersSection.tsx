@@ -13,15 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCafeMenu, type CafeModifierGroupDraft, type CafeModifierDraft } from "@/hooks/cafe/useCafeMenu";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmtDelta = (cents: number) => {
-  if (cents === 0) return "—";
-  const sign = cents > 0 ? "+" : "−";
-  return `${sign}$${(Math.abs(cents) / 100).toFixed(2)}`;
-};
 
 const blankGroup = (): CafeModifierGroupDraft => ({
   name: "", description: null, selection_type: "single",
@@ -33,6 +29,12 @@ const blankMod = (): CafeModifierDraft => ({
 });
 
 export default function CafeModifiersSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmtDelta = (cents: number) => {
+    if (cents === 0) return "—";
+    const sign = cents > 0 ? "+" : "−";
+    return `${sign}${formatCafeMoney(Math.abs(cents), currencyCode)}`;
+  };
   const menu = useCafeMenu(storeId);
   const [groupDialog, setGroupDialog] = useState(false);
   const [groupDraft, setGroupDraft] = useState<CafeModifierGroupDraft>(blankGroup());

@@ -3,7 +3,7 @@
  */
 import { useMemo, useState } from "react";
 import {
-  Users, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, Search, ShieldOff, Eye,
+  Users, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, Search, ShieldOff, Eye, Download, ArrowUpDown,
 } from "lucide-react";
 import CarRentalCustomerDetailDialog from "./CarRentalCustomerDetailDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,11 +12,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { useCarRentalCustomers, type CarRentalCustomer, type CarRentalCustomerDraft } from "@/hooks/car-rental/useCarRentalCustomers";
 import { cn } from "@/lib/utils";
+import { getLoyaltyTier } from "@/lib/car-rental/loyalty";
+import { toast } from "sonner";
+
+type SortKey = "recent_rental" | "most_rentals" | "alphabetical" | "recently_added";
+
+// RFC 4180 cell escaping for CSV export.
+function csvEsc(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
 
 interface Props { storeId: string }
 
@@ -29,34 +41,116 @@ const EMPTY: CarRentalCustomerDraft = {
   driver_license_state: "",
   driver_license_country: "",
   driver_license_expiry: "",
+  driver_license_photo_url: "",
+  driver_license_photo_back_url: "",
   address: "",
   city: "",
   state: "",
   postal_code: "",
   country: "",
   notes: "",
+  tags: [],
   is_blocked: false,
 };
+
+const TAG_PRESETS = ["VIP", "Frequent", "Corporate", "Verified", "Caution", "First-time"];
 
 export default function CarRentalCustomersSection({ storeId }: Props) {
   const { customers, loading, saving, error, create, update, remove } = useCarRentalCustomers(storeId);
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("recent_rental");
+  const [tagFilter, setTagFilter] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CarRentalCustomer | null>(null);
   const [draft, setDraft] = useState<CarRentalCustomerDraft>(EMPTY);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [detailCustomer, setDetailCustomer] = useState<CarRentalCustomer | null>(null);
 
+  // Deduped set of all tags currently in use (for the filter chip row).
+  const tagSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) for (const t of (c.tags ?? [])) s.add(t);
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [customers]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return customers;
-    return customers.filter((c) =>
-      c.display_name.toLowerCase().includes(q)
-      || (c.email?.toLowerCase() ?? "").includes(q)
-      || (c.phone ?? "").includes(q)
-      || (c.driver_license_number ?? "").toLowerCase().includes(q)
-    );
-  }, [customers, search]);
+    let list = customers;
+    if (q) {
+      list = list.filter((c) =>
+        c.display_name.toLowerCase().includes(q)
+        || (c.email?.toLowerCase() ?? "").includes(q)
+        || (c.phone ?? "").includes(q)
+        || (c.driver_license_number ?? "").toLowerCase().includes(q)
+      );
+    }
+    if (tagFilter.size > 0) {
+      list = list.filter((c) => (c.tags ?? []).some((t) => tagFilter.has(t)));
+    }
+    // Sort — produces a stable list independent of fetch order.
+    const sorted = [...list];
+    switch (sortKey) {
+      case "most_rentals":
+        sorted.sort((a, b) => b.total_rentals - a.total_rentals || a.display_name.localeCompare(b.display_name));
+        break;
+      case "alphabetical":
+        sorted.sort((a, b) => a.display_name.localeCompare(b.display_name));
+        break;
+      case "recently_added":
+        sorted.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+        break;
+      case "recent_rental":
+      default:
+        sorted.sort((a, b) => {
+          const av = a.last_rental_at ?? "";
+          const bv = b.last_rental_at ?? "";
+          if (av === bv) return a.display_name.localeCompare(b.display_name);
+          return bv.localeCompare(av);
+        });
+        break;
+    }
+    return sorted;
+  }, [customers, search, tagFilter, sortKey]);
+
+  const exportCsv = () => {
+    const headers = [
+      "Name", "Email", "Phone", "Driver License", "License Expiry", "Address",
+      "City", "State", "Postal", "Country", "Tags", "Total Rentals", "Last Rental",
+      "Blocked", "Notes",
+    ];
+    const lines = [headers.map(csvEsc).join(",")];
+    for (const c of filtered) {
+      lines.push([
+        csvEsc(c.display_name),
+        csvEsc(c.email),
+        csvEsc(c.phone),
+        csvEsc(c.driver_license_number),
+        csvEsc(c.driver_license_expiry),
+        csvEsc(c.address),
+        csvEsc(c.city),
+        csvEsc(c.state),
+        csvEsc(c.postal_code),
+        csvEsc(c.country),
+        csvEsc((c.tags ?? []).join("; ")),
+        csvEsc(c.total_rentals),
+        csvEsc(c.last_rental_at),
+        csvEsc(c.is_blocked ? "yes" : "no"),
+        csvEsc(c.notes),
+      ].join(","));
+    }
+    // Prepend UTF-8 BOM so Excel auto-detects encoding for non-ASCII names.
+    const content = "﻿" + lines.join("\r\n");
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `renters-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filtered.length} renter${filtered.length === 1 ? "" : "s"}`);
+  };
 
   const openCreate = () => { setEditing(null); setDraft(EMPTY); setDialogOpen(true); };
   const openEdit = (c: CarRentalCustomer) => {
@@ -66,8 +160,10 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
       date_of_birth: c.date_of_birth, driver_license_number: c.driver_license_number,
       driver_license_state: c.driver_license_state, driver_license_country: c.driver_license_country,
       driver_license_expiry: c.driver_license_expiry,
+      driver_license_photo_url: c.driver_license_photo_url,
+      driver_license_photo_back_url: c.driver_license_photo_back_url,
       address: c.address, city: c.city, state: c.state, postal_code: c.postal_code, country: c.country,
-      notes: c.notes, is_blocked: c.is_blocked,
+      notes: c.notes, tags: c.tags ?? [], is_blocked: c.is_blocked,
     });
     setDialogOpen(true);
   };
@@ -89,9 +185,14 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
               {customers.length}
             </span>
           </CardTitle>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-1 h-4 w-4" /> Add renter
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0} title="Export current view as CSV">
+              <Download className="mr-1 h-4 w-4" /> Export CSV
+            </Button>
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-1 h-4 w-4" /> Add renter
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -99,10 +200,55 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
               <AlertTriangle className="h-4 w-4" /> {error}
             </div>
           )}
-          <div className="mb-3 relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Search by name, phone, email, or license…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Search by name, phone, email, or license…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+              <SelectTrigger className="h-9 w-44">
+                <ArrowUpDown className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent_rental">Most recent rental</SelectItem>
+                <SelectItem value="most_rentals">Most rentals</SelectItem>
+                <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                <SelectItem value="recently_added">Recently added</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          {tagSet.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">Tags:</span>
+              {tagSet.map((t) => {
+                const active = tagFilter.has(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTagFilter((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(t)) next.delete(t);
+                      else next.add(t);
+                      return next;
+                    })}
+                    className={cn(
+                      "rounded-full px-2.5 py-0.5 text-[11px] font-semibold border transition-colors",
+                      active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+              {tagFilter.size > 0 && (
+                <button type="button" onClick={() => setTagFilter(new Set())} className="text-[11px] underline text-muted-foreground hover:text-foreground">
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading…
@@ -120,8 +266,17 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
                     {c.display_name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="truncate text-sm font-semibold text-foreground">{c.display_name}</p>
+                      {(() => {
+                        const t = getLoyaltyTier(c.total_rentals);
+                        if (t.tier === "none") return null;
+                        return (
+                          <span className={cn("inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", t.className)}>
+                            <span aria-hidden>{t.emoji}</span> {t.label}
+                          </span>
+                        );
+                      })()}
                       {c.is_blocked && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive">
                           <ShieldOff className="h-3 w-3" /> Blocked
@@ -184,6 +339,18 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
             <Field label="License expiry">
               <Input type="date" value={draft.driver_license_expiry ?? ""} onChange={(e) => setDraft({ ...draft, driver_license_expiry: e.target.value })} />
             </Field>
+            <Field label="License photo (front)" className="sm:col-span-2">
+              <Input value={draft.driver_license_photo_url ?? ""} onChange={(e) => setDraft({ ...draft, driver_license_photo_url: e.target.value || null })} placeholder="https://example.com/front.jpg" />
+              {draft.driver_license_photo_url && (
+                <img src={draft.driver_license_photo_url} alt="" className="mt-1 h-28 w-full rounded border border-border object-contain bg-muted/20" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+              )}
+            </Field>
+            <Field label="License photo (back)" className="sm:col-span-2">
+              <Input value={draft.driver_license_photo_back_url ?? ""} onChange={(e) => setDraft({ ...draft, driver_license_photo_back_url: e.target.value || null })} placeholder="https://example.com/back.jpg" />
+              {draft.driver_license_photo_back_url && (
+                <img src={draft.driver_license_photo_back_url} alt="" className="mt-1 h-28 w-full rounded border border-border object-contain bg-muted/20" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+              )}
+            </Field>
             <Field label="Address" className="sm:col-span-2">
               <Input value={draft.address ?? ""} onChange={(e) => setDraft({ ...draft, address: e.target.value })} />
             </Field>
@@ -192,6 +359,30 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
             </Field>
             <Field label="State / Postal" className="sm:col-span-1">
               <Input value={draft.state ?? ""} onChange={(e) => setDraft({ ...draft, state: e.target.value })} />
+            </Field>
+            <Field label="Tags" className="sm:col-span-2">
+              <div className="flex flex-wrap gap-1.5">
+                {TAG_PRESETS.map((t) => {
+                  const active = (draft.tags ?? []).includes(t);
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        const cur = draft.tags ?? [];
+                        setDraft({ ...draft, tags: active ? cur.filter((x) => x !== t) : [...cur, t] });
+                      }}
+                      className={cn(
+                        "rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-colors",
+                        active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Tags appear as badges on reservation rows.</p>
             </Field>
             <Field label="Notes" className="sm:col-span-2">
               <Textarea value={draft.notes ?? ""} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} rows={2} placeholder="Anything to remember for next time…" />

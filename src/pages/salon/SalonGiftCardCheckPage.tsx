@@ -3,7 +3,7 @@
  * we hit salon_public_gift_card_lookup, and show the current balance + store
  * + expiry. No auth, no enumeration — only valid codes return data.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Loader2, AlertCircle, CreditCard, Store, CheckCircle2, XCircle, Search } from "lucide-react";
@@ -39,6 +39,9 @@ export default function SalonGiftCardCheckPage() {
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Track whether we've already auto-checked a URL-supplied code so a
+  // subsequent state update doesn't re-trigger.
+  const autoCheckedRef = useRef(false);
 
   const handleLookup = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -60,6 +63,17 @@ export default function SalonGiftCardCheckPage() {
     }
     setResult(row);
   };
+
+  // Auto-lookup when arriving with a complete 12-char code in the URL — saves
+  // the customer an extra click after following an email/QR link.
+  useEffect(() => {
+    if (autoCheckedRef.current) return;
+    if (code.replace(/-/g, "").length === 12) {
+      autoCheckedRef.current = true;
+      void handleLookup();
+    }
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [code]);
 
   const expired = result?.expires_at !== null && result?.expires_at !== undefined && new Date(result.expires_at) < new Date();
   const usedUp = result !== null && result.balance_cents === 0;

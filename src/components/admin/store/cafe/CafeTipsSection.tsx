@@ -14,11 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCafeTips, type TipSplitMode } from "@/hooks/cafe/useCafeTips";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 
 interface Props { storeId: string }
 
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const fmtHrs = (mins: number) => `${Math.floor(mins / 60)}h ${(mins % 60).toString().padStart(2, "0")}m`;
 
 const MODE_LABEL: Record<TipSplitMode, string> = {
@@ -34,6 +35,8 @@ const WINDOW_OPTIONS: Array<{ days: number; label: string }> = [
 ];
 
 export default function CafeTipsSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const [days, setDays] = useState(1);
   const { poolCents, distribution, mode, setMode, weights, setWeight, payouts, paying, payOut, loading } = useCafeTips(storeId, days);
   const [payDialog, setPayDialog] = useState(false);

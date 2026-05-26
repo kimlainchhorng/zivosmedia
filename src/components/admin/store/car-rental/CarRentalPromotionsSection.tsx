@@ -1,10 +1,13 @@
 /**
  * CarRentalPromotionsSection — promo codes CRUD.
  */
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Tag, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, Copy, Calendar, Users,
+  Tag, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, Copy, Calendar, Users, BarChart3, Share2, Clock,
 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useStoreCurrency } from "@/lib/car-rental/money";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,10 +37,52 @@ const EMPTY: CarRentalPromotionDraft = {
 
 const randomCode = () => Array.from({ length: 8 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
 
-const formatMoney = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+type PromoStatus = "all" | "active" | "upcoming" | "expired" | "inactive";
 
 export default function CarRentalPromotionsSection({ storeId }: Props) {
   const { promos, loading, saving, error, create, update, remove } = useCarRentalPromotions(storeId);
+  const { format: formatMoney } = useStoreCurrency(storeId);
+  const [redemptions, setRedemptions] = useState<Array<{ promo_id: string; redemptions: number; total_discount: number }>>([]);
+  const [statusFilter, setStatusFilter] = useState<PromoStatus>("all");
+  const [storeSlug, setStoreSlug] = useState<string | null>(null);
+
+  // Fetch slug once so share links can deep-link into the public storefront.
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("store_profiles").select("slug").eq("id", storeId).maybeSingle();
+      if (cancelled) return;
+      setStoreSlug((data as { slug?: string | null } | null)?.slug ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [storeId]);
+
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("car_rental_promo_redemptions")
+        .select("promo_id, amount_discounted_cents")
+        .eq("store_id", storeId);
+      if (cancelled) return;
+      const agg = new Map<string, { redemptions: number; total_discount: number }>();
+      for (const r of (data ?? []) as Array<{ promo_id: string; amount_discounted_cents: number }>) {
+        const cur = agg.get(r.promo_id) ?? { redemptions: 0, total_discount: 0 };
+        cur.redemptions += 1;
+        cur.total_discount += r.amount_discounted_cents;
+        agg.set(r.promo_id, cur);
+      }
+      setRedemptions(Array.from(agg, ([promo_id, v]) => ({ promo_id, ...v })).sort((a, b) => b.total_discount - a.total_discount));
+    })();
+    return () => { cancelled = true; };
+  }, [storeId, promos.length]);
+
+  const topByDiscount = useMemo(() => redemptions.slice(0, 8), [redemptions]);
+  const maxDiscount = topByDiscount[0]?.total_discount ?? 1;
+  const totalDiscountEverywhere = redemptions.reduce((s, r) => s + r.total_discount, 0);
+  const totalRedemptionsEverywhere = redemptions.reduce((s, r) => s + r.redemptions, 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CarRentalPromotion | null>(null);
   const [draft, setDraft] = useState<CarRentalPromotionDraft>(EMPTY);
@@ -66,8 +111,53 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
     p.kind === "percent" ? `${p.amount}% off` : `${formatMoney(p.amount)} off`;
 
   const isExpired = (p: CarRentalPromotion) => p.ends_at && new Date(p.ends_at) < new Date();
+  const isUpcoming = (p: CarRentalPromotion) => p.starts_at && new Date(p.starts_at) > new Date();
   const isMaxed = (p: CarRentalPromotion) =>
     p.max_redemptions !== null && p.current_redemptions >= (p.max_redemptions ?? Infinity);
+  const statusOf = (p: CarRentalPromotion): Exclude<PromoStatus, "all"> => {
+    if (!p.is_active) return "inactive";
+    if (isExpired(p) || isMaxed(p)) return "expired";
+    if (isUpcoming(p)) return "upcoming";
+    return "active";
+  };
+
+  // Per-status counts for chip labels — calculated up-front so it's cheap and accurate.
+  const statusCounts = useMemo(() => {
+    const c = { active: 0, upcoming: 0, expired: 0, inactive: 0 };
+    for (const p of promos) c[statusOf(p)]++;
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promos]);
+
+  const filteredPromos = useMemo(() => {
+    if (statusFilter === "all") return promos;
+    return promos.filter((p) => statusOf(p) === statusFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promos, statusFilter]);
+
+  // Build a public share URL that pre-fills the promo input on the storefront.
+  const shareUrl = (p: CarRentalPromotion): string | null => {
+    if (!storeSlug || typeof window === "undefined") return null;
+    return `${window.location.origin}/car-rental/${storeSlug}?promo=${encodeURIComponent(p.code)}`;
+  };
+
+  const sharePromo = async (p: CarRentalPromotion) => {
+    const url = shareUrl(p);
+    if (!url) {
+      toast.error("Couldn't build a share link — store slug missing.");
+      return;
+    }
+    try {
+      // Use native share sheet if available (mobile), otherwise fall back to clipboard.
+      const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+      if (nav.share) {
+        await nav.share({ title: `${p.code} — ${formatAmount(p)}`, text: p.description || `Use ${p.code} for ${formatAmount(p)}`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Share link copied", { description: "Paste into SMS, email, or social posts." });
+      }
+    } catch { /* user cancelled or share blocked */ }
+  };
 
   const copyCode = (code: string, id: string) => {
     void navigator.clipboard.writeText(code);
@@ -105,8 +195,48 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
               No promo codes yet. Create one to offer discounts on the booking flow.
             </div>
           ) : (
+            <>
+              <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                {([
+                  { key: "all" as const, label: `All (${promos.length})`, tone: null },
+                  { key: "active" as const, label: `Active (${statusCounts.active})`, tone: "ok" as const },
+                  { key: "upcoming" as const, label: `Upcoming (${statusCounts.upcoming})`, tone: "info" as const },
+                  { key: "expired" as const, label: `Expired (${statusCounts.expired})`, tone: "destructive" as const },
+                  { key: "inactive" as const, label: `Inactive (${statusCounts.inactive})`, tone: "muted" as const },
+                ]).map((s) => {
+                  const active = statusFilter === s.key;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setStatusFilter(s.key)}
+                      className={cn(
+                        "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : s.tone === "ok"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                            : s.tone === "info"
+                              ? "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                              : s.tone === "destructive"
+                                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                                : s.tone === "muted"
+                                  ? "border-border bg-muted/40 text-muted-foreground"
+                                  : "border-border text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {filteredPromos.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                  No promos match this filter.
+                </div>
+              ) : (
             <ul className="grid gap-2 sm:grid-cols-2">
-              {promos.map((p) => {
+              {filteredPromos.map((p) => {
                 const expired = isExpired(p);
                 const maxed = isMaxed(p);
                 const usagePct = p.max_redemptions ? Math.round((p.current_redemptions / p.max_redemptions) * 100) : null;
@@ -120,6 +250,7 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
                             {copiedId === p.id ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3 opacity-50 transition-opacity group-hover:opacity-100" />}
                           </button>
                           {!p.is_active && <Pill tone="muted">Off</Pill>}
+                          {p.is_active && isUpcoming(p) && <Pill tone="info"><Clock className="h-2.5 w-2.5 mr-0.5" />Upcoming</Pill>}
                           {expired && <Pill tone="destructive">Expired</Pill>}
                           {maxed && <Pill tone="destructive">Maxed out</Pill>}
                         </div>
@@ -152,6 +283,11 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
                         )}
                       </div>
                       <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        {storeSlug && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Share link with this code" onClick={() => sharePromo(p)}>
+                            <Share2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -164,9 +300,61 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
                 );
               })}
             </ul>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
+
+      {redemptions.length > 0 && (
+        <Card className="rounded-2xl border-border/60">
+          <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-5 w-5 text-primary" /> Promo performance
+            </CardTitle>
+            <div className="text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total impact</p>
+              <p className="text-sm font-bold text-foreground">
+                {totalRedemptionsEverywhere} redemption{totalRedemptionsEverywhere === 1 ? "" : "s"} · {formatMoney(totalDiscountEverywhere)} discounted
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {topByDiscount.map((r) => {
+                const promo = promos.find((p) => p.id === r.promo_id);
+                if (!promo) return null;
+                const widthPct = Math.max(4, Math.round((r.total_discount / maxDiscount) * 100));
+                const capUsage = promo.max_redemptions
+                  ? Math.round((promo.current_redemptions / promo.max_redemptions) * 100)
+                  : null;
+                return (
+                  <li key={r.promo_id} className="space-y-1">
+                    <div className="flex items-baseline justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-foreground">{promo.code}</span>
+                        <span className="text-muted-foreground">
+                          {promo.kind === "percent" ? `${promo.amount}% off` : `${formatMoney(promo.amount)} off`}
+                        </span>
+                      </div>
+                      <span className="font-mono font-semibold text-foreground tabular-nums">
+                        {formatMoney(r.total_discount)}
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full bg-primary/70" style={{ width: `${widthPct}%` }} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {r.redemptions} redemption{r.redemptions === 1 ? "" : "s"}
+                      {capUsage !== null && ` · ${capUsage}% of cap used`}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto">
@@ -266,11 +454,13 @@ function Field({ label, className, children }: { label: string; className?: stri
   );
 }
 
-function Pill({ children, tone }: { children: React.ReactNode; tone: "muted" | "destructive" }) {
+function Pill({ children, tone }: { children: React.ReactNode; tone: "muted" | "destructive" | "info" }) {
   return (
     <span className={cn(
-      "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border",
-      tone === "muted" ? "bg-muted text-muted-foreground border-border" : "bg-destructive/10 text-destructive border-destructive/30"
+      "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border",
+      tone === "muted" && "bg-muted text-muted-foreground border-border",
+      tone === "destructive" && "bg-destructive/10 text-destructive border-destructive/30",
+      tone === "info" && "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30",
     )}>
       {children}
     </span>

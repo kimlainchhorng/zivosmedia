@@ -14,14 +14,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCafeMenu } from "@/hooks/cafe/useCafeMenu";
 import { useCafeInventory } from "@/hooks/cafe/useCafeInventory";
 import { useCafeRecipes } from "@/hooks/cafe/useCafeRecipes";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
 
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-
 export default function CafeRecipesSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const menu = useCafeMenu(storeId);
   const inv = useCafeInventory(storeId);
   const recipes = useCafeRecipes(storeId);

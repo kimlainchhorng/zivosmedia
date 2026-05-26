@@ -7,13 +7,15 @@ import { useMemo } from "react";
 import { Banknote, CreditCard, QrCode, Wallet, Coffee, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCafeOrders } from "@/hooks/cafe/useCafeOrders";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import CafeTillCard from "./CafeTillCard";
 
 interface Props { storeId: string }
 
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-
 export default function CafePaymentSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { paymentsByOrder, orders } = useCafeOrders(storeId);
 
   const summary = useMemo(() => {

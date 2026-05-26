@@ -38,14 +38,25 @@ const COLORS: Record<Status, string> = {
 };
 const ICONS: Record<Status, any> = { good: CheckCircle2, attention: AlertTriangle, urgent: XCircle };
 
+export type EstimatePrefill = {
+  vehicle_label: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  notes: string;
+  line_items: Array<{ kind: "part" | "labor" | "diagnosis"; name: string; qty: number; unit_cents: number }>;
+};
+
 interface Props {
   storeId: string;
-  onCreateEstimate?: (vehicleLabel: string) => void;
+  onCreateEstimate?: (data: EstimatePrefill) => void;
 }
 type Inspection = {
   id: string;
   vehicle_label: string | null;
   technician_name: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
   status: string;
   checklist: Record<string, Status>;
   summary: string | null;
@@ -227,7 +238,26 @@ export default function AutoRepairInspectionsSection({ storeId, onCreateEstimate
                       <Link2 className="w-4 h-4" />
                     </Button>
                     {onCreateEstimate && ((c.attention || 0) + (c.urgent || 0) > 0) && (
-                      <Button size="sm" variant="outline" className="h-8 gap-1 text-amber-600 border-amber-500/40 hover:bg-amber-500/10" title="Create estimate from inspection findings" onClick={() => onCreateEstimate(i.vehicle_label || "")}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1 text-amber-600 border-amber-500/40 hover:bg-amber-500/10"
+                        title="Create estimate from inspection findings"
+                        onClick={() => onCreateEstimate({
+                          vehicle_label: i.vehicle_label || "",
+                          customer_name: i.customer_name || "",
+                          customer_phone: i.customer_phone || "",
+                          notes: `From inspection${i.summary ? `: ${i.summary}` : ""}`,
+                          line_items: Object.entries(cl)
+                            .filter(([, s]) => s === "attention" || s === "urgent")
+                            .map(([point, s]) => ({
+                              kind: "labor" as const,
+                              name: `${point}${s === "urgent" ? " (URGENT)" : " (attention)"}`,
+                              qty: 1,
+                              unit_cents: 0,
+                            })),
+                        })}
+                      >
                         <FileText className="w-3.5 h-3.5" /> Estimate
                       </Button>
                     )}

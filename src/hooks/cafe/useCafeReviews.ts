@@ -105,9 +105,15 @@ export function useCafeReviews(storeId: string | undefined): UseCafeReviewsResul
 
   const reply = useCallback(async (id: string, response: string) => {
     setSaving(true);
+    const trimmed = response.trim();
+    // Setting/replacing a reply timestamps now; clearing it nulls both so
+    // the unreplied badge correctly re-counts the row.
     const { data, error: err } = await supabase
       .from("cafe_reviews" as never)
-      .update({ owner_response: response.trim() || null } as never)
+      .update({
+        owner_response: trimmed || null,
+        owner_response_at: trimmed ? new Date().toISOString() : null,
+      } as never)
       .eq("id", id).select("*").single();
     setSaving(false);
     if (err) { console.error("[useCafeReviews] reply", err); await load(); return; }

@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   User, Phone, Mail, IdCard, DollarSign, CalendarRange, AlertOctagon, Star, Loader2, Car, Award,
+  Activity, KeyRound, ClipboardCheck, XCircle, MessageSquare,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -12,6 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { CarRentalCustomer } from "@/hooks/car-rental/useCarRentalCustomers";
+import { getLoyaltyTier } from "@/lib/car-rental/loyalty";
 
 interface Props {
   customer: CarRentalCustomer | null;
@@ -68,6 +70,37 @@ export default function CarRentalCustomerDetailDialog({ customer, onClose }: Pro
     return () => { cancelled = true; };
   }, [customer]);
 
+  const activityTimeline = useMemo(() => {
+    type Entry = { at: string; kind: "booked" | "picked_up" | "returned" | "cancelled" | "reviewed"; label: string; detail: string };
+    const entries: Entry[] = [];
+    for (const r of reservations) {
+      entries.push({
+        at: r.pickup_at,
+        kind: "booked",
+        label: "Booking",
+        detail: `${r.vehicle_label} — ${r.rental_days} day${r.rental_days === 1 ? "" : "s"} ($${(r.total_cents / 100).toFixed(2)})`,
+      });
+      if (r.status === "picked_up" || r.status === "returned") {
+        entries.push({ at: r.pickup_at, kind: "picked_up", label: "Picked up", detail: r.vehicle_label });
+      }
+      if (r.status === "returned") {
+        entries.push({ at: r.dropoff_at, kind: "returned", label: "Returned", detail: r.vehicle_label });
+      }
+      if (r.status === "cancelled" || r.status === "no_show") {
+        entries.push({ at: r.pickup_at, kind: "cancelled", label: r.status === "no_show" ? "No-show" : "Cancelled", detail: r.vehicle_label });
+      }
+    }
+    for (const v of reviews) {
+      entries.push({
+        at: v.created_at,
+        kind: "reviewed",
+        label: `${v.rating}-star review`,
+        detail: v.comment ? `"${v.comment.slice(0, 80)}${v.comment.length > 80 ? "…" : ""}"` : "(no comment)",
+      });
+    }
+    return entries.sort((a, b) => b.at.localeCompare(a.at));
+  }, [reservations, reviews]);
+
   const stats = useMemo(() => {
     if (!customer) return null;
     const completed = reservations.filter((r) => r.status === "returned");
@@ -77,7 +110,21 @@ export default function CarRentalCustomerDetailDialog({ customer, onClose }: Pro
     const totalDays = completed.reduce((s, r) => s + r.rental_days, 0);
     const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
     const avgRentalLength = completed.length > 0 ? totalDays / completed.length : 0;
-    return { completed: completed.length, cancelled, noShows, lifetimeSpend, totalDays, avgRating, avgRentalLength };
+    const avgRentalValue = completed.length > 0 ? lifetimeSpend / completed.length : 0;
+    // Days as customer — from earliest reservation pickup_at or customer.created_at, whichever earlier
+    const allDates = [
+      ...reservations.map((r) => new Date(r.pickup_at).getTime()).filter((n) => Number.isFinite(n)),
+      new Date(customer.created_at).getTime(),
+    ].filter((n) => Number.isFinite(n));
+    const earliest = allDates.length > 0 ? Math.min(...allDates) : Date.now();
+    const daysAsCustomer = Math.max(0, Math.floor((Date.now() - earliest) / (24 * 60 * 60 * 1000)));
+    // Repeat rate: completed / total (excluding pending/confirmed in flight)
+    const completedDenom = completed.length + cancelled + noShows;
+    const completionRate = completedDenom > 0 ? completed.length / completedDenom : null;
+    return {
+      completed: completed.length, cancelled, noShows, lifetimeSpend, totalDays,
+      avgRating, avgRentalLength, avgRentalValue, daysAsCustomer, completionRate,
+    };
   }, [reservations, reviews, customer]);
 
   if (!customer) return null;
@@ -97,6 +144,15 @@ export default function CarRentalCustomerDetailDialog({ customer, onClose }: Pro
               {c.display_name.charAt(0).toUpperCase()}
             </div>
             {c.display_name}
+            {(() => {
+              const t = getLoyaltyTier(c.total_rentals);
+              if (t.tier === "none") return null;
+              return (
+                <span className={cn("ml-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", t.className)}>
+                  <span aria-hidden>{t.emoji}</span> {t.label}
+                </span>
+              );
+            })()}
             {c.is_blocked && (
               <span className="ml-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive">
                 Blocked
@@ -151,11 +207,73 @@ export default function CarRentalCustomerDetailDialog({ customer, onClose }: Pro
           ) : stats && (
             <>
               <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-                <Stat icon={DollarSign} label="Lifetime spend" value={formatMoney(stats.lifetimeSpend)} />
+                <Stat icon={DollarSign} label="Lifetime spend" value={formatMoney(stats.lifetimeSpend)} sub={stats.completed > 0 ? `avg ${formatMoney(Math.round(stats.avgRentalValue))}/rental` : undefined} />
                 <Stat icon={Car} label="Completed rentals" value={String(stats.completed)} sub={`${stats.totalDays} days total`} />
                 <Stat icon={CalendarRange} label="Avg rental length" value={stats.avgRentalLength > 0 ? `${stats.avgRentalLength.toFixed(1)} d` : "—"} />
                 <Stat icon={AlertOctagon} label="No-shows / cancels" value={`${stats.noShows} / ${stats.cancelled}`} tone={(stats.noShows + stats.cancelled) > 0 ? "warn" : "neutral"} />
               </div>
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
+                <Stat
+                  icon={Activity}
+                  label="Days as customer"
+                  value={stats.daysAsCustomer > 0 ? `${stats.daysAsCustomer}` : "Today"}
+                  sub={stats.daysAsCustomer >= 30 ? `since ${new Date(c.created_at).toLocaleDateString()}` : undefined}
+                />
+                <Stat
+                  icon={CalendarRange}
+                  label="Completion rate"
+                  value={stats.completionRate !== null ? `${Math.round(stats.completionRate * 100)}%` : "—"}
+                  sub={stats.completionRate !== null && stats.completionRate < 0.6 ? "below typical" : undefined}
+                  tone={stats.completionRate !== null && stats.completionRate < 0.6 ? "warn" : "neutral"}
+                />
+                <Stat
+                  icon={DollarSign}
+                  label="Avg rental value"
+                  value={stats.completed > 0 ? formatMoney(Math.round(stats.avgRentalValue)) : "—"}
+                />
+              </div>
+              {stats.completed >= 3 && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center gap-3">
+                  <Award className="h-5 w-5 text-emerald-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-foreground">Loyal customer — {stats.completed} completed rentals</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Consider extending a returning-renter perk on the next booking.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {(() => {
+                const t = getLoyaltyTier(c.total_rentals);
+                if (t.nextLabel && t.rentalsToNext !== null && t.rentalsToNext > 0) {
+                  return (
+                    <div className={cn("rounded-xl border p-3 flex items-center gap-3", t.className)}>
+                      <span className="text-2xl" aria-hidden>{t.emoji}</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold">
+                          {t.tier === "none" ? "Just getting started" : `${t.label} member`}
+                        </p>
+                        <p className="text-[11px] opacity-80">
+                          {t.rentalsToNext} more rental{t.rentalsToNext === 1 ? "" : "s"} to reach {t.nextLabel}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                if (t.tier === "platinum") {
+                  return (
+                    <div className={cn("rounded-xl border p-3 flex items-center gap-3", t.className)}>
+                      <span className="text-2xl" aria-hidden>{t.emoji}</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold">Platinum member — top tier reached</p>
+                        <p className="text-[11px] opacity-80">Long-term loyal renter.</p>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {stats.avgRating !== null && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-center gap-3">
@@ -197,6 +315,52 @@ export default function CarRentalCustomerDetailDialog({ customer, onClose }: Pro
                   </ul>
                 )}
               </div>
+
+              {/* Combined activity timeline */}
+              {activityTimeline.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 inline-flex items-center gap-1.5">
+                    <Activity className="h-3.5 w-3.5" /> Activity timeline
+                  </p>
+                  <ol className="space-y-1.5">
+                    {activityTimeline.slice(0, 20).map((e, i) => {
+                      const Icon =
+                        e.kind === "booked" ? CalendarRange :
+                        e.kind === "picked_up" ? KeyRound :
+                        e.kind === "returned" ? ClipboardCheck :
+                        e.kind === "cancelled" ? XCircle :
+                        MessageSquare;
+                      const tone =
+                        e.kind === "booked" ? "bg-primary/10 text-primary" :
+                        e.kind === "picked_up" ? "bg-emerald-500/10 text-emerald-600" :
+                        e.kind === "returned" ? "bg-emerald-500/10 text-emerald-600" :
+                        e.kind === "cancelled" ? "bg-destructive/10 text-destructive" :
+                        "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+                      return (
+                        <li key={i} className="flex items-start gap-2 rounded-lg border border-border bg-card p-2">
+                          <div className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-lg", tone)}>
+                            <Icon className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <p className="text-sm font-semibold text-foreground">{e.label}</p>
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {new Date(e.at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="truncate text-[11px] text-muted-foreground">{e.detail}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {activityTimeline.length > 20 && (
+                      <li className="text-center text-[11px] text-muted-foreground">
+                        + {activityTimeline.length - 20} more events
+                      </li>
+                    )}
+                  </ol>
+                </div>
+              )}
 
               {/* Reviews left */}
               {reviews.length > 0 && (

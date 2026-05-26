@@ -3,7 +3,7 @@
  */
 import { useState } from "react";
 import {
-  Building2, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, MapPin, Clock,
+  Building2, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, MapPin, Clock, ExternalLink, Car,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,22 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { useCarRentalLocations, type CarRentalLocation, type CarRentalLocationDraft } from "@/hooks/car-rental/useCarRentalLocations";
+import { useCarRentalVehicles } from "@/hooks/car-rental/useCarRentalVehicles";
 import { cn } from "@/lib/utils";
+
+const HOURS_PRESETS: { label: string; open: string; close: string }[] = [
+  { label: "24/7", open: "00:00", close: "23:59" },
+  { label: "Standard 8-8", open: "08:00", close: "20:00" },
+  { label: "Business 9-5", open: "09:00", close: "17:00" },
+  { label: "Extended 7-9", open: "07:00", close: "21:00" },
+];
+
+// Build a Google Maps URL from any non-empty address parts.
+function buildMapsUrl(loc: CarRentalLocation): string | null {
+  const parts = [loc.address, loc.city, loc.state, loc.postal_code, loc.country].filter(Boolean);
+  if (parts.length === 0) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(", "))}`;
+}
 
 interface Props { storeId: string }
 
@@ -34,10 +49,19 @@ const EMPTY: CarRentalLocationDraft = {
 
 export default function CarRentalLocationsSection({ storeId }: Props) {
   const { locations, loading, saving, error, create, update, remove } = useCarRentalLocations(storeId);
+  const { vehicles } = useCarRentalVehicles(storeId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CarRentalLocation | null>(null);
   const [draft, setDraft] = useState<CarRentalLocationDraft>(EMPTY);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Tally vehicles per location_id — used for the "N vehicles based here" badge.
+  const vehiclesPerLocation = new Map<string, number>();
+  for (const v of vehicles) {
+    if (v.home_location_id) {
+      vehiclesPerLocation.set(v.home_location_id, (vehiclesPerLocation.get(v.home_location_id) ?? 0) + 1);
+    }
+  }
 
   const openCreate = () => {
     setEditing(null);
@@ -93,11 +117,14 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
             </div>
           ) : (
             <ul className="grid gap-2 sm:grid-cols-2">
-              {locations.map((l) => (
+              {locations.map((l) => {
+                const mapsUrl = buildMapsUrl(l);
+                const vCount = vehiclesPerLocation.get(l.id) ?? 0;
+                return (
                 <li key={l.id} className="group rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/30">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="truncate text-sm font-semibold text-foreground">{l.name}</p>
                         {l.is_default && (
                           <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
@@ -109,11 +136,26 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
                             Inactive
                           </span>
                         )}
+                        {vCount > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            <Car className="h-2.5 w-2.5" /> {vCount} vehicle{vCount === 1 ? "" : "s"}
+                          </span>
+                        )}
                       </div>
                       {(l.address || l.city) && (
                         <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
                           <MapPin className="h-3 w-3" />
                           {[l.address, l.city, l.state, l.postal_code].filter(Boolean).join(", ")}
+                          {mapsUrl && (
+                            <a
+                              href={mapsUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="ml-1 inline-flex items-center gap-0.5 text-primary hover:underline"
+                            >
+                              Directions <ExternalLink className="h-2.5 w-2.5" />
+                            </a>
+                          )}
                         </p>
                       )}
                       {(l.open_time && l.close_time) && (
@@ -121,6 +163,9 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
                           <Clock className="h-3 w-3" />
                           {l.open_time.slice(0, 5)} – {l.close_time.slice(0, 5)}
                         </p>
+                      )}
+                      {l.phone && (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{l.phone}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -133,7 +178,8 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
                     </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </CardContent>
@@ -171,6 +217,26 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
             </Field>
             <Field label="Closes">
               <Input type="time" value={draft.close_time ?? ""} onChange={(e) => setDraft({ ...draft, close_time: e.target.value })} />
+            </Field>
+            <Field label="Hours preset" className="sm:col-span-2">
+              <div className="flex flex-wrap gap-1.5">
+                {HOURS_PRESETS.map((p) => {
+                  const active = draft.open_time === p.open && draft.close_time === p.close;
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => setDraft({ ...draft, open_time: p.open, close_time: p.close })}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                        active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
             </Field>
             <div className="flex items-center justify-between rounded-md border border-border p-2.5 sm:col-span-2">
               <Label className="text-sm">Default location for new reservations</Label>

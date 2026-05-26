@@ -367,6 +367,9 @@ const ServiceBookingPage = lazy(() => import("./pages/store/ServiceBookingPage")
 const PublicSalonBookingPage = lazy(() => import("./pages/salon/PublicSalonBookingPage"));
 const PublicCarRentalBookingPage = lazy(() => import("./pages/car-rental/PublicCarRentalBookingPage"));
 const PublicCarRentalBookingDetailPage = lazy(() => import("./pages/car-rental/PublicCarRentalBookingDetailPage"));
+const PublicCarDealershipListingPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipListingPage"));
+const PublicCarDealershipDetailPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipDetailPage"));
+const PublicCarDealershipReviewSubmitPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipReviewSubmitPage"));
 const CarRentalDailySheetPage = lazy(() => import("./pages/admin/CarRentalDailySheetPage"));
 const CarRentalReceiptPage = lazy(() => import("./pages/admin/CarRentalReceiptPage"));
 const PublicCarRentalReviewSubmitPage = lazy(() => import("./pages/car-rental/PublicCarRentalReviewSubmitPage"));
@@ -389,6 +392,7 @@ const SalonQueueDisplayPage = lazy(() => import("./pages/admin/SalonQueueDisplay
 const SalonGiftCardCheckPage = lazy(() => import("./pages/salon/SalonGiftCardCheckPage"));
 const PublicStylistDayPage = lazy(() => import("./pages/salon/PublicStylistDayPage"));
 const PublicReviewSubmitPage = lazy(() => import("./pages/salon/PublicReviewSubmitPage"));
+const SalonMyAreaPage = lazy(() => import("./pages/salon/SalonMyAreaPage"));
 
 
 const AdminEmployeesPage = lazy(() => import("./pages/admin/AdminEmployeesPage"));
@@ -1565,8 +1569,16 @@ const App = () => (
                 <Route path="/store-map" element={<StoreMapPage />} />
                 <Route path="/store-map/list" element={<StoresListPage />} />
                 <Route path="/book/:slug" element={<ServiceBookingPage />} />
+                {/* /salon/me must come before /salon/:slug so React Router
+                    matches the literal path before the slug parameter. */}
+                <Route path="/salon/me" element={<ProtectedRoute><SalonMyAreaPage /></ProtectedRoute>} />
                 <Route path="/salon/:slug" element={<PublicSalonBookingPage />} />
                 <Route path="/car-rental/:slug" element={<PublicCarRentalBookingPage />} />
+                {/* More-specific routes first so React Router matches /v/:vehicleId
+                    and /review/:dealId before /:slug. */}
+                <Route path="/car-dealership/:slug/v/:vehicleId" element={<PublicCarDealershipDetailPage />} />
+                <Route path="/car-dealership/:slug/review/:dealId" element={<PublicCarDealershipReviewSubmitPage />} />
+                <Route path="/car-dealership/:slug" element={<PublicCarDealershipListingPage />} />
                 <Route path="/car-rental-booking" element={<PublicCarRentalBookingDetailPage />} />
                 <Route path="/car-rental-booking/:code" element={<PublicCarRentalBookingDetailPage />} />
                 <Route path="/admin/stores/:storeId/car-rental-daily-sheet" element={<CarRentalDailySheetPage />} />

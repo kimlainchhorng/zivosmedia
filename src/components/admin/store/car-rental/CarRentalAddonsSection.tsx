@@ -1,10 +1,11 @@
 /**
  * CarRentalAddonsSection — manage rental add-ons (insurance, GPS, child seat, etc.).
  */
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  PackagePlus, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle,
+  PackagePlus, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, TrendingUp, Zap,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,48 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
   const [editing, setEditing] = useState<CarRentalAddon | null>(null);
   const [draft, setDraft] = useState<CarRentalAddonDraft>(EMPTY);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [salesByAddon, setSalesByAddon] = useState<Map<string, { revenue: number; count: number }>>(new Map());
+
+  // Fetch lifetime sales per addon. `car_rental_reservation_addons.addon_id` is the
+  // foreign key back to this section's rows — when the parent addon is deleted, those
+  // entries keep their name snapshot but lose the link, so they drop out of this view.
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("car_rental_reservation_addons")
+        .select("addon_id, total_cents")
+        .eq("store_id", storeId);
+      if (cancelled) return;
+      const m = new Map<string, { revenue: number; count: number }>();
+      for (const r of (data ?? []) as Array<{ addon_id: string | null; total_cents: number }>) {
+        if (!r.addon_id) continue;
+        const cur = m.get(r.addon_id) ?? { revenue: 0, count: 0 };
+        cur.revenue += r.total_cents ?? 0;
+        cur.count += 1;
+        m.set(r.addon_id, cur);
+      }
+      setSalesByAddon(m);
+    })();
+    return () => { cancelled = true; };
+  }, [storeId, addons.length]);
+
+  const topSellerId = useMemo(() => {
+    let topId: string | null = null;
+    let topRev = 0;
+    for (const [id, v] of salesByAddon) {
+      if (v.revenue > topRev) { topRev = v.revenue; topId = id; }
+    }
+    return topId;
+  }, [salesByAddon]);
+
+  // Templates that aren't yet added to this store (by exact name) so the chip row
+  // shrinks as the operator builds out their addon catalog.
+  const remainingTemplates = useMemo(() => {
+    const existing = new Set(addons.map((a) => a.name.trim().toLowerCase()));
+    return TEMPLATES.filter((t) => !existing.has(t.name.toLowerCase()));
+  }, [addons]);
 
   const openCreate = () => { setEditing(null); setDraft(EMPTY); setDialogOpen(true); };
   const openEdit = (a: CarRentalAddon) => {
@@ -106,35 +149,81 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
               </div>
             </div>
           ) : (
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {addons.map((a) => (
-                <li key={a.id} className="group flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/30">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-semibold text-foreground">{a.name}</p>
-                      {!a.is_active && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Off
-                        </span>
+            <div className="space-y-3">
+              {remainingTemplates.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1 inline-flex items-center gap-1">
+                    <Zap className="h-3 w-3" /> Quick add:
+                  </span>
+                  {remainingTemplates.map((t) => (
+                    <button
+                      key={t.name}
+                      type="button"
+                      onClick={() => addTemplate(t)}
+                      title={`${t.name} · $${(t.price / 100).toFixed(2)} ${t.billing === "per_day" ? "/day" : "/rental"}`}
+                      className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors"
+                    >
+                      + {t.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {addons.map((a) => {
+                  const sales = salesByAddon.get(a.id);
+                  const isTop = a.id === topSellerId && sales && sales.count > 0;
+                  return (
+                  <li key={a.id} className={cn(
+                    "group flex items-center justify-between gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/30",
+                    isTop ? "border-emerald-500/30 bg-emerald-500/5" : "border-border",
+                  )}>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="truncate text-sm font-semibold text-foreground">{a.name}</p>
+                        {isTop && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                            <TrendingUp className="h-2.5 w-2.5" /> Top seller
+                          </span>
+                        )}
+                        {!a.is_active && (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Off
+                          </span>
+                        )}
+                      </div>
+                      {a.description && <p className="line-clamp-1 text-[11px] text-muted-foreground">{a.description}</p>}
+                      <p className="mt-1 text-xs font-bold text-foreground">
+                        ${(a.price_cents / 100).toFixed(2)}
+                        <span className="ml-1 font-normal text-muted-foreground">{a.billing === "per_day" ? "/ day" : "/ rental"}</span>
+                      </p>
+                      {sales && sales.count > 0 && (
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                          {sales.count} sold · ${(sales.revenue / 100).toFixed(2)} revenue
+                        </p>
                       )}
                     </div>
-                    {a.description && <p className="line-clamp-1 text-[11px] text-muted-foreground">{a.description}</p>}
-                    <p className="mt-1 text-xs font-bold text-foreground">
-                      ${(a.price_cents / 100).toFixed(2)}
-                      <span className="ml-1 font-normal text-muted-foreground">{a.billing === "per_day" ? "/ day" : "/ rental"}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(a)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(a.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={a.is_active}
+                        onCheckedChange={(c) => update(a.id, { is_active: c })}
+                        disabled={saving}
+                        aria-label={a.is_active ? "Deactivate" : "Activate"}
+                        title={a.is_active ? "Click to deactivate" : "Click to activate"}
+                      />
+                      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(a)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(a.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
         </CardContent>
       </Card>

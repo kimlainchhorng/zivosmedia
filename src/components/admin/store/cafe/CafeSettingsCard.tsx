@@ -10,7 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCafeSettings, type CafeSettings } from "@/hooks/cafe/useCafeSettings";
+import { SUPPORTED_CURRENCY_CODES, formatCafeMoney } from "@/lib/cafe-currency";
 
 interface Props { storeId: string }
 
@@ -84,12 +86,48 @@ export default function CafeSettingsCard({ storeId }: Props) {
                 </div>
                 <Switch
                   id={`cs-${row.key}`}
-                  checked={settings[row.key]}
+                  checked={settings[row.key] as boolean}
                   disabled={saving}
                   onCheckedChange={(v) => void save({ [row.key]: v } as Partial<CafeSettings>)}
                 />
               </div>
             ))}
+
+            {settings.allow_tips && (
+              <TipPresetsRow
+                value={[settings.tip_preset_1, settings.tip_preset_2, settings.tip_preset_3]}
+                disabled={saving}
+                onCommit={(p1, p2, p3) =>
+                  void save({ tip_preset_1: p1, tip_preset_2: p2, tip_preset_3: p3 })}
+              />
+            )}
+            <div className="flex items-start justify-between gap-3 py-1 border-t border-border/60 pt-3">
+              <div className="min-w-0">
+                <Label htmlFor="cs-currency" className="text-sm font-medium cursor-pointer">
+                  Currency
+                </Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Used by customer-facing pages. Example: {formatCafeMoney(450, settings.currency_code)}.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Select
+                  value={settings.currency_code}
+                  disabled={saving}
+                  onValueChange={(v) => void save({ currency_code: v })}
+                >
+                  <SelectTrigger className="h-8 w-28 text-sm" id="cs-currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUPPORTED_CURRENCY_CODES.map((code) => (
+                      <SelectItem key={code} value={code}>{code}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="flex items-start justify-between gap-3 py-1 border-t border-border/60 pt-3">
               <div className="min-w-0">
                 <Label htmlFor="cs-tax_rate" className="text-sm font-medium cursor-pointer">
@@ -177,6 +215,73 @@ export default function CafeSettingsCard({ storeId }: Props) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Three small percent inputs for the public-checkout tip presets. Locally
+ * staged + committed on blur so the owner can type "10" without it firing
+ * a save mid-keystroke. Clamps to 1–100 (DB also CHECKs this).
+ */
+function TipPresetsRow({
+  value, disabled, onCommit,
+}: {
+  value: [number, number, number];
+  disabled: boolean;
+  onCommit: (p1: number, p2: number, p3: number) => void;
+}) {
+  const [draft, setDraft] = useState<[string, string, string]>(() => [
+    String(value[0]), String(value[1]), String(value[2]),
+  ]);
+  useEffect(() => {
+    setDraft([String(value[0]), String(value[1]), String(value[2])]);
+  }, [value]);
+
+  const commit = () => {
+    const clean = (raw: string, fallback: number) => {
+      const n = parseInt(raw, 10);
+      if (Number.isNaN(n)) return fallback;
+      return Math.max(1, Math.min(100, n));
+    };
+    const p1 = clean(draft[0], value[0]);
+    const p2 = clean(draft[1], value[1]);
+    const p3 = clean(draft[2], value[2]);
+    if (p1 === value[0] && p2 === value[1] && p3 === value[2]) {
+      setDraft([String(value[0]), String(value[1]), String(value[2])]);
+      return;
+    }
+    onCommit(p1, p2, p3);
+  };
+
+  return (
+    <div className="border-t border-border/60 pt-3 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium">Tip presets</Label>
+        <span className="text-[11px] text-muted-foreground">Shown as 3 percent buttons at checkout</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {([0, 1, 2] as const).map((idx) => (
+          <div key={idx} className="flex items-center gap-1">
+            <Input
+              type="number"
+              min="1"
+              max="100"
+              value={draft[idx]}
+              onChange={(e) => {
+                const next = [...draft] as [string, string, string];
+                next[idx] = e.target.value.replace(/[^\d]/g, "").slice(0, 3);
+                setDraft(next);
+              }}
+              onBlur={commit}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              disabled={disabled}
+              className="h-8 text-center text-sm tabular-nums"
+            />
+            <span className="text-sm text-muted-foreground">%</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

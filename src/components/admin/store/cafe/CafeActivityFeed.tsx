@@ -23,6 +23,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 
 interface Props { storeId: string; onJumpToTab?: (tab: string) => void }
@@ -38,7 +40,6 @@ interface FeedEntry {
 }
 
 const SINCE_DAYS = 7;
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 function timeAgo(iso: string, now: number): string {
   const ms = now - new Date(iso).getTime();
@@ -53,6 +54,8 @@ function timeAgo(iso: string, now: number): string {
 }
 
 export default function CafeActivityFeed({ storeId, onJumpToTab }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const [entries, setEntries] = useState<FeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
@@ -289,7 +292,10 @@ export default function CafeActivityFeed({ storeId, onJumpToTab }: Props) {
     rows.sort((a, b) => b.at.localeCompare(a.at));
     setEntries(rows.slice(0, 30));
     setLoading(false);
-  }, [storeId]);
+    // currencyCode is closed over via fmt() inside this callback; re-run
+    // when it changes so detail strings get reformatted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId, currencyCode]);
 
   useEffect(() => { void load(); }, [load]);
 

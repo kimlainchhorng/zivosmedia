@@ -3,12 +3,14 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import {
-  DollarSign, Loader2, AlertTriangle, TrendingUp, CalendarRange,
+  DollarSign, Loader2, AlertTriangle, TrendingUp, TrendingDown, CalendarRange,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { Wallet } from "lucide-react";
+import { useStoreCurrency } from "@/lib/car-rental/money";
 
 interface Props { storeId: string }
 
@@ -28,7 +30,6 @@ interface RevenueRow {
   pickup_at: string;
 }
 
-const formatMoney = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const periodToCutoff = (p: Period) => {
   const now = new Date();
   switch (p) {
@@ -43,8 +44,11 @@ const periodToCutoff = (p: Period) => {
 export default function CarRentalIncomeSection({ storeId }: Props) {
   const [period, setPeriod] = useState<Period>("30d");
   const [rows, setRows] = useState<RevenueRow[]>([]);
+  const [expenseRows, setExpenseRows] = useState<Array<{ amount_cents: number; expense_date: string }>>([]);
+  const [priorRevenue, setPriorRevenue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { format: formatMoney } = useStoreCurrency(storeId);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,14 +63,39 @@ export default function CarRentalIncomeSection({ storeId }: Props) {
         .eq("status", "returned")
         .order("returned_at", { ascending: false });
       if (cutoff) query = query.gte("returned_at", cutoff);
-      const { data, error: err } = await query;
+
+      let expQuery = supabase
+        .from("car_rental_expenses")
+        .select("amount_cents, expense_date")
+        .eq("store_id", storeId);
+      if (cutoff) expQuery = expQuery.gte("expense_date", cutoff.slice(0, 10));
+
+      // Prior-period revenue: same length, immediately before the current period (skipped for "all" time).
+      let priorQuery: Promise<{ data: Array<{ total_cents: number }> | null }> = Promise.resolve({ data: null });
+      if (cutoff) {
+        const lengthMs = Date.now() - new Date(cutoff).getTime();
+        const priorEnd = cutoff; // current cutoff is the end of the prior period
+        const priorStart = new Date(new Date(cutoff).getTime() - lengthMs).toISOString();
+        priorQuery = supabase
+          .from("car_rental_reservations")
+          .select("total_cents")
+          .eq("store_id", storeId)
+          .eq("status", "returned")
+          .gte("returned_at", priorStart)
+          .lt("returned_at", priorEnd) as unknown as Promise<{ data: Array<{ total_cents: number }> | null }>;
+      }
+
+      const [resR, expR, priorR] = await Promise.all([query, expQuery, priorQuery]);
       if (cancelled) return;
-      if (err) {
+      if (resR.error) {
         setError("Couldn't load revenue.");
         setLoading(false);
         return;
       }
-      setRows((data ?? []) as unknown as RevenueRow[]);
+      setRows((resR.data ?? []) as unknown as RevenueRow[]);
+      setExpenseRows((expR.data ?? []) as unknown as Array<{ amount_cents: number; expense_date: string }>);
+      const priorData = priorR.data as Array<{ total_cents: number }> | null;
+      setPriorRevenue(priorData ? priorData.reduce((s, r) => s + (r.total_cents ?? 0), 0) : null);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -93,6 +122,29 @@ export default function CarRentalIncomeSection({ storeId }: Props) {
     return Array.from(map, ([cat, cents]) => ({ cat, cents })).sort((a, b) => b.cents - a.cents);
   }, [rows]);
   const maxCat = byCategory[0]?.cents ?? 1;
+
+  // Monthly income vs expenses
+  const monthlyComparison = useMemo(() => {
+    const buckets = new Map<string, { revenue: number; expenses: number }>();
+    const ensureBucket = (key: string) => {
+      if (!buckets.has(key)) buckets.set(key, { revenue: 0, expenses: 0 });
+      return buckets.get(key)!;
+    };
+    const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    for (const r of rows) {
+      if (!r.returned_at) continue;
+      ensureBucket(monthKey(new Date(r.returned_at))).revenue += r.total_cents;
+    }
+    for (const e of expenseRows) {
+      ensureBucket(monthKey(new Date(e.expense_date))).expenses += e.amount_cents;
+    }
+    return Array.from(buckets, ([month, v]) => ({ month, ...v }))
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-6); // last 6 months max
+  }, [rows, expenseRows]);
+
+  const totalExpenses = useMemo(() => expenseRows.reduce((s, e) => s + e.amount_cents, 0), [expenseRows]);
+  const netProfit = summary.total - totalExpenses;
 
   return (
     <div className="space-y-4">
@@ -130,6 +182,118 @@ export default function CarRentalIncomeSection({ storeId }: Props) {
                 <Stat icon={TrendingUp} label="Add-ons" value={formatMoney(summary.addons)} sub="Extras revenue" />
                 <Stat icon={DollarSign} label="Extra fees" value={formatMoney(summary.fees)} sub="Over-mileage, refuel, damage" />
               </div>
+
+              <Card className="rounded-xl border-border/60">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      <Wallet className="h-4 w-4 text-primary" /> Income vs expenses
+                    </span>
+                    <span className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                      netProfit >= 0 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-destructive/15 text-destructive",
+                    )}>
+                      Net {netProfit >= 0 ? "+" : ""}{formatMoney(netProfit)}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {monthlyComparison.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No data in this period.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {monthlyComparison.map((m) => {
+                        const max = Math.max(m.revenue, m.expenses, 1);
+                        return (
+                          <li key={m.month}>
+                            <div className="mb-1 flex items-baseline justify-between text-xs">
+                              <span className="font-medium text-foreground">{new Date(m.month + "-15").toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>
+                              <span className={cn("font-mono", m.revenue - m.expenses >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
+                                {m.revenue - m.expenses >= 0 ? "+" : ""}{formatMoney(m.revenue - m.expenses)}
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-12 text-right text-[10px] text-muted-foreground">In</span>
+                                <div className="h-2 flex-1 overflow-hidden rounded bg-muted">
+                                  <div className="h-full bg-emerald-500/60" style={{ width: `${Math.max(2, Math.round((m.revenue / max) * 100))}%` }} />
+                                </div>
+                                <span className="w-16 text-right text-[10px] font-mono text-foreground">{formatMoney(m.revenue)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-12 text-right text-[10px] text-muted-foreground">Out</span>
+                                <div className="h-2 flex-1 overflow-hidden rounded bg-muted">
+                                  <div className="h-full bg-rose-500/60" style={{ width: `${Math.max(2, Math.round((m.expenses / max) * 100))}%` }} />
+                                </div>
+                                <span className="w-16 text-right text-[10px] font-mono text-foreground">{formatMoney(m.expenses)}</span>
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+
+              {priorRevenue !== null && (
+                <Card className="rounded-xl border-border/60">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      {summary.total >= priorRevenue
+                        ? <TrendingUp className="h-4 w-4 text-emerald-600" />
+                        : <TrendingDown className="h-4 w-4 text-rose-600" />}
+                      Period-over-period
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const change = priorRevenue > 0
+                        ? ((summary.total - priorRevenue) / priorRevenue) * 100
+                        : (summary.total > 0 ? 100 : 0);
+                      const isUp = summary.total >= priorRevenue;
+                      const periodLabel =
+                        period === "7d" ? "7 days" :
+                        period === "30d" ? "30 days" :
+                        period === "90d" ? "90 days" :
+                        "YTD";
+                      return (
+                        <>
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="rounded-lg border border-border bg-card p-2">
+                              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Previous {periodLabel}</p>
+                              <p className="mt-0.5 text-sm font-bold text-foreground">{formatMoney(priorRevenue)}</p>
+                            </div>
+                            <div className="rounded-lg border border-border bg-card p-2">
+                              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Current {periodLabel}</p>
+                              <p className="mt-0.5 text-sm font-bold text-foreground">{formatMoney(summary.total)}</p>
+                            </div>
+                            <div className={cn(
+                              "rounded-lg border p-2",
+                              isUp ? "border-emerald-500/30 bg-emerald-500/5" : "border-rose-500/30 bg-rose-500/5",
+                            )}>
+                              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Change</p>
+                              <p className={cn(
+                                "mt-0.5 text-sm font-bold",
+                                isUp ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300",
+                              )}>
+                                {isUp ? "+" : ""}{change.toFixed(1)}%
+                              </p>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            {priorRevenue === 0
+                              ? `${formatMoney(summary.total)} vs. zero prior revenue — strong period.`
+                              : isUp
+                                ? `Growth of ${formatMoney(summary.total - priorRevenue)} vs. the previous ${periodLabel}.`
+                                : `Down ${formatMoney(priorRevenue - summary.total)} vs. the previous ${periodLabel}.`}
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="rounded-xl border-border/60">
                 <CardHeader className="pb-2">

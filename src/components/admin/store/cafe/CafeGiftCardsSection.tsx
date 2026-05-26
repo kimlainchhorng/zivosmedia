@@ -14,13 +14,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCafeGiftCards, type IssueGiftCardInput, type CafeGiftCard } from "@/hooks/cafe/useCafeGiftCards";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
 
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-
 export default function CafeGiftCardsSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { cards, redemptionsByCard, loading, saving, issue, redeem, setActive, remove } = useCafeGiftCards(storeId);
   const [issueDialog, setIssueDialog] = useState(false);
   const [draft, setDraft] = useState<IssueGiftCardInput>({ initial_balance_cents: 2500 });

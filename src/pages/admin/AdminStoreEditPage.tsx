@@ -55,7 +55,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Store, Image, Package, Plus, Edit, Trash2, Loader2, Eye, Upload, Camera, MapPin, ExternalLink, Globe, Check, Percent, DollarSign, CalendarIcon, Tag, Gift, Video, ImagePlus, RefreshCw, Replace, CheckCircle2, XCircle, MinusCircle, AlertTriangle, Move, X, Ruler, MessageCircle, CreditCard, Banknote, QrCode, Building2, Smartphone, Wallet, Car, Heart, Clock, Send, Users, Shield, Bell, Info, Copy, GripVertical, Hotel, BedDouble, CalendarRange, KeyRound, PackagePlus, MessageSquareText, BarChart3, ListChecks, LayoutDashboard, BookOpen } from "lucide-react";
+import { ArrowLeft, Save, Store, Image, Package, Plus, Edit, Trash2, Loader2, Eye, Upload, Camera, MapPin, ExternalLink, Globe, Check, Percent, DollarSign, CalendarIcon, Tag, Gift, Video, ImagePlus, RefreshCw, Replace, CheckCircle2, XCircle, MinusCircle, AlertTriangle, Move, X, Ruler, MessageCircle, CreditCard, Banknote, QrCode, Building2, Smartphone, Wallet, Car, Heart, Clock, Send, Users, Shield, Bell, Info, Copy, GripVertical, Hotel, BedDouble, CalendarRange, KeyRound, PackagePlus, MessageSquareText, BarChart3, ListChecks, LayoutDashboard, BookOpen, Star, Inbox, Wrench } from "lucide-react";
 import StoreLiveChat from "@/components/grocery/StoreLiveChat";
 import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
 import { LODGING_TAB_IDS, isAutoRepairTab, isCafeTab, isCarRentalTab, isCarDealershipTab, resolveStoreTab, resolveStoreTabFromSearch } from "@/lib/admin/storeTabRouting";
@@ -89,6 +89,8 @@ import SalonLoyaltySection from "@/components/admin/store/salon/SalonLoyaltySect
 import SalonReviewsSection from "@/components/admin/store/salon/SalonReviewsSection";
 import SalonTimeClockSection from "@/components/admin/store/salon/SalonTimeClockSection";
 import SalonGiftCardsSection from "@/components/admin/store/salon/SalonGiftCardsSection";
+import SalonRemindersSection from "@/components/admin/store/salon/SalonRemindersSection";
+import SalonCampaignsSection from "@/components/admin/store/salon/SalonCampaignsSection";
 import { SALON_TAB_META, SALON_TAB_IDS } from "@/components/admin/store/salon/salonTabConfig";
 import CarRentalComingSoonSection from "@/components/admin/store/car-rental/CarRentalComingSoonSection";
 import CarRentalDashboardSection from "@/components/admin/store/car-rental/CarRentalDashboardSection";
@@ -106,6 +108,7 @@ import CarRentalReportsSection from "@/components/admin/store/car-rental/CarRent
 import CarRentalReviewsSection from "@/components/admin/store/car-rental/CarRentalReviewsSection";
 import CarRentalPromotionsSection from "@/components/admin/store/car-rental/CarRentalPromotionsSection";
 import CarRentalRatesSection from "@/components/admin/store/car-rental/CarRentalRatesSection";
+import CarRentalCommandPalette from "@/components/admin/store/car-rental/CarRentalCommandPalette";
 import { CAR_RENTAL_TAB_META, CAR_RENTAL_TAB_IDS } from "@/components/admin/store/car-rental/carRentalTabConfig";
 import CarDealershipComingSoonSection from "@/components/admin/store/car-dealership/CarDealershipComingSoonSection";
 import CarDealershipDashboardSection from "@/components/admin/store/car-dealership/CarDealershipDashboardSection";
@@ -185,6 +188,7 @@ const AutoRepairLoanersSection = React.lazy(() => import("@/components/admin/sto
 const AutoRepairPhotosSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairPhotosSection"));
 const AutoRepairBookingLinkSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairBookingLinkSection"));
 const AutoRepairLaborTimeSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairLaborTimeSection"));
+const AutoRepairCustomerNotesSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairCustomerNotesSection"));
 const FinanceIncomeSection = React.lazy(() => import("@/components/admin/store/autorepair/finance/FinanceIncomeSection"));
 const FinanceExpensesSection = React.lazy(() => import("@/components/admin/store/autorepair/finance/FinanceExpensesSection"));
 const FinancePaymentsSection = React.lazy(() => import("@/components/admin/store/autorepair/finance/FinancePaymentsSection"));
@@ -2213,6 +2217,17 @@ export default function AdminStoreEditPage() {
     "ar-parts-suppliers": "Parts Suppliers",
     "ar-dashboard": "Shop Dashboard",
     "ar-service-catalog": "Service Catalog",
+    "ar-labor-time": "Labor Time Tracking",
+    "ar-loaners": "Loaner Vehicles",
+    "ar-photos": "Work Photos",
+    "ar-customer-notes": "Customer Notes & Communication",
+    "ar-reviews": "Customer Reviews",
+    "ar-inbox": "Customer Inbox",
+    "ar-promos": "Promotions & Discounts",
+    "ar-campaigns": "Marketing Campaigns",
+    "ar-gift-cards": "Gift Cards",
+    "ar-booking-link": "Booking Link & QR Code",
+    "ar-qr": "QR Code",
   };
   const lodgingTitles: Record<string, string> = {
     "lodge-overview": "Hotel Overview",
@@ -2813,6 +2828,10 @@ export default function AdminStoreEditPage() {
         </Card>
         </>)}
 
+        {isCarRental && storeId && (
+          <CarRentalCommandPalette storeId={storeId} onJump={(id) => handleTabChange(id)} />
+        )}
+
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           {isAdmin && (
             <>
@@ -2843,13 +2862,24 @@ export default function AdminStoreEditPage() {
                   <TabsTrigger value="ar-estimates" className="gap-1 text-xs h-7"><Package className="h-3 w-3" /> Estimates</TabsTrigger>
                   <TabsTrigger value="ar-inspections" className="gap-1 text-xs h-7"><Shield className="h-3 w-3" /> Inspections</TabsTrigger>
                   <TabsTrigger value="ar-techs" className="gap-1 text-xs h-7"><Users className="h-3 w-3" /> Technicians</TabsTrigger>
+                  <TabsTrigger value="ar-labor-time" className="gap-1 text-xs h-7"><Clock className="h-3 w-3" /> Labor Time</TabsTrigger>
                   <TabsTrigger value="ar-tires" className="gap-1 text-xs h-7"><Package className="h-3 w-3" /> Tires</TabsTrigger>
                   <TabsTrigger value="ar-parts" className="gap-1 text-xs h-7"><Package className="h-3 w-3" /> Parts</TabsTrigger>
                   <TabsTrigger value="ar-parts-suppliers" className="gap-1 text-xs h-7"><Package className="h-3 w-3" /> Suppliers</TabsTrigger>
                   <TabsTrigger value="ar-fleet" className="gap-1 text-xs h-7"><Car className="h-3 w-3" /> Fleet</TabsTrigger>
+                  <TabsTrigger value="ar-loaners" className="gap-1 text-xs h-7"><KeyRound className="h-3 w-3" /> Loaners</TabsTrigger>
                   <TabsTrigger value="ar-warranty" className="gap-1 text-xs h-7"><Shield className="h-3 w-3" /> Warranty</TabsTrigger>
                   <TabsTrigger value="ar-reminders" className="gap-1 text-xs h-7"><Bell className="h-3 w-3" /> Reminders</TabsTrigger>
-                  <TabsTrigger value="ar-autocheck" className="gap-1 text-xs h-7"><Car className="h-3 w-3" /> VIN Check</TabsTrigger>
+                  <TabsTrigger value="ar-photos" className="gap-1 text-xs h-7"><Camera className="h-3 w-3" /> Photos</TabsTrigger>
+                  <TabsTrigger value="ar-autocheck" className="gap-1 text-xs h-7"><Wrench className="h-3 w-3" /> VIN Check</TabsTrigger>
+                  <TabsTrigger value="ar-customer-notes" className="gap-1 text-xs h-7"><MessageSquareText className="h-3 w-3" /> Notes</TabsTrigger>
+                  <TabsTrigger value="ar-inbox" className="gap-1 text-xs h-7"><Inbox className="h-3 w-3" /> Inbox</TabsTrigger>
+                  <TabsTrigger value="ar-reviews" className="gap-1 text-xs h-7"><Star className="h-3 w-3" /> Reviews</TabsTrigger>
+                  <TabsTrigger value="ar-promos" className="gap-1 text-xs h-7"><Tag className="h-3 w-3" /> Promos</TabsTrigger>
+                  <TabsTrigger value="ar-campaigns" className="gap-1 text-xs h-7"><Send className="h-3 w-3" /> Campaigns</TabsTrigger>
+                  <TabsTrigger value="ar-gift-cards" className="gap-1 text-xs h-7"><Gift className="h-3 w-3" /> Gift Cards</TabsTrigger>
+                  <TabsTrigger value="ar-booking-link" className="gap-1 text-xs h-7"><Globe className="h-3 w-3" /> Booking Link</TabsTrigger>
+                  <TabsTrigger value="ar-qr" className="gap-1 text-xs h-7"><QrCode className="h-3 w-3" /> QR Code</TabsTrigger>
                   <TabsTrigger value="ar-reports" className="gap-1 text-xs h-7"><BarChart3 className="h-3 w-3" /> Reports</TabsTrigger>
                   <TabsTrigger value="ar-fin-income" className="gap-1 text-xs h-7"><DollarSign className="h-3 w-3" /> Income</TabsTrigger>
                   <TabsTrigger value="ar-fin-expenses" className="gap-1 text-xs h-7"><DollarSign className="h-3 w-3" /> Expenses</TabsTrigger>
@@ -4232,8 +4262,8 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-invoices"><div><AutoRepairInvoicesSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-autocheck"><div><AutoRepairAutoCheckSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-parts"><div><AutoRepairPartShopSection storeId={storeId!} /></div></TabsContent>
-              <TabsContent value="ar-inspections"><div><AutoRepairInspectionsSection storeId={storeId!} onCreateEstimate={(vehicleLabel) => { handleTabChange("ar-estimates"); toast.info(`Opening Estimates — create one for ${vehicleLabel || "this vehicle"}`); }} /></div></TabsContent>
-              <TabsContent value="ar-vehicles"><div><AutoRepairVehiclesSection storeId={storeId!} onNewEstimate={(v) => { handleTabChange("ar-estimates"); toast.info(`Create estimate for ${[v.year, v.make, v.model].filter(Boolean).join(" ")}`); }} onViewWorkOrders={(v) => { handleTabChange("ar-workorders"); toast.info(`Showing Work Orders — search "${[v.year, v.make, v.model].filter(Boolean).join(" ")}"`); }} /></div></TabsContent>
+              <TabsContent value="ar-inspections"><div><AutoRepairInspectionsSection storeId={storeId!} onCreateEstimate={(data) => { sessionStorage.setItem("ar_estimate_prefill", JSON.stringify(data)); handleTabChange("ar-estimates"); toast.success("Estimate prefilled from inspection"); }} /></div></TabsContent>
+              <TabsContent value="ar-vehicles"><div><AutoRepairVehiclesSection storeId={storeId!} onNewEstimate={(v) => { const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" "); sessionStorage.setItem("ar_estimate_prefill", JSON.stringify({ vehicle_label: vehicleLabel, customer_name: v.owner_name || "", customer_phone: v.owner_phone || "", customer_email: v.owner_email || "", notes: "", line_items: [] })); handleTabChange("ar-estimates"); toast.success(`Estimate prefilled for ${vehicleLabel}`); }} onViewWorkOrders={(v) => { const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" "); sessionStorage.setItem("ar_workorder_search", vehicleLabel); handleTabChange("ar-workorders"); toast.info(`Filtering Work Orders by "${vehicleLabel}"`); }} /></div></TabsContent>
               <TabsContent value="ar-estimates"><div><AutoRepairEstimatesSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-workorders"><div><AutoRepairWorkOrdersSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-labor-time"><div><AutoRepairLaborTimeSection storeId={storeId!} /></div></TabsContent>
@@ -4244,6 +4274,7 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-fleet"><div><AutoRepairFleetSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-loaners"><div><AutoRepairLoanersSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-photos"><div><AutoRepairPhotosSection storeId={storeId!} /></div></TabsContent>
+              <TabsContent value="ar-customer-notes"><div><AutoRepairCustomerNotesSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-reviews"><div><AutoRepairReviewsSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-inbox"><div><AutoRepairInboxSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-promos"><div><AutoRepairPromosSection storeId={storeId!} /></div></TabsContent>
@@ -4442,15 +4473,15 @@ export default function AdminStoreEditPage() {
             const renderReal = () => {
               switch (tabId) {
                 case "cd-dashboard":
-                  return <CarDealershipDashboardSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                  return <CarDealershipDashboardSection storeId={storeId!} storeSlug={store?.slug} onJumpToTab={handleTabChange} />;
                 case "cd-inventory":
-                  return <CarDealershipInventorySection storeId={storeId!} />;
+                  return <CarDealershipInventorySection storeId={storeId!} storeName={store?.name} />;
                 case "cd-leads":
                   return <CarDealershipLeadsSection storeId={storeId!} />;
                 case "cd-test-drives":
                   return <CarDealershipTestDrivesSection storeId={storeId!} />;
                 case "cd-sales":
-                  return <CarDealershipSalesSection storeId={storeId!} />;
+                  return <CarDealershipSalesSection storeId={storeId!} storeName={store?.name} storeSlug={store?.slug} />;
                 case "cd-customers":
                   return <CarDealershipCustomersSection storeId={storeId!} />;
                 case "cd-financing":
@@ -4529,6 +4560,10 @@ export default function AdminStoreEditPage() {
                   return <SalonTimeClockSection storeId={storeId!} />;
                 case "salon-gift-cards":
                   return <SalonGiftCardsSection storeId={storeId!} />;
+                case "salon-reminders":
+                  return <SalonRemindersSection storeId={storeId!} />;
+                case "salon-campaigns":
+                  return <SalonCampaignsSection storeId={storeId!} />;
                 default:
                   return null;
               }

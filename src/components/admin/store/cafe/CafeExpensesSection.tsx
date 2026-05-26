@@ -14,11 +14,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCafeExpenses, type CafeExpenseDraft } from "@/hooks/cafe/useCafeExpenses";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const CATEGORIES = ["Beans", "Dairy", "Bakery", "Supplies", "Rent", "Utilities", "Marketing", "Equipment", "Repairs", "Other"];
 
 const blankExpense = (): CafeExpenseDraft => ({
@@ -33,6 +33,8 @@ const blankExpense = (): CafeExpenseDraft => ({
 });
 
 export default function CafeExpensesSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { expenses, loading, saving, create, remove } = useCafeExpenses(storeId);
   const [dialog, setDialog] = useState(false);
   const [draft, setDraft] = useState<CafeExpenseDraft>(blankExpense());

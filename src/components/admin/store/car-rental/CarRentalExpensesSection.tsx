@@ -3,7 +3,7 @@
  */
 import { useMemo, useState } from "react";
 import {
-  Wallet, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle,
+  Wallet, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, Car, Building2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,39 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
     for (const e of expenses) map.set(e.category, (map.get(e.category) ?? 0) + e.amount_cents);
     return CATEGORIES.map((c) => ({ ...c, cents: map.get(c.value) ?? 0 })).filter((x) => x.cents > 0).sort((a, b) => b.cents - a.cents);
   }, [expenses]);
+
+  // Top vendors — aggregate by `paid_to`. Empty/null values are ignored.
+  const byVendor = useMemo(() => {
+    const map = new Map<string, { cents: number; count: number }>();
+    for (const e of expenses) {
+      const v = (e.paid_to ?? "").trim();
+      if (!v) continue;
+      const cur = map.get(v) ?? { cents: 0, count: 0 };
+      cur.cents += e.amount_cents;
+      cur.count += 1;
+      map.set(v, cur);
+    }
+    return Array.from(map, ([vendor, v]) => ({ vendor, ...v })).sort((a, b) => b.cents - a.cents).slice(0, 5);
+  }, [expenses]);
+
+  // Per-vehicle expense breakdown — `vehicle_id` aggregated, null = fleet-wide.
+  const byVehicleExpense = useMemo(() => {
+    const map = new Map<string, { cents: number; count: number; label: string }>();
+    for (const e of expenses) {
+      const key = e.vehicle_id ?? "__fleet__";
+      const label = e.vehicle_id
+        ? (() => {
+          const v = vehicles.find((x) => x.id === e.vehicle_id);
+          return v ? `${v.year ? `${v.year} ` : ""}${v.make} ${v.model}` : "(unknown vehicle)";
+        })()
+        : "Fleet-wide";
+      const cur = map.get(key) ?? { cents: 0, count: 0, label };
+      cur.cents += e.amount_cents;
+      cur.count += 1;
+      map.set(key, cur);
+    }
+    return Array.from(map, ([key, v]) => ({ key, ...v })).sort((a, b) => b.cents - a.cents).slice(0, 5);
+  }, [expenses, vehicles]);
 
   const openCreate = () => { setEditing(null); setDraft({ ...EMPTY }); setDialogOpen(true); };
   const openEdit = (e: CarRentalExpense) => {
@@ -149,6 +182,70 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
             </div>
           ) : (
             <>
+              {(byVendor.length > 0 || byVehicleExpense.length > 0) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {byVendor.length > 0 && (
+                    <Card className="rounded-xl border-border/60">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <Building2 className="h-4 w-4 text-primary" /> Top vendors
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const maxV = byVendor[0]?.cents ?? 1;
+                          return (
+                            <ul className="space-y-1.5">
+                              {byVendor.map((v) => (
+                                <li key={v.vendor} className="space-y-1">
+                                  <div className="flex items-baseline justify-between text-xs gap-2">
+                                    <span className="truncate font-medium text-foreground">{v.vendor}</span>
+                                    <span className="font-mono text-muted-foreground shrink-0">{formatMoney(v.cents)}</span>
+                                  </div>
+                                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                    <div className="h-full bg-primary/60" style={{ width: `${Math.max(4, Math.round((v.cents / maxV) * 100))}%` }} />
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground">{v.count} entr{v.count === 1 ? "y" : "ies"}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  )}
+                  {byVehicleExpense.length > 0 && (
+                    <Card className="rounded-xl border-border/60">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <Car className="h-4 w-4 text-primary" /> By vehicle
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const maxV = byVehicleExpense[0]?.cents ?? 1;
+                          return (
+                            <ul className="space-y-1.5">
+                              {byVehicleExpense.map((v) => (
+                                <li key={v.key} className="space-y-1">
+                                  <div className="flex items-baseline justify-between text-xs gap-2">
+                                    <span className={cn("truncate font-medium text-foreground", v.key === "__fleet__" && "italic")}>{v.label}</span>
+                                    <span className="font-mono text-muted-foreground shrink-0">{formatMoney(v.cents)}</span>
+                                  </div>
+                                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                    <div className="h-full bg-amber-500/60" style={{ width: `${Math.max(4, Math.round((v.cents / maxV) * 100))}%` }} />
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground">{v.count} entr{v.count === 1 ? "y" : "ies"}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
               <ul className="divide-y divide-border rounded-xl border border-border">
                 {filtered.map((e) => {
                   const cat = catMeta(e.category);

@@ -22,6 +22,7 @@ import {
   type DealershipTradeInStatus,
   type DealershipTradeInCondition,
 } from "@/hooks/car-dealership/useDealershipTradeIns";
+import CustomerPicker from "./CustomerPicker";
 
 const formatPrice = (cents: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
@@ -155,6 +156,13 @@ function CarDealershipTradeInsSectionInner({ storeId }: Props) {
         <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Edit trade-in" : "New trade-in appraisal"}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
+            <CustomerPicker
+              storeId={storeId}
+              customerId={draft.customer_id}
+              customerName=""
+              onSelect={(c) => setDraft({ ...draft, customer_id: c?.id ?? null })}
+              onNameChange={() => {/* name is on the sale/customer record */}}
+            />
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Year</Label>
@@ -231,6 +239,39 @@ function CarDealershipTradeInsSectionInner({ storeId }: Props) {
                 <Input value={draft.payoff_lender ?? ""} onChange={(e) => setDraft({ ...draft, payoff_lender: e.target.value || null })} />
               </div>
             </div>
+
+            {/* Net equity summary */}
+            {(draft.appraised_value_cents > 0 || draft.offered_value_cents > 0) && (
+              <div className="rounded-md bg-muted/50 border p-3 space-y-1 text-sm">
+                {draft.appraised_value_cents > 0 && draft.offered_value_cents > 0 && draft.appraised_value_cents !== draft.offered_value_cents && (
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Appraised</span><span>{formatPrice(draft.appraised_value_cents)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Offered value</span>
+                  <span className="font-medium">{formatPrice(draft.offered_value_cents || draft.appraised_value_cents)}</span>
+                </div>
+                {draft.payoff_amount_cents > 0 && (
+                  <div className="flex justify-between text-muted-foreground text-xs">
+                    <span>Less payoff</span><span>−{formatPrice(draft.payoff_amount_cents)}</span>
+                  </div>
+                )}
+                {(() => {
+                  const equity = (draft.offered_value_cents || draft.appraised_value_cents) - draft.payoff_amount_cents;
+                  return (
+                    <div className={cn(
+                      "flex justify-between font-bold border-t pt-1 mt-0.5",
+                      equity >= 0 ? "text-emerald-700" : "text-red-700",
+                    )}>
+                      <span>Net equity</span>
+                      <span>{equity >= 0 ? "" : "−"}{formatPrice(Math.abs(equity))}</span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>Notes</Label>
               <Textarea rows={2} value={draft.notes ?? ""} onChange={(e) => setDraft({ ...draft, notes: e.target.value || null })} />

@@ -3,7 +3,7 @@
  */
 import { useMemo, useState } from "react";
 import {
-  Wrench, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, Car, Ban, CalendarX,
+  Wrench, Plus, Pencil, Trash2, Loader2, CheckCircle2, AlertTriangle, Car, Ban, CalendarX, Zap, BarChart3,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,33 @@ const todayIso = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+// Service templates — sensible defaults so operators can log routine work in one click.
+// Costs are starting estimates; the dialog stays open so they can fine-tune before saving.
+interface ServiceTemplate {
+  label: string;
+  service_type: CarRentalMaintenanceServiceType;
+  description: string;
+  estimated_cost_cents: number;
+  next_due_offset_days?: number;
+  next_due_offset_mi?: number;
+}
+
+const SERVICE_TEMPLATES: ServiceTemplate[] = [
+  { label: "Oil change", service_type: "oil_change", description: "Oil & filter change", estimated_cost_cents: 5000, next_due_offset_days: 180, next_due_offset_mi: 5000 },
+  { label: "Tire rotation", service_type: "tire_rotation", description: "Tire rotation & inspection", estimated_cost_cents: 3000, next_due_offset_mi: 6000 },
+  { label: "Brake service", service_type: "brake_service", description: "Brake pad replacement & inspection", estimated_cost_cents: 25000, next_due_offset_mi: 30000 },
+  { label: "Safety inspection", service_type: "inspection", description: "Annual safety inspection", estimated_cost_cents: 4000, next_due_offset_days: 365 },
+  { label: "Battery", service_type: "battery", description: "Battery replacement", estimated_cost_cents: 15000 },
+  { label: "Detail / clean", service_type: "detailing", description: "Interior + exterior detail", estimated_cost_cents: 8000 },
+];
+
+// Add N days to a YYYY-MM-DD date string and return the same format.
+function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 const EMPTY = (vehicleId: string): CarRentalMaintenanceDraft => ({
   vehicle_id: vehicleId,
   service_type: "oil_change",
@@ -82,6 +109,55 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
     setDraft(EMPTY(vehicleFilter === "all" ? vehicles[0].id : vehicleFilter));
     setDialogOpen(true);
   };
+  const openTemplate = (tpl: ServiceTemplate) => {
+    if (vehicles.length === 0) return;
+    setEditing(null);
+    const today = todayIso();
+    const lastOdo = (() => {
+      // Best-guess current odometer: the vehicle's recorded odometer for the current filter,
+      // or null when "all vehicles" is selected.
+      if (vehicleFilter === "all") return null;
+      const v = vehicles.find((x) => x.id === vehicleFilter);
+      return v?.current_odometer ?? null;
+    })();
+    setDraft({
+      vehicle_id: vehicleFilter === "all" ? vehicles[0].id : vehicleFilter,
+      service_type: tpl.service_type,
+      description: tpl.description,
+      cost_cents: tpl.estimated_cost_cents,
+      service_date: today,
+      odometer: lastOdo,
+      next_service_due_date: tpl.next_due_offset_days ? addDays(today, tpl.next_due_offset_days) : null,
+      next_service_due_odometer: (tpl.next_due_offset_mi && lastOdo !== null) ? lastOdo + tpl.next_due_offset_mi : null,
+      took_vehicle_offline: false,
+    });
+    setDialogOpen(true);
+  };
+
+  // Per-vehicle maintenance cost rank — highlights money-pit vehicles.
+  const byVehicleCost = useMemo(() => {
+    const map = new Map<string, { cents: number; count: number }>();
+    for (const r of records) {
+      if (!r.vehicle_id) continue;
+      const cur = map.get(r.vehicle_id) ?? { cents: 0, count: 0 };
+      cur.cents += r.cost_cents;
+      cur.count += 1;
+      map.set(r.vehicle_id, cur);
+    }
+    return Array.from(map, ([vehicle_id, v]) => ({ vehicle_id, ...v })).sort((a, b) => b.cents - a.cents).slice(0, 5);
+  }, [records]);
+
+  // Total spend per service type — shows where the budget is going.
+  const byServiceType = useMemo(() => {
+    const map = new Map<string, { cents: number; count: number }>();
+    for (const r of records) {
+      const cur = map.get(r.service_type) ?? { cents: 0, count: 0 };
+      cur.cents += r.cost_cents;
+      cur.count += 1;
+      map.set(r.service_type, cur);
+    }
+    return Array.from(map, ([service_type, v]) => ({ service_type, ...v })).sort((a, b) => b.cents - a.cents);
+  }, [records]);
   const openEdit = (r: CarRentalMaintenance) => {
     setEditing(r);
     setDraft({
@@ -157,6 +233,25 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
             </div>
           </div>
 
+          {vehicles.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1 inline-flex items-center gap-1">
+                <Zap className="h-3 w-3" /> Quick add:
+              </span>
+              {SERVICE_TEMPLATES.map((t) => (
+                <button
+                  key={t.label}
+                  type="button"
+                  onClick={() => openTemplate(t)}
+                  title={`Pre-fill ${t.label} · ${formatMoney(t.estimated_cost_cents)}`}
+                  className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors"
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading…
@@ -167,6 +262,74 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
               {records.length === 0 ? "No maintenance records yet. Add one to start tracking service history." : "No records for this vehicle."}
             </div>
           ) : (
+            <>
+              {records.length >= 3 && (byVehicleCost.length > 0 || byServiceType.length > 0) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {byVehicleCost.length > 0 && (
+                    <Card className="rounded-xl border-border/60">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <Car className="h-4 w-4 text-primary" /> Highest maintenance cost
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const max = byVehicleCost[0]?.cents ?? 1;
+                          return (
+                            <ul className="space-y-1.5">
+                              {byVehicleCost.map((v) => (
+                                <li key={v.vehicle_id} className="space-y-1">
+                                  <div className="flex items-baseline justify-between gap-2 text-xs">
+                                    <span className="truncate font-medium text-foreground">{labelFor(v.vehicle_id)}</span>
+                                    <span className="font-mono text-muted-foreground shrink-0">{formatMoney(v.cents)}</span>
+                                  </div>
+                                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                    <div className="h-full bg-rose-500/70" style={{ width: `${Math.max(4, Math.round((v.cents / max) * 100))}%` }} />
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground">{v.count} service{v.count === 1 ? "" : "s"}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  )}
+                  {byServiceType.length > 0 && (
+                    <Card className="rounded-xl border-border/60">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <BarChart3 className="h-4 w-4 text-primary" /> Spend by service type
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const max = byServiceType[0]?.cents ?? 1;
+                          return (
+                            <ul className="space-y-1.5">
+                              {byServiceType.slice(0, 6).map((s) => {
+                                const meta = SERVICE_TYPES.find((x) => x.value === s.service_type);
+                                return (
+                                  <li key={s.service_type} className="space-y-1">
+                                    <div className="flex items-baseline justify-between gap-2 text-xs">
+                                      <span className="truncate font-medium text-foreground capitalize">{meta?.label ?? s.service_type.replace(/_/g, " ")}</span>
+                                      <span className="font-mono text-muted-foreground shrink-0">{formatMoney(s.cents)}</span>
+                                    </div>
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                      <div className="h-full bg-primary/60" style={{ width: `${Math.max(4, Math.round((s.cents / max) * 100))}%` }} />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground">{s.count} record{s.count === 1 ? "" : "s"}</p>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
             <ul className="divide-y divide-border rounded-xl border border-border">
               {filtered.map((r) => (
                 <li key={r.id} className="group flex flex-col gap-2 p-3 sm:flex-row sm:items-center">
@@ -200,6 +363,7 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
                 </li>
               ))}
             </ul>
+            </>
           )}
         </CardContent>
       </Card>
@@ -293,6 +457,40 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
   );
 }
 
+// Build a local-format datetime-local string from a Date.
+function toLocalDateTime(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Pre-computed duration presets. `range(now)` returns the [start, end] datetime-local pair.
+const DURATION_PRESETS: { label: string; range: (now: Date) => [string, string] }[] = [
+  { label: "Today only", range: (now) => {
+    const start = new Date(now); start.setHours(0, 0, 0, 0);
+    const end = new Date(now); end.setHours(23, 59, 0, 0);
+    return [toLocalDateTime(start), toLocalDateTime(end)];
+  } },
+  { label: "Tomorrow", range: (now) => {
+    const start = new Date(now); start.setDate(start.getDate() + 1); start.setHours(0, 0, 0, 0);
+    const end = new Date(start); end.setHours(23, 59, 0, 0);
+    return [toLocalDateTime(start), toLocalDateTime(end)];
+  } },
+  { label: "This weekend", range: (now) => {
+    const start = new Date(now);
+    // Roll forward to Saturday (6). If today is Sat or Sun, use that.
+    const day = start.getDay();
+    const daysUntilSat = day === 0 ? 6 : (day === 6 ? 0 : 6 - day);
+    start.setDate(start.getDate() + daysUntilSat); start.setHours(0, 0, 0, 0);
+    const end = new Date(start); end.setDate(end.getDate() + 1); end.setHours(23, 59, 0, 0);
+    return [toLocalDateTime(start), toLocalDateTime(end)];
+  } },
+  { label: "Next 7 days", range: (now) => {
+    const start = new Date(now); start.setHours(0, 0, 0, 0);
+    const end = new Date(start); end.setDate(end.getDate() + 7); end.setHours(23, 59, 0, 0);
+    return [toLocalDateTime(start), toLocalDateTime(end)];
+  } },
+];
+
 function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, onDelete }: {
   vehicles: ReturnType<typeof useCarRentalVehicles>["vehicles"];
   blackouts: ReturnType<typeof useCarRentalBlackouts>["blackouts"];
@@ -303,18 +501,19 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
   onDelete: ReturnType<typeof useCarRentalBlackouts>["remove"];
 }) {
   const [open, setOpen] = useState(false);
-  const [vehicleId, setVehicleId] = useState<string>("");
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState<Set<string>>(new Set());
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [reason, setReason] = useState("");
   const [category, setCategory] = useState<CarRentalBlackoutCategory>("maintenance");
+  const [showPast, setShowPast] = useState(false);
 
   const openCreate = () => {
     if (vehicles.length === 0) return;
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, "0");
     const iso = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T09:00`;
-    setVehicleId(vehicles[0].id);
+    setSelectedVehicleIds(new Set([vehicles[0].id]));
     setStartsAt(iso);
     setEndsAt(iso.replace("T09:00", "T17:00"));
     setReason("");
@@ -323,15 +522,24 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
   };
 
   const save = async () => {
-    if (!vehicleId || !startsAt || !endsAt) return;
-    const created = await onCreate({
-      vehicle_id: vehicleId,
-      starts_at: new Date(startsAt).toISOString(),
-      ends_at: new Date(endsAt).toISOString(),
-      reason: reason || null,
-      category,
-    });
-    if (created) setOpen(false);
+    if (selectedVehicleIds.size === 0 || !startsAt || !endsAt) return;
+    const startsIso = new Date(startsAt).toISOString();
+    const endsIso = new Date(endsAt).toISOString();
+    // Create one blackout per selected vehicle so the operator can holiday-block the whole
+    // fleet in one go. If any single create fails, the rest still try (best-effort batch).
+    const ids = Array.from(selectedVehicleIds);
+    let ok = 0;
+    for (const vid of ids) {
+      const created = await onCreate({
+        vehicle_id: vid,
+        starts_at: startsIso,
+        ends_at: endsIso,
+        reason: reason || null,
+        category,
+      });
+      if (created) ok++;
+    }
+    if (ok > 0) setOpen(false);
   };
 
   const labelFor = (vid: string) => {
@@ -340,6 +548,9 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
   };
 
   const upcoming = blackouts.filter((b) => new Date(b.ends_at).getTime() > Date.now());
+  const visible = showPast
+    ? [...blackouts].sort((a, b) => b.starts_at.localeCompare(a.starts_at))
+    : upcoming;
 
   return (
     <>
@@ -351,9 +562,21 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
               {upcoming.length}
             </span>
           </CardTitle>
-          <Button size="sm" onClick={openCreate} disabled={vehicles.length === 0}>
-            <Plus className="mr-1 h-4 w-4" /> Block dates
-          </Button>
+          <div className="flex items-center gap-1.5">
+            {blackouts.length > upcoming.length && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowPast((v) => !v)}
+                title={showPast ? "Hide past blackouts" : "Show past blackouts too"}
+              >
+                {showPast ? "Hide past" : "Show all"}
+              </Button>
+            )}
+            <Button size="sm" onClick={openCreate} disabled={vehicles.length === 0}>
+              <Plus className="mr-1 h-4 w-4" /> Block dates
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -365,22 +588,28 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading…
             </div>
-          ) : upcoming.length === 0 ? (
+          ) : visible.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
               <CalendarX className="mx-auto mb-2 h-8 w-8 opacity-50" />
-              No upcoming blackouts. Use this to block dates for maintenance, holidays, or owner use.
+              {showPast ? "No blackouts recorded yet." : "No upcoming blackouts. Use this to block dates for maintenance, holidays, or owner use."}
             </div>
           ) : (
             <ul className="divide-y divide-border rounded-xl border border-border">
-              {upcoming.map((b) => (
-                <li key={b.id} className="group flex items-center gap-3 p-3">
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              {visible.map((b) => {
+                const isPast = new Date(b.ends_at).getTime() < Date.now();
+                return (
+                <li key={b.id} className={cn("group flex items-center gap-3 p-3", isPast && "opacity-60")}>
+                  <div className={cn(
+                    "grid h-8 w-8 shrink-0 place-items-center rounded-lg",
+                    isPast ? "bg-muted text-muted-foreground" : "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                  )}>
                     <CalendarX className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">
                       {labelFor(b.vehicle_id)}
                       <span className="ml-1.5 text-[11px] font-normal capitalize text-muted-foreground">· {b.category}</span>
+                      {isPast && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">past</span>}
                     </p>
                     <p className="truncate text-[11px] text-muted-foreground">
                       {new Date(b.starts_at).toLocaleString()} → {new Date(b.ends_at).toLocaleString()}
@@ -391,7 +620,8 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </CardContent>
@@ -403,15 +633,63 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
             <DialogTitle>Block dates</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <Field label="Vehicle">
-              <Select value={vehicleId} onValueChange={setVehicleId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.year ? `${v.year} ` : ""}{v.make} {v.model}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Field label={`Vehicles (${selectedVehicleIds.size} selected)`}>
+              <div className="space-y-2 rounded-md border border-border max-h-44 overflow-y-auto p-2">
+                <div className="flex items-center justify-between border-b border-border/60 pb-1">
+                  <button
+                    type="button"
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                    onClick={() => setSelectedVehicleIds(new Set(vehicles.map((v) => v.id)))}
+                  >
+                    Select all ({vehicles.length})
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[11px] font-semibold text-muted-foreground hover:underline"
+                    onClick={() => setSelectedVehicleIds(new Set())}
+                    disabled={selectedVehicleIds.size === 0}
+                  >
+                    Clear
+                  </button>
+                </div>
+                {vehicles.map((v) => {
+                  const checked = selectedVehicleIds.has(v.id);
+                  return (
+                    <label key={v.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={checked}
+                        onChange={() => setSelectedVehicleIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(v.id)) next.delete(v.id);
+                          else next.add(v.id);
+                          return next;
+                        })}
+                      />
+                      <span>{v.year ? `${v.year} ` : ""}{v.make} {v.model}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </Field>
+            <Field label="Duration preset">
+              <div className="flex flex-wrap gap-1.5">
+                {DURATION_PRESETS.map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => {
+                      const [s, e] = p.range(new Date());
+                      setStartsAt(s);
+                      setEndsAt(e);
+                    }}
+                    className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Starts">
@@ -439,9 +717,9 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={saving || !vehicleId || !startsAt || !endsAt}>
+            <Button onClick={save} disabled={saving || selectedVehicleIds.size === 0 || !startsAt || !endsAt}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
-              Block dates
+              Block {selectedVehicleIds.size > 1 ? `${selectedVehicleIds.size} vehicles` : "dates"}
             </Button>
           </DialogFooter>
         </DialogContent>

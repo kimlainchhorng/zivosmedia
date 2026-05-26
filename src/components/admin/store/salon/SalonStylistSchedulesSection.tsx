@@ -205,6 +205,13 @@ export default function SalonStylistSchedulesSection({ storeId }: SalonStylistSc
   const copyToAll = () => {
     const monday = rows[1];
     if (!monday) return;
+    // Refuse to propagate an "off" state to every day — it's almost never what
+    // the user wants and silently wipes the entire week. Make them set
+    // Monday's hours first.
+    if (!monday.is_working || !monday.start_time || !monday.end_time) {
+      toast.error("Set Monday's working hours first, then click Copy.");
+      return;
+    }
     setRows((prev) => {
       const next: typeof prev = { ...prev };
       for (let i = 0; i < 7; i++) {

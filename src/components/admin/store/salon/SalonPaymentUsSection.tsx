@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useSalonPaymentSettings,
   type SalonStripeStatus,
@@ -89,12 +90,25 @@ export default function SalonPaymentUsSection({ storeId }: SalonPaymentUsSection
     setConnectingStripe(true);
     try {
       if (settings.stripe_status === "not_connected") {
-        // Backend hook-up TBD: this should call an edge function like
-        // `salon-stripe-connect-link` that returns a hosted onboarding URL
-        // for first-time connection.
-        toast.info("Stripe onboarding coming soon", {
-          description: "We're wiring up the secure Stripe Connect handoff. You'll be redirected to Stripe once it's ready.",
+        // Kick off Stripe Connect Express onboarding via the shared
+        // connect-onboard edge function. It returns a hosted account-link
+        // URL we redirect the owner to. Stripe handles the rest; on return
+        // the webhook stamps store_payment_settings.stripe_status='active'.
+        const { data, error } = await supabase.functions.invoke("connect-onboard", {
+          body: {
+            store_id: storeId,
+            source: "salon",
+            return_url: typeof window !== "undefined" ? window.location.href : undefined,
+            refresh_url: typeof window !== "undefined" ? window.location.href : undefined,
+          },
         });
+        if (error) {
+          toast.error(error.message || "Couldn't start Stripe onboarding.");
+        } else if ((data as any)?.url) {
+          window.location.href = (data as any).url;
+        } else {
+          toast.error("Stripe didn't return an onboarding URL. Try again.");
+        }
       } else {
         // Already connected — just punt them to Stripe's hosted dashboard so
         // they can manage payouts, bank, etc. Opens in a new tab so they
@@ -374,6 +388,14 @@ export default function SalonPaymentUsSection({ storeId }: SalonPaymentUsSection
                 disabled={saving}
               />
               <p className="text-xs text-muted-foreground">Charged when a client doesn't show.</p>
+              {settings.no_show_fee_cents > 0 && settings.deposit_percent === 0 && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Heads up — a no-show fee needs a deposit to be configured.
+                  The card is saved during deposit checkout, so without a
+                  deposit there's no card on file to charge. Walk-in / phone
+                  bookings without a Stripe payment can't be auto-charged.
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cancelWindow">Cancellation window (hrs)</Label>

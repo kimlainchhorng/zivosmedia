@@ -19,12 +19,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCafePurchasing, type CafeSupplierDraft, type CafePoStatus } from "@/hooks/cafe/useCafePurchasing";
 import { useCafeInventory } from "@/hooks/cafe/useCafeInventory";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const STATUS_COLOR: Record<CafePoStatus, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -46,6 +46,8 @@ interface NewPoLine {
 }
 
 export default function CafePurchasingSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const purch = useCafePurchasing(storeId);
   const inv = useCafeInventory(storeId);
 

@@ -23,7 +23,9 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import FileSignature from "lucide-react/dist/esm/icons/file-signature";
 import Scan from "lucide-react/dist/esm/icons/scan";
 import ClipboardList from "lucide-react/dist/esm/icons/clipboard-list";
+import History from "lucide-react/dist/esm/icons/history";
 import { toast } from "sonner";
+import VehicleHistoryDialog from "./VehicleHistoryDialog";
 
 interface Props { storeId: string; onNewEstimate?: (vehicle: Vehicle) => void; onViewWorkOrders?: (vehicle: Vehicle) => void }
 
@@ -63,6 +65,7 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onVi
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(blankForm);
   const [vinDecoding, setVinDecoding] = useState(false);
+  const [historyVehicle, setHistoryVehicle] = useState<Vehicle | null>(null);
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["ar-customer-vehicles", storeId],
@@ -240,9 +243,9 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onVi
                     </a>
                   )}
                   {v.notes && <p className="text-[11px] text-muted-foreground line-clamp-2">{v.notes}</p>}
-                  <div className="flex gap-2 pt-1">
-                    <Button size="sm" variant="outline" className="flex-1 h-8 gap-1.5" onClick={() => startEdit(v)}>
-                      <Pencil className="w-3 h-3" /> Edit
+                  <div className="flex gap-2 pt-1 flex-wrap">
+                    <Button size="sm" variant="default" className="flex-1 h-8 gap-1.5" onClick={() => setHistoryVehicle(v)}>
+                      <History className="w-3 h-3" /> History
                     </Button>
                     {onNewEstimate && (
                       <Button size="sm" variant="secondary" className="flex-1 h-8 gap-1.5" onClick={() => onNewEstimate(v)}>
@@ -251,9 +254,12 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onVi
                     )}
                     {onViewWorkOrders && (
                       <Button size="sm" variant="outline" className="flex-1 h-8 gap-1.5" onClick={() => onViewWorkOrders(v)}>
-                        <ClipboardList className="w-3 h-3" /> Work Orders
+                        <ClipboardList className="w-3 h-3" /> WOs
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => startEdit(v)}>
+                      <Pencil className="w-3 h-3" /> Edit
+                    </Button>
                     <Button size="sm" variant="ghost" className="h-8 text-destructive" onClick={() => {
                       if (confirm(`Delete ${v.year ?? ""} ${v.make} ${v.model}?`)) remove.mutate(v.id);
                     }}>
@@ -340,6 +346,13 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onVi
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <VehicleHistoryDialog
+        open={!!historyVehicle}
+        onOpenChange={(o) => { if (!o) setHistoryVehicle(null); }}
+        storeId={storeId}
+        vehicle={historyVehicle}
+      />
     </div>
   );
 }

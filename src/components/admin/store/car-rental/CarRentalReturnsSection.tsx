@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import CarRentalDamageDiagram, { type DamageMark } from "./CarRentalDamageDiagram";
 
 interface Props { storeId: string }
 
@@ -169,6 +170,7 @@ export default function CarRentalReturnsSection({ storeId }: Props) {
                 dropoff_fuel_level: settle.dropoff_fuel_level,
                 damage_notes: settle.damage_notes,
                 damage_photos: settle.damage_photos,
+                damage_marks: settle.damage_marks,
                 fees_cents: settle.extra_fees_cents,
                 total_cents: settle.new_total_cents,
                 amount_paid_cents: settle.amount_paid_cents,
@@ -198,6 +200,7 @@ function ReturnDialog({
     dropoff_fuel_level: number;
     damage_notes: string | null;
     damage_photos: string[];
+    damage_marks: DamageMark[];
     extra_fees_cents: number;
     new_total_cents: number;
     amount_paid_cents: number;
@@ -209,6 +212,7 @@ function ReturnDialog({
   const [damageNotes, setDamageNotes] = useState<string>("");
   const [damagePhotos, setDamagePhotos] = useState<string[]>([]);
   const [photoInput, setPhotoInput] = useState<string>("");
+  const [damageMarks, setDamageMarks] = useState<DamageMark[]>([]);
   const [refuelChargeDollars, setRefuelChargeDollars] = useState<number>(0);
   const [damageChargeDollars, setDamageChargeDollars] = useState<number>(0);
   const [lateFeeDollars, setLateFeeDollars] = useState<number>(0);
@@ -336,6 +340,8 @@ function ReturnDialog({
             <div /> {/* spacer */}
           </div>
 
+          <CarRentalDamageDiagram marks={damageMarks} onChange={setDamageMarks} />
+
           <Field label="Damage / condition notes">
             <Textarea rows={2} value={damageNotes} onChange={(e) => setDamageNotes(e.target.value)} placeholder="Scratches, dents, missing items, cleanliness…" />
           </Field>
@@ -424,6 +430,7 @@ function ReturnDialog({
             dropoff_fuel_level: endFuel,
             damage_notes: damageNotes.trim() || null,
             damage_photos: damagePhotos,
+            damage_marks: damageMarks,
             extra_fees_cents: extraFeesTotal,
             new_total_cents: newTotal,
             amount_paid_cents: rental.amount_paid_cents + stillOwed,

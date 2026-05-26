@@ -11,6 +11,10 @@ export interface SalonSidebarBadges {
   waitlist: number;
   reviewsUnreplied: number;
   retailLowStock: number;
+  /** Pending reminders due within the next 24h — surfaces on the Reminders tab. */
+  remindersDueSoon: number;
+  /** Campaigns currently sending — surfaces on the Campaigns tab. */
+  campaignsSending: number;
 }
 
 const ZERO: SalonSidebarBadges = {
@@ -18,6 +22,8 @@ const ZERO: SalonSidebarBadges = {
   waitlist: 0,
   reviewsUnreplied: 0,
   retailLowStock: 0,
+  remindersDueSoon: 0,
+  campaignsSending: 0,
 };
 
 export function useSalonSidebarBadges(storeId: string | undefined, isSalon: boolean): SalonSidebarBadges {
@@ -28,7 +34,8 @@ export function useSalonSidebarBadges(storeId: string | undefined, isSalon: bool
       setBadges(ZERO);
       return;
     }
-    const [pendingRes, waitRes, reviewRes, retailRes] = await Promise.all([
+    const tomorrowIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const [pendingRes, waitRes, reviewRes, retailRes, remindersRes, campaignsRes] = await Promise.all([
       supabase.from("salon_bookings")
         .select("id", { count: "exact", head: true })
         .eq("store_id", storeId).eq("source", "app").eq("status", "pending"),
@@ -41,6 +48,12 @@ export function useSalonSidebarBadges(storeId: string | undefined, isSalon: bool
       supabase.from("salon_retail_products")
         .select("id, stock_quantity, low_stock_threshold")
         .eq("store_id", storeId).eq("is_active", true),
+      supabase.from("salon_reminders")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeId).eq("status", "pending").lte("scheduled_for", tomorrowIso),
+      supabase.from("salon_campaigns")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeId).eq("status", "sending"),
     ]);
     let lowStockCount = 0;
     for (const r of retailRes.data ?? []) {
@@ -52,6 +65,8 @@ export function useSalonSidebarBadges(storeId: string | undefined, isSalon: bool
       waitlist: waitRes.count ?? 0,
       reviewsUnreplied: reviewRes.count ?? 0,
       retailLowStock: lowStockCount,
+      remindersDueSoon: remindersRes.count ?? 0,
+      campaignsSending: campaignsRes.count ?? 0,
     });
   }, [storeId, isSalon]);
 
@@ -69,6 +84,8 @@ export function useSalonSidebarBadges(storeId: string | undefined, isSalon: bool
       .on("postgres_changes", { event: "*", schema: "public", table: "salon_waitlist", filter: `store_id=eq.${storeId}` }, () => { void load(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "salon_reviews", filter: `store_id=eq.${storeId}` }, () => { void load(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "salon_retail_products", filter: `store_id=eq.${storeId}` }, () => { void load(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "salon_reminders", filter: `store_id=eq.${storeId}` }, () => { void load(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "salon_campaigns", filter: `store_id=eq.${storeId}` }, () => { void load(); })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [storeId, isSalon, load]);

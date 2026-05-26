@@ -29,6 +29,13 @@ interface PaymentRow { order_id: string; method: string; status: string; amount_
 interface ExpenseRow { category: string; amount_cents: number; vendor: string | null }
 interface TimeEntryRow { barista_id: string; minutes_worked: number; hourly_rate_cents_snapshot: number }
 interface BaristaRow { id: string; display_name: string }
+interface TillSessionRow {
+  id: string; opened_at: string; closed_at: string | null;
+  starting_cash_cents: number; expected_cash_cents: number | null;
+  counted_cash_cents: number | null; variance_cents: number | null; notes: string | null;
+}
+interface TillDropRow { till_session_id: string; amount_cents: number; note: string | null; dropped_at: string }
+interface ReservationRow { id: string; customer_name: string; party_size: number; status: string; reserved_for: string }
 
 const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const fmtHrs = (mins: number) => `${Math.floor(mins / 60)}h ${(mins % 60).toString().padStart(2, "0")}m`;
@@ -53,6 +60,9 @@ export default function CafeDailySummaryPage() {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [entries, setEntries] = useState<TimeEntryRow[]>([]);
   const [baristas, setBaristas] = useState<BaristaRow[]>([]);
+  const [tillSessions, setTillSessions] = useState<TillSessionRow[]>([]);
+  const [tillDrops, setTillDrops] = useState<TillDropRow[]>([]);
+  const [reservations, setReservations] = useState<ReservationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,7 +87,7 @@ export default function CafeDailySummaryPage() {
       }
       setStore(storeRes.data as StoreLite);
 
-      const [ordRes, expRes, teRes, bRes] = await Promise.all([
+      const [ordRes, expRes, teRes, bRes, tillRes, resvRes] = await Promise.all([
         supabase.from("cafe_orders" as never)
           .select("id,status,channel,placed_at,subtotal_cents,tax_cents,tip_cents,discount_cents,total_cents")
           .eq("store_id", storeId)
@@ -92,10 +102,22 @@ export default function CafeDailySummaryPage() {
         supabase.from("cafe_baristas" as never)
           .select("id,display_name")
           .eq("store_id", storeId),
+        // Till sessions opened OR closed within the day. We accept either side
+        // because an overnight shift legitimately straddles midnight.
+        supabase.from("cafe_till_sessions" as never)
+          .select("id,opened_at,closed_at,starting_cash_cents,expected_cash_cents,counted_cash_cents,variance_cents,notes")
+          .eq("store_id", storeId)
+          .or(`and(opened_at.gte.${dayStart},opened_at.lt.${dayEnd}),and(closed_at.gte.${dayStart},closed_at.lt.${dayEnd})`)
+          .order("opened_at", { ascending: true }),
+        supabase.from("cafe_reservations" as never)
+          .select("id,customer_name,party_size,status,reserved_for")
+          .eq("store_id", storeId)
+          .gte("reserved_for", dayStart).lt("reserved_for", dayEnd)
+          .order("reserved_for", { ascending: true }),
       ]);
       if (cancelled) return;
-      if (ordRes.error || expRes.error || teRes.error || bRes.error) {
-        console.error("[CafeDailySummary] load", ordRes.error || expRes.error || teRes.error || bRes.error);
+      if (ordRes.error || expRes.error || teRes.error || bRes.error || tillRes.error || resvRes.error) {
+        console.error("[CafeDailySummary] load", ordRes.error || expRes.error || teRes.error || bRes.error || tillRes.error || resvRes.error);
         setError("Couldn't load summary.");
         setLoading(false);
         return;
@@ -105,6 +127,19 @@ export default function CafeDailySummaryPage() {
       setExpenses((expRes.data ?? []) as unknown as ExpenseRow[]);
       setEntries((teRes.data ?? []) as unknown as TimeEntryRow[]);
       setBaristas((bRes.data ?? []) as unknown as BaristaRow[]);
+      const tillRows = (tillRes.data ?? []) as unknown as TillSessionRow[];
+      setTillSessions(tillRows);
+      setReservations((resvRes.data ?? []) as unknown as ReservationRow[]);
+
+      if (tillRows.length > 0) {
+        const { data: dropData } = await supabase.from("cafe_till_drops" as never)
+          .select("till_session_id,amount_cents,note,dropped_at")
+          .in("till_session_id", tillRows.map((t) => t.id))
+          .order("dropped_at", { ascending: true });
+        setTillDrops((dropData ?? []) as unknown as TillDropRow[]);
+      } else {
+        setTillDrops([]);
+      }
 
       const orderIds = ordersRows.map((o) => o.id);
       if (orderIds.length > 0) {
@@ -373,6 +408,79 @@ export default function CafeDailySummaryPage() {
               </ul>
             )}
           </section>
+
+          {tillSessions.length > 0 && (
+            <section>
+              <h2 className="text-sm font-semibold mb-2">Till closure</h2>
+              <table className="w-full text-sm">
+                <thead className="text-muted-foreground">
+                  <tr>
+                    <th className="text-left py-1">Opened → closed</th>
+                    <th className="text-right py-1">Starting</th>
+                    <th className="text-right py-1">Drops</th>
+                    <th className="text-right py-1">Expected</th>
+                    <th className="text-right py-1">Counted</th>
+                    <th className="text-right py-1">Variance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tillSessions.map((s) => {
+                    const dropTotal = tillDrops
+                      .filter((d) => d.till_session_id === s.id)
+                      .reduce((sum, d) => sum + d.amount_cents, 0);
+                    const open = new Date(s.opened_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                    const close = s.closed_at
+                      ? new Date(s.closed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+                      : "—";
+                    const variance = s.variance_cents ?? 0;
+                    const tone = variance === 0 ? "" : variance > 0 ? "text-emerald-700" : "text-destructive";
+                    return (
+                      <tr key={s.id} className="border-t border-border/40">
+                        <td className="py-1 tabular-nums">{open} → {close}</td>
+                        <td className="py-1 text-right tabular-nums">{fmt(s.starting_cash_cents)}</td>
+                        <td className="py-1 text-right tabular-nums text-muted-foreground">
+                          {dropTotal > 0 ? `−${fmt(dropTotal)}` : "—"}
+                        </td>
+                        <td className="py-1 text-right tabular-nums">{s.expected_cash_cents == null ? "—" : fmt(s.expected_cash_cents)}</td>
+                        <td className="py-1 text-right tabular-nums">{s.counted_cash_cents == null ? "—" : fmt(s.counted_cash_cents)}</td>
+                        <td className={`py-1 text-right tabular-nums font-semibold ${tone}`}>
+                          {s.variance_cents == null ? "—" : (variance > 0 ? `+${fmt(variance)}` : fmt(variance))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {tillSessions.some((s) => s.notes) && (
+                <ul className="mt-2 text-[11px] text-muted-foreground space-y-0.5">
+                  {tillSessions.filter((s) => s.notes).map((s) => (
+                    <li key={s.id}>· {s.notes}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {reservations.length > 0 && (() => {
+            const counts = reservations.reduce<Record<string, number>>((acc, r) => {
+              acc[r.status] = (acc[r.status] ?? 0) + 1;
+              return acc;
+            }, {});
+            const labels: Record<string, string> = {
+              pending: "Pending", confirmed: "Confirmed", seated: "Seated",
+              cancelled: "Cancelled", no_show: "No-show",
+            };
+            return (
+              <section>
+                <h2 className="text-sm font-semibold mb-2">Reservations ({reservations.length})</h2>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  {Object.entries(counts).map(([status, n]) => (
+                    <span key={status}>{labels[status] ?? status}: <span className="font-semibold tabular-nums">{n}</span></span>
+                  ))}
+                </div>
+              </section>
+            );
+          })()}
 
           <section className="border-t border-border/60 pt-3">
             <h2 className="text-sm font-semibold mb-2">Status counts</h2>

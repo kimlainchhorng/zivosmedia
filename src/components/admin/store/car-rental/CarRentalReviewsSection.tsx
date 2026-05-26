@@ -11,37 +11,89 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCarRentalReviews, type CarRentalReview } from "@/hooks/car-rental/useCarRentalReviews";
 import { cn } from "@/lib/utils";
+
+type SortKey = "newest" | "oldest" | "lowest" | "highest";
+
+const REPLY_TEMPLATES: { label: string; build: (customerName: string) => string }[] = [
+  {
+    label: "Thank for kind words",
+    build: (name) => `Thank you so much, ${name}! We're thrilled you had a great experience and we look forward to renting to you again.`,
+  },
+  {
+    label: "Apologize for issue",
+    build: (name) => `Hi ${name}, thank you for sharing this feedback — we're really sorry the experience fell short. We've reviewed what happened and will make sure it doesn't repeat. Please reach out so we can make it right.`,
+  },
+  {
+    label: "Offer follow-up",
+    build: (name) => `Thanks for the honest feedback, ${name}. We'd love to discuss this with you directly — please contact us at your convenience and we'll do our best to address it.`,
+  },
+];
 
 interface Props { storeId: string }
 
 export default function CarRentalReviewsSection({ storeId }: Props) {
   const { reviews, loading, saving, error, replyTo, acknowledge, togglePublished, remove } = useCarRentalReviews(storeId);
   const [filter, setFilter] = useState<"all" | "unreplied" | "low">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [replying, setReplying] = useState<CarRentalReview | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     const n = reviews.length;
-    if (n === 0) return { avg: 0, n: 0, dist: [0, 0, 0, 0, 0], unreplied: 0 };
+    if (n === 0) return { avg: 0, n: 0, dist: [0, 0, 0, 0, 0], unreplied: 0, replied: 0, replyRate: 0, avgReplyHours: 0 };
     let sum = 0;
     const dist = [0, 0, 0, 0, 0];
     let unreplied = 0;
+    let replied = 0;
+    let totalReplyMs = 0;
+    let replyTimingN = 0;
     for (const r of reviews) {
       sum += r.rating;
       dist[r.rating - 1]++;
-      if (!r.reply) unreplied++;
+      if (r.reply) {
+        replied++;
+        if (r.reply_at) {
+          const ms = new Date(r.reply_at).getTime() - new Date(r.created_at).getTime();
+          if (ms > 0) {
+            totalReplyMs += ms;
+            replyTimingN += 1;
+          }
+        }
+      } else {
+        unreplied++;
+      }
     }
-    return { avg: sum / n, n, dist, unreplied };
+    const replyRate = Math.round((replied / n) * 100);
+    const avgReplyHours = replyTimingN > 0 ? totalReplyMs / replyTimingN / (60 * 60 * 1000) : 0;
+    return { avg: sum / n, n, dist, unreplied, replied, replyRate, avgReplyHours };
   }, [reviews]);
 
   const filtered = useMemo(() => {
-    if (filter === "unreplied") return reviews.filter((r) => !r.reply);
-    if (filter === "low") return reviews.filter((r) => r.rating <= 3);
-    return reviews;
-  }, [reviews, filter]);
+    let list = reviews;
+    if (filter === "unreplied") list = list.filter((r) => !r.reply);
+    else if (filter === "low") list = list.filter((r) => r.rating <= 3);
+    const sorted = [...list];
+    switch (sortKey) {
+      case "oldest":
+        sorted.sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+        break;
+      case "lowest":
+        sorted.sort((a, b) => a.rating - b.rating || (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+        break;
+      case "highest":
+        sorted.sort((a, b) => b.rating - a.rating || (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+        break;
+      case "newest":
+      default:
+        sorted.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+        break;
+    }
+    return sorted;
+  }, [reviews, filter, sortKey]);
 
   const openReply = (r: CarRentalReview) => {
     setReplying(r);
@@ -70,7 +122,7 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-border bg-card p-4">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Average rating</p>
               <div className="mt-1 flex items-baseline gap-2">
@@ -99,6 +151,34 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
                 );
               })}
             </div>
+            <div className={cn(
+              "rounded-2xl border bg-card p-4",
+              stats.n === 0 ? "border-border"
+                : stats.replyRate >= 80 ? "border-emerald-500/30 bg-emerald-500/5"
+                : stats.replyRate >= 50 ? "border-amber-500/30 bg-amber-500/5"
+                : "border-rose-500/30 bg-rose-500/5",
+            )}>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Response rate</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-foreground">{stats.n > 0 ? `${stats.replyRate}%` : "—"}</span>
+              </div>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                {stats.n === 0
+                  ? "No reviews yet"
+                  : stats.unreplied > 0
+                    ? `${stats.unreplied} still need${stats.unreplied === 1 ? "s" : ""} a reply`
+                    : "All caught up"}
+              </p>
+              {stats.avgReplyHours > 0 && (
+                <p className="mt-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                  Avg reply: <span className="text-foreground">
+                    {stats.avgReplyHours < 24
+                      ? `${stats.avgReplyHours.toFixed(1)}h`
+                      : `${(stats.avgReplyHours / 24).toFixed(1)}d`}
+                  </span>
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
@@ -109,6 +189,19 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
             <FilterChip active={filter === "low"} onClick={() => setFilter("low")} tone="destructive">
               Low ratings ≤3
             </FilterChip>
+            <div className="ml-auto">
+              <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+                <SelectTrigger className="h-8 w-40 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                  <SelectItem value="lowest">Lowest rating first</SelectItem>
+                  <SelectItem value="highest">Highest rating first</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {loading ? (
@@ -192,6 +285,32 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
                 <Stars rating={replying.rating} />
                 {replying.comment && <p className="mt-2 text-foreground/80">{replying.comment}</p>}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">Quick reply:</span>
+                {REPLY_TEMPLATES.map((t) => {
+                  // Pick a template that matches the review's tone by default — high
+                  // ratings get the "thank" template suggested via subtle highlight, low
+                  // ratings get "apologize" highlighted.
+                  const suggested =
+                    (replying.rating >= 4 && t.label === "Thank for kind words")
+                    || (replying.rating <= 3 && t.label === "Apologize for issue");
+                  return (
+                    <button
+                      key={t.label}
+                      type="button"
+                      onClick={() => setReplyDraft(t.build(replying.customer_name))}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                        suggested
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
               </div>
               <Textarea rows={5} value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="Thank them or address their feedback…" />
               <p className="text-[11px] text-muted-foreground">

@@ -32,7 +32,25 @@
       "Bash(grep -rnE \"/grocery/shop/|grocery/shop\\\\$\" src --include=\"*.tsx\" --include=\"*.ts\")",
       "Bash(node --experimental-strip-types --no-warnings --check scripts/scrape-booking-bulk.ts)",
       "Bash(break)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(sed 's/:.*//')",
+      "Bash(sed 's/useCarRental//')",
+      "Bash(sed 's/\\\\.ts//')",
+      "Bash(grep -v \"//\")",
+      "Bash(wait)",
+      "Bash(cat C:\\\\\\\\Users\\\\\\\\chhor\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-chhor-Documents-GitHub-myzivo\\\\\\\\ac5d2e00-5580-4815-b235-6b495b043d4b\\\\\\\\tasks\\\\\\\\bafgwu490.output)",
+      "mcp__b4adc92a-5646-46e2-ab4e-b57154fb0f4a__apply_migration",
+      "Bash(ls -la C:\\\\\\\\Users\\\\\\\\chhor\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-chhor-Documents-GitHub-myzivo\\\\\\\\ac5d2e00-5580-4815-b235-6b495b043d4b\\\\\\\\tasks\\\\\\\\bafgwu490.output)",
+      "Bash(wc -l C:\\\\\\\\Users\\\\\\\\chhor\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-chhor-Documents-GitHub-myzivo\\\\\\\\ac5d2e00-5580-4815-b235-6b495b043d4b\\\\\\\\tasks\\\\\\\\bafgwu490.output)",
+      "Bash(stat -c \"%s %y\" \"C:/Users/chhor/AppData/Local/Temp/claude/C--Users-chhor-Documents-GitHub-myzivo/ac5d2e00-5580-4815-b235-6b495b043d4b/tasks/bafgwu490.output\" 2>&1 | head -1; echo \"---\"; tail -50 \"C:/Users/chhor/AppData/Local/Temp/claude/C--Users-chhor-Documents-GitHub-myzivo/ac5d2e00-5580-4815-b235-6b495b043d4b/tasks/bafgwu490.output\" 2>&1)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' http://localhost:8082/__TRACKED_VAR__)",
+      "Bash(Get-Content \"C:\\\\Users\\\\chhor\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-chhor-Documents-GitHub-myzivo\\\\ac5d2e00-5580-4815-b235-6b495b043d4b\\\\tasks\\\\bqf3cjqqs.output\" -Wait)",
+      "Bash(xargs grep -l \"BookingWizard\\\\|booking.*wizard\")",
+      "Bash(awk '/car_rental_vehicles: \\\\{/,/^\\\\s*\\\\}/' \"C:\\\\Users\\\\chhor\\\\Documents\\\\GitHub\\\\myzivo\\\\src\\\\integrations\\\\supabase\\\\types.ts\")",
+      "Bash(xargs grep -l \"activity\\\\|interaction\\\\|log\\\\|touchpoint\")",
+      "Bash(xargs -I {} sh -c 'grep -l \"marketing_campaigns\" \"{}\" && echo \"---\" && head -2 \"{}\"')",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\chhor\\\\Documents\\\\GitHub\\\\myzivo\\\\supabase\\\\functions\" -Filter \"*stripe*\" -Recurse)",
+      "Bash(xargs ls -1)"
     ]
   }
 }

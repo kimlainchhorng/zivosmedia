@@ -86,7 +86,12 @@ export default function SalonTimeClockSection({ storeId }: Props) {
     }
   };
 
-  const handleClockOut = async (entryId: string, stylistId: string) => {
+  const handleClockOut = async (entryId: string, stylistId: string, elapsedMs: number, stylistName: string) => {
+    // Closing a shift is reversible only via delete + re-create, which loses
+    // the original timestamp precision. Add a confirmation showing how long
+    // the shift's been running so a stray click can't end a four-hour shift
+    // by accident.
+    if (!window.confirm(`Clock ${stylistName} out after ${formatElapsed(elapsedMs)}?`)) return;
     setBusyId(stylistId);
     try {
       await clockOut(entryId);
@@ -160,7 +165,7 @@ export default function SalonTimeClockSection({ storeId }: Props) {
                       variant="outline"
                       className="gap-1.5"
                       disabled={busyId === s.id}
-                      onClick={() => open && handleClockOut(open.id, s.id)}
+                      onClick={() => open && handleClockOut(open.id, s.id, elapsed, s.display_name)}
                     >
                       <Square className="h-3.5 w-3.5" /> Clock out
                     </Button>

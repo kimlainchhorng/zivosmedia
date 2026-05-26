@@ -42,6 +42,12 @@ export interface CarRentalVehicle {
   description: string | null;
   features: string[];
   is_active: boolean;
+  registration_expires_at: string | null;
+  insurance_expires_at: string | null;
+  inspection_due_at: string | null;
+  registration_number: string | null;
+  insurance_provider: string | null;
+  insurance_policy_number: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +79,12 @@ export interface CarRentalVehicleDraft {
   description?: string | null;
   features?: string[];
   is_active?: boolean;
+  registration_expires_at?: string | null;
+  insurance_expires_at?: string | null;
+  inspection_due_at?: string | null;
+  registration_number?: string | null;
+  insurance_provider?: string | null;
+  insurance_policy_number?: string | null;
 }
 
 export function useCarRentalVehicles(storeId: string | undefined) {
@@ -133,6 +145,12 @@ export function useCarRentalVehicles(storeId: string | undefined) {
       security_deposit_cents: draft.security_deposit_cents ?? 0,
       photo_url: draft.photo_url ?? null,
       photo_urls: draft.photo_urls ?? [],
+      registration_expires_at: draft.registration_expires_at ?? null,
+      insurance_expires_at: draft.insurance_expires_at ?? null,
+      inspection_due_at: draft.inspection_due_at ?? null,
+      registration_number: draft.registration_number?.trim() || null,
+      insurance_provider: draft.insurance_provider?.trim() || null,
+      insurance_policy_number: draft.insurance_policy_number?.trim() || null,
       home_location_id: draft.home_location_id ?? null,
       description: draft.description?.trim() || null,
       features: draft.features ?? [],

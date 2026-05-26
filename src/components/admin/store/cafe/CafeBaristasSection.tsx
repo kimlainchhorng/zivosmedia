@@ -14,11 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCafeBaristas, type CafeBaristaDraft } from "@/hooks/cafe/useCafeBaristas";
 import { useCafeBaristaLifetimeTips } from "@/hooks/cafe/useCafeBaristaLifetimeTips";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const ROLES = [
   { v: "owner", l: "Owner" }, { v: "manager", l: "Manager" }, { v: "barista", l: "Barista" },
   { v: "kitchen", l: "Kitchen" }, { v: "server", l: "Server" }, { v: "other", l: "Other" },
@@ -39,6 +39,8 @@ const blank = (): CafeBaristaDraft => ({
 });
 
 export default function CafeBaristasSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { baristas, loading, saving, create, update, remove } = useCafeBaristas(storeId);
   const { byBarista: lifetimeTips } = useCafeBaristaLifetimeTips(storeId);
   const [dialog, setDialog] = useState(false);

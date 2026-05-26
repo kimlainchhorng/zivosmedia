@@ -13,12 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCafePromotions, type CafePromotionDraft, type CafePromoKind } from "@/hooks/cafe/useCafePromotions";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const blank = (): CafePromotionDraft => ({
@@ -38,6 +38,8 @@ const blank = (): CafePromotionDraft => ({
 });
 
 export default function CafePromotionsSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { promotions, loading, saving, create, update, remove } = useCafePromotions(storeId);
   const [dialog, setDialog] = useState(false);
   const [draft, setDraft] = useState<CafePromotionDraft>(blank());

@@ -17,6 +17,12 @@ export interface CafeSettings {
   require_pin_for_refund: boolean;
   daily_message: string | null;
   daily_message_until: string | null;
+  // Phase 66: tip preset percentages shown on the public checkout (1–100).
+  tip_preset_1: number;
+  tip_preset_2: number;
+  tip_preset_3: number;
+  // Phase 67: ISO 4217 currency code (e.g. USD, KHR, THB).
+  currency_code: string;
 }
 
 const DEFAULTS: CafeSettings = {
@@ -29,6 +35,10 @@ const DEFAULTS: CafeSettings = {
   require_pin_for_refund: false,
   daily_message: null,
   daily_message_until: null,
+  tip_preset_1: 15,
+  tip_preset_2: 18,
+  tip_preset_3: 20,
+  currency_code: "USD",
 };
 
 // Hex SHA-256 of (storeId + pin). Not a security boundary — see migration.
@@ -50,7 +60,7 @@ export function useCafeSettings(storeId: string | undefined) {
     setError(null);
     const { data, error: err } = await supabase
       .from("cafe_settings" as never)
-      .select("allow_tips, allow_promos, allow_gift_cards, allow_scheduled_orders, tax_rate_bp, manager_pin_hash, require_pin_for_refund, daily_message, daily_message_until")
+      .select("allow_tips, allow_promos, allow_gift_cards, allow_scheduled_orders, tax_rate_bp, manager_pin_hash, require_pin_for_refund, daily_message, daily_message_until, tip_preset_1, tip_preset_2, tip_preset_3, currency_code")
       .eq("store_id", storeId)
       .maybeSingle();
     if (err) {

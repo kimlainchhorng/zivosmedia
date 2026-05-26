@@ -39,6 +39,10 @@ export interface CafeMenuItem {
   is_vegetarian: boolean;
   is_vegan: boolean;
   is_gluten_free: boolean;
+  allergens: string | null;
+  happy_hour_price_cents: number | null;
+  happy_hour_start: number | null;
+  happy_hour_end: number | null;
   caffeine_mg: number | null;
   calories: number | null;
   created_at: string;

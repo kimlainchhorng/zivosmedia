@@ -23,6 +23,7 @@ export const AUTO_REPAIR_TAB_IDS = [
   "ar-promos",
   "ar-campaigns",
   "ar-gift-cards",
+  "ar-customer-notes",
   "ar-booking-link",
   "ar-qr",
   "ar-reports",

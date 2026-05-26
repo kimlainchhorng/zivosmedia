@@ -18,12 +18,13 @@ import { useCafeOrders, type CafeOrderStatus, type NewOrderItemDraft, type CafeP
 import { useCafeMenu } from "@/hooks/cafe/useCafeMenu";
 import { useCafeTables } from "@/hooks/cafe/useCafeTables";
 import { useCafeSettings } from "@/hooks/cafe/useCafeSettings";
+import { useCafeCustomerNotes } from "@/hooks/cafe/useCafeCustomerNotes";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const STATUS_OPTIONS: Array<{ value: CafeOrderStatus | "all"; label: string }> = [
   { value: "all", label: "All" },
@@ -58,10 +59,13 @@ const statusBadgeClass = (s: CafeOrderStatus) => {
 };
 
 export default function CafeOrdersSection({ storeId }: Props) {
-  const { orders, itemsByOrder, modifiersByItem, paymentsByOrder, loading, createOrder, setStatus, cancelOrder, addPayment, refundPayment, removeOrderItem } = useCafeOrders(storeId);
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
+  const { orders, itemsByOrder, modifiersByItem, paymentsByOrder, loading, createOrder, setStatus, cancelOrder, addPayment, refundPayment, voidOrderItem } = useCafeOrders(storeId);
   const { items: menuItems, modifiers, links, categories } = useCafeMenu(storeId);
   const { tables } = useCafeTables(storeId);
   const { settings: cafeSettings, validateManagerPin } = useCafeSettings(storeId);
+  const { byPhone: notesByPhone } = useCafeCustomerNotes(storeId);
 
   const [filter, setFilter] = useState<CafeOrderStatus | "all">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -72,6 +76,11 @@ export default function CafeOrdersSection({ storeId }: Props) {
   const [pinDialog, setPinDialog] = useState<{ open: boolean; pending: null | (() => void) }>({ open: false, pending: null });
   const [pinInput, setPinInput] = useState("");
   const [pinChecking, setPinChecking] = useState(false);
+  // Phase 71: void/comp dialog state.
+  const [voidDialog, setVoidDialog] = useState<{ open: boolean; orderId: string | null; itemId: string | null; itemLabel: string }>({ open: false, orderId: null, itemId: null, itemLabel: "" });
+  const [voidKind, setVoidKind] = useState<"void" | "comp">("void");
+  const [voidReason, setVoidReason] = useState("");
+  const [voiding, setVoiding] = useState(false);
 
   // Gate that runs `fn` immediately if no PIN required, otherwise prompts.
   const gateWithPin = (fn: () => void) => {
@@ -247,7 +256,14 @@ export default function CafeOrdersSection({ storeId }: Props) {
                           📅 {new Date(o.scheduled_for).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                         </Badge>
                       )}
-                      <span className="text-sm truncate min-w-0 flex-1">{o.customer_name || (tableLabel ? `Table ${tableLabel}` : o.channel.replace("_", " "))}</span>
+                      <span className="text-sm truncate min-w-0 flex-1">
+                        {o.customer_name || (tableLabel ? `Table ${tableLabel}` : o.channel.replace("_", " "))}
+                        {o.customer_phone && notesByPhone.get(o.customer_phone)?.is_vip && (
+                          <span title="VIP customer" className="ml-1.5 inline-flex items-center align-middle">
+                            <span className="text-[11px] text-violet-700 dark:text-violet-300">★ VIP</span>
+                          </span>
+                        )}
+                      </span>
                       <span className="tabular-nums text-sm font-medium shrink-0">{fmt(o.total_cents)}</span>
                       <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">{new Date(o.placed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
                       {next && (
@@ -285,6 +301,16 @@ export default function CafeOrdersSection({ storeId }: Props) {
                     {selectedId === o.id && (
                       <div className="mt-2 ml-2 rounded-lg border border-border bg-muted/20 p-3 text-sm space-y-2">
                         {(() => {
+                          const note = o.customer_phone ? notesByPhone.get(o.customer_phone) : undefined;
+                          if (!note?.notes && !note?.is_vip) return null;
+                          return (
+                            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[12px] text-amber-900 dark:text-amber-100">
+                              {note?.is_vip && <span className="font-semibold text-violet-700 dark:text-violet-300 mr-1.5">★ VIP</span>}
+                              {note?.notes && <span>📝 {note.notes}</span>}
+                            </div>
+                          );
+                        })()}
+                        {(() => {
                           const canEdit = !["completed", "cancelled", "refunded"].includes(o.status);
                           const lines = itemsByOrder[o.id] ?? [];
                           return lines.map((it) => (
@@ -298,12 +324,18 @@ export default function CafeOrdersSection({ storeId }: Props) {
                                   <Button
                                     size="icon" variant="ghost"
                                     className="h-6 w-6 text-destructive hover:text-destructive"
-                                    title="Remove item"
-                                    onClick={async () => {
-                                      if (!confirm(`Remove ${it.quantity}× ${it.item_name}?`)) return;
-                                      const res = await removeOrderItem(o.id, it.id);
-                                      if (res.ok) toast.success("Item removed.");
-                                      else toast.error(res.error ?? "Couldn't remove item.");
+                                    title="Void / comp item"
+                                    onClick={() => {
+                                      gateWithPin(() => {
+                                        setVoidKind("void");
+                                        setVoidReason("");
+                                        setVoidDialog({
+                                          open: true,
+                                          orderId: o.id,
+                                          itemId: it.id,
+                                          itemLabel: `${it.quantity}× ${it.item_name}`,
+                                        });
+                                      });
                                     }}
                                   >
                                     <X className="h-3.5 w-3.5" />
@@ -569,6 +601,85 @@ export default function CafeOrdersSection({ storeId }: Props) {
                 setRefundAmount("");
               }}
             >Refund</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phase 71: Void / comp item dialog */}
+      <Dialog
+        open={voidDialog.open}
+        onOpenChange={(v) => { if (!v) setVoidDialog({ open: false, orderId: null, itemId: null, itemLabel: "" }); }}
+      >
+        <DialogContent>
+          <DialogHeader><DialogTitle>Void or comp item</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Removing:</span>{" "}
+              <span className="font-medium">{voidDialog.itemLabel}</span>
+            </p>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Kind</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVoidKind("void")}
+                  className={cn(
+                    "rounded-md border p-2 text-left transition-colors",
+                    voidKind === "void" ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted",
+                  )}
+                >
+                  <p className="text-sm font-semibold">Void</p>
+                  <p className="text-[11px] text-muted-foreground">Never made. No cost to the cafe.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVoidKind("comp")}
+                  className={cn(
+                    "rounded-md border p-2 text-left transition-colors",
+                    voidKind === "comp" ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted",
+                  )}
+                >
+                  <p className="text-sm font-semibold">Comp</p>
+                  <p className="text-[11px] text-muted-foreground">Made + delivered free. Cafe ate the cost.</p>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Reason (required for audit)</label>
+              <Input
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="e.g. customer complaint, spilled drink, wrong item"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setVoidDialog({ open: false, orderId: null, itemId: null, itemLabel: "" })}
+              disabled={voiding}
+            >Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={voiding || voidReason.trim().length === 0}
+              onClick={async () => {
+                if (!voidDialog.orderId || !voidDialog.itemId) return;
+                setVoiding(true);
+                const res = await voidOrderItem(voidDialog.orderId, voidDialog.itemId, voidKind, voidReason);
+                setVoiding(false);
+                if (res.ok) {
+                  toast.success(voidKind === "comp" ? "Item comped." : "Item voided.");
+                  setVoidDialog({ open: false, orderId: null, itemId: null, itemLabel: "" });
+                  setVoidReason("");
+                } else {
+                  toast.error(res.error ?? "Couldn't void item.");
+                }
+              }}
+            >
+              {voiding && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              {voidKind === "comp" ? "Comp item" : "Void item"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

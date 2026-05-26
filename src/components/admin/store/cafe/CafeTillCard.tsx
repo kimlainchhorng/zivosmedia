@@ -16,13 +16,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCafeTill } from "@/hooks/cafe/useCafeTill";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 
 interface Props { storeId: string }
 
-const fmt = (cents: number | null | undefined) =>
-  cents == null ? "—" : `$${(cents / 100).toFixed(2)}`;
-
 export default function CafeTillCard({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (cents: number | null | undefined) =>
+    cents == null ? "—" : formatCafeMoney(cents, currencyCode);
   const { current, recent, drops, expectedLive, loading, working, error, openTill, closeTill, recordDrop, refresh } = useCafeTill(storeId);
   const [openDialog, setOpenDialog] = useState(false);
   const [closeDialog, setCloseDialog] = useState(false);

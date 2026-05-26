@@ -15,11 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCafeLoyalty, type CafeLoyaltyMode, type CafeLoyaltyProgramDraft } from "@/hooks/cafe/useCafeLoyalty";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const blankProgram = (): CafeLoyaltyProgramDraft => ({
   mode: "points_per_dollar",
@@ -33,6 +33,8 @@ const blankProgram = (): CafeLoyaltyProgramDraft => ({
 });
 
 export default function CafeLoyaltySection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { program, balances, eventsByBalance, loading, saving, saveProgram, findOrCreateBalance, earn, redeem, adjust } = useCafeLoyalty(storeId);
 
   const [editProgram, setEditProgram] = useState(false);

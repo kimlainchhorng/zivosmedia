@@ -63,6 +63,9 @@ export interface CarRentalReservation {
 
   cancelled_at: string | null;
   cancellation_reason: string | null;
+  refund_amount_cents: number;
+  refund_at: string | null;
+  refund_method: "original_payment" | "cash" | "store_credit" | "other" | null;
 
   confirmation_code: string;
   created_at: string;
@@ -196,8 +199,11 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
       .single();
     if (err) {
       console.error("[useCarRentalReservations] create failed", err);
+      const message = (err as { message?: string }).message ?? "";
       if ((err as any).code === "23P01") {
         setError("That vehicle is already booked for the overlapping time. Pick another vehicle or change the dates.");
+      } else if (message.startsWith("CUSTOMER_BLOCKED:")) {
+        setError(message.replace(/^CUSTOMER_BLOCKED:\s*/, ""));
       } else {
         setError("Couldn't save reservation.");
       }
@@ -217,7 +223,9 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
     const { error: err } = await supabase.from("car_rental_reservations").update(patch as never).eq("id", id);
     if (err) {
       console.error("[useCarRentalReservations] update failed", err);
-      setError("Couldn't save changes — refreshing.");
+      const m = (err as { message?: string }).message ?? "";
+      if (m.startsWith("CUSTOMER_BLOCKED:")) setError(m.replace(/^CUSTOMER_BLOCKED:\s*/, ""));
+      else setError("Couldn't save changes — refreshing.");
       await load();
     }
     setSaving(false);

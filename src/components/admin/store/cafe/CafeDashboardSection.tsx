@@ -5,7 +5,7 @@
 import { useMemo } from "react";
 import {
   Coffee, Clock, DollarSign, ClipboardList, ChefHat, ArrowRight, TrendingUp,
-  AlertTriangle, Star, Calendar, Truck,
+  AlertTriangle, Star, Calendar, Truck, CalendarClock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,9 @@ import { useCafeInventory } from "@/hooks/cafe/useCafeInventory";
 import { useCafeLoyalty } from "@/hooks/cafe/useCafeLoyalty";
 import { useCafeShifts } from "@/hooks/cafe/useCafeShifts";
 import { useCafePurchasing } from "@/hooks/cafe/useCafePurchasing";
+import { useCafeReservations } from "@/hooks/cafe/useCafeReservations";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import CafeOnboardingChecklist from "./CafeOnboardingChecklist";
 import CafeActivityFeed from "./CafeActivityFeed";
 import CafeHoursCard from "./CafeHoursCard";
@@ -30,11 +33,12 @@ interface Props {
   onJumpToTab?: (tab: string) => void;
 }
 
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 export default function CafeDashboardSection({ storeId, storeSlug, onJumpToTab }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const { orders, itemsByOrder, loading } = useCafeOrders(storeId);
   const { items: menuItems, categories } = useCafeMenu(storeId);
   const { tables } = useCafeTables(storeId);
@@ -45,6 +49,7 @@ export default function CafeDashboardSection({ storeId, storeSlug, onJumpToTab }
     to: new Date(Date.now() + 7 * 86_400_000).toISOString(),
   });
   const { orders: purchaseOrders } = useCafePurchasing(storeId);
+  const { reservations } = useCafeReservations(storeId);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -185,7 +190,7 @@ export default function CafeDashboardSection({ storeId, storeSlug, onJumpToTab }
         <CafeSettingsCard storeId={storeId} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <button
           type="button"
           onClick={() => onJumpToTab?.("cafe-inventory")}
@@ -252,6 +257,36 @@ export default function CafeDashboardSection({ storeId, storeSlug, onJumpToTab }
             {purchaseOrders.length === 0 ? "None yet" : "awaiting receipt"}
           </p>
         </button>
+
+        {(() => {
+          // Pending = customer requested via /reserve, owner hasn't confirmed.
+          const pending = reservations.filter((r) => r.status === "pending").length;
+          const upcoming = reservations.filter((r) =>
+            (r.status === "pending" || r.status === "confirmed")
+            && new Date(r.reserved_for) >= new Date()
+          ).length;
+          const tone = pending > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-border";
+          return (
+            <button
+              type="button"
+              onClick={() => onJumpToTab?.("cafe-tables")}
+              className={cn("text-left rounded-xl border bg-card p-3 transition-colors hover:shadow-sm", tone)}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarClock className={cn("h-4 w-4", pending > 0 ? "text-amber-600" : "text-muted-foreground")} />
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Reservations</span>
+              </div>
+              <p className={cn("text-xl font-bold tabular-nums", pending > 0 && "text-amber-700 dark:text-amber-300")}>
+                {pending}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {pending > 0
+                  ? `pending · ${upcoming} upcoming`
+                  : upcoming > 0 ? `${upcoming} upcoming` : "None pending"}
+              </p>
+            </button>
+          );
+        })()}
       </div>
 
       <Card>

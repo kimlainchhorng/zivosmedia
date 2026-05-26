@@ -7,14 +7,17 @@ import { BarChart3, Download, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCafeAnalytics } from "@/hooks/cafe/useCafeAnalytics";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
 
 interface Props { storeId: string }
 
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export default function CafeReportsSection({ storeId }: Props) {
+  const { code: currencyCode } = useCafeCurrency(storeId);
+  const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const [days, setDays] = useState<7 | 30 | 90>(30);
   const { dataset, loading } = useCafeAnalytics(storeId, days);
   const maxHour = Math.max(1, ...dataset.byHour);

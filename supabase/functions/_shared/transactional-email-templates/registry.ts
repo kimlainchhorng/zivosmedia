@@ -15,6 +15,7 @@ import { template as groceryOrderConfirmed } from './grocery-order-confirmed.tsx
 import { template as newDeviceLogin } from './new-device-login.tsx'
 import { template as countryChangeLogin } from './country-change-login.tsx'
 import { template as notificationGeneric } from './notification-generic.tsx'
+import { template as salonCampaignPassthrough } from './salon-campaign-passthrough.tsx'
 
 export type TemplateEntry<Props = Record<string, unknown>> = {
   component: React.ComponentType<Props>
@@ -40,6 +41,7 @@ export const TEMPLATES: Record<string, TemplateEntry<any>> = {
   'new-device-login': newDeviceLogin,
   'country-change-login': countryChangeLogin,
   'notification-generic': notificationGeneric,
+  'salon-campaign-passthrough': salonCampaignPassthrough,
 }
 
 /**

@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useStoreCurrency } from "@/lib/car-rental/money";
 
 interface Reservation {
   id: string;
@@ -37,7 +38,6 @@ const todayIso = () => {
 };
 const formatTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-const formatMoney = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export default function CarRentalDailySheetPage() {
   const { storeId } = useParams<{ storeId: string }>();
@@ -48,6 +48,7 @@ export default function CarRentalDailySheetPage() {
   const [pickups, setPickups] = useState<Reservation[]>([]);
   const [returns, setReturns] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
+  const { format: formatMoney } = useStoreCurrency(storeId);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,7 +158,7 @@ export default function CarRentalDailySheetPage() {
               ) : (
                 <ul className="divide-y divide-border rounded-xl border border-border print:rounded-none">
                   {pickups.map((r) => (
-                    <SheetRow key={r.id} r={r} variant="pickup" />
+                    <SheetRow key={r.id} r={r} variant="pickup" formatMoney={formatMoney} />
                   ))}
                 </ul>
               )}
@@ -172,7 +173,7 @@ export default function CarRentalDailySheetPage() {
               ) : (
                 <ul className="divide-y divide-border rounded-xl border border-border print:rounded-none">
                   {returns.map((r) => (
-                    <SheetRow key={r.id} r={r} variant="return" />
+                    <SheetRow key={r.id} r={r} variant="return" formatMoney={formatMoney} />
                   ))}
                 </ul>
               )}
@@ -201,7 +202,7 @@ function Stat({ label, value, icon: Icon }: { label: string; value: string; icon
   );
 }
 
-function SheetRow({ r, variant }: { r: Reservation; variant: "pickup" | "return" }) {
+function SheetRow({ r, variant, formatMoney }: { r: Reservation; variant: "pickup" | "return"; formatMoney: (cents: number) => string }) {
   const time = variant === "pickup" ? r.pickup_at : r.dropoff_at;
   return (
     <li className="p-3 print:p-2 print:break-inside-avoid">

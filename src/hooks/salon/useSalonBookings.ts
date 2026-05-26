@@ -38,6 +38,38 @@ export interface SalonBooking {
   deposit_cents: number;
   deposit_paid_at: string | null;
   deposit_paid_cents: number;
+  /** Cumulative refunded amount tracked via the stripe-webhook charge.refunded handler. */
+  deposit_refunded_cents: number;
+  deposit_refunded_at: string | null;
+  /** Stripe ids — populated only when the deposit was collected online. */
+  stripe_payment_intent_id: string | null;
+  stripe_checkout_session_id: string | null;
+  /** Saved card metadata — populated by the deposit webhook flow. Used to
+   *  render "Visa ••4242" in the no-show confirmation dialog without an
+   *  extra Stripe roundtrip, and to gate whether off-session no-show
+   *  charging is even possible for this booking. */
+  stripe_customer_id: string | null;
+  stripe_payment_method_id: string | null;
+  card_brand: string | null;
+  card_last_four: string | null;
+  /** Snapshot of store_payment_settings.no_show_fee_cents at booking-insert
+   *  time. Locks the amount the customer consented to. */
+  no_show_fee_cents: number;
+  /** Stripe PaymentIntent for the no-show charge (set immediately on the
+   *  charge-salon-no-show-fee call for idempotency, finalized by the
+   *  payment_intent.succeeded webhook). */
+  no_show_fee_payment_intent_id: string | null;
+  /** Failure surface — set sync by the edge function and async by the
+   *  payment_intent.payment_failed webhook. */
+  no_show_fee_charge_failed_at: string | null;
+  no_show_fee_charge_failed_reason: string | null;
+  /** Audit trail of when the customer accepted the no-show policy on the
+   *  public booking page. */
+  no_show_fee_consent_at: string | null;
+  /** Synced from Stripe by the charge.refunded webhook handler when an
+   *  owner manually issues a refund of the no-show charge. */
+  no_show_fee_refunded_cents: number;
+  no_show_fee_refunded_at: string | null;
   referral_source: string | null;
   client_notes: string | null;
   internal_notes: string | null;

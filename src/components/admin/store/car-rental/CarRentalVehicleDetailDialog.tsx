@@ -17,6 +17,14 @@ interface Props {
   onClose: () => void;
 }
 
+interface AvailabilitySpan {
+  starts_at: string;
+  ends_at: string;
+  kind: "reservation" | "blackout";
+  status?: string;
+  label: string;
+}
+
 interface Reservation {
   id: string;
   customer_name: string;
@@ -50,6 +58,7 @@ export default function CarRentalVehicleDetailDialog({ vehicle, onClose }: Props
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [blackouts, setBlackouts] = useState<Array<{ starts_at: string; ends_at: string; reason: string | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"timeline" | "maintenance" | "expenses">("timeline");
 
@@ -58,7 +67,7 @@ export default function CarRentalVehicleDetailDialog({ vehicle, onClose }: Props
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [resR, maintR, expR] = await Promise.all([
+      const [resR, maintR, expR, blackR] = await Promise.all([
         supabase.from("car_rental_reservations")
           .select("id, customer_name, pickup_at, dropoff_at, rental_days, total_cents, status, confirmation_code")
           .eq("vehicle_id", vehicle.id)
@@ -74,11 +83,17 @@ export default function CarRentalVehicleDetailDialog({ vehicle, onClose }: Props
           .eq("vehicle_id", vehicle.id)
           .order("expense_date", { ascending: false })
           .limit(50),
+        supabase.from("car_rental_vehicle_blackouts")
+          .select("starts_at, ends_at, reason")
+          .eq("vehicle_id", vehicle.id)
+          .order("starts_at", { ascending: true })
+          .limit(30),
       ]);
       if (cancelled) return;
       setReservations((resR.data ?? []) as unknown as Reservation[]);
       setMaintenance((maintR.data ?? []) as unknown as Maintenance[]);
       setExpenses((expR.data ?? []) as unknown as Expense[]);
+      setBlackouts((blackR.data ?? []) as unknown as typeof blackouts);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -119,6 +134,57 @@ export default function CarRentalVehicleDetailDialog({ vehicle, onClose }: Props
             <Mini label="Odometer" value={`${v.current_odometer.toLocaleString()} mi`} />
             <Mini label="Status" value={v.status} cap />
           </div>
+
+          {/* Features */}
+          {Array.isArray(v.features) && v.features.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                Features
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {v.features.map((f, i) => (
+                  <span key={`${f}-${i}`} className="inline-flex items-center rounded-full border border-primary/30 bg-primary/8 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent service — compact summary visible across all tabs */}
+          {!loading && maintenance.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 inline-flex items-center gap-1.5">
+                <Wrench className="h-3 w-3" /> Recent service
+              </p>
+              <ul className="space-y-1">
+                {maintenance.slice(0, 3).map((m) => (
+                  <li key={m.id} className="flex items-baseline justify-between gap-2 text-[11px]">
+                    <span className="truncate text-foreground">
+                      <span className="capitalize font-semibold">{m.service_type.replace(/_/g, " ")}</span>
+                      <span className="text-muted-foreground"> · {new Date(m.service_date).toLocaleDateString()}</span>
+                      {m.odometer && <span className="text-muted-foreground"> · {m.odometer.toLocaleString()} mi</span>}
+                    </span>
+                    <span className="font-mono text-muted-foreground shrink-0">{formatMoney(m.cost_cents)}</span>
+                  </li>
+                ))}
+              </ul>
+              {maintenance.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => setTab("maintenance")}
+                  className="mt-1 text-[10px] text-primary hover:underline"
+                >
+                  See all {maintenance.length} services →
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 30-day availability strip */}
+          {!loading && (
+            <AvailabilityStrip reservations={reservations} blackouts={blackouts} />
+          )}
 
           {/* ROI Stats */}
           {loading ? (
@@ -225,6 +291,102 @@ export default function CarRentalVehicleDetailDialog({ vehicle, onClose }: Props
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AvailabilityStrip({
+  reservations, blackouts,
+}: {
+  reservations: Reservation[];
+  blackouts: Array<{ starts_at: string; ends_at: string; reason: string | null }>;
+}) {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const days = 30;
+  const end = start + days * dayMs;
+
+  const spans: Array<{ from: number; to: number; kind: "reservation" | "blackout"; tone: string; label: string }> = [];
+  for (const r of reservations) {
+    if (r.status === "cancelled" || r.status === "no_show") continue;
+    const from = Math.max(start, new Date(r.pickup_at).getTime());
+    const to = Math.min(end, new Date(r.dropoff_at).getTime());
+    if (to <= from) continue;
+    const tone =
+      r.status === "picked_up" ? "bg-emerald-500/80"
+      : r.status === "returned" ? "bg-emerald-500/40"
+      : r.status === "pending" ? "bg-amber-500/80"
+      : "bg-primary/80";
+    spans.push({ from, to, kind: "reservation", tone, label: `${r.customer_name} · ${r.confirmation_code}` });
+  }
+  for (const b of blackouts) {
+    const from = Math.max(start, new Date(b.starts_at).getTime());
+    const to = Math.min(end, new Date(b.ends_at).getTime());
+    if (to <= from) continue;
+    spans.push({ from, to, kind: "blackout", tone: "bg-muted-foreground/60", label: `Blackout${b.reason ? ` · ${b.reason}` : ""}` });
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+        Next 30 days availability
+      </p>
+      <div className="relative">
+        {/* Day grid background */}
+        <div className="grid gap-px overflow-hidden rounded" style={{ gridTemplateColumns: `repeat(${days}, minmax(0, 1fr))` }}>
+          {Array.from({ length: days }).map((_, i) => {
+            const dayStart = start + i * dayMs;
+            const d = new Date(dayStart);
+            const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+            const isToday = i === 0;
+            return (
+              <div key={i} className={cn(
+                "h-10 flex items-end justify-center pb-0.5",
+                isWeekend ? "bg-muted/40" : "bg-muted/10",
+                isToday && "ring-1 ring-inset ring-primary",
+              )}>
+                {(i === 0 || d.getDate() === 1 || i % 5 === 0) && (
+                  <span className={cn("text-[9px]", isToday ? "font-bold text-primary" : "text-muted-foreground")}>
+                    {d.getDate()}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {/* Reservation/blackout overlays */}
+        <div className="pointer-events-none absolute inset-0">
+          {spans.map((s, i) => {
+            const leftPct = ((s.from - start) / (days * dayMs)) * 100;
+            const widthPct = ((s.to - s.from) / (days * dayMs)) * 100;
+            return (
+              <div
+                key={i}
+                className={cn("pointer-events-auto absolute top-1 h-3 rounded-sm border border-white/30", s.tone)}
+                style={{ left: `${leftPct}%`, width: `${Math.max(0.5, widthPct)}%` }}
+                title={s.label}
+              />
+            );
+          })}
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+        <Legend tone="bg-emerald-500/80" label="On rental" />
+        <Legend tone="bg-emerald-500/40" label="Returned" />
+        <Legend tone="bg-primary/80" label="Confirmed" />
+        <Legend tone="bg-amber-500/80" label="Pending" />
+        <Legend tone="bg-muted-foreground/60" label="Blackout" />
+      </div>
+    </div>
+  );
+}
+
+function Legend({ tone, label }: { tone: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className={cn("inline-block h-2 w-3 rounded-sm", tone)} />
+      {label}
+    </span>
   );
 }
 

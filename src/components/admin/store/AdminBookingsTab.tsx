@@ -140,12 +140,46 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     setConvertingId(b.id);
     const woNumber = `WO-${Date.now().toString().slice(-6)}`;
     const vehicleLabel = [b.vehicle_year, b.vehicle_make, b.vehicle_model].filter(Boolean).join(" ") || "Unknown Vehicle";
+
+    let vehicleId: string | null = null;
+    if (b.customer_name && (b.vehicle_make || b.vehicle_model)) {
+      const { data: existing } = await supabase
+        .from("ar_customer_vehicles")
+        .select("id")
+        .eq("store_id", storeId)
+        .eq("owner_name", b.customer_name)
+        .ilike("make", b.vehicle_make || "%")
+        .ilike("model", b.vehicle_model || "%")
+        .maybeSingle();
+      if (existing?.id) {
+        vehicleId = existing.id;
+      } else {
+        const { data: created, error: vErr } = await supabase
+          .from("ar_customer_vehicles")
+          .insert({
+            store_id: storeId,
+            owner_name: b.customer_name,
+            owner_phone: b.customer_phone || null,
+            owner_email: b.customer_email || null,
+            year: b.vehicle_year ? parseInt(b.vehicle_year, 10) || null : null,
+            make: b.vehicle_make || "Unknown",
+            model: b.vehicle_model || "Unknown",
+          } as any)
+          .select("id")
+          .single();
+        if (!vErr && created?.id) vehicleId = created.id;
+      }
+    }
+
     const { data: wo, error: woErr } = await supabase
       .from("ar_work_orders")
       .insert({
         store_id: storeId,
         number: woNumber,
         customer_name: b.customer_name,
+        customer_phone: b.customer_phone || null,
+        customer_email: b.customer_email || null,
+        vehicle_id: vehicleId,
         vehicle_label: vehicleLabel,
         notes: [b.service_name, b.notes].filter(Boolean).join("\n"),
         status: "awaiting",
@@ -155,7 +189,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     if (woErr || !wo) { toast.error("Failed to create work order"); setConvertingId(null); return; }
     await supabase.from("service_bookings").update({ workorder_id: wo.id } as any).eq("id", b.id);
     setConvertingId(null);
-    toast.success(`Work Order ${woNumber} created from booking`);
+    toast.success(`Work Order ${woNumber} created${vehicleId ? " with linked vehicle" : ""}`);
     fetchBookings();
   };
 

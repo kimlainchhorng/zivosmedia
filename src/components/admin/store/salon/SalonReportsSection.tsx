@@ -101,8 +101,13 @@ export default function SalonReportsSection({ storeId }: SalonReportsSectionProp
       if (r.status === "cancelled") cancelled++;
       if (r.status === "no_show") noShow++;
     }
-    const noShowRate = (noShow + cancelled) > 0 || completed > 0
-      ? (noShow / Math.max(1, completed + noShow + cancelled)) * 100
+    // No-show rate excludes advance cancellations from the denominator.
+    // Including them would mean salons whose clients responsibly cancel
+    // ahead of time (good behavior!) see a deflated rate that masks the
+    // actual no-show problem. Cancellation rate is tracked separately
+    // via the dedicated "Cancelled" stat tile.
+    const noShowRate = (completed + noShow) > 0
+      ? (noShow / (completed + noShow)) * 100
       : 0;
     const topServices = Array.from(byService.entries())
       .map(([name, v]) => ({ name, ...v }))

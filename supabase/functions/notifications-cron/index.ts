@@ -21,6 +21,7 @@
  * Auth: cron-secret OR service-role; refuses everything else.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { sendSalonReminder, firstNameOf } from "../_shared/salon-notifications.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,6 +91,9 @@ serve(async (req) => {
     eats_rating_request: 0,
     lodge_rating_request: 0,
     marketplace_rating_request: 0,
+    salon_booking_reminder: 0,
+    salon_birthday_offer: 0,
+    salon_winback_offer: 0,
     errors: [] as string[],
   };
 
@@ -406,6 +410,232 @@ serve(async (req) => {
     }
   } catch (e) {
     results.errors.push(`marketplace_rating: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // -- 11. Salon booking reminders (24h-before) ------------------------------
+  //   Picks any due-or-soon salon_reminders rows (booking_24h type, pending,
+  //   scheduled_for within the next hour). The unique idempotency_key on
+  //   salon_reminders + the status flip after send keep cron replays safe.
+  try {
+    const due = new Date(now + 3600_000).toISOString();
+    const { data: rows, error } = await supabase
+      .from("salon_reminders")
+      .select("id, store_id, client_id, booking_id, reminder_type, channel_sms, channel_email, idempotency_key, scheduled_for, lead_minutes")
+      .in("reminder_type", ["booking_lead", "winback"])
+      .eq("status", "pending")
+      .lte("scheduled_for", due)
+      .limit(200);
+    if (error) throw error;
+    for (const row of (rows ?? []) as any[]) {
+      try {
+        let recipient = { user_id: null as string | null, phone: null as string | null, email: null as string | null, first_name: "there", full_name: "there" };
+        let templateData: Record<string, unknown> = {};
+        let smsBody = "";
+        let event: "booking_reminder_24h" | "winback_offer" = "booking_reminder_24h";
+
+        const { data: store } = await supabase
+          .from("store_profiles")
+          .select("name, phone, slug")
+          .eq("id", row.store_id)
+          .maybeSingle();
+        const salonName = (store as any)?.name ?? "your salon";
+        const salonPhone = (store as any)?.phone ?? null;
+        const appUrl = Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com";
+        const bookingUrl = (store as any)?.slug ? `${appUrl}/salon/${(store as any).slug}` : appUrl;
+
+        if (row.reminder_type === "booking_lead" && row.booking_id) {
+          const { data: b } = await supabase
+            .from("salon_bookings")
+            .select("client_name, client_phone, client_email, service_name, stylist_name, start_at, status, client_id")
+            .eq("id", row.booking_id)
+            .maybeSingle();
+          if (!b) throw new Error("booking_not_found");
+          // Last-minute guard: skip if the booking flipped out of active status
+          // between scheduling and dispatch.
+          if (!["pending", "confirmed"].includes((b as any).status)) {
+            await supabase.from("salon_reminders").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", row.id);
+            continue;
+          }
+          let userId: string | null = null;
+          if ((b as any).client_id) {
+            const { data: c } = await supabase.from("salon_clients").select("user_id").eq("id", (b as any).client_id).maybeSingle();
+            userId = (c as any)?.user_id ?? null;
+          }
+          recipient = {
+            user_id: userId,
+            phone: (b as any).client_phone ?? null,
+            email: (b as any).client_email ?? null,
+            first_name: firstNameOf((b as any).client_name ?? ""),
+            full_name: (b as any).client_name ?? "",
+          };
+          const start = new Date((b as any).start_at);
+          const startLocal = start.toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+          // Format lead time naturally based on lead_minutes — "tomorrow" for
+          // 24h, "in 2 hours" for 2h, "in 30 minutes" for very short windows.
+          const leadMin = (row.lead_minutes as number | null) ?? 1440;
+          const leadPhrase = leadMin >= 24 * 60 - 60 && leadMin <= 24 * 60 + 60
+            ? "tomorrow"
+            : leadMin >= 60
+            ? `in ${Math.round(leadMin / 60)} hour${Math.round(leadMin / 60) === 1 ? "" : "s"}`
+            : `in ${leadMin} minutes`;
+          templateData = {
+            client_first_name: recipient.first_name,
+            client_name: recipient.full_name,
+            service_name: (b as any).service_name,
+            stylist_name: (b as any).stylist_name,
+            start_at_local: startLocal,
+            lead_phrase: leadPhrase,
+            salon_name: salonName,
+            salon_phone: salonPhone,
+            store_id: row.store_id,
+          };
+          smsBody = `${salonName}: Your ${(b as any).service_name}${(b as any).stylist_name ? ` with ${(b as any).stylist_name}` : ""} is ${leadPhrase} (${startLocal}). Reply CANCEL to cancel${salonPhone ? ` or call ${salonPhone}` : ""}.`;
+          event = "booking_reminder_24h";
+        } else if (row.reminder_type === "winback" && row.client_id) {
+          const { data: c } = await supabase
+            .from("salon_clients")
+            .select("display_name, phone, email, last_visit_at, marketing_opt_in, is_blocked, user_id")
+            .eq("id", row.client_id)
+            .maybeSingle();
+          if (!c) throw new Error("client_not_found");
+          // Re-verify consent at send time — owner may have flipped opt-out
+          // since the row was scheduled.
+          if ((c as any).is_blocked || !(c as any).marketing_opt_in) {
+            await supabase.from("salon_reminders").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", row.id);
+            continue;
+          }
+          const lastVisit = (c as any).last_visit_at ? new Date((c as any).last_visit_at) : null;
+          const daysSince = lastVisit ? Math.floor((now - lastVisit.getTime()) / 86400_000) : 0;
+          recipient = {
+            user_id: (c as any).user_id ?? null,
+            phone: (c as any).phone ?? null,
+            email: (c as any).email ?? null,
+            first_name: firstNameOf((c as any).display_name ?? ""),
+            full_name: (c as any).display_name ?? "",
+          };
+          templateData = {
+            client_first_name: recipient.first_name,
+            client_name: recipient.full_name,
+            days_since_last_visit: daysSince,
+            salon_name: salonName,
+            booking_url: bookingUrl,
+          };
+          smsBody = `${salonName}: We miss you, ${recipient.first_name}! It's been ${daysSince} days. Book at ${bookingUrl}`;
+          event = "winback_offer";
+        } else {
+          // Unknown shape — mark failed so we don't loop on it.
+          await supabase.from("salon_reminders").update({ status: "failed", error: "invalid_row_shape", updated_at: new Date().toISOString() }).eq("id", row.id);
+          continue;
+        }
+
+        const out = await sendSalonReminder(supabase, row, recipient, event, templateData, smsBody);
+        if (out.sent) {
+          if (row.reminder_type === "booking_lead") results.salon_booking_reminder++;
+          else if (row.reminder_type === "winback") results.salon_winback_offer++;
+        }
+      } catch (e) {
+        results.errors.push(`salon_reminder ${row.id}: ${e instanceof Error ? e.message : String(e)}`);
+        // Best-effort: mark as failed so we don't re-process forever.
+        await supabase.from("salon_reminders").update({ status: "failed", error: String((e as Error).message || e).slice(0, 500), updated_at: new Date().toISOString() }).eq("id", row.id).then(() => null);
+      }
+    }
+  } catch (e) {
+    results.errors.push(`salon_reminders: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // -- 12. Salon birthday offers --------------------------------------------
+  //   Scans clients whose birthday matches today (month/day) and who have a
+  //   marketing opt-in. Idempotency key carries the year so a client only
+  //   gets one birthday message per year even if the cron runs hourly.
+  try {
+    const today = new Date(now);
+    const mm = String(today.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(today.getUTCDate()).padStart(2, "0");
+    const year = today.getUTCFullYear();
+    // Postgres date-format MM-DD comparison on the YYYY-MM-DD birthday column.
+    const { data: clients, error } = await supabase
+      .from("salon_clients")
+      .select("id, store_id, display_name, phone, email, birthday, marketing_opt_in, sms_opt_in, email_opt_in, is_blocked, user_id")
+      .eq("marketing_opt_in", true)
+      .eq("is_blocked", false)
+      .limit(1000);
+    if (error) throw error;
+    // Filter to today's birthday in JS to avoid DB-side date-extract complexity
+    // (timezone-aware month/day match would require a function index).
+    const stores = new Map<string, { name: string; slug: string | null }>();
+    for (const c of (clients ?? []) as any[]) {
+      const b = c.birthday as string | null;
+      if (!b) continue;
+      const parts = b.split("-");
+      if (parts.length !== 3) continue;
+      if (parts[1] !== mm || parts[2] !== dd) continue;
+      if (!c.phone && !c.email) continue;
+
+      // Check enable flag for this store + that we haven't already fired this year.
+      const { data: settings } = await supabase
+        .from("salon_reminder_settings")
+        .select("birthday_enabled, birthday_discount_percent")
+        .eq("store_id", c.store_id)
+        .maybeSingle();
+      if (!(settings as any)?.birthday_enabled) continue;
+
+      const idempotencyKey = `salon-birthday-${c.id}-${year}`;
+      // Lookup whether this idempotency_key has already been processed —
+      // a unique constraint on salon_reminders.idempotency_key + DO NOTHING
+      // handles the dedup naturally.
+
+      let store = stores.get(c.store_id);
+      if (!store) {
+        const { data: sp } = await supabase.from("store_profiles").select("name, slug").eq("id", c.store_id).maybeSingle();
+        store = { name: (sp as any)?.name ?? "your salon", slug: (sp as any)?.slug ?? null };
+        stores.set(c.store_id, store);
+      }
+      const appUrl = Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com";
+      const bookingUrl = store.slug ? `${appUrl}/salon/${store.slug}` : appUrl;
+      const discount = (settings as any)?.birthday_discount_percent ?? 0;
+
+      // Insert the reminder row (status='pending') and immediately dispatch.
+      const channelSms = c.sms_opt_in && !!c.phone;
+      const channelEmail = c.email_opt_in && !!c.email;
+      if (!channelSms && !channelEmail) continue;
+
+      const { data: inserted } = await supabase
+        .from("salon_reminders")
+        .insert({
+          store_id: c.store_id,
+          client_id: c.id,
+          reminder_type: "birthday",
+          scheduled_for: new Date(now).toISOString(),
+          channel_sms: channelSms,
+          channel_email: channelEmail,
+          idempotency_key: idempotencyKey,
+        })
+        .select("id, store_id, client_id, booking_id, reminder_type, channel_sms, channel_email, idempotency_key")
+        .maybeSingle();
+      // ON CONFLICT-equivalent: insert failed with 23505 → already fired this year.
+      if (!inserted) continue;
+
+      const recipient = {
+        user_id: c.user_id ?? null,
+        phone: c.phone ?? null,
+        email: c.email ?? null,
+        first_name: firstNameOf(c.display_name ?? ""),
+        full_name: c.display_name ?? "",
+      };
+      const templateData = {
+        client_first_name: recipient.first_name,
+        client_name: recipient.full_name,
+        salon_name: store.name,
+        birthday_discount_percent: discount,
+        booking_url: bookingUrl,
+      };
+      const smsBody = `${store.name}: Happy birthday, ${recipient.first_name}!${discount > 0 ? ` Enjoy ${discount}% off your next visit.` : ""} Book at ${bookingUrl}`;
+
+      const out = await sendSalonReminder(supabase, inserted as any, recipient, "birthday_offer", templateData, smsBody);
+      if (out.sent) results.salon_birthday_offer++;
+    }
+  } catch (e) {
+    results.errors.push(`salon_birthday: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   return j(200, { ok: true, ts: new Date().toISOString(), results });

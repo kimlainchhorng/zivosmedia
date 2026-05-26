@@ -7,11 +7,14 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
+import { formatCafeMoney } from "@/lib/cafe-currency";
 
 interface OrderRow {
   id: string;
   ticket_number: number;
   customer_name: string | null;
+  customer_phone: string | null;
   channel: string;
   status: string;
   table_id: string | null;
@@ -23,6 +26,7 @@ const NOTIFY_CHANNELS = new Set(["qr_table", "pickup", "delivery", "phone"]);
 export function useCafeRealtimeNotifications(storeId: string | undefined, isCafe: boolean) {
   const seenRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
+  const { code: currencyCode } = useCafeCurrency(storeId);
 
   // Prime the seen-set with the last hour of open orders so the channel
   // catches up without spamming. Anything older we don't care about.
@@ -67,19 +71,81 @@ export function useCafeRealtimeNotifications(storeId: string | undefined, isCafe
 
           const customer = row.customer_name?.trim() || "Customer";
           const ticket = row.ticket_number ? `#${row.ticket_number}` : "";
-          const amount = typeof row.total_cents === "number" ? ` · $${(row.total_cents / 100).toFixed(2)}` : "";
-          toast.info(`New order ${ticket}`, {
-            description: `${customer} via ${(row.channel ?? "").replace("_", " ")}${amount}`,
-            duration: 8000,
+          const amount = typeof row.total_cents === "number"
+            ? ` · ${formatCafeMoney(row.total_cents, currencyCode)}`
+            : "";
+          const channelLabel = (row.channel ?? "").replace("_", " ");
+          const description = `${customer} via ${channelLabel}${amount}`;
+
+          const onView = () => {
+            // Best-effort jump to the orders tab. Owners on a different
+            // store admin URL won't be redirected; this just updates the
+            // tab when the path already matches /admin/stores/<id>.
+            if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin/stores/")) {
+              const url = new URL(window.location.href);
+              url.searchParams.set("tab", "cafe-orders");
+              window.history.pushState({}, "", url.toString());
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            }
+          };
+
+          // VIP lookup: phones marked is_vip in cafe_customer_notes get a
+          // distinct toast so the barista can prep something special.
+          const phone = row.customer_phone?.trim();
+          if (phone && storeId) {
+            void supabase
+              .from("cafe_customer_notes" as never)
+              .select("is_vip, notes")
+              .eq("store_id", storeId)
+              .eq("phone", phone)
+              .maybeSingle()
+              .then(({ data }) => {
+                const note = data as { is_vip?: boolean; notes?: string | null } | null;
+                if (note?.is_vip) {
+                  toast.success(`★ VIP · New order ${ticket}`, {
+                    description: note.notes
+                      ? `${description}\n📝 ${note.notes}`
+                      : description,
+                    duration: 12000,
+                    action: { label: "View", onClick: onView },
+                  });
+                } else {
+                  toast.info(`New order ${ticket}`, {
+                    description,
+                    duration: 8000,
+                    action: { label: "View", onClick: onView },
+                  });
+                }
+              });
+          } else {
+            toast.info(`New order ${ticket}`, {
+              description,
+              duration: 8000,
+              action: { label: "View", onClick: onView },
+            });
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "cafe_reservations", filter: `store_id=eq.${storeId}` },
+        (payload) => {
+          // Public-RPC reservations land as 'pending'; admin-created ones are
+          // 'confirmed' by default, so we only ping for true new requests.
+          const row = payload.new as {
+            id: string; customer_name: string; party_size: number; reserved_for: string; status: string;
+          } | null;
+          if (!row || row.status !== "pending") return;
+          const dt = new Date(row.reserved_for);
+          toast.info(`New reservation request`, {
+            description: `${row.customer_name} · party of ${row.party_size} · ${dt.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
+            duration: 10000,
             action: {
-              label: "View",
+              label: "Review",
               onClick: () => {
-                // Best-effort jump to the orders tab. Owners on a different
-                // store admin URL won't be redirected; this just updates the
-                // tab when the path already matches /admin/stores/<id>.
                 if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin/stores/")) {
                   const url = new URL(window.location.href);
-                  url.searchParams.set("tab", "cafe-orders");
+                  url.searchParams.set("tab", "cafe-tables");
                   window.history.pushState({}, "", url.toString());
                   window.dispatchEvent(new PopStateEvent("popstate"));
                 }

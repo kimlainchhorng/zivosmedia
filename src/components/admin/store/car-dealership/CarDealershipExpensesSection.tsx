@@ -20,6 +20,8 @@ import {
   type DealershipExpenseDraft,
   type DealershipExpenseCategory,
 } from "@/hooks/car-dealership/useDealershipExpenses";
+import VehiclePicker from "./VehiclePicker";
+import { useVehicleOptions } from "@/hooks/car-dealership/useVehicleOptions";
 
 const formatPrice = (cents: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -60,6 +62,11 @@ interface Props { storeId: string; }
 
 function CarDealershipExpensesSectionInner({ storeId }: Props) {
   const { expenses, loading, saving, create, update, remove } = useDealershipExpenses(storeId);
+  const { options: vehicleOptions } = useVehicleOptions(storeId);
+  const vehicleMap = useMemo(
+    () => new Map(vehicleOptions.map((v) => [v.id, v.label])),
+    [vehicleOptions],
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DealershipExpense | null>(null);
   const [draft, setDraft] = useState<DealershipExpenseDraft>(emptyDraft());
@@ -150,10 +157,13 @@ function CarDealershipExpensesSectionInner({ storeId }: Props) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{e.description}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                     <span>{CATEGORY_LABEL[e.category]}</span>
                     {e.vendor && <span>· {e.vendor}</span>}
                     <span>· {new Date(e.paid_at).toLocaleDateString()}</span>
+                    {e.vehicle_id && vehicleMap.get(e.vehicle_id) && (
+                      <span className="text-primary/70">· {vehicleMap.get(e.vehicle_id)}</span>
+                    )}
                   </div>
                 </div>
                 <p className="font-bold shrink-0">{formatPrice(e.amount_cents)}</p>
@@ -175,6 +185,13 @@ function CarDealershipExpensesSectionInner({ storeId }: Props) {
               <Label>Description *</Label>
               <Input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="What was this for?" />
             </div>
+            <VehiclePicker
+              storeId={storeId}
+              vehicleId={draft.vehicle_id}
+              vehicleLabel=""
+              onSelect={(v) => setDraft({ ...draft, vehicle_id: v?.id ?? null })}
+              onLabelChange={() => setDraft({ ...draft, vehicle_id: null })}
+            />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Amount ($) *</Label>

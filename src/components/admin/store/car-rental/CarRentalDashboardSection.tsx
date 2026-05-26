@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { buildIcsFile, downloadIcs, type IcalReservation } from "@/lib/car-rental/ical";
+import { buildReservationsCsv, downloadCsv, type CsvReservation } from "@/lib/car-rental/csv";
+import { useStoreCurrency } from "@/lib/car-rental/money";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,12 @@ import { supabase } from "@/integrations/supabase/client";
 import CarRentalOnboardingChecklist from "./CarRentalOnboardingChecklist";
 import CarRentalActivityFeed from "./CarRentalActivityFeed";
 import CarRentalSparklineRow from "./CarRentalSparklineRow";
+import CarRentalComplianceAlerts from "./CarRentalComplianceAlerts";
+import CarRentalSettingsCard from "./CarRentalSettingsCard";
+import CarRentalUpcomingWidget from "./CarRentalUpcomingWidget";
+import CarRentalSeedDemoButton from "./CarRentalSeedDemoButton";
+import { carRentalSoundStorageKey } from "@/hooks/car-rental/useCarRentalRealtimeNotifications";
+import { Bell, BellOff } from "lucide-react";
 
 interface Props {
   storeId: string;
@@ -33,7 +41,6 @@ const todayIso = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const formatTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 export default function CarRentalDashboardSection({ storeId, onJumpToTab }: Props) {
@@ -43,6 +50,7 @@ export default function CarRentalDashboardSection({ storeId, onJumpToTab }: Prop
   const { customers } = useCarRentalCustomers(storeId);
   const { locations } = useCarRentalLocations(storeId);
   const { addons } = useCarRentalAddons(storeId);
+  const { format: formatPrice } = useStoreCurrency(storeId);
   const [storeSlug, setStoreSlug] = useState<string | undefined>(undefined);
   const [hasAnyReservation, setHasAnyReservation] = useState(false);
 
@@ -61,6 +69,57 @@ export default function CarRentalDashboardSection({ storeId, onJumpToTab }: Prop
     })();
     return () => { cancelled = true; };
   }, [storeId, todayReservations]);
+
+  // Sound-on-new-booking preference (per store, persisted in localStorage).
+  const soundKey = carRentalSoundStorageKey(storeId);
+  const [soundOn, setSoundOn] = useState(false);
+  useEffect(() => {
+    try { setSoundOn(localStorage.getItem(soundKey) === "1"); } catch { /* */ }
+  }, [soundKey]);
+  const toggleSound = () => {
+    setSoundOn((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(soundKey, next ? "1" : "0");
+      } catch { /* */ }
+      toast.success(next ? "Sound on" : "Sound off", {
+        description: next ? "You'll hear a chime when an online booking arrives." : "Toast notifications only.",
+      });
+      return next;
+    });
+  };
+
+  // Forward revenue: sum of total_cents for confirmed + picked_up reservations
+  // whose pickup_at falls in the next 30 days. "Confirmed forward booking value".
+  const [forward, setForward] = useState<{ next7: number; next30: number; count30: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const now = new Date();
+      const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const { data } = await supabase
+        .from("car_rental_reservations")
+        .select("total_cents, pickup_at, status")
+        .eq("store_id", storeId)
+        .in("status", ["confirmed", "picked_up"])
+        .gte("pickup_at", now.toISOString())
+        .lt("pickup_at", in30.toISOString())
+        .limit(500);
+      if (cancelled) return;
+      let next30 = 0;
+      let next7 = 0;
+      let count30 = 0;
+      for (const r of (data ?? []) as Array<{ total_cents: number; pickup_at: string }>) {
+        const pickup = new Date(r.pickup_at);
+        next30 += r.total_cents;
+        count30++;
+        if (pickup < in7) next7 += r.total_cents;
+      }
+      setForward({ next7, next30, count30 });
+    })();
+    return () => { cancelled = true; };
+  }, [storeId, todayReservations.length]);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -128,6 +187,14 @@ export default function CarRentalDashboardSection({ storeId, onJumpToTab }: Prop
         onJumpToTab={onJumpToTab}
       />
 
+      <CarRentalSeedDemoButton
+        storeId={storeId}
+        hasLocation={locations.length > 0}
+        hasVehicle={vehicles.length > 0}
+        hasAddon={addons.length > 0}
+        onSeeded={() => window.location.reload()}
+      />
+
       {!setupReady && (
         <Card className="rounded-2xl border-amber-500/30 bg-amber-500/5">
           <CardHeader>
@@ -151,19 +218,87 @@ export default function CarRentalDashboardSection({ storeId, onJumpToTab }: Prop
         </Card>
       )}
 
+      <CarRentalComplianceAlerts storeId={storeId} onJumpToTab={onJumpToTab} />
+
+      <CarRentalUpcomingWidget storeId={storeId} onJumpToTab={onJumpToTab} />
+
       {/* Trend sparklines for the last 14 days */}
       <CarRentalSparklineRow storeId={storeId} />
 
-      {/* Top stat row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Today's snapshot — copyable plain-text summary for sharing in Slack/SMS. */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card/60 px-3 py-2 text-[12px]">
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+          <span className="font-bold uppercase tracking-wider text-[10px] text-foreground/80">Today</span>
+          <span><span className="font-semibold text-foreground">{stats.pickupsToday}</span> pickups</span>
+          <span><span className="font-semibold text-foreground">{stats.returnsToday}</span> returns</span>
+          <span><span className="font-semibold text-foreground">{activeRentals}</span> on the road</span>
+          <span><span className="font-semibold text-foreground">{formatPrice(stats.revenueCents)}</span> revenue</span>
+          {forward && <span><span className="font-semibold text-foreground">{forward.count30}</span> upcoming 30d</span>}
+        </p>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs"
+            title={soundOn ? "Mute new-booking chime" : "Play a chime on new online bookings"}
+            onClick={toggleSound}
+          >
+            {soundOn
+              ? <><Bell className="mr-1 h-3.5 w-3.5 text-primary" /> Sound on</>
+              : <><BellOff className="mr-1 h-3.5 w-3.5" /> Sound off</>}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs"
+            onClick={() => {
+              const dateStr = new Date().toLocaleDateString();
+              const upcomingLines = stats.upcomingPickups.slice(0, 3).map((p) =>
+                `  • ${formatTime(p.pickup_at)} — ${p.customer_name} · ${p.vehicle_label}`,
+              );
+              const txt = [
+                `📋 Car rental snapshot — ${dateStr}`,
+                `Pickups today: ${stats.pickupsToday}${stats.returnsToday > 0 ? ` · Returns due: ${stats.returnsToday}` : ""}`,
+                `On the road: ${activeRentals}${fleetStats.total > 0 ? ` · Fleet utilization: ${fleetStats.utilization}%` : ""}`,
+                `Revenue today: ${formatPrice(stats.revenueCents)}`,
+                forward && forward.count30 > 0
+                  ? `Upcoming 30d: ${forward.count30} bookings · ${formatPrice(forward.next30)} forward revenue`
+                  : null,
+                upcomingLines.length > 0 ? "" : null,
+                upcomingLines.length > 0 ? "Next pickups:" : null,
+                ...upcomingLines,
+              ].filter((s): s is string => typeof s === "string").join("\n");
+              void navigator.clipboard.writeText(txt);
+              toast.success("Snapshot copied", { description: "Paste into Slack, SMS, or email." });
+            }}
+          >
+            <Download className="mr-1 h-3.5 w-3.5" /> Copy snapshot
+          </Button>
+        </div>
+      </div>
+
+      {/* Top stat row — most cards are click-to-jump for fast drill-down. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard icon={KeyRound} label="Pickups today" value={String(stats.pickupsToday)}
-          sub={stats.returnsToday > 0 ? `${stats.returnsToday} returns due` : "No returns today"} />
+          sub={stats.returnsToday > 0 ? `${stats.returnsToday} returns due` : "No returns today"}
+          onClick={onJumpToTab ? () => onJumpToTab("car-rental-checkout") : undefined} />
         <StatCard icon={Car} label="On the road" value={String(activeRentals)}
-          sub={`${fleetStats.available} available · ${fleetStats.utilization}% util.`} />
+          sub={`${fleetStats.available} available · ${fleetStats.utilization}% util.`}
+          onClick={onJumpToTab ? () => onJumpToTab("car-rental-returns") : undefined} />
         <StatCard icon={DollarSign} label="Revenue today" value={formatPrice(stats.revenueCents)}
-          sub="From rentals checked out today" />
+          sub="From rentals checked out today"
+          onClick={onJumpToTab ? () => onJumpToTab("car-rental-income") : undefined} />
+        <StatCard
+          icon={CalendarRange}
+          label="Forward 30d"
+          value={forward ? formatPrice(forward.next30) : "—"}
+          sub={forward ? `${forward.count30} confirmed · ${formatPrice(forward.next7)} next 7d` : "Loading…"}
+          tone={forward && forward.next30 > 0 ? "ok" : "neutral"}
+          onClick={onJumpToTab ? () => onJumpToTab("car-rental-reservations") : undefined}
+        />
         <StatCard icon={Users} label="Renters in book" value={String(customers.length)}
-          sub={`${fleetStats.total} vehicles · ${locations.length} location${locations.length === 1 ? "" : "s"}`} />
+          sub={`${fleetStats.total} vehicles · ${locations.length} location${locations.length === 1 ? "" : "s"}`}
+          onClick={onJumpToTab ? () => onJumpToTab("car-rental-customers") : undefined} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -234,7 +369,7 @@ export default function CarRentalDashboardSection({ storeId, onJumpToTab }: Prop
                 <Printer className="mr-1 h-3.5 w-3.5" /> Print today's pickup/return sheet
               </Link>
             </Button>
-            <Button variant="outline" size="sm" className="col-span-2" onClick={async () => {
+            <Button variant="outline" size="sm" onClick={async () => {
               const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
               const { data } = await supabase
                 .from("car_rental_reservations")
@@ -249,9 +384,26 @@ export default function CarRentalDashboardSection({ storeId, onJumpToTab }: Prop
               }
               const ics = buildIcsFile({ calendarName: "Car Rentals", reservations: rows });
               downloadIcs(`car-rentals-${new Date().toISOString().slice(0, 10)}.ics`, ics);
-              toast.success(`Exported ${rows.length} reservation${rows.length === 1 ? "" : "s"}`);
+              toast.success(`Exported ${rows.length} to .ics`);
             }}>
-              <Download className="mr-1 h-3.5 w-3.5" /> Export to calendar (.ics)
+              <Download className="mr-1 h-3.5 w-3.5" /> Calendar (.ics)
+            </Button>
+            <Button variant="outline" size="sm" onClick={async () => {
+              const { data } = await supabase
+                .from("car_rental_reservations")
+                .select("confirmation_code, customer_name, customer_phone, customer_email, vehicle_label, vehicle_category, pickup_at, dropoff_at, pickup_location_name, dropoff_location_name, rental_days, daily_rate_cents, base_total_cents, addons_total_cents, fees_cents, taxes_cents, discount_cents, security_deposit_cents, total_cents, amount_paid_cents, status, source, cancellation_reason, created_at")
+                .eq("store_id", storeId)
+                .order("pickup_at", { ascending: false });
+              const rows = (data ?? []) as unknown as CsvReservation[];
+              if (rows.length === 0) {
+                toast.info("No reservations to export yet");
+                return;
+              }
+              const csv = buildReservationsCsv(rows);
+              downloadCsv(`car-rentals-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+              toast.success(`Exported ${rows.length} to CSV`);
+            }}>
+              <Download className="mr-1 h-3.5 w-3.5" /> CSV (.csv)
             </Button>
           </CardContent>
         </Card>
@@ -275,25 +427,34 @@ export default function CarRentalDashboardSection({ storeId, onJumpToTab }: Prop
       </Card>
 
       <CarRentalActivityFeed storeId={storeId} onJumpToTab={onJumpToTab} />
+
+      <CarRentalSettingsCard storeId={storeId} />
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, tone = "neutral" }: {
+function StatCard({ icon: Icon, label, value, sub, tone = "neutral", onClick }: {
   icon: typeof Car; label: string; value: string; sub?: string; tone?: "ok" | "warn" | "neutral";
+  onClick?: () => void;
 }) {
+  const interactive = !!onClick;
+  const Tag: "button" | "div" = interactive ? "button" : "div";
   return (
-    <div className={cn(
-      "rounded-2xl border border-border bg-card p-4",
-      tone === "warn" && "border-amber-500/30 bg-amber-500/5"
-    )}>
+    <Tag
+      {...(interactive ? { type: "button" as const, onClick } : {})}
+      className={cn(
+        "rounded-2xl border border-border bg-card p-4 text-left w-full transition-colors",
+        tone === "warn" && "border-amber-500/30 bg-amber-500/5",
+        interactive && "hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
+      )}
+    >
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" />
         <p className="text-[11px] font-bold uppercase tracking-wider">{label}</p>
       </div>
       <p className="mt-1.5 text-2xl font-bold text-foreground">{value}</p>
       {sub && <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p>}
-    </div>
+    </Tag>
   );
 }
 

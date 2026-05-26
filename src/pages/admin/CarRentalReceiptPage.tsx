@@ -12,6 +12,9 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import CarRentalBookingTimeline from "@/components/admin/store/car-rental/CarRentalBookingTimeline";
+import CarRentalReservationAuditLog from "@/components/admin/store/car-rental/CarRentalReservationAuditLog";
+import { useStoreCurrency, formatMoneyWith } from "@/lib/car-rental/money";
 
 interface Reservation {
   id: string;
@@ -47,10 +50,16 @@ interface Reservation {
   dropoff_fuel_level: number | null;
   damage_notes: string | null;
   damage_photos: string[];
+  damage_marks: Array<{ x: number; y: number; severity: "minor" | "major"; note?: string }>;
   status: string;
   confirmation_code: string;
   customer_notes: string | null;
   created_at: string;
+  refund_amount_cents: number;
+  refund_at: string | null;
+  refund_method: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
 }
 
 interface Customer {
@@ -83,7 +92,6 @@ interface Store {
   email: string | null;
 }
 
-const formatMoney = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 export default function CarRentalReceiptPage() {
@@ -94,6 +102,7 @@ export default function CarRentalReceiptPage() {
   const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { currency, format: formatMoney } = useStoreCurrency(reservation?.store_id);
 
   useEffect(() => {
     let cancelled = false;
@@ -366,6 +375,35 @@ export default function CarRentalReceiptPage() {
               )}
             </div>
           )}
+          {r.refund_amount_cents > 0 && (
+            <div className="border-t border-border bg-emerald-500/5 px-4 py-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                  Refunded {r.refund_at ? `(${new Date(r.refund_at).toLocaleDateString()})` : ""}
+                </span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                  -{formatMoney(r.refund_amount_cents)}
+                </span>
+              </div>
+              {r.refund_method && (
+                <p className="mt-0.5 text-[11px] text-muted-foreground capitalize">
+                  Method: {r.refund_method.replace(/_/g, " ")}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mb-5 grid gap-3 md:grid-cols-2">
+          <CarRentalBookingTimeline
+            createdAt={r.created_at}
+            pickedUpAt={r.picked_up_at}
+            returnedAt={r.returned_at}
+            cancelledAt={r.cancelled_at}
+            refundAt={r.refund_at}
+            status={r.status}
+          />
+          <CarRentalReservationAuditLog reservationId={r.id} />
         </div>
 
         {/* Damage / notes */}
@@ -381,6 +419,44 @@ export default function CarRentalReceiptPage() {
                 <p className="text-sm text-foreground/90 whitespace-pre-wrap">{r.damage_notes}</p>
               </Block>
             )}
+          </div>
+        )}
+
+        {(r.damage_marks?.length ?? 0) > 0 && (
+          <div className="mb-5 rounded-xl border border-border bg-card p-3 print:bg-white print:break-inside-avoid">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Damage diagram ({r.damage_marks.length} mark{r.damage_marks.length === 1 ? "" : "s"})
+            </p>
+            <div className="overflow-hidden rounded-lg border border-border bg-muted/20 print:bg-white">
+              <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" className="block h-40 w-full">
+                <g fill="hsl(var(--muted))" stroke="hsl(var(--muted-foreground))" strokeWidth="0.5">
+                  <rect x="20" y="25" width="160" height="50" rx="14" />
+                  <rect x="22" y="30" width="35" height="40" rx="6" />
+                  <rect x="143" y="30" width="35" height="40" rx="6" />
+                  <rect x="60" y="35" width="80" height="30" rx="4" fill="hsl(var(--muted) / 0.4)" />
+                  <line x1="60" y1="35" x2="55" y2="30" />
+                  <line x1="60" y1="65" x2="55" y2="70" />
+                  <line x1="140" y1="35" x2="145" y2="30" />
+                  <line x1="140" y1="65" x2="145" y2="70" />
+                  <rect x="35" y="20" width="20" height="6" rx="2" fill="hsl(var(--foreground) / 0.4)" />
+                  <rect x="35" y="74" width="20" height="6" rx="2" fill="hsl(var(--foreground) / 0.4)" />
+                  <rect x="145" y="20" width="20" height="6" rx="2" fill="hsl(var(--foreground) / 0.4)" />
+                  <rect x="145" y="74" width="20" height="6" rx="2" fill="hsl(var(--foreground) / 0.4)" />
+                  <circle cx="24" cy="38" r="1.5" fill="hsl(var(--foreground) / 0.4)" />
+                  <circle cx="24" cy="62" r="1.5" fill="hsl(var(--foreground) / 0.4)" />
+                  <circle cx="176" cy="38" r="1.5" fill="hsl(var(--foreground) / 0.4)" />
+                  <circle cx="176" cy="62" r="1.5" fill="hsl(var(--foreground) / 0.4)" />
+                </g>
+                <text x="100" y="14" textAnchor="middle" className="fill-muted-foreground" fontSize="6" fontWeight="bold">FRONT</text>
+                <text x="100" y="96" textAnchor="middle" className="fill-muted-foreground" fontSize="6" fontWeight="bold">REAR</text>
+                {r.damage_marks.map((m, i) => (
+                  <g key={i} transform={`translate(${(m.x / 100) * 200} ${(m.y / 100) * 100})`}>
+                    <circle r="4" className={cn(m.severity === "major" ? "fill-destructive" : "fill-amber-500", "stroke-white")} strokeWidth="1" />
+                    <text textAnchor="middle" y="2" fontSize="5" fontWeight="bold" className="fill-white">{i + 1}</text>
+                  </g>
+                ))}
+              </svg>
+            </div>
           </div>
         )}
 
