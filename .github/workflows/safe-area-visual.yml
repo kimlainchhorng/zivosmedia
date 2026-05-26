@@ -97,7 +97,7 @@ jobs:
       - name: Summarize results for PR comment
         if: always() && github.event_name == 'pull_request'
         id: summary
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -139,7 +139,7 @@ jobs:
 
       - name: Post / update PR comment
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const marker = '<!-- safe-area-visual -->';
