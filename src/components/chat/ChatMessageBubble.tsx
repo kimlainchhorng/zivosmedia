@@ -30,6 +30,7 @@ import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
 import Pencil from "lucide-react/dist/esm/icons/pencil";
 import Languages from "lucide-react/dist/esm/icons/languages";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import Flag from "lucide-react/dist/esm/icons/flag";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +42,9 @@ import { findZivoTrackBySlug } from "@/lib/zivoSessions";
 import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
 import { assessLinkSync } from "@/hooks/useLinkRisk";
 import { assessChatMessageRisk, assessIncomingChatRisk } from "@/lib/security/chatContentSafety";
+import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
+import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
+import { detectSensitiveContent } from "@/lib/social/sensitiveContent";
 import { useAutoTranslateMessage } from "@/hooks/useAutoTranslateMessage";
 import {
   parseLegacyMusicShare,
@@ -214,6 +218,7 @@ interface ChatMessageBubbleProps {
   isDelivered?: boolean;
   imageUrl?: string | null;
   videoUrl?: string | null;
+  filePayload?: unknown;
   isPinned?: boolean;
   expiresAt?: string | null;
   messageType?: string;
@@ -232,6 +237,7 @@ interface ChatMessageBubbleProps {
   onForward?: (id: string, message: string) => void;
   onPin?: (id: string, pinned: boolean) => void;
   onEdit?: (id: string, currentText: string) => void;
+  onReport?: (id: string, reason: string) => void | Promise<void>;
   /** Save (forward to Saved Messages). Hidden when the chat IS Saved Messages. */
   onSave?: (id: string) => void;
   /** True when the current chat is the user's own Saved Messages. */
@@ -446,10 +452,11 @@ function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: st
 }
 
 const ChatMessageBubble = memo(function ChatMessageBubble({
-  id, message, time, isMe, isRead, isDelivered, imageUrl, videoUrl, isPinned, expiresAt, messageType, senderId, lockedPriceCents,
+  id, message, time, isMe, isRead, isDelivered, imageUrl, videoUrl, filePayload, isPinned, expiresAt, messageType, senderId, lockedPriceCents,
   editedAt, createdAt,
   initialReactions,
   onReply, onDelete, onDeleteForMe, onForward, onPin, onEdit, onSave, hideSave, forwardedFromName, forwardedFromUserId,
+  onReport,
   onMiniAppAction,
   senderName,
   senderAvatar,
@@ -480,8 +487,26 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const [translation, setTranslation] = useState<{ text: string; sourceLang?: string } | null>(null);
   const [translating, setTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
+  const canDeleteMessage = isMe || !!onDeleteForMe;
   const displayImageUrl = useSignedMedia(imageUrl, "chat-media-files", "display");
   const displayVideoUrl = useSignedMedia(videoUrl, "chat-media-files", "display");
+  const sensitiveMediaPreference = useSensitiveMediaPreference(user?.id);
+  const filePayloadMeta = filePayload as {
+    sensitive?: boolean;
+    is_sensitive?: boolean;
+    sensitive_reason?: string | null;
+  } | null | undefined;
+  const chatSensitiveMediaMatch = useMemo(
+    () => detectSensitiveContent(message || "", {
+      creatorMarked: Boolean(filePayloadMeta?.sensitive || filePayloadMeta?.is_sensitive),
+      reason: filePayloadMeta?.sensitive_reason || undefined,
+    }),
+    [filePayloadMeta?.is_sensitive, filePayloadMeta?.sensitive, filePayloadMeta?.sensitive_reason, message],
+  );
+  const shouldGateSensitiveMedia = Boolean(displayImageUrl || displayVideoUrl)
+    && !isLocked
+    && sensitiveMediaPreference.blurSensitiveMedia
+    && chatSensitiveMediaMatch.isSensitive;
   const [isTinyImage, setIsTinyImage] = useState(false);
   const shouldHideAutoMediaMessage =
     (Boolean(displayImageUrl || displayVideoUrl) || messageType === "image" || messageType === "video") &&
@@ -632,19 +657,20 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     load();
   }, [id, user?.id, initialReactions]);
 
-  const toggleReaction = async (emoji: string) => {
-    if (!user?.id || id.startsWith("opt-")) return;
+  const toggleReaction = useCallback(async (emoji: string) => {
+    const userId = user?.id;
+    if (!userId || id.startsWith("opt-")) return;
     const existing = reactions.find((r) => r.emoji === emoji && r.reactedByMe);
     if (existing) {
       await dbFrom("message_reactions").delete()
-        .eq("message_id", id).eq("user_id", user.id).eq("emoji", emoji);
+        .eq("message_id", id).eq("user_id", userId).eq("emoji", emoji);
       setReactions((prev) =>
         prev.map((r) => r.emoji === emoji ? { ...r, count: r.count - 1, reactedByMe: false } : r)
             .filter((r) => r.count > 0)
       );
     } else {
       await dbFrom("message_reactions").insert({
-        message_id: id, user_id: user.id, emoji,
+        message_id: id, user_id: userId, emoji,
       });
       setReactions((prev) => {
         const found = prev.find((r) => r.emoji === emoji);
@@ -659,7 +685,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     }
     setShowReactions(false);
     setShowActions(false);
-  };
+  }, [id, reactions, user?.id]);
 
   const handlePointerDown = useCallback(() => {
     didLongPress.current = false;
@@ -739,6 +765,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   return (
     <div
       ref={bubbleRef}
+      data-testid="chat-message-bubble"
       className={`chat-no-callout flex ${isMe ? "justify-end" : "justify-start"} relative px-1 mb-1`}
       onContextMenu={(e) => e.preventDefault()}
       onContextMenuCapture={(e) => e.preventDefault()}
@@ -812,6 +839,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
             className={`${CHAT_MEDIA_FRAME_CLASS} overflow-hidden mb-1 relative cursor-pointer ${isMe ? "ml-auto" : ""}`}
           >
             <div className={`rounded-2xl overflow-hidden relative bg-muted shadow-sm border border-border/10 ${isMe ? "rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
+              <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
               <video
                 src={`${displayVideoUrl}#t=0.1`}
                 className={`w-full aspect-[9/16] object-cover transition-all duration-300 ${isLocked ? "blur-xl scale-105" : ""}`}
@@ -877,6 +905,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                  <span className="text-[10px] text-white font-medium">Locked · {unlockPriceLabel}</span>
                 </div>
               )}
+              </SensitiveMediaGate>
             </div>
           </div>
         )}
@@ -884,6 +913,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         {/* Image — normal or locked */}
         {displayImageUrl && !displayVideoUrl && (
           <div className={`${isTinyImage ? "w-28 max-w-[32vw]" : CHAT_MEDIA_FRAME_CLASS} rounded-2xl overflow-hidden mb-1 shadow-sm relative bg-muted border border-border/10 ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
+            <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
             <img
               src={displayImageUrl}
               alt=""
@@ -931,6 +961,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                 <span className="text-[10px] text-white font-medium">Locked · {unlockPriceLabel}</span>
               </div>
             )}
+            </SensitiveMediaGate>
           </div>
         )}
 
@@ -1189,20 +1220,38 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                       {message?.trim() && !isMe && (
                         <MsgMenuItem icon={Languages} label={translation ? (showTranslation ? "Hide translation" : "Show translation") : "Translate"} onClick={handleTranslate} />
                       )}
+                      {!isMe && onReport && (
+                        <MsgMenuItem
+                          icon={Flag}
+                          label="Report 18+"
+                          onClick={() => {
+                            void onReport(id, "Nudity or sexual content");
+                            setShowActions(false);
+                            setShowReactions(false);
+                          }}
+                          destructive
+                        />
+                      )}
                       <MsgMenuItem icon={Copy} label="Copy" onClick={handleCopy} />
                       <MsgMenuItem icon={Forward} label="Forward" onClick={handleForward} />
                       {onSave && !hideSave && (
                         <MsgMenuItem icon={Bookmark} label="Save" onClick={() => { onSave(id); setShowActions(false); setShowReactions(false); }} />
                       )}
-                      <MsgMenuItem icon={Pin} label={isPinned ? "Unpin" : "Pin"} onClick={handlePin} active={isPinned} />
-                      <MsgMenuItem icon={Trash2} label="Delete" onClick={() => setShowDeleteSub(true)} destructive chevron />
+                      {onPin && (
+                        <MsgMenuItem icon={Pin} label={isPinned ? "Unpin" : "Pin"} onClick={handlePin} active={isPinned} />
+                      )}
+                      {canDeleteMessage && (
+                        <MsgMenuItem icon={Trash2} label="Delete" onClick={() => setShowDeleteSub(true)} destructive chevron />
+                      )}
                     </motion.div>
                   ) : (
                     <motion.div key="delete" initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }} transition={{ duration: 0.1 }}>
                       {isMe && (
                         <MsgMenuItem icon={Trash2} label="Delete for everyone" onClick={() => { onDelete(id); setShowActions(false); setShowReactions(false); setShowDeleteSub(false); }} destructive />
                       )}
-                      <MsgMenuItem icon={Trash2} label="Delete for me" onClick={() => { (onDeleteForMe ?? onDelete)(id); setShowActions(false); setShowReactions(false); setShowDeleteSub(false); }} destructive />
+                      {onDeleteForMe && (
+                        <MsgMenuItem icon={Trash2} label="Delete for me" onClick={() => { onDeleteForMe(id); setShowActions(false); setShowReactions(false); setShowDeleteSub(false); }} destructive />
+                      )}
                       <div className="border-t border-border/30">
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setShowDeleteSub(false); }}
