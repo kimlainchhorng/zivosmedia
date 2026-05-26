@@ -21,6 +21,7 @@ vi.mock("@/integrations/supabase/client", () => {
     from: () => builder,
     select: () => builder,
     eq: () => builder,
+    is: () => builder,
     maybeSingle: () => Promise.resolve({ ...supabaseResponse }),
   };
   return { supabase: builder };
