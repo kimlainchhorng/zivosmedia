@@ -67,6 +67,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Lazy-load TransparentStickerVideo — heavy chroma-key/WebGL component
 const TransparentStickerVideo = lazy(() => import("./TransparentStickerVideo").then(m => ({ default: m.TransparentStickerVideo })));
+const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
 const REACTION_EMOJIS = ["❤️", "😂", "👍", "😮", "😢", "🔥", "🎉", "😍"];
 const AUTO_MEDIA_MESSAGES = new Set(["Photo", "Video"]);
 const CHAT_MEDIA_FRAME_CLASS = "w-[292px] max-w-[76vw]";
@@ -476,6 +477,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const [showReactions, setShowReactions] = useState(false);
   const [showDeleteSub, setShowDeleteSub] = useState(false);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [reportPaidOpen, setReportPaidOpen] = useState(false);
   const messageRisk = useMemo(() => isMe ? { warnings: [] } : assessChatMessageRisk(message || ""), [message, isMe]);
   // Inbound auto-translate. Only fires for messages we received and only when
   // the parent has the per-conversation toggle on (kebab menu in PersonalChat).
@@ -832,6 +834,21 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
       onDragStartCapture={(e) => e.preventDefault()}
       style={{ WebkitTouchCallout: "none", WebkitTapHighlightColor: "transparent" }}
     >
+      {/* Paid-content report sheet — opens from the "Report paid content"
+          action on locked_* messages and writes to content_reports
+          (different table from the legacy chat_message_reports used by
+          regular text/media). */}
+      {reportPaidOpen && id && !id.startsWith("opt-") && (
+        <Suspense fallback={null}>
+          <ReportSheet
+            open={reportPaidOpen}
+            onClose={() => setReportPaidOpen(false)}
+            contentType="paid_dm"
+            contentId={id}
+            reportedUserId={senderId ?? null}
+          />
+        </Suspense>
+      )}
       {/* Sender Avatar for Group Chat */}
       {!isMe && (senderName || senderAvatar) && (
         <div className="mr-2 mt-1 shrink-0">
@@ -1338,7 +1355,19 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                       {message?.trim() && !isMe && (
                         <MsgMenuItem icon={Languages} label={translation ? (showTranslation ? "Hide translation" : "Show translation") : "Translate"} onClick={handleTranslate} />
                       )}
-                      {!isMe && onReport && (
+                      {!isMe && isLockedType && (
+                        <MsgMenuItem
+                          icon={Flag}
+                          label="Report paid content"
+                          onClick={() => {
+                            setReportPaidOpen(true);
+                            setShowActions(false);
+                            setShowReactions(false);
+                          }}
+                          destructive
+                        />
+                      )}
+                      {!isMe && !isLockedType && onReport && (
                         <MsgMenuItem
                           icon={Flag}
                           label="Report 18+"
