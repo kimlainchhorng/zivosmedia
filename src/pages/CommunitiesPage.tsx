@@ -11,9 +11,9 @@ import SEOHead from "@/components/SEOHead";
 import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
 import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 import { ArrowLeft, Plus, Users, Shield, Globe, Lock, Search, MessageSquare, TrendingUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -21,10 +21,21 @@ export default function CommunitiesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [tab, setTab] = useState<"discover" | "joined">("discover");
   const [newCommunity, setNewCommunity] = useState({ name: "", description: "", category: "General", privacy: "public" });
+
+  // Honor the Create-sheet deep link: /communities?new=1 auto-opens the
+  // create-community sheet. Strip the param so back/forward stays clean.
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    setShowCreate(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const { data: communities = [], isLoading, isFetching, isError: hasCommunitiesError, refetch } = useQuery({
     queryKey: ["communities"],
@@ -78,18 +89,36 @@ export default function CommunitiesPage() {
       if (!confirmContentSafe(`${newCommunity.name}\n${newCommunity.description}`, "community details")) {
         throw new Error("Blocked content");
       }
-      const { error } = await (supabase as any).from("communities").insert({
+      const { data, error } = await (supabase as any).from("communities").insert({
         ...newCommunity,
         created_by: user.id,
         slug: newCommunity.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-      });
+      }).select("id").single();
       if (error) throw error;
+      const communityId = data.id as string;
+
+      // Auto-join the creator as admin so they show up in members and don't
+      // need to "join" their own community. The member-count trigger handles
+      // updating communities.member_count automatically.
+      const { error: joinError } = await (supabase as any).from("community_members").insert({
+        community_id: communityId,
+        user_id: user.id,
+        role: "admin",
+      });
+      if (joinError) {
+        // Non-fatal — the community exists, the creator just won't be in members
+        // until they tap Join. Log and continue.
+        console.warn("[CommunitiesPage] creator auto-join failed", joinError);
+      }
+      return communityId;
     },
-    onSuccess: () => {
+    onSuccess: (communityId) => {
       queryClient.invalidateQueries({ queryKey: ["communities"] });
+      queryClient.invalidateQueries({ queryKey: ["my-communities"] });
       toast.success("Community created!");
       setShowCreate(false);
       setNewCommunity({ name: "", description: "", category: "General", privacy: "public" });
+      navigate(`/communities/${communityId}`);
     },
   });
 
