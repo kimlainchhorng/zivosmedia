@@ -13,8 +13,6 @@ import { toast } from "sonner";
 
 interface UnlockArgs {
   messageId: string;
-  creatorId: string;
-  priceCents: number;
 }
 
 export function useDirectMessageUnlocks(partnerId: string | null | undefined) {

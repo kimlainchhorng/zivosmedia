@@ -3055,11 +3055,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         }
                         onUnlockLockedMedia={
                           isLockedDirectMessage(msg.message_type) && !isMe && !msg.id.startsWith("opt-")
-                            ? async (mid) => dmUnlocks.unlock({
-                                messageId: mid,
-                                creatorId: msg.sender_id,
-                                priceCents: msg.locked_price_cents ?? 0,
-                              })
+                            ? async (mid) => dmUnlocks.unlock({ messageId: mid })
                             : undefined
                         }
                         initialReactions={reactionsMap[msg.id]}
