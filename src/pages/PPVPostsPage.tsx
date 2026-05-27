@@ -75,19 +75,6 @@ export default function PPVPostsPage() {
   const detailPostId = params.get("post");
   const [tab, setTab] = useState<Tab>("mine");
 
-  if (detailPostId) {
-    return (
-      <PPVPostDetail
-        postId={detailPostId}
-        onBack={() => {
-          const next = new URLSearchParams(params);
-          next.delete("post");
-          setParams(next, { replace: true });
-        }}
-      />
-    );
-  }
-
   const { data: myPosts = [] } = useQuery({
     queryKey: ["ppv-posts", "mine", user?.id],
     queryFn: async (): Promise<PPVPost[]> => {
@@ -123,6 +110,21 @@ export default function PPVPostsPage() {
     const unlockCount = myPosts.reduce((s, p) => s + p.unlock_count, 0);
     return { revenue, unlockCount };
   }, [myPosts]);
+
+  // Detail view: render the single-post viewer when ?post=<id> is present.
+  // This branch runs AFTER all hooks above to satisfy Rules of Hooks.
+  if (detailPostId) {
+    return (
+      <PPVPostDetail
+        postId={detailPostId}
+        onBack={() => {
+          const next = new URLSearchParams(params);
+          next.delete("post");
+          setParams(next, { replace: true });
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-background pb-24">
