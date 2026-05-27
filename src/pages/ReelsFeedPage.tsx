@@ -449,6 +449,30 @@ const rememberReelForReelsTab = (postId: string) => {
 // session. Lives at module scope so navigating between feed tabs without a
 // full reload doesn't double-count.
 const recordedFeedViews = new Set<string>();
+
+// Shared mute state across every feed video and reel slide. Once the viewer
+// unmutes one video the rest stay unmuted for the session — matches TikTok /
+// Reels behavior where sound choice is sticky, not per-card.
+const FEED_MUTE_STORAGE_KEY = "zivo_feed_mute";
+const feedMuteSubscribers = new Set<(muted: boolean) => void>();
+let currentFeedMute: boolean = (() => {
+  try { return sessionStorage.getItem(FEED_MUTE_STORAGE_KEY) !== "false"; } catch { return true; }
+})();
+const writeFeedMute = (muted: boolean): void => {
+  if (muted === currentFeedMute) return;
+  currentFeedMute = muted;
+  try { sessionStorage.setItem(FEED_MUTE_STORAGE_KEY, muted ? "true" : "false"); } catch { /* ignore */ }
+  feedMuteSubscribers.forEach((fn) => fn(muted));
+};
+const useFeedMute = (): [boolean, (muted: boolean) => void] => {
+  const [muted, setLocalMuted] = useState(currentFeedMute);
+  useEffect(() => {
+    const sub = (m: boolean) => setLocalMuted(m);
+    feedMuteSubscribers.add(sub);
+    return () => { feedMuteSubscribers.delete(sub); };
+  }, []);
+  return [muted, writeFeedMute];
+};
 const POST_REACTIONS_ENABLED = import.meta.env.VITE_ENABLE_POST_REACTIONS === "true";
 
 // Best-effort wrapper around the record_post_share RPC. The RPC logs the
@@ -3014,7 +3038,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useFeedMute();
   const [liked, setLiked] = useState(false);
   const [localLikes, setLocalLikes] = useState(item.likes_count);
   const [localComments, setLocalComments] = useState(item.comments_count);
@@ -4107,7 +4131,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   const haptic = useHaptic();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useFeedMute();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentMedia, setCurrentMedia] = useState(0);
   const [showComments, setShowComments] = useState(false);
