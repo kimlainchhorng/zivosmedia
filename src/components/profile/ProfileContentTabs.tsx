@@ -671,7 +671,10 @@ export default function ProfileContentTabs({
     // Reset feed when profile owner changes — but keep E2E seed posts so
     // tests don't lose their fixture data after the first effect tick.
     const seeded = getE2ESeedPosts();
-    setFeed(seeded && seeded.length > 0 ? (seeded as FeedItem[]) : []);
+    setFeed((prev) => {
+      if (seeded && seeded.length > 0) return seeded as FeedItem[];
+      return prev.length === 0 ? prev : [];
+    });
 
     const mergeFeed = (incoming: FeedItem[]) => {
       setFeed((prev) => {
@@ -834,7 +837,7 @@ export default function ProfileContentTabs({
 
     const loadBookmarkedPosts = async () => {
       if (!user?.id) {
-        if (alive) setBookmarkedPosts(new Set());
+        if (alive) setBookmarkedPosts((prev) => (prev.size === 0 ? prev : new Set()));
         return;
       }
 
@@ -844,7 +847,7 @@ export default function ProfileContentTabs({
         .map(toUserPostInteractionId);
 
       if (!interactionIds.length) {
-        if (alive) setBookmarkedPosts(new Set());
+        if (alive) setBookmarkedPosts((prev) => (prev.size === 0 ? prev : new Set()));
         return;
       }
 
@@ -871,14 +874,14 @@ export default function ProfileContentTabs({
     let alive = true;
     const loadLiked = async () => {
       if (!user?.id) {
-        if (alive) setLikedPosts(new Set());
+        if (alive) setLikedPosts((prev) => (prev.size === 0 ? prev : new Set()));
         return;
       }
       const postIds = feed
         .map((item) => item.id)
         .filter((id) => !isLocalDraftPostId(id));
       if (!postIds.length) {
-        if (alive) setLikedPosts(new Set());
+        if (alive) setLikedPosts((prev) => (prev.size === 0 ? prev : new Set()));
         return;
       }
       try {

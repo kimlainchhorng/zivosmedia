@@ -545,7 +545,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           : chat
       )
     );
-  }, [groupLastSeenSignature, markGroupChatSeen, openGroupChat, queryClient, user?.id]);
+    // `groupLastSeenSignature` intentionally omitted: marking-seen writes a new
+    // timestamp into groupLastSeen, which would re-fire this effect and loop.
+  }, [markGroupChatSeen, openGroupChat, queryClient, user?.id]);
 
   useEffect(() => {
     if (!openShopChat) return;
@@ -576,7 +578,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           : chat
       )
     );
-  }, [markOverlayChatSeen, openRideChat, queryClient, rideLastSeenSignature, user?.id]);
+    // `rideLastSeenSignature` intentionally omitted: marking-seen writes a new
+    // timestamp into rideLastSeen, which would re-fire this effect and loop.
+  }, [markOverlayChatSeen, openRideChat, queryClient, user?.id]);
 
   useEffect(() => {
     if (!openSupportChat) return;
@@ -592,7 +596,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           : chat
       )
     );
-  }, [markOverlayChatSeen, openSupportChat, queryClient, supportLastSeenSignature, user?.id]);
+    // `supportLastSeenSignature` intentionally omitted: marking-seen writes a
+    // new timestamp into supportLastSeen, which would re-fire this effect and loop.
+  }, [markOverlayChatSeen, openSupportChat, queryClient, user?.id]);
 
   // Share mode state
   const [sharePayload, setSharePayload] = useState<{ shareUrl: string; shareText: string } | null>(null);
@@ -601,9 +607,12 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   useEffect(() => {
     const unlockedMsgId = searchParams.get("unlocked");
     if (!unlockedMsgId || !user) return;
-    // Remove param from URL immediately
-    searchParams.delete("unlocked");
-    setSearchParams(searchParams, { replace: true });
+    // Remove param from URL immediately (build a fresh URLSearchParams so
+    // React Router detects the change — mutating the existing object can
+    // leave the underlying URL stale and reschedule this effect every render)
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("unlocked");
+    setSearchParams(nextParams, { replace: true });
     // Auto-verify the unlock with Stripe
     const verify = async () => {
       try {
@@ -654,9 +663,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
     if (!withId || !user) return;
     const openGiftOnMount = searchParams.get("gift") === "1";
-    searchParams.delete("with");
-    searchParams.delete("gift");
-    setSearchParams(searchParams, { replace: true });
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("with");
+    nextParams.delete("gift");
+    setSearchParams(nextParams, { replace: true });
     setActive("personal");
     // If a forward-from-channel stashed a prefill, consume it now so the
     // composer opens with the channel post text already typed.
