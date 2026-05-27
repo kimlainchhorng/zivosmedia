@@ -2916,9 +2916,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
               });
             }}
-            renderTrigger={(open) => {
+            onOpenPickerReady={(open) => {
               filePickerTriggerRef.current = open;
-              return null;
             }}
           />
 
