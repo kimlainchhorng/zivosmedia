@@ -39,6 +39,7 @@ import { resolveSharedOrigins, type SharedOriginInfo } from "@/lib/social/resolv
 import { toUserPostInteractionId } from "@/lib/social/postInteraction";
 import CreatorTiersSubscribe from "@/components/creator/CreatorTiersSubscribe";
 import TopSupporters from "@/components/creator/TopSupporters";
+import CreatorPPVStrip from "@/components/ppv/CreatorPPVStrip";
 import TipSheet from "@/components/social/TipSheet";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
@@ -1194,6 +1195,9 @@ export default function PublicProfilePage() {
                   isOwnProfile={isOwnProfile}
                 />
               )}
+
+              {/* PPV strip — locked content a creator has published */}
+              {targetUserId && <CreatorPPVStrip creatorUserId={targetUserId} />}
 
               {/* Content Tabs */}
               <div className="border-b border-border/30 max-w-3xl mx-auto">
