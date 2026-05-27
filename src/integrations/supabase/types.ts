@@ -4570,11 +4570,13 @@ export type Database = {
           discount_cents: number
           due_at: string | null
           estimate_id: string | null
+          fleet_account_id: string | null
           id: string
           items: Json
           notes: string | null
           number: string
           paid_at: string | null
+          po_number: string | null
           sent_at: string | null
           source_workorder_id: string | null
           status: string
@@ -4601,11 +4603,13 @@ export type Database = {
           discount_cents?: number
           due_at?: string | null
           estimate_id?: string | null
+          fleet_account_id?: string | null
           id?: string
           items?: Json
           notes?: string | null
           number: string
           paid_at?: string | null
+          po_number?: string | null
           sent_at?: string | null
           source_workorder_id?: string | null
           status?: string
@@ -4632,11 +4636,13 @@ export type Database = {
           discount_cents?: number
           due_at?: string | null
           estimate_id?: string | null
+          fleet_account_id?: string | null
           id?: string
           items?: Json
           notes?: string | null
           number?: string
           paid_at?: string | null
+          po_number?: string | null
           sent_at?: string | null
           source_workorder_id?: string | null
           status?: string
@@ -4653,10 +4659,270 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "ar_invoices_fleet_account_id_fkey"
+            columns: ["fleet_account_id"]
+            isOneToOne: false
+            referencedRelation: "ar_fleet_accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ar_invoices_source_workorder_id_fkey"
             columns: ["source_workorder_id"]
             isOneToOne: false
             referencedRelation: "ar_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ar_job_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          photo_type: string
+          photo_url: string
+          store_id: string
+          uploaded_at: string
+          work_order_id: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_type?: string
+          photo_url: string
+          store_id: string
+          uploaded_at?: string
+          work_order_id?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_type?: string
+          photo_url?: string
+          store_id?: string
+          uploaded_at?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_job_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_job_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_job_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_job_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_job_photos_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "ar_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ar_labor_entries: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          is_billable: boolean
+          labor_type: string
+          notes: string | null
+          rate_override_cents: number | null
+          store_id: string
+          tech_id: string
+          updated_at: string
+          vehicle_id: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          is_billable?: boolean
+          labor_type?: string
+          notes?: string | null
+          rate_override_cents?: number | null
+          store_id: string
+          tech_id: string
+          updated_at?: string
+          vehicle_id?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          is_billable?: boolean
+          labor_type?: string
+          notes?: string | null
+          rate_override_cents?: number | null
+          store_id?: string
+          tech_id?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_labor_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_tech_id_fkey"
+            columns: ["tech_id"]
+            isOneToOne: false
+            referencedRelation: "ar_technicians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "ar_customer_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "ar_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ar_loaner_vehicles: {
+        Row: {
+          color: string | null
+          created_at: string
+          current_customer_name: string | null
+          due_back_date: string | null
+          id: string
+          last_customer_name: string | null
+          make: string
+          mileage_in: number | null
+          mileage_out: number | null
+          model: string
+          plate: string | null
+          return_notes: string | null
+          returned_at: string | null
+          status: string
+          store_id: string
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          current_customer_name?: string | null
+          due_back_date?: string | null
+          id?: string
+          last_customer_name?: string | null
+          make: string
+          mileage_in?: number | null
+          mileage_out?: number | null
+          model: string
+          plate?: string | null
+          return_notes?: string | null
+          returned_at?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          current_customer_name?: string | null
+          due_back_date?: string | null
+          id?: string
+          last_customer_name?: string | null
+          make?: string
+          mileage_in?: number | null
+          mileage_out?: number | null
+          model?: string
+          plate?: string | null
+          return_notes?: string | null
+          returned_at?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_loaner_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_loaner_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_loaner_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_loaner_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
             referencedColumns: ["id"]
           },
         ]
@@ -12792,6 +13058,7 @@ export type Database = {
           next_followup_at: string | null
           notes: string | null
           phone: string | null
+          salesperson_name: string | null
           source: string
           status: Database["public"]["Enums"]["car_dealership_lead_status"]
           store_id: string
@@ -12819,6 +13086,7 @@ export type Database = {
           next_followup_at?: string | null
           notes?: string | null
           phone?: string | null
+          salesperson_name?: string | null
           source?: string
           status?: Database["public"]["Enums"]["car_dealership_lead_status"]
           store_id: string
@@ -12846,6 +13114,7 @@ export type Database = {
           next_followup_at?: string | null
           notes?: string | null
           phone?: string | null
+          salesperson_name?: string | null
           source?: string
           status?: Database["public"]["Enums"]["car_dealership_lead_status"]
           store_id?: string
@@ -21555,6 +21824,9 @@ export type Database = {
           forwarded_from_message_id: string | null
           forwarded_from_user_id: string | null
           gift_payload: Json | null
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
           image_url: string | null
           is_pinned: boolean
@@ -21572,6 +21844,7 @@ export type Database = {
           reply_to_snapshot: Json | null
           self_destruct_seconds: number | null
           sender_id: string
+          sensitive_report_count: number
           video_url: string | null
           voice_url: string | null
         }
@@ -21584,6 +21857,9 @@ export type Database = {
           forwarded_from_message_id?: string | null
           forwarded_from_user_id?: string | null
           gift_payload?: Json | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
@@ -21601,6 +21877,7 @@ export type Database = {
           reply_to_snapshot?: Json | null
           self_destruct_seconds?: number | null
           sender_id: string
+          sensitive_report_count?: number
           video_url?: string | null
           voice_url?: string | null
         }
@@ -21613,6 +21890,9 @@ export type Database = {
           forwarded_from_message_id?: string | null
           forwarded_from_user_id?: string | null
           gift_payload?: Json | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
@@ -21630,6 +21910,7 @@ export type Database = {
           reply_to_snapshot?: Json | null
           self_destruct_seconds?: number | null
           sender_id?: string
+          sensitive_report_count?: number
           video_url?: string | null
           voice_url?: string | null
         }
@@ -31796,18 +32077,23 @@ export type Database = {
           expires_at: string | null
           file_payload: Json | null
           group_id: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
           image_url: string | null
           is_pinned: boolean
           location_label: string | null
           location_lat: number | null
           location_lng: number | null
+          locked_price_coins: number | null
           message: string
           message_type: string
           reply_to_id: string | null
           reply_to_message_id: string | null
           reply_to_snapshot: Json | null
           sender_id: string
+          sensitive_report_count: number
           video_url: string | null
           voice_url: string | null
         }
@@ -31816,18 +32102,23 @@ export type Database = {
           expires_at?: string | null
           file_payload?: Json | null
           group_id: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          locked_price_coins?: number | null
           message?: string
           message_type?: string
           reply_to_id?: string | null
           reply_to_message_id?: string | null
           reply_to_snapshot?: Json | null
           sender_id: string
+          sensitive_report_count?: number
           video_url?: string | null
           voice_url?: string | null
         }
@@ -31836,18 +32127,23 @@ export type Database = {
           expires_at?: string | null
           file_payload?: Json | null
           group_id?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          locked_price_coins?: number | null
           message?: string
           message_type?: string
           reply_to_id?: string | null
           reply_to_message_id?: string | null
           reply_to_snapshot?: Json | null
           sender_id?: string
+          sensitive_report_count?: number
           video_url?: string | null
           voice_url?: string | null
         }
@@ -40747,38 +41043,61 @@ export type Database = {
       media_unlocks: {
         Row: {
           amount_cents: number
+          amount_coins: number | null
           buyer_id: string
+          completed_at: string | null
           created_at: string
+          group_id: string | null
           id: string
           message_id: string
+          message_table: string
           seller_id: string
           status: string
           stripe_session_id: string | null
+          unlock_provider: string
           updated_at: string
         }
         Insert: {
           amount_cents?: number
+          amount_coins?: number | null
           buyer_id: string
+          completed_at?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           message_id: string
+          message_table?: string
           seller_id: string
           status?: string
           stripe_session_id?: string | null
+          unlock_provider?: string
           updated_at?: string
         }
         Update: {
           amount_cents?: number
+          amount_coins?: number | null
           buyer_id?: string
+          completed_at?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           message_id?: string
+          message_table?: string
           seller_id?: string
           status?: string
           stripe_session_id?: string | null
+          unlock_provider?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "media_unlocks_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "chat_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       membership_plans: {
         Row: {
@@ -49065,6 +49384,7 @@ export type Database = {
       privacy_settings: {
         Row: {
           allow_message_requests: boolean | null
+          blur_sensitive_media: boolean
           id: string
           profile_visibility: string | null
           show_activity_status: boolean | null
@@ -49074,6 +49394,7 @@ export type Database = {
         }
         Insert: {
           allow_message_requests?: boolean | null
+          blur_sensitive_media?: boolean
           id?: string
           profile_visibility?: string | null
           show_activity_status?: boolean | null
@@ -49083,6 +49404,7 @@ export type Database = {
         }
         Update: {
           allow_message_requests?: boolean | null
+          blur_sensitive_media?: boolean
           id?: string
           profile_visibility?: string | null
           show_activity_status?: boolean | null
@@ -60695,6 +61017,74 @@ export type Database = {
           },
         ]
       }
+      store_messages: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          is_read: boolean
+          message: string
+          replies: Json
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          replies?: Json
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          replies?: Json
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_notification_channels: {
         Row: {
           channel: string
@@ -61258,6 +61648,139 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: []
+      }
+      store_promotions: {
+        Row: {
+          created_at: string
+          discount_type: string
+          discount_value: number | null
+          end_date: string | null
+          id: string
+          is_active: boolean
+          promo_code: string | null
+          start_date: string | null
+          store_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          promo_code?: string | null
+          start_date?: string | null
+          store_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          promo_code?: string | null
+          start_date?: string | null
+          store_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_reviews: {
+        Row: {
+          author_name: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          reply: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          reply?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          reply?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_time_entries: {
         Row: {
@@ -76986,6 +77509,18 @@ export type Database = {
         Returns: {
           id: string
         }[]
+      }
+      schedule_public_test_drive: {
+        Args: {
+          p_customer_name: string
+          p_customer_phone?: string
+          p_lead_id?: string
+          p_notes?: string
+          p_scheduled_at: string
+          p_store_id: string
+          p_vehicle_id: string
+        }
+        Returns: string
       }
       score_driver_for_assignment: {
         Args: {
