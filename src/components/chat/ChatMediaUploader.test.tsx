@@ -60,8 +60,9 @@ async function renderUploader() {
     <ChatMediaUploader
       recipientId="receiver-1"
       onMediaSent={onMediaSent}
-      onOpenPickerReady={(open) => {
+      renderTrigger={(open) => {
         openPicker = open;
+        return null;
       }}
     />,
   );

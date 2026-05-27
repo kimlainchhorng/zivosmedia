@@ -38,7 +38,7 @@ describe("OutboxPendingBadge", () => {
     mocks.insert.mockResolvedValue({ error: null });
   });
 
-  it("shows a scoped pending count and flushes that queued send", async () => {
+  it("shows a scoped pending count and flushes queued sends from the outbox popover", async () => {
     render(<OutboxPendingBadge chatKey="chat-1" />);
 
     expect(screen.queryByRole("button", { name: /pending/i })).not.toBeInTheDocument();
@@ -57,6 +57,9 @@ describe("OutboxPendingBadge", () => {
     expect(screen.getByRole("button", { name: /1 pending/i })).toHaveTextContent("1 pending");
 
     fireEvent.click(button);
+    expect(await screen.findByText("Pending outbox")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry now" }));
 
     await waitFor(() => {
       expect(mocks.insert).toHaveBeenCalledWith(item("opt-1", "chat-1").payload);
@@ -66,5 +69,22 @@ describe("OutboxPendingBadge", () => {
       expect(screen.queryByRole("button", { name: /pending/i })).not.toBeInTheDocument();
     });
     expect(list({ chatKey: "chat-2" })).toHaveLength(0);
+  });
+
+  it("discards a queued item from the outbox popover", async () => {
+    render(<OutboxPendingBadge chatKey="chat-1" />);
+
+    act(() => {
+      enqueue(item("opt-discard", "chat-1"));
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: /1 pending/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /discard message/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /pending/i })).not.toBeInTheDocument();
+    });
+    expect(list({ chatKey: "chat-1" })).toHaveLength(0);
+    expect(mocks.insert).not.toHaveBeenCalled();
   });
 });

@@ -55,8 +55,6 @@ import Ban from "lucide-react/dist/esm/icons/ban";
 import Flag from "lucide-react/dist/esm/icons/flag";
 import Eraser from "lucide-react/dist/esm/icons/eraser";
 import PhoneCall from "lucide-react/dist/esm/icons/phone-call";
-import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
-import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,6 +79,7 @@ import ZivoActionBubble, { type ZivoCardPayload } from "./ZivoActionBubble";
 import ZivoCardPicker from "./ZivoCardPicker";
 import { beginSend as outboxBeginSend, enqueue as outboxEnqueue, finishSend as outboxFinishSend, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
 import FileBubble, { type FileBubbleData } from "./FileBubble";
+import ChatDeliveryStatus from "./ChatDeliveryStatus";
 import OutboxPendingBadge from "./OutboxPendingBadge";
 import HoldToRecordMic from "./HoldToRecordMic";
 import ChatAttachMenu from "./ChatAttachMenu";
@@ -121,7 +120,7 @@ const ChatMediaUploader = lazy(() => import("./ChatMediaUploader").then(m => ({ 
 const LockedMediaPricePicker = lazy(() => import("./LockedMediaPricePicker"));
 const ChatContactInfo = lazy(() => import("./ChatContactInfo"));
 const MessageScheduler = lazy(() => import("./MessageScheduler"));
-const PinnedMessagesPanel = lazy(() => import("./PinnedMessagesPanel"));
+const ChatMessageNavigator = lazy(() => import("./ChatMessageNavigator"));
 
 import type { EffectType } from "./messageEffectUtils";
 import { detectMessageEffect } from "./messageEffectUtils";
@@ -164,6 +163,8 @@ interface PersonalChatProps {
   prefillInput?: string;
   /** Open the gift picker once after a deep link enters this chat. */
   openGiftOnMount?: boolean;
+  /** Highlight and scroll to this message after opening from search/pin deep links. */
+  initialJumpMessageId?: string | null;
   onClose: () => void;
   autoStartCall?: "voice" | "video" | null;
   onCallStarted?: () => void;
@@ -581,7 +582,7 @@ function DirectChatIntroCard({
   );
 }
 
-export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, openGiftOnMount, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
+export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, openGiftOnMount, initialJumpMessageId, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
   const { user } = useAuth();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const { contacts, add: addContact, loading: contactsLoading } = useContacts();
@@ -681,6 +682,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     });
   }, [prefillInput]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [outboxIds, setOutboxIds] = useState<Set<string>>(() => new Set());
   const { hideMessage, clearChatBefore, isHidden, isClearedFor } = useLocalChatHide(user?.id);
   // Display-name lookup for original senders of forwarded messages, populated lazily
   // when new forwarded_from_user_ids appear in the timeline.
@@ -747,6 +749,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+  const handledInitialJumpRef = useRef<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
   // Auto-delete (chat-wide disappearing). null = off, otherwise seconds. Cycles 1d→7d→30d→off.
@@ -846,7 +849,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
-  const [showPinnedPanel, setShowPinnedPanel] = useState(false);
+  const [navigatorMode, setNavigatorMode] = useState<"search" | "pinned" | null>(null);
   const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
   // Paid DM (locked text) flow — sender opens the same price picker, then we
   // route to handleLockedTextConfirm (vs handleLockedMediaConfirm) based on intent.
@@ -1674,6 +1677,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         : null,
       created_at: new Date().toISOString(),
       is_read: false,
+      _upload_status: "uploading",
     };
     setMessages((prev) => [...prev, optimisticMsg]);
     scrollToBottom(true);
@@ -1717,6 +1721,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         .insert(insertData);
 
       if (error) throw error;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "sent" } : m)),
+      );
       void sendChatPush(msgType, rawText || filePayload?.filename || text);
     } catch {
       // Keep the optimistic bubble and surface a tap-to-retry control instead
@@ -1789,6 +1796,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const sync = () => {
       const items = outboxList({ table: "direct_messages", chatKey: recipientId });
       const queuedIds = new Set(items.map((i) => i.id));
+      setOutboxIds(queuedIds);
       // Add any persisted-failed bubbles we don't yet have in state.
       setMessages((prev) => {
         const have = new Set(prev.map((m) => m.id));
@@ -3087,22 +3095,97 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     return timeline.slice(-visibleTimelineCount);
   }, [timeline, visibleTimelineCount]);
 
-  const scrollToMessage = useCallback((id: string) => {
+  const mergeLoadedMessages = useCallback((incoming: Message[]) => {
+    if (incoming.length === 0) return;
+    setMessages((prev) => {
+      const byId = new Map(prev.map((message) => [message.id, message]));
+      for (const message of incoming) {
+        if (message.hidden_at) continue;
+        byId.set(message.id, { ...byId.get(message.id), ...message });
+      }
+      return Array.from(byId.values()).sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+    });
+    setVisibleTimelineCount((prev) => Math.max(prev, 500));
+  }, []);
+
+  const fetchDirectRows = useCallback(async (configure: (query: any) => any) => {
+    let result = await configure(dbFrom("direct_messages").select(DM_SAFETY_COLUMNS));
+    if (result.error && isChatMessageSafetySchemaDriftError(result.error)) {
+      result = await configure(dbFrom("direct_messages").select(DM_BASE_COLUMNS));
+    }
+    if (result.error) throw result.error;
+    const raw = result.data;
+    const rows = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    return (rows as Message[]).filter((message) => !message.hidden_at);
+  }, []);
+
+  const loadMessageWindow = useCallback(async (id: string) => {
+    if (!user?.id) return false;
+    const pairFilter = `and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`;
+    const targetRows = await fetchDirectRows((query) => query.eq("id", id).maybeSingle());
+    const target = targetRows[0];
+    if (!target) return false;
+    const belongsToChat =
+      (target.sender_id === user.id && target.receiver_id === recipientId) ||
+      (target.sender_id === recipientId && target.receiver_id === user.id);
+    if (!belongsToChat) return false;
+    if (target.expires_at && Date.parse(target.expires_at) <= Date.now()) return false;
+
+    const [beforeRows, afterRows] = await Promise.all([
+      fetchDirectRows((query) => query
+        .or(pairFilter)
+        .lte("created_at", target.created_at)
+        .order("created_at", { ascending: false })
+        .limit(40)),
+      fetchDirectRows((query) => query
+        .or(pairFilter)
+        .gt("created_at", target.created_at)
+        .order("created_at", { ascending: true })
+        .limit(20)),
+    ]);
+    mergeLoadedMessages([target, ...beforeRows, ...afterRows]);
+    return true;
+  }, [fetchDirectRows, mergeLoadedMessages, recipientId, user?.id]);
+
+  const scrollElementIntoView = useCallback((id: string, attempts = 0) => {
+    const el = messageRefs.current.get(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => setHighlightedMsgId(null), 2000);
+      return;
+    }
+    if (attempts < 8) {
+      requestAnimationFrame(() => scrollElementIntoView(id, attempts + 1));
+      return;
+    }
+    setHighlightedMsgId(null);
+    toast("Message is not loaded yet");
+  }, []);
+
+  const scrollToMessage = useCallback(async (id: string) => {
     const index = timeline.findIndex((item) => !isCallEvent(item) && item.id === id);
     if (index >= 0) {
       const requiredVisibleCount = timeline.length - index;
       setVisibleTimelineCount((prev) => Math.max(prev, requiredVisibleCount));
+    } else if (!messages.some((message) => message.id === id)) {
+      const loaded = await loadMessageWindow(id);
+      if (!loaded) {
+        toast("Message could not be found");
+        return;
+      }
     }
 
     setHighlightedMsgId(id);
-    requestAnimationFrame(() => {
-      const el = messageRefs.current.get(id);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setTimeout(() => setHighlightedMsgId(null), 2000);
-      }
-    });
-  }, [timeline]);
+    requestAnimationFrame(() => scrollElementIntoView(id));
+  }, [loadMessageWindow, messages, scrollElementIntoView, timeline]);
+
+  useEffect(() => {
+    if (!initialJumpMessageId || loading || handledInitialJumpRef.current === initialJumpMessageId) return;
+    handledInitialJumpRef.current = initialJumpMessageId;
+    void scrollToMessage(initialJumpMessageId);
+  }, [initialJumpMessageId, loading, scrollToMessage]);
 
   const setMessageNode = useCallback((messageId: string, element: HTMLDivElement | null) => {
     if (element) {
@@ -3296,7 +3379,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         {/* Pinned messages bar */}
         {pinnedMessages.length > 0 && (
           <button type="button"
-            onClick={() => setShowPinnedPanel(true)}
+            onClick={() => setNavigatorMode("pinned")}
             className="w-full px-4 py-2 bg-gradient-to-r from-sky-500/10 via-sky-400/5 to-transparent border-t border-sky-400/25 flex items-center gap-2 text-left hover:from-sky-500/15 hover:via-sky-400/10 transition-colors"
             aria-label="Open pinned messages"
             title="Open pinned messages"
@@ -3435,7 +3518,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       {conversationId && (
         <PinnedMessageBanner
           conversationId={conversationId}
-          onJumpTo={(id) => scrollToMessage(id)}
+          onJumpTo={() => setNavigatorMode("pinned")}
           onUnpin={(id) => handlePin(id, false)}
           canUnpin
         />
@@ -3836,36 +3919,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       />
                     )}
 
-                    {/* Failed-send recovery controls */}
-                    {msg._upload_status === "failed" && isMe && (
-                      <div className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-1.5 py-1 text-[11px] font-medium text-destructive">
-                        <span className="px-1">Failed</span>
-                        <button
-                          type="button"
-                          onClick={() => retryFailedSend(msg.id)}
-                          className="inline-flex h-6 items-center gap-1 rounded-full px-2 hover:bg-destructive/10"
-                          aria-label="Resend failed message"
-                          title="Resend"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                          Resend
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => discardFailedSend(msg.id)}
-                          className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-destructive/10"
-                          aria-label="Discard failed message"
-                          title="Discard"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
-                    {msg._upload_status === "uploading" && isMe && msg.message_type !== "voice" && (
-                      <div className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full border border-border/30 bg-muted/60 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Sending
-                      </div>
+                    {isMe && msg.message_type !== "voice" && (
+                      <ChatDeliveryStatus
+                        status={msg._upload_status}
+                        isQueued={outboxIds.has(msg.id)}
+                        onResend={msg._upload_status === "failed" && outboxIds.has(msg.id) ? () => retryFailedSend(msg.id) : undefined}
+                        onDiscard={msg._upload_status === "failed" ? () => discardFailedSend(msg.id) : undefined}
+                      />
                     )}
                   </motion.div>
                   </div>
@@ -4078,8 +4138,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   });
                 }
               }}
-              onOpenPickerReady={(open) => {
+              renderTrigger={(open) => {
                 filePickerTriggerRef.current = open;
+                return null;
               }}
             />
 
@@ -4371,7 +4432,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             onClose={() => setShowContactInfo(false)}
             onStartCall={(type) => { setShowContactInfo(false); void handleStartCall(type); }}
             onOpenMediaGallery={() => { setMediaGalleryTab("photos"); setShowContactInfo(false); setShowMediaGallery(true); }}
-            onOpenSearch={() => { setShowContactInfo(false); navigate("/chat/search"); }}
+            onOpenSearch={() => { setShowContactInfo(false); setNavigatorMode("search"); }}
             onOpenGift={() => { setShowContactInfo(false); setShowGiftPanel(true); }}
             onOpenCallHistory={() => { setShowContactInfo(false); setShowCallHistory(true); }}
             onOpenPersonalization={() => { setShowContactInfo(false); setShowPersonalization(true); }}
@@ -4414,21 +4475,16 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         </Suspense>
       )}
 
-      {/* Pinned Messages Panel */}
-      {showPinnedPanel && (
+      {/* Search + pinned message navigator */}
+      {navigatorMode && (
         <Suspense fallback={null}>
-          <PinnedMessagesPanel
-            open={showPinnedPanel}
-            onClose={() => setShowPinnedPanel(false)}
-            messages={pinnedMessages.map(m => ({
-              id: m.id,
-              message: m.message,
-              sender_name: m.sender_id === user?.id ? "You" : recipientName,
-              time: formatMsgTime(m.created_at),
-              isMe: m.sender_id === user?.id,
-            }))}
+          <ChatMessageNavigator
+            open={!!navigatorMode}
+            onClose={() => setNavigatorMode(null)}
+            initialMode={navigatorMode}
+            source={{ type: "dm", chatId: recipientId, peerName: recipientName }}
             onJumpToMessage={scrollToMessage}
-            onUnpin={(id) => handlePin(id, false)}
+            onUnpinMessage={(id) => handlePin(id, false)}
           />
         </Suspense>
       )}

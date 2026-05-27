@@ -28,7 +28,6 @@ import Reply from "lucide-react/dist/esm/icons/reply";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import Forward from "lucide-react/dist/esm/icons/forward";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
-import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 import MoreVertical from "lucide-react/dist/esm/icons/more-vertical";
 import BellOff from "lucide-react/dist/esm/icons/bell-off";
 import Bell from "lucide-react/dist/esm/icons/bell";
@@ -50,6 +49,7 @@ import AvatarPreviewSheet from "./AvatarPreviewSheet";
 import ZivoActionBubble, { type ZivoCardPayload } from "./ZivoActionBubble";
 import ZivoCardPicker from "./ZivoCardPicker";
 import { beginSend as outboxBeginSend, enqueue as outboxEnqueue, finishSend as outboxFinishSend, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
+import ChatDeliveryStatus from "./ChatDeliveryStatus";
 import OutboxPendingBadge from "./OutboxPendingBadge";
 import ChatAttachMenu from "./ChatAttachMenu";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
@@ -75,6 +75,7 @@ const PollCreator = lazy(() => import("./ChatPollCreator"));
 const ChatMessageBubble = lazy(() => import("./ChatMessageBubble"));
 const ChatMediaUploader = lazy(() => import("./ChatMediaUploader").then(m => ({ default: m.ChatMediaUploader })));
 const ChatMediaGallery = lazy(() => import("./ChatMediaGallery"));
+const ChatMessageNavigator = lazy(() => import("./ChatMessageNavigator"));
 const FileBubble = lazy(() => import("./FileBubble"));
 const ChatPollBubble = lazy(() => import("./ChatPollBubble"));
 const ChatContactBubble = lazy(() => import("./ChatContactBubble"));
@@ -98,6 +99,7 @@ interface GroupChatProps {
   groupAvatar?: string | null;
   onClose: () => void;
   autoStartCall?: "audio" | "video" | null;
+  initialJumpMessageId?: string | null;
 }
 
 type GroupFilePayload = {
@@ -461,7 +463,7 @@ function renderMessageWithMentions(
   return out;
 }
 
-export default function GroupChat({ groupId, groupName, groupAvatar, onClose, autoStartCall = null }: GroupChatProps) {
+export default function GroupChat({ groupId, groupName, groupAvatar, onClose, autoStartCall = null, initialJumpMessageId }: GroupChatProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentGroupName, setCurrentGroupName] = useState(groupName);
@@ -494,6 +496,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     return () => window.removeEventListener(OPEN_MEDIA_EVENT, handler as EventListener);
   }, []);
   const [messages, setMessages] = useState<GroupMessage[]>([]);
+  const [outboxIds, setOutboxIds] = useState<Set<string>>(() => new Set());
   const [members, setMembers] = useState<Member[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -529,11 +532,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const videoInputRef = useRef<HTMLInputElement>(null);
   const lockedImageInputRef = useRef<HTMLInputElement>(null);
   const [actionTarget, setActionTarget] = useState<GroupMessage | null>(null);
-  const [showGroupSearch, setShowGroupSearch] = useState(false);
-  const [groupSearchQ, setGroupSearchQ] = useState("");
+  const [navigatorMode, setNavigatorMode] = useState<"search" | "pinned" | null>(null);
   const [activePinnedIndex, setActivePinnedIndex] = useState(0);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const pinnedHighlightTimerRef = useRef<number | null>(null);
+  const handledInitialJumpRef = useRef<string | null>(null);
   const [showMiniApps, setShowMiniApps] = useState(false);
   const [miniAppView, setMiniAppView] = useState<"menu" | "poll" | "todo" | "split" | "book_table" | "trip_idea">("menu");
   const handleMiniAppAction = useCallback((type: string) => {
@@ -608,22 +611,85 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     }, 1800);
   }, []);
 
-  const jumpToMessage = useCallback((messageId: string) => {
-    setShowGroupSearch(false);
-    setGroupSearchQ("");
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const selectorId = CSS.escape(messageId);
-        const node = document.querySelector<HTMLElement>(`[data-group-message-id="${selectorId}"]`);
-        if (!node) {
-          toast("Pinned message is not loaded yet");
-          return;
-        }
-        node.scrollIntoView({ block: "center", behavior: "smooth" });
-        highlightMessage(messageId);
-      });
+  const mergeLoadedGroupMessages = useCallback((incoming: GroupMessage[]) => {
+    if (incoming.length === 0) return;
+    setMessages((prev) => {
+      const byId = new Map(prev.map((message) => [message.id, message]));
+      for (const message of incoming) {
+        if (message.hidden_at) continue;
+        byId.set(message.id, { ...byId.get(message.id), ...message });
+      }
+      return Array.from(byId.values()).sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
     });
+  }, []);
+
+  const loadGroupMessageWindow = useCallback(async (messageId: string) => {
+    const { data: targetData, error: targetError } = await dbFrom("group_messages")
+      .select("*")
+      .eq("id", messageId)
+      .eq("group_id", groupId)
+      .maybeSingle();
+    if (targetError || !targetData) return false;
+    const target = targetData as GroupMessage;
+    if (target.hidden_at) return false;
+    if (target.expires_at && Date.parse(target.expires_at) <= Date.now()) return false;
+
+    const [{ data: beforeData }, { data: afterData }] = await Promise.all([
+      dbFrom("group_messages")
+        .select("*")
+        .eq("group_id", groupId)
+        .lte("created_at", target.created_at)
+        .order("created_at", { ascending: false })
+        .limit(40),
+      dbFrom("group_messages")
+        .select("*")
+        .eq("group_id", groupId)
+        .gt("created_at", target.created_at)
+        .order("created_at", { ascending: true })
+        .limit(20),
+    ]);
+    mergeLoadedGroupMessages([
+      target,
+      ...(((beforeData || []) as GroupMessage[]).filter((message) => !message.hidden_at)),
+      ...(((afterData || []) as GroupMessage[]).filter((message) => !message.hidden_at)),
+    ]);
+    return true;
+  }, [groupId, mergeLoadedGroupMessages]);
+
+  const scrollGroupMessageIntoView = useCallback((messageId: string, attempts = 0) => {
+    const selectorId = CSS.escape(messageId);
+    const node = document.querySelector<HTMLElement>(`[data-group-message-id="${selectorId}"]`);
+    if (node) {
+      node.scrollIntoView({ block: "center", behavior: "smooth" });
+      highlightMessage(messageId);
+      return;
+    }
+    if (attempts < 8) {
+      window.requestAnimationFrame(() => scrollGroupMessageIntoView(messageId, attempts + 1));
+      return;
+    }
+    toast("Message is not loaded yet");
   }, [highlightMessage]);
+
+  const jumpToMessage = useCallback(async (messageId: string) => {
+    setNavigatorMode(null);
+    if (!messages.some((message) => message.id === messageId)) {
+      const loaded = await loadGroupMessageWindow(messageId);
+      if (!loaded) {
+        toast("Message could not be found");
+        return;
+      }
+    }
+    window.requestAnimationFrame(() => scrollGroupMessageIntoView(messageId));
+  }, [loadGroupMessageWindow, messages, scrollGroupMessageIntoView]);
+
+  useEffect(() => {
+    if (!initialJumpMessageId || loading || handledInitialJumpRef.current === initialJumpMessageId) return;
+    handledInitialJumpRef.current = initialJumpMessageId;
+    void jumpToMessage(initialJumpMessageId);
+  }, [initialJumpMessageId, jumpToMessage, loading]);
 
   const openSharedMedia = useCallback((nextTab: "photos" | "videos" | "gif" | "music" | "voice" | "files" | "links" = "photos") => {
     setSharedMediaTab(nextTab);
@@ -697,7 +763,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const slashCommands = useMemo(() => [
     { id: "members",  label: "/members",  hint: "View group members",            run: () => setShowMembers(true) },
     { id: "invite",   label: "/invite",   hint: "Invite people to this group",   run: () => setShowInvites(true) },
-    { id: "search",   label: "/search",   hint: "Search messages in this group", run: () => { setShowGroupSearch(true); setGroupSearchQ(""); } },
+    { id: "search",   label: "/search",   hint: "Search messages in this group", run: () => setNavigatorMode("search") },
     { id: "location", label: "/location", hint: "Share your current location",   run: () => handleLocationShare() },
     { id: "sticker",  label: "/sticker",  hint: "Open the sticker keyboard",     run: () => setShowStickerKeyboard(true) },
   ], []);
@@ -1150,6 +1216,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         sensitive: true,
         sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
       } : null,
+      _upload_status: "uploading",
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
@@ -1176,6 +1243,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       // Fire-and-forget insert; realtime echo will replace the optimistic row.
       const { error } = await dbFrom("group_messages").insert(insertData);
       if (error) throw error;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "sent" } : m)),
+      );
     } catch {
       // Keep the bubble + persist to durable outbox so the message survives
       // a refresh and auto-retries on reconnect.
@@ -1226,6 +1296,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       message_type: messageType,
       reply_to_id: currentReply?.id || null,
       file_payload: filePayload,
+      _upload_status: "uploading",
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
@@ -1244,6 +1315,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     try {
       const { error } = await dbFrom("group_messages").insert(insertData);
       if (error) throw error;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "sent" } : m)),
+      );
       return true;
     } catch {
       failedSendsRef.current.set(optimisticId, insertData);
@@ -1428,6 +1502,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     const sync = () => {
       const items = outboxList({ table: "group_messages", chatKey: groupId });
       const queuedIds = new Set(items.map((i) => i.id));
+      setOutboxIds(queuedIds);
       setMessages((prev) => {
         const have = new Set(prev.map((m) => m.id));
         const restored = items
@@ -2171,10 +2246,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     [messages],
   );
 
-  const filteredMessages = groupSearchQ.trim()
-    ? visibleMessages.filter((m) => m.message?.toLowerCase().includes(groupSearchQ.toLowerCase()))
-    : visibleMessages;
-
   const pinnedMessages = useMemo(
     () => visibleMessages
       .filter((m) => m.is_pinned && !m.id.startsWith("opt-"))
@@ -2267,7 +2338,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => { setShowGroupSearch(true); setGroupSearchQ(""); }}>
+                <DropdownMenuItem onClick={() => setNavigatorMode("search")}>
                   <Search className="mr-2 h-4 w-4" /> Search in chat
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowInfo(true)}>
@@ -2293,35 +2364,15 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         </div>
       </div>
 
-      {/* In-group search bar */}
-      <AnimatePresence>
-        {showGroupSearch && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="border-b border-border/30 overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2">
-              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-              <input autoFocus value={groupSearchQ} onChange={(e) => setGroupSearchQ(e.target.value)}
-                placeholder="Search messages..." className="flex-1 text-sm bg-transparent outline-none" />
-              <button type="button" onClick={() => { setShowGroupSearch(false); setGroupSearchQ(""); }} className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-muted/60" aria-label="Close search" title="Close search">
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </div>
-            {groupSearchQ.trim() && (
-              <p className="px-3 pb-2 text-[11px] text-muted-foreground">{filteredMessages.length} result{filteredMessages.length !== 1 ? "s" : ""}</p>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {activePinnedMessage && pinnedPreview && (
         <div className="w-full border-b border-sky-400/30 bg-gradient-to-r from-sky-500/10 via-sky-400/5 to-transparent px-3 py-2">
           <div className="flex items-center gap-2 border-l-2 border-sky-500/70 pl-2 lg:max-w-4xl lg:mx-auto lg:w-full">
             <button
               type="button"
-              onClick={() => jumpToMessage(activePinnedMessage.id)}
+              onClick={() => setNavigatorMode("pinned")}
               className="flex min-w-0 flex-1 items-center gap-2 rounded-xl py-1 pr-2 text-left hover:bg-sky-500/10 active:scale-[0.99]"
-              aria-label={`Jump to pinned message ${safePinnedIndex + 1} of ${pinnedMessages.length}`}
-              title="Jump to pinned message"
+              aria-label={`Open pinned messages ${safePinnedIndex + 1} of ${pinnedMessages.length}`}
+              title="Open pinned messages"
             >
               <Pin className="h-3.5 w-3.5 shrink-0 text-sky-500" />
               <span className="min-w-0 flex-1">
@@ -2376,14 +2427,14 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <>
           <AnimatePresence initial={false}>
           {/* eslint-disable-next-line react-hooks/refs -- voice resend/discard callbacks read refs only after user actions */}
-          {filteredMessages.map((msg, idx) => {
+          {visibleMessages.map((msg, idx) => {
             const isMe = msg.sender_id === user?.id;
             const senderName = getSenderName(msg.sender_id);
             const senderAvatar = getSenderAvatar(msg.sender_id);
             const repliedMsg = msg.reply_to_id ? visibleMessages.find((m) => m.id === msg.reply_to_id) : null;
             const isOptimistic = msg.id.startsWith("opt-");
             const msgDate = new Date(msg.created_at).toDateString();
-            const prevMsgDate = idx > 0 ? new Date(filteredMessages[idx - 1].created_at).toDateString() : null;
+            const prevMsgDate = idx > 0 ? new Date(visibleMessages[idx - 1].created_at).toDateString() : null;
             const showDateSep = msgDate !== prevMsgDate;
             const dateLabel = formatChatDateLabel(msg.created_at);
 
@@ -2525,36 +2576,13 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                     </div>
                   )}
 
-                  {/* Failed-send recovery controls */}
-                  {msg._upload_status === "failed" && isMe && (
-                    <div className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-1.5 py-1 text-[11px] font-medium text-destructive">
-                      <span className="px-1">Failed</span>
-                      <button
-                        type="button"
-                        onClick={() => retryFailedGroupSend(msg.id)}
-                        className="inline-flex h-6 items-center gap-1 rounded-full px-2 hover:bg-destructive/10"
-                        aria-label="Resend failed message"
-                        title="Resend"
-                      >
-                        <RefreshCw className="h-3 w-3" />
-                        Resend
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => discardFailedGroupSend(msg.id)}
-                        className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-destructive/10"
-                        aria-label="Discard failed message"
-                        title="Discard"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
-                  {msg._upload_status === "uploading" && isMe && msg.message_type !== "voice" && (
-                    <div className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full border border-border/30 bg-muted/60 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Sending
-                    </div>
+                  {isMe && msg.message_type !== "voice" && (
+                    <ChatDeliveryStatus
+                      status={msg._upload_status}
+                      isQueued={outboxIds.has(msg.id)}
+                      onResend={msg._upload_status === "failed" && outboxIds.has(msg.id) ? () => retryFailedGroupSend(msg.id) : undefined}
+                      onDiscard={msg._upload_status === "failed" ? () => discardFailedGroupSend(msg.id) : undefined}
+                    />
                   )}
                 </div>
               </div>
@@ -2916,8 +2944,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
               });
             }}
-            onOpenPickerReady={(open) => {
+            renderTrigger={(open) => {
               filePickerTriggerRef.current = open;
+              return null;
             }}
           />
 
@@ -3136,17 +3165,15 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         onToggleMute={toggleMute}
         onSearch={() => {
           setShowInfo(false);
-          setShowGroupSearch(true);
-          setGroupSearchQ("");
+          setNavigatorMode("search");
         }}
         onOpenInvites={() => {
           setShowInfo(false);
           setShowInvites(true);
         }}
         onOpenPinned={() => {
-          if (!activePinnedMessage) return;
           setShowInfo(false);
-          jumpToMessage(activePinnedMessage.id);
+          setNavigatorMode("pinned");
         }}
         onOpenMediaTab={(nextTab) => openSharedMedia(nextTab)}
         isMessageUnlocked={(messageId) => unlockedGroupMediaIds.has(messageId)}
