@@ -284,6 +284,73 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
             <Lock className="h-4 w-4 text-rose-500" />
             {post?.title || "PPV Post"}
           </h1>
+          {isOwner && post && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setActionsOpen((v) => !v)}
+                aria-label="Post actions"
+                className="p-2 -mr-2 rounded-full hover:bg-muted/50"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </button>
+              <AnimatePresence>
+                {actionsOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setActionsOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                      transition={{ duration: 0.12 }}
+                      className="absolute right-0 top-full mt-1 w-48 z-50 rounded-2xl border border-border bg-card shadow-lg overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={openEdit}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left"
+                      >
+                        <Pencil className="h-4 w-4" /> Edit details
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewAsFan((v) => !v);
+                          setActionsOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left"
+                      >
+                        <Eye className="h-4 w-4" />
+                        {previewAsFan ? "Exit fan preview" : "View as fan"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={togglePublished}
+                        disabled={updateMut.isPending}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left disabled:opacity-60"
+                      >
+                        <EyeOff className="h-4 w-4" />
+                        {post.is_published ? "Unpublish" : "Republish"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmDelete(true);
+                          setActionsOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-rose-500/10 text-rose-500 text-left border-t border-border"
+                      >
+                        <Trash2 className="h-4 w-4" /> Delete
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </div>
 
@@ -303,8 +370,37 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
         </div>
       ) : (
         <div className="px-4 py-5 space-y-5">
+          {/* Fan-preview banner (owners only, when previewing) */}
+          {isOwner && previewAsFan && (
+            <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Eye className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-400 leading-relaxed">
+                  Previewing as a fan — full media hidden.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewAsFan(false)}
+                className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline shrink-0"
+              >
+                Exit
+              </button>
+            </div>
+          )}
+
+          {/* Unpublished banner (owners only) */}
+          {isOwner && !post.is_published && !previewAsFan && (
+            <div className="rounded-2xl border border-muted-foreground/30 bg-muted/40 px-4 py-3 flex items-center gap-2.5">
+              <EyeOff className="h-4 w-4 text-muted-foreground shrink-0" />
+              <p className="text-[12px] font-semibold text-muted-foreground leading-relaxed">
+                Unpublished — fans can't see or unlock this post.
+              </p>
+            </div>
+          )}
+
           {/* Status badge */}
-          {isOwner ? (
+          {isOwner && !previewAsFan ? (
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-start gap-2.5">
               <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
               <p className="text-[12px] font-semibold text-emerald-700 dark:text-emerald-400 leading-relaxed">
@@ -327,6 +423,27 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                 {post.media_paths.length} file{post.media_paths.length === 1 ? "" : "s"}.
               </p>
             </div>
+          )}
+
+          {/* Creator byline */}
+          {creator && (
+            <Link
+              to={creator.share_code ? `/u/${creator.share_code}` : creator.username ? `/@${creator.username}` : `#`}
+              className="flex items-center gap-2.5 -mt-2 hover:opacity-80"
+            >
+              <div className="h-9 w-9 rounded-full bg-muted overflow-hidden shrink-0">
+                {creator.avatar_url ? (
+                  <img src={creator.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-rose-500/30 to-pink-500/15" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold truncate">{creator.full_name || creator.username || "Creator"}</p>
+                <p className="text-[10px] text-muted-foreground">Tap to view profile</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
           )}
 
           {/* Title + description */}
@@ -376,19 +493,19 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                     animate={{ opacity: 1, y: 0 }}
                     className={cn(
                       "relative rounded-2xl overflow-hidden border border-border/40 bg-muted",
-                      !canViewFull && "ring-2 ring-rose-500/30",
+                      !canViewFullEffective && "ring-2 ring-rose-500/30",
                     )}
                   >
                     {url ? (
                       isVideo ? (
-                        <video src={url} controls={canViewFull} muted playsInline className="w-full" />
+                        <video src={url} controls={canViewFullEffective} muted playsInline className="w-full" />
                       ) : (
                         <img src={url} alt="" className="w-full" />
                       )
                     ) : (
                       <div className="aspect-square animate-pulse" />
                     )}
-                    {!canViewFull && (
+                    {!canViewFullEffective && (
                       <div className="absolute inset-0 backdrop-blur-md bg-black/30 flex flex-col items-center justify-center gap-2">
                         <Lock className="h-10 w-10 text-white" />
                         <p className="text-white text-[12px] font-semibold">Preview only</p>
@@ -443,6 +560,144 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
           })()}
         </div>
       )}
+
+      {/* Edit modal */}
+      <AnimatePresence>
+        {editMode && post && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex items-center justify-center px-4 overflow-y-auto py-6"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-[16px] font-extrabold">Edit PPV</h3>
+                <button
+                  type="button"
+                  onClick={() => setEditMode(false)}
+                  className="p-1.5 -mr-1.5 rounded-full hover:bg-muted/50"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  maxLength={120}
+                  className="mt-1 w-full h-11 px-3 rounded-xl border border-border bg-background text-[14px] font-bold outline-none focus:border-rose-500/60"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Description</label>
+                <textarea
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  className="mt-1 w-full p-3 rounded-xl border border-border bg-background text-[13px] outline-none focus:border-rose-500/60 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Price (USD)</label>
+                <div className="mt-1 flex items-center h-11 rounded-xl border border-border bg-background overflow-hidden focus-within:border-rose-500/60">
+                  <DollarSign className="h-4 w-4 text-muted-foreground ml-3" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.99"
+                    value={editPriceUsd}
+                    onChange={(e) => setEditPriceUsd(e.target.value)}
+                    className="flex-1 px-2 h-full bg-transparent text-[16px] font-extrabold outline-none"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={updateMut.isPending}
+                className="w-full h-12 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-[14px] flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {updateMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {updateMut.isPending ? "Saving…" : "Save changes"}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete confirm sheet */}
+      <AnimatePresence>
+        {confirmDelete && post && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex items-end sm:items-center justify-center"
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="w-full max-w-sm m-4 rounded-2xl border border-border bg-card p-5 space-y-3"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="h-10 w-10 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
+                  <Trash2 className="h-5 w-5 text-rose-500" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-extrabold">Delete this PPV?</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {post.unlock_count} unlock{post.unlock_count === 1 ? "" : "s"} · this cannot be undone
+                  </p>
+                </div>
+              </div>
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
+                Fans who already unlocked will lose access. Media files are removed
+                from storage. Revenue already recorded stays in your wallet.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleteMut.isPending}
+                  className="flex-1 h-11 rounded-xl border border-border bg-card font-bold text-[13px] hover:bg-muted/50 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteMut.mutate()}
+                  disabled={deleteMut.isPending}
+                  className="flex-1 h-11 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-[13px] flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  {deleteMut.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  {deleteMut.isPending ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
