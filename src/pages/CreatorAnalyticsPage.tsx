@@ -1,7 +1,7 @@
 /**
  * CreatorAnalyticsPage — Real analytics from Supabase for ZIVO creators
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,9 +9,12 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, TrendingUp, Eye, Heart, MessageCircle, Share2, Users,
   BarChart3, Clock, Globe, Play, Image, FileText, Zap, Target,
-  Award, Calendar, ArrowUpRight, ArrowDownRight, Sparkles,
+  Award, Calendar, ArrowUpRight, ArrowDownRight, Sparkles, Flame, Lock,
+  DollarSign, Crown,
 } from "lucide-react";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCreatorType } from "@/hooks/useCreatorType";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 
@@ -20,6 +23,7 @@ const timeRanges = ["7 days", "30 days", "90 days", "1 year", "All time"];
 export default function CreatorAnalyticsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isOFCreator } = useCreatorType();
   const [activeRange, setActiveRange] = useState(1);
 
   // Real posts data
@@ -65,6 +69,133 @@ export default function CreatorAnalyticsPage() {
       return data;
     },
     enabled: !!user,
+  });
+
+  // ─── OF Revenue analytics ─────────────────────────────────────────────────
+  // PPV unlocks for this creator, last 30 days
+  const { data: ppvUnlocks30d = [] } = useQuery({
+    queryKey: ["creator-ppv-unlocks-30d", user?.id],
+    queryFn: async (): Promise<{ amount_cents_paid: number; unlocked_at: string; unlocker_id: string }[]> => {
+      if (!user) return [];
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await (supabase as any)
+        .from("ppv_unlocks")
+        .select("amount_cents_paid, unlocked_at, unlocker_id")
+        .eq("creator_id", user.id)
+        .gte("unlocked_at", since);
+      if (error) return [];
+      return (data as any[]) ?? [];
+    },
+    enabled: !!user && isOFCreator,
+    staleTime: 60 * 1000,
+  });
+
+  // Paid DM unlocks for this creator, last 30 days
+  const { data: dmUnlocks30d = [] } = useQuery({
+    queryKey: ["creator-dm-unlocks-30d", user?.id],
+    queryFn: async (): Promise<{ amount_cents_paid: number; unlocked_at: string; unlocker_id: string }[]> => {
+      if (!user) return [];
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await (supabase as any)
+        .from("direct_message_unlocks")
+        .select("amount_cents_paid, unlocked_at, unlocker_id")
+        .eq("creator_id", user.id)
+        .gte("unlocked_at", since);
+      if (error) return [];
+      return (data as any[]) ?? [];
+    },
+    enabled: !!user && isOFCreator,
+    staleTime: 60 * 1000,
+  });
+
+  // Top-earning PPV posts (all-time)
+  const { data: topPPV = [] } = useQuery({
+    queryKey: ["creator-top-ppv", user?.id],
+    queryFn: async (): Promise<{ id: string; title: string; revenue_cents: number; unlock_count: number }[]> => {
+      if (!user) return [];
+      const { data, error } = await (supabase as any)
+        .from("ppv_posts")
+        .select("id, title, revenue_cents, unlock_count")
+        .eq("creator_id", user.id)
+        .order("revenue_cents", { ascending: false })
+        .limit(5);
+      if (error) return [];
+      return (data as any[]) ?? [];
+    },
+    enabled: !!user && isOFCreator,
+    staleTime: 60 * 1000,
+  });
+
+  // Build the 30-day revenue chart series + top spenders aggregate
+  const ofChartData = useMemo(() => {
+    const buckets: Record<string, { day: string; ppv: number; dm: number; total: number }> = {};
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      buckets[key] = { day: label, ppv: 0, dm: 0, total: 0 };
+    }
+    for (const r of ppvUnlocks30d) {
+      const key = (r.unlocked_at as string).slice(0, 10);
+      if (buckets[key]) {
+        buckets[key].ppv += r.amount_cents_paid ?? 0;
+        buckets[key].total += r.amount_cents_paid ?? 0;
+      }
+    }
+    for (const r of dmUnlocks30d) {
+      const key = (r.unlocked_at as string).slice(0, 10);
+      if (buckets[key]) {
+        buckets[key].dm += r.amount_cents_paid ?? 0;
+        buckets[key].total += r.amount_cents_paid ?? 0;
+      }
+    }
+    return Object.values(buckets).map((b) => ({
+      day: b.day,
+      ppv: b.ppv / 100,
+      dm: b.dm / 100,
+      total: b.total / 100,
+    }));
+  }, [ppvUnlocks30d, dmUnlocks30d]);
+
+  const ofTotals = useMemo(() => {
+    const ppv = ppvUnlocks30d.reduce((s, r) => s + (r.amount_cents_paid ?? 0), 0);
+    const dm = dmUnlocks30d.reduce((s, r) => s + (r.amount_cents_paid ?? 0), 0);
+    return { ppv, dm, total: ppv + dm };
+  }, [ppvUnlocks30d, dmUnlocks30d]);
+
+  // Top 5 spenders across PPV + DM
+  const topSpenders = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of ppvUnlocks30d) {
+      map.set(r.unlocker_id, (map.get(r.unlocker_id) ?? 0) + (r.amount_cents_paid ?? 0));
+    }
+    for (const r of dmUnlocks30d) {
+      map.set(r.unlocker_id, (map.get(r.unlocker_id) ?? 0) + (r.amount_cents_paid ?? 0));
+    }
+    return Array.from(map.entries())
+      .map(([unlocker_id, cents]) => ({ unlocker_id, cents }))
+      .sort((a, b) => b.cents - a.cents)
+      .slice(0, 5);
+  }, [ppvUnlocks30d, dmUnlocks30d]);
+
+  // Resolve spender display names in one round-trip
+  const { data: spenderProfiles = {} as Record<string, { full_name: string | null; avatar_url: string | null }> } = useQuery({
+    queryKey: ["analytics-spender-profiles", topSpenders.map((s) => s.unlocker_id).join(",")],
+    queryFn: async () => {
+      const ids = topSpenders.map((s) => s.unlocker_id);
+      if (ids.length === 0) return {};
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", ids);
+      const map: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
+      ((data as any[]) ?? []).forEach((p) => {
+        map[p.user_id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+      });
+      return map;
+    },
+    enabled: topSpenders.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const totalViews = posts.reduce((s: number, p: any) => s + (p.views_count || 0), 0);
@@ -160,6 +291,138 @@ export default function CreatorAnalyticsPage() {
             ))}
           </div>
         </div>
+
+        {/* OF Revenue — locked-content monetization, last 30 days */}
+        {isOFCreator && (
+          <div>
+            <h2 className="font-bold text-[15px] mb-3 flex items-center gap-2">
+              <Flame className="w-4 h-4 text-rose-500" /> OF Revenue · last 30 days
+            </h2>
+
+            {/* Revenue totals card with sparkline */}
+            <div className="zivo-card-organic p-4 mb-3">
+              <div className="flex items-baseline justify-between mb-1">
+                <div>
+                  <p className="text-[28px] font-extrabold tracking-tight">
+                    ${(ofTotals.total / 100).toFixed(2)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    PPV ${(ofTotals.ppv / 100).toFixed(2)} · DMs ${(ofTotals.dm / 100).toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[11px] text-muted-foreground">Unlocks</p>
+                  <p className="text-[14px] font-extrabold">
+                    {ppvUnlocks30d.length + dmUnlocks30d.length}
+                  </p>
+                </div>
+              </div>
+              <div className="h-24 mt-2 -mx-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={ofChartData} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="rev-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(340 75% 55%)" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="hsl(340 75% 55%)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="day" hide />
+                    <YAxis hide />
+                    <Tooltip
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                      formatter={(v: any) => [`$${Number(v).toFixed(2)}`, "Revenue"]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="total"
+                      stroke="hsl(340 75% 55%)"
+                      strokeWidth={2}
+                      fill="url(#rev-grad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Top PPV posts */}
+            <div className="mb-3">
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
+                Top PPV posts
+              </h3>
+              {topPPV.length === 0 ? (
+                <Link to="/ppv/create" className="block zivo-card-organic p-4 text-center hover:border-rose-500/40">
+                  <Lock className="h-8 w-8 text-rose-500/40 mx-auto mb-1.5" />
+                  <p className="text-[12px] font-bold">No PPV posts yet</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Drop your first locked post →</p>
+                </Link>
+              ) : (
+                <div className="space-y-1.5">
+                  {topPPV.map((p, i) => (
+                    <Link
+                      key={p.id}
+                      to={`/ppv?post=${p.id}`}
+                      className="zivo-card-organic flex items-center gap-3 p-3 hover:border-rose-500/40 transition-colors"
+                    >
+                      <div className="h-8 w-8 rounded-lg bg-rose-500/15 flex items-center justify-center shrink-0">
+                        <span className="text-[11px] font-extrabold text-rose-500">{i + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-extrabold text-[13px] truncate">{p.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{p.unlock_count} unlock{p.unlock_count === 1 ? "" : "s"}</p>
+                      </div>
+                      <span className="text-[12px] font-extrabold text-emerald-500 shrink-0">
+                        ${((p.revenue_cents ?? 0) / 100).toFixed(2)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Top spenders */}
+            <div>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
+                Top spenders · last 30 days
+              </h3>
+              {topSpenders.length === 0 ? (
+                <div className="zivo-card-organic p-4 text-center">
+                  <Crown className="h-8 w-8 text-amber-500/40 mx-auto mb-1.5" />
+                  <p className="text-[12px] font-bold">No unlocks yet</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Big spenders will show up here</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {topSpenders.map((s, i) => {
+                    const prof = spenderProfiles[s.unlocker_id];
+                    return (
+                      <div key={s.unlocker_id} className="zivo-card-organic flex items-center gap-3 p-3">
+                        <div className="h-8 w-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                          <span className="text-[11px] font-extrabold text-amber-500">{i + 1}</span>
+                        </div>
+                        <div className="h-9 w-9 rounded-full bg-muted overflow-hidden shrink-0">
+                          {prof?.avatar_url ? (
+                            <img src={prof.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-amber-500/30 to-orange-500/15" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-extrabold text-[13px] truncate">
+                            {prof?.full_name || "Fan"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">Top supporter</p>
+                        </div>
+                        <span className="text-[12px] font-extrabold text-emerald-500 shrink-0">
+                          ${(s.cents / 100).toFixed(2)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Content Performance */}
         <div>
