@@ -15,6 +15,7 @@ const JobsHubPage = lazy(() => import("@/pages/hubs/JobsHubPage"));
 const VoiceRoomsHubPage = lazy(() => import("@/pages/hubs/VoiceRoomsHubPage"));
 const FitnessHubPage = lazy(() => import("@/pages/hubs/FitnessHubPage"));
 const CreateEventPage = lazy(() => import("@/pages/hubs/CreateEventPage"));
+const EventDetailPage = lazy(() => import("@/pages/hubs/EventDetailPage"));
 const CreateListingPage = lazy(() => import("@/pages/hubs/CreateListingPage"));
 const CreateJobPage = lazy(() => import("@/pages/hubs/CreateJobPage"));
 const StartVoiceRoomPage = lazy(() => import("@/pages/hubs/StartVoiceRoomPage"));
@@ -268,6 +269,7 @@ const CreatorDashboardPage = lazy(() => import("./pages/CreatorDashboardPage"));
 const CreatorAnalyticsPage = lazy(() => import("./pages/CreatorAnalyticsPage"));
 const CreatorSetupPage = lazy(() => import("./pages/CreatorSetupPage"));
 const CreatorWelcomePage = lazy(() => import("./pages/CreatorWelcomePage"));
+const AdultDiscoveryPage = lazy(() => import("./pages/AdultDiscoveryPage"));
 const CreatePPVPostPage = lazy(() => import("./pages/CreatePPVPostPage"));
 const PPVPostsPage = lazy(() => import("./pages/PPVPostsPage"));
 const CreatorLiveEarningsPage = lazy(() => import("./pages/CreatorLiveEarningsPage"));
@@ -1521,6 +1523,7 @@ const App = () => (
                 <Route path="/creator-dashboard" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>} />
                 <Route path="/creator/setup" element={<ProtectedRoute><CreatorSetupPage /></ProtectedRoute>} />
                 <Route path="/creator/welcome" element={<ProtectedRoute><CreatorWelcomePage /></ProtectedRoute>} />
+                <Route path="/explore/18-plus" element={<ProtectedRoute><AdultDiscoveryPage /></ProtectedRoute>} />
                 <Route path="/ppv" element={<ProtectedRoute><PPVPostsPage /></ProtectedRoute>} />
                 <Route path="/ppv/create" element={<ProtectedRoute><CreatePPVPostPage /></ProtectedRoute>} />
                 <Route path="/creator-analytics" element={<ProtectedRoute><CreatorAnalyticsPage /></ProtectedRoute>} />
@@ -1800,6 +1803,7 @@ const App = () => (
                 <Route path="/voice-rooms" element={<VoiceRoomsHubPage />} />
                 <Route path="/fitness" element={<FitnessHubPage />} />
                 <Route path="/events-hub/create" element={<CreateEventPage />} />
+                <Route path="/events-hub/:id" element={<EventDetailPage />} />
                 <Route path="/marketplace-hub/create" element={<CreateListingPage />} />
                 <Route path="/jobs-hub/create" element={<CreateJobPage />} />
                 <Route path="/voice-rooms/create" element={<StartVoiceRoomPage />} />
