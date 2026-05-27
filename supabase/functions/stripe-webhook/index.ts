@@ -1051,6 +1051,100 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
               console.log("[Webhook] salon_deposit credited", { booking: bookingId, amount, hasCard: !!paymentMethodId });
             }
           }
+        } else if (metadata.type === "salon_membership" && session.mode === "subscription") {
+          // Customer just subscribed to a membership tier. Stripe has now
+          // created the Customer + Subscription; persist the salon-side
+          // record so the admin sees them in the active members list and
+          // checkout can read the discount tier. Idempotent via the
+          // stripe_subscription_id partial unique index — re-fires from
+          // Stripe just UPDATE the row.
+          const subscriptionId = typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id;
+          const tierId = metadata.tier_id as string | undefined;
+          const storeId = metadata.store_id as string | undefined;
+          if (!subscriptionId || !tierId || !storeId) {
+            console.warn("[Webhook] salon_membership missing ids on checkout.completed", { session: session.id });
+          } else {
+            // Retrieve the subscription to get period bounds + status. The
+            // checkout.session payload doesn't include them inline.
+            const sub = await stripe.subscriptions.retrieve(subscriptionId);
+            const customerId = typeof session.customer === "string"
+              ? session.customer
+              : session.customer?.id ?? null;
+            const customerEmail = session.customer_details?.email
+              || (session.customer_email ?? null);
+            const customerName = session.customer_details?.name
+              || (sub.metadata?.client_name ?? null);
+
+            // Find-or-create the salon_clients row by email at this store.
+            // We don't trust customer-supplied phone here; just email +
+            // display name. The customer can later link to a hizivo user
+            // account via the existing salon_clients ↔ auth.users trigger.
+            let clientId: string | null = null;
+            if (customerEmail) {
+              const { data: existingClient } = await supabase
+                .from("salon_clients")
+                .select("id")
+                .eq("store_id", storeId)
+                .eq("email", customerEmail)
+                .maybeSingle();
+              if (existingClient) {
+                clientId = (existingClient as any).id;
+              } else {
+                const { data: newClient, error: insErr } = await supabase
+                  .from("salon_clients")
+                  .insert({
+                    store_id: storeId,
+                    display_name: customerName || customerEmail.split("@")[0] || "Member",
+                    email: customerEmail,
+                    sms_opt_in: false,
+                    email_opt_in: true,
+                    marketing_opt_in: false,
+                  } as never)
+                  .select("id")
+                  .single();
+                if (insErr) {
+                  console.error("[Webhook] salon_membership client insert failed", insErr);
+                } else {
+                  clientId = (newClient as any).id;
+                }
+              }
+            }
+
+            if (!clientId) {
+              console.warn("[Webhook] salon_membership couldn't resolve client", { session: session.id });
+            } else {
+              // Map Stripe status → our enum. Defaults to 'incomplete' so
+              // a still-in-flight subscription doesn't grant the discount.
+              const nextStatus = sub.status === "active" ? "active"
+                : sub.status === "trialing" ? "trialing"
+                : sub.status === "past_due" ? "past_due"
+                : sub.status === "canceled" ? "cancelled"
+                : sub.status === "paused" ? "paused"
+                : "incomplete";
+
+              await supabase.from("salon_client_memberships").upsert({
+                store_id: storeId,
+                client_id: clientId,
+                tier_id: tierId,
+                status: nextStatus,
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                stripe_checkout_session_id: session.id,
+                current_period_start: sub.current_period_start
+                  ? new Date(sub.current_period_start * 1000).toISOString()
+                  : null,
+                current_period_end: sub.current_period_end
+                  ? new Date(sub.current_period_end * 1000).toISOString()
+                  : null,
+                cancel_at_period_end: sub.cancel_at_period_end ?? false,
+                started_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }, { onConflict: "stripe_subscription_id" });
+              console.log("[Webhook] salon_membership created", { subscription: subscriptionId, client: clientId, tier: tierId });
+            }
+          }
         }
         // ──── Record 2% platform fee ────
         const merchantId = metadata.merchant_id || metadata.restaurant_id || metadata.store_id || null;
@@ -2004,6 +2098,40 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             console.error("[Webhook] Error syncing membership:", upsertError);
           }
         }
+
+        // ──── Salon membership subscription update ────
+        // The checkout.session.completed handler creates the
+        // salon_client_memberships row; this lifecycle event keeps status +
+        // period bounds in sync as the subscription lives through trial →
+        // active → past_due → cancel.
+        if (metadata.type === "salon_membership") {
+          const nextStatus = subscription.status === "active" ? "active"
+            : subscription.status === "trialing" ? "trialing"
+            : subscription.status === "past_due" ? "past_due"
+            : subscription.status === "canceled" ? "cancelled"
+            : subscription.status === "paused" ? "paused"
+            : "incomplete";
+
+          const { error: salonSubErr } = await supabase
+            .from("salon_client_memberships")
+            .update({
+              status: nextStatus,
+              current_period_start: (subscription as any).current_period_start
+                ? new Date((subscription as any).current_period_start * 1000).toISOString()
+                : null,
+              current_period_end: (subscription as any).current_period_end
+                ? new Date((subscription as any).current_period_end * 1000).toISOString()
+                : null,
+              cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("stripe_subscription_id", subscription.id);
+          if (salonSubErr) {
+            console.error("[Webhook] salon_membership update failed", salonSubErr);
+          } else {
+            console.log("[Webhook] salon_membership synced", { sub: subscription.id, status: nextStatus });
+          }
+        }
         break;
       }
 
@@ -2043,10 +2171,10 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
 
         if (metadata.type === "membership") {
           console.log("[Webhook] Membership subscription deleted:", subscription.id);
-          
+
           const { error: updateError } = await supabase
             .from("zivo_subscriptions")
-            .update({ 
+            .update({
               status: "cancelled",
               cancelled_at: new Date().toISOString(),
             })
@@ -2065,6 +2193,27 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
                 });
               } catch {}
             }
+          }
+        }
+
+        // ──── Salon membership cancellation ────
+        if (metadata.type === "salon_membership") {
+          const cancelledAt = subscription.canceled_at
+            ? new Date(subscription.canceled_at * 1000).toISOString()
+            : new Date().toISOString();
+          const { error: salonCancelErr } = await supabase
+            .from("salon_client_memberships")
+            .update({
+              status: "cancelled",
+              cancelled_at: cancelledAt,
+              cancel_at_period_end: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("stripe_subscription_id", subscription.id);
+          if (salonCancelErr) {
+            console.error("[Webhook] salon_membership cancel failed", salonCancelErr);
+          } else {
+            console.log("[Webhook] salon_membership cancelled", subscription.id);
           }
         }
         break;

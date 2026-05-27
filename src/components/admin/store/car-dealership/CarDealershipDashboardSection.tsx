@@ -5,7 +5,7 @@ import { memo, useMemo } from "react";
 import {
   LayoutDashboard, Car, Calendar, DollarSign,
   ArrowRight, Loader2, ClipboardList, TrendingUp, AlertCircle,
-  Users, Flame, Activity, ExternalLink,
+  Users, Flame, Activity, ExternalLink, Trophy, UserCircle2,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -163,10 +163,63 @@ function DealershipDashboardInner({ storeId, storeSlug, onJumpToTab }: Props) {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 4);
 
+    // ── hot units: top vehicles by lead + test-drive interest in last 14 days ─
+    const HOT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+    const hotCutoff = now.getTime() - HOT_WINDOW_MS;
+    const interestByVehicle = new Map<string, number>();
+    for (const l of leads) {
+      if (l.vehicle_id && new Date(l.created_at).getTime() >= hotCutoff) {
+        interestByVehicle.set(l.vehicle_id, (interestByVehicle.get(l.vehicle_id) ?? 0) + 1);
+      }
+    }
+    for (const d of drives) {
+      if (d.vehicle_id && new Date(d.created_at).getTime() >= hotCutoff) {
+        interestByVehicle.set(d.vehicle_id, (interestByVehicle.get(d.vehicle_id) ?? 0) + 1);
+      }
+    }
     const hotUnits = vehicles
-      .filter((v) => v.is_active && v.status === "available" && v.days_on_lot <= 7).slice(0, 5);
+      .filter((v) => v.is_active && ["available", "reserved", "pending_sale"].includes(v.status))
+      .map((v) => ({ ...v, interest: interestByVehicle.get(v.id) ?? 0 }))
+      .filter((v) => v.interest > 0)
+      .sort((a, b) => b.interest - a.interest)
+      .slice(0, 5);
+
     const stale = vehicles
       .filter((v) => v.is_active && v.status === "available" && v.days_on_lot >= 60).slice(0, 5);
+
+    // ── salesperson scoreboard (last 30 days) ─────────────────────────────────
+    const SCOREBOARD_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+    const scoreCutoff = now.getTime() - SCOREBOARD_WINDOW_MS;
+    type Score = { name: string; activeLeads: number; wonDeals: number; revenueCents: number };
+    const scoreMap = new Map<string, Score>();
+    const bump = (rawName: string | null | undefined): Score | null => {
+      const name = rawName?.trim();
+      if (!name) return null;
+      let s = scoreMap.get(name);
+      if (!s) {
+        s = { name, activeLeads: 0, wonDeals: 0, revenueCents: 0 };
+        scoreMap.set(name, s);
+      }
+      return s;
+    };
+    for (const l of leads) {
+      const s = bump(l.salesperson_name);
+      if (!s) continue;
+      if (!["won", "lost"].includes(l.status)) s.activeLeads += 1;
+    }
+    for (const sale of sales) {
+      const s = bump(sale.salesperson_name);
+      if (!s) continue;
+      if (!["completed", "delivered"].includes(sale.status)) continue;
+      const ts = (sale.sold_at ? new Date(sale.sold_at) : new Date(sale.created_at)).getTime();
+      if (ts < scoreCutoff) continue;
+      s.wonDeals += 1;
+      s.revenueCents += sale.total_cents;
+    }
+    const scoreboard = Array.from(scoreMap.values())
+      .filter((s) => s.activeLeads > 0 || s.wonDeals > 0)
+      .sort((a, b) => (b.revenueCents - a.revenueCents) || (b.wonDeals - a.wonDeals) || (b.activeLeads - a.activeLeads))
+      .slice(0, 6);
 
     return {
       available, pendingSale, totalInventoryValueCents, inventoryPie,
@@ -174,7 +227,7 @@ function DealershipDashboardInner({ storeId, storeSlug, onJumpToTab }: Props) {
       todaysDrives, pendingDeals,
       monthSoldCount: monthSold.length, monthRevenueCents,
       revenueChart, recentSales, recentLeads,
-      hotUnits, stale,
+      hotUnits, stale, scoreboard,
     };
   }, [vehicles, leads, sales, drives]);
 
@@ -376,21 +429,30 @@ function DealershipDashboardInner({ storeId, storeSlug, onJumpToTab }: Props) {
           </CardContent>
         </Card>
 
-        {/* Hot / stale inventory */}
+        {/* Hot units — by recent lead + test-drive demand */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
-              <Flame className="h-4 w-4 text-rose-500" /> Hot units (≤7 days)
+              <Flame className="h-4 w-4 text-rose-500" /> Hot units
+              <span className="text-[10px] font-normal text-muted-foreground">· last 14 days</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1.5">
             {stats.hotUnits.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No fresh additions.</p>
+              <p className="text-xs text-muted-foreground">No interest signals yet.</p>
             ) : stats.hotUnits.map((v) => (
-              <div key={v.id} className="flex items-center justify-between text-xs">
-                <span className="truncate">{v.year} {v.make} {v.model}</span>
-                <Badge variant="secondary" className="text-[10px] shrink-0 ml-1">{v.days_on_lot}d</Badge>
-              </div>
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => onJumpToTab?.("cd-inventory")}
+                className="flex w-full items-center justify-between text-xs rounded-md px-1 py-0.5 transition-colors hover:bg-muted/60"
+                title={`${v.interest} lead${v.interest === 1 ? "" : "s"} / test drive${v.interest === 1 ? "" : "s"} in the last 14 days`}
+              >
+                <span className="truncate text-left">{v.year} {v.make} {v.model}</span>
+                <Badge variant="secondary" className="text-[10px] shrink-0 ml-1 bg-rose-500/10 text-rose-600">
+                  <Flame className="h-2.5 w-2.5 mr-0.5" />{v.interest}
+                </Badge>
+              </button>
             ))}
           </CardContent>
         </Card>
@@ -413,6 +475,60 @@ function DealershipDashboardInner({ storeId, storeSlug, onJumpToTab }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Salesperson scoreboard — last 30 days */}
+      <Card>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
+            <Trophy className="h-4 w-4 text-amber-500" /> Salesperson scoreboard
+            <span className="text-[10px] font-normal text-muted-foreground">· last 30 days</span>
+          </CardTitle>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onJumpToTab?.("cd-reports")}>
+            Reports <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {stats.scoreboard.length === 0 ? (
+            <p className="py-2 text-xs text-muted-foreground">
+              Assign a salesperson on leads or deals to see them ranked here.
+            </p>
+          ) : (() => {
+            const maxRev = Math.max(1, ...stats.scoreboard.map((s) => s.revenueCents));
+            return (
+              <div className="space-y-1.5">
+                {stats.scoreboard.map((s, i) => {
+                  const pct = (s.revenueCents / maxRev) * 100;
+                  return (
+                    <div key={s.name} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={cn(
+                          "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                          i === 0 ? "bg-amber-400/30 text-amber-700"
+                          : i === 1 ? "bg-zinc-300/40 text-zinc-700"
+                          : i === 2 ? "bg-orange-400/25 text-orange-700"
+                          : "bg-muted text-muted-foreground",
+                        )}>
+                          {i + 1}
+                        </span>
+                        <UserCircle2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="font-medium truncate">{s.name}</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="h-full bg-primary/70 transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground tabular-nums">
+                        <span title="Active leads">{s.activeLeads}L</span>
+                        <span title="Won/delivered deals" className="text-emerald-600 font-semibold">{s.wonDeals}D</span>
+                        <span title="Revenue" className="text-foreground font-semibold">{formatPriceShort(s.revenueCents)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </CardContent>
+      </Card>
 
       {/* Activity feed */}
       <Card>

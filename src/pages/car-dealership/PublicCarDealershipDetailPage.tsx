@@ -365,6 +365,23 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
       ? "I'd like to schedule a test drive."
       : "",
   );
+  // Default to tomorrow at 10:00 local time, formatted for <input type="datetime-local">
+  const defaultDriveAt = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(10, 0, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+  const minDriveAt = (() => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + 30); // can't book in the past or imminent
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+  const [driveAt, setDriveAt] = useState<string>(defaultDriveAt());
+  const [bookedAt, setBookedAt] = useState<string | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -375,8 +392,11 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
       setEmail("");
       setPhone("");
       setMessage(mode === "test_drive" ? "I'd like to schedule a test drive." : "");
+      setDriveAt(defaultDriveAt());
+      setBookedAt(null);
       setSubmitted(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode]);
 
   const handleSubmit = async () => {
@@ -389,11 +409,29 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
       return;
     }
 
+    let scheduledAtIso: string | null = null;
+    if (mode === "test_drive") {
+      if (!driveAt) {
+        toast.error("Please pick a date and time.");
+        return;
+      }
+      const parsed = new Date(driveAt);
+      if (Number.isNaN(parsed.getTime())) {
+        toast.error("Please pick a valid date and time.");
+        return;
+      }
+      if (parsed.getTime() < Date.now() + 5 * 60 * 1000) {
+        toast.error("Please pick a time at least a few minutes in the future.");
+        return;
+      }
+      scheduledAtIso = parsed.toISOString();
+    }
+
     setSubmitting(true);
     const vehicleLabel = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim]
       .filter(Boolean).join(" ");
 
-    const payload = {
+    const leadPayload = {
       store_id: storeId,
       vehicle_id: vehicle.id,
       vehicle_label: vehicleLabel,
@@ -402,25 +440,52 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
       phone: phone.trim() || null,
       notes: message.trim() || null,
       source: "web" as const,
-      status: "new" as const,
+      status: mode === "test_drive" ? ("test_drive_scheduled" as const) : ("new" as const),
       desired_make: vehicle.make,
       desired_model: vehicle.model,
       trade_in_interested: false,
       financing_needed: false,
     };
 
-    const { error } = await supabase
+    const { data: leadRow, error: leadErr } = await supabase
       .from("car_dealership_leads")
-      .insert(payload as never);
+      .insert(leadPayload as never)
+      .select("id")
+      .single();
 
-    setSubmitting(false);
-
-    if (error) {
-      console.error("[lead capture] insert failed", error);
+    if (leadErr) {
+      setSubmitting(false);
+      console.error("[lead capture] insert failed", leadErr);
       toast.error("Something went wrong. Please try again or call the dealer directly.");
       return;
     }
 
+    if (mode === "test_drive" && scheduledAtIso) {
+      const { error: rpcErr } = await supabase.rpc("schedule_public_test_drive", {
+        p_store_id: storeId,
+        p_vehicle_id: vehicle.id,
+        p_scheduled_at: scheduledAtIso,
+        p_customer_name: name.trim(),
+        p_customer_phone: phone.trim() || null,
+        p_notes: message.trim() || null,
+        p_lead_id: (leadRow as { id: string } | null)?.id ?? null,
+      });
+
+      if (rpcErr) {
+        setSubmitting(false);
+        console.error("[test drive schedule] RPC failed", rpcErr);
+        toast.error(
+          "We saved your inquiry, but couldn't lock in that time. The dealer will reach out to confirm.",
+        );
+        // Still mark as submitted so the user sees a friendly confirmation.
+        setBookedAt(null);
+        setSubmitted(true);
+        return;
+      }
+      setBookedAt(scheduledAtIso);
+    }
+
+    setSubmitting(false);
     setSubmitted(true);
   };
 
@@ -442,13 +507,34 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
             <div className="grid h-14 w-14 mx-auto place-items-center rounded-full bg-emerald-500/15 text-emerald-600">
               <CheckCircle2 className="h-8 w-8" />
             </div>
-            <p className="text-lg font-bold">Thanks — we got your message!</p>
-            <p className="text-sm text-muted-foreground">
-              A representative will be in touch with you shortly about the{" "}
-              <span className="font-medium text-foreground">
-                {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ")}
-              </span>.
-            </p>
+            {mode === "test_drive" && bookedAt ? (
+              <>
+                <p className="text-lg font-bold">Test drive booked!</p>
+                <p className="text-sm text-muted-foreground">
+                  We've locked in{" "}
+                  <span className="font-medium text-foreground">
+                    {new Date(bookedAt).toLocaleString(undefined, {
+                      weekday: "short", month: "short", day: "numeric",
+                      hour: "numeric", minute: "2-digit",
+                    })}
+                  </span>{" "}
+                  for the{" "}
+                  <span className="font-medium text-foreground">
+                    {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ")}
+                  </span>. The dealer will reach out to confirm.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold">Thanks — we got your message!</p>
+                <p className="text-sm text-muted-foreground">
+                  A representative will be in touch with you shortly about the{" "}
+                  <span className="font-medium text-foreground">
+                    {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ")}
+                  </span>.
+                </p>
+              </>
+            )}
             <Button onClick={() => onOpenChange(false)} className="mt-2">Done</Button>
           </div>
         ) : (
@@ -476,14 +562,28 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
                   <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" />
                 </div>
               </div>
+              {mode === "test_drive" && (
+                <div className="space-y-1.5">
+                  <Label>Preferred date &amp; time *</Label>
+                  <Input
+                    type="datetime-local"
+                    value={driveAt}
+                    min={minDriveAt()}
+                    onChange={(e) => setDriveAt(e.target.value)}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    The dealer will confirm or suggest a different slot if needed.
+                  </p>
+                </div>
+              )}
               <div className="space-y-1.5">
-                <Label>Message</Label>
+                <Label>{mode === "test_drive" ? "Anything else?" : "Message"}</Label>
                 <Textarea
                   rows={3}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={mode === "test_drive"
-                    ? "Preferred day/time, or any questions..."
+                    ? "Any questions, or things we should know?"
                     : "Tell us what you'd like to know..."}
                 />
               </div>

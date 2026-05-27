@@ -54,7 +54,18 @@ interface ReservationRow {
   customer_notes: string | null;
   cancelled_at: string | null;
   cancellation_reason: string | null;
+  payment_status: PaymentStatus | null;
 }
+
+type PaymentStatus =
+  | "unpaid"
+  | "authorized"
+  | "processing"
+  | "captured"
+  | "paid"
+  | "refund_pending"
+  | "refunded"
+  | "failed";
 
 interface ReservationAddon {
   id: string;
@@ -125,7 +136,7 @@ export default function PublicCarRentalBookingDetailPage() {
     const [storeR, addonsR, vehR] = await Promise.all([
       supabase
         .from("store_profiles")
-        .select("id, name, slug, logo_url, city, state")
+        .select("id, name, slug, logo_url, address")
         .eq("id", r.store_id)
         .maybeSingle(),
       supabase
@@ -137,7 +148,22 @@ export default function PublicCarRentalBookingDetailPage() {
         ? supabase.from("car_rental_vehicles").select("features").eq("id", r.vehicle_id).maybeSingle()
         : Promise.resolve({ data: null } as { data: { features: unknown } | null }),
     ]);
-    if (storeR.data) setStore(storeR.data as unknown as StoreRow);
+    if (storeR.data) {
+      // store_profiles has `address` (free-form), not city/state. Parse the
+      // trailing comma-separated chunks so the SEO meta + maps directions
+      // still work when the address follows "Street, City, State" form.
+      const sd = storeR.data as { id: string; name: string; slug: string | null; logo_url: string | null; address?: string | null };
+      let parsedCity: string | null = null;
+      let parsedState: string | null = null;
+      if (sd.address) {
+        const parts = String(sd.address).split(",").map((s) => s.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+          parsedState = parts[parts.length - 1];
+          parsedCity = parts[parts.length - 2];
+        }
+      }
+      setStore({ id: sd.id, name: sd.name, slug: sd.slug, logo_url: sd.logo_url, city: parsedCity, state: parsedState });
+    }
     setAddons((addonsR.data ?? []) as unknown as ReservationAddon[]);
     const fts = (vehR.data as { features?: unknown } | null)?.features;
     if (Array.isArray(fts)) setVehicleFeatures(fts.filter((f): f is string => typeof f === "string"));
@@ -334,9 +360,14 @@ export default function PublicCarRentalBookingDetailPage() {
           <CardContent className="p-5 text-center">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Confirmation code</p>
             <p className="mt-1 font-mono text-3xl font-bold tracking-wider text-foreground">{r.confirmation_code}</p>
-            <span className={cn("mt-3 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", statusTone)}>
-              {r.status === "no_show" ? "no-show" : r.status === "picked_up" ? "on rental" : r.status}
-            </span>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+              <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", statusTone)}>
+                {r.status === "no_show" ? "no-show" : r.status === "picked_up" ? "on rental" : r.status}
+              </span>
+              {r.payment_status && r.payment_status !== "unpaid" && (
+                <PaymentPill status={r.payment_status} />
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -653,5 +684,33 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground">{label}</span>
       <span className="font-semibold text-foreground">{value}</span>
     </div>
+  );
+}
+
+/**
+ * Compact pill describing the Stripe payment status. Mirrors the one on
+ * MyCarRentalsPage so customers see the same visual signal on both surfaces.
+ */
+function PaymentPill({ status }: { status: PaymentStatus }) {
+  const tone =
+    status === "authorized"      ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30"
+    : status === "processing"    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+    : status === "captured" ||
+      status === "paid"          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+    : status === "refund_pending"? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30"
+    : status === "refunded"      ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30 opacity-80"
+    : status === "failed"        ? "bg-destructive/10 text-destructive border-destructive/30"
+    :                              "bg-muted text-muted-foreground border-border";
+  const label =
+    status === "authorized"      ? "deposit held"
+    : status === "refund_pending"? "refund pending"
+    : status;
+  return (
+    <span className={cn(
+      "inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
+      tone,
+    )}>
+      {label}
+    </span>
   );
 }

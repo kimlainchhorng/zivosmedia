@@ -8,7 +8,7 @@ import { memo, useMemo, useState } from "react";
 import {
   Plus, Search, Pencil, Trash2, ClipboardList, Phone, Mail,
   Calendar, Loader2, AlarmClock, Check, ChevronDown, X,
-  MoreHorizontal, FileSignature,
+  MoreHorizontal, FileSignature, UserCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -341,6 +344,7 @@ function CarDealershipLeadsSectionInner({ storeId }: Props) {
   const { create: createSale, saving: savingSale } = useDealershipSales(storeId);
   const { vehicles } = useDealershipInventory(storeId);
   const [search, setSearch] = useState("");
+  const [salespersonFilter, setSalespersonFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DealershipLead | null>(null);
   const [scheduleDriveFor, setScheduleDriveFor] = useState<DealershipLead | null>(null);
@@ -359,15 +363,35 @@ function CarDealershipLeadsSectionInner({ storeId }: Props) {
     return m;
   }, [vehicles]);
 
+  const salespersonOptions = useMemo(() => {
+    const set = new Set<string>();
+    let hasUnassigned = false;
+    for (const l of leads) {
+      const n = l.salesperson_name?.trim();
+      if (n) set.add(n);
+      else hasUnassigned = true;
+    }
+    return {
+      names: Array.from(set).sort((a, b) => a.localeCompare(b)),
+      hasUnassigned,
+    };
+  }, [leads]);
+
   const filtered = useMemo(() => {
     const term = search.toLowerCase().trim();
-    if (!term) return leads;
-    return leads.filter((l) =>
-      `${l.display_name} ${l.email ?? ""} ${l.phone ?? ""} ${l.vehicle_label ?? ""}`
-        .toLowerCase()
-        .includes(term),
-    );
-  }, [leads, search]);
+    return leads.filter((l) => {
+      if (term) {
+        const hay = `${l.display_name} ${l.email ?? ""} ${l.phone ?? ""} ${l.vehicle_label ?? ""}`.toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      if (salespersonFilter === "__unassigned__") {
+        if (l.salesperson_name && l.salesperson_name.trim()) return false;
+      } else if (salespersonFilter !== "all") {
+        if (l.salesperson_name?.trim() !== salespersonFilter) return false;
+      }
+      return true;
+    });
+  }, [leads, search, salespersonFilter]);
 
   const grouped = useMemo(() => {
     const out: Record<DealershipLeadStatus, DealershipLead[]> = {
@@ -450,6 +474,7 @@ function CarDealershipLeadsSectionInner({ storeId }: Props) {
       vehicle_vin: v?.vin ?? null,
       sale_price_cents: v?.asking_price_cents ?? 0,
       salesperson_user_id: lead.assigned_to_user_id,
+      salesperson_name: lead.salesperson_name,
     };
   };
 
@@ -483,15 +508,34 @@ function CarDealershipLeadsSectionInner({ storeId }: Props) {
         <Button onClick={handleAdd}><Plus className="h-4 w-4 mr-1" />New lead</Button>
       </div>
 
-      {/* ── search ── */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Search by name, phone, email, or vehicle..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* ── search + filters ── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative max-w-md flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search by name, phone, email, or vehicle..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        {(salespersonOptions.names.length > 0 || salespersonOptions.hasUnassigned) && (
+          <Select value={salespersonFilter} onValueChange={setSalespersonFilter}>
+            <SelectTrigger className="w-auto min-w-[160px] gap-1.5">
+              <UserCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <SelectValue placeholder="All salespeople" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All salespeople</SelectItem>
+              {salespersonOptions.hasUnassigned && (
+                <SelectItem value="__unassigned__">Unassigned</SelectItem>
+              )}
+              {salespersonOptions.names.map((name) => (
+                <SelectItem key={name} value={name}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {loading ? (
@@ -572,8 +616,8 @@ function CarDealershipLeadsSectionInner({ storeId }: Props) {
                           </p>
                         )}
 
-                        {/* Contact */}
-                        <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                        {/* Contact + salesperson */}
+                        <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
                           {l.phone && (
                             <a
                               href={`tel:${l.phone}`}
@@ -584,6 +628,11 @@ function CarDealershipLeadsSectionInner({ storeId }: Props) {
                             </a>
                           )}
                           {l.email && <Mail className="h-2.5 w-2.5" />}
+                          {l.salesperson_name && (
+                            <span className="inline-flex items-center gap-0.5 text-primary/80">
+                              <UserCircle2 className="h-2.5 w-2.5" />{l.salesperson_name}
+                            </span>
+                          )}
                         </div>
 
                         {/* Follow-up picker */}

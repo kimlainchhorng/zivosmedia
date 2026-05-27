@@ -91,6 +91,7 @@ import SalonTimeClockSection from "@/components/admin/store/salon/SalonTimeClock
 import SalonGiftCardsSection from "@/components/admin/store/salon/SalonGiftCardsSection";
 import SalonRemindersSection from "@/components/admin/store/salon/SalonRemindersSection";
 import SalonCampaignsSection from "@/components/admin/store/salon/SalonCampaignsSection";
+import SalonMembershipsSection from "@/components/admin/store/salon/SalonMembershipsSection";
 import { SALON_TAB_META, SALON_TAB_IDS } from "@/components/admin/store/salon/salonTabConfig";
 import CarRentalComingSoonSection from "@/components/admin/store/car-rental/CarRentalComingSoonSection";
 import CarRentalDashboardSection from "@/components/admin/store/car-rental/CarRentalDashboardSection";
@@ -4564,6 +4565,8 @@ export default function AdminStoreEditPage() {
                   return <SalonRemindersSection storeId={storeId!} />;
                 case "salon-campaigns":
                   return <SalonCampaignsSection storeId={storeId!} />;
+                case "salon-memberships":
+                  return <SalonMembershipsSection storeId={storeId!} />;
                 default:
                   return null;
               }

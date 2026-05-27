@@ -402,6 +402,8 @@ const SalonQueueDisplayPage = lazy(() => import("./pages/admin/SalonQueueDisplay
 const SalonGiftCardCheckPage = lazy(() => import("./pages/salon/SalonGiftCardCheckPage"));
 const PublicStylistDayPage = lazy(() => import("./pages/salon/PublicStylistDayPage"));
 const PublicStylistEarningsPage = lazy(() => import("./pages/salon/PublicStylistEarningsPage"));
+const PublicSalonMembershipPage = lazy(() => import("./pages/salon/PublicSalonMembershipPage"));
+const PublicSalonCheckinPage = lazy(() => import("./pages/salon/PublicSalonCheckinPage"));
 const PublicReviewSubmitPage = lazy(() => import("./pages/salon/PublicReviewSubmitPage"));
 const SalonMyAreaPage = lazy(() => import("./pages/salon/SalonMyAreaPage"));
 
@@ -1589,6 +1591,8 @@ const App = () => (
                 {/* /salon/me must come before /salon/:slug so React Router
                     matches the literal path before the slug parameter. */}
                 <Route path="/salon/me" element={<ProtectedRoute><SalonMyAreaPage /></ProtectedRoute>} />
+                <Route path="/salon/:slug/membership" element={<PublicSalonMembershipPage />} />
+                <Route path="/salon/:slug/check-in" element={<PublicSalonCheckinPage />} />
                 <Route path="/salon/:slug" element={<PublicSalonBookingPage />} />
                 <Route path="/car-rental/:slug" element={<PublicCarRentalBookingPage />} />
                 {/* More-specific routes first so React Router matches /v/:vehicleId

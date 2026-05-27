@@ -217,6 +217,11 @@ serve(async (req: Request) => {
   // ---- Dispatch by body keyword -------------------------------------------
   const normalized = parsed.body.toLowerCase().replace(/[^a-z\s]/g, "").trim();
   const wantsCancel = /^(cancel|cancel booking|cancel my booking)\b/.test(normalized);
+  // YES / Y / CONFIRM / OK / C — all forms a customer might naturally use to
+  // acknowledge the 24h reminder. Match `c` too because some customers
+  // shorten "confirm" → "c". The narrow regex avoids matching "yes please
+  // cancel" — wantsCancel would match first anyway, but be defensive.
+  const wantsConfirm = /^(yes|y|confirm|confirming|ok|okay|c)\b/.test(normalized);
   const wantsStop = /^(stop|unsubscribe|stopall|end|quit|cancel sms)\b/.test(normalized);
 
   // STOP: opt the phone out of SMS at the salon level. Twilio itself
@@ -230,6 +235,86 @@ serve(async (req: Request) => {
       .from("salon_sms_inbound_log")
       .update({ processed_action: "opt_out" })
       .eq("id", logId);
+    return twimlEmpty();
+  }
+
+  // CONFIRM: customer replied YES / OK / CONFIRM to the 24h reminder.
+  // Flip the most-imminent upcoming pending booking for this phone to
+  // 'confirmed'. Already-confirmed bookings short-circuit at the RPC and
+  // we send a friendly "you're already confirmed" reply.
+  if (wantsConfirm) {
+    const { data: booking } = await supabase
+      .from("salon_bookings")
+      .select("id, store_id, start_at, service_name, status")
+      .eq("client_phone", parsed.from)
+      .in("status", ["pending", "confirmed"])
+      .gt("start_at", new Date().toISOString())
+      .order("start_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (!booking) {
+      await supabase
+        .from("salon_sms_inbound_log")
+        .update({ processed_action: "no_match" })
+        .eq("id", logId);
+      const r = await sendReplySms(
+        parsed.from,
+        "We couldn't find an upcoming booking under this number. Reply with the salon name or call them directly.",
+      );
+      await supabase
+        .from("salon_sms_inbound_log")
+        .update({ reply_sent: r.sent, reply_error: r.error ?? null })
+        .eq("id", logId);
+      return twimlEmpty();
+    }
+
+    const storeName = await (async () => {
+      const { data: sp } = await supabase
+        .from("store_profiles")
+        .select("name")
+        .eq("id", (booking as any).store_id)
+        .maybeSingle();
+      return (sp as any)?.name ?? "your salon";
+    })();
+
+    // Booking already confirmed? Skip the RPC call and just acknowledge.
+    if ((booking as any).status === "confirmed") {
+      const r = await sendReplySms(
+        parsed.from,
+        `You're already confirmed for ${formatWhen((booking as any).start_at)} at ${storeName}. See you then!`,
+      );
+      await supabase
+        .from("salon_sms_inbound_log")
+        .update({
+          processed_action: "confirmed_booking",
+          affected_booking_id: (booking as any).id,
+          affected_store_id: (booking as any).store_id,
+          reply_sent: r.sent,
+          reply_error: r.error ?? null,
+        })
+        .eq("id", logId);
+      return twimlEmpty();
+    }
+
+    const confirmRes = await supabase.rpc("salon_public_confirm_booking", { p_id: (booking as any).id });
+    const confirmed = !confirmRes.error;
+    const replyBody = confirmed
+      ? `Confirmed! See you ${formatWhen((booking as any).start_at)} at ${storeName}. Reply CANCEL if anything changes.`
+      : `We couldn't confirm that booking automatically. Call ${storeName} to make changes.`;
+    const r = await sendReplySms(parsed.from, replyBody);
+
+    await supabase
+      .from("salon_sms_inbound_log")
+      .update({
+        processed_action: confirmed ? "confirmed_booking" : "no_match",
+        affected_booking_id: confirmed ? (booking as any).id : null,
+        affected_store_id: (booking as any).store_id,
+        reply_sent: r.sent,
+        reply_error: r.error ?? null,
+      })
+      .eq("id", logId);
+
     return twimlEmpty();
   }
 
@@ -290,13 +375,83 @@ serve(async (req: Request) => {
       })
       .eq("id", logId);
 
+    // Waitlist nudge: the cancel just freed a slot at this salon. Find the
+    // longest-waiting client and ping them. Best-effort — failures here
+    // don't change the outcome for the cancelling customer.
+    if (cancelled) {
+      try {
+        // Look up the booking's original stylist + service so we can
+        // match the waitlist row most likely to want exactly this slot.
+        const { data: bookingDetail } = await supabase
+          .from("salon_bookings")
+          .select("stylist_id, service_id")
+          .eq("id", (booking as any).id)
+          .maybeSingle();
+        const stylistId = (bookingDetail as any)?.stylist_id as string | null;
+        const serviceId = (bookingDetail as any)?.service_id as string | null;
+
+        // Priority order: exact stylist+service match → service match →
+        // any waiter for the store. Each query is bounded to 1 row.
+        const findWaiter = async (filterStylist: boolean, filterService: boolean) => {
+          let q = supabase
+            .from("salon_waitlist")
+            .select("id, client_name, client_phone, requested_stylist_name")
+            .eq("store_id", (booking as any).store_id)
+            .eq("status", "waiting")
+            .not("client_phone", "is", null)
+            // Don't notify the canceller about their own freed slot.
+            .neq("client_phone", parsed.from)
+            .order("created_at", { ascending: true })
+            .limit(1);
+          if (filterStylist && stylistId) q = q.eq("requested_stylist_id", stylistId);
+          if (filterService && serviceId) q = q.eq("requested_service_id", serviceId);
+          const { data } = await q.maybeSingle();
+          return data as { id: string; client_name: string; client_phone: string; requested_stylist_name: string | null } | null;
+        };
+
+        let waiter = await findWaiter(true, true)
+          ?? await findWaiter(false, true)
+          ?? await findWaiter(false, false);
+
+        if (waiter) {
+          const bookingUrl = `${Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com"}/salon/${(booking as any).store_id}`;
+          const nudgeBody = `${storeName}: a slot just opened${waiter.requested_stylist_name ? ` with ${waiter.requested_stylist_name}` : ""}. Book here: ${bookingUrl}`;
+          const nudge = await sendReplySms(waiter.client_phone, nudgeBody);
+          if (nudge.sent) {
+            await supabase
+              .from("salon_waitlist")
+              .update({ status: "notified", updated_at: new Date().toISOString() })
+              .eq("id", waiter.id);
+            // Log a second row so the audit trail captures the outbound
+            // nudge (the original log row is about the inbound CANCEL).
+            await supabase.from("salon_sms_inbound_log").insert({
+              from_phone: parsed.to, // salon's twilio number sent the nudge
+              to_phone: waiter.client_phone,
+              message_sid: `nudge:${(booking as any).id}:${waiter.id}`,
+              body: nudgeBody.slice(0, 1600),
+              processed_action: "notified_waitlist",
+              affected_booking_id: (booking as any).id,
+              affected_store_id: (booking as any).store_id,
+              affected_client_phone: waiter.client_phone,
+              reply_sent: true,
+            });
+          } else {
+            console.warn("[twilio-webhook] waitlist nudge send failed", nudge.error);
+          }
+        }
+      } catch (e) {
+        // Don't fail the whole webhook on a waitlist nudge failure.
+        console.error("[twilio-webhook] waitlist nudge errored", e);
+      }
+    }
+
     return twimlEmpty();
   }
 
   // Unrecognized: log it, send one helpful reply.
   const r = await sendReplySms(
     parsed.from,
-    "We didn't understand that. Reply CANCEL to cancel your upcoming booking, or call the salon directly.",
+    "We didn't understand that. Reply YES to confirm or CANCEL to cancel your upcoming booking, or call the salon directly.",
   );
   await supabase
     .from("salon_sms_inbound_log")

@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatMoneyWith } from "@/lib/car-rental/money";
+import { getLoyaltyTier, type LoyaltyTierInfo } from "@/lib/car-rental/loyalty";
+import LoyaltyCard from "@/components/car-rental/LoyaltyCard";
 
 interface Reservation {
   id: string;
@@ -33,7 +35,20 @@ interface Reservation {
   status: string;
   confirmation_code: string;
   pickup_location_name: string | null;
+  payment_status: PaymentStatus | null;
+  deposit_paid_cents: number;
+  amount_paid_cents: number;
 }
+
+type PaymentStatus =
+  | "unpaid"
+  | "authorized"
+  | "processing"
+  | "captured"
+  | "paid"
+  | "refund_pending"
+  | "refunded"
+  | "failed";
 
 interface StoreMini {
   id: string;
@@ -49,6 +64,7 @@ export default function MyCarRentalsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [stores, setStores] = useState<Map<string, StoreMini>>(new Map());
   const [currencyMap, setCurrencyMap] = useState<Map<string, string>>(new Map());
+  const [loyalty, setLoyalty] = useState<{ totalRentals: number; tier: LoyaltyTierInfo } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lookupCode, setLookupCode] = useState("");
@@ -61,9 +77,11 @@ export default function MyCarRentalsPage() {
       setError(null);
 
       // Find every car_rental_customers row linked to this user.
+      // total_rentals is auto-incremented per store, so we sum across rows
+      // to get the cross-network lifetime count that drives the loyalty tier.
       const { data: custRows, error: custErr } = await supabase
         .from("car_rental_customers")
-        .select("id, store_id")
+        .select("id, store_id, total_rentals")
         .eq("user_id", user.id);
 
       if (cancelled) return;
@@ -73,6 +91,11 @@ export default function MyCarRentalsPage() {
         return;
       }
       const customerIds = (custRows ?? []).map((r: any) => r.id as string);
+      const totalRentals = (custRows ?? []).reduce(
+        (sum: number, row: any) => sum + (Number(row.total_rentals) || 0),
+        0,
+      );
+      setLoyalty({ totalRentals, tier: getLoyaltyTier(totalRentals) });
       if (customerIds.length === 0) {
         setReservations([]);
         setLoading(false);
@@ -81,7 +104,7 @@ export default function MyCarRentalsPage() {
 
       const { data: resRows, error: resErr } = await supabase
         .from("car_rental_reservations")
-        .select("id, store_id, vehicle_label, vehicle_category, pickup_at, dropoff_at, rental_days, total_cents, status, confirmation_code, pickup_location_name")
+        .select("id, store_id, vehicle_label, vehicle_category, pickup_at, dropoff_at, rental_days, total_cents, status, confirmation_code, pickup_location_name, payment_status, deposit_paid_cents, amount_paid_cents")
         .in("customer_id", customerIds)
         .order("pickup_at", { ascending: false })
         .limit(100);
@@ -181,6 +204,10 @@ export default function MyCarRentalsPage() {
           </div>
         )}
 
+        {loyalty && loyalty.totalRentals > 0 && (
+          <LoyaltyCard total={loyalty.totalRentals} tier={loyalty.tier} />
+        )}
+
         {/* Confirmation code lookup */}
         <Card className="rounded-2xl border-border/60">
           <CardHeader className="pb-2">
@@ -270,6 +297,9 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
                       <p className="text-sm font-bold text-foreground">{r.vehicle_label}</p>
                       <span className="font-mono text-[10px] text-muted-foreground">{r.confirmation_code}</span>
                       <StatusPill status={r.status} />
+                      {r.payment_status && r.payment_status !== "unpaid" && (
+                        <PaymentPill status={r.payment_status} />
+                      )}
                     </div>
                     <p className="text-[12px] text-foreground/80">{s?.name ?? "Rental store"}</p>
                     <p className="mt-0.5 text-[11px] text-muted-foreground inline-flex items-center gap-1">
@@ -285,6 +315,10 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-foreground">{formatMoneyWith(r.total_cents, currencyMap.get(r.store_id) ?? "USD")}</p>
+                    <PaymentBreakdown
+                      reservation={r}
+                      currency={currencyMap.get(r.store_id) ?? "USD"}
+                    />
                     <p className="mt-1 text-[11px] text-primary inline-flex items-center gap-0.5">
                       View <ExternalLink className="h-3 w-3" />
                     </p>
@@ -296,6 +330,73 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
         })}
       </ul>
     </section>
+  );
+}
+
+/**
+ * Compact pill describing the Stripe payment status. Hidden when the
+ * reservation has never been wired to Stripe (payment_status = 'unpaid')
+ * so the legacy / manual-payment flow stays uncluttered.
+ */
+function PaymentPill({ status }: { status: PaymentStatus }) {
+  const tone =
+    status === "authorized"      ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30"
+    : status === "processing"    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+    : status === "captured" ||
+      status === "paid"          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+    : status === "refund_pending"? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30"
+    : status === "refunded"      ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30 opacity-80"
+    : status === "failed"        ? "bg-destructive/10 text-destructive border-destructive/30"
+    :                              "bg-muted text-muted-foreground border-border";
+  const label =
+    status === "authorized"      ? "deposit held"
+    : status === "refund_pending"? "refund pending"
+    : status;
+  return (
+    <span className={cn(
+      "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+      tone,
+    )}>
+      {label}
+    </span>
+  );
+}
+
+/**
+ * One-line summary under the total: explains exactly what's been collected
+ * vs what's still owed. Skipped for reservations that aren't wired to
+ * Stripe (no payment_status or unpaid).
+ */
+function PaymentBreakdown({
+  reservation,
+  currency,
+}: {
+  reservation: Reservation;
+  currency: string;
+}) {
+  const ps = reservation.payment_status;
+  if (!ps || ps === "unpaid") return null;
+  const fmt = (c: number) => formatMoneyWith(c, currency);
+  const owed = Math.max(0, reservation.total_cents - reservation.amount_paid_cents);
+
+  let line: string;
+  if (ps === "authorized" && reservation.deposit_paid_cents > 0) {
+    line = `${fmt(reservation.deposit_paid_cents)} held`;
+  } else if (ps === "paid" || ps === "captured") {
+    line = owed > 0 ? `${fmt(reservation.amount_paid_cents)} paid · ${fmt(owed)} due` : `${fmt(reservation.amount_paid_cents)} paid`;
+  } else if (ps === "refunded") {
+    line = "Deposit refunded";
+  } else if (ps === "refund_pending") {
+    line = "Refund processing";
+  } else if (ps === "processing") {
+    line = "Payment processing";
+  } else if (ps === "failed") {
+    line = "Payment failed";
+  } else {
+    return null;
+  }
+  return (
+    <p className="mt-0.5 text-[10px] text-muted-foreground">{line}</p>
   );
 }
 
