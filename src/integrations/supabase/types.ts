@@ -4160,8 +4160,10 @@ export type Database = {
           customer_viewed_at: string | null
           deleted_at: string | null
           diagnosis_notes: string | null
+          discount_cents: number
           expires_at: string | null
           id: string
+          intake_method: string | null
           items: Json | null
           line_items: Json
           notes: string | null
@@ -4172,6 +4174,7 @@ export type Database = {
           store_id: string
           subtotal_cents: number
           tax_cents: number
+          tax_rate: number
           total_cents: number
           updated_at: string
           vehicle_id: string | null
@@ -4196,8 +4199,10 @@ export type Database = {
           customer_viewed_at?: string | null
           deleted_at?: string | null
           diagnosis_notes?: string | null
+          discount_cents?: number
           expires_at?: string | null
           id?: string
+          intake_method?: string | null
           items?: Json | null
           line_items?: Json
           notes?: string | null
@@ -4208,6 +4213,7 @@ export type Database = {
           store_id: string
           subtotal_cents?: number
           tax_cents?: number
+          tax_rate?: number
           total_cents?: number
           updated_at?: string
           vehicle_id?: string | null
@@ -4232,8 +4238,10 @@ export type Database = {
           customer_viewed_at?: string | null
           deleted_at?: string | null
           diagnosis_notes?: string | null
+          discount_cents?: number
           expires_at?: string | null
           id?: string
+          intake_method?: string | null
           items?: Json | null
           line_items?: Json
           notes?: string | null
@@ -4244,6 +4252,7 @@ export type Database = {
           store_id?: string
           subtotal_cents?: number
           tax_cents?: number
+          tax_rate?: number
           total_cents?: number
           updated_at?: string
           vehicle_id?: string | null
@@ -4565,13 +4574,16 @@ export type Database = {
           customer_address: string | null
           customer_email: string | null
           customer_name: string | null
+          customer_notes: string | null
           customer_phone: string | null
           deleted_at: string | null
+          diagnosis_notes: string | null
           discount_cents: number
           due_at: string | null
           estimate_id: string | null
           fleet_account_id: string | null
           id: string
+          intake_method: string | null
           items: Json
           notes: string | null
           number: string
@@ -4598,13 +4610,16 @@ export type Database = {
           customer_address?: string | null
           customer_email?: string | null
           customer_name?: string | null
+          customer_notes?: string | null
           customer_phone?: string | null
           deleted_at?: string | null
+          diagnosis_notes?: string | null
           discount_cents?: number
           due_at?: string | null
           estimate_id?: string | null
           fleet_account_id?: string | null
           id?: string
+          intake_method?: string | null
           items?: Json
           notes?: string | null
           number: string
@@ -4631,13 +4646,16 @@ export type Database = {
           customer_address?: string | null
           customer_email?: string | null
           customer_name?: string | null
+          customer_notes?: string | null
           customer_phone?: string | null
           deleted_at?: string | null
+          diagnosis_notes?: string | null
           discount_cents?: number
           due_at?: string | null
           estimate_id?: string | null
           fleet_account_id?: string | null
           id?: string
+          intake_method?: string | null
           items?: Json
           notes?: string | null
           number?: string
@@ -5279,10 +5297,12 @@ export type Database = {
       }
       ar_warranties: {
         Row: {
+          claim_number: string | null
           created_at: string
           expires_at: string | null
           id: string
           mileage_limit: number | null
+          network_id: string | null
           notes: string | null
           period_days: number | null
           service_name: string | null
@@ -5291,10 +5311,12 @@ export type Database = {
           workorder_id: string
         }
         Insert: {
+          claim_number?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
           mileage_limit?: number | null
+          network_id?: string | null
           notes?: string | null
           period_days?: number | null
           service_name?: string | null
@@ -5303,10 +5325,12 @@ export type Database = {
           workorder_id: string
         }
         Update: {
+          claim_number?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
           mileage_limit?: number | null
+          network_id?: string | null
           notes?: string | null
           period_days?: number | null
           service_name?: string | null
