@@ -127,6 +127,7 @@ export default function CafeGiftCardsSection({ storeId }: Props) {
                 <CardRow
                   key={c.id}
                   card={c}
+                  fmt={fmt}
                   onRedeem={() => { setRedeemAmount(""); setRedeemDialog({ open: true, cardId: c.id }); }}
                   onToggle={() => setActive(c.id, !c.is_active)}
                   onHistory={() => setHistoryId(c.id)}
@@ -228,8 +229,9 @@ export default function CafeGiftCardsSection({ storeId }: Props) {
   );
 }
 
-function CardRow({ card, onRedeem, onToggle, onHistory, onDelete }: {
+function CardRow({ card, fmt, onRedeem, onToggle, onHistory, onDelete }: {
   card: CafeGiftCard;
+  fmt: (c: number) => string;
   onRedeem: () => void;
   onToggle: () => void;
   onHistory: () => void;

@@ -4013,7 +4013,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
               className="text-destructive hover:text-destructive/80"
               onClick={async () => {
                 if (rideRequestId) {
-                  await supabase.from("ride_requests").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", rideRequestId);
+                  await (supabase.from("ride_requests") as any).update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", rideRequestId);
                 }
                 sessionStorage.removeItem("aba_pending_ride_id");
                 setViewStep("confirm-ride");

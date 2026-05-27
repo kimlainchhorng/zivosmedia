@@ -68,6 +68,7 @@ interface GroupInfoMessage {
   is_pinned?: boolean | null;
   locked_price_coins?: number | null;
   created_at: string;
+  sender_id?: string | null;
   file_payload?: {
     url?: string | null;
     filename?: string | null;

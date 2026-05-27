@@ -54,8 +54,8 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
     if (!storeId) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("car_rental_reservation_addons")
+      const { data } = await (supabase
+        .from("car_rental_reservation_addons") as any)
         .select("addon_id, total_cents")
         .eq("store_id", storeId);
       if (cancelled) return;

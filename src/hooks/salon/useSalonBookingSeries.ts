@@ -115,7 +115,7 @@ export function useSalonBookingSeries(storeId: string | undefined): UseSalonBook
 
   const pause = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
-    const { error: err } = await supabase.rpc("salon_series_pause", { p_id: id } as never);
+    const { error: err } = await (supabase as any).rpc("salon_series_pause", { p_id: id } as never);
     setSaving(false);
     if (err) {
       console.error("[useSalonBookingSeries] pause failed", err);
@@ -128,7 +128,7 @@ export function useSalonBookingSeries(storeId: string | undefined): UseSalonBook
 
   const resume = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
-    const { error: err } = await supabase.rpc("salon_series_resume", { p_id: id } as never);
+    const { error: err } = await (supabase as any).rpc("salon_series_resume", { p_id: id } as never);
     setSaving(false);
     if (err) {
       console.error("[useSalonBookingSeries] resume failed", err);
@@ -141,7 +141,7 @@ export function useSalonBookingSeries(storeId: string | undefined): UseSalonBook
 
   const end = useCallback(async (id: string, cancelFuture: boolean): Promise<number | null> => {
     setSaving(true);
-    const { data, error: err } = await supabase.rpc("salon_series_end", {
+    const { data, error: err } = await (supabase as any).rpc("salon_series_end", {
       p_id: id,
       p_cancel_future: cancelFuture,
     } as never);

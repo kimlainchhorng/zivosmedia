@@ -195,7 +195,7 @@ export function useSalonCampaigns(storeId: string | undefined): UseResult {
 
   const previewCohort = useCallback(async (kind: SalonCohortKind, params: Record<string, unknown>): Promise<SalonCohortPreview> => {
     if (!storeId) return { count: 0, sample: [] };
-    const { data, error: err } = await supabase.rpc("salon_campaign_resolve_cohort", {
+    const { data, error: err } = await (supabase as any).rpc("salon_campaign_resolve_cohort", {
       p_store_id: storeId,
       p_kind: kind,
       p_params: params as never,
