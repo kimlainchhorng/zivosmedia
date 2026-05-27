@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, Lock, Loader2, DollarSign, Users, Eye, CheckCircle2, Flame,
-  Pencil, Trash2, EyeOff, MoreVertical, X, Check, ChevronRight, Crown, Heart,
+  Pencil, Trash2, EyeOff, MoreVertical, X, Check, ChevronRight, Crown, Heart, Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ interface PPVPost {
   revenue_cents: number;
   created_at: string;
   free_for_subscribers: boolean;
+  scheduled_for: string | null;
 }
 
 interface Props {
@@ -56,6 +57,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
   const [editDesc, setEditDesc] = useState("");
   const [editPriceUsd, setEditPriceUsd] = useState("");
   const [editFreeForSubs, setEditFreeForSubs] = useState(false);
+  const [editScheduledFor, setEditScheduledFor] = useState(""); // datetime-local string ("" = no schedule)
   const [previewAsFan, setPreviewAsFan] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
@@ -197,7 +199,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
 
   // ─── Owner actions: edit, publish toggle, delete ──────────────────────────
   const updateMut = useMutation({
-    mutationFn: async (patch: Partial<Pick<PPVPost, "title" | "description" | "price_cents" | "is_published" | "free_for_subscribers">>) => {
+    mutationFn: async (patch: Partial<Pick<PPVPost, "title" | "description" | "price_cents" | "is_published" | "free_for_subscribers" | "scheduled_for">>) => {
       if (!post) throw new Error("Post not loaded");
       const { error } = await (supabase as any)
         .from("ppv_posts")
@@ -251,6 +253,16 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
     setEditDesc(post.description ?? "");
     setEditPriceUsd((post.price_cents / 100).toFixed(2));
     setEditFreeForSubs(!!post.free_for_subscribers);
+    // datetime-local needs "YYYY-MM-DDTHH:mm" in the user's local timezone.
+    if (post.scheduled_for) {
+      const d = new Date(post.scheduled_for);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setEditScheduledFor(
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+      );
+    } else {
+      setEditScheduledFor("");
+    }
     setEditMode(true);
     setActionsOpen(false);
   };
@@ -261,11 +273,21 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
       toast.error("Title can't be empty");
       return;
     }
+    let scheduledIso: string | null = null;
+    if (editScheduledFor) {
+      const when = new Date(editScheduledFor);
+      if (Number.isNaN(when.getTime())) {
+        toast.error("Invalid scheduled time");
+        return;
+      }
+      scheduledIso = when.toISOString();
+    }
     await updateMut.mutateAsync({
       title: editTitle.trim(),
       description: editDesc.trim() || null,
       price_cents: priceCents,
       free_for_subscribers: editFreeForSubs,
+      scheduled_for: scheduledIso,
     });
     toast.success("PPV updated");
     setEditMode(false);
@@ -424,14 +446,26 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
             </div>
           )}
 
-          {/* Status badge */}
-          {isOwner && !previewAsFan ? (
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-start gap-2.5">
-              <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-              <p className="text-[12px] font-semibold text-emerald-700 dark:text-emerald-400 leading-relaxed">
-                Your post — fans see only the preview until they unlock.
+          {/* Scheduled-future banner (owner only) */}
+          {isOwner && !previewAsFan && post.scheduled_for && new Date(post.scheduled_for).getTime() > Date.now() && (
+            <div className="rounded-2xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 flex items-start gap-2.5">
+              <Calendar className="h-4 w-4 text-violet-500 mt-0.5 shrink-0" />
+              <p className="text-[12px] font-semibold text-violet-700 dark:text-violet-400 leading-relaxed">
+                Scheduled · goes live {new Date(post.scheduled_for).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
               </p>
             </div>
+          )}
+
+          {/* Status badge */}
+          {isOwner && !previewAsFan ? (
+            !(post.scheduled_for && new Date(post.scheduled_for).getTime() > Date.now()) && (
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-start gap-2.5">
+                <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-[12px] font-semibold text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                  Your post — fans see only the preview until they unlock.
+                </p>
+              </div>
+            )
           ) : unlock ? (
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-start gap-2.5">
               <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
@@ -725,6 +759,30 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                     className="flex-1 px-2 h-full bg-transparent text-[16px] font-extrabold outline-none"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Scheduled drop (optional)</label>
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    type="datetime-local"
+                    value={editScheduledFor}
+                    onChange={(e) => setEditScheduledFor(e.target.value)}
+                    className="flex-1 h-11 px-3 rounded-xl border border-border bg-background text-[13px] outline-none focus:border-violet-500/60"
+                  />
+                  {editScheduledFor && (
+                    <button
+                      type="button"
+                      onClick={() => setEditScheduledFor("")}
+                      className="h-11 px-3 rounded-xl border border-border bg-background text-[11px] font-bold text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Leave empty to publish immediately.
+                </p>
               </div>
 
               <button

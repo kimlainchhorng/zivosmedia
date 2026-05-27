@@ -16,7 +16,7 @@ import { useCreatorType } from "@/hooks/useCreatorType";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Lock, ImagePlus, X, Eye, DollarSign, Loader2, Flame,
-  CheckCircle2, Video, Crown,
+  CheckCircle2, Video, Crown, Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
@@ -54,6 +54,8 @@ export default function CreatePPVPostPage() {
   const [description, setDescription] = useState("");
   const [priceUsd, setPriceUsd] = useState("9.99");
   const [freeForSubscribers, setFreeForSubscribers] = useState(false);
+  const [scheduled, setScheduled] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState(""); // datetime-local string
   const [items, setItems] = useState<UploadedItem[]>([]);
   const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -111,6 +113,15 @@ export default function CreatePPVPostPage() {
       if (priceCents < 1) throw new Error("Set a price above $0.00");
       if (items.length === 0) throw new Error("Upload at least one file");
 
+      let scheduledIso: string | null = null;
+      if (scheduled) {
+        if (!scheduledFor) throw new Error("Pick a date and time to schedule");
+        const when = new Date(scheduledFor);
+        if (Number.isNaN(when.getTime())) throw new Error("Invalid date");
+        if (when.getTime() <= Date.now()) throw new Error("Scheduled time must be in the future");
+        scheduledIso = when.toISOString();
+      }
+
       const { data, error } = await (supabase as any)
         .from("ppv_posts")
         .insert({
@@ -122,6 +133,7 @@ export default function CreatePPVPostPage() {
           preview_path: previewIdx !== null ? items[previewIdx]?.path : null,
           is_published: true,
           free_for_subscribers: freeForSubscribers,
+          scheduled_for: scheduledIso,
         })
         .select("id")
         .single();
@@ -244,6 +256,58 @@ export default function CreatePPVPostPage() {
             />
           </div>
         </button>
+
+        {/* Schedule for later toggle */}
+        <button
+          type="button"
+          onClick={() => setScheduled((v) => !v)}
+          className={cn(
+            "w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-colors text-left active:scale-[0.99]",
+            scheduled
+              ? "border-violet-500 bg-violet-500/8"
+              : "border-border bg-card hover:border-violet-500/40"
+          )}
+        >
+          <div className="h-10 w-10 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+            <Calendar className="h-5 w-5 text-violet-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-extrabold text-[13px]">Schedule for later</p>
+            <p className="text-[10px] text-muted-foreground">
+              Hidden from fans until the time you pick.
+            </p>
+          </div>
+          <div
+            className={cn(
+              "w-10 h-6 rounded-full p-0.5 transition-colors shrink-0",
+              scheduled ? "bg-violet-500" : "bg-muted-foreground/30"
+            )}
+          >
+            <motion.div
+              animate={{ x: scheduled ? 16 : 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="w-5 h-5 rounded-full bg-white shadow"
+            />
+          </div>
+        </button>
+
+        {scheduled && (
+          <div>
+            <label className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">
+              Drop time
+            </label>
+            <input
+              type="datetime-local"
+              value={scheduledFor}
+              onChange={(e) => setScheduledFor(e.target.value)}
+              min={new Date(Date.now() + 5 * 60_000).toISOString().slice(0, 16)}
+              className="mt-1 w-full h-11 px-3 rounded-xl border border-border bg-card text-[14px] font-bold outline-none focus:border-violet-500/60"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Your local time · post becomes visible automatically.
+            </p>
+          </div>
+        )}
 
         {/* Price */}
         <div>
@@ -403,7 +467,11 @@ export default function CreatePPVPostPage() {
           )}
         >
           {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {create.isPending ? "Publishing…" : `Publish PPV · $${(priceCents / 100).toFixed(2)}`}
+          {create.isPending
+            ? scheduled ? "Scheduling…" : "Publishing…"
+            : scheduled
+              ? `Schedule PPV · $${(priceCents / 100).toFixed(2)}`
+              : `Publish PPV · $${(priceCents / 100).toFixed(2)}`}
         </button>
       </div>
     </div>
