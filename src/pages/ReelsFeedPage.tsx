@@ -2921,16 +2921,22 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const [isPlaying, setIsPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [pipActive, setPipActive] = useState(false);
   const [localLikes, setLocalLikes] = useState(item.likes_count);
   const [localComments, setLocalComments] = useState(item.comments_count);
-  const [showCaption, setShowCaption] = useState(false);
+  const [showCaption, setShowCaption] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [tipTarget, setTipTarget] = useState<{ id: string; name: string } | null>(null);
   const interactionPostId = getFeedInteractionPostId(item);
   const likesTable = getFeedLikesTable(item);
+  const speedOptions = [0.75, 1, 1.25, 1.5, 2];
+  const hasCaption = Boolean(item.caption?.trim());
   const isSharedReel = Boolean(item.shared_from_post_id || item.shared_from_user_id);
   const followTargetSource = isSharedReel && item.shared_from_source ? item.shared_from_source : item.source;
   const followTargetUserId = followTargetSource === "user"
@@ -3022,6 +3028,47 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     };
   }, [currentUserId, interactionPostId, likesTable]);
 
+  useEffect(() => {
+    if (!currentUserId || item.source === "poll") {
+      setSaved(false);
+      return;
+    }
+
+    let alive = true;
+    (supabase as any)
+      .from("post_bookmarks")
+      .select("id")
+      .eq("user_id", currentUserId)
+      .eq("post_id", interactionPostId)
+      .eq("source", item.source)
+      .maybeSingle()
+      .then(({ data, error }: any) => {
+        if (!alive || error) return;
+        setSaved(Boolean(data));
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [currentUserId, interactionPostId, item.source]);
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackRate;
+  }, [item.id, playbackRate]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return undefined;
+    const handleEnter = () => setPipActive(true);
+    const handleLeave = () => setPipActive(false);
+    video.addEventListener("enterpictureinpicture", handleEnter);
+    video.addEventListener("leavepictureinpicture", handleLeave);
+    return () => {
+      video.removeEventListener("enterpictureinpicture", handleEnter);
+      video.removeEventListener("leavepictureinpicture", handleLeave);
+    };
+  }, [item.id]);
+
   const mediaUrl = item.media_urls[0];
   const viewTracked = useRef(false);
 
@@ -3066,6 +3113,39 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     } else {
       videoRef.current.pause();
       setIsPlaying(false);
+    }
+  };
+
+  const cyclePlaybackRate = () => {
+    const currentIndex = speedOptions.findIndex((value) => value === playbackRate);
+    const nextRate = speedOptions[(currentIndex + 1) % speedOptions.length] || 1;
+    setPlaybackRate(nextRate);
+    if (videoRef.current) videoRef.current.playbackRate = nextRate;
+    toast.success(`Playback ${nextRate}x`);
+  };
+
+  const togglePictureInPicture = async () => {
+    const video = videoRef.current as (HTMLVideoElement & { requestPictureInPicture?: () => Promise<unknown> }) | null;
+    const doc = document as Document & {
+      pictureInPictureElement?: Element | null;
+      exitPictureInPicture?: () => Promise<void>;
+    };
+
+    if (!video?.requestPictureInPicture || !doc.exitPictureInPicture) {
+      toast.info("Picture-in-picture is not available in this browser");
+      return;
+    }
+
+    try {
+      if (doc.pictureInPictureElement) {
+        await doc.exitPictureInPicture();
+        setPipActive(false);
+      } else {
+        await video.requestPictureInPicture();
+        setPipActive(true);
+      }
+    } catch {
+      toast.error("Could not open picture-in-picture");
     }
   };
 
@@ -3135,6 +3215,63 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
       toast.info("Long-press URL bar to copy");
     }
     setShowShareSheet(false);
+  };
+
+  const handleSaveReel = async () => {
+    if (!currentUserId) {
+      toast.error("Please sign in to save reels");
+      return;
+    }
+    if (item.source === "poll") return;
+
+    const nextSaved = !saved;
+    haptic(nextSaved ? "medium" : "light");
+    setSaved(nextSaved);
+    try {
+      if (nextSaved) {
+        const { error } = await (supabase as any).from("post_bookmarks").insert({
+          user_id: currentUserId,
+          post_id: interactionPostId,
+          source: item.source,
+        });
+        if (error && !String(error.message || "").toLowerCase().includes("duplicate")) throw error;
+        toast.success("Saved reel");
+      } else {
+        const { error } = await (supabase as any).from("post_bookmarks").delete()
+          .eq("user_id", currentUserId)
+          .eq("post_id", interactionPostId)
+          .eq("source", item.source);
+        if (error) throw error;
+        toast.success("Removed from saved");
+      }
+    } catch {
+      setSaved(!nextSaved);
+      toast.error("Could not update saved reels");
+    }
+  };
+
+  const handleDuetReel = () => {
+    if (!currentUserId) {
+      toast.error("Please sign in to duet this reel");
+      return;
+    }
+    const duetUrl = `/feed?compose=reel&duet=${encodeURIComponent(getReelsSharePostId(item))}`;
+    navigator.clipboard?.writeText(shareUrl).catch(() => {});
+    onClose();
+    navigate(duetUrl);
+  };
+
+  const handleGiftReel = () => {
+    if (!currentUserId) {
+      toast.error("Please sign in to send a gift");
+      return;
+    }
+    const targetId = item.shared_from_user_id || item.author_id;
+    if (!targetId || targetId === currentUserId) {
+      toast.info("Gifts are available for other creators");
+      return;
+    }
+    setTipTarget({ id: targetId, name: item.shared_from_user_name || item.author_name });
   };
 
   const handleBuyNow = async () => {
@@ -3239,9 +3376,47 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         <XIcon className="h-5 w-5 text-white" />
       </button>
 
+      <div className="absolute left-16 right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={cyclePlaybackRate}
+          aria-label="Playback speed"
+          title="Playback speed"
+          className="h-9 min-w-9 rounded-full bg-black/40 px-2 text-[11px] font-black text-white shadow-lg backdrop-blur-sm"
+        >
+          {playbackRate}x
+        </button>
+        <button
+          type="button"
+          onClick={togglePictureInPicture}
+          aria-label="Picture-in-picture"
+          title="Picture-in-picture"
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white shadow-lg backdrop-blur-sm",
+            pipActive && "bg-white text-black",
+          )}
+        >
+          <Monitor className="h-4 w-4" />
+        </button>
+        {hasCaption && (
+          <button
+            type="button"
+            onClick={() => setShowCaption((value) => !value)}
+            aria-label={showCaption ? "Hide captions" : "Show captions"}
+            title={showCaption ? "Hide captions" : "Show captions"}
+            className={cn(
+              "flex h-9 min-w-9 items-center justify-center rounded-full bg-black/40 px-2 text-[11px] font-black text-white shadow-lg backdrop-blur-sm",
+              showCaption && "bg-white text-black",
+            )}
+          >
+            CC
+          </button>
+        )}
+      </div>
+
       {/* Right side action buttons */}
       <div
-        className="zivo-reel-actions-offset absolute right-3 flex flex-col items-center gap-4"
+        className="zivo-reel-actions-offset absolute right-3 flex flex-col items-center gap-3"
       >
         {/* Mute */}
         <button type="button" onClick={() => setMuted(!muted)} aria-label={muted ? "Unmute reel" : "Mute reel"} title={muted ? "Unmute reel" : "Mute reel"} className="flex flex-col items-center gap-1 min-h-[44px] min-w-[44px] justify-center">
@@ -3320,6 +3495,27 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         >
           <Send className="h-7 w-7 text-white drop-shadow-lg" />
           <span className="text-white text-[10px] font-medium drop-shadow">Share</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleSaveReel}
+          aria-label={saved ? "Remove from saved" : "Save reel"}
+          title={saved ? "Remove from saved" : "Save reel"}
+          className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1"
+        >
+          <Bookmark className={cn("h-7 w-7 drop-shadow-lg transition-all", saved ? "fill-white text-white" : "text-white")} />
+          <span className="text-[10px] font-medium text-white drop-shadow">{saved ? "Saved" : "Save"}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowMoreOptions(true)}
+          aria-label="More reel options"
+          title="More reel options"
+          className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1"
+        >
+          <MoreHorizontal className="h-7 w-7 text-white drop-shadow-lg" />
         </button>
 
         {item.commerce_link && (
@@ -3478,7 +3674,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         })()}
 
         {/* Caption */}
-        {item.caption && (
+        {showCaption && item.caption && (
           <CollapsibleCaption
             text={item.caption}
             lines={2}
@@ -3492,7 +3688,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         )}
 
         {/* Sound ticker */}
-        {item.media_type === "video" && (
+        {showCaption && item.media_type === "video" && (
           <div className="flex items-center gap-2 mt-1.5 overflow-hidden">
             <div className="flex items-center justify-center h-4 w-4 shrink-0">
               <Radio className="h-3.5 w-3.5 text-white/70" />
@@ -3507,6 +3703,81 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
       </div>
 
       {/* Comments Bottom Sheet — only mount when open */}
+      <SwipeableSheet
+        open={showMoreOptions}
+        onClose={() => setShowMoreOptions(false)}
+        title="Reel options"
+        ariaLabel="Reel options"
+        positioning="absolute"
+        zIndex={90}
+        maxHeightVh={62}
+        className="border-white/10 bg-zinc-950 text-white"
+        headerClassName="border-white/10 text-white"
+      >
+        <div className="px-3 pb-5">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={cyclePlaybackRate}
+              className="flex min-h-[72px] flex-col items-start justify-center rounded-xl bg-white/10 px-3 py-2 text-left active:scale-[0.99]"
+            >
+              <Zap className="mb-1 h-4 w-4 text-amber-300" />
+              <span className="text-sm font-bold">Speed {playbackRate}x</span>
+              <span className="text-[11px] text-white/55">Tap to change</span>
+            </button>
+            <button
+              type="button"
+              onClick={togglePictureInPicture}
+              className="flex min-h-[72px] flex-col items-start justify-center rounded-xl bg-white/10 px-3 py-2 text-left active:scale-[0.99]"
+            >
+              <Monitor className="mb-1 h-4 w-4 text-sky-300" />
+              <span className="text-sm font-bold">Picture-in-picture</span>
+              <span className="text-[11px] text-white/55">{pipActive ? "Active" : "Open mini player"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCaption((value) => !value)}
+              disabled={!hasCaption}
+              className="flex min-h-[72px] flex-col items-start justify-center rounded-xl bg-white/10 px-3 py-2 text-left active:scale-[0.99] disabled:opacity-40"
+            >
+              <MessageSquare className="mb-1 h-4 w-4 text-emerald-300" />
+              <span className="text-sm font-bold">{showCaption ? "Hide captions" : "Show captions"}</span>
+              <span className="text-[11px] text-white/55">{hasCaption ? "Caption overlay" : "No caption"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDuetReel}
+              className="flex min-h-[72px] flex-col items-start justify-center rounded-xl bg-white/10 px-3 py-2 text-left active:scale-[0.99]"
+            >
+              <Share2 className="mb-1 h-4 w-4 text-violet-300" />
+              <span className="text-sm font-bold">Duet</span>
+              <span className="text-[11px] text-white/55">Start a reel draft</span>
+            </button>
+          </div>
+          <div className="mt-3 divide-y divide-white/10 rounded-xl bg-white/10">
+            <button
+              type="button"
+              onClick={handleGiftReel}
+              className="flex min-h-[52px] w-full items-center gap-3 px-3 text-left"
+            >
+              <Gift className="h-5 w-5 text-rose-300" />
+              <span className="text-sm font-semibold">Send gift</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleCopyLink();
+                setShowMoreOptions(false);
+              }}
+              className="flex min-h-[52px] w-full items-center gap-3 px-3 text-left"
+            >
+              <Link2 className="h-5 w-5 text-white/75" />
+              <span className="text-sm font-semibold">Copy link</span>
+            </button>
+          </div>
+        </div>
+      </SwipeableSheet>
+
       {showComments && (
         <Suspense fallback={null}>
           <CommentsSheet
@@ -3521,6 +3792,17 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
             commentsCount={localComments}
             onCommentsCountChange={setLocalComments}
             dark
+          />
+        </Suspense>
+      )}
+
+      {tipTarget && (
+        <Suspense fallback={null}>
+          <TipSheet
+            open
+            onClose={() => setTipTarget(null)}
+            creatorId={tipTarget.id}
+            creatorName={tipTarget.name}
           />
         </Suspense>
       )}
@@ -4657,7 +4939,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 </Suspense>
               </CollapsibleCaption>
               {/* Translation — only shown when caption has non-Latin characters */}
-              {/[^ -]/.test(item.caption) && (
+              {/[^\x00-\x7F]/.test(item.caption) && (
                 <div className="mt-1">
                   {translatedCaption ? (
                     <div className="bg-muted/40 rounded-lg px-3 py-2 border border-border/20">

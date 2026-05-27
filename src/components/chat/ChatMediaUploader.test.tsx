@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatMediaUploader } from "./ChatMediaUploader";
 
@@ -57,25 +57,19 @@ function renderUploader() {
   const onMediaSent = vi.fn();
   let openPicker: ((kind?: "document" | "audio") => void) | null = null;
   const view = render(
-    <>
-      <ChatMediaUploader
-        recipientId="receiver-1"
-        onMediaSent={onMediaSent}
-        onOpenPickerReady={(open) => {
-          openPicker = open;
-        }}
-      />
-      <button type="button" onClick={() => openPicker?.()}>
-        Open file
-      </button>
-      <button type="button" onClick={() => openPicker?.("audio")}>
-        Open music
-      </button>
-    </>,
+    <ChatMediaUploader
+      recipientId="receiver-1"
+      onMediaSent={onMediaSent}
+      renderTrigger={(open) => {
+        openPicker = open;
+        return null;
+      }}
+    />,
   );
   const input = view.container.querySelector('input[type="file"]') as HTMLInputElement;
   if (!input) throw new Error("file input missing");
-  return { ...view, input, onMediaSent };
+  if (!openPicker) throw new Error("file picker callback missing");
+  return { ...view, input, onMediaSent, openPicker };
 }
 
 describe("ChatMediaUploader", () => {
@@ -89,21 +83,21 @@ describe("ChatMediaUploader", () => {
   });
 
   it("opens document and audio pickers with distinct accept filters", () => {
-    const { input } = renderUploader();
+    const { input, openPicker } = renderUploader();
 
-    fireEvent.click(screen.getByRole("button", { name: "Open file" }));
+    openPicker();
     expect(input.accept).toContain(".pdf");
     expect(input.accept).toContain(".docx");
 
-    fireEvent.click(screen.getByRole("button", { name: "Open music" }));
+    openPicker("audio");
     expect(input.accept).toBe("audio/*");
   });
 
   it("uploads music as a file attachment payload", async () => {
-    const { input, onMediaSent } = renderUploader();
+    const { input, onMediaSent, openPicker } = renderUploader();
     const file = new File(["audio"], "track.mp3", { type: "audio/mpeg" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Open music" }));
+    openPicker("audio");
     fireEvent.change(input, { target: { files: [file] } });
 
     await waitFor(() => {
@@ -134,11 +128,11 @@ describe("ChatMediaUploader", () => {
   });
 
   it("rejects oversized audio before uploading", () => {
-    const { input, onMediaSent } = renderUploader();
+    const { input, onMediaSent, openPicker } = renderUploader();
     const file = new File(["audio"], "too-large.mp3", { type: "audio/mpeg" });
     Object.defineProperty(file, "size", { value: 26 * 1024 * 1024 });
 
-    fireEvent.click(screen.getByRole("button", { name: "Open music" }));
+    openPicker("audio");
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(mocks.toastError).toHaveBeenCalledWith("File must be under 25.0 MB");

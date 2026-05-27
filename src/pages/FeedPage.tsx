@@ -2175,7 +2175,7 @@ function ReelCard({
         )}
 
         {/* Duet quick button — video posts by others only */}
-        {!isSelf && isVideoPost && (
+        {!isSelf && isVideoPost && onStartDuet && (
           <button
             type="button"
             onClick={(e) => {
@@ -2192,7 +2192,7 @@ function ReelCard({
         )}
 
         {/* Gift / Tip creator — non-own posts only */}
-        {!isSelf && post.source === "user" && post.author_id && (
+        {!isSelf && post.source === "user" && post.author_id && onGiftCreator && (
           <button
             type="button"
             onClick={(e) => {
@@ -2480,36 +2480,54 @@ function ReelCard({
                   )}
                   <span className="text-sm font-medium text-foreground">{globalMuted ? "Unmute" : "Mute"}</span>
                 </button>
-                <button type="button"
-                  onClick={() => {
-                    setShowMoreMenu(false);
-                    onGiftCreator?.(post);
-                  }}
-                  className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
-                >
-                  <Gift className="h-5 w-5 text-amber-500" />
-                  <span className="text-sm font-medium text-foreground">Tip Creator</span>
-                </button>
-                <button type="button"
-                  onClick={() => {
-                    setShowMoreMenu(false);
-                    onStartDuet?.(post);
-                  }}
-                  className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
-                >
-                  <Film className="h-5 w-5 text-foreground" />
-                  <span className="text-sm font-medium text-foreground">Duet</span>
-                </button>
-                <button type="button"
-                  onClick={() => {
-                    setShowMoreMenu(false);
-                    onStartStitch?.(post);
-                  }}
-                  className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
-                >
-                  <Scissors className="h-5 w-5 text-foreground" />
-                  <span className="text-sm font-medium text-foreground">Stitch</span>
-                </button>
+                {post.caption && (
+                  <button type="button"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      setShowCaptions((value) => !value);
+                    }}
+                    className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl sm:hidden"
+                  >
+                    <FileText className="h-5 w-5 text-foreground" />
+                    <span className="text-sm font-medium text-foreground">{showCaptions ? "Hide captions" : "Show captions"}</span>
+                  </button>
+                )}
+                {!isSelf && post.source === "user" && post.author_id && onGiftCreator && (
+                  <button type="button"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      onGiftCreator(post);
+                    }}
+                    className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
+                  >
+                    <Gift className="h-5 w-5 text-amber-500" />
+                    <span className="text-sm font-medium text-foreground">Send gift</span>
+                  </button>
+                )}
+                {!isSelf && isVideoPost && onStartDuet && (
+                  <button type="button"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      onStartDuet(post);
+                    }}
+                    className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
+                  >
+                    <Film className="h-5 w-5 text-foreground" />
+                    <span className="text-sm font-medium text-foreground">Duet</span>
+                  </button>
+                )}
+                {!isSelf && isVideoPost && onStartStitch && (
+                  <button type="button"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      onStartStitch(post);
+                    }}
+                    className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
+                  >
+                    <Scissors className="h-5 w-5 text-foreground" />
+                    <span className="text-sm font-medium text-foreground">Stitch</span>
+                  </button>
+                )}
                 <button type="button"
                   onClick={async () => {
                     setShowMoreMenu(false);
@@ -2534,16 +2552,18 @@ function ReelCard({
                   <Download className="h-5 w-5 text-foreground" />
                   <span className="text-sm font-medium text-foreground">Download</span>
                 </button>
-                <button type="button"
-                  onClick={() => {
-                    setShowMoreMenu(false);
-                    onShareToStory?.(post);
-                  }}
-                  className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
-                >
-                  <Layers className="h-5 w-5 text-foreground" />
-                  <span className="text-sm font-medium text-foreground">Share to Story</span>
-                </button>
+                {onShareToStory && (
+                  <button type="button"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      onShareToStory(post);
+                    }}
+                    className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
+                  >
+                    <Layers className="h-5 w-5 text-foreground" />
+                    <span className="text-sm font-medium text-foreground">Share to Story</span>
+                  </button>
+                )}
                 {userId && post.author_id && userId === post.author_id && (
                   <button type="button"
                     onClick={async () => {
