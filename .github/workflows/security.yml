@@ -59,6 +59,9 @@ jobs:
       - name: Secret scan
         run: npm run security:check-secrets
 
+      - name: Supabase migration integrity
+        run: npm run supabase:migrations:check
+
       - name: TypeScript build
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
