@@ -267,6 +267,9 @@ const PrivacySettingsPage = lazy(() => import("./pages/account/PrivacySettingsPa
 const CreatorDashboardPage = lazy(() => import("./pages/CreatorDashboardPage"));
 const CreatorAnalyticsPage = lazy(() => import("./pages/CreatorAnalyticsPage"));
 const CreatorSetupPage = lazy(() => import("./pages/CreatorSetupPage"));
+const CreatorWelcomePage = lazy(() => import("./pages/CreatorWelcomePage"));
+const CreatePPVPostPage = lazy(() => import("./pages/CreatePPVPostPage"));
+const PPVPostsPage = lazy(() => import("./pages/PPVPostsPage"));
 const CreatorLiveEarningsPage = lazy(() => import("./pages/CreatorLiveEarningsPage"));
 const CreatorSubscribersPage = lazy(() => import("./pages/CreatorSubscribersPage"));
 const CreatorTipsPage = lazy(() => import("./pages/CreatorTipsPage"));
@@ -1517,6 +1520,9 @@ const App = () => (
                 <Route path="/creators" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>} />
                 <Route path="/creator-dashboard" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>} />
                 <Route path="/creator/setup" element={<ProtectedRoute><CreatorSetupPage /></ProtectedRoute>} />
+                <Route path="/creator/welcome" element={<ProtectedRoute><CreatorWelcomePage /></ProtectedRoute>} />
+                <Route path="/ppv" element={<ProtectedRoute><PPVPostsPage /></ProtectedRoute>} />
+                <Route path="/ppv/create" element={<ProtectedRoute><CreatePPVPostPage /></ProtectedRoute>} />
                 <Route path="/creator-analytics" element={<ProtectedRoute><CreatorAnalyticsPage /></ProtectedRoute>} />
                 <Route path="/creator/live-earnings" element={<ProtectedRoute><CreatorLiveEarningsPage /></ProtectedRoute>} />
                 <Route path="/creator/subscribers" element={<ProtectedRoute><CreatorSubscribersPage /></ProtectedRoute>} />
