@@ -653,9 +653,18 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                     <span className="text-muted-foreground">
                       Wallet: <span className="font-bold text-foreground">${(balance / 100).toFixed(2)}</span>
                     </span>
-                    {!canAfford && user && (
-                      <a href="/wallet" className="font-bold text-rose-500 hover:underline">Top up →</a>
-                    )}
+                    {!canAfford && user && (() => {
+                      const gapCents = Math.max(500, post.price_cents - balance);
+                      const returnTo = encodeURIComponent(`/ppv?post=${post.id}`);
+                      return (
+                        <a
+                          href={`/wallet?topup_amount=${gapCents}&return_to=${returnTo}`}
+                          className="font-bold text-rose-500 hover:underline"
+                        >
+                          Top up ${(gapCents / 100).toFixed(2)} →
+                        </a>
+                      );
+                    })()}
                   </div>
                 )}
                 <button

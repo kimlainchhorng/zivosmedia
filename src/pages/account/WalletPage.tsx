@@ -284,6 +284,9 @@ export default function WalletPage() {
   };
 
   // Run a one-shot verify when Stripe returns from an auth challenge.
+  // Also handles deep-link entry from PPV / paid-DM "Top up" CTAs:
+  //   ?topup_amount=<cents>  → opens topup sheet pre-filled
+  //   ?return_to=<url>       → after successful credit, route back automatically
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
@@ -291,6 +294,29 @@ export default function WalletPage() {
     const sid = url.searchParams.get("session_id");
     const paymentIntentId = url.searchParams.get("payment_intent");
     const redirectStatus = url.searchParams.get("redirect_status");
+
+    // Deep-link entry — preserve return_to across the Stripe redirect via
+    // sessionStorage. Strip from URL so the sheet doesn't reopen on remount.
+    const deepReturnTo = url.searchParams.get("return_to");
+    if (deepReturnTo) {
+      try { window.sessionStorage.setItem("zivo:wallet-return-to", deepReturnTo); } catch { /* ignore */ }
+      url.searchParams.delete("return_to");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    }
+    const deepAmountCents = url.searchParams.get("topup_amount");
+    if (deepAmountCents) {
+      const cents = Number(deepAmountCents);
+      if (Number.isFinite(cents) && cents > 0) {
+        // Round up to the nearest dollar so the input shows a clean value.
+        const dollars = (Math.ceil(cents / 100)).toFixed(2);
+        setTopupAmount(dollars);
+        setTopupStep("amount");
+        setTopupOpen(true);
+      }
+      url.searchParams.delete("topup_amount");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    }
+
     const shouldVerify = (status === "success" || redirectStatus === "succeeded") && (sid || paymentIntentId);
     if (shouldVerify) {
       (async () => {
@@ -316,6 +342,19 @@ export default function WalletPage() {
           queryClient.invalidateQueries({ queryKey: ["customer-wallet"] });
           queryClient.invalidateQueries({ queryKey: ["wallet-transactions"] });
           queryClient.invalidateQueries({ queryKey: ["wallet-summary"] });
+
+          // Deep-link return: route back to wherever the user started the topup
+          // (e.g. the PPV detail) so they can immediately unlock.
+          try {
+            const returnTo = window.sessionStorage.getItem("zivo:wallet-return-to");
+            if (returnTo) {
+              window.sessionStorage.removeItem("zivo:wallet-return-to");
+              // Only follow same-origin paths to prevent open-redirect.
+              if (returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+                navigate(returnTo, { replace: true });
+              }
+            }
+          } catch { /* ignore */ }
         }
       })();
     } else if (status === "cancel") {
