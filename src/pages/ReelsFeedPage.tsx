@@ -115,6 +115,33 @@ import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 import { perfLog, perfMeasure, perfNow } from "@/lib/perfTrace";
+import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
+import type { FeedPreferenceSource } from "@/hooks/useHiddenPosts";
+
+type FeedWorkflowAction = "story" | "reel" | "shop" | "photo" | "jobs" | "live";
+const FEED_CREATOR_WORKFLOWS: ReadonlyArray<{
+  action: FeedWorkflowAction;
+  label: string;
+  description: string;
+  icon: typeof Plus;
+  tone: string;
+}> = [
+  { action: "story", label: "Story", description: "Share a moment", icon: Camera, tone: "from-pink-500 to-rose-500" },
+  { action: "reel", label: "Reel", description: "Post a video", icon: Film, tone: "from-purple-500 to-indigo-500" },
+  { action: "photo", label: "Photo", description: "Upload a photo", icon: ImageIcon, tone: "from-sky-500 to-cyan-500" },
+  { action: "shop", label: "Shop", description: "Tag products", icon: ShoppingBag, tone: "from-emerald-500 to-teal-500" },
+  { action: "live", label: "Live", description: "Go live now", icon: Radio, tone: "from-orange-500 to-red-500" },
+  { action: "jobs", label: "Jobs", description: "Post a job", icon: Briefcase, tone: "from-slate-500 to-zinc-500" },
+];
+
+const getFeedAuthorSnoozeKey = (source: FeedPreferenceSource, id: string) => `${source}:${id}`;
+const parseFeedPreferencePostKey = (key: string | null): { postId: string; source: FeedPreferenceSource } | null => {
+  if (!key) return null;
+  const [source, ...rest] = key.split(":");
+  const postId = rest.join(":");
+  if ((source === "store" || source === "user") && postId) return { postId, source };
+  return null;
+};
 
 const INITIAL_REELS_PAGE_SIZE = 18;
 const REELS_PAGE_INCREMENT = 12;
