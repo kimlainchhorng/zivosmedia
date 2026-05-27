@@ -60,6 +60,7 @@ function SubscribeForm({ creatorId, creatorName, tier, onClose }: Omit<Props, "o
       if (data?.error) throw new Error(data.error);
       const clientSecret: string | null = data?.client_secret ?? null;
       if (!clientSecret) throw new Error("Missing client secret");
+      const mode: "payment" | "subscription" = data?.mode === "subscription" ? "subscription" : "payment";
 
       const { error: stripeErr, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: { card },
@@ -73,15 +74,26 @@ function SubscribeForm({ creatorId, creatorName, tier, onClose }: Omit<Props, "o
         return;
       }
 
-      // Record the subscription in our DB so the visitor preview reflects it.
-      await (supabase as any).from("creator_subscriptions").insert({
-        creator_id: creatorId,
-        subscriber_id: user.id,
-        tier_id: tier.id,
-        status: "active",
-        price_cents: tier.price_cents,
-        stripe_subscription_id: data?.subscription_id ?? null,
-      });
+      // Recording the row goes through confirm-tier-subscription, which
+      // re-fetches the PaymentIntent / Subscription from Stripe to verify
+      // status server-side before writing via service_role. The client-side
+      // INSERT path no longer works — cs_ins is now restricted to free tiers
+      // (see migration 20260528000010).
+      const { data: confirmData, error: confirmErr } = await supabase.functions.invoke(
+        "confirm-tier-subscription",
+        {
+          body: {
+            mode,
+            tier_id: tier.id,
+            creator_id: creatorId,
+            ...(mode === "subscription"
+              ? { subscription_id: data?.subscription_id ?? null }
+              : { payment_intent_id: data?.payment_intent_id ?? paymentIntent?.id ?? null }),
+          },
+        },
+      );
+      if (confirmErr) throw confirmErr;
+      if (confirmData?.error) throw new Error(confirmData.error);
 
       setDone(true);
       toast.success(`Subscribed to ${creatorName}!`);
