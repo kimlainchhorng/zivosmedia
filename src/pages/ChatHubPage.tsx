@@ -2792,7 +2792,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                       )}
                                       {(() => {
                                         // Draft indicator — show saved draft instead of last message
-                                        const draft = draftsMap[chat.id];
+                                        const draft = draftsMap[chat.id] || ((chat as any).isGroup ? draftsMap[`group:${chat.id}`] : "");
                                         if (draft && !isTyping) {
                                           return (
                                             <span className={cn(

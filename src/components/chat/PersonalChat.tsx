@@ -47,7 +47,6 @@ import Zap from "lucide-react/dist/esm/icons/zap";
 import Shield from "lucide-react/dist/esm/icons/shield";
 import Video from "lucide-react/dist/esm/icons/video";
 import History from "lucide-react/dist/esm/icons/history";
-import FileText from "lucide-react/dist/esm/icons/file-text";
 import Bookmark from "lucide-react/dist/esm/icons/bookmark";
 import Timer from "lucide-react/dist/esm/icons/timer";
 import Languages from "lucide-react/dist/esm/icons/languages";
@@ -82,7 +81,6 @@ import FileBubble, { type FileBubbleData } from "./FileBubble";
 import ChatDeliveryStatus from "./ChatDeliveryStatus";
 import OutboxPendingBadge from "./OutboxPendingBadge";
 import HoldToRecordMic from "./HoldToRecordMic";
-import ChatAttachMenu from "./ChatAttachMenu";
 import ChatPollCreator, { type PollDraft } from "./ChatPollCreator";
 import ChatQuickReplies from "./ChatQuickReplies";
 import ChatContactPicker, { type SharedContact } from "./ChatContactPicker";
@@ -121,6 +119,7 @@ const LockedMediaPricePicker = lazy(() => import("./LockedMediaPricePicker"));
 const ChatContactInfo = lazy(() => import("./ChatContactInfo"));
 const MessageScheduler = lazy(() => import("./MessageScheduler"));
 const ChatMessageNavigator = lazy(() => import("./ChatMessageNavigator"));
+const ChatComposerHub = lazy(() => import("./ChatComposerHub"));
 
 import type { EffectType } from "./messageEffectUtils";
 import { detectMessageEffect } from "./messageEffectUtils";
@@ -133,6 +132,7 @@ import { vlog, vwarn } from "@/lib/voiceDebug";
 import { useChatDraft } from "@/hooks/useChatDraft";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
+import { getComposerDraftPartnerId, type ChatComposerSource, type ComposerActionId } from "./chatComposerHubModel";
 
 const StickerKeyboard = lazy(() => import("./StickerKeyboard"));
 
@@ -141,7 +141,6 @@ import MessageReactionsBar from "./MessageReactionsBar";
 import PinnedMessageBanner from "./PinnedMessageBanner";
 import SmartReplyChips from "./SmartReplyChips";
 import Flame from "lucide-react/dist/esm/icons/flame";
-import Clock from "lucide-react/dist/esm/icons/clock";
 const ForwardPickerSheet = lazy(() => import("./ForwardPickerSheet"));
 const ScheduledMessagesSheet = lazy(() => import("./ScheduledMessagesSheet"));
 const PollCreatorSheet = lazy(() => import("./PollCreatorSheet"));
@@ -689,54 +688,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [forwardedNames, setForwardedNames] = useState<Record<string, string>>({});
   const [reactionsMap, setReactionsMap] = useState<Record<string, { emoji: string; count: number; reactedByMe: boolean }[]>>({});
   const [input, setInput] = useState("");
-  // Multi-device draft sync. Loads any saved draft for this conversation
-  // when the chat opens (after the prefillInput effect runs), and writes
-  // back debounced to `chat_drafts` so the composer survives reloads /
-  // device switches. Cleared when a message is actually sent.
-  useEffect(() => {
-    if (!user?.id || !recipientId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await (supabase as any)
-          .from("chat_drafts")
-          .select("draft_text")
-          .eq("user_id", user.id)
-          .eq("chat_partner_id", recipientId)
-          .maybeSingle();
-        if (cancelled) return;
-        // Don't clobber a prefillInput that already populated the composer.
-        if (data?.draft_text && !input && !prefillInput) {
-          setInput(data.draft_text);
-        }
-      } catch { /* table may not have a row */ }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, recipientId]);
-  useEffect(() => {
-    if (!user?.id || !recipientId) return;
-    const handle = setTimeout(async () => {
-      try {
-        if (!input.trim()) {
-          await (supabase as any)
-            .from("chat_drafts")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("chat_partner_id", recipientId);
-          return;
-        }
-        await (supabase as any)
-          .from("chat_drafts")
-          .upsert(
-            { user_id: user.id, chat_partner_id: recipientId, draft_text: input, updated_at: new Date().toISOString() },
-            { onConflict: "user_id,chat_partner_id" }
-          );
-      } catch { /* offline / RLS — best-effort */ }
-    }, 800);
-    return () => clearTimeout(handle);
-  }, [input, user?.id, recipientId]);
-
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [activeCall, setActiveCall] = useState<"voice" | "video" | null>(null);
@@ -750,7 +701,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const handledInitialJumpRef = useRef<string | null>(null);
-  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showComposerHub, setShowComposerHub] = useState(false);
+  const [composerHubAction, setComposerHubAction] = useState<ComposerActionId | null>(null);
   const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
   // Auto-delete (chat-wide disappearing). null = off, otherwise seconds. Cycles 1d→7d→30d→off.
   // Persisted per conversation in localStorage so it survives page reloads.
@@ -950,7 +902,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const { isTyping: recipientTyping, isOnline: recipientOnline, lastSeen: recipientLastSeen, setTyping } = useChatPresence(user?.id, recipientId);
   const voice = useVoiceRecorder();
   const { uploadFile } = useChatFiles();
-  const { draft, updateDraft, clearDraft } = useChatDraft(user?.id, recipientId);
+  const composerSource = useMemo<ChatComposerSource>(
+    () => ({ type: "dm", chatId: recipientId, title: recipientName, canSchedule: true }),
+    [recipientId, recipientName],
+  );
+  const { draft, updateDraft, clearDraft } = useChatDraft(user?.id, getComposerDraftPartnerId(composerSource));
   const { forwardMessage } = useMessageActions();
 
   // Phase 3 wiring state
@@ -974,6 +930,21 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   useEffect(() => {
     if (draft && !input) setInput(draft);
   }, [draft, input]);
+
+  const updateComposerDraft = useCallback((next: string) => {
+    setInput(next);
+    updateDraft(next);
+  }, [updateDraft]);
+
+  const openComposerHub = useCallback((actionId: ComposerActionId | null = null) => {
+    setComposerHubAction(actionId);
+    setShowComposerHub(true);
+  }, []);
+
+  const setComposerHubOpen = useCallback((open: boolean) => {
+    setShowComposerHub(open);
+    if (!open) setComposerHubAction(null);
+  }, []);
 
   useEffect(() => {
     if (!missedCallDismissKey) {
@@ -2761,13 +2732,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   };
 
 
-  const handleLocationShare = () => {
+  const handleLocationShare = useCallback(() => {
     if (!navigator.geolocation) { toast.error("Location not supported"); return; }
     toast.loading("Getting location...", { id: "loc" });
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         toast.dismiss("loc");
-        handleSend({
+        void handleSendRef.current?.({
           locationLat: pos.coords.latitude,
           locationLng: pos.coords.longitude,
           locationLabel: "My Location",
@@ -2776,7 +2747,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       () => { toast.dismiss("loc"); toast.error("Location access denied"); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  };
+  }, []);
 
   // Forward message
   const handleForward = useCallback((id: string, _message: string) => {
@@ -2994,12 +2965,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       { id: "location", label: "/location", hint: "Share your current location", run: () => handleLocationShare() },
       { id: "gift", label: "/gift", hint: "Send a coin gift", run: () => setShowGiftPanel(true) },
       { id: "wallet", label: "/wallet", hint: "Open the wallet sheet", run: () => setShowWalletSheet(true) },
-      { id: "schedule", label: "/schedule", hint: "Schedule a message for later", run: () => setShowScheduler(true) },
+      { id: "schedule", label: "/schedule", hint: "Schedule a message for later", run: () => openComposerHub("schedule") },
+      { id: "poll", label: "/poll", hint: "Create a poll", run: () => openComposerHub("poll") },
       { id: "scan", label: "/scan", hint: "Scan a document", run: () => setShowScanner(true) },
       { id: "sticker", label: "/sticker", hint: "Open the sticker keyboard", run: () => setShowStickerKeyboard(true) },
-      { id: "miniapp", label: "/miniapp", hint: "Open mini apps", run: () => setShowMiniApps(true) },
+      { id: "miniapp", label: "/miniapp", hint: "Open mini apps", run: () => openComposerHub("miniapp") },
     ];
-  }, [isSelfChat]);
+  }, [handleLocationShare, isSelfChat, openComposerHub]);
 
   const slashCandidates = useMemo(() => {
     if (slashQuery == null) return [];
@@ -3008,11 +2980,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   }, [slashCommands, slashQuery]);
 
   const runSlashCommand = useCallback((cmd: { run: () => void }) => {
-    setInput("");
+    updateComposerDraft("");
     setSlashQuery(null);
     setSlashIndex(0);
     cmd.run();
-  }, []);
+  }, [updateComposerDraft]);
 
   const handleQuickPanelSend = useCallback(async (payload: StickerSendPayload) => {
     if (!user?.id || sending) return;
@@ -4075,7 +4047,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 <button type="button"
                   onClick={() => {
                     setShowQuickReplies(false);
-                    setShowAttachMenu(false);
+                    setShowComposerHub(false);
                     setShowStickerKeyboard((prev) => !prev);
                   }}
                   className={`h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 ${
@@ -4200,56 +4172,73 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   onClick={() => {
                     setShowQuickReplies(false);
                     setShowStickerKeyboard(false);
-                    setShowAttachMenu((prev) => !prev);
+                    setComposerHubOpen(!showComposerHub);
                   }}
                   disabled={uploadingMedia}
                   className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-                    showAttachMenu ? "text-primary bg-primary/10" : "text-muted-foreground/45 hover:text-muted-foreground"
+                    showComposerHub ? "text-primary bg-primary/10" : "text-muted-foreground/45 hover:text-muted-foreground"
                   }`}
-                  aria-label="Attachments"
-                  title="Attachments"
+                  aria-label="Composer hub"
+                  title="Composer hub"
                 >
                   {uploadingMedia ? <Loader2 className="h-[17px] w-[17px] animate-spin" /> : <Paperclip className="h-5 w-5" />}
                 </button>
-                <ChatAttachMenu
-                  open={showAttachMenu}
-                  onClose={() => setShowAttachMenu(false)}
-                  onImageSelect={() => fileInputRef.current?.click()}
-                  onVideoSelect={() => videoInputRef.current?.click()}
-                  onGifSelect={() => gifInputRef.current?.click()}
-                  onLocationShare={handleLocationShare}
-                  onToggleDisappearing={cycleAutoDelete}
-                  disappearingEnabled={disappearingMode}
-                  disappearingLabel={
-                    disappearingSec == null ? "Off" :
-                    disappearingSec === 24 * 60 * 60 ? "1d" :
-                    disappearingSec === 7 * 24 * 60 * 60 ? "7d" :
-                    disappearingSec === 30 * 24 * 60 * 60 ? "30d" :
-                    "On"
-                  }
-                  onLockedImageSelect={() => lockedImageInputRef.current?.click()}
-                  onLockedTextSelect={handleLockedTextSelect}
-                  onToggleSensitiveMedia={() => {
-                    setMarkNextMediaSensitive((prev) => {
-                      const next = !prev;
-                      toast.success(next ? "Next media will be blurred as 18+" : "18+ media blur marker off");
-                      return next;
-                    });
-                  }}
-                  sensitiveMediaMarked={markNextMediaSensitive}
-                  onSendGift={() => setShowGiftPanel(true)}
-                  onOpenWallet={() => {
-                    if (isSelfChat) { setShowWalletSheet(true); return; }
-                    openP2PTransfer({ receiverId: recipientId, receiverName: recipientName, mode: "send" });
-                  }}
-                  onScanDocument={() => setShowScanner(true)}
-                  onFileSelect={() => filePickerTriggerRef.current?.("document")}
-                  onMusicSelect={() => filePickerTriggerRef.current?.("audio")}
-                  onCreatePoll={() => setShowPollCreator(true)}
-                  onShareContact={() => setShowContactPicker(true)}
-                  onShareSocial={() => setShowSocialShare(true)}
-                  onShareZivoCard={() => setShowZivoCardPicker(true)}
-                />
+                {showComposerHub && (
+                  <Suspense fallback={null}>
+                    <ChatComposerHub
+                      open={showComposerHub}
+                      onOpenChange={setComposerHubOpen}
+                      source={composerSource}
+                      draftText={input}
+                      onDraftTextChange={updateComposerDraft}
+                      onClearDraft={clearDraft}
+                      highlightedActionId={composerHubAction}
+                      onImageSelect={() => fileInputRef.current?.click()}
+                      onVideoSelect={() => videoInputRef.current?.click()}
+                      onGifSelect={() => gifInputRef.current?.click()}
+                      onMusicSelect={() => filePickerTriggerRef.current?.("audio")}
+                      onFileSelect={() => filePickerTriggerRef.current?.("document")}
+                      onScanDocument={() => setShowScanner(true)}
+                      onLocationShare={handleLocationShare}
+                      onShareContact={() => setShowContactPicker(true)}
+                      onCreatePoll={() => setShowPollCreator(true)}
+                      onOpenMiniApps={() => setShowMiniApps(true)}
+                      onSendGift={() => setShowGiftPanel(true)}
+                      onOpenWallet={() => {
+                        if (isSelfChat) { setShowWalletSheet(true); return; }
+                        openP2PTransfer({ receiverId: recipientId, receiverName: recipientName, mode: "send" });
+                      }}
+                      onShareZivoCard={() => setShowZivoCardPicker(true)}
+                      onToggleSensitiveMedia={() => {
+                        setMarkNextMediaSensitive((prev) => {
+                          const next = !prev;
+                          toast.success(next ? "Next media will be blurred as 18+" : "18+ media blur marker off");
+                          return next;
+                        });
+                      }}
+                      onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+                      onLockedTextSelect={handleLockedTextSelect}
+                      onToggleDisappearing={cycleAutoDelete}
+                      onSchedule={() => {
+                        if (!input.trim()) {
+                          toast("Write a message first");
+                          return;
+                        }
+                        setShowScheduler(true);
+                      }}
+                      onOpenScheduled={() => setShowScheduledSheet(true)}
+                      disappearingEnabled={disappearingMode}
+                      disappearingLabel={
+                        disappearingSec == null ? "Off" :
+                        disappearingSec === 24 * 60 * 60 ? "1d" :
+                        disappearingSec === 7 * 24 * 60 * 60 ? "7d" :
+                        disappearingSec === 30 * 24 * 60 * 60 ? "30d" :
+                        "On"
+                      }
+                      sensitiveMediaMarked={markNextMediaSensitive}
+                    />
+                  </Suspense>
+                )}
               </div>
             </div>
 

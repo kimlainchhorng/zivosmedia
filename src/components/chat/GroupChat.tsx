@@ -51,9 +51,9 @@ import ZivoCardPicker from "./ZivoCardPicker";
 import { beginSend as outboxBeginSend, enqueue as outboxEnqueue, finishSend as outboxFinishSend, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
 import ChatDeliveryStatus from "./ChatDeliveryStatus";
 import OutboxPendingBadge from "./OutboxPendingBadge";
-import ChatAttachMenu from "./ChatAttachMenu";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useChatFiles } from "@/hooks/useChatFiles";
+import { useChatDraft } from "@/hooks/useChatDraft";
 import { blobToDataUrl, shouldInlineVoiceBlob, uploadVoiceWithProgress, retryWithBackoff, UploadAbortedError, UploadHttpError } from "@/lib/voiceUpload";
 import { vlog, vwarn } from "@/lib/voiceDebug";
 import GroupMembersSheet from "./GroupMembersSheet";
@@ -65,6 +65,7 @@ import { primeCallAudio } from "@/lib/callAudio";
 import Link2 from "lucide-react/dist/esm/icons/link-2";
 const StickerKeyboard = lazy(() => import("./StickerKeyboard"));
 const ChatMiniApps = lazy(() => import("./ChatMiniApps"));
+const ChatComposerHub = lazy(() => import("./ChatComposerHub"));
 const LockedMediaPricePicker = lazy(() => import("./LockedMediaPricePicker"));
 const ChatGiftPanel = lazy(() => import("./ChatGiftPanel"));
 const ChatWalletSheet = lazy(() => import("./ChatWalletSheet"));
@@ -92,6 +93,7 @@ import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type
 import { formatChatDateLabel } from "@/lib/chat/dateLabels";
 import { DEFAULT_CHAT_WALLPAPER_CLASS } from "./chatPersonalizationStyles";
 import { getChatMessageHighlightClass } from "./chatMessageHighlight";
+import { getComposerDraftPartnerId, type ChatComposerSource, type ComposerActionId } from "./chatComposerHubModel";
 
 interface GroupChatProps {
   groupId: string;
@@ -516,7 +518,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const [sharedMediaTab, setSharedMediaTab] = useState<"photos" | "videos" | "gif" | "music" | "voice" | "files" | "links">("photos");
   const [membersRefreshKey, setMembersRefreshKey] = useState(0);
   const [groupCall, setGroupCall] = useState<"audio" | "video" | null>(autoStartCall ?? null);
-  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showComposerHub, setShowComposerHub] = useState(false);
+  const [composerHubAction, setComposerHubAction] = useState<ComposerActionId | null>(null);
   const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
   const [lockedMediaFiles, setLockedMediaFiles] = useState<File[]>([]);
   const [unlockedGroupMediaIds, setUnlockedGroupMediaIds] = useState<Set<string>>(() => new Set());
@@ -567,6 +570,29 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const stickerSuggestions = useMemo(() => suggestStickersFor(input), [input]);
   const voice = useVoiceRecorder();
   const { uploadFile } = useChatFiles();
+  const composerSource = useMemo<ChatComposerSource>(
+    () => ({ type: "group", chatId: groupId, title: currentGroupName, canSchedule: false }),
+    [currentGroupName, groupId],
+  );
+  const { draft: groupDraft, updateDraft: updateGroupDraft, clearDraft: clearGroupDraft } = useChatDraft(
+    user?.id,
+    getComposerDraftPartnerId(composerSource),
+  );
+  useEffect(() => {
+    if (groupDraft && !input) setInput(groupDraft);
+  }, [groupDraft, input]);
+  const updateComposerDraft = useCallback((next: string) => {
+    setInput(next);
+    updateGroupDraft(next);
+  }, [updateGroupDraft]);
+  const openComposerHub = useCallback((actionId: ComposerActionId | null = null) => {
+    setComposerHubAction(actionId);
+    setShowComposerHub(true);
+  }, []);
+  const setComposerHubOpen = useCallback((open: boolean) => {
+    setShowComposerHub(open);
+    if (!open) setComposerHubAction(null);
+  }, []);
   const voiceUploadInFlightRef = useRef(false);
   const voiceJobsRef = useRef<Map<string, {
     controller: AbortController;
@@ -749,6 +775,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     const insert = `@${memberName} `;
     const next = before + insert + after;
     setInput(next);
+    updateGroupDraft(next);
     setMentionQuery(null);
     setMentionStart(-1);
     setMentionIndex(0);
@@ -757,30 +784,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       const caret = (before + insert).length;
       try { inputRef.current?.setSelectionRange(caret, caret); } catch { /* ignore */ }
     });
-  }, [input, mentionQuery, mentionStart]);
+  }, [input, mentionQuery, mentionStart, updateGroupDraft]);
 
   // Slash-command catalog — wires existing group sheet/handlers to a quick keyboard menu.
-  const slashCommands = useMemo(() => [
-    { id: "members",  label: "/members",  hint: "View group members",            run: () => setShowMembers(true) },
-    { id: "invite",   label: "/invite",   hint: "Invite people to this group",   run: () => setShowInvites(true) },
-    { id: "search",   label: "/search",   hint: "Search messages in this group", run: () => setNavigatorMode("search") },
-    { id: "location", label: "/location", hint: "Share your current location",   run: () => handleLocationShare() },
-    { id: "sticker",  label: "/sticker",  hint: "Open the sticker keyboard",     run: () => setShowStickerKeyboard(true) },
-  ], []);
-
-  const slashCandidates = useMemo(() => {
-    if (slashQuery == null) return [];
-    if (!slashQuery) return slashCommands;
-    return slashCommands.filter((c) => c.id.startsWith(slashQuery) || c.label.includes(slashQuery));
-  }, [slashCommands, slashQuery]);
-
-  const runSlashCommand = useCallback((cmd: { run: () => void }) => {
-    setInput("");
-    setSlashQuery(null);
-    setSlashIndex(0);
-    cmd.run();
-  }, []);
-
   // Load members
   useEffect(() => {
     if (!user?.id) return;
@@ -1199,6 +1205,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     }
     if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
     setInput("");
+    clearGroupDraft();
     setReplyTo(null);
     setSending(true);
 
@@ -1263,7 +1270,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       toast.error(navigator.onLine ? "Failed to send — tap to retry" : "You're offline — tap to retry when back online");
     }
     setSending(false);
-  }, [groupId, input, markNextMediaSensitive, replyTo, scrollToBottom, sending, user?.id]);
+  }, [clearGroupDraft, groupId, input, markNextMediaSensitive, replyTo, scrollToBottom, sending, user?.id]);
 
   const failedSendsRef = useRef<Map<string, GroupMessageInsert>>(new Map());
 
@@ -2204,7 +2211,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     toast.success(pinned ? "Message pinned" : "Message unpinned");
   }, [canPinMessages, user?.id]);
 
-  const handleLocationShare = () => {
+  const handleLocationShare = useCallback(() => {
     if (!navigator.geolocation) { toast.error("Location not supported"); return; }
     toast.loading("Getting location...", { id: "loc-g" });
     navigator.geolocation.getCurrentPosition(
@@ -2224,7 +2231,44 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       () => { toast.dismiss("loc-g"); toast.error("Location access denied"); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  };
+  }, [groupId, scrollToBottom, user?.id]);
+
+  // Slash-command catalog wires existing group sheet/handlers to a quick keyboard menu.
+  type GroupSlashCommandId = "members" | "invite" | "search" | "schedule" | "poll" | "miniapp" | "location" | "sticker";
+  type GroupSlashCommand = { id: GroupSlashCommandId; label: string; hint: string };
+  const slashCommands = useMemo<GroupSlashCommand[]>(() => [
+    { id: "members",  label: "/members",  hint: "View group members" },
+    { id: "invite",   label: "/invite",   hint: "Invite people to this group" },
+    { id: "search",   label: "/search",   hint: "Search messages in this group" },
+    { id: "schedule", label: "/schedule", hint: "Schedule is DM-only" },
+    { id: "poll",     label: "/poll",     hint: "Create a poll" },
+    { id: "miniapp",  label: "/miniapp",  hint: "Open mini apps" },
+    { id: "location", label: "/location", hint: "Share your current location" },
+    { id: "sticker",  label: "/sticker",  hint: "Open the sticker keyboard" },
+  ], []);
+
+  const slashCandidates = useMemo(() => {
+    if (slashQuery == null) return [];
+    if (!slashQuery) return slashCommands;
+    return slashCommands.filter((c) => c.id.startsWith(slashQuery) || c.label.includes(slashQuery));
+  }, [slashCommands, slashQuery]);
+
+  const runSlashCommand = useCallback((cmd: GroupSlashCommand) => {
+    setInput("");
+    updateGroupDraft("");
+    setSlashQuery(null);
+    setSlashIndex(0);
+    switch (cmd.id) {
+      case "members": setShowMembers(true); break;
+      case "invite": setShowInvites(true); break;
+      case "search": setNavigatorMode("search"); break;
+      case "schedule": openComposerHub("schedule"); break;
+      case "poll": openComposerHub("poll"); break;
+      case "miniapp": openComposerHub("miniapp"); break;
+      case "location": handleLocationShare(); break;
+      case "sticker": setShowStickerKeyboard(true); break;
+    }
+  }, [handleLocationShare, openComposerHub, updateGroupDraft]);
 
   const toggleMute = () => {
     const next = !isMuted;
@@ -2787,7 +2831,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               open={showSocialShare}
               onClose={() => setShowSocialShare(false)}
               onShareLink={(url) => {
-                setInput((prev) => (prev.trim() ? `${prev.trim()} ${url}` : url));
+                setInput((prev) => {
+                  const next = prev.trim() ? `${prev.trim()} ${url}` : url;
+                  updateGroupDraft(next);
+                  return next;
+                });
                 setShowSocialShare(false);
                 setTimeout(() => inputRef.current?.focus(), 0);
               }}
@@ -2883,6 +2931,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 onClick={() => {
                   void handleStickerSend({ text: `[sticker:${s.id}]`, messageType: "sticker" });
                   setInput("");
+                  updateGroupDraft("");
                 }}
                 className="shrink-0 w-16 h-16 rounded-xl bg-muted/50 hover:bg-muted active:scale-95 transition-all flex items-center justify-center p-1"
                 aria-label={`Send sticker: ${s.alt}`}
@@ -2911,7 +2960,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <div className="relative shrink-0">
             <button type="button"
               onClick={() => {
-                setShowAttachMenu(false);
+                setShowComposerHub(false);
                 setShowStickerKeyboard((prev) => !prev);
               }}
               className={`h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 ${
@@ -3004,6 +3053,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               onChange={(e) => {
                 const v = e.target.value;
                 setInput(v);
+                updateGroupDraft(v);
                 // Slash-command detection — only when input starts with `/` and has no whitespace yet
                 if (v.startsWith("/") && !/\s/.test(v)) {
                   setSlashQuery(v.slice(1).toLowerCase());
@@ -3067,43 +3117,53 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 data-attach-trigger
                 onClick={() => {
                   setShowStickerKeyboard(false);
-                  setShowAttachMenu((prev) => !prev);
+                  setComposerHubOpen(!showComposerHub);
                 }}
                 disabled={uploadingImage}
-                className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${showAttachMenu ? "text-primary bg-primary/10" : "text-muted-foreground/45 hover:text-muted-foreground"}`}
-                aria-label="Attachments"
-                title="Attachments"
+                className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${showComposerHub ? "text-primary bg-primary/10" : "text-muted-foreground/45 hover:text-muted-foreground"}`}
+                aria-label="Composer hub"
+                title="Composer hub"
               >
                 {uploadingImage ? <Loader2 className="h-[17px] w-[17px] animate-spin" /> : <Paperclip className="h-5 w-5" />}
               </button>
-              <ChatAttachMenu
-                open={showAttachMenu}
-                onClose={() => setShowAttachMenu(false)}
-                onImageSelect={() => fileInputRef.current?.click()}
-                onVideoSelect={() => videoInputRef.current?.click()}
-                onGifSelect={() => gifInputRef.current?.click()}
-                onMusicSelect={() => filePickerTriggerRef.current?.("audio")}
-                onLocationShare={handleLocationShare}
-                onLockedImageSelect={() => lockedImageInputRef.current?.click()}
-                lockedMediaHint="Stars unlock"
-                onSendGift={() => setShowGiftPanel(true)}
-                onOpenWallet={() => setShowWalletSheet(true)}
-                onScanDocument={() => setShowScanner(true)}
-                onFileSelect={() => filePickerTriggerRef.current?.("document")}
-                onCreatePoll={() => setShowPollCreator(true)}
-                onShareContact={() => setShowContactPicker(true)}
-                onShareSocial={() => setShowSocialShare(true)}
-                onShareZivoCard={() => setShowZivoCardPicker(true)}
-                onToggleDisappearing={() => {
-                  const next = disappearingSec == null ? 24 * 60 * 60 : disappearingSec === 24 * 60 * 60 ? 7 * 24 * 60 * 60 : disappearingSec === 7 * 24 * 60 * 60 ? 30 * 24 * 60 * 60 : null;
-                  setDisappearingSec(next);
-                  toast.success(next == null ? "Auto-delete: Off" : next === 24*60*60 ? "Auto-delete: 1 day" : next === 7*24*60*60 ? "Auto-delete: 7 days" : "Auto-delete: 30 days");
-                }}
-                onToggleSensitiveMedia={handleToggleSensitiveMedia}
-                disappearingEnabled={disappearingSec != null}
-                sensitiveMediaMarked={markNextMediaSensitive}
-                disappearingLabel={disappearingSec == null ? "Off" : disappearingSec === 24*60*60 ? "1d" : disappearingSec === 7*24*60*60 ? "7d" : "30d"}
-              />
+              {showComposerHub && (
+                <Suspense fallback={null}>
+                  <ChatComposerHub
+                    open={showComposerHub}
+                    onOpenChange={setComposerHubOpen}
+                    source={composerSource}
+                    draftText={input}
+                    onDraftTextChange={updateComposerDraft}
+                    onClearDraft={clearGroupDraft}
+                    highlightedActionId={composerHubAction}
+                    onImageSelect={() => fileInputRef.current?.click()}
+                    onVideoSelect={() => videoInputRef.current?.click()}
+                    onGifSelect={() => gifInputRef.current?.click()}
+                    onMusicSelect={() => filePickerTriggerRef.current?.("audio")}
+                    onLocationShare={handleLocationShare}
+                    onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+                    onSendGift={() => setShowGiftPanel(true)}
+                    onOpenWallet={() => setShowWalletSheet(true)}
+                    onScanDocument={() => setShowScanner(true)}
+                    onFileSelect={() => filePickerTriggerRef.current?.("document")}
+                    onCreatePoll={() => setShowPollCreator(true)}
+                    onOpenMiniApps={() => setShowMiniApps(true)}
+                    onShareContact={() => setShowContactPicker(true)}
+                    onShareSocial={() => setShowSocialShare(true)}
+                    onShareZivoCard={() => setShowZivoCardPicker(true)}
+                    onToggleDisappearing={() => {
+                      const next = disappearingSec == null ? 24 * 60 * 60 : disappearingSec === 24 * 60 * 60 ? 7 * 24 * 60 * 60 : disappearingSec === 7 * 24 * 60 * 60 ? 30 * 24 * 60 * 60 : null;
+                      setDisappearingSec(next);
+                      toast.success(next == null ? "Auto-delete: Off" : next === 24*60*60 ? "Auto-delete: 1 day" : next === 7*24*60*60 ? "Auto-delete: 7 days" : "Auto-delete: 30 days");
+                    }}
+                    onToggleSensitiveMedia={handleToggleSensitiveMedia}
+                    onSchedule={() => toast("Scheduled send is DM-only for now")}
+                    disappearingEnabled={disappearingSec != null}
+                    sensitiveMediaMarked={markNextMediaSensitive}
+                    disappearingLabel={disappearingSec == null ? "Off" : disappearingSec === 24*60*60 ? "1d" : disappearingSec === 7*24*60*60 ? "7d" : "30d"}
+                  />
+                </Suspense>
+              )}
             </div>
           </div>
 
