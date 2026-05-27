@@ -230,6 +230,7 @@ const SocialFeedPage = lazyWithRetry(() => import("./pages/SocialFeedPage"));
 const SoundPage = lazy(() => import("./pages/SoundPage"));
 const ChatHubPage = lazyWithRetry(() => import("./pages/ChatHubPage"));
 const DirectInboxPage = lazyWithRetry(() => import("./pages/DirectInboxPage"));
+
 const ContactsPage = lazyWithRetry(() => import("./pages/chat/ContactsPage"));
 const ContactRequestsPage = lazyWithRetry(() => import("./pages/chat/ContactRequestsPage"));
 const MessageRequestsPage = lazyWithRetry(() => import("./pages/chat/MessageRequestsPage"));
