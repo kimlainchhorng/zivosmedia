@@ -7,11 +7,12 @@
  *   3. (Optional) Selects one upload as the public preview/teaser.
  *   4. Insert into ppv_posts with media_paths + preview_path.
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCreatorType } from "@/hooks/useCreatorType";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Lock, ImagePlus, X, Eye, DollarSign, Loader2, Flame,
@@ -32,8 +33,22 @@ type UploadedItem = {
 export default function CreatePPVPostPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { creatorType, isLoading: typeLoading } = useCreatorType();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // PPV is OF-only. Content creators get bounced to the welcome page with a
+  // toast so they understand why. Wait until the type query has resolved to
+  // avoid bouncing on the first paint.
+  useEffect(() => {
+    if (!user || typeLoading) return;
+    if (creatorType && creatorType !== "of") {
+      toast("PPV is part of the OF Creator workflow", {
+        description: "Switch to OF Creator to publish locked posts.",
+      });
+      navigate("/creator/welcome", { replace: true });
+    }
+  }, [user, creatorType, typeLoading, navigate]);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

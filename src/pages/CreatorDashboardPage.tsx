@@ -117,10 +117,40 @@ export default function CreatorDashboardPage() {
     enabled: !!user,
   });
 
+  // PPV revenue: sum of revenue_cents across this creator's posts.
+  const { data: ppvRevenueCents = 0 } = useQuery({
+    queryKey: ["creator-ppv-revenue", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { data } = await (supabase as any)
+        .from("ppv_posts")
+        .select("revenue_cents")
+        .eq("creator_id", user.id);
+      return ((data as any[]) || []).reduce((s: number, p: any) => s + (p.revenue_cents ?? 0), 0);
+    },
+    enabled: !!user,
+  });
+
+  // Paid DM revenue: sum of amount_cents_paid across unlocks where this user
+  // is the creator (i.e. fans paid to read their messages).
+  const { data: dmRevenueCents = 0 } = useQuery({
+    queryKey: ["creator-dm-revenue", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { data } = await (supabase as any)
+        .from("direct_message_unlocks")
+        .select("amount_cents_paid")
+        .eq("creator_id", user.id);
+      return ((data as any[]) || []).reduce((s: number, r: any) => s + (r.amount_cents_paid ?? 0), 0);
+    },
+    enabled: !!user,
+  });
+
   const totalTips = tips.reduce((sum: number, t: any) => sum + (t.amount_cents || 0), 0);
   const liveEarningsCents = liveEarnings?.earnings_cents ?? 0;
   const liveCoins = liveEarnings?.total_coins_received ?? 0;
-  const totalEarnings = (creator?.total_earnings_cents || 0) + totalTips + liveEarningsCents;
+  const unlockRevenueCents = ppvRevenueCents + dmRevenueCents;
+  const totalEarnings = (creator?.total_earnings_cents || 0) + totalTips + liveEarningsCents + unlockRevenueCents;
 
   // ─── OF-specific quick actions ────────────────────────────────────────────
   const ofQuickActions = [
@@ -162,7 +192,7 @@ export default function CreatorDashboardPage() {
     { label: "Tips Income", value: `$${(totalTips / 100).toFixed(2)}`, icon: Heart, accent: "hsl(0 84% 60%)" },
     { label: "Live Gifts", value: `$${(liveEarningsCents / 100).toFixed(2)}`, icon: Gift, accent: "hsl(25 95% 53%)" },
     { label: "Sub Tiers", value: String(tiers.length), icon: Crown, accent: "hsl(38 92% 50%)" },
-    { label: "PPV / DMs", value: "—", icon: Lock, accent: "hsl(263 70% 58%)" },
+    { label: "PPV / DMs", value: `$${(unlockRevenueCents / 100).toFixed(2)}`, icon: Lock, accent: "hsl(263 70% 58%)" },
   ];
 
   const quickActions = [
@@ -304,10 +334,15 @@ export default function CreatorDashboardPage() {
 
           {/* OF earnings breakdown strip */}
           {creatorType === "of" && (
-            <div className="flex justify-center gap-4 mt-3 pt-3 border-t border-border/20">
+            <div className="flex justify-center gap-3 mt-3 pt-3 border-t border-border/20 flex-wrap">
               <div className="text-center">
                 <p className="text-[13px] font-extrabold text-rose-500">${(totalTips / 100).toFixed(2)}</p>
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Tips</p>
+              </div>
+              <div className="w-px bg-border/30" />
+              <div className="text-center">
+                <p className="text-[13px] font-extrabold text-violet-500">${(unlockRevenueCents / 100).toFixed(2)}</p>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">PPV/DM</p>
               </div>
               <div className="w-px bg-border/30" />
               <div className="text-center">
@@ -317,7 +352,7 @@ export default function CreatorDashboardPage() {
               <div className="w-px bg-border/30" />
               <div className="text-center">
                 <p className="text-[13px] font-extrabold text-amber-500">{subscribers.length}</p>
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Subscribers</p>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Subs</p>
               </div>
             </div>
           )}
