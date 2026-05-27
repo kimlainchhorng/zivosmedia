@@ -45,15 +45,15 @@ export default function RideHistoryInsights() {
       ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
       : new Date(now.getFullYear(), now.getMonth(), 1);
 
-    supabase
-      .from("ride_requests")
+    (supabase
+      .from("ride_requests") as any)
       .select("payment_amount, payment_currency, payment_status, bakong_amount_khr, distance_miles, duration_minutes")
       .eq("user_id", user.id)
       .eq("status", "completed")
       .gte("created_at", startDate.toISOString())
-      .then(({ data }) => {
+      .then(({ data }: { data: any[] | null }) => {
         if (data && data.length > 0) {
-          const spentByCurrency = data.reduce((totals: Record<string, number>, r) => {
+          const spentByCurrency = data.reduce((totals: Record<string, number>, r: any) => {
             const currency = (r.payment_currency || (r.payment_status === "bakong_paid" ? "KHR" : "USD")).toUpperCase();
             const amount = currency === "KHR" ? Number(r.bakong_amount_khr ?? r.payment_amount ?? 0) : Number(r.payment_amount ?? 0);
             totals[currency] = (totals[currency] ?? 0) + amount;
@@ -62,8 +62,8 @@ export default function RideHistoryInsights() {
           setStats({
             totalRides: data.length,
             spentByCurrency,
-            totalDistanceMi: Math.round(data.reduce((sum, r) => sum + (r.distance_miles || 0), 0) * 10) / 10,
-            totalDurationMin: Math.round(data.reduce((sum, r) => sum + (r.duration_minutes || 0), 0)),
+            totalDistanceMi: Math.round(data.reduce((sum: number, r: any) => sum + (r.distance_miles || 0), 0) * 10) / 10,
+            totalDurationMin: Math.round(data.reduce((sum: number, r: any) => sum + (r.duration_minutes || 0), 0)),
           });
         } else {
           setStats({ totalRides: 0, spentByCurrency: {}, totalDistanceMi: 0, totalDurationMin: 0 });

@@ -2684,9 +2684,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       });
       if (error) throw error;
       const signedUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
-      const messageType = isVideo ? "locked_video" : "locked_image";
-      const priceLabel = `$${(priceCents / 100).toFixed(2)}`;
-      const label = isVideo ? `🔒 Locked Video · ${priceLabel}` : `🔒 Locked Photo · ${priceLabel}`;
+      const singleMessageType = isVideo ? "locked_video" : "locked_image";
+      const singlePriceLabel = `$${(priceCents / 100).toFixed(2)}`;
+      const singleLabel = isVideo ? `🔒 Locked Video · ${singlePriceLabel}` : `🔒 Locked Photo · ${singlePriceLabel}`;
       const text = input.trim();
       setInput("");
       clearDraft();
@@ -2694,10 +2694,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       const singleOptId = `opt-${Date.now()}`;
       const optimisticMsg: Message = {
         id: singleOptId, sender_id: user.id, receiver_id: recipientId,
-        message: text || label,
+        message: text || singleLabel,
         image_url: isVideo ? null : signedUrl,
         video_url: isVideo ? signedUrl : null,
-        voice_url: null, message_type: messageType,
+        voice_url: null, message_type: singleMessageType,
         reply_to_id: null, location_lat: null, location_lng: null, location_label: null,
         is_pinned: false, expires_at: null, created_at: new Date().toISOString(), is_read: false,
         locked_price_cents: priceCents,
@@ -2708,14 +2708,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       const { error: insertErr } = await dbFrom("direct_messages")
         .insert({
           sender_id: user.id, receiver_id: recipientId,
-          message: text || label,
+          message: text || singleLabel,
           image_url: isVideo ? null : path,
           video_url: isVideo ? path : null,
-          message_type: messageType,
+          message_type: singleMessageType,
           locked_price_cents: priceCents,
         });
       if (insertErr) throw insertErr;
-      void sendChatPush(messageType, text || label);
+      void sendChatPush(singleMessageType, text || singleLabel);
     } catch (error) {
       console.warn("[dm/locked-media] upload/send failed", error);
       if (cleanupPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(cleanupPaths).catch(() => {});
@@ -3849,7 +3849,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         filePayload={msg.file_payload}
                         senderId={msg.sender_id}
                         lockedPriceCents={msg.locked_price_cents}
-                        lockedPreviewUrl={getLockedMediaPreviewPath(msg.file_payload)}
+                        lockedPreviewUrl={getLockedMediaPreviewPath(msg.file_payload as unknown as Parameters<typeof getLockedMediaPreviewPath>[0])}
                         initiallyLocked={
                           isLockedDirectMessage(msg.message_type) && !isMe
                             ? !dmUnlocks.isUnlocked(msg.id)

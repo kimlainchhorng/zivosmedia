@@ -127,12 +127,13 @@ export default function RideTripHistory({ onRebook }: RideTripHistoryProps = {})
     if (!user?.id) { setLoading(false); return; }
 
     const fetchTrips = async () => {
-      const { data: rides } = await supabase
-        .from("ride_requests")
+      const { data: ridesData } = await (supabase
+        .from("ride_requests") as any)
         .select("id, created_at, pickup_address, dropoff_address, dropoff_lat, dropoff_lng, assigned_driver_id, payment_amount, payment_currency, payment_intent_id, stripe_payment_intent_id, captured_amount_cents, bakong_reference, bakong_amount_khr, bakong_verified_by, distance_miles, duration_minutes, status, payment_status")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
+      const rides = ridesData as any[] | null;
 
       if (!rides || rides.length === 0) { setTrips([]); setLoading(false); return; }
 

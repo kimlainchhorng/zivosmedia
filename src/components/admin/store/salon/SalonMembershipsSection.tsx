@@ -101,15 +101,15 @@ export default function SalonMembershipsSection({ storeId }: SalonMembershipsSec
     setLoading(true);
     setError(null);
     const [tiersRes, membersRes] = await Promise.all([
-      supabase
-        .from("salon_membership_tiers")
+      (supabase
+        .from("salon_membership_tiers") as any)
         .select("*")
         .eq("store_id", storeId)
         .order("sort_order", { ascending: true }),
       // Join clients + tiers to surface names directly. PostgREST's nested
       // select keeps it to one round-trip.
-      supabase
-        .from("salon_client_memberships")
+      (supabase
+        .from("salon_client_memberships") as any)
         .select("id, client_id, tier_id, status, current_period_end, cancel_at_period_end, started_at, salon_clients(display_name, email), salon_membership_tiers(name)")
         .eq("store_id", storeId)
         .in("status", ["active", "trialing", "past_due", "paused", "incomplete"])
@@ -191,9 +191,9 @@ export default function SalonMembershipsSection({ storeId }: SalonMembershipsSec
 
     let tierId = dialog.id;
     if (tierId) {
-      const { error: err } = await supabase
-        .from("salon_membership_tiers")
-        .update(payload as never)
+      const { error: err } = await (supabase
+        .from("salon_membership_tiers") as any)
+        .update(payload)
         .eq("id", tierId);
       if (err) {
         setSaving(false);
@@ -204,9 +204,9 @@ export default function SalonMembershipsSection({ storeId }: SalonMembershipsSec
       // sort_order — append. Trivially racy but doesn't matter (manual
       // re-order is a future feature).
       const sort_order = tiers.length > 0 ? Math.max(...tiers.map((t) => t.sort_order)) + 10 : 0;
-      const { data, error: err } = await supabase
-        .from("salon_membership_tiers")
-        .insert({ ...payload, sort_order } as never)
+      const { data, error: err } = await (supabase
+        .from("salon_membership_tiers") as any)
+        .insert({ ...payload, sort_order })
         .select("id")
         .single();
       if (err) {
@@ -227,7 +227,7 @@ export default function SalonMembershipsSection({ storeId }: SalonMembershipsSec
 
   const removeTier = async (t: Tier) => {
     if (!window.confirm(`Delete "${t.name}"? Existing subscribers stay billed via Stripe — cancel them from the active members table first.`)) return;
-    const { error: err } = await supabase.from("salon_membership_tiers").delete().eq("id", t.id);
+    const { error: err } = await (supabase.from("salon_membership_tiers") as any).delete().eq("id", t.id);
     if (err) { toast.error(err.message); return; }
     toast.success("Tier removed.");
     await load();
