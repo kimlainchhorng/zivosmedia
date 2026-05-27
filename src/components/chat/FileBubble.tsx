@@ -56,6 +56,7 @@ export default function FileBubble({ file, mine }: { file: FileBubbleData; mine?
   const Icon = iconFor(file.mime_type);
   const isPdf = file.mime_type === "application/pdf";
   const isScan = file.source === "scan";
+  const isAudio = file.mime_type.startsWith("audio/");
   const cacheBucket = cacheBucketFor(file.mime_type);
   const subtitle = [
     isPdf ? "PDF" : file.mime_type.split("/")[1]?.toUpperCase(),
@@ -110,6 +111,17 @@ export default function FileBubble({ file, mine }: { file: FileBubbleData; mine?
           {subtitle && <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>}
         </div>
       </div>
+      {isAudio && (
+        <div className="px-3 pb-3">
+          <audio
+            src={file.url}
+            controls
+            preload="metadata"
+            aria-label={`Play ${file.filename}`}
+            className="h-9 w-full rounded-lg"
+          />
+        </div>
+      )}
       <div className="flex border-t border-border/30">
         <a
           href={file.url}
