@@ -229,6 +229,7 @@ const ReelsFeedPage = lazyWithRetry(() => import("./pages/ReelsFeedPage"));
 const SocialFeedPage = lazyWithRetry(() => import("./pages/SocialFeedPage"));
 const SoundPage = lazy(() => import("./pages/SoundPage"));
 const ChatHubPage = lazyWithRetry(() => import("./pages/ChatHubPage"));
+const DirectInboxPage = lazyWithRetry(() => import("./pages/DirectInboxPage"));
 const ContactsPage = lazyWithRetry(() => import("./pages/chat/ContactsPage"));
 const ContactRequestsPage = lazyWithRetry(() => import("./pages/chat/ContactRequestsPage"));
 const MessageRequestsPage = lazyWithRetry(() => import("./pages/chat/MessageRequestsPage"));
@@ -1495,7 +1496,7 @@ const App = () => (
                 
                 <Route path="/refer" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
                 <Route path={SOCIAL_ROUTE_PATHS.chat} element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
-                <Route path="/direct" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
+                <Route path="/direct" element={<ProtectedRoute><DirectInboxPage /></ProtectedRoute>} />
                 <Route path="/direct/t/:partnerId" element={<ProtectedRoute><DirectThreadRedirect /></ProtectedRoute>} />
                 <Route path="/for-you" element={<ProtectedRoute><ReelsFeedPage /></ProtectedRoute>} />
                 <Route path="/chat/saved" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
