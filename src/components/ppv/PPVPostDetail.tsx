@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, Lock, Loader2, DollarSign, Users, Eye, CheckCircle2, Flame,
-  Pencil, Trash2, EyeOff, MoreVertical, X, Check, ChevronRight,
+  Pencil, Trash2, EyeOff, MoreVertical, X, Check, ChevronRight, Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ interface PPVPost {
   unlock_count: number;
   revenue_cents: number;
   created_at: string;
+  free_for_subscribers: boolean;
 }
 
 interface Props {
@@ -52,6 +53,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editPriceUsd, setEditPriceUsd] = useState("");
+  const [editFreeForSubs, setEditFreeForSubs] = useState(false);
   const [previewAsFan, setPreviewAsFan] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -174,7 +176,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
 
   // ─── Owner actions: edit, publish toggle, delete ──────────────────────────
   const updateMut = useMutation({
-    mutationFn: async (patch: Partial<Pick<PPVPost, "title" | "description" | "price_cents" | "is_published">>) => {
+    mutationFn: async (patch: Partial<Pick<PPVPost, "title" | "description" | "price_cents" | "is_published" | "free_for_subscribers">>) => {
       if (!post) throw new Error("Post not loaded");
       const { error } = await (supabase as any)
         .from("ppv_posts")
@@ -227,6 +229,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
     setEditTitle(post.title);
     setEditDesc(post.description ?? "");
     setEditPriceUsd((post.price_cents / 100).toFixed(2));
+    setEditFreeForSubs(!!post.free_for_subscribers);
     setEditMode(true);
     setActionsOpen(false);
   };
@@ -241,6 +244,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
       title: editTitle.trim(),
       description: editDesc.trim() || null,
       price_cents: priceCents,
+      free_for_subscribers: editFreeForSubs,
     });
     toast.success("PPV updated");
     setEditMode(false);
@@ -611,8 +615,37 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                 />
               </div>
 
+              <button
+                type="button"
+                onClick={() => setEditFreeForSubs((v) => !v)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-colors text-left",
+                  editFreeForSubs
+                    ? "border-rose-500 bg-rose-500/8"
+                    : "border-border bg-background hover:border-rose-500/40"
+                )}
+              >
+                <Crown className="h-4 w-4 text-rose-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-[12px]">Free for subscribers</p>
+                  <p className="text-[10px] text-muted-foreground">Non-subs still pay below</p>
+                </div>
+                <div
+                  className={cn(
+                    "w-9 h-5 rounded-full p-0.5 transition-colors shrink-0",
+                    editFreeForSubs ? "bg-rose-500" : "bg-muted-foreground/30"
+                  )}
+                >
+                  <motion.div
+                    animate={{ x: editFreeForSubs ? 14 : 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className="w-4 h-4 rounded-full bg-white shadow"
+                  />
+                </div>
+              </button>
+
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Price (USD)</label>
+                <label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{editFreeForSubs ? "Non-subscriber price" : "Price (USD)"}</label>
                 <div className="mt-1 flex items-center h-11 rounded-xl border border-border bg-background overflow-hidden focus-within:border-rose-500/60">
                   <DollarSign className="h-4 w-4 text-muted-foreground ml-3" />
                   <input

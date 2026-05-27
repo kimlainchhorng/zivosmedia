@@ -16,7 +16,7 @@ import { useCreatorType } from "@/hooks/useCreatorType";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Lock, ImagePlus, X, Eye, DollarSign, Loader2, Flame,
-  CheckCircle2, Video,
+  CheckCircle2, Video, Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
@@ -53,6 +53,7 @@ export default function CreatePPVPostPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priceUsd, setPriceUsd] = useState("9.99");
+  const [freeForSubscribers, setFreeForSubscribers] = useState(false);
   const [items, setItems] = useState<UploadedItem[]>([]);
   const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -120,6 +121,7 @@ export default function CreatePPVPostPage() {
           media_paths: items.map((i) => i.path),
           preview_path: previewIdx !== null ? items[previewIdx]?.path : null,
           is_published: true,
+          free_for_subscribers: freeForSubscribers,
         })
         .select("id")
         .single();
@@ -209,10 +211,44 @@ export default function CreatePPVPostPage() {
           <p className="text-[10px] text-muted-foreground mt-1">{description.length}/500</p>
         </div>
 
+        {/* Free for subscribers toggle */}
+        <button
+          type="button"
+          onClick={() => setFreeForSubscribers((v) => !v)}
+          className={cn(
+            "w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-colors text-left active:scale-[0.99]",
+            freeForSubscribers
+              ? "border-rose-500 bg-rose-500/8"
+              : "border-border bg-card hover:border-rose-500/40"
+          )}
+        >
+          <div className="h-10 w-10 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
+            <Crown className="h-5 w-5 text-rose-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-extrabold text-[13px]">Free for subscribers</p>
+            <p className="text-[10px] text-muted-foreground">
+              Active subs unlock instantly. Non-subs pay the price below.
+            </p>
+          </div>
+          <div
+            className={cn(
+              "w-10 h-6 rounded-full p-0.5 transition-colors shrink-0",
+              freeForSubscribers ? "bg-rose-500" : "bg-muted-foreground/30"
+            )}
+          >
+            <motion.div
+              animate={{ x: freeForSubscribers ? 16 : 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="w-5 h-5 rounded-full bg-white shadow"
+            />
+          </div>
+        </button>
+
         {/* Price */}
         <div>
           <label className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">
-            Price
+            {freeForSubscribers ? "Non-subscriber price" : "Price"}
           </label>
           <div className="mt-1 flex items-center h-12 rounded-xl border border-border bg-card overflow-hidden focus-within:border-rose-500/60">
             <DollarSign className="h-4 w-4 text-muted-foreground ml-3" />
