@@ -32,7 +32,7 @@ Deno.serve(withSecurity("chat-unlock-group-media", async (req, ctx) => {
     });
 
     const { data, error } = await admin
-      .schema("private")
+      .schema("api")
       .rpc("unlock_group_locked_media", {
         p_actor_id: userData.user.id,
         p_message_id: messageId,

@@ -1,7 +1,7 @@
 /**
  * MediaGalleryLightbox — fullscreen carousel for photos/videos
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import X from "lucide-react/dist/esm/icons/x";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left";
@@ -17,11 +17,18 @@ interface Props {
 export default function MediaGalleryLightbox({ open, images, initialIndex = 0, onClose }: Props) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
+  useEffect(() => {
+    if (!open) return;
+    setCurrentIndex(Math.min(Math.max(initialIndex, 0), Math.max(images.length - 1, 0)));
+  }, [images.length, initialIndex, open]);
+
   if (!open || images.length === 0) return null;
 
   const current = images[currentIndex];
   const canPrev = currentIndex > 0;
   const canNext = currentIndex < images.length - 1;
+  const goPrev = () => setCurrentIndex((c) => Math.max(0, c - 1));
+  const goNext = () => setCurrentIndex((c) => Math.min(images.length - 1, c + 1));
 
   return (
     <AnimatePresence>
@@ -49,6 +56,13 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.18}
+            onDragEnd={(_, info) => {
+              if (info.offset.x > 80 && canPrev) goPrev();
+              if (info.offset.x < -80 && canNext) goNext();
+            }}
             className="flex items-center justify-center w-full h-full px-4"
           >
             {current.type === "image" ? (
@@ -66,7 +80,7 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
 
           {canPrev && (
             <button type="button"
-              onClick={(e) => { e.stopPropagation(); setCurrentIndex(c => c - 1); }}
+              onClick={(e) => { e.stopPropagation(); goPrev(); }}
               className="absolute left-4 z-10 h-12 w-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white active:scale-90"
               aria-label="Previous"
             >
@@ -76,7 +90,7 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
 
           {canNext && (
             <button type="button"
-              onClick={(e) => { e.stopPropagation(); setCurrentIndex(c => c + 1); }}
+              onClick={(e) => { e.stopPropagation(); goNext(); }}
               className="absolute right-4 z-10 h-12 w-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white active:scale-90"
               aria-label="Next"
             >

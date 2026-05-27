@@ -9,6 +9,8 @@ export interface OpenMediaDetail {
   url: string;
   type: "image" | "video";
   id?: string;
+  gallery?: { id: string; url: string; type: "image" | "video" }[];
+  index?: number;
 }
 
 export function openMedia(detail: OpenMediaDetail) {

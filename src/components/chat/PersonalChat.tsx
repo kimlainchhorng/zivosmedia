@@ -274,13 +274,27 @@ const dbFrom = (table: string): any => (supabase as any).from(table);
 const CHAT_MEDIA_BUCKET = "chat-media-files";
 const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
+const MIXED_MEDIA_ACCEPT = "image/*,video/*,.gif";
 const MEDIA_MESSAGE_TEXT = {
   image: "Photo",
   video: "Video",
+  album: "Photo album",
   voice: "Voice message",
   file: "File",
   location: "Location",
 } as const;
+
+type ChatMediaKind = "image" | "video";
+
+type MediaAlbumSendItem = {
+  id: string;
+  type: ChatMediaKind;
+  url: string;
+  filename: string;
+  mime_type: string;
+  size: number;
+  source: "upload" | "upload-inline" | "local";
+};
 
 function readMissedCallDismissMarker(key: string): MissedCallDismissMarker | null {
   if (!key || typeof window === "undefined") return null;
@@ -313,6 +327,16 @@ function formatUploadLimit(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))}MB`;
 }
 
+function getChatMediaKind(file: File): ChatMediaKind | null {
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("image/")) return "image";
+  return null;
+}
+
+function getUploadLimitForKind(kind: ChatMediaKind): number {
+  return kind === "image" ? IMAGE_UPLOAD_LIMIT_BYTES : VIDEO_UPLOAD_LIMIT_BYTES;
+}
+
 function randomMediaId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -320,7 +344,7 @@ function randomMediaId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function extensionForChatMedia(file: File, kind: "image" | "video"): string {
+function extensionForChatMedia(file: File, kind: ChatMediaKind): string {
   const fromName = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (fromName && fromName.length <= 8) return fromName;
   if (file.type === "image/png") return "png";
@@ -343,6 +367,7 @@ function fallbackMessageForSend(opts: {
 }): string {
   const text = opts.text?.trim();
   if (text) return text;
+  if (opts.messageType === "media_album") return MEDIA_MESSAGE_TEXT.album;
   if (opts.messageType === "image" || opts.imageUrl) return MEDIA_MESSAGE_TEXT.image;
   if (opts.messageType === "video" || opts.videoUrl) return MEDIA_MESSAGE_TEXT.video;
   if (opts.messageType === "voice" || opts.voiceUrl) return MEDIA_MESSAGE_TEXT.voice;
@@ -392,6 +417,21 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<OpenMediaDetail>).detail;
       if (!detail?.url) return;
+      if (detail.gallery?.length) {
+        void Promise.all(detail.gallery.map(async (item) => ({
+          ...item,
+          url: /^(https?:|blob:|data:)/.test(item.url)
+            ? item.url
+            : (await signedUrlFor(CHAT_MEDIA_BUCKET, item.url, "display")) || item.url,
+        }))).then((images) => {
+          setGalleryState({
+            open: true,
+            images,
+            index: Math.min(Math.max(detail.index ?? 0, 0), images.length - 1),
+          });
+        });
+        return;
+      }
       setGalleryState({ open: true, images: [{ id: detail.id || detail.url, url: detail.url, type: detail.type }], index: 0 });
     };
     window.addEventListener(OPEN_MEDIA_EVENT, handler as EventListener);
@@ -883,7 +923,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const senderName = cached?.name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Someone";
     const senderAvatarUrl = cached?.avatar || "";
 
-    let preview = "";
+    let preview: string;
     if (messageType === "image") preview = "Sent you a photo 📷";
     else if (messageType === "locked_image") preview = "Sent you a locked photo 🔒📷";
     else if (messageType === "video") preview = "Sent you a video 🎥";
@@ -892,6 +932,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     else if (messageType === "location") preview = "Shared a location 📍";
     else if (messageType === "sticker") preview = "Sent you a sticker 🎭";
     else if (messageType === "gif") preview = "Sent you a GIF";
+    else if (messageType === "media_album") preview = messageText.trim() || "Sent you a photo album";
     else if (messageText.trim()) {
       const trimmed = messageText.trim();
       preview = trimmed.length > 140 ? `${trimmed.slice(0, 137)}...` : trimmed;
@@ -1464,7 +1505,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     if (isComplexSend) setSending(false);
     inputRef.current?.focus();
   };
-  handleSendRef.current = handleSend;
+
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  }, [handleSend]);
 
   const retryFailedSend = useCallback(async (optimisticId: string) => {
     const payload = failedSendsRef.current.get(optimisticId);
@@ -1706,7 +1750,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     }));
     void runVoiceJob(clientSendId, !!job.publicUrl);
   }, [runVoiceJob]);
-  retryVoiceSendRef.current = retryVoiceSend;
+
+  useEffect(() => {
+    retryVoiceSendRef.current = retryVoiceSend;
+  }, [retryVoiceSend]);
 
   const discardVoiceSend = useCallback((clientSendId: string) => {
     const job = voiceJobsRef.current.get(clientSendId);
@@ -1788,7 +1835,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
 
   // Optimistic media send: show the bubble instantly, upload + insert in background.
-  const sendOptimisticMedia = (file: File, kind: "image" | "video") => {
+  const sendOptimisticMedia = (file: File, kind: ChatMediaKind) => {
     if (!user?.id) return;
     const localUrl = URL.createObjectURL(file);
     const clientSendId = randomMediaId();
@@ -1896,32 +1943,225 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     })();
   };
 
+  const sendOptimisticMediaAlbum = (files: File[]) => {
+    if (!user?.id) return;
+    const mediaFiles = files
+      .map((file) => ({ file, kind: getChatMediaKind(file) }))
+      .filter((item): item is { file: File; kind: ChatMediaKind } => item.kind !== null);
+    if (mediaFiles.length !== files.length) {
+      toast.error("Albums can include photos and videos only");
+      return;
+    }
+    if (mediaFiles.length < 2) {
+      const mediaFile = mediaFiles[0];
+      if (!mediaFile) return;
+      sendOptimisticMedia(mediaFile.file, mediaFile.kind);
+      return;
+    }
+    if (mediaFiles.length > 10) {
+      toast.error("Albums can include up to 10 items");
+      return;
+    }
+
+    for (const { file, kind } of mediaFiles) {
+      const limit = getUploadLimitForKind(kind);
+      if (file.size > limit) {
+        toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
+        return;
+      }
+    }
+
+    const clientSendId = randomMediaId();
+    const optimisticId = `opt-album-${clientSendId}`;
+    const caption = input.trim();
+    const markSensitive = markNextMediaSensitive;
+    if (markSensitive) setMarkNextMediaSensitive(false);
+    const localItems: MediaAlbumSendItem[] = mediaFiles.map(({ file, kind }) => ({
+      id: randomMediaId(),
+      type: kind,
+      url: URL.createObjectURL(file),
+      filename: file.name || MEDIA_MESSAGE_TEXT.album,
+      mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+      size: file.size,
+      source: "local",
+    }));
+    const firstImage = localItems.find((item) => item.type === "image");
+    const firstVideo = localItems.find((item) => item.type === "video");
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      sender_id: user.id,
+      receiver_id: recipientId,
+      message: caption || MEDIA_MESSAGE_TEXT.album,
+      image_url: firstImage?.url || null,
+      video_url: firstImage ? null : firstVideo?.url || null,
+      voice_url: null,
+      message_type: "media_album",
+      reply_to_id: replyTo?.id || null,
+      location_lat: null,
+      location_lng: null,
+      location_label: null,
+      is_pinned: false,
+      file_payload: {
+        client_send_id: clientSendId,
+        item_count: localItems.length,
+        album_items: localItems,
+        source: "local",
+        ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+      } as unknown as FileBubbleData,
+      expires_at: null,
+      created_at: new Date().toISOString(),
+      is_read: false,
+    };
+
+    setMessages((prev) => [...prev, optimisticMsg]);
+    scrollToBottom(true);
+    setInput("");
+    clearDraft();
+    const currentReply = replyTo;
+    setReplyTo(null);
+
+    void (async () => {
+      const uploadedPaths: string[] = [];
+      const dbItems: MediaAlbumSendItem[] = [];
+      const displayItems: MediaAlbumSendItem[] = [...localItems];
+
+      try {
+        for (let index = 0; index < mediaFiles.length; index += 1) {
+          const { file, kind } = mediaFiles[index];
+          let dbMediaUrl: string | null = null;
+          let displayUrl: string | null = null;
+          let itemSource: MediaAlbumSendItem["source"] = "upload";
+          let path: string | null = null;
+
+          try {
+            const ext = extensionForChatMedia(file, kind);
+            path = `${user.id}/${kind}s/${Date.now()}-${clientSendId}-${index}.${ext}`;
+            const { error: upErr } = await supabase.storage
+              .from(CHAT_MEDIA_BUCKET)
+              .upload(path, file, {
+                contentType: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+                upsert: false,
+                cacheControl: "3600",
+              });
+            if (upErr) throw upErr;
+            uploadedPaths.push(path);
+            dbMediaUrl = path;
+            displayUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
+          } catch (uploadErr) {
+            console.warn("[media-album] storage unavailable, using inline fallback", uploadErr);
+            if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
+            dbMediaUrl = await fileToInlineChatMediaUrl(file, kind);
+            displayUrl = dbMediaUrl;
+            itemSource = "upload-inline";
+          }
+
+          if (!dbMediaUrl) throw new Error(`Could not prepare album item ${index + 1}`);
+          const dbItem: MediaAlbumSendItem = {
+            id: displayItems[index].id,
+            type: kind,
+            url: dbMediaUrl,
+            filename: file.name || MEDIA_MESSAGE_TEXT.album,
+            mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+            size: file.size,
+            source: itemSource,
+          };
+          dbItems.push(dbItem);
+          displayItems[index] = { ...dbItem, url: displayUrl || dbMediaUrl };
+
+          const displayFirstImage = displayItems.find((item) => item.type === "image");
+          const displayFirstVideo = displayItems.find((item) => item.type === "video");
+          setMessages((prev) => prev.map((m) => m.id === optimisticId
+            ? {
+                ...m,
+                image_url: displayFirstImage?.url || null,
+                video_url: displayFirstImage ? null : displayFirstVideo?.url || null,
+                file_payload: {
+                  ...((m.file_payload as Record<string, unknown> | null) || {}),
+                  album_items: displayItems,
+                  source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
+                } as unknown as FileBubbleData,
+              }
+            : m));
+        }
+
+        const firstDbImage = dbItems.find((item) => item.type === "image");
+        const firstDbVideo = dbItems.find((item) => item.type === "video");
+        const insertData: DirectMessageInsert = {
+          sender_id: user.id,
+          receiver_id: recipientId,
+          message: caption || MEDIA_MESSAGE_TEXT.album,
+          message_type: "media_album",
+          image_url: firstDbImage?.url || null,
+          video_url: firstDbImage ? null : firstDbVideo?.url || null,
+          file_payload: {
+            client_send_id: clientSendId,
+            item_count: dbItems.length,
+            album_items: dbItems,
+            source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
+            ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+          } as unknown as FileBubbleData,
+        };
+        if (currentReply) insertData.reply_to_id = currentReply.id;
+        const { error: insErr } = await dbFrom("direct_messages").insert(insertData);
+        if (insErr) throw insErr;
+        void sendChatPush("media_album", caption);
+      } catch (e) {
+        console.warn("[media-album] upload/send failed", e);
+        if (uploadedPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(uploadedPaths).catch(() => {});
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+        toast.error("Failed to send album");
+      } finally {
+        localItems.forEach((item) => {
+          if (item.url.startsWith("blob:")) URL.revokeObjectURL(item.url);
+        });
+      }
+    })();
+  };
+
+  const sendSingleSelectedMedia = (file: File | undefined, clearInput: () => void) => {
+    if (!file || !user?.id) return;
+    const kind = getChatMediaKind(file);
+    if (!kind) {
+      toast.error("Choose a photo or video");
+      clearInput();
+      return;
+    }
+    const limit = getUploadLimitForKind(kind);
+    if (file.size > limit) {
+      toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
+      clearInput();
+      return;
+    }
+    sendOptimisticMedia(file, kind);
+    clearInput();
+  };
+
   // Image upload (instant bubble, background upload)
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-    if (file.size > IMAGE_UPLOAD_LIMIT_BYTES) {
-      toast.error(`Image must be under ${formatUploadLimit(IMAGE_UPLOAD_LIMIT_BYTES)}`);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 1) {
+      sendOptimisticMediaAlbum(files);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-    sendOptimisticMedia(file, "image");
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    const file = files[0];
+    sendSingleSelectedMedia(file, () => {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    });
   };
 
   // Video upload (instant bubble, background upload)
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-    const kind = file.type === "image/gif" ? "image" : "video";
-    const limit = kind === "image" ? IMAGE_UPLOAD_LIMIT_BYTES : VIDEO_UPLOAD_LIMIT_BYTES;
-    if (file.size > limit) {
-      toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 1) {
+      sendOptimisticMediaAlbum(files);
       if (videoInputRef.current) videoInputRef.current.value = "";
       return;
     }
-    sendOptimisticMedia(file, kind);
-    if (videoInputRef.current) videoInputRef.current.value = "";
+    const file = files[0];
+    sendSingleSelectedMedia(file, () => {
+      if (videoInputRef.current) videoInputRef.current.value = "";
+    });
   };
 
   // Locked media: first show price picker
@@ -2347,6 +2587,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     });
   }, [timeline]);
 
+  const setMessageNode = useCallback((messageId: string, element: HTMLDivElement | null) => {
+    if (element) {
+      messageRefs.current.set(messageId, element);
+    } else {
+      messageRefs.current.delete(messageId);
+    }
+  }, []);
+
   const latestMissedCall = useMemo(() => {
     return [...callEvents]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -2674,17 +2922,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           e.preventDefault();
           dragDepthRef.current = 0;
           setIsDragOver(false);
-          const file = e.dataTransfer.files?.[0];
-          if (!file || !user?.id) return;
-          if (file.type.startsWith("image/")) {
-            if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
-            sendOptimisticMedia(file, "image");
-          } else if (file.type.startsWith("video/")) {
-            if (file.size > 25 * 1024 * 1024) { toast.error("Video must be under 25MB"); return; }
-            sendOptimisticMedia(file, "video");
-          } else {
-            toast.error("Drop an image or video — for other files, use the attach menu");
+          const files = Array.from(e.dataTransfer.files ?? []);
+          if (!files.length || !user?.id) return;
+          if (files.length > 1) {
+            sendOptimisticMediaAlbum(files);
+            return;
           }
+          sendSingleSelectedMedia(files[0], () => {});
         }}
         className={`relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 flex flex-col bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.07),transparent_34%),linear-gradient(to_bottom,rgba(148,163,184,0.04),transparent_30%)] [-webkit-overflow-scrolling:touch] touch-pan-y [transform:translateZ(0)] [contain:layout_paint] ${getWallpaperClass(chatStyle.wallpaper)}`}
       >
@@ -2692,8 +2936,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         {isDragOver && (
           <div className="pointer-events-none absolute inset-3 z-30 rounded-3xl border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm flex items-center justify-center">
             <div className="bg-background/90 px-5 py-4 rounded-2xl shadow-lg border border-primary/30 text-center">
-              <p className="text-sm font-bold text-foreground">Drop image or video to send</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Up to 5MB image · 25MB video</p>
+              <p className="text-sm font-bold text-foreground">Drop photos or videos to send</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Up to 10MB photos / 50MB videos</p>
             </div>
           </div>
         )}
@@ -2797,7 +3041,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   )}
                   <motion.div
                     key={`bubble-${msg.id}`}
-                    ref={(el) => { if (el) messageRefs.current.set(msg.id, el as HTMLDivElement); }}
+                    ref={(el) => setMessageNode(msg.id, el)}
                     initial={{ opacity: 0, y: 12, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: "spring", damping: 22, stiffness: 380, mass: 0.7 }}
@@ -3011,7 +3255,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         />                    )}
 
                     {/* Aggregated emoji reactions chip row — pre-loaded to avoid N+1 queries */}
-                    {!msg.id.startsWith("opt-") && (
+                    {!msg.id.startsWith("opt-") && msg.message_type !== "media_album" && (
                       <MessageReactionsBar
                         messageId={msg.id}
                         align={isMe ? "right" : "left"}
@@ -3227,8 +3471,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 />
               </div>
 
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} title="Choose image" aria-label="Choose image" />
-              <input ref={videoInputRef} type="file" accept="video/*,.gif" className="hidden" onChange={handleVideoSelect} title="Choose video" aria-label="Choose video" />
+              <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
+              <input ref={videoInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose media" aria-label="Choose media" />
               <input ref={lockedImageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
               {/* Locked media price picker */}
@@ -3313,7 +3557,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     }
                     if (e.key === "Escape") { e.preventDefault(); setSlashQuery(null); return; }
                   }
-                  if (e.key === "Enter" && !e.shiftKey) (editingId ? handleSaveEdit() : handleSend());
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void (editingId ? handleSaveEdit() : handleSend());
+                  }
                 }}
                 placeholder={disappearingMode ? "Disappearing message…" : "Message…"}
                 className={`w-full h-12 pl-4 pr-24 rounded-full text-[15px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all ${
