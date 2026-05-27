@@ -61,6 +61,7 @@ const COMPOSER_WORKFLOWS = [
 
 type ComposerWorkflow = (typeof COMPOSER_WORKFLOWS)[number]["mode"];
 
+
 const WORKFLOW_STYLES: Record<ComposerWorkflow, {
   accent: string;
   activeCard: string;
@@ -120,6 +121,7 @@ const WORKFLOW_PROMPTS: Record<ComposerWorkflow, string> = {
   shop: "Describe what you are selling or promoting...",
   live: "Tell people what your live is about...",
 };
+
 
 const FILTERS = [
   { name: "Original", className: "[filter:none]" },
@@ -815,6 +817,40 @@ export default function CreatePostModal({
               </span>
             ) : publishLabel}
           </button>
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-b border-border/20 bg-card">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {COMPOSER_WORKFLOWS.map((workflow) => {
+              const isActive = workflow.mode === workflowMode;
+              return (
+                <button
+                  type="button"
+                  key={workflow.mode}
+                  onClick={() => selectWorkflowMode(workflow.mode)}
+                  className={cn(
+                    "shrink-0 rounded-2xl border px-3 py-2 text-left transition-colors active:scale-[0.98]",
+                    isActive ? "border-primary bg-primary/10 text-primary" : "border-border/50 bg-muted/20 text-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <workflow.icon className="h-4 w-4" />
+                    <span className="text-[12px] font-bold">{workflow.label}</span>
+                  </span>
+                  <span className="block max-w-[112px] truncate text-[10px] font-medium text-muted-foreground">
+                    {workflow.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+            {workflowTips.map((tip) => (
+              <span key={tip} className="shrink-0 rounded-full bg-muted/50 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                {tip}
+              </span>
+            ))}
           </div>
         </div>
 
