@@ -19,6 +19,7 @@ interface Props {
   // Player props (forwarded)
   url: string;
   durationMs?: number;
+  sizeBytes?: number | null;
   uploadStatus?: VoiceUploadStatus;
   uploadProgress?: number;
   uploadError?: string;
@@ -47,6 +48,7 @@ export default function VoiceMessageBubble({
   isPinned,
   url,
   durationMs,
+  sizeBytes,
   uploadStatus,
   uploadProgress,
   uploadError,
@@ -149,6 +151,7 @@ export default function VoiceMessageBubble({
             url={url}
             isMe={isMe}
             durationMs={durationMs}
+            sizeBytes={sizeBytes}
             uploadStatus={uploadStatus}
             uploadProgress={uploadProgress}
             uploadError={uploadError}

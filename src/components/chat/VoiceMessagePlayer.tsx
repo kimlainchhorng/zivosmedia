@@ -20,6 +20,8 @@ import AlertCircle from "lucide-react/dist/esm/icons/alert-circle";
 import Info from "lucide-react/dist/esm/icons/info";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { recordChatMediaCacheEntry } from "@/lib/chat/mediaCache";
 import { isVoiceDebugEnabled, setVoiceDebugEnabled, subscribeVoiceDebug } from "@/lib/voiceDebug";
 import { getVoiceUploadDiagnostics } from "@/lib/voiceUpload";
 
@@ -32,6 +34,7 @@ interface VoiceMessagePlayerProps {
   duration?: string;
   /** Known total duration in milliseconds — shown immediately, no waiting on metadata. */
   durationMs?: number;
+  sizeBytes?: number | null;
   isMe: boolean;
   /** Optional upload state for in-flight optimistic bubbles. */
   uploadStatus?: VoiceUploadStatus;
@@ -88,6 +91,7 @@ export default function VoiceMessagePlayer({
   url,
   duration,
   durationMs,
+  sizeBytes,
   isMe,
   uploadStatus,
   uploadProgress = 0,
@@ -100,6 +104,7 @@ export default function VoiceMessagePlayer({
   onDiscard,
   onReply,
 }: VoiceMessagePlayerProps) {
+  const { user } = useAuth();
   const isUploading = uploadStatus === "uploading";
   const isFailed = uploadStatus === "failed";
   const interactionDisabled = isUploading || isFailed;
@@ -113,6 +118,17 @@ export default function VoiceMessagePlayer({
   const [playing, setPlaying] = useState(false);
   const [totalDuration, setTotalDuration] = useState(knownTotalSec);
   const [speed, setSpeed] = useState<Speed>(() => readStoredSpeed());
+
+  useEffect(() => {
+    if (!url) return;
+    recordChatMediaCacheEntry({
+      userId: user?.id,
+      url,
+      bucket: "audio",
+      bytes: sizeBytes,
+      storagePath: url,
+    });
+  }, [sizeBytes, url, user?.id]);
 
   // Keep this player in sync with the user's globally-preferred speed —
   // changing speed on one bubble updates every other voice bubble in the
