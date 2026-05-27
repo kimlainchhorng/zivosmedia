@@ -22,6 +22,7 @@ import Megaphone from "lucide-react/dist/esm/icons/megaphone";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import UserBadge from "@/components/chat/UserBadge";
 import { cn } from "@/lib/utils";
+import { buildGlobalMessageHitPath, type DirectMessageHit, type GroupMessageHit, type MessageHit } from "./globalChatSearchModel";
 
 type ProfileRow = {
   id: string;
@@ -40,41 +41,12 @@ type ChannelRow = {
   members_count?: number | null;
 };
 
-type DirectMessageHit = {
-  sourceType: "dm";
-  id: string;
-  message: string;
-  sender_id: string;
-  receiver_id: string;
-  created_at: string;
-};
-
-type GroupMessageHit = {
-  sourceType: "group";
-  id: string;
-  message: string;
-  sender_id: string;
-  group_id: string;
-  group_name: string;
-  created_at: string;
-};
-
-export type MessageHit = DirectMessageHit | GroupMessageHit;
-
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
 const dbFrom = (table: string): any => (supabase as any).from(table);
-
-export function buildGlobalMessageHitPath(hit: MessageHit, currentUserId: string) {
-  if (hit.sourceType === "group") {
-    return `/chat?group=${encodeURIComponent(hit.group_id)}&msg=${encodeURIComponent(hit.id)}`;
-  }
-  const partnerId = hit.sender_id === currentUserId ? hit.receiver_id : hit.sender_id;
-  return `/chat?with=${encodeURIComponent(partnerId)}&msg=${encodeURIComponent(hit.id)}`;
-}
 
 export default function GlobalChatSearch({ open, onClose }: Props) {
   const { user } = useAuth();

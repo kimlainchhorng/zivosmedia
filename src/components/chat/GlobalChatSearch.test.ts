@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGlobalMessageHitPath, type MessageHit } from "./GlobalChatSearch";
+import { buildGlobalMessageHitPath, type MessageHit } from "./globalChatSearchModel";
 
 describe("GlobalChatSearch routing", () => {
   it("routes DM message hits through /chat with partner and message params", () => {
