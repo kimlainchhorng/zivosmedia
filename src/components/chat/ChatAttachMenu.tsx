@@ -5,7 +5,9 @@
 import { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ImagePlus from "lucide-react/dist/esm/icons/image-plus";
+import ImagePlay from "lucide-react/dist/esm/icons/image-play";
 import Video from "lucide-react/dist/esm/icons/video";
+import Music from "lucide-react/dist/esm/icons/music";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Timer from "lucide-react/dist/esm/icons/timer";
 import Lock from "lucide-react/dist/esm/icons/lock";
@@ -32,6 +34,8 @@ interface ChatAttachMenuProps {
   onClose: () => void;
   onImageSelect: () => void;
   onVideoSelect: () => void;
+  onGifSelect?: () => void;
+  onMusicSelect?: () => void;
   onLocationShare: () => void;
   onToggleDisappearing: () => void;
   onLockedImageSelect?: () => void;
@@ -55,7 +59,9 @@ interface ChatAttachMenuProps {
 
 const menuItems = [
   { id: "image", label: "Photo", hint: "Camera roll", icon: ImagePlus, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { id: "video", label: "Video", hint: "Clip or GIF", icon: Video, color: "text-violet-500", bg: "bg-violet-500/10" },
+  { id: "video", label: "Video", hint: "Camera clip", icon: Video, color: "text-violet-500", bg: "bg-violet-500/10" },
+  { id: "gif", label: "GIF", hint: "Animated image", icon: ImagePlay, color: "text-pink-500", bg: "bg-pink-500/10" },
+  { id: "music", label: "Music", hint: "Audio file", icon: Music, color: "text-teal-500", bg: "bg-teal-500/10" },
   { id: "sensitive", label: "18+", hint: "Blur next media", icon: ShieldAlert, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
   { id: "file", label: "File", hint: "PDF and docs", icon: FileUp, color: "text-sky-500", bg: "bg-sky-500/10" },
   { id: "scan", label: "Scan", hint: "Quick document", icon: ScanLine, color: "text-cyan-500", bg: "bg-cyan-500/10", isNew: true },
@@ -80,10 +86,10 @@ const LOCK_UNLOCK_PLANS = new Set(["chat", "pro"]);
 const USAGE_STORAGE_KEY = "chat:attach:usage:v2";
 const RECENT_STORAGE_KEY = "chat:attach:recent:v2";
 const RECENT_LIMIT = 3;
-const PRIMARY_VISIBLE_COUNT = 8;
+const PRIMARY_VISIBLE_COUNT = 10;
 
 export default function ChatAttachMenu({
-  open, onClose, onImageSelect, onVideoSelect, onLocationShare, onToggleDisappearing, onLockedImageSelect, onLockedTextSelect,
+  open, onClose, onImageSelect, onVideoSelect, onGifSelect, onMusicSelect, onLocationShare, onToggleDisappearing, onLockedImageSelect, onLockedTextSelect,
   onToggleSensitiveMedia, onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, lockedMediaHint, lockedMediaLabel, disappearingLabel,
 }: ChatAttachMenuProps) {
   const { isPlus, plan } = useZivoPlus();
@@ -97,7 +103,7 @@ export default function ChatAttachMenu({
         : it
     ));
   const visibleItems = zivoOFMode
-    ? configuredItems.filter((it) => ["image", "video", "sensitive", "locked", "locked-text", "money", "gift"].includes(it.id))
+    ? configuredItems.filter((it) => ["image", "video", "gif", "sensitive", "locked", "locked-text", "money", "gift"].includes(it.id))
     : configuredItems;
   const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
@@ -166,6 +172,8 @@ export default function ChatAttachMenu({
     if (id === "gift") return !onSendGift;
     if (id === "money") return !onOpenWallet;
     if (id === "file") return !onFileSelect;
+    if (id === "gif") return !onGifSelect;
+    if (id === "music") return !onMusicSelect;
     if (id === "poll") return !onCreatePoll;
     if (id === "contact") return !onShareContact;
     if (id === "social") return !onShareSocial;
@@ -237,6 +245,8 @@ export default function ChatAttachMenu({
       case "zivo": onShareZivoCard?.(); break;
       case "image": onImageSelect(); break;
       case "video": onVideoSelect(); break;
+      case "gif": onGifSelect?.(); break;
+      case "music": onMusicSelect?.(); break;
       case "location": onLocationShare(); break;
       case "locked":
         if (!canUseLocked) {

@@ -101,6 +101,7 @@ import { getChatCanvasClass, getWallpaperStyle } from "./chatPersonalizationStyl
 import CallEventBubble from "./CallEventBubble";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import { formatChatDateLabel } from "@/lib/chat/dateLabels";
+import { getChatMessageHighlightClass } from "./chatMessageHighlight";
 
 // Lazy-loaded panels (only downloaded when user opens them)
 const CallScreen = lazy(() => import("./CallScreen"));
@@ -280,7 +281,10 @@ const CHAT_MEDIA_BUCKET = "chat-media-files";
 const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
 const LOCKED_MEDIA_BUNDLE_LIMIT = 10;
-const MIXED_MEDIA_ACCEPT = "image/*,video/*,.gif";
+const PHOTO_MEDIA_ACCEPT = "image/*";
+const VIDEO_MEDIA_ACCEPT = "video/*";
+const GIF_MEDIA_ACCEPT = "image/gif,.gif";
+const MIXED_MEDIA_ACCEPT = `${PHOTO_MEDIA_ACCEPT},${VIDEO_MEDIA_ACCEPT},.gif`;
 const MEDIA_MESSAGE_TEXT = {
   image: "Photo",
   video: "Video",
@@ -291,6 +295,7 @@ const MEDIA_MESSAGE_TEXT = {
 } as const;
 
 type ChatMediaKind = "image" | "video";
+type ChatUploadPickerKind = "document" | "audio";
 
 type MediaAlbumSendItem = {
   id: string;
@@ -336,8 +341,12 @@ function formatUploadLimit(bytes: number): string {
 
 function getChatMediaKind(file: File): ChatMediaKind | null {
   if (file.type.startsWith("video/")) return "video";
-  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("image/") || /\.gif$/i.test(file.name)) return "image";
   return null;
+}
+
+function isGifFile(file: File): boolean {
+  return file.type === "image/gif" || /\.gif$/i.test(file.name);
 }
 
 function getUploadLimitForKind(kind: ChatMediaKind): number {
@@ -909,6 +918,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const gifInputRef = useRef<HTMLInputElement>(null);
   const lockedImageInputRef = useRef<HTMLInputElement>(null);
   const voiceUploadInFlightRef = useRef(false);
   const pendingVoiceOptimisticIdRef = useRef<string | null>(null);
@@ -926,7 +936,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   // Captured insert payloads for failed messages, keyed by optimistic id, so the
   // user can tap-to-retry without re-typing or re-uploading.
   const failedSendsRef = useRef<Map<string, DirectMessageInsert>>(new Map());
-  const filePickerTriggerRef = useRef<(() => void) | null>(null);
+  const filePickerTriggerRef = useRef<((kind?: ChatUploadPickerKind) => void) | null>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const timelineRef = useRef<HTMLDivElement>(null);
   const expandingTimelineRef = useRef(false);
@@ -2409,6 +2419,24 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     });
   };
 
+  const handleGifSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    if (files.some((file) => !isGifFile(file))) {
+      toast.error("Choose a GIF file");
+      if (gifInputRef.current) gifInputRef.current.value = "";
+      return;
+    }
+    if (files.length > 1) {
+      sendOptimisticMediaAlbum(files);
+      if (gifInputRef.current) gifInputRef.current.value = "";
+      return;
+    }
+    sendSingleSelectedMedia(files[0], () => {
+      if (gifInputRef.current) gifInputRef.current.value = "";
+    });
+  };
+
   // Locked media: first show price picker
   const handleLockedMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -3563,7 +3591,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     initial={{ opacity: 0, y: 12, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: "spring", damping: 22, stiffness: 380, mass: 0.7 }}
-                    className={`chat-no-callout transition-colors duration-500 rounded-xl ${isHighlighted ? "bg-primary/10" : ""}`}
+                    className={`chat-no-callout scroll-mt-32 ${getChatMessageHighlightClass(isHighlighted)}`}
                     onContextMenu={(e) => e.preventDefault()}
                     style={{ WebkitTouchCallout: "none" } as React.CSSProperties}
                   >
@@ -3967,8 +3995,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 </button>
               </div>
 
-              <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
-              <input ref={videoInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose media" aria-label="Choose media" />
+              <input ref={fileInputRef} type="file" accept={PHOTO_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose photos" aria-label="Choose photos" />
+              <input ref={videoInputRef} type="file" accept={VIDEO_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose videos" aria-label="Choose videos" />
+              <input ref={gifInputRef} type="file" accept={GIF_MEDIA_ACCEPT} multiple className="hidden" onChange={handleGifSelect} title="Choose GIFs" aria-label="Choose GIFs" />
               <input ref={lockedImageInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
               {/* Locked media / paid DM price picker */}
@@ -4018,7 +4047,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               }}
               renderTrigger={(open) => {
                 filePickerTriggerRef.current = open;
-                return <></>;
+                return null;
               }}
             />
 
@@ -4095,6 +4124,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   onClose={() => setShowAttachMenu(false)}
                   onImageSelect={() => fileInputRef.current?.click()}
                   onVideoSelect={() => videoInputRef.current?.click()}
+                  onGifSelect={() => gifInputRef.current?.click()}
                   onLocationShare={handleLocationShare}
                   onToggleDisappearing={cycleAutoDelete}
                   disappearingEnabled={disappearingMode}
@@ -4121,7 +4151,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     openP2PTransfer({ receiverId: recipientId, receiverName: recipientName, mode: "send" });
                   }}
                   onScanDocument={() => setShowScanner(true)}
-                  onFileSelect={() => filePickerTriggerRef.current?.()}
+                  onFileSelect={() => filePickerTriggerRef.current?.("document")}
+                  onMusicSelect={() => filePickerTriggerRef.current?.("audio")}
                   onCreatePoll={() => setShowPollCreator(true)}
                   onShareContact={() => setShowContactPicker(true)}
                   onShareSocial={() => setShowSocialShare(true)}

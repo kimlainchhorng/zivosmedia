@@ -4,14 +4,18 @@
 import { useState, useRef, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { signedUrlFor, SIGNED_URL_TTL } from "@/lib/security/signedMedia";
+import { signedUrlFor } from "@/lib/security/signedMedia";
 import { validateFileClient, type FileCategory } from "@/lib/security/fileUploadSecurity";
 import Image from "lucide-react/dist/esm/icons/image";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import Film from "lucide-react/dist/esm/icons/film";
+import FileAudio from "lucide-react/dist/esm/icons/file-audio";
 import X from "lucide-react/dist/esm/icons/x";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+
+export type ChatMediaUploadPicker = "document" | "audio";
+type UploadCategory = "image" | "video" | "audio" | "document";
 
 interface ChatMediaUploaderProps {
   recipientId: string;
@@ -24,18 +28,18 @@ interface ChatMediaUploaderProps {
     fileType?: string;
     fileSize?: number;
   }) => void;
-  renderTrigger?: (openFilePicker: () => void) => ReactNode;
+  renderTrigger?: (openFilePicker: (kind?: ChatMediaUploadPicker) => void) => ReactNode;
 }
 
-const FILE_LIMITS = {
+const FILE_LIMITS: Record<UploadCategory, number> = {
   image: 10 * 1024 * 1024,
   video: 50 * 1024 * 1024,
+  audio: 25 * 1024 * 1024,
   document: 25 * 1024 * 1024,
 };
 
-const ACCEPT_TYPES = {
-  image: "image/*",
-  video: "video/*,.gif",
+const ACCEPT_TYPES: Record<ChatMediaUploadPicker, string> = {
+  audio: "audio/*",
   document: ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar",
 };
 
@@ -48,6 +52,7 @@ function formatFileSize(bytes: number): string {
 function getFileIcon(type: string) {
   if (type.startsWith("image")) return <Image className="w-5 h-5 text-blue-500" />;
   if (type.startsWith("video")) return <Film className="w-5 h-5 text-foreground" />;
+  if (type.startsWith("audio")) return <FileAudio className="w-5 h-5 text-teal-500" />;
   return <FileText className="w-5 h-5 text-orange-500" />;
 }
 
@@ -58,15 +63,24 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
   const [preview, setPreview] = useState<{ url: string; name: string; size: number; type: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const openFilePicker = useCallback(() => {
-    fileRef.current?.click();
+  const openFilePicker = useCallback((kind: ChatMediaUploadPicker = "document") => {
+    if (fileRef.current) {
+      fileRef.current.accept = ACCEPT_TYPES[kind];
+      fileRef.current.click();
+    }
   }, []);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
 
-    const category = file.type.startsWith("image") ? "image" : file.type.startsWith("video") ? "video" : "document";
+    const category: UploadCategory = file.type.startsWith("image")
+      ? "image"
+      : file.type.startsWith("video")
+        ? "video"
+        : file.type.startsWith("audio")
+          ? "audio"
+          : "document";
     const limit = FILE_LIMITS[category];
 
     if (file.size > limit) {
@@ -160,14 +174,14 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
       <input
         ref={fileRef}
         type="file"
-        // Documents only — Photo and Video buttons in the attach menu already
-        // cover image/video pickers. Including image/video here pops a confusing
-        // multi-source picker that overlaps those flows on iOS.
+        // Photo, video, and GIF have dedicated pickers; this uploader is for
+        // document and audio attachments opened from the attachment sheet.
         accept={ACCEPT_TYPES.document}
         className="hidden"
         onChange={handleFileSelect}
       />
 
+      {/* eslint-disable-next-line react-hooks/refs -- trigger calls the picker from user events, not during render */}
       {renderTrigger?.(openFilePicker)}
 
       {/* Upload progress overlay */}

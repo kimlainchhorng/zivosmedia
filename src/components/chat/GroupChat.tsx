@@ -86,6 +86,7 @@ import { detectSensitiveContent, isGroupMessageSafetySchemaDriftError } from "@/
 import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 import { formatChatDateLabel } from "@/lib/chat/dateLabels";
 import { DEFAULT_CHAT_WALLPAPER_CLASS } from "./chatPersonalizationStyles";
+import { getChatMessageHighlightClass } from "./chatMessageHighlight";
 
 interface GroupChatProps {
   groupId: string;
@@ -207,7 +208,10 @@ const CHAT_MEDIA_BUCKET = "chat-media-files";
 const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
 const LOCKED_MEDIA_BUNDLE_LIMIT = 10;
-const MIXED_MEDIA_ACCEPT = "image/*,video/*,.gif";
+const PHOTO_MEDIA_ACCEPT = "image/*";
+const VIDEO_MEDIA_ACCEPT = "video/*";
+const GIF_MEDIA_ACCEPT = "image/gif,.gif";
+const MIXED_MEDIA_ACCEPT = `${PHOTO_MEDIA_ACCEPT},${VIDEO_MEDIA_ACCEPT},.gif`;
 const MEDIA_MESSAGE_TEXT = {
   image: "Photo",
   video: "Video",
@@ -233,8 +237,14 @@ function formatUploadLimit(bytes: number): string {
 
 function getChatMediaKind(file: File): ChatMediaKind | null {
   if (file.type.startsWith("video/")) return "video";
-  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("image/") || /\.gif$/i.test(file.name)) return "image";
   return null;
+}
+
+type ChatUploadPickerKind = "document" | "audio";
+
+function isGifFile(file: File): boolean {
+  return file.type === "image/gif" || /\.gif$/i.test(file.name);
 }
 
 function getUploadLimitForKind(kind: ChatMediaKind): number {
@@ -489,7 +499,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const filePickerTriggerRef = useRef<(() => void) | null>(null);
+  const gifInputRef = useRef<HTMLInputElement>(null);
+  const filePickerTriggerRef = useRef<((kind?: ChatUploadPickerKind) => void) | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showInvites, setShowInvites] = useState(false);
@@ -1980,6 +1991,24 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     });
   };
 
+  const handleGifSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    if (files.some((file) => !isGifFile(file))) {
+      toast.error("Choose a GIF file");
+      if (gifInputRef.current) gifInputRef.current.value = "";
+      return;
+    }
+    if (files.length > 1) {
+      sendOptimisticMediaAlbum(files);
+      if (gifInputRef.current) gifInputRef.current.value = "";
+      return;
+    }
+    sendSingleSelectedMedia(files[0], () => {
+      if (gifInputRef.current) gifInputRef.current.value = "";
+    });
+  };
+
   const handleStickerSend = useCallback(async (payload: StickerSendPayload, messageType?: string) => {
     if (!user?.id || !payload.text?.trim()) return;
     const text = payload.text.trim();
@@ -2337,9 +2366,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               <div
                 key={msg.id}
                 data-group-message-id={msg.id}
-                className={`scroll-mt-32 rounded-2xl transition-[box-shadow,background-color] duration-300 ${
-                  highlightedMessageId === msg.id ? "bg-sky-500/10 shadow-[0_0_0_2px_rgba(14,165,233,0.55)]" : ""
-                }`}
+                className={`scroll-mt-32 ${getChatMessageHighlightClass(highlightedMessageId === msg.id)}`}
               >
                 {showDateSep && (
                   <ChatDateSeparator label={dateLabel} />
@@ -2823,25 +2850,29 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             </button>
           </div>
 
-          <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
-          <input ref={videoInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose media" aria-label="Choose media" />
+          <input ref={fileInputRef} type="file" accept={PHOTO_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose photos" aria-label="Choose photos" />
+          <input ref={videoInputRef} type="file" accept={VIDEO_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose videos" aria-label="Choose videos" />
+          <input ref={gifInputRef} type="file" accept={GIF_MEDIA_ACCEPT} multiple className="hidden" onChange={handleGifSelect} title="Choose GIFs" aria-label="Choose GIFs" />
           <input ref={lockedImageInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
           <ChatMediaUploader
             recipientId={groupId}
             onMediaSent={(opts) => {
               if (!opts.fileUrl) return;
+              const markSensitive = markNextMediaSensitive;
+              if (markSensitive) setMarkNextMediaSensitive(false);
               void sendGroupFileMessage({
                 url: opts.fileUrl,
                 filename: opts.fileName || "file",
                 mime_type: opts.fileType || "application/octet-stream",
                 size: opts.fileSize,
                 source: "upload",
+                ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
               });
             }}
             renderTrigger={(open) => {
               filePickerTriggerRef.current = open;
-              return <></>;
+              return null;
             }}
           />
 
@@ -2977,13 +3008,15 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 onClose={() => setShowAttachMenu(false)}
                 onImageSelect={() => fileInputRef.current?.click()}
                 onVideoSelect={() => videoInputRef.current?.click()}
+                onGifSelect={() => gifInputRef.current?.click()}
+                onMusicSelect={() => filePickerTriggerRef.current?.("audio")}
                 onLocationShare={handleLocationShare}
                 onLockedImageSelect={() => lockedImageInputRef.current?.click()}
                 lockedMediaHint="Stars unlock"
                 onSendGift={() => setShowGiftPanel(true)}
                 onOpenWallet={() => setShowWalletSheet(true)}
                 onScanDocument={() => setShowScanner(true)}
-                onFileSelect={() => filePickerTriggerRef.current?.()}
+                onFileSelect={() => filePickerTriggerRef.current?.("document")}
                 onCreatePoll={() => setShowPollCreator(true)}
                 onShareContact={() => setShowContactPicker(true)}
                 onShareSocial={() => setShowSocialShare(true)}
