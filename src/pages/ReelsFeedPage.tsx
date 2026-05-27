@@ -174,112 +174,21 @@ const SafeCaption = lazy(() => import("@/components/social/SafeCaption"));
 const FeedSidebar = lazy(() => import("@/components/social/FeedSidebar"));
 const CommentPreview = lazy(() => import("@/components/social/CommentPreview"));
 
-type FeedSuperAppTarget = {
+type FeedWorkflowAction = "story" | "reel" | "post" | "live" | "shop" | "jobs";
+
+const FEED_CREATOR_WORKFLOWS: Array<{
+  action: FeedWorkflowAction;
   label: string;
   description: string;
-  href: string;
-  icon: typeof Search;
+  icon: typeof Camera;
   tone: string;
-  keywords: string[];
-};
-
-const FEED_SUPER_APP_TARGETS: FeedSuperAppTarget[] = [
-  {
-    label: "Social",
-    description: "Facebook-style feed",
-    href: "/feed",
-    icon: MessageCircle,
-    tone: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
-    keywords: ["facebook", "social", "post", "friends", "feed"],
-  },
-  {
-    label: "Reels",
-    description: "TikTok-style videos",
-    href: "/reels",
-    icon: Film,
-    tone: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
-    keywords: ["tiktok", "reels", "video", "shorts"],
-  },
-  {
-    label: "Chat",
-    description: "Telegram-style messages",
-    href: "/chat",
-    icon: Send,
-    tone: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
-    keywords: ["telegram", "chat", "message", "dm", "group"],
-  },
-  {
-    label: "Meet",
-    description: "Video calls and rooms",
-    href: "/chat/contacts",
-    icon: Tv2,
-    tone: "bg-violet-500/10 text-violet-600 dark:text-violet-300",
-    keywords: ["meet", "google meet", "video call", "call", "room"],
-  },
-  {
-    label: "Rides",
-    description: "Uber-style rides",
-    href: "/rides/hub",
-    icon: Car,
-    tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-    keywords: ["uber", "ride", "taxi", "car", "pickup"],
-  },
-  {
-    label: "Eats",
-    description: "Food delivery",
-    href: "/eats",
-    icon: UtensilsCrossed,
-    tone: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
-    keywords: ["uber eat", "ubereats", "food", "restaurant", "eats", "delivery"],
-  },
-  {
-    label: "Hotels",
-    description: "Booking-style stays",
-    href: "/hotels",
-    icon: Building2,
-    tone: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-300",
-    keywords: ["booking", "booking.com", "hotel", "stay", "room"],
-  },
-  {
-    label: "Flights",
-    description: "Search trips",
-    href: "/flights",
-    icon: Plane,
-    tone: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
-    keywords: ["flight", "travel", "trip", "ticket"],
-  },
-  {
-    label: "Delivery",
-    description: "Packages and courier",
-    href: "/delivery",
-    icon: Package,
-    tone: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
-    keywords: ["delivery", "package", "courier", "send"],
-  },
-  {
-    label: "Creators",
-    description: "Subscriptions and fans",
-    href: "/creator-dashboard",
-    icon: Briefcase,
-    tone: "bg-pink-500/10 text-pink-600 dark:text-pink-300",
-    keywords: ["onlyfans", "creator", "subscription", "fans", "tips"],
-  },
-  {
-    label: "Shop",
-    description: "Marketplace",
-    href: "/marketplace",
-    icon: ShoppingBag,
-    tone: "bg-lime-500/10 text-lime-700 dark:text-lime-300",
-    keywords: ["shop", "marketplace", "store", "buy", "sell"],
-  },
-  {
-    label: "Services",
-    description: "All ZIVO apps",
-    href: "/services",
-    icon: Sparkles,
-    tone: "bg-foreground/10 text-foreground",
-    keywords: ["all", "services", "apps", "more", "everything"],
-  },
+}> = [
+  { action: "story", label: "Story", description: "24h update", icon: Camera, tone: "from-pink-500 to-orange-400" },
+  { action: "reel", label: "Reel", description: "Short video", icon: Film, tone: "from-fuchsia-500 to-violet-500" },
+  { action: "post", label: "Post", description: "Photo or text", icon: Plus, tone: "from-sky-500 to-cyan-400" },
+  { action: "live", label: "Live", description: "Go on air", icon: Radio, tone: "from-red-500 to-rose-500" },
+  { action: "shop", label: "Shop", description: "Sell items", icon: ShoppingBag, tone: "from-amber-500 to-orange-500" },
+  { action: "jobs", label: "Jobs", description: "Hire talent", icon: Briefcase, tone: "from-emerald-500 to-teal-400" },
 ];
 
 const trackInitiateCheckout = (input: Record<string, unknown>) =>
@@ -470,19 +379,53 @@ const recordShareForFeedItem = async (item: FeedItem, channel: ShareChannel): Pr
   return !error;
 };
 
-const loginWithReturnTo = (path: string) => `/login?redirect=${encodeURIComponent(path)}`;
+function FeedWorkflowRail({
+  isSignedIn,
+  onRequireAuth,
+  onCreate,
+  onCreateMode,
+  onNavigate,
+}: {
+  isSignedIn: boolean;
+  onRequireAuth: (returnTo: string) => void;
+  onCreate: () => void;
+  onCreateMode: (mode: "photo" | "reel" | "poll" | "story" | "shop" | "live" | undefined) => void;
+  onNavigate: (path: string) => void;
+}) {
+  const startCreate = (mode: Parameters<typeof onCreateMode>[0]) => {
+    onCreateMode(mode);
+    onCreate();
+  };
 
-const showGuestActionPrompt = (message: string, returnTo = "/feed") => {
-  toast(message, {
-    description: "Create a free ZIVO account to like, comment, save, follow, and personalize your feed.",
-    action: {
-      label: "Log in",
-      onClick: () => {
-        window.location.assign(loginWithReturnTo(returnTo));
-      },
-    },
-  });
-};
+  const handleWorkflow = (action: FeedWorkflowAction) => {
+    if (action === "jobs") {
+      if (!isSignedIn) {
+        onRequireAuth("/personal/employer");
+        return;
+      }
+      onNavigate("/personal/employer");
+      return;
+    }
+
+    if (action === "live") {
+      if (!isSignedIn) {
+        onRequireAuth("/live");
+        return;
+      }
+      onNavigate("/live");
+      return;
+    }
+
+    if (!isSignedIn) {
+      onRequireAuth(`/feed?compose=${action}`);
+      return;
+    }
+
+    if (action === "story") startCreate("story");
+    else if (action === "reel") startCreate("reel");
+    else if (action === "shop") startCreate("shop");
+    else startCreate("photo");
+  };
 
 const FEED_POST_NOTIFICATIONS_EVENT = "zivo:feed-post-notifications-changed";
 const FEED_SNOOZED_AUTHORS_EVENT = "zivo:feed-snoozed-authors-changed";
@@ -742,15 +685,20 @@ function GuestFeedCta({ onLogin, onSignup }: { onLogin: () => void; onSignup: ()
             Log in
           </button>
           <button
+            key={action}
             type="button"
             onClick={onSignup}
             className="h-8 rounded-full bg-ig-gradient px-3 text-[12px] font-bold text-white active:scale-95 shadow-sm hover:opacity-90 transition-opacity"
           >
-            Sign up
+            <span className={cn("mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-sm transition-transform group-hover:scale-105", tone)}>
+              <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+            </span>
+            <span className="block text-[12px] font-extrabold leading-tight text-foreground">{label}</span>
+            <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted-foreground">{description}</span>
           </button>
-        </div>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }
 

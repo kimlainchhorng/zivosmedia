@@ -595,6 +595,7 @@ const Reliability = lazy(() => import("./pages/Reliability"));
 const TrustStatement = lazy(() => import("./pages/TrustStatement"));
 const SecurityStatus = lazy(() => import("./pages/SecurityStatus"));
 const SavedPostsPage = lazy(() => import("./pages/SavedPostsPage"));
+const SavedCollectionPage = lazy(() => import("./pages/SavedCollectionPage"));
 const HashtagPage = lazy(() => import("./pages/HashtagPage"));
 const Status = lazy(() => import("./pages/Status"));
 const FAQPage = lazy(() => import("./pages/FAQPage"));
@@ -1485,6 +1486,9 @@ const App = () => (
                 
                 <Route path="/refer" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
                 <Route path={SOCIAL_ROUTE_PATHS.chat} element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
+                <Route path="/direct" element={<ProtectedRoute><DirectInboxPage /></ProtectedRoute>} />
+                <Route path="/direct/t/:partnerId" element={<ProtectedRoute><DirectThreadPage /></ProtectedRoute>} />
+                <Route path="/for-you" element={<ProtectedRoute><ForYouFeedPage /></ProtectedRoute>} />
                 <Route path="/chat/saved" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
                 <Route path="/chat/contacts" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
                 <Route path="/chat/contacts/requests" element={<ProtectedRoute><ContactRequestsPage /></ProtectedRoute>} />
@@ -2046,6 +2050,7 @@ const App = () => (
                 <Route path="/security-status" element={<SecurityStatus />} />
                 {/* /saved is taken by BookmarksPage above; tile-grid view lives at /saved-posts */}
                 <Route path="/saved-posts" element={<ProtectedRoute><SavedPostsPage /></ProtectedRoute>} />
+                <Route path="/saved-collections/:id" element={<ProtectedRoute><SavedCollectionPage /></ProtectedRoute>} />
                 <Route path="/tag/:tag" element={<HashtagPage />} />
                 <Route path="/ai-trip-planner" element={<AITripPlanner />} />
                 <Route path="/multi-city-builder" element={<MultiCityBuilder />} />
