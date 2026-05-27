@@ -60,9 +60,8 @@ async function renderUploader() {
     <ChatMediaUploader
       recipientId="receiver-1"
       onMediaSent={onMediaSent}
-      renderTrigger={(open) => {
+      onOpenPickerReady={(open) => {
         openPicker = open;
-        return null;
       }}
     />,
   );
@@ -99,19 +98,21 @@ describe("ChatMediaUploader", () => {
     expect(input.accept).toBe("audio/*");
   });
 
-  it("keeps renderTrigger as the picker handoff API", () => {
-    const trigger = vi.fn(() => null);
+  it("clears the picker handoff callback on unmount", async () => {
+    const onOpenPickerReady = vi.fn();
 
     const view = render(
       <ChatMediaUploader
         recipientId="receiver-1"
         onMediaSent={vi.fn()}
-        renderTrigger={trigger}
+        onOpenPickerReady={onOpenPickerReady}
       />,
     );
 
-    expect(trigger).toHaveBeenCalledWith(expect.any(Function));
+    await waitFor(() => expect(onOpenPickerReady).toHaveBeenCalledWith(expect.any(Function)));
     expect(view.container.querySelector('input[type="file"]')).toBeTruthy();
+    view.unmount();
+    expect(onOpenPickerReady).toHaveBeenLastCalledWith(null);
   });
 
   it("uploads music as a file attachment payload", async () => {
