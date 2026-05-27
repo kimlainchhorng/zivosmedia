@@ -116,6 +116,7 @@ import { EngagementSkeleton } from "@/components/social/EngagementSkeleton";
 import SwipeableSheet from "@/components/social/SwipeableSheet";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
+import { useFeedMute } from "@/components/social/useFeedMute";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 import { perfLog, perfMeasure, perfNow } from "@/lib/perfTrace";
 import { reportFeedQueryError } from "@/lib/feedQueryTelemetry";
@@ -450,29 +451,8 @@ const rememberReelForReelsTab = (postId: string) => {
 // full reload doesn't double-count.
 const recordedFeedViews = new Set<string>();
 
-// Shared mute state across every feed video and reel slide. Once the viewer
-// unmutes one video the rest stay unmuted for the session — matches TikTok /
-// Reels behavior where sound choice is sticky, not per-card.
-const FEED_MUTE_STORAGE_KEY = "zivo_feed_mute";
-const feedMuteSubscribers = new Set<(muted: boolean) => void>();
-let currentFeedMute: boolean = (() => {
-  try { return sessionStorage.getItem(FEED_MUTE_STORAGE_KEY) !== "false"; } catch { return true; }
-})();
-const writeFeedMute = (muted: boolean): void => {
-  if (muted === currentFeedMute) return;
-  currentFeedMute = muted;
-  try { sessionStorage.setItem(FEED_MUTE_STORAGE_KEY, muted ? "true" : "false"); } catch { /* ignore */ }
-  feedMuteSubscribers.forEach((fn) => fn(muted));
-};
-const useFeedMute = (): [boolean, (muted: boolean) => void] => {
-  const [muted, setLocalMuted] = useState(currentFeedMute);
-  useEffect(() => {
-    const sub = (m: boolean) => setLocalMuted(m);
-    feedMuteSubscribers.add(sub);
-    return () => { feedMuteSubscribers.delete(sub); };
-  }, []);
-  return [muted, writeFeedMute];
-};
+// Shared mute state lives in useFeedMute (exported so it can be unit-tested
+// and reused by other surfaces that show feed videos).
 const POST_REACTIONS_ENABLED = import.meta.env.VITE_ENABLE_POST_REACTIONS === "true";
 
 // Best-effort wrapper around the record_post_share RPC. The RPC logs the
