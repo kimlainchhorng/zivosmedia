@@ -306,6 +306,7 @@ const NotificationCenterPage = lazy(() => import("./pages/NotificationCenterPage
 const ActivityFeedPage = lazy(() => import("./pages/ActivityFeedPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const AdminModerationPage = lazy(() => import("./pages/AdminModerationPage"));
+const AdminContentReportsPage = lazy(() => import("./pages/AdminContentReportsPage"));
 const AdminLaunchDashboard = lazy(() => import("./pages/admin/AdminLaunchDashboard"));
 const AdminWalletPage = lazy(() => import("./pages/admin/AdminWalletPage"));
 const ContentSchedulerPage = lazy(() => import("./pages/ContentSchedulerPage"));
@@ -1574,6 +1575,7 @@ const App = () => (
                 <Route path="/notification-center" element={<ProtectedRoute><NotificationCenterPage /></ProtectedRoute>} />
                 <Route path="/activity" element={<ProtectedRoute><ActivityFeedPage /></ProtectedRoute>} />
                 <Route path="/admin/moderation" element={<ProtectedRoute requireAdmin={true}><AdminModerationPage /></ProtectedRoute>} />
+                <Route path="/admin/content-reports" element={<ProtectedRoute requireAdmin={true}><AdminContentReportsPage /></ProtectedRoute>} />
                 <Route path="/admin/reviews/moderation" element={<ProtectedRoute requireAdmin={true}><ReviewModerationDashboard /></ProtectedRoute>} />
                 <Route path="/admin/launch" element={<ProtectedRoute requireAdmin={true}><AdminLaunchDashboard /></ProtectedRoute>} />
                 <Route path="/content-scheduler" element={<ProtectedRoute><ContentSchedulerPage /></ProtectedRoute>} />
