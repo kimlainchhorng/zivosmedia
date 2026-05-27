@@ -29,18 +29,21 @@ export default function CreateJobPage() {
     if (!user?.id || !title) { toast.error("Title required"); return; }
     setBusy(true);
     try {
-      const { error } = await (dbFrom("job_postings") as { insert: (p: unknown) => Promise<{ error: unknown }> }).insert({
-        poster_id: user.id, title,
-        description: description || null,
-        category: category || null,
-        pay_cents: pay ? Math.round(parseFloat(pay) * 100) : null,
-        pay_unit: pay ? payUnit : null,
-        location: location || null,
-        remote, status: "open",
-      });
-      if (error) throw error;
+      const { data, error } = await (dbFrom("job_postings") as { insert: (p: unknown) => { select: (s: string) => { single: () => Promise<{ data: { id: string } | null; error: unknown }> } } })
+        .insert({
+          poster_id: user.id, title,
+          description: description || null,
+          category: category || null,
+          pay_cents: pay ? Math.round(parseFloat(pay) * 100) : null,
+          pay_unit: pay ? payUnit : null,
+          location: location || null,
+          remote, status: "open",
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw error || new Error("Failed");
       toast.success("Posted!");
-      navigate("/jobs-hub");
+      navigate(`/jobs-hub/${data.id}`);
     } catch {
       toast.error("Couldn't post job");
     }

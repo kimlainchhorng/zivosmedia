@@ -18,6 +18,7 @@ const CreateEventPage = lazy(() => import("@/pages/hubs/CreateEventPage"));
 const EventDetailPage = lazy(() => import("@/pages/hubs/EventDetailPage"));
 const CreateListingPage = lazy(() => import("@/pages/hubs/CreateListingPage"));
 const CreateJobPage = lazy(() => import("@/pages/hubs/CreateJobPage"));
+const JobPostingDetailPage = lazy(() => import("@/pages/hubs/JobPostingDetailPage"));
 const StartVoiceRoomPage = lazy(() => import("@/pages/hubs/StartVoiceRoomPage"));
 const CreateSupportTicketPage = lazy(() => import("@/pages/support/CreateSupportTicketPage"));
 const TwoFactorSetupSheet = lazy(() => import("@/components/security/TwoFactorSetupSheet"));
@@ -1805,7 +1806,8 @@ const App = () => (
                 <Route path="/events-hub/create" element={<CreateEventPage />} />
                 <Route path="/events-hub/:id" element={<EventDetailPage />} />
                 <Route path="/marketplace-hub/create" element={<CreateListingPage />} />
-                <Route path="/jobs-hub/create" element={<CreateJobPage />} />
+                <Route path="/jobs-hub/create" element={<ProtectedRoute><CreateJobPage /></ProtectedRoute>} />
+                <Route path="/jobs-hub/:id" element={<JobPostingDetailPage />} />
                 <Route path="/voice-rooms/create" element={<StartVoiceRoomPage />} />
                 <Route path="/support/new" element={<CreateSupportTicketPage />} />
                 <Route path="/traveler" element={<ProtectedRoute><TravelerDashboard /></ProtectedRoute>} />
