@@ -10,11 +10,13 @@
  * Payment integration (wallet / Stripe) is layered on later; this component
  * just records the unlock in the table — same pattern as creator_tips.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft, Lock, Loader2, DollarSign, Users, Eye, CheckCircle2, Flame,
+  Pencil, Trash2, EyeOff, MoreVertical, X, Check, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +47,13 @@ interface Props {
 export default function PPVPostDetail({ postId, onBack }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editPriceUsd, setEditPriceUsd] = useState("");
+  const [previewAsFan, setPreviewAsFan] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: post, isLoading } = useQuery({
     queryKey: ["ppv-post", postId],
@@ -60,6 +69,28 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
   });
 
   const isOwner = !!user && !!post && user.id === post.creator_id;
+
+  // Creator's profile — for the byline below the title.
+  const { data: creator } = useQuery({
+    queryKey: ["ppv-creator", post?.creator_id],
+    queryFn: async () => {
+      if (!post?.creator_id) return null;
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name, avatar_url, share_code, username")
+        .eq("user_id", post.creator_id)
+        .maybeSingle();
+      return data as {
+        user_id: string;
+        full_name: string | null;
+        avatar_url: string | null;
+        share_code: string | null;
+        username: string | null;
+      } | null;
+    },
+    enabled: !!post?.creator_id,
+    staleTime: 60 * 1000,
+  });
 
   // Current user's wallet balance — shown next to the unlock button so they
   // can see at a glance whether they can afford the price.
@@ -141,9 +172,92 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
     },
   });
 
+  // ─── Owner actions: edit, publish toggle, delete ──────────────────────────
+  const updateMut = useMutation({
+    mutationFn: async (patch: Partial<Pick<PPVPost, "title" | "description" | "price_cents" | "is_published">>) => {
+      if (!post) throw new Error("Post not loaded");
+      const { error } = await (supabase as any)
+        .from("ppv_posts")
+        .update(patch)
+        .eq("id", post.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ppv-post", postId] });
+      qc.invalidateQueries({ queryKey: ["ppv-posts"] });
+      qc.invalidateQueries({ queryKey: ["public-ppv-posts"] });
+    },
+    onError: (err: any) => toast.error(err?.message ?? "Update failed"),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      if (!post) throw new Error("Post not loaded");
+      // Best-effort media cleanup before deleting the row. RLS lets owners
+      // delete their own files; we ignore individual file errors so a missing
+      // file doesn't block deletion of the row.
+      const paths = [
+        ...post.media_paths,
+        ...(post.preview_path ? [post.preview_path] : []),
+      ];
+      if (paths.length > 0) {
+        try {
+          await (supabase.storage.from("ppv-media") as any).remove(paths);
+        } catch {
+          /* swallow — DB cascade will still clean up the row + unlocks */
+        }
+      }
+      const { error } = await (supabase as any)
+        .from("ppv_posts")
+        .delete()
+        .eq("id", post.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("PPV post deleted");
+      qc.invalidateQueries({ queryKey: ["ppv-posts"] });
+      qc.invalidateQueries({ queryKey: ["public-ppv-posts"] });
+      onBack();
+    },
+    onError: (err: any) => toast.error(err?.message ?? "Delete failed"),
+  });
+
+  const openEdit = () => {
+    if (!post) return;
+    setEditTitle(post.title);
+    setEditDesc(post.description ?? "");
+    setEditPriceUsd((post.price_cents / 100).toFixed(2));
+    setEditMode(true);
+    setActionsOpen(false);
+  };
+
+  const saveEdit = async () => {
+    const priceCents = Math.max(0, Math.round(parseFloat(editPriceUsd || "0") * 100));
+    if (!editTitle.trim()) {
+      toast.error("Title can't be empty");
+      return;
+    }
+    await updateMut.mutateAsync({
+      title: editTitle.trim(),
+      description: editDesc.trim() || null,
+      price_cents: priceCents,
+    });
+    toast.success("PPV updated");
+    setEditMode(false);
+  };
+
+  const togglePublished = async () => {
+    if (!post) return;
+    await updateMut.mutateAsync({ is_published: !post.is_published });
+    toast.success(post.is_published ? "Unpublished" : "Published");
+    setActionsOpen(false);
+  };
+
+  const canViewFullEffective = canViewFull && !previewAsFan;
+
   const mediaToRender = useMemo<{ path: string; url: string }[]>(() => {
     if (!post) return [];
-    if (canViewFull && mediaUrls) {
+    if (canViewFullEffective && mediaUrls) {
       return post.media_paths.map((path, idx) => ({ path, url: mediaUrls[idx] ?? "" }));
     }
     // Locked view: only the preview, if any
@@ -151,7 +265,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
       return [{ path: post.preview_path, url: previewUrl }];
     }
     return [];
-  }, [post, canViewFull, mediaUrls, previewUrl]);
+  }, [post, canViewFullEffective, mediaUrls, previewUrl]);
 
   return (
     <div className="min-h-dvh bg-background pb-32">
