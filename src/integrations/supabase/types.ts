@@ -4006,6 +4006,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ar_customer_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          customer_name: string | null
+          id: string
+          note_type: string
+          store_id: string
+          vehicle_id: string | null
+          workorder_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string | null
+          id?: string
+          note_type?: string
+          store_id: string
+          vehicle_id?: string | null
+          workorder_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string | null
+          id?: string
+          note_type?: string
+          store_id?: string
+          vehicle_id?: string | null
+          workorder_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_customer_notes_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "ar_customer_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_customer_notes_workorder_id_fkey"
+            columns: ["workorder_id"]
+            isOneToOne: false
+            referencedRelation: "ar_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ar_customer_vehicles: {
         Row: {
           color: string | null
@@ -4105,6 +4156,8 @@ export type Database = {
           customer_name: string | null
           customer_notes: string | null
           customer_phone: string | null
+          customer_responded_at: string | null
+          customer_viewed_at: string | null
           deleted_at: string | null
           diagnosis_notes: string | null
           expires_at: string | null
@@ -4114,6 +4167,7 @@ export type Database = {
           notes: string | null
           number: string
           sent_at: string | null
+          share_token: string | null
           status: string
           store_id: string
           subtotal_cents: number
@@ -4138,6 +4192,8 @@ export type Database = {
           customer_name?: string | null
           customer_notes?: string | null
           customer_phone?: string | null
+          customer_responded_at?: string | null
+          customer_viewed_at?: string | null
           deleted_at?: string | null
           diagnosis_notes?: string | null
           expires_at?: string | null
@@ -4147,6 +4203,7 @@ export type Database = {
           notes?: string | null
           number: string
           sent_at?: string | null
+          share_token?: string | null
           status?: string
           store_id: string
           subtotal_cents?: number
@@ -4171,6 +4228,8 @@ export type Database = {
           customer_name?: string | null
           customer_notes?: string | null
           customer_phone?: string | null
+          customer_responded_at?: string | null
+          customer_viewed_at?: string | null
           deleted_at?: string | null
           diagnosis_notes?: string | null
           expires_at?: string | null
@@ -4180,6 +4239,7 @@ export type Database = {
           notes?: string | null
           number?: string
           sent_at?: string | null
+          share_token?: string | null
           status?: string
           store_id?: string
           subtotal_cents?: number
@@ -4389,6 +4449,9 @@ export type Database = {
         Row: {
           checklist: Json
           created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
           customer_vehicle_id: string | null
           id: string
           sent_at: string | null
@@ -4404,6 +4467,9 @@ export type Database = {
         Insert: {
           checklist?: Json
           created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           customer_vehicle_id?: string | null
           id?: string
           sent_at?: string | null
@@ -4419,6 +4485,9 @@ export type Database = {
         Update: {
           checklist?: Json
           created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           customer_vehicle_id?: string | null
           id?: string
           sent_at?: string | null
@@ -4501,12 +4570,15 @@ export type Database = {
           discount_cents: number
           due_at: string | null
           estimate_id: string | null
+          fleet_account_id: string | null
           id: string
           items: Json
           notes: string | null
           number: string
           paid_at: string | null
+          po_number: string | null
           sent_at: string | null
+          source_workorder_id: string | null
           status: string
           store_id: string
           subtotal_cents: number
@@ -4531,12 +4603,15 @@ export type Database = {
           discount_cents?: number
           due_at?: string | null
           estimate_id?: string | null
+          fleet_account_id?: string | null
           id?: string
           items?: Json
           notes?: string | null
           number: string
           paid_at?: string | null
+          po_number?: string | null
           sent_at?: string | null
+          source_workorder_id?: string | null
           status?: string
           store_id: string
           subtotal_cents?: number
@@ -4561,12 +4636,15 @@ export type Database = {
           discount_cents?: number
           due_at?: string | null
           estimate_id?: string | null
+          fleet_account_id?: string | null
           id?: string
           items?: Json
           notes?: string | null
           number?: string
           paid_at?: string | null
+          po_number?: string | null
           sent_at?: string | null
+          source_workorder_id?: string | null
           status?: string
           store_id?: string
           subtotal_cents?: number
@@ -4579,7 +4657,275 @@ export type Database = {
           vehicle_year?: string | null
           vin?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ar_invoices_fleet_account_id_fkey"
+            columns: ["fleet_account_id"]
+            isOneToOne: false
+            referencedRelation: "ar_fleet_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_invoices_source_workorder_id_fkey"
+            columns: ["source_workorder_id"]
+            isOneToOne: false
+            referencedRelation: "ar_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ar_job_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          photo_type: string
+          photo_url: string
+          store_id: string
+          uploaded_at: string
+          work_order_id: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_type?: string
+          photo_url: string
+          store_id: string
+          uploaded_at?: string
+          work_order_id?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_type?: string
+          photo_url?: string
+          store_id?: string
+          uploaded_at?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_job_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_job_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_job_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_job_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_job_photos_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "ar_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ar_labor_entries: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          is_billable: boolean
+          labor_type: string
+          notes: string | null
+          rate_override_cents: number | null
+          store_id: string
+          tech_id: string
+          updated_at: string
+          vehicle_id: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          is_billable?: boolean
+          labor_type?: string
+          notes?: string | null
+          rate_override_cents?: number | null
+          store_id: string
+          tech_id: string
+          updated_at?: string
+          vehicle_id?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          is_billable?: boolean
+          labor_type?: string
+          notes?: string | null
+          rate_override_cents?: number | null
+          store_id?: string
+          tech_id?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_labor_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_tech_id_fkey"
+            columns: ["tech_id"]
+            isOneToOne: false
+            referencedRelation: "ar_technicians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "ar_customer_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_labor_entries_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "ar_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ar_loaner_vehicles: {
+        Row: {
+          color: string | null
+          created_at: string
+          current_customer_name: string | null
+          due_back_date: string | null
+          id: string
+          last_customer_name: string | null
+          make: string
+          mileage_in: number | null
+          mileage_out: number | null
+          model: string
+          plate: string | null
+          return_notes: string | null
+          returned_at: string | null
+          status: string
+          store_id: string
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          current_customer_name?: string | null
+          due_back_date?: string | null
+          id?: string
+          last_customer_name?: string | null
+          make: string
+          mileage_in?: number | null
+          mileage_out?: number | null
+          model: string
+          plate?: string | null
+          return_notes?: string | null
+          returned_at?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          current_customer_name?: string | null
+          due_back_date?: string | null
+          id?: string
+          last_customer_name?: string | null
+          make?: string
+          mileage_in?: number | null
+          mileage_out?: number | null
+          model?: string
+          plate?: string | null
+          return_notes?: string | null
+          returned_at?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_loaner_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_loaner_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_loaner_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_loaner_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ar_parts: {
         Row: {
@@ -4695,50 +5041,118 @@ export type Database = {
         }
         Relationships: []
       }
+      ar_service_catalog: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          labor_hours: number
+          labor_rate_cents: number
+          name: string
+          parts: Json
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          labor_hours?: number
+          labor_rate_cents?: number
+          name: string
+          parts?: Json
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          labor_hours?: number
+          labor_rate_cents?: number
+          name?: string
+          parts?: Json
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ar_service_reminders: {
         Row: {
           channel: string
           created_at: string
+          customer_email: string | null
           customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
           due_at: string | null
           due_mileage: number | null
           id: string
           message: string | null
           reminder_type: string
           sent_at: string | null
+          source_workorder_id: string | null
           status: string
           store_id: string
           vehicle_id: string | null
+          vehicle_label: string | null
         }
         Insert: {
           channel?: string
           created_at?: string
+          customer_email?: string | null
           customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           due_at?: string | null
           due_mileage?: number | null
           id?: string
           message?: string | null
           reminder_type: string
           sent_at?: string | null
+          source_workorder_id?: string | null
           status?: string
           store_id: string
           vehicle_id?: string | null
+          vehicle_label?: string | null
         }
         Update: {
           channel?: string
           created_at?: string
+          customer_email?: string | null
           customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           due_at?: string | null
           due_mileage?: number | null
           id?: string
           message?: string | null
           reminder_type?: string
           sent_at?: string | null
+          source_workorder_id?: string | null
           status?: string
           store_id?: string
           vehicle_id?: string | null
+          vehicle_label?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ar_service_reminders_source_workorder_id_fkey"
+            columns: ["source_workorder_id"]
+            isOneToOne: false
+            referencedRelation: "ar_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ar_technicians: {
         Row: {
@@ -4907,6 +5321,7 @@ export type Database = {
           bay_id: string | null
           checklist: Json
           completed_at: string | null
+          converted_invoice: boolean
           created_at: string
           customer_email: string | null
           customer_id: string | null
@@ -4914,6 +5329,7 @@ export type Database = {
           customer_phone: string | null
           customer_signature_url: string | null
           estimate_id: string | null
+          eta_date: string | null
           id: string
           is_comeback: boolean
           labor_hours: number
@@ -4922,6 +5338,8 @@ export type Database = {
           parent_workorder_id: string | null
           parts_used: Json
           photos: Json
+          ready_message: string | null
+          share_token: string | null
           started_at: string | null
           status: string
           store_id: string
@@ -4935,6 +5353,7 @@ export type Database = {
           bay_id?: string | null
           checklist?: Json
           completed_at?: string | null
+          converted_invoice?: boolean
           created_at?: string
           customer_email?: string | null
           customer_id?: string | null
@@ -4942,6 +5361,7 @@ export type Database = {
           customer_phone?: string | null
           customer_signature_url?: string | null
           estimate_id?: string | null
+          eta_date?: string | null
           id?: string
           is_comeback?: boolean
           labor_hours?: number
@@ -4950,6 +5370,8 @@ export type Database = {
           parent_workorder_id?: string | null
           parts_used?: Json
           photos?: Json
+          ready_message?: string | null
+          share_token?: string | null
           started_at?: string | null
           status?: string
           store_id: string
@@ -4963,6 +5385,7 @@ export type Database = {
           bay_id?: string | null
           checklist?: Json
           completed_at?: string | null
+          converted_invoice?: boolean
           created_at?: string
           customer_email?: string | null
           customer_id?: string | null
@@ -4970,6 +5393,7 @@ export type Database = {
           customer_phone?: string | null
           customer_signature_url?: string | null
           estimate_id?: string | null
+          eta_date?: string | null
           id?: string
           is_comeback?: boolean
           labor_hours?: number
@@ -4978,6 +5402,8 @@ export type Database = {
           parent_workorder_id?: string | null
           parts_used?: Json
           photos?: Json
+          ready_message?: string | null
+          share_token?: string | null
           started_at?: string | null
           status?: string
           store_id?: string
@@ -9288,6 +9714,2225 @@ export type Database = {
           },
         ]
       }
+      cafe_baristas: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string | null
+          hired_on: string | null
+          hourly_rate_cents: number
+          id: string
+          is_active: boolean
+          phone: string | null
+          photo_url: string | null
+          role: string
+          sort_order: number
+          specialties: string[]
+          store_id: string
+          till_pin: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email?: string | null
+          hired_on?: string | null
+          hourly_rate_cents?: number
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          photo_url?: string | null
+          role?: string
+          sort_order?: number
+          specialties?: string[]
+          store_id: string
+          till_pin?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          hired_on?: string | null
+          hourly_rate_cents?: number
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          photo_url?: string | null
+          role?: string
+          sort_order?: number
+          specialties?: string[]
+          store_id?: string
+          till_pin?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_baristas_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_bundle_items: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          id: string
+          menu_item_id: string
+          quantity: number
+          sort_order: number
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          id?: string
+          menu_item_id: string
+          quantity?: number
+          sort_order?: number
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          id?: string
+          menu_item_id?: string
+          quantity?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_bundle_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_bundles: {
+        Row: {
+          active_end_time: string | null
+          active_start_time: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          active_end_time?: string | null
+          active_start_time?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_cents: number
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          active_end_time?: string | null
+          active_start_time?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_bundles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_customer_notes: {
+        Row: {
+          created_at: string
+          id: string
+          is_vip: boolean
+          notes: string | null
+          phone: string
+          store_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_vip?: boolean
+          notes?: string | null
+          phone: string
+          store_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_vip?: boolean
+          notes?: string | null
+          phone?: string
+          store_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_customer_notes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_expenses: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          expense_date: string
+          id: string
+          is_recurring: boolean
+          payment_method: string | null
+          receipt_url: string | null
+          store_id: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          amount_cents: number
+          category: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          expense_date?: string
+          id?: string
+          is_recurring?: boolean
+          payment_method?: string | null
+          receipt_url?: string | null
+          store_id: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          expense_date?: string
+          id?: string
+          is_recurring?: boolean
+          payment_method?: string | null
+          receipt_url?: string | null
+          store_id?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_expenses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_gift_card_redemptions: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          gift_card_id: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          store_id: string
+          taken_by_user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          gift_card_id: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          store_id: string
+          taken_by_user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          gift_card_id?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          store_id?: string
+          taken_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_gift_card_redemptions_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_gift_card_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_gift_card_redemptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_gift_cards: {
+        Row: {
+          balance_cents: number
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          initial_balance_cents: number
+          is_active: boolean
+          issued_by_user_id: string | null
+          message: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance_cents: number
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          initial_balance_cents: number
+          is_active?: boolean
+          issued_by_user_id?: string | null
+          message?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance_cents?: number
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          initial_balance_cents?: number
+          is_active?: boolean
+          issued_by_user_id?: string | null
+          message?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_gift_cards_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_hours: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          day_of_week: number
+          id: string
+          is_open: boolean
+          opens_at: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          day_of_week: number
+          id?: string
+          is_open?: boolean
+          opens_at?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_open?: boolean
+          opens_at?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_hours_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_inventory_items: {
+        Row: {
+          category: string | null
+          cost_per_unit_cents: number
+          created_at: string
+          default_supplier: string | null
+          id: string
+          is_active: boolean
+          low_stock_threshold: number
+          name: string
+          on_hand_qty: number
+          sku: string | null
+          sort_order: number
+          store_id: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          cost_per_unit_cents?: number
+          created_at?: string
+          default_supplier?: string | null
+          id?: string
+          is_active?: boolean
+          low_stock_threshold?: number
+          name: string
+          on_hand_qty?: number
+          sku?: string | null
+          sort_order?: number
+          store_id: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          cost_per_unit_cents?: number
+          created_at?: string
+          default_supplier?: string | null
+          id?: string
+          is_active?: boolean
+          low_stock_threshold?: number
+          name?: string
+          on_hand_qty?: number
+          sku?: string | null
+          sort_order?: number
+          store_id?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_inventory_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_inventory_movements: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          inventory_item_id: string
+          notes: string | null
+          order_id: string | null
+          qty_change: number
+          reason: Database["public"]["Enums"]["cafe_movement_reason"]
+          reference: string | null
+          store_id: string
+          unit_cost_cents: number
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          inventory_item_id: string
+          notes?: string | null
+          order_id?: string | null
+          qty_change: number
+          reason: Database["public"]["Enums"]["cafe_movement_reason"]
+          reference?: string | null
+          store_id: string
+          unit_cost_cents?: number
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          inventory_item_id?: string
+          notes?: string | null
+          order_id?: string | null
+          qty_change?: number
+          reason?: Database["public"]["Enums"]["cafe_movement_reason"]
+          reference?: string | null
+          store_id?: string
+          unit_cost_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_inventory_movements_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_inventory_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_inventory_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_loyalty_balances: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          last_activity_at: string
+          phone: string | null
+          points: number
+          store_id: string
+          total_earned: number
+          total_redeemed: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          last_activity_at?: string
+          phone?: string | null
+          points?: number
+          store_id: string
+          total_earned?: number
+          total_redeemed?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          last_activity_at?: string
+          phone?: string | null
+          points?: number
+          store_id?: string
+          total_earned?: number
+          total_redeemed?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_loyalty_balances_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_loyalty_events: {
+        Row: {
+          balance_id: string
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["cafe_loyalty_event_kind"]
+          notes: string | null
+          order_id: string | null
+          points_change: number
+          store_id: string
+        }
+        Insert: {
+          balance_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["cafe_loyalty_event_kind"]
+          notes?: string | null
+          order_id?: string | null
+          points_change: number
+          store_id: string
+        }
+        Update: {
+          balance_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["cafe_loyalty_event_kind"]
+          notes?: string | null
+          order_id?: string | null
+          points_change?: number
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_loyalty_events_balance_id_fkey"
+            columns: ["balance_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_loyalty_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_loyalty_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_loyalty_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_loyalty_programs: {
+        Row: {
+          birthday_bonus_points: number
+          created_at: string
+          earn_rate_milli: number
+          expire_after_days: number | null
+          id: string
+          is_active: boolean
+          mode: Database["public"]["Enums"]["cafe_loyalty_mode"]
+          redeem_threshold: number
+          referral_bonus_points: number
+          reward_value_cents: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          birthday_bonus_points?: number
+          created_at?: string
+          earn_rate_milli?: number
+          expire_after_days?: number | null
+          id?: string
+          is_active?: boolean
+          mode?: Database["public"]["Enums"]["cafe_loyalty_mode"]
+          redeem_threshold?: number
+          referral_bonus_points?: number
+          reward_value_cents?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          birthday_bonus_points?: number
+          created_at?: string
+          earn_rate_milli?: number
+          expire_after_days?: number | null
+          id?: string
+          is_active?: boolean
+          mode?: Database["public"]["Enums"]["cafe_loyalty_mode"]
+          redeem_threshold?: number
+          referral_bonus_points?: number
+          reward_value_cents?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_loyalty_programs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_menu_item_modifier_groups: {
+        Row: {
+          group_id: string
+          item_id: string
+          sort_order: number
+        }
+        Insert: {
+          group_id: string
+          item_id: string
+          sort_order?: number
+        }
+        Update: {
+          group_id?: string
+          item_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_menu_item_modifier_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_menu_item_modifier_groups_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_menu_items: {
+        Row: {
+          allergens: string | null
+          caffeine_mg: number | null
+          calories: number | null
+          category_id: string | null
+          cost_cents: number
+          created_at: string
+          description: string | null
+          happy_hour_end: number | null
+          happy_hour_price_cents: number | null
+          happy_hour_start: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_featured: boolean
+          is_gluten_free: boolean
+          is_sold_out: boolean
+          is_vegan: boolean
+          is_vegetarian: boolean
+          name: string
+          prep_minutes: number
+          price_cents: number
+          sort_order: number
+          store_id: string
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          allergens?: string | null
+          caffeine_mg?: number | null
+          calories?: number | null
+          category_id?: string | null
+          cost_cents?: number
+          created_at?: string
+          description?: string | null
+          happy_hour_end?: number | null
+          happy_hour_price_cents?: number | null
+          happy_hour_start?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_featured?: boolean
+          is_gluten_free?: boolean
+          is_sold_out?: boolean
+          is_vegan?: boolean
+          is_vegetarian?: boolean
+          name: string
+          prep_minutes?: number
+          price_cents?: number
+          sort_order?: number
+          store_id: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          allergens?: string | null
+          caffeine_mg?: number | null
+          calories?: number | null
+          category_id?: string | null
+          cost_cents?: number
+          created_at?: string
+          description?: string | null
+          happy_hour_end?: number | null
+          happy_hour_price_cents?: number | null
+          happy_hour_start?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_featured?: boolean
+          is_gluten_free?: boolean
+          is_sold_out?: boolean
+          is_vegan?: boolean
+          is_vegetarian?: boolean
+          name?: string
+          prep_minutes?: number
+          price_cents?: number
+          sort_order?: number
+          store_id?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_menu_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_modifier_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          max_select: number
+          min_select: number
+          name: string
+          selection_type: string
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_select?: number
+          min_select?: number
+          name: string
+          selection_type?: string
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_select?: number
+          min_select?: number
+          name?: string
+          selection_type?: string
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_modifier_groups_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_modifiers: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          price_delta_cents: number
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          price_delta_cents?: number
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          price_delta_cents?: number
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_modifiers_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_modifiers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_order_item_modifiers: {
+        Row: {
+          created_at: string
+          group_id: string | null
+          group_name: string
+          id: string
+          modifier_id: string | null
+          modifier_name: string
+          order_item_id: string
+          price_delta_cents: number
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          group_id?: string | null
+          group_name: string
+          id?: string
+          modifier_id?: string | null
+          modifier_name: string
+          order_item_id: string
+          price_delta_cents?: number
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string | null
+          group_name?: string
+          id?: string
+          modifier_id?: string | null
+          modifier_name?: string
+          order_item_id?: string
+          price_delta_cents?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_order_item_modifiers_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_order_item_modifiers_modifier_id_fkey"
+            columns: ["modifier_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_modifiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_order_item_modifiers_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_order_item_voids: {
+        Row: {
+          id: string
+          item_snapshot: Json
+          kind: Database["public"]["Enums"]["cafe_void_kind"]
+          order_id: string
+          reason: string
+          store_id: string
+          voided_at: string
+          voided_by: string | null
+        }
+        Insert: {
+          id?: string
+          item_snapshot: Json
+          kind: Database["public"]["Enums"]["cafe_void_kind"]
+          order_id: string
+          reason: string
+          store_id: string
+          voided_at?: string
+          voided_by?: string | null
+        }
+        Update: {
+          id?: string
+          item_snapshot?: Json
+          kind?: Database["public"]["Enums"]["cafe_void_kind"]
+          order_id?: string
+          reason?: string
+          store_id?: string
+          voided_at?: string
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_order_item_voids_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_order_item_voids_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_order_items: {
+        Row: {
+          created_at: string
+          fulfilled_at: string | null
+          id: string
+          item_name: string
+          line_total_cents: number
+          menu_item_id: string | null
+          modifiers_total_cents: number
+          notes: string | null
+          order_id: string
+          quantity: number
+          sort_order: number
+          station: string | null
+          store_id: string
+          unit_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          item_name: string
+          line_total_cents?: number
+          menu_item_id?: string | null
+          modifiers_total_cents?: number
+          notes?: string | null
+          order_id: string
+          quantity?: number
+          sort_order?: number
+          station?: string | null
+          store_id: string
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          item_name?: string
+          line_total_cents?: number
+          menu_item_id?: string | null
+          modifiers_total_cents?: number
+          notes?: string | null
+          order_id?: string
+          quantity?: number
+          sort_order?: number
+          station?: string | null
+          store_id?: string
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_order_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_orders: {
+        Row: {
+          accepted_at: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          channel: Database["public"]["Enums"]["cafe_order_channel"]
+          completed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_notes: string | null
+          customer_phone: string | null
+          customer_user_id: string | null
+          discount_cents: number
+          id: string
+          internal_notes: string | null
+          paid_cents: number
+          placed_at: string
+          ready_at: string | null
+          scheduled_for: string | null
+          served_at: string | null
+          status: Database["public"]["Enums"]["cafe_order_status"]
+          store_id: string
+          subtotal_cents: number
+          table_id: string | null
+          tax_cents: number
+          ticket_number: number
+          tip_cents: number
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          channel?: Database["public"]["Enums"]["cafe_order_channel"]
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          discount_cents?: number
+          id?: string
+          internal_notes?: string | null
+          paid_cents?: number
+          placed_at?: string
+          ready_at?: string | null
+          scheduled_for?: string | null
+          served_at?: string | null
+          status?: Database["public"]["Enums"]["cafe_order_status"]
+          store_id: string
+          subtotal_cents?: number
+          table_id?: string | null
+          tax_cents?: number
+          ticket_number: number
+          tip_cents?: number
+          total_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          channel?: Database["public"]["Enums"]["cafe_order_channel"]
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          discount_cents?: number
+          id?: string
+          internal_notes?: string | null
+          paid_cents?: number
+          placed_at?: string
+          ready_at?: string | null
+          scheduled_for?: string | null
+          served_at?: string | null
+          status?: Database["public"]["Enums"]["cafe_order_status"]
+          store_id?: string
+          subtotal_cents?: number
+          table_id?: string | null
+          tax_cents?: number
+          ticket_number?: number
+          tip_cents?: number
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_orders_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          method: Database["public"]["Enums"]["cafe_payment_method"]
+          notes: string | null
+          order_id: string
+          reference: string | null
+          refunded_cents: number
+          status: Database["public"]["Enums"]["cafe_payment_status"]
+          store_id: string
+          taken_by_user_id: string | null
+          tip_cents: number
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          method: Database["public"]["Enums"]["cafe_payment_method"]
+          notes?: string | null
+          order_id: string
+          reference?: string | null
+          refunded_cents?: number
+          status?: Database["public"]["Enums"]["cafe_payment_status"]
+          store_id: string
+          taken_by_user_id?: string | null
+          tip_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          method?: Database["public"]["Enums"]["cafe_payment_method"]
+          notes?: string | null
+          order_id?: string
+          reference?: string | null
+          refunded_cents?: number
+          status?: Database["public"]["Enums"]["cafe_payment_status"]
+          store_id?: string
+          taken_by_user_id?: string | null
+          tip_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_payments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_promotions: {
+        Row: {
+          amount: number
+          code: string | null
+          created_at: string
+          description: string | null
+          end_at: string | null
+          hour_end: number | null
+          hour_start: number | null
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["cafe_promo_kind"]
+          max_redemptions: number | null
+          min_subtotal_cents: number
+          name: string
+          redemption_count: number
+          sort_order: number
+          start_at: string | null
+          store_id: string
+          updated_at: string
+          weekdays: number[]
+        }
+        Insert: {
+          amount: number
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          end_at?: string | null
+          hour_end?: number | null
+          hour_start?: number | null
+          id?: string
+          is_active?: boolean
+          kind: Database["public"]["Enums"]["cafe_promo_kind"]
+          max_redemptions?: number | null
+          min_subtotal_cents?: number
+          name: string
+          redemption_count?: number
+          sort_order?: number
+          start_at?: string | null
+          store_id: string
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Update: {
+          amount?: number
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          end_at?: string | null
+          hour_end?: number | null
+          hour_start?: number | null
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["cafe_promo_kind"]
+          max_redemptions?: number | null
+          min_subtotal_cents?: number
+          name?: string
+          redemption_count?: number
+          sort_order?: number
+          start_at?: string | null
+          store_id?: string
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_purchase_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_item_id: string
+          item_name: string
+          line_total_cents: number
+          purchase_order_id: string
+          qty_ordered: number
+          qty_received: number
+          sort_order: number
+          store_id: string
+          unit: string
+          unit_cost_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          item_name: string
+          line_total_cents?: number
+          purchase_order_id: string
+          qty_ordered: number
+          qty_received?: number
+          sort_order?: number
+          store_id: string
+          unit: string
+          unit_cost_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          item_name?: string
+          line_total_cents?: number
+          purchase_order_id?: string
+          qty_ordered?: number
+          qty_received?: number
+          sort_order?: number
+          store_id?: string
+          unit?: string
+          unit_cost_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_purchase_order_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_purchase_order_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_purchase_order_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_purchase_orders: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          expected_at: string | null
+          id: string
+          notes: string | null
+          po_number: number
+          received_at: string | null
+          sent_at: string | null
+          shipping_cents: number
+          status: Database["public"]["Enums"]["cafe_po_status"]
+          store_id: string
+          subtotal_cents: number
+          supplier_id: string | null
+          tax_cents: number
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          expected_at?: string | null
+          id?: string
+          notes?: string | null
+          po_number: number
+          received_at?: string | null
+          sent_at?: string | null
+          shipping_cents?: number
+          status?: Database["public"]["Enums"]["cafe_po_status"]
+          store_id: string
+          subtotal_cents?: number
+          supplier_id?: string | null
+          tax_cents?: number
+          total_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          expected_at?: string | null
+          id?: string
+          notes?: string | null
+          po_number?: number
+          received_at?: string | null
+          sent_at?: string | null
+          shipping_cents?: number
+          status?: Database["public"]["Enums"]["cafe_po_status"]
+          store_id?: string
+          subtotal_cents?: number
+          supplier_id?: string | null
+          tax_cents?: number
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_purchase_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_item_id: string
+          menu_item_id: string
+          note: string | null
+          quantity_per_serving: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          menu_item_id: string
+          note?: string | null
+          quantity_per_serving: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          menu_item_id?: string
+          note?: string | null
+          quantity_per_serving?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_recipes_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_recipes_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_recipes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_reservations: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          customer_name: string
+          customer_phone: string | null
+          duration_minutes: number
+          id: string
+          notes: string | null
+          party_size: number
+          reserved_for: string
+          status: Database["public"]["Enums"]["cafe_reservation_status"]
+          store_id: string
+          table_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          party_size?: number
+          reserved_for: string
+          status?: Database["public"]["Enums"]["cafe_reservation_status"]
+          store_id: string
+          table_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          party_size?: number
+          reserved_for?: string
+          status?: Database["public"]["Enums"]["cafe_reservation_status"]
+          store_id?: string
+          table_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_reservations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_reservations_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_reviews: {
+        Row: {
+          avatar_url: string | null
+          comment: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_visible: boolean
+          order_id: string | null
+          owner_response: string | null
+          owner_response_at: string | null
+          rating_stars: number
+          store_id: string
+          tags: string[]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          comment?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_visible?: boolean
+          order_id?: string | null
+          owner_response?: string | null
+          owner_response_at?: string | null
+          rating_stars: number
+          store_id: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          comment?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_visible?: boolean
+          order_id?: string | null
+          owner_response?: string | null
+          owner_response_at?: string | null
+          rating_stars?: number
+          store_id?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_settings: {
+        Row: {
+          allow_gift_cards: boolean
+          allow_promos: boolean
+          allow_scheduled_orders: boolean
+          allow_tips: boolean
+          created_at: string
+          currency_code: string
+          daily_message: string | null
+          daily_message_until: string | null
+          id: string
+          manager_pin_hash: string | null
+          require_pin_for_refund: boolean
+          store_id: string
+          tax_rate_bp: number
+          tip_preset_1: number
+          tip_preset_2: number
+          tip_preset_3: number
+          updated_at: string
+        }
+        Insert: {
+          allow_gift_cards?: boolean
+          allow_promos?: boolean
+          allow_scheduled_orders?: boolean
+          allow_tips?: boolean
+          created_at?: string
+          currency_code?: string
+          daily_message?: string | null
+          daily_message_until?: string | null
+          id?: string
+          manager_pin_hash?: string | null
+          require_pin_for_refund?: boolean
+          store_id: string
+          tax_rate_bp?: number
+          tip_preset_1?: number
+          tip_preset_2?: number
+          tip_preset_3?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_gift_cards?: boolean
+          allow_promos?: boolean
+          allow_scheduled_orders?: boolean
+          allow_tips?: boolean
+          created_at?: string
+          currency_code?: string
+          daily_message?: string | null
+          daily_message_until?: string | null
+          id?: string
+          manager_pin_hash?: string | null
+          require_pin_for_refund?: boolean
+          store_id?: string
+          tax_rate_bp?: number
+          tip_preset_1?: number
+          tip_preset_2?: number
+          tip_preset_3?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_shifts: {
+        Row: {
+          barista_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          notes: string | null
+          role: string | null
+          starts_at: string
+          status: Database["public"]["Enums"]["cafe_shift_status"]
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          barista_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          notes?: string | null
+          role?: string | null
+          starts_at: string
+          status?: Database["public"]["Enums"]["cafe_shift_status"]
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          barista_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          notes?: string | null
+          role?: string | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["cafe_shift_status"]
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_shifts_barista_id_fkey"
+            columns: ["barista_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_baristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_shifts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_suppliers: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          lead_time_days: number | null
+          name: string
+          notes: string | null
+          payment_terms: string | null
+          phone: string | null
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          lead_time_days?: number | null
+          name: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          lead_time_days?: number | null
+          name?: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_suppliers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_tables: {
+        Row: {
+          capacity: number
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          qr_token: string
+          sort_order: number
+          store_id: string
+          updated_at: string
+          zone: string | null
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          qr_token?: string
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+          zone?: string | null
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          qr_token?: string
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_tables_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_till_drops: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          dropped_at: string
+          dropped_by_user_id: string | null
+          id: string
+          note: string | null
+          store_id: string
+          till_session_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          dropped_at?: string
+          dropped_by_user_id?: string | null
+          id?: string
+          note?: string | null
+          store_id: string
+          till_session_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          dropped_at?: string
+          dropped_by_user_id?: string | null
+          id?: string
+          note?: string | null
+          store_id?: string
+          till_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_till_drops_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_till_drops_till_session_id_fkey"
+            columns: ["till_session_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_till_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_till_sessions: {
+        Row: {
+          closed_at: string | null
+          closed_by_user_id: string | null
+          counted_cash_cents: number | null
+          created_at: string
+          expected_cash_cents: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by_user_id: string | null
+          starting_cash_cents: number
+          status: string
+          store_id: string
+          updated_at: string
+          variance_cents: number | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by_user_id?: string | null
+          counted_cash_cents?: number | null
+          created_at?: string
+          expected_cash_cents?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by_user_id?: string | null
+          starting_cash_cents?: number
+          status?: string
+          store_id: string
+          updated_at?: string
+          variance_cents?: number | null
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by_user_id?: string | null
+          counted_cash_cents?: number | null
+          created_at?: string
+          expected_cash_cents?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by_user_id?: string | null
+          starting_cash_cents?: number
+          status?: string
+          store_id?: string
+          updated_at?: string
+          variance_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_till_sessions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_time_entries: {
+        Row: {
+          barista_id: string
+          break_minutes: number
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          hourly_rate_cents_snapshot: number
+          id: string
+          minutes_worked: number
+          notes: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          barista_id: string
+          break_minutes?: number
+          clock_in?: string
+          clock_out?: string | null
+          created_at?: string
+          hourly_rate_cents_snapshot?: number
+          id?: string
+          minutes_worked?: number
+          notes?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          barista_id?: string
+          break_minutes?: number
+          clock_in?: string
+          clock_out?: string | null
+          created_at?: string
+          hourly_rate_cents_snapshot?: number
+          id?: string
+          minutes_worked?: number
+          notes?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_time_entries_barista_id_fkey"
+            columns: ["barista_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_baristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_time_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_tip_payout_lines: {
+        Row: {
+          barista_id: string
+          display_name: string
+          id: string
+          minutes_worked: number
+          payout_cents: number
+          payout_id: string
+          weight: number
+        }
+        Insert: {
+          barista_id: string
+          display_name: string
+          id?: string
+          minutes_worked?: number
+          payout_cents?: number
+          payout_id: string
+          weight?: number
+        }
+        Update: {
+          barista_id?: string
+          display_name?: string
+          id?: string
+          minutes_worked?: number
+          payout_cents?: number
+          payout_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_tip_payout_lines_barista_id_fkey"
+            columns: ["barista_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_baristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cafe_tip_payout_lines_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "cafe_tip_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cafe_tip_payouts: {
+        Row: {
+          created_at: string
+          id: string
+          mode: string
+          notes: string | null
+          paid_at: string
+          paid_by_user_id: string | null
+          store_id: string
+          total_cents: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mode: string
+          notes?: string | null
+          paid_at?: string
+          paid_by_user_id?: string | null
+          store_id: string
+          total_cents: number
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mode?: string
+          notes?: string | null
+          paid_at?: string
+          paid_by_user_id?: string | null
+          store_id?: string
+          total_cents?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cafe_tip_payouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_history: {
         Row: {
           call_signal_id: string | null
@@ -9973,6 +12618,1184 @@ export type Database = {
         }
         Relationships: []
       }
+      car_dealership_customer_interactions: {
+        Row: {
+          body: string | null
+          created_at: string
+          customer_id: string
+          direction: string | null
+          id: string
+          interaction_type: string
+          occurred_at: string
+          outcome: string | null
+          store_id: string
+          summary: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          customer_id: string
+          direction?: string | null
+          id?: string
+          interaction_type: string
+          occurred_at?: string
+          outcome?: string | null
+          store_id: string
+          summary: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          customer_id?: string
+          direction?: string | null
+          id?: string
+          interaction_type?: string
+          occurred_at?: string
+          outcome?: string | null
+          store_id?: string
+          summary?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_customer_interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_customer_interactions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_customers: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          date_of_birth: string | null
+          display_name: string
+          driver_license_country: string | null
+          driver_license_expiry: string | null
+          driver_license_number: string | null
+          driver_license_state: string | null
+          email: string | null
+          employer: string | null
+          id: string
+          income_band: string | null
+          last_purchase_at: string | null
+          lifetime_value_cents: number
+          notes: string | null
+          occupation: string | null
+          phone: string | null
+          postal_code: string | null
+          preferred_contact: string | null
+          state: string | null
+          store_id: string
+          tags: Json
+          total_purchases: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          display_name: string
+          driver_license_country?: string | null
+          driver_license_expiry?: string | null
+          driver_license_number?: string | null
+          driver_license_state?: string | null
+          email?: string | null
+          employer?: string | null
+          id?: string
+          income_band?: string | null
+          last_purchase_at?: string | null
+          lifetime_value_cents?: number
+          notes?: string | null
+          occupation?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          preferred_contact?: string | null
+          state?: string | null
+          store_id: string
+          tags?: Json
+          total_purchases?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          display_name?: string
+          driver_license_country?: string | null
+          driver_license_expiry?: string | null
+          driver_license_number?: string | null
+          driver_license_state?: string | null
+          email?: string | null
+          employer?: string | null
+          id?: string
+          income_band?: string | null
+          last_purchase_at?: string | null
+          lifetime_value_cents?: number
+          notes?: string | null
+          occupation?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          preferred_contact?: string | null
+          state?: string | null
+          store_id?: string
+          tags?: Json
+          total_purchases?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_deal_documents: {
+        Row: {
+          created_at: string
+          deal_id: string
+          doc_type: string
+          file_name: string
+          file_path: string
+          file_size_bytes: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          notes: string | null
+          store_id: string
+          uploaded_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          doc_type: string
+          file_name: string
+          file_path: string
+          file_size_bytes?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          store_id: string
+          uploaded_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          doc_type?: string
+          file_name?: string
+          file_path?: string
+          file_size_bytes?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          store_id?: string
+          uploaded_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_deal_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_deal_documents_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_expenses: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          description: string
+          id: string
+          notes: string | null
+          paid_at: string
+          receipt_url: string | null
+          store_id: string
+          updated_at: string
+          vehicle_id: string | null
+          vendor: string | null
+        }
+        Insert: {
+          amount_cents: number
+          category?: string
+          created_at?: string
+          description: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          receipt_url?: string | null
+          store_id: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vendor?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          receipt_url?: string | null
+          store_id?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_expenses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_expenses_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_financing: {
+        Row: {
+          amount_financed_cents: number
+          application_number: string | null
+          apr_bps: number
+          created_at: string
+          customer_id: string | null
+          decision_at: string | null
+          decision_notes: string | null
+          down_payment_cents: number
+          first_payment_due: string | null
+          funded_at: string | null
+          id: string
+          lender_name: string | null
+          monthly_payment_cents: number
+          payment_frequency: string
+          sale_id: string | null
+          status: Database["public"]["Enums"]["car_dealership_financing_status"]
+          store_id: string
+          submitted_at: string | null
+          term_months: number
+          updated_at: string
+        }
+        Insert: {
+          amount_financed_cents?: number
+          application_number?: string | null
+          apr_bps?: number
+          created_at?: string
+          customer_id?: string | null
+          decision_at?: string | null
+          decision_notes?: string | null
+          down_payment_cents?: number
+          first_payment_due?: string | null
+          funded_at?: string | null
+          id?: string
+          lender_name?: string | null
+          monthly_payment_cents?: number
+          payment_frequency?: string
+          sale_id?: string | null
+          status?: Database["public"]["Enums"]["car_dealership_financing_status"]
+          store_id: string
+          submitted_at?: string | null
+          term_months?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_financed_cents?: number
+          application_number?: string | null
+          apr_bps?: number
+          created_at?: string
+          customer_id?: string | null
+          decision_at?: string | null
+          decision_notes?: string | null
+          down_payment_cents?: number
+          first_payment_due?: string | null
+          funded_at?: string | null
+          id?: string
+          lender_name?: string | null
+          monthly_payment_cents?: number
+          payment_frequency?: string
+          sale_id?: string | null
+          status?: Database["public"]["Enums"]["car_dealership_financing_status"]
+          store_id?: string
+          submitted_at?: string | null
+          term_months?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_financing_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_financing_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_financing_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_lead_activities: {
+        Row: {
+          activity_type: string
+          body: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          occurred_at: string
+          outcome: string | null
+          store_id: string
+          summary: string
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          occurred_at?: string
+          outcome?: string | null
+          store_id: string
+          summary: string
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          occurred_at?: string
+          outcome?: string | null
+          store_id?: string
+          summary?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_lead_activities_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_leads: {
+        Row: {
+          assigned_to_user_id: string | null
+          budget_max_cents: number | null
+          budget_min_cents: number | null
+          created_at: string
+          customer_id: string | null
+          desired_make: string | null
+          desired_model: string | null
+          desired_year_max: number | null
+          desired_year_min: number | null
+          display_name: string
+          email: string | null
+          financing_needed: boolean
+          id: string
+          last_contacted_at: string | null
+          lost_reason: string | null
+          next_followup_at: string | null
+          notes: string | null
+          phone: string | null
+          salesperson_name: string | null
+          source: string
+          status: Database["public"]["Enums"]["car_dealership_lead_status"]
+          store_id: string
+          trade_in_interested: boolean
+          updated_at: string
+          vehicle_id: string | null
+          vehicle_label: string | null
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          budget_max_cents?: number | null
+          budget_min_cents?: number | null
+          created_at?: string
+          customer_id?: string | null
+          desired_make?: string | null
+          desired_model?: string | null
+          desired_year_max?: number | null
+          desired_year_min?: number | null
+          display_name: string
+          email?: string | null
+          financing_needed?: boolean
+          id?: string
+          last_contacted_at?: string | null
+          lost_reason?: string | null
+          next_followup_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          salesperson_name?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["car_dealership_lead_status"]
+          store_id: string
+          trade_in_interested?: boolean
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_label?: string | null
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          budget_max_cents?: number | null
+          budget_min_cents?: number | null
+          created_at?: string
+          customer_id?: string | null
+          desired_make?: string | null
+          desired_model?: string | null
+          desired_year_max?: number | null
+          desired_year_min?: number | null
+          display_name?: string
+          email?: string | null
+          financing_needed?: boolean
+          id?: string
+          last_contacted_at?: string | null
+          lost_reason?: string | null
+          next_followup_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          salesperson_name?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["car_dealership_lead_status"]
+          store_id?: string
+          trade_in_interested?: boolean
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_leads_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_leads_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_leads_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_promotions: {
+        Row: {
+          applies_to: string
+          applies_to_make: string | null
+          applies_to_model: string | null
+          code: string | null
+          created_at: string
+          description: string | null
+          discount_amount: number
+          discount_type: string | null
+          ends_at: string | null
+          financing_apr_bps: number | null
+          financing_term_months: number | null
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          promo_type: string
+          starts_at: string | null
+          store_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string
+          applies_to_make?: string | null
+          applies_to_model?: string | null
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          discount_amount?: number
+          discount_type?: string | null
+          ends_at?: string | null
+          financing_apr_bps?: number | null
+          financing_term_months?: number | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          promo_type?: string
+          starts_at?: string | null
+          store_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string
+          applies_to_make?: string | null
+          applies_to_model?: string | null
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          discount_amount?: number
+          discount_type?: string | null
+          ends_at?: string | null
+          financing_apr_bps?: number | null
+          financing_term_months?: number | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          promo_type?: string
+          starts_at?: string | null
+          store_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_reviews: {
+        Row: {
+          body: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          is_visible: boolean
+          owner_responded_at: string | null
+          owner_response: string | null
+          rating: number
+          sale_id: string | null
+          store_id: string
+          title: string | null
+          updated_at: string
+          vehicle_label: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          is_visible?: boolean
+          owner_responded_at?: string | null
+          owner_response?: string | null
+          rating: number
+          sale_id?: string | null
+          store_id: string
+          title?: string | null
+          updated_at?: string
+          vehicle_label?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          is_visible?: boolean
+          owner_responded_at?: string | null
+          owner_response?: string | null
+          rating?: number
+          sale_id?: string | null
+          store_id?: string
+          title?: string | null
+          updated_at?: string
+          vehicle_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_reviews_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_reviews_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_sales: {
+        Row: {
+          amount_paid_cents: number
+          balance_due_cents: number
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_notes: string | null
+          customer_phone: string | null
+          deal_number: string
+          delivered_at: string | null
+          deposit_cents: number
+          discount_cents: number
+          doc_fee_cents: number
+          gap_insurance_cents: number
+          id: string
+          internal_notes: string | null
+          lead_id: string | null
+          other_fees_cents: number
+          payment_method: string | null
+          rebate_cents: number
+          registration_fee_cents: number
+          sale_price_cents: number
+          salesperson_name: string | null
+          salesperson_user_id: string | null
+          sold_at: string | null
+          status: Database["public"]["Enums"]["car_dealership_sale_status"]
+          store_id: string
+          subtotal_cents: number
+          taxes_cents: number
+          title_fee_cents: number
+          total_cents: number
+          trade_in_payoff_cents: number
+          trade_in_value_cents: number
+          updated_at: string
+          vehicle_id: string | null
+          vehicle_label: string
+          vehicle_vin: string | null
+          warranty_cents: number
+        }
+        Insert: {
+          amount_paid_cents?: number
+          balance_due_cents?: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_notes?: string | null
+          customer_phone?: string | null
+          deal_number?: string
+          delivered_at?: string | null
+          deposit_cents?: number
+          discount_cents?: number
+          doc_fee_cents?: number
+          gap_insurance_cents?: number
+          id?: string
+          internal_notes?: string | null
+          lead_id?: string | null
+          other_fees_cents?: number
+          payment_method?: string | null
+          rebate_cents?: number
+          registration_fee_cents?: number
+          sale_price_cents?: number
+          salesperson_name?: string | null
+          salesperson_user_id?: string | null
+          sold_at?: string | null
+          status?: Database["public"]["Enums"]["car_dealership_sale_status"]
+          store_id: string
+          subtotal_cents?: number
+          taxes_cents?: number
+          title_fee_cents?: number
+          total_cents?: number
+          trade_in_payoff_cents?: number
+          trade_in_value_cents?: number
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_label: string
+          vehicle_vin?: string | null
+          warranty_cents?: number
+        }
+        Update: {
+          amount_paid_cents?: number
+          balance_due_cents?: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_notes?: string | null
+          customer_phone?: string | null
+          deal_number?: string
+          delivered_at?: string | null
+          deposit_cents?: number
+          discount_cents?: number
+          doc_fee_cents?: number
+          gap_insurance_cents?: number
+          id?: string
+          internal_notes?: string | null
+          lead_id?: string | null
+          other_fees_cents?: number
+          payment_method?: string | null
+          rebate_cents?: number
+          registration_fee_cents?: number
+          sale_price_cents?: number
+          salesperson_name?: string | null
+          salesperson_user_id?: string | null
+          sold_at?: string | null
+          status?: Database["public"]["Enums"]["car_dealership_sale_status"]
+          store_id?: string
+          subtotal_cents?: number
+          taxes_cents?: number
+          title_fee_cents?: number
+          total_cents?: number
+          trade_in_payoff_cents?: number
+          trade_in_value_cents?: number
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_label?: string
+          vehicle_vin?: string | null
+          warranty_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_sales_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_sales_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_test_drives: {
+        Row: {
+          cancellation_reason: string | null
+          completed_at: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string | null
+          duration_minutes: number
+          end_fuel_level: number | null
+          end_odometer: number | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          salesperson_user_id: string | null
+          scheduled_at: string
+          start_fuel_level: number | null
+          start_odometer: number | null
+          status: Database["public"]["Enums"]["car_dealership_test_drive_status"]
+          store_id: string
+          updated_at: string
+          vehicle_id: string | null
+          vehicle_label: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          duration_minutes?: number
+          end_fuel_level?: number | null
+          end_odometer?: number | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          salesperson_user_id?: string | null
+          scheduled_at: string
+          start_fuel_level?: number | null
+          start_odometer?: number | null
+          status?: Database["public"]["Enums"]["car_dealership_test_drive_status"]
+          store_id: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_label: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          duration_minutes?: number
+          end_fuel_level?: number | null
+          end_odometer?: number | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          salesperson_user_id?: string | null
+          scheduled_at?: string
+          start_fuel_level?: number | null
+          start_odometer?: number | null
+          status?: Database["public"]["Enums"]["car_dealership_test_drive_status"]
+          store_id?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_test_drives_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_test_drives_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_test_drives_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_test_drives_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_trade_ins: {
+        Row: {
+          appraised_value_cents: number
+          appraiser_user_id: string | null
+          color: string | null
+          condition: string | null
+          created_at: string
+          customer_id: string | null
+          id: string
+          license_plate: string | null
+          make: string
+          mileage: number | null
+          model: string
+          notes: string | null
+          offered_value_cents: number
+          payoff_amount_cents: number
+          payoff_lender: string | null
+          photo_urls: Json
+          sale_id: string | null
+          status: string
+          store_id: string
+          trim: string | null
+          updated_at: string
+          vin: string | null
+          year: number | null
+        }
+        Insert: {
+          appraised_value_cents?: number
+          appraiser_user_id?: string | null
+          color?: string | null
+          condition?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          license_plate?: string | null
+          make: string
+          mileage?: number | null
+          model: string
+          notes?: string | null
+          offered_value_cents?: number
+          payoff_amount_cents?: number
+          payoff_lender?: string | null
+          photo_urls?: Json
+          sale_id?: string | null
+          status?: string
+          store_id: string
+          trim?: string | null
+          updated_at?: string
+          vin?: string | null
+          year?: number | null
+        }
+        Update: {
+          appraised_value_cents?: number
+          appraiser_user_id?: string | null
+          color?: string | null
+          condition?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          license_plate?: string | null
+          make?: string
+          mileage?: number | null
+          model?: string
+          notes?: string | null
+          offered_value_cents?: number
+          payoff_amount_cents?: number
+          payoff_lender?: string | null
+          photo_urls?: Json
+          sale_id?: string | null
+          status?: string
+          store_id?: string
+          trim?: string | null
+          updated_at?: string
+          vin?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_trade_ins_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_trade_ins_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "car_dealership_sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_dealership_trade_ins_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_dealership_vehicles: {
+        Row: {
+          acquired_at: string | null
+          acquired_from: string | null
+          asking_price_cents: number
+          body_type: string | null
+          condition: Database["public"]["Enums"]["car_dealership_condition"]
+          cost_cents: number
+          created_at: string
+          cylinders: number | null
+          days_on_lot: number
+          description: string | null
+          doors: number | null
+          drivetrain:
+            | Database["public"]["Enums"]["car_dealership_drivetrain"]
+            | null
+          engine: string | null
+          exterior_color: string | null
+          features: Json
+          fuel_type: Database["public"]["Enums"]["car_dealership_fuel"]
+          id: string
+          interior_color: string | null
+          is_active: boolean
+          is_featured: boolean
+          license_plate: string | null
+          location_label: string | null
+          make: string
+          mileage: number | null
+          mileage_unit: string
+          min_price_cents: number
+          model: string
+          msrp_cents: number
+          photo_url: string | null
+          photo_urls: Json
+          seats: number | null
+          status: Database["public"]["Enums"]["car_dealership_vehicle_status"]
+          stock_number: string | null
+          store_id: string
+          transmission: Database["public"]["Enums"]["car_dealership_transmission"]
+          trim: string | null
+          updated_at: string
+          video_url: string | null
+          vin: string | null
+          year: number | null
+        }
+        Insert: {
+          acquired_at?: string | null
+          acquired_from?: string | null
+          asking_price_cents?: number
+          body_type?: string | null
+          condition?: Database["public"]["Enums"]["car_dealership_condition"]
+          cost_cents?: number
+          created_at?: string
+          cylinders?: number | null
+          days_on_lot?: number
+          description?: string | null
+          doors?: number | null
+          drivetrain?:
+            | Database["public"]["Enums"]["car_dealership_drivetrain"]
+            | null
+          engine?: string | null
+          exterior_color?: string | null
+          features?: Json
+          fuel_type?: Database["public"]["Enums"]["car_dealership_fuel"]
+          id?: string
+          interior_color?: string | null
+          is_active?: boolean
+          is_featured?: boolean
+          license_plate?: string | null
+          location_label?: string | null
+          make: string
+          mileage?: number | null
+          mileage_unit?: string
+          min_price_cents?: number
+          model: string
+          msrp_cents?: number
+          photo_url?: string | null
+          photo_urls?: Json
+          seats?: number | null
+          status?: Database["public"]["Enums"]["car_dealership_vehicle_status"]
+          stock_number?: string | null
+          store_id: string
+          transmission?: Database["public"]["Enums"]["car_dealership_transmission"]
+          trim?: string | null
+          updated_at?: string
+          video_url?: string | null
+          vin?: string | null
+          year?: number | null
+        }
+        Update: {
+          acquired_at?: string | null
+          acquired_from?: string | null
+          asking_price_cents?: number
+          body_type?: string | null
+          condition?: Database["public"]["Enums"]["car_dealership_condition"]
+          cost_cents?: number
+          created_at?: string
+          cylinders?: number | null
+          days_on_lot?: number
+          description?: string | null
+          doors?: number | null
+          drivetrain?:
+            | Database["public"]["Enums"]["car_dealership_drivetrain"]
+            | null
+          engine?: string | null
+          exterior_color?: string | null
+          features?: Json
+          fuel_type?: Database["public"]["Enums"]["car_dealership_fuel"]
+          id?: string
+          interior_color?: string | null
+          is_active?: boolean
+          is_featured?: boolean
+          license_plate?: string | null
+          location_label?: string | null
+          make?: string
+          mileage?: number | null
+          mileage_unit?: string
+          min_price_cents?: number
+          model?: string
+          msrp_cents?: number
+          photo_url?: string | null
+          photo_urls?: Json
+          seats?: number | null
+          status?: Database["public"]["Enums"]["car_dealership_vehicle_status"]
+          stock_number?: string | null
+          store_id?: string
+          transmission?: Database["public"]["Enums"]["car_dealership_transmission"]
+          trim?: string | null
+          updated_at?: string
+          video_url?: string | null
+          vin?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_dealership_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       car_inventory: {
         Row: {
           created_at: string
@@ -10250,6 +14073,950 @@ export type Database = {
         }
         Relationships: []
       }
+      car_rental_addons: {
+        Row: {
+          billing: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          billing?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents?: number
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          billing?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_addons_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_customers: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          date_of_birth: string | null
+          display_name: string
+          driver_license_country: string | null
+          driver_license_expiry: string | null
+          driver_license_number: string | null
+          driver_license_photo_back_url: string | null
+          driver_license_photo_url: string | null
+          driver_license_state: string | null
+          email: string | null
+          id: string
+          is_blocked: boolean
+          last_rental_at: string | null
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          state: string | null
+          store_id: string
+          tags: Json
+          total_rentals: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          display_name: string
+          driver_license_country?: string | null
+          driver_license_expiry?: string | null
+          driver_license_number?: string | null
+          driver_license_photo_back_url?: string | null
+          driver_license_photo_url?: string | null
+          driver_license_state?: string | null
+          email?: string | null
+          id?: string
+          is_blocked?: boolean
+          last_rental_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          store_id: string
+          tags?: Json
+          total_rentals?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          display_name?: string
+          driver_license_country?: string | null
+          driver_license_expiry?: string | null
+          driver_license_number?: string | null
+          driver_license_photo_back_url?: string | null
+          driver_license_photo_url?: string | null
+          driver_license_state?: string | null
+          email?: string | null
+          id?: string
+          is_blocked?: boolean
+          last_rental_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          store_id?: string
+          tags?: Json
+          total_rentals?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_expenses: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string
+          expense_date: string
+          id: string
+          is_recurring: boolean
+          notes: string | null
+          paid_to: string | null
+          payment_method: string | null
+          receipt_url: string | null
+          store_id: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description: string
+          expense_date?: string
+          id?: string
+          is_recurring?: boolean
+          notes?: string | null
+          paid_to?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          store_id: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string
+          expense_date?: string
+          id?: string
+          is_recurring?: boolean
+          notes?: string | null
+          paid_to?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          store_id?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_expenses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_expenses_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_locations: {
+        Row: {
+          address: string | null
+          city: string | null
+          close_time: string | null
+          country: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          open_time: string | null
+          phone: string | null
+          postal_code: string | null
+          state: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          close_time?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          open_time?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          close_time?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          open_time?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_locations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_maintenance: {
+        Row: {
+          cost_cents: number
+          created_at: string
+          created_by_user_id: string | null
+          description: string
+          id: string
+          next_service_due_date: string | null
+          next_service_due_odometer: number | null
+          notes: string | null
+          odometer: number | null
+          service_date: string
+          service_type: string
+          shop: string | null
+          store_id: string
+          took_vehicle_offline: boolean
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          cost_cents?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          description: string
+          id?: string
+          next_service_due_date?: string | null
+          next_service_due_odometer?: number | null
+          notes?: string | null
+          odometer?: number | null
+          service_date?: string
+          service_type?: string
+          shop?: string | null
+          store_id: string
+          took_vehicle_offline?: boolean
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          cost_cents?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string
+          id?: string
+          next_service_due_date?: string | null
+          next_service_due_odometer?: number | null
+          notes?: string | null
+          odometer?: number | null
+          service_date?: string
+          service_type?: string
+          shop?: string | null
+          store_id?: string
+          took_vehicle_offline?: boolean
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_maintenance_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_maintenance_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_payment_attempts: {
+        Row: {
+          client_attempt_id: string | null
+          completed_at: string | null
+          customer_user_id: string | null
+          dedup_key: string
+          id: string
+          reservation_id: string
+          result: string | null
+          started_at: string
+          stripe_client_secret: string | null
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          client_attempt_id?: string | null
+          completed_at?: string | null
+          customer_user_id?: string | null
+          dedup_key: string
+          id?: string
+          reservation_id: string
+          result?: string | null
+          started_at?: string
+          stripe_client_secret?: string | null
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          client_attempt_id?: string | null
+          completed_at?: string | null
+          customer_user_id?: string | null
+          dedup_key?: string
+          id?: string
+          reservation_id?: string
+          result?: string | null
+          started_at?: string
+          stripe_client_secret?: string | null
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_payment_attempts_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_promo_redemptions: {
+        Row: {
+          amount_discounted_cents: number
+          customer_id: string | null
+          id: string
+          promo_id: string
+          redeemed_at: string
+          reservation_id: string
+          store_id: string
+        }
+        Insert: {
+          amount_discounted_cents?: number
+          customer_id?: string | null
+          id?: string
+          promo_id: string
+          redeemed_at?: string
+          reservation_id: string
+          store_id: string
+        }
+        Update: {
+          amount_discounted_cents?: number
+          customer_id?: string | null
+          id?: string
+          promo_id?: string
+          redeemed_at?: string
+          reservation_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_promo_redemptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_promo_redemptions_promo_id_fkey"
+            columns: ["promo_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_promo_redemptions_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_promo_redemptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_promotions: {
+        Row: {
+          amount: number
+          code: string
+          created_at: string
+          current_redemptions: number
+          description: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["car_rental_promo_kind"]
+          max_per_customer: number | null
+          max_redemptions: number | null
+          min_amount_cents: number
+          min_rental_days: number
+          starts_at: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          code: string
+          created_at?: string
+          current_redemptions?: number
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["car_rental_promo_kind"]
+          max_per_customer?: number | null
+          max_redemptions?: number | null
+          min_amount_cents?: number
+          min_rental_days?: number
+          starts_at?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          code?: string
+          created_at?: string
+          current_redemptions?: number
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["car_rental_promo_kind"]
+          max_per_customer?: number | null
+          max_redemptions?: number | null
+          min_amount_cents?: number
+          min_rental_days?: number
+          starts_at?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_reservation_addons: {
+        Row: {
+          addon_id: string | null
+          billing: string
+          created_at: string
+          id: string
+          name: string
+          quantity: number
+          reservation_id: string
+          total_cents: number
+          unit_price_cents: number
+        }
+        Insert: {
+          addon_id?: string | null
+          billing?: string
+          created_at?: string
+          id?: string
+          name: string
+          quantity?: number
+          reservation_id: string
+          total_cents?: number
+          unit_price_cents?: number
+        }
+        Update: {
+          addon_id?: string | null
+          billing?: string
+          created_at?: string
+          id?: string
+          name?: string
+          quantity?: number
+          reservation_id?: string
+          total_cents?: number
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_reservation_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reservation_addons_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_reservation_events: {
+        Row: {
+          actor_source: string
+          actor_user_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          id: string
+          reservation_id: string
+          store_id: string
+        }
+        Insert: {
+          actor_source?: string
+          actor_user_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          id?: string
+          reservation_id: string
+          store_id: string
+        }
+        Update: {
+          actor_source?: string
+          actor_user_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          id?: string
+          reservation_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_reservation_events_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reservation_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_reservations: {
+        Row: {
+          addons_total_cents: number
+          amount_paid_cents: number
+          base_total_cents: number
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          confirmation_code: string
+          created_at: string
+          created_by_user_id: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_notes: string | null
+          customer_phone: string | null
+          daily_rate_cents: number
+          damage_marks: Json
+          damage_notes: string | null
+          damage_photos: Json
+          deposit_paid_cents: number
+          discount_cents: number
+          dropoff_at: string
+          dropoff_fuel_level: number | null
+          dropoff_location_id: string | null
+          dropoff_location_name: string | null
+          dropoff_odometer: number | null
+          fees_cents: number
+          id: string
+          insurance_total_cents: number
+          internal_notes: string | null
+          last_payment_error: string | null
+          payment_lock_expires_at: string | null
+          payment_lock_token: string | null
+          payment_provider: string | null
+          payment_status: string
+          picked_up_at: string | null
+          pickup_at: string
+          pickup_fuel_level: number | null
+          pickup_location_id: string | null
+          pickup_location_name: string | null
+          pickup_odometer: number | null
+          refund_amount_cents: number
+          refund_at: string | null
+          refund_method: string | null
+          rental_days: number
+          returned_at: string | null
+          security_deposit_cents: number
+          source: string
+          status: Database["public"]["Enums"]["car_rental_reservation_status"]
+          store_id: string
+          stripe_balance_payment_intent_id: string | null
+          stripe_charge_id: string | null
+          stripe_customer_id: string | null
+          stripe_last_event_at: string | null
+          stripe_last_event_type: string | null
+          stripe_payment_intent_id: string | null
+          stripe_payment_method_id: string | null
+          stripe_refund_id: string | null
+          taxes_cents: number
+          total_cents: number
+          updated_at: string
+          vehicle_category: string | null
+          vehicle_id: string | null
+          vehicle_label: string
+        }
+        Insert: {
+          addons_total_cents?: number
+          amount_paid_cents?: number
+          base_total_cents?: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          confirmation_code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_notes?: string | null
+          customer_phone?: string | null
+          daily_rate_cents?: number
+          damage_marks?: Json
+          damage_notes?: string | null
+          damage_photos?: Json
+          deposit_paid_cents?: number
+          discount_cents?: number
+          dropoff_at: string
+          dropoff_fuel_level?: number | null
+          dropoff_location_id?: string | null
+          dropoff_location_name?: string | null
+          dropoff_odometer?: number | null
+          fees_cents?: number
+          id?: string
+          insurance_total_cents?: number
+          internal_notes?: string | null
+          last_payment_error?: string | null
+          payment_lock_expires_at?: string | null
+          payment_lock_token?: string | null
+          payment_provider?: string | null
+          payment_status?: string
+          picked_up_at?: string | null
+          pickup_at: string
+          pickup_fuel_level?: number | null
+          pickup_location_id?: string | null
+          pickup_location_name?: string | null
+          pickup_odometer?: number | null
+          refund_amount_cents?: number
+          refund_at?: string | null
+          refund_method?: string | null
+          rental_days: number
+          returned_at?: string | null
+          security_deposit_cents?: number
+          source?: string
+          status?: Database["public"]["Enums"]["car_rental_reservation_status"]
+          store_id: string
+          stripe_balance_payment_intent_id?: string | null
+          stripe_charge_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_last_event_at?: string | null
+          stripe_last_event_type?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_payment_method_id?: string | null
+          stripe_refund_id?: string | null
+          taxes_cents?: number
+          total_cents?: number
+          updated_at?: string
+          vehicle_category?: string | null
+          vehicle_id?: string | null
+          vehicle_label: string
+        }
+        Update: {
+          addons_total_cents?: number
+          amount_paid_cents?: number
+          base_total_cents?: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          confirmation_code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_notes?: string | null
+          customer_phone?: string | null
+          daily_rate_cents?: number
+          damage_marks?: Json
+          damage_notes?: string | null
+          damage_photos?: Json
+          deposit_paid_cents?: number
+          discount_cents?: number
+          dropoff_at?: string
+          dropoff_fuel_level?: number | null
+          dropoff_location_id?: string | null
+          dropoff_location_name?: string | null
+          dropoff_odometer?: number | null
+          fees_cents?: number
+          id?: string
+          insurance_total_cents?: number
+          internal_notes?: string | null
+          last_payment_error?: string | null
+          payment_lock_expires_at?: string | null
+          payment_lock_token?: string | null
+          payment_provider?: string | null
+          payment_status?: string
+          picked_up_at?: string | null
+          pickup_at?: string
+          pickup_fuel_level?: number | null
+          pickup_location_id?: string | null
+          pickup_location_name?: string | null
+          pickup_odometer?: number | null
+          refund_amount_cents?: number
+          refund_at?: string | null
+          refund_method?: string | null
+          rental_days?: number
+          returned_at?: string | null
+          security_deposit_cents?: number
+          source?: string
+          status?: Database["public"]["Enums"]["car_rental_reservation_status"]
+          store_id?: string
+          stripe_balance_payment_intent_id?: string | null
+          stripe_charge_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_last_event_at?: string | null
+          stripe_last_event_type?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_payment_method_id?: string | null
+          stripe_refund_id?: string | null
+          taxes_cents?: number
+          total_cents?: number
+          updated_at?: string
+          vehicle_category?: string | null
+          vehicle_id?: string | null
+          vehicle_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_reservations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reservations_dropoff_location_id_fkey"
+            columns: ["dropoff_location_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reservations_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reservations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reservations_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_reviews: {
+        Row: {
+          cleanliness: number | null
+          comment: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          is_acknowledged: boolean
+          is_published: boolean
+          rating: number
+          reply: string | null
+          reply_at: string | null
+          reservation_id: string | null
+          service: number | null
+          store_id: string
+          updated_at: string
+          value: number | null
+          vehicle_id: string | null
+          vehicle_label: string | null
+        }
+        Insert: {
+          cleanliness?: number | null
+          comment?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          is_acknowledged?: boolean
+          is_published?: boolean
+          rating: number
+          reply?: string | null
+          reply_at?: string | null
+          reservation_id?: string | null
+          service?: number | null
+          store_id: string
+          updated_at?: string
+          value?: number | null
+          vehicle_id?: string | null
+          vehicle_label?: string | null
+        }
+        Update: {
+          cleanliness?: number | null
+          comment?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          is_acknowledged?: boolean
+          is_published?: boolean
+          rating?: number
+          reply?: string | null
+          reply_at?: string | null
+          reservation_id?: string | null
+          service?: number | null
+          store_id?: string
+          updated_at?: string
+          value?: number | null
+          vehicle_id?: string | null
+          vehicle_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_reviews_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reviews_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_reviews_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       car_rental_settings: {
         Row: {
           default_commission_percent: number
@@ -10291,6 +15058,296 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      car_rental_store_settings: {
+        Row: {
+          auto_confirm_app_bookings: boolean
+          cancellation_policy: string | null
+          created_at: string
+          currency_code: string
+          deposit_capture_mode: string
+          late_grace_hours: number
+          no_show_grace_hours: number
+          payment_provider: string
+          refund_tiers: Json
+          store_id: string
+          stripe_account_id: string | null
+          tax_label: string
+          tax_rate_bps: number
+          updated_at: string
+        }
+        Insert: {
+          auto_confirm_app_bookings?: boolean
+          cancellation_policy?: string | null
+          created_at?: string
+          currency_code?: string
+          deposit_capture_mode?: string
+          late_grace_hours?: number
+          no_show_grace_hours?: number
+          payment_provider?: string
+          refund_tiers?: Json
+          store_id: string
+          stripe_account_id?: string | null
+          tax_label?: string
+          tax_rate_bps?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_confirm_app_bookings?: boolean
+          cancellation_policy?: string | null
+          created_at?: string
+          currency_code?: string
+          deposit_capture_mode?: string
+          late_grace_hours?: number
+          no_show_grace_hours?: number
+          payment_provider?: string
+          refund_tiers?: Json
+          store_id?: string
+          stripe_account_id?: string | null
+          tax_label?: string
+          tax_rate_bps?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_store_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_stripe_webhook_events: {
+        Row: {
+          error_message: string | null
+          event_created_at: string | null
+          event_type: string
+          id: string
+          payload: Json | null
+          processing_status: string
+          received_at: string
+          reservation_id: string | null
+          stripe_event_id: string
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          event_created_at?: string | null
+          event_type: string
+          id?: string
+          payload?: Json | null
+          processing_status?: string
+          received_at?: string
+          reservation_id?: string | null
+          stripe_event_id: string
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          event_created_at?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          processing_status?: string
+          received_at?: string
+          reservation_id?: string | null
+          stripe_event_id?: string
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: []
+      }
+      car_rental_vehicle_blackouts: {
+        Row: {
+          category: string
+          created_at: string
+          created_by_user_id: string | null
+          ends_at: string
+          id: string
+          reason: string | null
+          starts_at: string
+          store_id: string
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          ends_at: string
+          id?: string
+          reason?: string | null
+          starts_at: string
+          store_id: string
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          ends_at?: string
+          id?: string
+          reason?: string | null
+          starts_at?: string
+          store_id?: string
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_vehicle_blackouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_vehicle_blackouts_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_rental_vehicles: {
+        Row: {
+          air_conditioning: boolean
+          category: string
+          color: string | null
+          created_at: string
+          current_odometer: number
+          daily_rate_cents: number
+          description: string | null
+          doors: number
+          extra_mile_cents: number
+          features: Json
+          fuel_type: Database["public"]["Enums"]["car_rental_fuel"]
+          home_location_id: string | null
+          hourly_rate_cents: number
+          id: string
+          inspection_due_at: string | null
+          insurance_expires_at: string | null
+          insurance_policy_number: string | null
+          insurance_provider: string | null
+          is_active: boolean
+          license_plate: string | null
+          luggage_capacity: number
+          make: string
+          mileage_limit_per_day: number | null
+          model: string
+          monthly_rate_cents: number
+          photo_url: string | null
+          photo_urls: Json
+          registration_expires_at: string | null
+          registration_number: string | null
+          seats: number
+          security_deposit_cents: number
+          status: Database["public"]["Enums"]["car_rental_vehicle_status"]
+          store_id: string
+          transmission: Database["public"]["Enums"]["car_rental_transmission"]
+          updated_at: string
+          vin: string | null
+          weekly_rate_cents: number
+          year: number | null
+        }
+        Insert: {
+          air_conditioning?: boolean
+          category?: string
+          color?: string | null
+          created_at?: string
+          current_odometer?: number
+          daily_rate_cents?: number
+          description?: string | null
+          doors?: number
+          extra_mile_cents?: number
+          features?: Json
+          fuel_type?: Database["public"]["Enums"]["car_rental_fuel"]
+          home_location_id?: string | null
+          hourly_rate_cents?: number
+          id?: string
+          inspection_due_at?: string | null
+          insurance_expires_at?: string | null
+          insurance_policy_number?: string | null
+          insurance_provider?: string | null
+          is_active?: boolean
+          license_plate?: string | null
+          luggage_capacity?: number
+          make: string
+          mileage_limit_per_day?: number | null
+          model: string
+          monthly_rate_cents?: number
+          photo_url?: string | null
+          photo_urls?: Json
+          registration_expires_at?: string | null
+          registration_number?: string | null
+          seats?: number
+          security_deposit_cents?: number
+          status?: Database["public"]["Enums"]["car_rental_vehicle_status"]
+          store_id: string
+          transmission?: Database["public"]["Enums"]["car_rental_transmission"]
+          updated_at?: string
+          vin?: string | null
+          weekly_rate_cents?: number
+          year?: number | null
+        }
+        Update: {
+          air_conditioning?: boolean
+          category?: string
+          color?: string | null
+          created_at?: string
+          current_odometer?: number
+          daily_rate_cents?: number
+          description?: string | null
+          doors?: number
+          extra_mile_cents?: number
+          features?: Json
+          fuel_type?: Database["public"]["Enums"]["car_rental_fuel"]
+          home_location_id?: string | null
+          hourly_rate_cents?: number
+          id?: string
+          inspection_due_at?: string | null
+          insurance_expires_at?: string | null
+          insurance_policy_number?: string | null
+          insurance_provider?: string | null
+          is_active?: boolean
+          license_plate?: string | null
+          luggage_capacity?: number
+          make?: string
+          mileage_limit_per_day?: number | null
+          model?: string
+          monthly_rate_cents?: number
+          photo_url?: string | null
+          photo_urls?: Json
+          registration_expires_at?: string | null
+          registration_number?: string | null
+          seats?: number
+          security_deposit_cents?: number
+          status?: Database["public"]["Enums"]["car_rental_vehicle_status"]
+          store_id?: string
+          transmission?: Database["public"]["Enums"]["car_rental_transmission"]
+          updated_at?: string
+          vin?: string | null
+          weekly_rate_cents?: number
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_vehicles_home_location_id_fkey"
+            columns: ["home_location_id"]
+            isOneToOne: false
+            referencedRelation: "car_rental_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_vehicles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       car_rentals: {
         Row: {
@@ -12924,6 +17981,30 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          target_table: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          target_table: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          target_table?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comment_reactions: {
         Row: {
           comment_id: string
@@ -13970,6 +19051,48 @@ export type Database = {
           severity?: string | null
           status?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      content_reports: {
+        Row: {
+          content_id: string
+          content_type: string
+          created_at: string
+          description: string | null
+          id: string
+          reason: string
+          reported_user_id: string | null
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason: string
+          reported_user_id?: string | null
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason?: string
+          reported_user_id?: string | null
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -16621,6 +21744,76 @@ export type Database = {
           },
         ]
       }
+      direct_message_locked_payloads: {
+        Row: {
+          content: string
+          created_at: string
+          message_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          message_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_message_locked_payloads_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_message_unlocks: {
+        Row: {
+          amount_cents_paid: number
+          creator_id: string
+          currency: string
+          id: string
+          message_id: string
+          payment_provider: string
+          payment_ref: string | null
+          unlocked_at: string
+          unlocker_id: string
+        }
+        Insert: {
+          amount_cents_paid: number
+          creator_id: string
+          currency?: string
+          id?: string
+          message_id: string
+          payment_provider?: string
+          payment_ref?: string | null
+          unlocked_at?: string
+          unlocker_id: string
+        }
+        Update: {
+          amount_cents_paid?: number
+          creator_id?: string
+          currency?: string
+          id?: string
+          message_id?: string
+          payment_provider?: string
+          payment_ref?: string | null
+          unlocked_at?: string
+          unlocker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_message_unlocks_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
           created_at: string
@@ -16631,6 +21824,9 @@ export type Database = {
           forwarded_from_message_id: string | null
           forwarded_from_user_id: string | null
           gift_payload: Json | null
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
           image_url: string | null
           is_pinned: boolean
@@ -16648,6 +21844,7 @@ export type Database = {
           reply_to_snapshot: Json | null
           self_destruct_seconds: number | null
           sender_id: string
+          sensitive_report_count: number
           video_url: string | null
           voice_url: string | null
         }
@@ -16660,6 +21857,9 @@ export type Database = {
           forwarded_from_message_id?: string | null
           forwarded_from_user_id?: string | null
           gift_payload?: Json | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
@@ -16677,6 +21877,7 @@ export type Database = {
           reply_to_snapshot?: Json | null
           self_destruct_seconds?: number | null
           sender_id: string
+          sensitive_report_count?: number
           video_url?: string | null
           voice_url?: string | null
         }
@@ -16689,6 +21890,9 @@ export type Database = {
           forwarded_from_message_id?: string | null
           forwarded_from_user_id?: string | null
           gift_payload?: Json | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
@@ -16706,6 +21910,7 @@ export type Database = {
           reply_to_snapshot?: Json | null
           self_destruct_seconds?: number | null
           sender_id?: string
+          sensitive_report_count?: number
           video_url?: string | null
           voice_url?: string | null
         }
@@ -22488,6 +27693,7 @@ export type Database = {
           creator_id: string
           description: string | null
           ends_at: string | null
+          going_count: number
           group_id: string | null
           id: string
           is_ticketed: boolean
@@ -22506,6 +27712,7 @@ export type Database = {
           creator_id: string
           description?: string | null
           ends_at?: string | null
+          going_count?: number
           group_id?: string | null
           id?: string
           is_ticketed?: boolean
@@ -22524,6 +27731,7 @@ export type Database = {
           creator_id?: string
           description?: string | null
           ends_at?: string | null
+          going_count?: number
           group_id?: string | null
           id?: string
           is_ticketed?: boolean
@@ -26869,18 +32077,23 @@ export type Database = {
           expires_at: string | null
           file_payload: Json | null
           group_id: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
           image_url: string | null
           is_pinned: boolean
           location_label: string | null
           location_lat: number | null
           location_lng: number | null
+          locked_price_coins: number | null
           message: string
           message_type: string
           reply_to_id: string | null
           reply_to_message_id: string | null
           reply_to_snapshot: Json | null
           sender_id: string
+          sensitive_report_count: number
           video_url: string | null
           voice_url: string | null
         }
@@ -26889,18 +32102,23 @@ export type Database = {
           expires_at?: string | null
           file_payload?: Json | null
           group_id: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          locked_price_coins?: number | null
           message?: string
           message_type?: string
           reply_to_id?: string | null
           reply_to_message_id?: string | null
           reply_to_snapshot?: Json | null
           sender_id: string
+          sensitive_report_count?: number
           video_url?: string | null
           voice_url?: string | null
         }
@@ -26909,18 +32127,23 @@ export type Database = {
           expires_at?: string | null
           file_payload?: Json | null
           group_id?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
           image_url?: string | null
           is_pinned?: boolean
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          locked_price_coins?: number | null
           message?: string
           message_type?: string
           reply_to_id?: string | null
           reply_to_message_id?: string | null
           reply_to_snapshot?: Json | null
           sender_id?: string
+          sensitive_report_count?: number
           video_url?: string | null
           voice_url?: string | null
         }
@@ -29197,6 +34420,7 @@ export type Database = {
           dispatch_stage: number | null
           dispatched_at: string | null
           driver_earnings: number | null
+          driver_payout_cents: number | null
           dropoff_address: string | null
           dropoff_lat: number | null
           dropoff_lng: number | null
@@ -29215,6 +34439,11 @@ export type Database = {
           merchant_net: number | null
           notes: string | null
           payment_status: string | null
+          payout_at: string | null
+          payout_error: string | null
+          payout_idempotency_key: string | null
+          payout_status: string | null
+          payout_transfer_id: string | null
           per_mile: number | null
           per_minute: number | null
           picked_up_at: string | null
@@ -29250,6 +34479,7 @@ export type Database = {
           dispatch_stage?: number | null
           dispatched_at?: string | null
           driver_earnings?: number | null
+          driver_payout_cents?: number | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
@@ -29268,6 +34498,11 @@ export type Database = {
           merchant_net?: number | null
           notes?: string | null
           payment_status?: string | null
+          payout_at?: string | null
+          payout_error?: string | null
+          payout_idempotency_key?: string | null
+          payout_status?: string | null
+          payout_transfer_id?: string | null
           per_mile?: number | null
           per_minute?: number | null
           picked_up_at?: string | null
@@ -29303,6 +34538,7 @@ export type Database = {
           dispatch_stage?: number | null
           dispatched_at?: string | null
           driver_earnings?: number | null
+          driver_payout_cents?: number | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
@@ -29321,6 +34557,11 @@ export type Database = {
           merchant_net?: number | null
           notes?: string | null
           payment_status?: string | null
+          payout_at?: string | null
+          payout_error?: string | null
+          payout_idempotency_key?: string | null
+          payout_status?: string | null
+          payout_transfer_id?: string | null
           per_mile?: number | null
           per_minute?: number | null
           picked_up_at?: string | null
@@ -32276,6 +37517,13 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "lodge_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lodge_reservations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -35795,38 +41043,61 @@ export type Database = {
       media_unlocks: {
         Row: {
           amount_cents: number
+          amount_coins: number | null
           buyer_id: string
+          completed_at: string | null
           created_at: string
+          group_id: string | null
           id: string
           message_id: string
+          message_table: string
           seller_id: string
           status: string
           stripe_session_id: string | null
+          unlock_provider: string
           updated_at: string
         }
         Insert: {
           amount_cents?: number
+          amount_coins?: number | null
           buyer_id: string
+          completed_at?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           message_id: string
+          message_table?: string
           seller_id: string
           status?: string
           stripe_session_id?: string | null
+          unlock_provider?: string
           updated_at?: string
         }
         Update: {
           amount_cents?: number
+          amount_coins?: number | null
           buyer_id?: string
+          completed_at?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           message_id?: string
+          message_table?: string
           seller_id?: string
           status?: string
           stripe_session_id?: string | null
+          unlock_provider?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "media_unlocks_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "chat_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       membership_plans: {
         Row: {
@@ -43033,6 +48304,30 @@ export type Database = {
         }
         Relationships: []
       }
+      post_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_boosts: {
         Row: {
           budget_cents: number
@@ -43319,6 +48614,41 @@ export type Database = {
         }
         Relationships: []
       }
+      post_products: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          post_source: string
+          sort_order: number
+          store_product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          post_source: string
+          sort_order?: number
+          store_product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          post_source?: string
+          sort_order?: number
+          store_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_products_store_product_id_fkey"
+            columns: ["store_product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_reports: {
         Row: {
           created_at: string | null
@@ -43355,6 +48685,33 @@ export type Database = {
         }
         Relationships: []
       }
+      post_reposts: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          quote_text: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          quote_text?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          quote_text?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_shares: {
         Row: {
           created_at: string | null
@@ -43378,6 +48735,104 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ppv_posts: {
+        Row: {
+          created_at: string
+          creator_id: string
+          currency: string
+          description: string | null
+          free_for_subscribers: boolean
+          id: string
+          is_published: boolean
+          media_paths: string[]
+          preview_path: string | null
+          price_cents: number
+          revenue_cents: number
+          scheduled_for: string | null
+          title: string
+          unlock_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          currency?: string
+          description?: string | null
+          free_for_subscribers?: boolean
+          id?: string
+          is_published?: boolean
+          media_paths?: string[]
+          preview_path?: string | null
+          price_cents: number
+          revenue_cents?: number
+          scheduled_for?: string | null
+          title: string
+          unlock_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          description?: string | null
+          free_for_subscribers?: boolean
+          id?: string
+          is_published?: boolean
+          media_paths?: string[]
+          preview_path?: string | null
+          price_cents?: number
+          revenue_cents?: number
+          scheduled_for?: string | null
+          title?: string
+          unlock_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ppv_unlocks: {
+        Row: {
+          amount_cents_paid: number
+          creator_id: string
+          currency: string
+          id: string
+          payment_provider: string
+          payment_ref: string | null
+          ppv_id: string
+          unlocked_at: string
+          unlocker_id: string
+        }
+        Insert: {
+          amount_cents_paid: number
+          creator_id: string
+          currency?: string
+          id?: string
+          payment_provider?: string
+          payment_ref?: string | null
+          ppv_id: string
+          unlocked_at?: string
+          unlocker_id: string
+        }
+        Update: {
+          amount_cents_paid?: number
+          creator_id?: string
+          currency?: string
+          id?: string
+          payment_provider?: string
+          payment_ref?: string | null
+          ppv_id?: string
+          unlocked_at?: string
+          unlocker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ppv_unlocks_ppv_id_fkey"
+            columns: ["ppv_id"]
+            isOneToOne: false
+            referencedRelation: "ppv_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       price_alerts: {
         Row: {
@@ -43929,6 +49384,7 @@ export type Database = {
       privacy_settings: {
         Row: {
           allow_message_requests: boolean | null
+          blur_sensitive_media: boolean
           id: string
           profile_visibility: string | null
           show_activity_status: boolean | null
@@ -43938,6 +49394,7 @@ export type Database = {
         }
         Insert: {
           allow_message_requests?: boolean | null
+          blur_sensitive_media?: boolean
           id?: string
           profile_visibility?: string | null
           show_activity_status?: boolean | null
@@ -43947,6 +49404,7 @@ export type Database = {
         }
         Update: {
           allow_message_requests?: boolean | null
+          blur_sensitive_media?: boolean
           id?: string
           profile_visibility?: string | null
           show_activity_status?: boolean | null
@@ -44089,6 +49547,7 @@ export type Database = {
         Row: {
           admin_2fa_enabled: boolean | null
           admin_role: string | null
+          adult_age_confirmed_at: string | null
           affiliate_captured_at: string | null
           affiliate_code: string | null
           affiliate_partner_name: string | null
@@ -44103,6 +49562,8 @@ export type Database = {
           cover_position: number | null
           cover_url: string | null
           created_at: string | null
+          creator_type: string | null
+          creator_type_set_at: string | null
           date_of_birth: string | null
           display_brand_name: string | null
           email: string | null
@@ -44112,6 +49573,7 @@ export type Database = {
           hide_like_counts: boolean
           id: string
           is_bot: boolean
+          is_of_creator: boolean
           is_private: boolean
           is_verified: boolean
           kyc_rejection_reason: string | null
@@ -44155,6 +49617,7 @@ export type Database = {
         Insert: {
           admin_2fa_enabled?: boolean | null
           admin_role?: string | null
+          adult_age_confirmed_at?: string | null
           affiliate_captured_at?: string | null
           affiliate_code?: string | null
           affiliate_partner_name?: string | null
@@ -44169,6 +49632,8 @@ export type Database = {
           cover_position?: number | null
           cover_url?: string | null
           created_at?: string | null
+          creator_type?: string | null
+          creator_type_set_at?: string | null
           date_of_birth?: string | null
           display_brand_name?: string | null
           email?: string | null
@@ -44178,6 +49643,7 @@ export type Database = {
           hide_like_counts?: boolean
           id?: string
           is_bot?: boolean
+          is_of_creator?: boolean
           is_private?: boolean
           is_verified?: boolean
           kyc_rejection_reason?: string | null
@@ -44221,6 +49687,7 @@ export type Database = {
         Update: {
           admin_2fa_enabled?: boolean | null
           admin_role?: string | null
+          adult_age_confirmed_at?: string | null
           affiliate_captured_at?: string | null
           affiliate_code?: string | null
           affiliate_partner_name?: string | null
@@ -44235,6 +49702,8 @@ export type Database = {
           cover_position?: number | null
           cover_url?: string | null
           created_at?: string | null
+          creator_type?: string | null
+          creator_type_set_at?: string | null
           date_of_birth?: string | null
           display_brand_name?: string | null
           email?: string | null
@@ -44244,6 +49713,7 @@ export type Database = {
           hide_like_counts?: boolean
           id?: string
           is_bot?: boolean
+          is_of_creator?: boolean
           is_private?: boolean
           is_verified?: boolean
           kyc_rejection_reason?: string | null
@@ -49989,6 +55459,1297 @@ export type Database = {
           },
         ]
       }
+      salon_blockouts: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          end_at: string
+          id: string
+          reason: string | null
+          start_at: string
+          store_id: string
+          stylist_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          end_at: string
+          id?: string
+          reason?: string | null
+          start_at: string
+          store_id: string
+          stylist_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          end_at?: string
+          id?: string
+          reason?: string | null
+          start_at?: string
+          store_id?: string
+          stylist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_blockouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_blockouts_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_booking_addons: {
+        Row: {
+          booking_id: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          name: string
+          price_cents: number
+          quantity: number
+          service_id: string | null
+          store_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          name: string
+          price_cents: number
+          quantity?: number
+          service_id?: string | null
+          store_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          name?: string
+          price_cents?: number
+          quantity?: number
+          service_id?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_booking_addons_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_booking_addons_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_booking_addons_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_booking_retail_items: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          unit_price_cents: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          unit_price_cents?: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_booking_retail_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_booking_retail_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "salon_retail_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_bookings: {
+        Row: {
+          addons_total_cents: number
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          client_notes: string | null
+          client_phone: string | null
+          created_at: string
+          created_by_user_id: string | null
+          deposit_cents: number
+          deposit_paid_at: string | null
+          deposit_paid_cents: number
+          duration_minutes: number
+          end_at: string
+          id: string
+          internal_notes: string | null
+          no_show_fee_charged_cents: number
+          price_cents: number
+          referral_source: string | null
+          service_id: string | null
+          service_name: string
+          source: string
+          start_at: string
+          status: Database["public"]["Enums"]["salon_booking_status"]
+          store_id: string
+          stylist_id: string | null
+          stylist_name: string | null
+          tax_cents: number
+          tip_cents: number
+          updated_at: string
+        }
+        Insert: {
+          addons_total_cents?: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          client_notes?: string | null
+          client_phone?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          deposit_cents?: number
+          deposit_paid_at?: string | null
+          deposit_paid_cents?: number
+          duration_minutes: number
+          end_at: string
+          id?: string
+          internal_notes?: string | null
+          no_show_fee_charged_cents?: number
+          price_cents?: number
+          referral_source?: string | null
+          service_id?: string | null
+          service_name: string
+          source?: string
+          start_at: string
+          status?: Database["public"]["Enums"]["salon_booking_status"]
+          store_id: string
+          stylist_id?: string | null
+          stylist_name?: string | null
+          tax_cents?: number
+          tip_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          addons_total_cents?: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          client_notes?: string | null
+          client_phone?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          deposit_cents?: number
+          deposit_paid_at?: string | null
+          deposit_paid_cents?: number
+          duration_minutes?: number
+          end_at?: string
+          id?: string
+          internal_notes?: string | null
+          no_show_fee_charged_cents?: number
+          price_cents?: number
+          referral_source?: string | null
+          service_id?: string | null
+          service_name?: string
+          source?: string
+          start_at?: string
+          status?: Database["public"]["Enums"]["salon_booking_status"]
+          store_id?: string
+          stylist_id?: string | null
+          stylist_name?: string | null
+          tax_cents?: number
+          tip_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "salon_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_bookings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_bookings_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_clients: {
+        Row: {
+          birthday: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          id: string
+          is_blocked: boolean
+          last_visit_at: string | null
+          loyalty_points: number
+          no_show_count: number
+          notes: string | null
+          phone: string | null
+          preferred_stylist_id: string | null
+          store_id: string
+          tags: string[]
+          total_spent_cents: number
+          updated_at: string
+          user_id: string | null
+          visits_count: number
+        }
+        Insert: {
+          birthday?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          id?: string
+          is_blocked?: boolean
+          last_visit_at?: string | null
+          loyalty_points?: number
+          no_show_count?: number
+          notes?: string | null
+          phone?: string | null
+          preferred_stylist_id?: string | null
+          store_id: string
+          tags?: string[]
+          total_spent_cents?: number
+          updated_at?: string
+          user_id?: string | null
+          visits_count?: number
+        }
+        Update: {
+          birthday?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          is_blocked?: boolean
+          last_visit_at?: string | null
+          loyalty_points?: number
+          no_show_count?: number
+          notes?: string | null
+          phone?: string | null
+          preferred_stylist_id?: string | null
+          store_id?: string
+          tags?: string[]
+          total_spent_cents?: number
+          updated_at?: string
+          user_id?: string | null
+          visits_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_clients_preferred_stylist_id_fkey"
+            columns: ["preferred_stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_clients_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_commission_payouts: {
+        Row: {
+          commission_cents: number
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string
+          paid_by_user_id: string | null
+          period_from: string
+          period_to: string
+          service_revenue_cents: number
+          services_count: number
+          store_id: string
+          stylist_id: string
+          tips_cents: number
+          total_paid_cents: number
+        }
+        Insert: {
+          commission_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          paid_by_user_id?: string | null
+          period_from: string
+          period_to: string
+          service_revenue_cents?: number
+          services_count?: number
+          store_id: string
+          stylist_id: string
+          tips_cents?: number
+          total_paid_cents: number
+        }
+        Update: {
+          commission_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          paid_by_user_id?: string | null
+          period_from?: string
+          period_to?: string
+          service_revenue_cents?: number
+          services_count?: number
+          store_id?: string
+          stylist_id?: string
+          tips_cents?: number
+          total_paid_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_commission_payouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_commission_payouts_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_expenses: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string
+          expense_date: string
+          id: string
+          is_recurring: boolean
+          notes: string | null
+          receipt_url: string | null
+          recurrence: string | null
+          store_id: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          amount_cents: number
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description: string
+          expense_date?: string
+          id?: string
+          is_recurring?: boolean
+          notes?: string | null
+          receipt_url?: string | null
+          recurrence?: string | null
+          store_id: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string
+          expense_date?: string
+          id?: string
+          is_recurring?: boolean
+          notes?: string | null
+          receipt_url?: string | null
+          recurrence?: string | null
+          store_id?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_expenses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_gift_card_redemptions: {
+        Row: {
+          amount_cents: number
+          booking_id: string | null
+          created_at: string
+          gift_card_id: string
+          id: string
+          notes: string | null
+          redeemed_at: string
+          redeemed_by_user_id: string | null
+          store_id: string
+        }
+        Insert: {
+          amount_cents: number
+          booking_id?: string | null
+          created_at?: string
+          gift_card_id: string
+          id?: string
+          notes?: string | null
+          redeemed_at?: string
+          redeemed_by_user_id?: string | null
+          store_id: string
+        }
+        Update: {
+          amount_cents?: number
+          booking_id?: string | null
+          created_at?: string
+          gift_card_id?: string
+          id?: string
+          notes?: string | null
+          redeemed_at?: string
+          redeemed_by_user_id?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_gift_card_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_gift_card_redemptions_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "salon_gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_gift_card_redemptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_gift_cards: {
+        Row: {
+          balance_cents: number
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          initial_cents: number
+          is_active: boolean
+          issued_by_user_id: string | null
+          message: string | null
+          purchaser_name: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance_cents: number
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          initial_cents: number
+          is_active?: boolean
+          issued_by_user_id?: string | null
+          message?: string | null
+          purchaser_name?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance_cents?: number
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          initial_cents?: number
+          is_active?: boolean
+          issued_by_user_id?: string | null
+          message?: string | null
+          purchaser_name?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_gift_cards_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_loyalty_events: {
+        Row: {
+          booking_id: string | null
+          client_id: string
+          created_at: string
+          created_by_user_id: string | null
+          event_type: string
+          id: string
+          points_delta: number
+          reason: string | null
+          store_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          client_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          event_type: string
+          id?: string
+          points_delta: number
+          reason?: string | null
+          store_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          client_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          event_type?: string
+          id?: string
+          points_delta?: number
+          reason?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_loyalty_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_loyalty_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "salon_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_loyalty_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_loyalty_settings: {
+        Row: {
+          birthday_points: number
+          is_enabled: boolean
+          points_per_dollar: number
+          redemption_value_cents_per_point: number
+          store_id: string
+          updated_at: string
+          welcome_points: number
+        }
+        Insert: {
+          birthday_points?: number
+          is_enabled?: boolean
+          points_per_dollar?: number
+          redemption_value_cents_per_point?: number
+          store_id: string
+          updated_at?: string
+          welcome_points?: number
+        }
+        Update: {
+          birthday_points?: number
+          is_enabled?: boolean
+          points_per_dollar?: number
+          redemption_value_cents_per_point?: number
+          store_id?: string
+          updated_at?: string
+          welcome_points?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_loyalty_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_package_services: {
+        Row: {
+          package_id: string
+          quantity: number
+          service_id: string
+        }
+        Insert: {
+          package_id: string
+          quantity?: number
+          service_id: string
+        }
+        Update: {
+          package_id?: string
+          quantity?: number
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_package_services_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "salon_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_package_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_packages: {
+        Row: {
+          bundle_price_cents: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          store_id: string
+          updated_at: string
+          validity_days: number | null
+        }
+        Insert: {
+          bundle_price_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+          validity_days?: number | null
+        }
+        Update: {
+          bundle_price_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_packages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_retail_products: {
+        Row: {
+          brand: string | null
+          cost_cents: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          low_stock_threshold: number
+          name: string
+          price_cents: number
+          sku: string | null
+          sort_order: number
+          stock_quantity: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          cost_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          low_stock_threshold?: number
+          name: string
+          price_cents?: number
+          sku?: string | null
+          sort_order?: number
+          stock_quantity?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          cost_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          low_stock_threshold?: number
+          name?: string
+          price_cents?: number
+          sku?: string | null
+          sort_order?: number
+          stock_quantity?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_retail_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_reviews: {
+        Row: {
+          booking_id: string | null
+          client_id: string | null
+          client_name: string
+          comment: string | null
+          created_at: string
+          id: string
+          is_visible: boolean
+          owner_response: string | null
+          rating_stars: number
+          store_id: string
+          stylist_id: string | null
+          stylist_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          client_id?: string | null
+          client_name: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          owner_response?: string | null
+          rating_stars: number
+          store_id: string
+          stylist_id?: string | null
+          stylist_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          client_id?: string | null
+          client_name?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          owner_response?: string | null
+          rating_stars?: number
+          store_id?: string
+          stylist_id?: string | null
+          stylist_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "salon_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reviews_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "salon_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reviews_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_services: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_cents?: number
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_services_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_store_closures: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          end_at: string
+          id: string
+          reason: string | null
+          start_at: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          end_at: string
+          id?: string
+          reason?: string | null
+          start_at: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          end_at?: string
+          id?: string
+          reason?: string | null
+          start_at?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_store_closures_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_stylist_schedules: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string | null
+          id: string
+          is_working: boolean
+          start_time: string | null
+          store_id: string
+          stylist_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time?: string | null
+          id?: string
+          is_working?: boolean
+          start_time?: string | null
+          store_id: string
+          stylist_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string | null
+          id?: string
+          is_working?: boolean
+          start_time?: string | null
+          store_id?: string
+          stylist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_stylist_schedules_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_stylist_schedules_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_stylist_services: {
+        Row: {
+          created_at: string
+          service_id: string
+          stylist_id: string
+        }
+        Insert: {
+          created_at?: string
+          service_id: string
+          stylist_id: string
+        }
+        Update: {
+          created_at?: string
+          service_id?: string
+          stylist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_stylist_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_stylist_services_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_stylists: {
+        Row: {
+          bio: string | null
+          commission_percent: number
+          created_at: string
+          display_name: string
+          email: string | null
+          id: string
+          is_active: boolean
+          phone: string | null
+          photo_url: string | null
+          sort_order: number
+          store_id: string
+          title: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bio?: string | null
+          commission_percent?: number
+          created_at?: string
+          display_name: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          photo_url?: string | null
+          sort_order?: number
+          store_id: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bio?: string | null
+          commission_percent?: number
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          photo_url?: string | null
+          sort_order?: number
+          store_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_stylists_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_time_entries: {
+        Row: {
+          created_at: string
+          end_at: string | null
+          id: string
+          notes: string | null
+          source: string
+          start_at: string
+          store_id: string
+          stylist_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_at?: string | null
+          id?: string
+          notes?: string | null
+          source?: string
+          start_at?: string
+          store_id: string
+          stylist_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_at?: string | null
+          id?: string
+          notes?: string | null
+          source?: string
+          start_at?: string
+          store_id?: string
+          stylist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_time_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_time_entries_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_waitlist: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          preferred_window: string | null
+          requested_service_id: string | null
+          requested_service_name: string | null
+          requested_stylist_id: string | null
+          requested_stylist_name: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          preferred_window?: string | null
+          requested_service_id?: string | null
+          requested_service_name?: string | null
+          requested_stylist_id?: string | null
+          requested_stylist_name?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          preferred_window?: string | null
+          requested_service_id?: string | null
+          requested_service_name?: string | null
+          requested_stylist_id?: string | null
+          requested_stylist_name?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_waitlist_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "salon_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_waitlist_requested_service_id_fkey"
+            columns: ["requested_service_id"]
+            isOneToOne: false
+            referencedRelation: "salon_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_waitlist_requested_stylist_id_fkey"
+            columns: ["requested_stylist_id"]
+            isOneToOne: false
+            referencedRelation: "salon_stylists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_waitlist_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_collection_items: {
         Row: {
           added_at: string | null
@@ -50018,34 +56779,79 @@ export type Database = {
           },
         ]
       }
+      saved_collection_posts: {
+        Row: {
+          collection_id: string
+          created_at: string
+          id: string
+          post_bookmark_id: string
+          sort_order: number
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          id?: string
+          post_bookmark_id: string
+          sort_order?: number
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          id?: string
+          post_bookmark_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_collection_posts_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "saved_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_collection_posts_post_bookmark_id_fkey"
+            columns: ["post_bookmark_id"]
+            isOneToOne: false
+            referencedRelation: "post_bookmarks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_collections: {
         Row: {
+          color: string | null
           cover_url: string | null
           created_at: string | null
           id: string
           is_private: boolean | null
           item_count: number | null
           name: string
+          sort_order: number
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          color?: string | null
           cover_url?: string | null
           created_at?: string | null
           id?: string
           is_private?: boolean | null
           item_count?: number | null
           name: string
+          sort_order?: number
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          color?: string | null
           cover_url?: string | null
           created_at?: string | null
           id?: string
           is_private?: boolean | null
           item_count?: number | null
           name?: string
+          sort_order?: number
           updated_at?: string | null
           user_id?: string
         }
@@ -50868,6 +57674,7 @@ export type Database = {
           vehicle_make: string | null
           vehicle_model: string | null
           vehicle_year: string | null
+          workorder_id: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -50887,6 +57694,7 @@ export type Database = {
           vehicle_make?: string | null
           vehicle_model?: string | null
           vehicle_year?: string | null
+          workorder_id?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -50906,6 +57714,7 @@ export type Database = {
           vehicle_make?: string | null
           vehicle_model?: string | null
           vehicle_year?: string | null
+          workorder_id?: string | null
         }
         Relationships: [
           {
@@ -50920,6 +57729,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_bookings_workorder_id_fkey"
+            columns: ["workorder_id"]
+            isOneToOne: false
+            referencedRelation: "ar_work_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -54201,6 +61017,74 @@ export type Database = {
           },
         ]
       }
+      store_messages: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          is_read: boolean
+          message: string
+          replies: Json
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          replies?: Json
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          replies?: Json
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_notification_channels: {
         Row: {
           channel: string
@@ -54362,6 +61246,77 @@ export type Database = {
         }
         Relationships: []
       }
+      store_payment_settings: {
+        Row: {
+          accept_card: boolean
+          accept_cash: boolean
+          cancellation_window_hours: number
+          created_at: string
+          deposit_percent: number
+          id: string
+          market: string
+          no_show_fee_cents: number
+          store_id: string
+          stripe_account_id: string | null
+          stripe_status: string
+          tax_enabled: boolean
+          tax_label: string
+          tax_rate: number
+          tip_applies_pre_tax: boolean
+          tip_presets: number[]
+          tips_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          accept_card?: boolean
+          accept_cash?: boolean
+          cancellation_window_hours?: number
+          created_at?: string
+          deposit_percent?: number
+          id?: string
+          market?: string
+          no_show_fee_cents?: number
+          store_id: string
+          stripe_account_id?: string | null
+          stripe_status?: string
+          tax_enabled?: boolean
+          tax_label?: string
+          tax_rate?: number
+          tip_applies_pre_tax?: boolean
+          tip_presets?: number[]
+          tips_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          accept_card?: boolean
+          accept_cash?: boolean
+          cancellation_window_hours?: number
+          created_at?: string
+          deposit_percent?: number
+          id?: string
+          market?: string
+          no_show_fee_cents?: number
+          store_id?: string
+          stripe_account_id?: string | null
+          stripe_status?: string
+          tax_enabled?: boolean
+          tax_label?: string
+          tax_rate?: number
+          tip_applies_pre_tax?: boolean
+          tip_presets?: number[]
+          tips_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_payment_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_post_comments: {
         Row: {
           content: string
@@ -54439,6 +61394,7 @@ export type Database = {
           location: string | null
           media_type: string
           media_urls: string[]
+          reposts_count: number
           scheduled_at: string | null
           shares_count: number
           store_id: string
@@ -54458,6 +61414,7 @@ export type Database = {
           location?: string | null
           media_type?: string
           media_urls?: string[]
+          reposts_count?: number
           scheduled_at?: string | null
           shares_count?: number
           store_id: string
@@ -54477,6 +61434,7 @@ export type Database = {
           location?: string | null
           media_type?: string
           media_urls?: string[]
+          reposts_count?: number
           scheduled_at?: string | null
           shares_count?: number
           store_id?: string
@@ -54586,6 +61544,7 @@ export type Database = {
       store_profiles: {
         Row: {
           address: string | null
+          ar_settings: Json | null
           banner_position: number | null
           banner_url: string | null
           category: string
@@ -54620,6 +61579,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          ar_settings?: Json | null
           banner_position?: number | null
           banner_url?: string | null
           category?: string
@@ -54654,6 +61614,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          ar_settings?: Json | null
           banner_position?: number | null
           banner_url?: string | null
           category?: string
@@ -54687,6 +61648,139 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: []
+      }
+      store_promotions: {
+        Row: {
+          created_at: string
+          discount_type: string
+          discount_value: number | null
+          end_date: string | null
+          id: string
+          is_active: boolean
+          promo_code: string | null
+          start_date: string | null
+          store_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          promo_code?: string | null
+          start_date?: string | null
+          store_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          promo_code?: string | null
+          start_date?: string | null
+          store_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_reviews: {
+        Row: {
+          author_name: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          reply: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          reply?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          reply?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_my_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "v_restaurant_rank"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_time_entries: {
         Row: {
@@ -54873,9 +61967,11 @@ export type Database = {
           created_at: string
           duration_seconds: number
           expires_at: string
+          filter_preset: string | null
           id: string
           media_type: string
           media_url: string
+          overlays: Json
           text_color: string | null
           text_overlay: string | null
           text_position: string | null
@@ -54888,9 +61984,11 @@ export type Database = {
           created_at?: string
           duration_seconds?: number
           expires_at?: string
+          filter_preset?: string | null
           id?: string
           media_type?: string
           media_url: string
+          overlays?: Json
           text_color?: string | null
           text_overlay?: string | null
           text_position?: string | null
@@ -54903,9 +62001,11 @@ export type Database = {
           created_at?: string
           duration_seconds?: number
           expires_at?: string
+          filter_preset?: string | null
           id?: string
           media_type?: string
           media_url?: string
+          overlays?: Json
           text_color?: string | null
           text_overlay?: string | null
           text_position?: string | null
@@ -54975,6 +62075,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      story_overlay_responses: {
+        Row: {
+          created_at: string
+          id: string
+          overlay_id: string
+          response_type: string
+          response_value: Json
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          overlay_id: string
+          response_type: string
+          response_value: Json
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          overlay_id?: string
+          response_type?: string
+          response_value?: Json
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_overlay_responses_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_reactions: {
         Row: {
@@ -61067,6 +68205,7 @@ export type Database = {
           media_url: string | null
           media_urls: string[] | null
           owner_notifications_enabled: boolean
+          reposts_count: number
           shared_from_post_id: string | null
           shared_from_user_id: string | null
           shares_count: number
@@ -61097,6 +68236,7 @@ export type Database = {
           media_url?: string | null
           media_urls?: string[] | null
           owner_notifications_enabled?: boolean
+          reposts_count?: number
           shared_from_post_id?: string | null
           shared_from_user_id?: string | null
           shares_count?: number
@@ -61127,6 +68267,7 @@ export type Database = {
           media_url?: string | null
           media_urls?: string[] | null
           owner_notifications_enabled?: boolean
+          reposts_count?: number
           shared_from_post_id?: string | null
           shared_from_user_id?: string | null
           shares_count?: number
@@ -61415,6 +68556,30 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_safety_actions: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          target_user_id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          target_user_id: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          target_user_id?: string
           user_id?: string
         }
         Relationships: []
@@ -68062,6 +75227,7 @@ export type Database = {
         Returns: {
           admin_2fa_enabled: boolean | null
           admin_role: string | null
+          adult_age_confirmed_at: string | null
           affiliate_captured_at: string | null
           affiliate_code: string | null
           affiliate_partner_name: string | null
@@ -68076,6 +75242,8 @@ export type Database = {
           cover_position: number | null
           cover_url: string | null
           created_at: string | null
+          creator_type: string | null
+          creator_type_set_at: string | null
           date_of_birth: string | null
           display_brand_name: string | null
           email: string | null
@@ -68085,6 +75253,7 @@ export type Database = {
           hide_like_counts: boolean
           id: string
           is_bot: boolean
+          is_of_creator: boolean
           is_private: boolean
           is_verified: boolean
           kyc_rejection_reason: string | null
@@ -68358,6 +75527,167 @@ export type Database = {
         Args: { listing_id: string }
         Returns: string
       }
+      cafe_auto_expire_pending_orders: { Args: never; Returns: number }
+      cafe_bundle_window_active: {
+        Args: { p_end: string; p_now: string; p_start: string }
+        Returns: boolean
+      }
+      cafe_gift_card_check_balance: {
+        Args: { p_code: string; p_store_id: string }
+        Returns: {
+          balance_cents: number
+          expires_at: string
+          is_active: boolean
+        }[]
+      }
+      cafe_is_open_now: {
+        Args: { p_store_id: string }
+        Returns: {
+          closes_at: string
+          is_open_now: boolean
+          next_open_day: number
+          next_open_time: string
+          opens_at: string
+        }[]
+      }
+      cafe_menu_item_happy_hour_active: {
+        Args: { p_end: number; p_now: string; p_price: number; p_start: number }
+        Returns: boolean
+      }
+      cafe_place_public_order: {
+        Args: {
+          p_channel: string
+          p_customer: Json
+          p_customer_notes: string
+          p_gift_card_code?: string
+          p_items: Json
+          p_promo_code?: string
+          p_redeem_loyalty?: boolean
+          p_scheduled_for?: string
+          p_store_id: string
+          p_table_token: string
+          p_tip_cents?: number
+        }
+        Returns: string
+      }
+      cafe_popular_items: {
+        Args: { p_limit?: number; p_store_id: string; p_window_days?: number }
+        Returns: {
+          menu_item_id: string
+          qty: number
+        }[]
+      }
+      cafe_prep_forecast: {
+        Args: { p_limit?: number; p_store_id: string; p_target_date?: string }
+        Returns: {
+          avg_qty: number
+          category_id: string
+          category_name: string
+          item_name: string
+          menu_item_id: string
+          suggested_prep: number
+          total_qty: number
+          weeks_observed: number
+        }[]
+      }
+      cafe_public_create_reservation: {
+        Args: {
+          p_customer_name: string
+          p_customer_phone: string
+          p_duration_minutes?: number
+          p_notes?: string
+          p_party_size: number
+          p_reserved_for: string
+          p_store_id: string
+        }
+        Returns: string
+      }
+      cafe_public_customer_summary: {
+        Args: { p_phone: string; p_store_id: string }
+        Returns: {
+          first_visit_at: string
+          name: string
+          visit_count: number
+        }[]
+      }
+      cafe_public_last_order_items: {
+        Args: { p_phone: string; p_store_id: string }
+        Returns: {
+          item_name: string
+          menu_item_id: string
+          modifier_ids: string[]
+          quantity: number
+        }[]
+      }
+      cafe_public_loyalty_balance: {
+        Args: { p_phone: string; p_store_id: string }
+        Returns: {
+          can_redeem: boolean
+          has_program: boolean
+          points: number
+          redeem_threshold: number
+          reward_value_cents: number
+        }[]
+      }
+      cafe_public_order_for_review: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      cafe_public_order_items_for_reorder: {
+        Args: { p_order_id: string }
+        Returns: {
+          item_name: string
+          menu_item_id: string
+          modifier_ids: string[]
+          quantity: number
+        }[]
+      }
+      cafe_public_order_receipt: { Args: { p_order_id: string }; Returns: Json }
+      cafe_public_order_status: {
+        Args: { p_order_id: string }
+        Returns: {
+          channel: Database["public"]["Enums"]["cafe_order_channel"]
+          currency_code: string
+          est_minutes: number
+          id: string
+          placed_at: string
+          ready_at: string
+          served_at: string
+          status: Database["public"]["Enums"]["cafe_order_status"]
+          store_slug: string
+          table_label: string
+          ticket_number: number
+          total_cents: number
+        }[]
+      }
+      cafe_public_review_summary: {
+        Args: { p_store_id: string }
+        Returns: {
+          avg_rating: number
+          review_count: number
+        }[]
+      }
+      cafe_recompute_menu_item_cost: {
+        Args: { p_menu_item_id: string }
+        Returns: undefined
+      }
+      cafe_submit_public_review: {
+        Args: {
+          p_comment: string
+          p_display_name: string
+          p_order_id: string
+          p_rating: number
+        }
+        Returns: string
+      }
+      cafe_void_order_item: {
+        Args: {
+          p_kind: Database["public"]["Enums"]["cafe_void_kind"]
+          p_order_item_id: string
+          p_reason: string
+        }
+        Returns: string
+      }
       calculate_clv_tier: { Args: { p_clv_score: number }; Returns: string }
       calculate_order_price: {
         Args: {
@@ -68481,6 +75811,15 @@ export type Database = {
       check_withdrawal_allowed: {
         Args: { p_amount: number; p_driver_id: string }
         Returns: Json
+      }
+      claim_daily_coin_reward: {
+        Args: never
+        Returns: {
+          amount: number
+          balance: number
+          claimed: boolean
+          current_streak: number
+        }[]
       }
       claim_employee_invite: { Args: { _token: string }; Returns: Json }
       clean_expired_flight_cache: { Args: never; Returns: undefined }
@@ -68658,6 +75997,7 @@ export type Database = {
           location: string | null
           media_type: string
           media_urls: string[]
+          reposts_count: number
           scheduled_at: string | null
           shares_count: number
           store_id: string
@@ -68683,26 +76023,6 @@ export type Database = {
         }
         Returns: number
       }
-      credit_customer_wallet:
-        | {
-            Args: {
-              p_amount_cents: number
-              p_reason?: string
-              p_reference_id?: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount_cents: number
-              p_description?: string
-              p_reference_id?: string
-              p_type: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
       credit_driver_earnings: {
         Args: {
           p_amount_cents: number
@@ -68763,36 +76083,6 @@ export type Database = {
         Args: { p_amount_cents: number; p_restaurant_id: string }
         Returns: boolean
       }
-      dispatch_next_offer:
-        | {
-            Args: {
-              p_job_id: string
-              p_offer_ttl_seconds?: number
-              p_radius_meters?: number
-            }
-            Returns: {
-              driver_id: string
-              expires_at: string
-              job_id: string
-              offer_id: string
-            }[]
-          }
-        | {
-            Args: { p_job_id: string; p_ttl_seconds?: number }
-            Returns: {
-              driver_id: string
-              expires_at: string
-              job_id: string
-              offer_id: string
-            }[]
-          }
-      dispatch_tick: {
-        Args: { p_offer_ttl_seconds?: number; p_radius_meters?: number }
-        Returns: {
-          expired_count: number
-          newly_dispatched_count: number
-        }[]
-      }
       driver_complete_trip: { Args: { p_job_id: string }; Returns: Json }
       driver_decline_offer: {
         Args: { p_offer_id: string; p_reason: string }
@@ -68828,6 +76118,19 @@ export type Database = {
       }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
+        Returns: undefined
+      }
+      enqueue_notification: {
+        Args: {
+          p_body?: string
+          p_category?: string
+          p_channels?: string[]
+          p_data?: Json
+          p_event_type: string
+          p_idempotency_key?: string
+          p_title: string
+          p_user_id: string
+        }
         Returns: undefined
       }
       ensure_coin_balance: { Args: { _user_id: string }; Returns: undefined }
@@ -69099,7 +76402,27 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_daily_reward_status: {
+        Args: never
+        Returns: {
+          balance: number
+          can_claim: boolean
+          current_streak: number
+          next_amount: number
+          next_claim_at: string
+        }[]
+      }
       get_day_of_week: { Args: { ts: string }; Returns: number }
+      get_deal_for_review: {
+        Args: { p_sale_id: string }
+        Returns: {
+          customer_name: string
+          status: string
+          store_id: string
+          vehicle_label: string
+          vehicle_vin: string
+        }[]
+      }
       get_default_pricing_zone_id: { Args: never; Returns: string }
       get_delivered_order_for_rating: {
         Args: { p_tracking_code: string }
@@ -69172,6 +76495,15 @@ export type Database = {
       }
       get_follower_count: { Args: { target_user_id: string }; Returns: number }
       get_following_count: { Args: { target_user_id: string }; Returns: number }
+      get_for_you_feed: {
+        Args: { p_limit?: number; p_offset?: number; p_user_id: string }
+        Returns: {
+          created_at: string
+          post_id: string
+          score: number
+          source: string
+        }[]
+      }
       get_friend_count: { Args: { target_user_id: string }; Returns: number }
       get_friendship_status: {
         Args: { target_user_id: string }
@@ -69236,6 +76568,7 @@ export type Database = {
         Returns: {
           admin_2fa_enabled: boolean | null
           admin_role: string | null
+          adult_age_confirmed_at: string | null
           affiliate_captured_at: string | null
           affiliate_code: string | null
           affiliate_partner_name: string | null
@@ -69250,6 +76583,8 @@ export type Database = {
           cover_position: number | null
           cover_url: string | null
           created_at: string | null
+          creator_type: string | null
+          creator_type_set_at: string | null
           date_of_birth: string | null
           display_brand_name: string | null
           email: string | null
@@ -69259,6 +76594,7 @@ export type Database = {
           hide_like_counts: boolean
           id: string
           is_bot: boolean
+          is_of_creator: boolean
           is_private: boolean
           is_verified: boolean
           kyc_rejection_reason: string | null
@@ -69321,6 +76657,7 @@ export type Database = {
           user_role: string
         }[]
       }
+      get_my_user_access: { Args: never; Returns: Json }
       get_nearby_drivers: {
         Args: {
           p_lat: number
@@ -69602,6 +76939,15 @@ export type Database = {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
       }
+      increment_counter: {
+        Args: {
+          amount?: number
+          column_name: string
+          row_id: string
+          table_name: string
+        }
+        Returns: undefined
+      }
       increment_driver_acceptance: {
         Args: { driver_id_param: string }
         Returns: undefined
@@ -69759,6 +77105,20 @@ export type Database = {
       link_user_device:
         | { Args: { p_device_id: string; p_role: string }; Returns: undefined }
         | { Args: { p_device_id: string; p_role?: string }; Returns: undefined }
+      list_my_recent_logins: {
+        Args: { _hours?: number; _limit?: number }
+        Returns: {
+          city: string
+          country: string
+          device_name: string
+          device_type: string
+          id: string
+          ip_address: string
+          is_suspicious: boolean
+          logged_in_at: string
+          user_agent: string
+        }[]
+      }
       lodging_wiring_report: { Args: never; Returns: Json }
       log_pii_access: {
         Args: {
@@ -69943,6 +77303,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_post_share: {
+        Args: { _channel?: string; _post_id: string; _source?: string }
+        Returns: undefined
+      }
       record_push_subscription: {
         Args: {
           p_apns_token?: string
@@ -70038,6 +77402,126 @@ export type Database = {
       run_ad_boost_auction: { Args: never; Returns: Json }
       safe_parse_timestamptz: { Args: { input: string }; Returns: string }
       safe_uuid: { Args: { _text: string }; Returns: string }
+      salon_auto_expire_pending_bookings: { Args: never; Returns: number }
+      salon_public_cancel_booking: {
+        Args: { p_id: string }
+        Returns: {
+          cancelled_at: string
+          id: string
+          status: string
+        }[]
+      }
+      salon_public_get_booking: {
+        Args: { p_id: string }
+        Returns: {
+          cancellation_window_hours: number
+          cancelled_at: string
+          client_email: string
+          client_name: string
+          client_phone: string
+          duration_minutes: number
+          end_at: string
+          id: string
+          price_cents: number
+          service_id: string
+          service_name: string
+          source: string
+          start_at: string
+          status: string
+          store_id: string
+          store_name: string
+          store_slug: string
+          stylist_id: string
+          stylist_name: string
+        }[]
+      }
+      salon_public_get_booking_for_review: {
+        Args: { p_id: string }
+        Returns: {
+          already_reviewed: boolean
+          client_name: string
+          id: string
+          service_name: string
+          start_at: string
+          status: string
+          store_id: string
+          store_name: string
+          store_slug: string
+          stylist_id: string
+          stylist_name: string
+        }[]
+      }
+      salon_public_gift_card_lookup: {
+        Args: { p_code: string }
+        Returns: {
+          balance_cents: number
+          expires_at: string
+          initial_cents: number
+          is_active: boolean
+          store_id: string
+          store_name: string
+        }[]
+      }
+      salon_public_store_closures: {
+        Args: { p_day_end: string; p_day_start: string; p_store_id: string }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
+      salon_public_stylist_blockouts: {
+        Args: { p_day_end: string; p_day_start: string; p_stylist_id: string }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
+      salon_public_stylist_day: {
+        Args: { p_day_end: string; p_day_start: string; p_stylist_id: string }
+        Returns: {
+          client_name: string
+          client_phone: string
+          duration_minutes: number
+          end_at: string
+          id: string
+          internal_notes: string
+          service_name: string
+          start_at: string
+          status: string
+          store_id: string
+          store_name: string
+          stylist_id: string
+          stylist_name: string
+        }[]
+      }
+      salon_public_stylist_meta: {
+        Args: { p_stylist_id: string }
+        Returns: {
+          display_name: string
+          id: string
+          store_id: string
+          store_name: string
+          store_slug: string
+        }[]
+      }
+      salon_public_submit_review: {
+        Args: { p_booking_id: string; p_comment: string; p_rating: number }
+        Returns: {
+          id: string
+        }[]
+      }
+      schedule_public_test_drive: {
+        Args: {
+          p_customer_name: string
+          p_customer_phone?: string
+          p_lead_id?: string
+          p_notes?: string
+          p_scheduled_at: string
+          p_store_id: string
+          p_vehicle_id: string
+        }
+        Returns: string
+      }
       score_driver_for_assignment: {
         Args: {
           p_driver_id: string
@@ -70089,15 +77573,7 @@ export type Database = {
       }
       set_customer_phone: { Args: { p_phone_e164: string }; Returns: Json }
       set_driver_phone: { Args: { p_phone_e164: string }; Returns: Json }
-      set_driver_state:
-        | { Args: { p_state: string }; Returns: Json }
-        | {
-            Args: { p_meta?: Json; p_reason?: string; p_to_state: string }
-            Returns: {
-              driver_id: string
-              driver_state: string
-            }[]
-          }
+      set_driver_state: { Args: { p_state: string }; Returns: Json }
       set_job_status_safe: {
         Args: {
           p_job_id: string
@@ -70160,6 +77636,26 @@ export type Database = {
       sync_customer_phone_verified: { Args: never; Returns: Json }
       sync_driver_phone_verified: { Args: never; Returns: Json }
       toggle_channel_post_pin: { Args: { p_post_id: string }; Returns: boolean }
+      toggle_comment_like: {
+        Args: { _comment_id: string; _target_table: string }
+        Returns: {
+          liked: boolean
+          total: number
+        }[]
+      }
+      toggle_comment_pin: {
+        Args: { _comment_id: string; _target_table?: string }
+        Returns: {
+          pinned: boolean
+        }[]
+      }
+      toggle_post_repost: {
+        Args: { _post_id: string; _quote_text?: string; _source: string }
+        Returns: {
+          reposted: boolean
+          total: number
+        }[]
+      }
       toggle_unified_comment_pin: {
         Args: { _comment_id: string }
         Returns: {
@@ -70202,6 +77698,46 @@ export type Database = {
         }
       }
       unblock_bot: { Args: { p_bot_id: string }; Returns: undefined }
+      unlock_dm_with_wallet: {
+        Args: { p_message_id: string }
+        Returns: {
+          amount_cents_paid: number
+          creator_id: string
+          currency: string
+          id: string
+          message_id: string
+          payment_provider: string
+          payment_ref: string | null
+          unlocked_at: string
+          unlocker_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "direct_message_unlocks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      unlock_ppv_with_wallet: {
+        Args: { p_ppv_id: string }
+        Returns: {
+          amount_cents_paid: number
+          creator_id: string
+          currency: string
+          id: string
+          payment_provider: string
+          payment_ref: string | null
+          ppv_id: string
+          unlocked_at: string
+          unlocker_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ppv_unlocks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       unsubscribe_bot: { Args: { p_bot_id: string }; Returns: undefined }
       update_all_driver_performance: { Args: never; Returns: number }
       update_batch_stop_status: {
@@ -70690,6 +78226,116 @@ export type Database = {
         | "ready"
         | "delivered"
       business_account_status: "pending" | "approved" | "suspended"
+      cafe_loyalty_event_kind: "earn" | "redeem" | "adjust" | "expire"
+      cafe_loyalty_mode: "points_per_dollar" | "stamp_card"
+      cafe_movement_reason:
+        | "received"
+        | "sold"
+        | "wastage"
+        | "adjust"
+        | "transfer"
+        | "return"
+      cafe_order_channel:
+        | "qr_table"
+        | "counter"
+        | "pickup"
+        | "delivery"
+        | "phone"
+      cafe_order_status:
+        | "pending"
+        | "accepted"
+        | "preparing"
+        | "ready"
+        | "served"
+        | "completed"
+        | "cancelled"
+        | "refunded"
+      cafe_payment_method:
+        | "cash"
+        | "card"
+        | "qr"
+        | "wallet"
+        | "gift_card"
+        | "other"
+      cafe_payment_status:
+        | "pending"
+        | "authorized"
+        | "captured"
+        | "refunded"
+        | "voided"
+        | "failed"
+      cafe_po_status: "draft" | "sent" | "partial" | "received" | "cancelled"
+      cafe_promo_kind: "percent" | "fixed_cents"
+      cafe_reservation_status:
+        | "pending"
+        | "confirmed"
+        | "seated"
+        | "cancelled"
+        | "no_show"
+      cafe_shift_status:
+        | "scheduled"
+        | "in_progress"
+        | "completed"
+        | "no_show"
+        | "cancelled"
+      cafe_void_kind: "void" | "comp"
+      car_dealership_condition: "new" | "used" | "certified_preowned"
+      car_dealership_drivetrain: "fwd" | "rwd" | "awd" | "4wd"
+      car_dealership_financing_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "conditionally_approved"
+        | "declined"
+        | "funded"
+        | "cancelled"
+      car_dealership_fuel:
+        | "gasoline"
+        | "diesel"
+        | "hybrid"
+        | "plugin_hybrid"
+        | "electric"
+        | "flex_fuel"
+        | "lpg"
+        | "other"
+      car_dealership_lead_status:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "test_drive_scheduled"
+        | "negotiating"
+        | "won"
+        | "lost"
+      car_dealership_sale_status:
+        | "quote"
+        | "pending"
+        | "deposit_paid"
+        | "financing"
+        | "completed"
+        | "delivered"
+        | "cancelled"
+        | "refunded"
+      car_dealership_test_drive_status:
+        | "scheduled"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "no_show"
+      car_dealership_transmission:
+        | "automatic"
+        | "manual"
+        | "cvt"
+        | "dual_clutch"
+        | "other"
+      car_dealership_vehicle_status:
+        | "available"
+        | "reserved"
+        | "pending_sale"
+        | "sold"
+        | "in_transit"
+        | "service"
+        | "retired"
       car_owner_document_type:
         | "drivers_license"
         | "vehicle_registration"
@@ -70698,6 +78344,21 @@ export type Database = {
         | "id_card"
       car_owner_insurance_option: "platform" | "own" | "none"
       car_owner_status: "pending" | "verified" | "rejected" | "suspended"
+      car_rental_fuel: "gasoline" | "diesel" | "hybrid" | "electric"
+      car_rental_promo_kind: "percent" | "flat"
+      car_rental_reservation_status:
+        | "pending"
+        | "confirmed"
+        | "picked_up"
+        | "returned"
+        | "cancelled"
+        | "no_show"
+      car_rental_transmission: "automatic" | "manual"
+      car_rental_vehicle_status:
+        | "available"
+        | "rented"
+        | "maintenance"
+        | "retired"
       channel_role: "owner" | "admin" | "sub"
       checkout_mode: "redirect" | "iframe"
       document_review_status: "pending" | "approved" | "rejected"
@@ -70751,6 +78412,10 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "canceled"
+        | "enroute_pickup"
+        | "arrived_pickup"
+        | "enroute_dropoff"
+        | "arrived_dropoff"
       job_type: "ride" | "food_delivery" | "package"
       launch_alert_severity: "info" | "warning" | "critical"
       launch_alert_type:
@@ -70883,6 +78548,12 @@ export type Database = {
         | "approved"
         | "rejected"
         | "suspended"
+      salon_booking_status:
+        | "pending"
+        | "confirmed"
+        | "completed"
+        | "cancelled"
+        | "no_show"
       service_offer_status:
         | "pending"
         | "accepted"
@@ -71113,6 +78784,130 @@ export const Constants = {
         "delivered",
       ],
       business_account_status: ["pending", "approved", "suspended"],
+      cafe_loyalty_event_kind: ["earn", "redeem", "adjust", "expire"],
+      cafe_loyalty_mode: ["points_per_dollar", "stamp_card"],
+      cafe_movement_reason: [
+        "received",
+        "sold",
+        "wastage",
+        "adjust",
+        "transfer",
+        "return",
+      ],
+      cafe_order_channel: [
+        "qr_table",
+        "counter",
+        "pickup",
+        "delivery",
+        "phone",
+      ],
+      cafe_order_status: [
+        "pending",
+        "accepted",
+        "preparing",
+        "ready",
+        "served",
+        "completed",
+        "cancelled",
+        "refunded",
+      ],
+      cafe_payment_method: [
+        "cash",
+        "card",
+        "qr",
+        "wallet",
+        "gift_card",
+        "other",
+      ],
+      cafe_payment_status: [
+        "pending",
+        "authorized",
+        "captured",
+        "refunded",
+        "voided",
+        "failed",
+      ],
+      cafe_po_status: ["draft", "sent", "partial", "received", "cancelled"],
+      cafe_promo_kind: ["percent", "fixed_cents"],
+      cafe_reservation_status: [
+        "pending",
+        "confirmed",
+        "seated",
+        "cancelled",
+        "no_show",
+      ],
+      cafe_shift_status: [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "no_show",
+        "cancelled",
+      ],
+      cafe_void_kind: ["void", "comp"],
+      car_dealership_condition: ["new", "used", "certified_preowned"],
+      car_dealership_drivetrain: ["fwd", "rwd", "awd", "4wd"],
+      car_dealership_financing_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "conditionally_approved",
+        "declined",
+        "funded",
+        "cancelled",
+      ],
+      car_dealership_fuel: [
+        "gasoline",
+        "diesel",
+        "hybrid",
+        "plugin_hybrid",
+        "electric",
+        "flex_fuel",
+        "lpg",
+        "other",
+      ],
+      car_dealership_lead_status: [
+        "new",
+        "contacted",
+        "qualified",
+        "test_drive_scheduled",
+        "negotiating",
+        "won",
+        "lost",
+      ],
+      car_dealership_sale_status: [
+        "quote",
+        "pending",
+        "deposit_paid",
+        "financing",
+        "completed",
+        "delivered",
+        "cancelled",
+        "refunded",
+      ],
+      car_dealership_test_drive_status: [
+        "scheduled",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "no_show",
+      ],
+      car_dealership_transmission: [
+        "automatic",
+        "manual",
+        "cvt",
+        "dual_clutch",
+        "other",
+      ],
+      car_dealership_vehicle_status: [
+        "available",
+        "reserved",
+        "pending_sale",
+        "sold",
+        "in_transit",
+        "service",
+        "retired",
+      ],
       car_owner_document_type: [
         "drivers_license",
         "vehicle_registration",
@@ -71122,6 +78917,23 @@ export const Constants = {
       ],
       car_owner_insurance_option: ["platform", "own", "none"],
       car_owner_status: ["pending", "verified", "rejected", "suspended"],
+      car_rental_fuel: ["gasoline", "diesel", "hybrid", "electric"],
+      car_rental_promo_kind: ["percent", "flat"],
+      car_rental_reservation_status: [
+        "pending",
+        "confirmed",
+        "picked_up",
+        "returned",
+        "cancelled",
+        "no_show",
+      ],
+      car_rental_transmission: ["automatic", "manual"],
+      car_rental_vehicle_status: [
+        "available",
+        "rented",
+        "maintenance",
+        "retired",
+      ],
       channel_role: ["owner", "admin", "sub"],
       checkout_mode: ["redirect", "iframe"],
       document_review_status: ["pending", "approved", "rejected"],
@@ -71178,6 +78990,10 @@ export const Constants = {
         "in_progress",
         "completed",
         "canceled",
+        "enroute_pickup",
+        "arrived_pickup",
+        "enroute_dropoff",
+        "arrived_dropoff",
       ],
       job_type: ["ride", "food_delivery", "package"],
       launch_alert_severity: ["info", "warning", "critical"],
@@ -71326,6 +79142,13 @@ export const Constants = {
         "approved",
         "rejected",
         "suspended",
+      ],
+      salon_booking_status: [
+        "pending",
+        "confirmed",
+        "completed",
+        "cancelled",
+        "no_show",
       ],
       service_offer_status: [
         "pending",

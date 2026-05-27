@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { CreditCard, Plus, Trash2, Check, Shield, ChevronRight, Smartphone, LogIn, UserPlus, Banknote, QrCode, Building2 } from "lucide-react";
-import AbaPaymentModal from "@/components/rides/AbaPaymentModal";
+import AbaPaymentModal, { type AbaKhqrPaymentReceipt } from "@/components/rides/AbaPaymentModal";
 import { Button } from "@/components/ui/button";
 import { CardElement, Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
@@ -33,6 +33,15 @@ interface SavedCard {
   is_default: boolean;
 }
 
+export interface RideAuthorizedPayment {
+  id: string;
+  status: string;
+  amount?: number | null;
+  amount_received?: number | null;
+}
+
+export type CambodiaPaymentMethod = "aba" | "cash" | "qr" | "card";
+
 interface RidePaymentSectionProps {
   price: number;
   vehicleName: string;
@@ -40,7 +49,7 @@ interface RidePaymentSectionProps {
   onAuthorizeWithSavedCard: (paymentMethodId: string) => void;
   onAuthorizeWithNewCard: () => void;
   clientSecret: string | null;
-  onPaymentSuccess: () => void;
+  onPaymentSuccess: (paymentIntent?: RideAuthorizedPayment) => void;
   paymentFailed: boolean;
   onClearError?: () => void;
   isCambodia?: boolean;
@@ -48,12 +57,14 @@ interface RidePaymentSectionProps {
   cashAllowed?: boolean;
   /** Handler for cash ride confirmation — creates ride without Stripe */
   onCashConfirm?: () => void;
-  /** Handler for ABA Payway ride confirmation — creates ride without Stripe */
-  onAbaConfirm?: () => void;
+  /** Handler for Bakong KHQR ride confirmation — creates ride without Stripe */
+  onAbaConfirm?: (receipt?: AbaKhqrPaymentReceipt) => void;
   /** Go back from card form to payment method selector (Cambodia) */
   onBackToMethods?: () => void;
+  /** Selected Cambodia payment method controlled by the ride screen */
+  selectedPaymentMethod?: CambodiaPaymentMethod;
   /** Callback when Cambodia payment method changes */
-  onPaymentMethodChange?: (method: string) => void;
+  onPaymentMethodChange?: (method: CambodiaPaymentMethod) => void;
 }
 
 const BRAND_LABELS: Record<string, string> = {
@@ -63,7 +74,12 @@ const BRAND_LABELS: Record<string, string> = {
   discover: "Discover",
 };
 
-type CambodiaPaymentMethod = "aba" | "cash" | "qr" | "card";
+function generateBakongReference(): string {
+  const timePart = Date.now().toString(36).toUpperCase();
+  const randomPart = crypto.randomUUID?.().replace(/-/g, "").slice(0, 8).toUpperCase()
+    || Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `ZV-${timePart}-${randomPart}`;
+}
 
 /* ─── Cambodia Payment Methods ─── */
 function CambodiaPaymentSelector({
@@ -72,6 +88,7 @@ function CambodiaPaymentSelector({
   isSubmitting,
   onConfirm,
   cashAllowed = true,
+  selectedMethod,
   onMethodChange,
 }: {
   price: number;
@@ -79,19 +96,14 @@ function CambodiaPaymentSelector({
   isSubmitting: boolean;
   onConfirm: (method: CambodiaPaymentMethod) => void;
   cashAllowed?: boolean;
-  onMethodChange?: (method: string) => void;
+  selectedMethod?: CambodiaPaymentMethod;
+  onMethodChange?: (method: CambodiaPaymentMethod) => void;
 }) {
-  const [selected, setSelected] = useState<CambodiaPaymentMethod>(() => {
-    const initial = cashAllowed ? "cash" : "card";
-    onMethodChange?.(initial);
-    return initial;
-  });
-
   const allMethods = [
     {
       id: "aba" as CambodiaPaymentMethod,
-      label: "ABA KHQR",
-      desc: "Scan with ABA / Bakong app",
+      label: "Bakong KHQR",
+      desc: "Customer scans with Bakong / ABA app",
       icon: QrCode,
       iconColor: "text-[#0066b3]",
       bgColor: "bg-[#0066b3]/10",
@@ -117,16 +129,26 @@ function CambodiaPaymentSelector({
 
   // Filter out cash if not allowed (international customers must pay by card)
   const methods = cashAllowed ? allMethods : allMethods.filter(m => m.id !== "cash");
+  const fallbackMethod: CambodiaPaymentMethod = cashAllowed ? "cash" : "card";
+  const selected = selectedMethod && (cashAllowed || selectedMethod !== "cash")
+    ? selectedMethod
+    : fallbackMethod;
+
+  useEffect(() => {
+    if (!cashAllowed && selectedMethod === "cash") {
+      onMethodChange?.("card");
+    }
+  }, [cashAllowed, selectedMethod, onMethodChange]);
 
   const confirmLabels: Record<CambodiaPaymentMethod, string> = {
-    aba: `បង់ ABA · ${dualPrice(price, true)}`,
+    aba: `បង់ Bakong · ${dualPrice(price, true)}`,
     cash: `បញ្ជាក់ · ${dualPrice(price, true)}`,
     qr: `បង់ QR · ${dualPrice(price, true)}`,
     card: `បង់កាត · ${dualPrice(price, true)}`,
   };
 
   const footerLabels: Record<CambodiaPaymentMethod, string> = {
-    aba: "បើកទៅ ABA Payway សម្រាប់ការទូទាត់ · Redirected to ABA checkout",
+    aba: "ស្កែន Bakong KHQR ដើម្បីបង់ប្រាក់ · Customer scans to pay",
     cash: "បង់សាច់ប្រាក់ដល់អ្នកបើកបរ · Pay cash to driver after ride",
     qr: "ស្កែន QR code ពេលអ្នកបើកបរមកដល់ · Scan QR when driver arrives",
     card: "កាតនឹងត្រូវបានគិតប្រាក់បន្ទាប់ពីជិះ · Card charged after ride",
@@ -145,7 +167,7 @@ function CambodiaPaymentSelector({
           return (
             <button type="button"
               key={m.id}
-              onClick={() => { setSelected(m.id); onMethodChange?.(m.id); }}
+              onClick={() => onMethodChange?.(m.id)}
               className={cn(
                 "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border transition-all text-left",
                 isSelected
@@ -292,7 +314,7 @@ function AddCardForm({ onSuccess, onCancel, setupClientSecret }: {
 
 /* ─── Stripe authorize form for new card payment ─── */
 function AuthorizeForm({ onSuccess, price, vehicleName, clientSecret, cardOnly = false }: {
-  onSuccess: () => void;
+  onSuccess: (paymentIntent?: RideAuthorizedPayment) => void;
   price: number;
   vehicleName: string;
   clientSecret: string;
@@ -332,7 +354,12 @@ function AuthorizeForm({ onSuccess, price, vehicleName, clientSecret, cardOnly =
 
       if (paymentIntent && ["requires_capture", "succeeded", "processing"].includes(paymentIntent.status)) {
         setProcessing(false);
-        onSuccess();
+        onSuccess({
+          id: paymentIntent.id,
+          status: paymentIntent.status,
+          amount: paymentIntent.amount ?? null,
+          amount_received: (paymentIntent as any).amount_received ?? null,
+        });
         return;
       }
 
@@ -341,7 +368,7 @@ function AuthorizeForm({ onSuccess, price, vehicleName, clientSecret, cardOnly =
       return;
     }
 
-    const { error: payError } = await stripe.confirmPayment({
+    const { error: payError, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: { return_url: window.location.href },
       redirect: "if_required",
@@ -354,7 +381,12 @@ function AuthorizeForm({ onSuccess, price, vehicleName, clientSecret, cardOnly =
     }
 
     setProcessing(false);
-    onSuccess();
+    onSuccess(paymentIntent ? {
+      id: paymentIntent.id,
+      status: paymentIntent.status,
+      amount: paymentIntent.amount ?? null,
+      amount_received: (paymentIntent as any).amount_received ?? null,
+    } : undefined);
   };
 
   return (
@@ -420,6 +452,7 @@ export default function RidePaymentSection({
   onCashConfirm,
   onAbaConfirm,
   onBackToMethods,
+  selectedPaymentMethod,
   onPaymentMethodChange,
 }: RidePaymentSectionProps) {
   const { user, isLoading: authLoading } = useAuth();
@@ -432,6 +465,7 @@ export default function RidePaymentSection({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addingCard, setAddingCard] = useState(false);
   const [abaModalOpen, setAbaModalOpen] = useState(false);
+  const [abaReference, setAbaReference] = useState<string | null>(null);
 
   // Load saved cards
   const loadCards = useCallback(async () => {
@@ -566,13 +600,14 @@ export default function RidePaymentSection({
           open={abaModalOpen}
           onOpenChange={setAbaModalOpen}
           amountUsd={price}
-          reference={`ZIVO-${user?.id?.slice(0, 6) ?? "ride"}-${Date.now().toString().slice(-5)}`}
-          onConfirmed={() => {
+          reference={abaReference ?? generateBakongReference()}
+          onRenew={() => setAbaReference(generateBakongReference())}
+          onConfirmed={(receipt) => {
             setAbaModalOpen(false);
             if (onAbaConfirm) {
-              onAbaConfirm();
+              onAbaConfirm(receipt);
             } else {
-              toast.success("Ride confirmed! Payment via ABA KHQR.");
+              toast.success("Ride confirmed! Payment via Bakong KHQR.");
               onPaymentSuccess();
             }
           }}
@@ -582,9 +617,11 @@ export default function RidePaymentSection({
         vehicleName={vehicleName}
         isSubmitting={isSubmitting}
         cashAllowed={cashAllowed}
+        selectedMethod={selectedPaymentMethod}
         onMethodChange={onPaymentMethodChange}
         onConfirm={async (method) => {
           if (method === "aba") {
+            setAbaReference(generateBakongReference());
             setAbaModalOpen(true);
           } else if (method === "cash") {
             // Use dedicated cash handler that creates ride_request + job without Stripe

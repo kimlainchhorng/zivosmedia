@@ -19,11 +19,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
+import { useDirectMessageUnlocks } from "@/hooks/useDirectMessageUnlocks";
+import { isLockedDirectMessage } from "@/lib/chat/lockedMedia";
 import MediaGalleryLightbox from "./MediaGalleryLightbox";
 import { OPEN_MEDIA_EVENT, type OpenMediaDetail } from "@/lib/chat/openMedia";
 import { openP2PTransfer } from "@/lib/p2pTransfer";
 import { signedUrlFor } from "@/lib/security/signedMedia";
 import { topicForPairSync } from "@/lib/security/channelName";
+import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
+import { fileToInlineChatMediaUrl } from "@/lib/chat/mediaInlineFallback";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import Send from "lucide-react/dist/esm/icons/send";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
@@ -46,13 +50,10 @@ import FileText from "lucide-react/dist/esm/icons/file-text";
 import Bookmark from "lucide-react/dist/esm/icons/bookmark";
 import Timer from "lucide-react/dist/esm/icons/timer";
 import Languages from "lucide-react/dist/esm/icons/languages";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import Ban from "lucide-react/dist/esm/icons/ban";
 import Flag from "lucide-react/dist/esm/icons/flag";
 import Eraser from "lucide-react/dist/esm/icons/eraser";
-import MoreVertical from "lucide-react/dist/esm/icons/more-vertical";
 import PhoneCall from "lucide-react/dist/esm/icons/phone-call";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isToday, isYesterday } from "date-fns";
 import { primeCallAudio } from "@/lib/callAudio";
+import { classifyWebRTCFailure } from "@/hooks/useWebRTC";
 import ChatMessageBubble from "./ChatMessageBubble";
 import StickyDatePill from "./StickyDatePill";
 import AvatarPreviewSheet from "./AvatarPreviewSheet";
@@ -84,6 +86,7 @@ import ChatSocialShareSheet from "./ChatSocialShareSheet";
 const ChatGiftPanel = lazy(() => import("./ChatGiftPanel"));
 const ChatWalletSheet = lazy(() => import("./ChatWalletSheet"));
 const CoinTransferBubble = lazy(() => import("./CoinTransferBubble"));
+const GiftBubble = lazy(() => import("./GiftBubble"));
 const P2PTransferMessageCard = lazy(() => import("./P2PTransferMessageCard"));
 const ChatPollBubble = lazy(() => import("./ChatPollBubble"));
 const ChatContactBubble = lazy(() => import("./ChatContactBubble"));
@@ -101,7 +104,6 @@ const CallScreen = lazy(() => import("./CallScreen"));
 const CallPiP = lazy(() => import("./CallPiP"));
 const VoiceMessagePlayer = lazy(() => import("./VoiceMessagePlayer"));
 const LocationShareBubble = lazy(() => import("./LocationShareBubble"));
-const ChatSearch = lazy(() => import("./ChatSearch"));
 const ChatNotificationSettings = lazy(() => import("./ChatNotificationSettings"));
 const ChatMediaGallery = lazy(() => import("./ChatMediaGallery"));
 const ChatPersonalization = lazy(() => import("./ChatPersonalization"));
@@ -131,7 +133,6 @@ const StickerKeyboard = lazy(() => import("./StickerKeyboard"));
 // Phase 3B–3D wired components
 import MessageReactionsBar from "./MessageReactionsBar";
 import PinnedMessageBanner from "./PinnedMessageBanner";
-import SelfDestructPicker from "./SelfDestructPicker";
 import SmartReplyChips from "./SmartReplyChips";
 import Flame from "lucide-react/dist/esm/icons/flame";
 import Clock from "lucide-react/dist/esm/icons/clock";
@@ -140,9 +141,12 @@ const ScheduledMessagesSheet = lazy(() => import("./ScheduledMessagesSheet"));
 const PollCreatorSheet = lazy(() => import("./PollCreatorSheet"));
 import { useMessageActions, type DirectMessage } from "@/hooks/useMessageActions";
 import { useLocalChatHide } from "@/hooks/useLocalChatHide";
+import { detectSensitiveContent, isChatMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 const INITIAL_VISIBLE_TIMELINE_ITEMS = 25;
 const VISIBLE_TIMELINE_STEP = 30;
+const DM_BASE_COLUMNS = "id,sender_id,receiver_id,message,image_url,video_url,voice_url,message_type,delivered_at,reply_to_id,location_lat,location_lng,location_label,is_pinned,expires_at,created_at,is_read,locked_price_cents,edited_at,forwarded_from_user_id,file_payload,gift_payload";
+const DM_SAFETY_COLUMNS = `${DM_BASE_COLUMNS},hidden_at,hidden_by,hidden_reason,sensitive_report_count`;
 
 interface PersonalChatProps {
   recipientId: string;
@@ -151,6 +155,8 @@ interface PersonalChatProps {
   recipientIsVerified?: boolean;
   /** Pre-seed the composer with this text once on mount (e.g. quoted from "Reply Privately"). */
   prefillInput?: string;
+  /** Open the gift picker once after a deep link enters this chat. */
+  openGiftOnMount?: boolean;
   onClose: () => void;
   autoStartCall?: "voice" | "video" | null;
   onCallStarted?: () => void;
@@ -180,8 +186,20 @@ interface Message {
   edited_at?: string | null;
   forwarded_from_user_id?: string | null;
   file_payload?: FileBubbleData | null;
+  hidden_at?: string | null;
+  hidden_by?: string | null;
+  hidden_reason?: string | null;
+  sensitive_report_count?: number | null;
   gift_payload?: {
+    kind?: string;
+    icon?: string;
+    name?: string;
+    coins?: number;
+    total_coins?: number;
     amount?: number | string;
+    premium_months?: number;
+    subscription_id?: string;
+    stripe_session_id?: string;
     note?: string;
   } | null;
   _local_voice_url?: string;
@@ -205,6 +223,11 @@ interface CallEvent {
   created_at: string;
   _isCallEvent: true;
 }
+
+type MissedCallDismissMarker = {
+  id: string;
+  createdAt: string | null;
+};
 
 type TimelineItem = Message | CallEvent;
 
@@ -250,6 +273,85 @@ type RealtimeUpdatePayload<T> = { new: T };
 type RealtimeDeletePayload = { old?: { id?: string } };
 
 const dbFrom = (table: string): any => (supabase as any).from(table);
+const CHAT_MEDIA_BUCKET = "chat-media-files";
+const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
+const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
+const MEDIA_MESSAGE_TEXT = {
+  image: "Photo",
+  video: "Video",
+  voice: "Voice message",
+  file: "File",
+  location: "Location",
+} as const;
+
+function readMissedCallDismissMarker(key: string): MissedCallDismissMarker | null {
+  if (!key || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as Partial<MissedCallDismissMarker>;
+      if (typeof parsed.id === "string") {
+        return {
+          id: parsed.id,
+          createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : null,
+        };
+      }
+    } catch {
+      return { id: raw, createdAt: null };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function isMissedCallDismissed(call: CallEvent | undefined, marker: MissedCallDismissMarker | null) {
+  if (!call || !marker) return false;
+  if (call.id === marker.id) return true;
+  if (!marker.createdAt) return false;
+  return new Date(call.created_at).getTime() <= new Date(marker.createdAt).getTime();
+}
+
+function formatUploadLimit(bytes: number): string {
+  return `${Math.round(bytes / (1024 * 1024))}MB`;
+}
+
+function randomMediaId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function extensionForChatMedia(file: File, kind: "image" | "video"): string {
+  const fromName = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (fromName && fromName.length <= 8) return fromName;
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/webp") return "webp";
+  if (file.type === "image/gif") return "gif";
+  if (file.type === "image/heic" || file.type === "image/heif") return "heic";
+  if (file.type === "video/quicktime") return "mov";
+  if (file.type === "video/webm") return "webm";
+  return kind === "video" ? "mp4" : "jpg";
+}
+
+function fallbackMessageForSend(opts: {
+  text?: string;
+  messageType: string;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  voiceUrl?: string | null;
+  locationLat?: number | null;
+  filePayload?: FileBubbleData | null;
+}): string {
+  const text = opts.text?.trim();
+  if (text) return text;
+  if (opts.messageType === "image" || opts.imageUrl) return MEDIA_MESSAGE_TEXT.image;
+  if (opts.messageType === "video" || opts.videoUrl) return MEDIA_MESSAGE_TEXT.video;
+  if (opts.messageType === "voice" || opts.voiceUrl) return MEDIA_MESSAGE_TEXT.voice;
+  if (opts.messageType === "file" || opts.filePayload) return opts.filePayload?.filename || MEDIA_MESSAGE_TEXT.file;
+  if (opts.messageType === "location" || opts.locationLat != null) return MEDIA_MESSAGE_TEXT.location;
+  return "";
+}
 
 const getErrorMessage = (err: unknown): string => {
   if (err instanceof Error) return err.message;
@@ -271,7 +373,7 @@ function formatMsgTime(dateStr: string) {
   return format(d, "MMM d, h:mm a");
 }
 
-export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
+export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, openGiftOnMount, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
   const { user } = useAuth();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const navigate = useNavigate();
@@ -371,6 +473,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [activeCall, setActiveCall] = useState<"voice" | "video" | null>(null);
+  const [callStarting, setCallStarting] = useState<"voice" | "video" | null>(null);
   
   const [pipMode, setPipMode] = useState(false);
   const [pipData, setPipData] = useState<{ remoteStream: MediaStream | null; duration: number; isMuted: boolean; callType: "voice" | "video"; isCameraOff: boolean } | null>(null);
@@ -378,9 +481,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [replyTo, setReplyTo] = useState<{ id: string; message: string; isMe: boolean } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
   // Auto-delete (chat-wide disappearing). null = off, otherwise seconds. Cycles 1d→7d→30d→off.
   // Persisted per conversation in localStorage so it survives page reloads.
   const [disappearingSec, setDisappearingSec] = useState<number | null>(null);
@@ -415,18 +518,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     try {
       setAutoTranslate(localStorage.getItem(autoTranslateStorageKey) === "1");
     } catch { /* ignore */ }
-  }, [autoTranslateStorageKey]);
-  const toggleAutoTranslate = useCallback(() => {
-    setAutoTranslate((v) => {
-      const next = !v;
-      if (autoTranslateStorageKey) {
-        try {
-          if (next) localStorage.setItem(autoTranslateStorageKey, "1");
-          else localStorage.removeItem(autoTranslateStorageKey);
-        } catch { /* ignore */ }
-      }
-      return next;
-    });
   }, [autoTranslateStorageKey]);
 
   // Cycle Off → 1d → 7d → 30d → Off (Telegram parity).
@@ -492,7 +583,17 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [showScheduler, setShowScheduler] = useState(false);
   const [showPinnedPanel, setShowPinnedPanel] = useState(false);
   const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
+  // Paid DM (locked text) flow — sender opens the same price picker, then we
+  // route to handleLockedTextConfirm (vs handleLockedMediaConfirm) based on intent.
+  const [lockedPriceIntent, setLockedPriceIntent] = useState<"media" | "text" | null>(null);
+  const dmUnlocks = useDirectMessageUnlocks(recipientId);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
+  const giftDeepLinkOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!openGiftOnMount || giftDeepLinkOpenedRef.current) return;
+    giftDeepLinkOpenedRef.current = true;
+    setShowGiftPanel(true);
+  }, [openGiftOnMount]);
   const [showWalletSheet, setShowWalletSheet] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
@@ -504,7 +605,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
   // Desktop keyboard shortcuts:
   //   ⌘/Ctrl+K → Quick Replies
-  //   ⌘/Ctrl+F → in-chat message search
+  //   ⌘/Ctrl+F → global chat search
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
@@ -514,7 +615,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         setShowQuickReplies(true);
       } else if (key === "f") {
         e.preventDefault();
-        setShowSearch(true);
+        navigate("/chat/search");
       }
     };
     window.addEventListener("keydown", handler);
@@ -536,7 +637,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [pendingLockedFile, setPendingLockedFile] = useState<File | null>(null);
   const [chatStyle, setChatStyle] = useState({ wallpaper: "default", themeColor: "default", fontSize: "medium" });
   const [callEvents, setCallEvents] = useState<CallEvent[]>([]);
-  const [dismissedMissedCallId, setDismissedMissedCallId] = useState<string | null>(null);
+  const [dismissedMissedCallMarker, setDismissedMissedCallMarker] = useState<MissedCallDismissMarker | null>(null);
   const [activeEffect, setActiveEffect] = useState<EffectType>(null);
   // Manually-armed send effect; overrides detectMessageEffect for the next message
   const [pendingEffect, setPendingEffect] = useState<EffectType>(null);
@@ -591,11 +692,36 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     () => (user?.id && recipientId ? [user.id, recipientId].sort().join("_") : ""),
     [user?.id, recipientId],
   );
+  const missedCallDismissKey = useMemo(
+    () => user?.id && recipientId ? `zivo:chat:dismissed-missed-call:${user.id}:${recipientId}` : "",
+    [user?.id, recipientId],
+  );
+  const storedMissedCallDismissMarker = useMemo(
+    () => readMissedCallDismissMarker(missedCallDismissKey),
+    [missedCallDismissKey],
+  );
 
   // Sync draft to input on load
   useEffect(() => {
     if (draft && !input) setInput(draft);
   }, [draft, input]);
+
+  useEffect(() => {
+    if (!missedCallDismissKey) {
+      setDismissedMissedCallMarker(null);
+      return;
+    }
+    setDismissedMissedCallMarker(storedMissedCallDismissMarker);
+  }, [missedCallDismissKey, storedMissedCallDismissMarker]);
+
+  const dismissMissedCall = useCallback((call: CallEvent) => {
+    const marker = { id: call.id, createdAt: call.created_at };
+    setDismissedMissedCallMarker(marker);
+    if (!missedCallDismissKey) return;
+    try {
+      window.localStorage.setItem(missedCallDismissKey, JSON.stringify(marker));
+    } catch { /* ignore */ }
+  }, [missedCallDismissKey]);
 
   useEffect(() => {
     setVisibleTimelineCount(INITIAL_VISIBLE_TIMELINE_ITEMS);
@@ -700,9 +826,32 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   }, []);
 
   const handleStartCall = useCallback(async (type: "voice" | "video") => {
+    if (activeCall || callStarting) return;
+
+    setCallStarting(type);
     void primeCallAudio();
-    setActiveCall(type);
-  }, []);
+
+    let preflightStream: MediaStream | null = null;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        const error = new Error("Media devices are not available on this device.");
+        error.name = "NotFoundError";
+        throw error;
+      }
+
+      preflightStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: type === "video",
+      });
+      setActiveCall(type);
+    } catch (error) {
+      const failure = classifyWebRTCFailure(error, type);
+      toast.error(failure.description || failure.title);
+    } finally {
+      preflightStream?.getTracks().forEach((track) => track.stop());
+      setCallStarting(null);
+    }
+  }, [activeCall, callStarting]);
 
   // Auto-start call from profile page deep-link
   const autoStartFiredRef = useRef(false);
@@ -788,27 +937,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   useEffect(() => {
     if (!loading && messages.length > 0 && !initialScrollDone.current) {
       initialScrollDone.current = true;
-      // Snapshot the first unread once.
-      if (firstUnreadIdRef.current == null) {
-        const myId = user?.id;
-        const unread = myId
-          ? messages.filter((m) => m.receiver_id === myId && !m.is_read && !m.id.startsWith("opt-"))
-          : [];
-        if (unread.length > 0) {
-          firstUnreadIdRef.current = unread[0].id;
-          setFirstUnreadId(unread[0].id);
-          setUnreadOnOpenCount(unread.length);
-          requestAnimationFrame(() => {
-            const el = messageRefs.current.get(unread[0].id);
-            if (el) el.scrollIntoView({ block: "start" });
-            else scrollToBottom(true);
-          });
-          // Clear the divider 4s after it appears so it doesn't linger forever.
-          window.setTimeout(() => setFirstUnreadId(null), 4000);
-          return;
-        }
-      }
+      firstUnreadIdRef.current = null;
+      setFirstUnreadId(null);
+      setUnreadOnOpenCount(0);
+      setShowJumpToLatest(false);
+      setUnreadWhileScrolled(0);
+      isNearBottomRef.current = true;
       scrollToBottom(true);
+      window.setTimeout(() => scrollToBottom(true), 80);
     }
   }, [loading, messages.length, scrollToBottom, user?.id, messages]);
 
@@ -825,21 +961,28 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     initialScrollDone.current = false;
     const load = async () => {
       setLoading(true);
-      const msgColumns = "id,sender_id,receiver_id,message,image_url,video_url,voice_url,message_type,delivered_at,reply_to_id,location_lat,location_lng,location_label,is_pinned,expires_at,created_at,is_read,locked_price_cents,edited_at,forwarded_from_user_id,file_payload,gift_payload";
       const callColumns = "id,caller_id,callee_id,call_type,status,duration_seconds,created_at";
-      const [msgRes, callRes] = await Promise.all([
-        dbFrom("direct_messages")
-          .select(msgColumns)
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`)
-          .order("created_at", { ascending: false })
-          .limit(100),
-        dbFrom("call_history")
+      const pairFilter = `and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`;
+      const callPromise = dbFrom("call_history")
           .select(callColumns)
           .or(`and(caller_id.eq.${user.id},callee_id.eq.${recipientId}),and(caller_id.eq.${recipientId},callee_id.eq.${user.id})`)
           .order("created_at", { ascending: true })
-          .limit(50),
-      ]);
-      const data = ((msgRes.data || []) as Message[]).reverse();
+          .limit(50);
+      let msgRes = await dbFrom("direct_messages")
+        .select(DM_SAFETY_COLUMNS)
+        .or(pairFilter)
+        .is("hidden_at", null)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (msgRes.error && isChatMessageSafetySchemaDriftError(msgRes.error)) {
+        msgRes = await dbFrom("direct_messages")
+          .select(DM_BASE_COLUMNS)
+          .or(pairFilter)
+          .order("created_at", { ascending: false })
+          .limit(100);
+      }
+      const callRes = await callPromise;
+      const data = ((msgRes.data || []) as Message[]).filter((m) => !m.hidden_at).reverse();
       setMessages(data);
       setCallEvents(((callRes.data || []) as CallHistoryRow[]).map((c) => ({ ...c, _isCallEvent: true as const })));
       setLoading(false);
@@ -893,10 +1036,16 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   useEffect(() => {
     if (!user?.id) return;
     const channelName = topicForPairSync(user.id, recipientId, "dm");
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages" }, (payload: RealtimeInsertPayload<Message>) => {
-        const msg = payload.new as Message;
+    const unsubscribeInsert = subscribeToPooledPostgresChanges(
+      {
+        poolKey: channelName,
+        event: "INSERT",
+        schema: "public",
+        table: "direct_messages",
+      },
+      (payload) => {
+        const msg = (payload as RealtimeInsertPayload<Message>).new as Message;
+        if (msg.hidden_at) return;
         if (
           (msg.sender_id === user.id && msg.receiver_id === recipientId) ||
           (msg.sender_id === recipientId && msg.receiver_id === user.id)
@@ -959,17 +1108,44 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             void dbFrom("direct_messages").update({ is_read: true, delivered_at: new Date().toISOString() }).eq("id", msg.id);
           }
         }
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "direct_messages" }, (payload: RealtimeUpdatePayload<Message>) => {
-        const updated = payload.new as Message;
-        setMessages((prev) => prev.map((m) => m.id === updated.id ? { ...m, ...updated } : m));
-      })
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "direct_messages" }, (payload: RealtimeDeletePayload) => {
-        if (payload.old?.id) setMessages((prev) => prev.filter((m) => m.id !== payload.old.id));
-      })
-      .subscribe();
+      }
+    );
 
-    return () => { supabase.removeChannel(channel); };
+    const unsubscribeUpdate = subscribeToPooledPostgresChanges(
+      {
+        poolKey: channelName,
+        event: "UPDATE",
+        schema: "public",
+        table: "direct_messages",
+      },
+      (payload) => {
+        const updated = (payload as RealtimeUpdatePayload<Message>).new as Message;
+        setMessages((prev) =>
+          updated.hidden_at
+            ? prev.filter((m) => m.id !== updated.id)
+            : prev.map((m) => m.id === updated.id ? { ...m, ...updated } : m),
+        );
+      }
+    );
+
+    const unsubscribeDelete = subscribeToPooledPostgresChanges(
+      {
+        poolKey: channelName,
+        event: "DELETE",
+        schema: "public",
+        table: "direct_messages",
+      },
+      (payload) => {
+        const deleted = payload as RealtimeDeletePayload;
+        if (deleted.old?.id) setMessages((prev) => prev.filter((m) => m.id !== deleted.old.id));
+      }
+    );
+
+    return () => {
+      unsubscribeInsert();
+      unsubscribeUpdate();
+      unsubscribeDelete();
+    };
   }, [user?.id, recipientId, scrollToBottom]);
 
   // Fallback refresh: if websocket/realtime misses events (common on mobile
@@ -977,13 +1153,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   useEffect(() => {
     if (!user?.id || !recipientId) return;
 
-    const msgColumns = "id,sender_id,receiver_id,message,image_url,video_url,voice_url,message_type,delivered_at,reply_to_id,location_lat,location_lng,location_label,is_pinned,expires_at,created_at,is_read,locked_price_cents,edited_at,forwarded_from_user_id,file_payload,gift_payload";
+    const pairFilter = `and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`;
 
     const tick = async () => {
       const latestCreatedAt = latestMessageCreatedAtRef.current;
       let query = dbFrom("direct_messages")
-        .select(msgColumns)
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`)
+        .select(DM_SAFETY_COLUMNS)
+        .or(pairFilter)
+        .is("hidden_at", null)
         .order("created_at", { ascending: true })
         .limit(30);
 
@@ -991,8 +1168,22 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         query = query.gt("created_at", latestCreatedAt);
       }
 
-      const { data } = await query;
-      const rows = (data || []) as Message[];
+      let { data, error } = await query;
+      if (error && isChatMessageSafetySchemaDriftError(error)) {
+        let fallbackQuery = dbFrom("direct_messages")
+          .select(DM_BASE_COLUMNS)
+          .or(pairFilter)
+          .order("created_at", { ascending: true })
+          .limit(30);
+        if (latestCreatedAt) {
+          fallbackQuery = fallbackQuery.gt("created_at", latestCreatedAt);
+        }
+        const fallbackResult = await fallbackQuery;
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      }
+      if (error) return;
+      const rows = ((data || []) as Message[]).filter((m) => !m.hidden_at);
       if (rows.length === 0) return;
 
       setMessages((prev) => {
@@ -1103,10 +1294,15 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     if (!user?.id) return;
 
     const channelName = `call-history-${[user.id, recipientId].sort().join("-")}`;
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "call_history" }, (payload: RealtimeInsertPayload<CallHistoryRow>) => {
-        const call = payload.new as Omit<CallEvent, "_isCallEvent">;
+    const unsubscribe = subscribeToPooledPostgresChanges(
+      {
+        poolKey: channelName,
+        event: "INSERT",
+        schema: "public",
+        table: "call_history",
+      },
+      (payload) => {
+        const call = (payload as RealtimeInsertPayload<CallHistoryRow>).new as Omit<CallEvent, "_isCallEvent">;
         if (
           (call.caller_id === user.id && call.callee_id === recipientId) ||
           (call.caller_id === recipientId && call.callee_id === user.id)
@@ -1116,10 +1312,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             return [...prev, { ...call, _isCallEvent: true as const }];
           });
         }
-      })
-      .subscribe();
+      }
+    );
 
-    return () => { supabase.removeChannel(channel); };
+    return unsubscribe;
   }, [recipientId, user?.id]);
 
   // Send
@@ -1130,9 +1326,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     messageType?: string;
     text?: string;
   }) => {
-    const text = opts?.text ?? input.trim();
+    const rawText = opts?.text ?? input.trim();
     const { imageUrl, voiceUrl, videoUrl, locationLat, locationLng, locationLabel, filePayload, messageType } = opts || {};
-    if (!text && !imageUrl && !voiceUrl && !videoUrl && !filePayload && locationLat == null) return;
+    if (!rawText && !imageUrl && !voiceUrl && !videoUrl && !filePayload && locationLat == null) return;
     const isComplexSend = Boolean(imageUrl || voiceUrl || videoUrl || filePayload || locationLat != null || messageType);
     if (!user?.id || (sending && isComplexSend)) return;
 
@@ -1144,6 +1340,23 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       : imageUrl ? "image"
       : locationLat != null ? "location"
       : "text");
+    const textSensitivity = detectSensitiveContent(rawText);
+    const isMediaSend = Boolean(imageUrl || videoUrl || filePayload) || ["image", "video", "file", "locked_image", "locked_video"].includes(msgType);
+    const shouldMarkSensitiveMedia = isMediaSend && (markNextMediaSensitive || textSensitivity.isSensitive);
+    if (textSensitivity.isSensitive && !isMediaSend) {
+      toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
+      inputRef.current?.focus();
+      return;
+    }
+    const text = fallbackMessageForSend({
+      text: rawText,
+      messageType: msgType,
+      imageUrl,
+      videoUrl,
+      voiceUrl,
+      locationLat,
+      filePayload,
+    });
     if (!opts?.text) setInput("");
     clearDraft();
     const currentReply = replyTo;
@@ -1162,7 +1375,15 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
         : `cs-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    const mergedFilePayload = { ...(filePayload || {}), client_send_id: clientSendId } as unknown as FileBubbleData;
+    const mergedFilePayload = {
+      ...(filePayload || {}),
+      client_send_id: clientSendId,
+      ...(shouldMarkSensitiveMedia ? {
+        sensitive: true,
+        sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+      } : {}),
+    } as unknown as FileBubbleData;
+    if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
     const optimisticMsg: Message = {
       id: optimisticId,
       sender_id: user.id,
@@ -1200,7 +1421,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       insertData = {
         sender_id: user.id,
         receiver_id: recipientId,
-        message: text || "",
+        message: text,
         message_type: msgType,
       };
       if (imageUrl) insertData.image_url = imageUrl;
@@ -1228,7 +1449,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         .insert(insertData);
 
       if (error) throw error;
-      void sendChatPush(msgType, text || filePayload?.filename || "");
+      void sendChatPush(msgType, rawText || filePayload?.filename || text);
     } catch {
       // Keep the optimistic bubble and surface a tap-to-retry control instead
       // of dropping the message. Also persist to the durable outbox so the
@@ -1389,7 +1610,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       const insertData: DirectMessageInsert = {
         sender_id: user.id,
         receiver_id: recipientId,
-        message: "",
+        message: MEDIA_MESSAGE_TEXT.voice,
         message_type: "voice",
         voice_url: publicUrl!,
         file_payload: {
@@ -1576,12 +1797,16 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const sendOptimisticMedia = (file: File, kind: "image" | "video") => {
     if (!user?.id) return;
     const localUrl = URL.createObjectURL(file);
-    const optimisticId = `opt-media-${Date.now()}`;
+    const clientSendId = randomMediaId();
+    const optimisticId = `opt-media-${clientSendId}`;
+    const messageText = MEDIA_MESSAGE_TEXT[kind];
+    const markSensitive = markNextMediaSensitive;
+    if (markSensitive) setMarkNextMediaSensitive(false);
     const optimisticMsg: Message = {
       id: optimisticId,
       sender_id: user.id,
       receiver_id: recipientId,
-      message: "",
+      message: messageText,
       image_url: kind === "image" ? localUrl : null,
       video_url: kind === "video" ? localUrl : null,
       voice_url: null,
@@ -1591,7 +1816,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       location_lng: null,
       location_label: null,
       is_pinned: false,
-      file_payload: null,
+      file_payload: {
+        client_send_id: clientSendId,
+        filename: file.name || messageText,
+        mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+        size: file.size,
+        source: "upload",
+        ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+      } as unknown as FileBubbleData,
       expires_at: null,
       created_at: new Date().toISOString(),
       is_read: false,
@@ -1602,35 +1834,68 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     setReplyTo(null);
 
     void (async () => {
+      let path: string | null = null;
+      let dbMediaUrl: string | null = null;
+      let filePayloadSource = "upload";
       try {
-        const ext = file.name.split(".").pop() || (kind === "video" ? "mp4" : "jpg");
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("chat-media-files")
-          .upload(path, file, { contentType: file.type, upsert: true, cacheControl: "3600" });
-        if (upErr) throw upErr;
-        // Mint a short-lived signed URL for the sender's bubble; store the
-        // path in the DB so receivers can re-sign on view (avoids expiring URLs).
-        const signedUrl = await signedUrlFor("chat-media-files", path, "display");
-        setMessages((prev) => prev.map((m) => m.id === optimisticId
-          ? { ...m, image_url: kind === "image" ? signedUrl : null, video_url: kind === "video" ? signedUrl : null }
-          : m));
+        try {
+          const ext = extensionForChatMedia(file, kind);
+          path = `${user.id}/${kind}s/${Date.now()}-${clientSendId}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from(CHAT_MEDIA_BUCKET)
+            .upload(path, file, {
+              contentType: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+              upsert: false,
+              cacheControl: "3600",
+            });
+          if (upErr) throw upErr;
+          // Mint a short-lived signed URL for the sender's bubble; store the
+          // path in the DB so receivers can re-sign on view (avoids expiring URLs).
+          const signedUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
+          dbMediaUrl = path;
+          if (signedUrl) {
+            setMessages((prev) => prev.map((m) => m.id === optimisticId
+              ? { ...m, image_url: kind === "image" ? signedUrl : null, video_url: kind === "video" ? signedUrl : null }
+              : m));
+          }
+        } catch (uploadErr) {
+          console.warn("[media] storage unavailable, using inline fallback", uploadErr);
+          if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
+          path = null;
+          dbMediaUrl = await fileToInlineChatMediaUrl(file, kind);
+          filePayloadSource = "upload-inline";
+          setMessages((prev) => prev.map((m) => m.id === optimisticId
+            ? { ...m, image_url: kind === "image" ? dbMediaUrl : null, video_url: kind === "video" ? dbMediaUrl : null }
+            : m));
+        }
+        if (!dbMediaUrl) throw new Error(`Could not prepare ${kind}`);
         const insertData: DirectMessageInsert = {
           sender_id: user.id,
           receiver_id: recipientId,
-          message: "",
+          message: messageText,
           message_type: kind,
+          file_payload: {
+            client_send_id: clientSendId,
+            filename: file.name || messageText,
+            mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+            size: file.size,
+            source: filePayloadSource,
+            ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+          } as unknown as FileBubbleData,
         };
-        if (kind === "image") insertData.image_url = path;
-        if (kind === "video") insertData.video_url = path;
+        if (kind === "image") insertData.image_url = dbMediaUrl;
+        if (kind === "video") insertData.video_url = dbMediaUrl;
         if (currentReply) insertData.reply_to_id = currentReply.id;
         const { error: insErr } = await dbFrom("direct_messages").insert(insertData);
         if (insErr) throw insErr;
         void sendChatPush(kind, "");
       } catch (e) {
         console.warn("[media] upload/send failed", e);
+        if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
         setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-        toast.error(`Failed to send ${kind}`);
+        toast.error(kind === "video" && file.size > 8 * 1024 * 1024
+          ? "Video storage is unavailable. Try a shorter clip for now."
+          : `Failed to send ${kind}`);
       } finally {
         setTimeout(() => URL.revokeObjectURL(localUrl), 30000);
       }
@@ -1641,7 +1906,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+    if (file.size > IMAGE_UPLOAD_LIMIT_BYTES) {
+      toast.error(`Image must be under ${formatUploadLimit(IMAGE_UPLOAD_LIMIT_BYTES)}`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     sendOptimisticMedia(file, "image");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -1650,8 +1919,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
-    if (file.size > 25 * 1024 * 1024) { toast.error("Video must be under 25MB"); return; }
-    sendOptimisticMedia(file, "video");
+    const kind = file.type === "image/gif" ? "image" : "video";
+    const limit = kind === "image" ? IMAGE_UPLOAD_LIMIT_BYTES : VIDEO_UPLOAD_LIMIT_BYTES;
+    if (file.size > limit) {
+      toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+    sendOptimisticMedia(file, kind);
     if (videoInputRef.current) videoInputRef.current.value = "";
   };
 
@@ -1660,11 +1935,79 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
     const isVideo = file.type.startsWith("video");
-    const maxSize = isVideo ? 25 * 1024 * 1024 : 5 * 1024 * 1024;
-    if (file.size > maxSize) { toast.error(`File must be under ${isVideo ? "25MB" : "5MB"}`); return; }
+    const maxSize = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
+    if (file.size > maxSize) {
+      toast.error(`File must be under ${formatUploadLimit(maxSize)}`);
+      if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
+      return;
+    }
     setPendingLockedFile(file);
+    setLockedPriceIntent("media");
     setShowLockedPricePicker(true);
     if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
+  };
+
+  // Paid DM (locked text): open price picker; we send the current composer text
+  // as a locked_text message after the user confirms a price.
+  const handleLockedTextSelect = () => {
+    const text = input.trim();
+    if (!text) {
+      toast("Type a message first, then tap Paid DM");
+      return;
+    }
+    setLockedPriceIntent("text");
+    setShowLockedPricePicker(true);
+  };
+
+  const handleLockedTextConfirm = async (priceCents: number) => {
+    setShowLockedPricePicker(false);
+    setLockedPriceIntent(null);
+    const text = input.trim();
+    if (!text || !user?.id) return;
+    setInput("");
+    clearDraft();
+    setSending(true);
+    const optimisticId = `opt-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: optimisticId, sender_id: user.id, receiver_id: recipientId,
+      message: text,
+      image_url: null, video_url: null, voice_url: null,
+      message_type: "locked_text",
+      reply_to_id: null, location_lat: null, location_lng: null, location_label: null,
+      is_pinned: false, expires_at: null, created_at: new Date().toISOString(), is_read: false,
+      locked_price_cents: priceCents,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+    scrollToBottom(true);
+    try {
+      // Locked plaintext lives in direct_message_locked_payloads (RLS-gated
+      // on direct_message_unlocks membership) — never in direct_messages.message,
+      // which the recipient can read unconditionally via base RLS.
+      const { data: inserted, error: insertErr } = await dbFrom("direct_messages")
+        .insert({
+          sender_id: user.id, receiver_id: recipientId,
+          message: "",
+          message_type: "locked_text",
+          locked_price_cents: priceCents,
+        })
+        .select("id")
+        .single();
+      if (insertErr) throw insertErr;
+
+      const { error: payloadErr } = await dbFrom("direct_message_locked_payloads")
+        .insert({ message_id: (inserted as { id: string }).id, content: text });
+      if (payloadErr) {
+        // Roll back the parent so the recipient doesn't see an empty locked
+        // bubble that unlock would reveal nothing for.
+        await dbFrom("direct_messages").delete().eq("id", (inserted as { id: string }).id);
+        throw payloadErr;
+      }
+      void sendChatPush("locked_text" as any, `🔒 Paid DM · $${(priceCents / 100).toFixed(2)}`);
+    } catch {
+      toast.error("Failed to send paid DM");
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+    }
+    setSending(false);
   };
 
   // Locked media: upload after price confirmed
@@ -1676,11 +2019,15 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const isVideo = file.type.startsWith("video");
     setUploadingMedia(true);
     try {
-      const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
-      const path = `${user.id}/locked_${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("chat-media-files").upload(path, file, { contentType: file.type });
+      const ext = extensionForChatMedia(file, isVideo ? "video" : "image");
+      const path = `${user.id}/locked/${Date.now()}-${randomMediaId()}.${ext}`;
+      const { error } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(path, file, {
+        contentType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
+        cacheControl: "3600",
+        upsert: false,
+      });
       if (error) throw error;
-      const signedUrl = await signedUrlFor("chat-media-files", path, "display");
+      const signedUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
       const messageType = isVideo ? "locked_video" : "locked_image";
       const priceLabel = `$${(priceCents / 100).toFixed(2)}`;
       const label = isVideo ? `🔒 Locked Video · ${priceLabel}` : `🔒 Locked Photo · ${priceLabel}`;
@@ -1751,43 +2098,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     if (ok) toast.success("Saved");
   }, [forwardMessage, messages, user?.id]);
 
-  // Block & report — duplicates the logic in ChatContactInfo so users can block/report
-  // in one tap from the chat header without first opening the contact sheet.
-  const handleBlockContact = useCallback(() => {
-    if (!user?.id) return;
-    toast.info(`Block ${recipientName}?`, {
-      action: {
-        label: "Block",
-        onClick: async () => {
-          const { error } = await dbFrom("blocked_users")
-            .insert({ blocker_id: user.id, blocked_id: recipientId });
-          if (error) { toast.error("Could not block"); return; }
-          toast.success(`${recipientName} blocked`);
-          onClose?.();
-        },
-      },
-    });
-  }, [user?.id, recipientId, recipientName, onClose]);
-
-  const handleReportContact = useCallback(() => {
-    if (!user?.id) return;
-    toast.info(`Report ${recipientName}?`, {
-      action: {
-        label: "Report",
-        onClick: async () => {
-          const { error } = await dbFrom("user_reports").insert({
-            reporter_id: user.id,
-            reported_id: recipientId,
-            reason: "chat_profile",
-            details: `Reported from chat header for ${recipientName}`,
-          });
-          if (error) { toast.error("Could not submit report"); return; }
-          toast.success("Report submitted");
-        },
-      },
-    });
-  }, [user?.id, recipientId, recipientName]);
-
   // Pin/unpin
   const handlePin = useCallback(async (id: string, pinned: boolean) => {
     setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_pinned: pinned } : m));
@@ -1819,6 +2129,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const id = editingId;
     const newText = input.trim();
     if (!id || !newText) return;
+    if (detectSensitiveContent(newText).isSensitive) {
+      toast.error("This message looks sexual or explicit. Please edit it before saving.");
+      return;
+    }
     const original = messages.find((m) => m.id === id);
     if (!original) { setEditingId(null); return; }
     if (original.message === newText) { setEditingId(null); setInput(""); return; }
@@ -1863,6 +2177,54 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   }, [hideMessage]);
 
   // Telegram-style "Clear history" — locally hide every message up to now.
+  const handleReportMessage = useCallback(async (id: string, reason: string) => {
+    if (!user?.id) {
+      toast.error("Sign in to report messages");
+      return;
+    }
+    const msg = messages.find((m) => m.id === id);
+    if (!msg || msg.sender_id === user.id) return;
+
+    hideMessage(id);
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+
+    const blockSender = async () => {
+      await (supabase as any).from("user_safety_actions").upsert(
+        {
+          user_id: user.id,
+          target_user_id: msg.sender_id,
+          action: "block",
+        },
+        { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
+      );
+    };
+
+    try {
+      const { error } = await (supabase as any).from("chat_message_reports").insert({
+        reporter_id: user.id,
+        message_id: msg.id,
+        sender_id: msg.sender_id,
+        receiver_id: msg.receiver_id,
+        reason,
+        description: (msg.message || "").slice(0, 500),
+      });
+      if (error) throw error;
+      await blockSender();
+      toast.success("We hid it, blocked this user, and sent it for safety review");
+    } catch (error) {
+      if (isChatMessageSafetySchemaDriftError(error)) {
+        try {
+          await blockSender();
+          toast.warning("Message hidden here. Deploy the chat safety migration to send it for review.");
+          return;
+        } catch {
+          // Fall through to the generic failure toast.
+        }
+      }
+      toast.error("Couldn't submit message report");
+    }
+  }, [hideMessage, messages, user?.id]);
+
   const handleClearHistory = useCallback(() => {
     if (!recipientId) return;
     clearChatBefore(recipientId);
@@ -2021,6 +2383,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   // (Clear-history) are filtered out before render — server data is untouched.
   const timeline = useMemo<TimelineItem[]>(() => {
     const visible = messages.filter((m) => {
+      if (m.hidden_at) return false;
       if (isHidden(m.id)) return false;
       if (recipientId && isClearedFor(recipientId, m.created_at)) return false;
       return true;
@@ -2059,6 +2422,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .find((event) => ["missed", "no_answer", "declined"].includes(event.status));
   }, [callEvents]);
+  const effectiveMissedCallDismissMarker = dismissedMissedCallMarker ?? storedMissedCallDismissMarker;
+  const showMissedCallBanner =
+    !!latestMissedCall &&
+    !isMissedCallDismissed(latestMissedCall, effectiveMissedCallDismissMarker) &&
+    !activeCall &&
+    !zivoOFMode;
 
   const initials = useMemo(
     () => (recipientName || "U").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2),
@@ -2104,7 +2473,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       transition={inline ? { duration: 0.12 } : { type: "tween", duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-2xl border-b border-border/20 safe-area-top">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-2xl border-b border-border/20">
         <div className="px-2 py-2.5 flex items-center gap-3">
           <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-90 transition-transform rounded-full hover:bg-muted/50" aria-label="Back" title="Back">
             <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -2154,139 +2523,49 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
           {/* Action buttons */}
           <div className="flex items-center gap-0.5">
+            {!isSelfChat && (
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={() => setShowGiftPanel(true)}
+                className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${
+                  zivoOFMode
+                    ? "hover:bg-[#00AEEF]/10 active:bg-[#00AEEF]/15"
+                    : "hover:bg-amber-500/10 active:bg-amber-500/15"
+                }`}
+                aria-label={zivoOFMode ? "Send a tip" : "Send a gift"}
+                title={zivoOFMode ? "Send a tip" : "Send a gift"}
+              >
+                <Gift className={`h-5 w-5 ${zivoOFMode ? "text-[#00AEEF]" : "text-amber-500"}`} />
+              </motion.button>
+            )}
             {!isSelfChat && !zivoOFMode && (
               <>
                 <motion.button
                   whileTap={{ scale: 0.85 }}
-                  onClick={() => { void primeCallAudio(); void handleStartCall("video"); }}
-                  className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-blue-500/10 active:bg-blue-500/15 transition-colors"
+                  onClick={() => { void handleStartCall("video"); }}
+                  disabled={!!callStarting}
+                  className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-blue-500/10 active:bg-blue-500/15 transition-colors disabled:pointer-events-none disabled:opacity-60"
                   aria-label="Video call"
                   title="Video call"
                 >
-                  <Video className="h-5 w-5 text-blue-500" />
+                  {callStarting === "video"
+                    ? <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                    : <Video className="h-5 w-5 text-blue-500" />}
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.85 }}
-                  onClick={() => { void primeCallAudio(); void handleStartCall("voice"); }}
-                  className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-emerald-500/10 active:bg-emerald-500/15 transition-colors"
+                  onClick={() => { void handleStartCall("voice"); }}
+                  disabled={!!callStarting}
+                  className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-emerald-500/10 active:bg-emerald-500/15 transition-colors disabled:pointer-events-none disabled:opacity-60"
                   aria-label="Voice call"
                   title="Voice call"
                 >
-                  <Phone className="h-[19px] w-[19px] text-emerald-500" />
+                  {callStarting === "voice"
+                    ? <Loader2 className="h-[19px] w-[19px] animate-spin text-emerald-500" />
+                    : <Phone className="h-[19px] w-[19px] text-emerald-500" />}
                 </motion.button>
               </>
             )}
-            {!isSelfChat && zivoOFMode && (
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                onClick={() => setShowGiftPanel(true)}
-                className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-[#00AEEF]/10 active:bg-[#00AEEF]/15 transition-colors"
-                aria-label="Send a tip"
-                title="Send a tip"
-              >
-                <Gift className="h-5 w-5 text-[#00AEEF]" />
-              </motion.button>
-            )}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-muted/50 active:scale-90 transition-all" aria-label="More chat options" title="More chat options">
-                  <MoreVertical className="h-5 w-5 text-foreground/50" />
-                </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={8} className="w-52 bg-background/95 backdrop-blur-xl border-border/30 shadow-xl shadow-black/10 rounded-xl p-1.5">
-              <DropdownMenuItem onClick={() => setShowSearch(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Search className="w-[18px] h-[18px] text-muted-foreground" /> Search this chat
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/chat/search")} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Search className="w-[18px] h-[18px] text-muted-foreground" /> Search everywhere
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowMediaGallery(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <ImageIcon className="w-[18px] h-[18px] text-muted-foreground" /> Media & Files
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowCallHistory(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <History className="w-[18px] h-[18px] text-muted-foreground" /> Call History
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/chat/recordings")} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Video className="w-[18px] h-[18px] text-muted-foreground" /> Recordings
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowMiniApps(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Zap className="w-[18px] h-[18px] text-muted-foreground" /> Mini Apps
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="my-1.5 bg-border/15" />
-              <DropdownMenuItem onClick={() => setShowPinnedPanel(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Pin className="w-[18px] h-[18px] text-muted-foreground" /> Pinned Messages
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowPersonalization(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Palette className="w-[18px] h-[18px] text-muted-foreground" /> Theme
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowNotifSettings(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Settings className="w-[18px] h-[18px] text-muted-foreground" /> Notifications
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowSecurity(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Shield className="w-[18px] h-[18px] text-muted-foreground" /> Privacy
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={toggleAutoTranslate}
-                className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer"
-                onSelect={(e) => { e.preventDefault(); }}
-              >
-                <Languages className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="flex-1">Auto-translate</span>
-                <span className={`text-[11px] font-semibold ${autoTranslate ? "text-emerald-500" : "text-muted-foreground"}`}>
-                  {autoTranslate ? "On" : "Off"}
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={async () => {
-                  // Spin up an ad-hoc LiveKit room. Pre-fill the DM composer
-                  // with the join link so the recipient can tap-to-join.
-                  const room = `dm-${user?.id?.slice(0, 6) || "x"}-${Date.now().toString(36)}`;
-                  const url = `${window.location.origin}/chat/call/group/${room}`;
-                  try {
-                    await navigator.clipboard?.writeText(url);
-                  } catch { /* clipboard may be blocked */ }
-                  setInput((prev) => (prev ? `${prev}\n${url}` : `Join my call: ${url}`));
-                  toast.success("Invite link added to composer. Send it to start the call.");
-                }}
-                className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer"
-                onSelect={(e) => { e.preventDefault(); }}
-              >
-                <Video className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="flex-1">Start group call</span>
-                <span className="text-[10px] text-muted-foreground">+ invite</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={cycleAutoDelete}
-                className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer"
-                onSelect={(e) => { e.preventDefault(); }}
-              >
-                <Timer className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="flex-1">Auto-Delete Timer</span>
-                <span className={`text-[11px] tabular-nums ${disappearingMode ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}>{autoDeleteLabel}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowScheduledSheet(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Clock className="w-[18px] h-[18px] text-muted-foreground" /> Scheduled
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowContactInfo(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <FileText className="w-[18px] h-[18px] text-muted-foreground" /> Contact Info
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowClearConfirm(true)} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer">
-                <Eraser className="w-[18px] h-[18px] text-muted-foreground" /> Clear history
-              </DropdownMenuItem>
-              {!isSelfChat && (
-                <>
-                  <DropdownMenuSeparator className="my-1.5 bg-border/15" />
-                  <DropdownMenuItem onClick={handleReportContact} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer text-destructive focus:text-destructive">
-                    <Flag className="w-[18px] h-[18px]" /> Report
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleBlockContact} className="gap-3 text-[14px] font-medium rounded-lg px-3 py-2.5 cursor-pointer text-destructive focus:text-destructive">
-                    <Ban className="w-[18px] h-[18px]" /> Block contact
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
 
@@ -2309,7 +2588,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           </button>
         )}
 
-        {latestMissedCall && latestMissedCall.id !== dismissedMissedCallId && !activeCall && !zivoOFMode && (
+        {showMissedCallBanner && latestMissedCall && (
           <div className="w-full px-4 py-3 border-t border-border bg-secondary flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-background border border-border flex items-center justify-center shrink-0">
               <Phone className="w-5 h-5 text-amber-500" />
@@ -2324,13 +2603,16 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             </div>
             <button type="button"
               onClick={() => { void handleStartCall(latestMissedCall.call_type as "voice" | "video"); }}
-              className="h-9 px-4 rounded-full bg-foreground text-background text-[13px] font-bold active:scale-95 transition-transform flex items-center gap-1.5"
+              disabled={!!callStarting}
+              className="h-9 px-4 rounded-full bg-foreground text-background text-[13px] font-bold active:scale-95 transition-transform flex items-center gap-1.5 disabled:pointer-events-none disabled:opacity-70"
             >
-              <Phone className="h-3.5 w-3.5 fill-current" />
+              {callStarting === latestMissedCall.call_type
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Phone className="h-3.5 w-3.5 fill-current" />}
               Call back
             </button>
             <button type="button"
-              onClick={() => setDismissedMissedCallId(latestMissedCall.id)}
+              onClick={() => dismissMissedCall(latestMissedCall)}
               className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-background transition-colors"
               aria-label="Dismiss"
             >
@@ -2353,15 +2635,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           </button>
         )}
       </div>
-
-      {/* Search bar */}
-      <AnimatePresence>
-        {showSearch && (
-          <Suspense fallback={null}>
-            <ChatSearch messages={messages} onClose={() => setShowSearch(false)} onScrollToMessage={scrollToMessage} currentUserId={user?.id} />
-          </Suspense>
-        )}
-      </AnimatePresence>
 
       {/* Fullscreen media gallery */}
       <MediaGalleryLightbox
@@ -2615,8 +2888,19 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       </div>
                     )}
 
-                    {/* Coin transfer message */}
-                    {msg.message_type === "coin_transfer" && msg.gift_payload ? (
+                    {/* Gift and coin transfer messages */}
+                    {msg.message_type === "gift" && msg.gift_payload ? (
+                      <div className={`flex ${isMe ? "justify-end" : "justify-start"} ${msg.id.startsWith("opt-") ? "opacity-60" : ""}`}>
+                        <div className="flex flex-col gap-1">
+                          <Suspense fallback={null}>
+                            <GiftBubble payload={msg.gift_payload} isMine={isMe} />
+                          </Suspense>
+                          <span className={`text-[9px] mt-0.5 ${isMe ? "text-right text-muted-foreground/70" : "text-left text-muted-foreground/70"}`}>
+                            {formatMsgTime(msg.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : msg.message_type === "coin_transfer" && msg.gift_payload ? (
                       <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                         <Suspense fallback={null}>
                           <CoinTransferBubble
@@ -2775,8 +3059,19 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         isPinned={msg.is_pinned}
                         expiresAt={msg.expires_at}
                         messageType={msg.message_type}
+                        filePayload={msg.file_payload}
                         senderId={msg.sender_id}
                         lockedPriceCents={msg.locked_price_cents}
+                        initiallyLocked={
+                          isLockedDirectMessage(msg.message_type) && !isMe
+                            ? !dmUnlocks.isUnlocked(msg.id)
+                            : undefined
+                        }
+                        onUnlockLockedMedia={
+                          isLockedDirectMessage(msg.message_type) && !isMe && !msg.id.startsWith("opt-")
+                            ? async (mid) => dmUnlocks.unlock({ messageId: mid })
+                            : undefined
+                        }
                         initialReactions={reactionsMap[msg.id]}
                         editedAt={msg.edited_at}
                         createdAt={msg.created_at}
@@ -2786,6 +3081,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         onForward={handleForward}
                         onPin={handlePin}
                         onEdit={handleEdit}
+                        onReport={handleReportMessage}
                         onSave={handleSave}
                         hideSave={isSelfChat}
                         forwardedFromUserId={msg.forwarded_from_user_id ?? null}
@@ -2833,7 +3129,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               </div>
             )}
             {/* Bottom anchor — scrollToBottom targets this for instant, jank-free scrolling */}
-            <div ref={bottomAnchorRef} className="h-px shrink-0" aria-hidden />
+            <div ref={bottomAnchorRef} className="h-4 shrink-0" aria-hidden />
           </div>
         )}
       </div>
@@ -2895,7 +3191,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               setUnreadWhileScrolled(0);
             }}
             aria-label={unreadWhileScrolled > 0 ? `${unreadWhileScrolled} new ${unreadWhileScrolled === 1 ? "message" : "messages"} — jump to latest` : "Jump to latest"}
-            className="absolute right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+5.25rem)] z-20 inline-flex items-center gap-1.5 h-10 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/25"
+            className="absolute right-4 bottom-[calc(var(--zivo-safe-bottom,0px)+5.25rem)] z-20 inline-flex items-center gap-1.5 h-10 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/25"
           >
             Jump to latest
             {unreadWhileScrolled > 0 && (
@@ -2908,7 +3204,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       </AnimatePresence>
 
       {/* Smart reply suggestions — chips above the composer */}
-      <div className="bg-background/85 backdrop-blur-2xl border-t border-border/10 px-2.5 py-2 relative [padding-bottom:max(env(safe-area-inset-bottom,0px),0.5rem)]">
+      <div className="bg-background/85 backdrop-blur-2xl border-t border-border/10 px-2.5 py-2 relative [padding-bottom:max(var(--zivo-safe-bottom,0px),0.5rem)]">
           {/* AI smart-reply chips — appears when latest visible message is from
               the other side and the composer is empty. Tap a chip to seed the
               composer (does not auto-send so the user can edit). */}
@@ -2935,10 +3231,23 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   aria-label={`Send sticker: ${s.alt}`}
                   title={s.alt}
                 >
-                  <img src={s.src} alt={s.alt} className="w-full h-full object-contain" loading="lazy" />
+	                  <img src={s.src} alt={s.alt} className="w-full h-full object-contain" loading="lazy" decoding="async" />
                 </button>
               ))}
             </div>
+          )}
+          {markNextMediaSensitive && (
+            <button
+              type="button"
+              onClick={() => setMarkNextMediaSensitive(false)}
+              className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-bold text-fuchsia-600"
+              aria-label="Turn off 18+ marker for next media"
+              title="Turn off 18+ marker"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              18+ blur on for next media
+              <X className="h-3 w-3" />
+            </button>
           )}
           <div className="flex items-end gap-1.5">
             {/* Action buttons — attach + emoji picker; extra tools accessible via attach menu */}
@@ -2947,7 +3256,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               <div className="relative shrink-0">
                 <button type="button"
                   data-attach-trigger
-                  onClick={() => setShowAttachMenu(!showAttachMenu)}
+                  onClick={() => {
+                    setShowQuickReplies(false);
+                    setShowAttachMenu((prev) => !prev);
+                  }}
                   disabled={uploadingMedia}
                   className={`h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 ${
                     showAttachMenu ? "bg-primary text-primary-foreground rotate-45" : "text-muted-foreground/60 hover:bg-muted/50"
@@ -2973,6 +3285,15 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     "On"
                   }
                   onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+                  onLockedTextSelect={handleLockedTextSelect}
+                  onToggleSensitiveMedia={() => {
+                    setMarkNextMediaSensitive((prev) => {
+                      const next = !prev;
+                      toast.success(next ? "Next media will be blurred as 18+" : "18+ media blur marker off");
+                      return next;
+                    });
+                  }}
+                  sensitiveMediaMarked={markNextMediaSensitive}
                   onSendGift={() => setShowGiftPanel(true)}
                   onOpenWallet={() => {
                     if (isSelfChat) { setShowWalletSheet(true); return; }
@@ -2987,47 +3308,42 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 />
               </div>
 
-              {/* Quick replies — saved canned responses */}
-              {!zivoOFMode && (
-                <button type="button"
-                  onClick={() => setShowQuickReplies(true)}
-                  className="h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 text-muted-foreground/60 hover:bg-muted/50 hover:text-amber-500"
-                  aria-label="Quick replies"
-                  title="Quick replies"
-                >
-                  <Zap className="h-5 w-5" />
-                </button>
-              )}
-
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} title="Choose image" aria-label="Choose image" />
               <input ref={videoInputRef} type="file" accept="video/*,.gif" className="hidden" onChange={handleVideoSelect} title="Choose video" aria-label="Choose video" />
               <input ref={lockedImageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
-              {/* Locked media price picker */}
+              {/* Locked media / paid DM price picker */}
               {showLockedPricePicker && (
                 <Suspense fallback={null}>
                   <LockedMediaPricePicker
                     open={showLockedPricePicker}
-                    onClose={() => { setShowLockedPricePicker(false); setPendingLockedFile(null); }}
-                    onConfirm={handleLockedMediaConfirm}
+                    onClose={() => {
+                      setShowLockedPricePicker(false);
+                      setPendingLockedFile(null);
+                      setLockedPriceIntent(null);
+                    }}
+                    onConfirm={(priceCents) =>
+                      lockedPriceIntent === "text"
+                        ? handleLockedTextConfirm(priceCents)
+                        : handleLockedMediaConfirm(priceCents)
+                    }
                   />
                 </Suspense>
               )}
 
-              {/* Self-destruct picker — always visible so user can toggle timer */}
-              {!zivoOFMode && (
-                <div className="shrink-0">
-                  <SelfDestructPicker value={selfDestructSec} onChange={setSelfDestructSec} />
-                </div>
-              )}
             </div>
 
             {/* Document/file upload — trigger stored in ref, opened via attach menu */}
             <ChatMediaUploader
               recipientId={recipientId}
               onMediaSent={(opts) => {
-                if (opts.imageUrl) handleSend({ imageUrl: opts.imageUrl });
-                else if (opts.videoUrl) handleSend({ videoUrl: opts.videoUrl });
+                const markSensitive = markNextMediaSensitive;
+                if (markSensitive) setMarkNextMediaSensitive(false);
+                const sensitivePayload = markSensitive
+                  ? { sensitive: true, sensitive_reason: "sender_marked" }
+                  : {};
+                if (opts.imageUrl) handleSend({ imageUrl: opts.imageUrl, filePayload: sensitivePayload as unknown as FileBubbleData });
+                else if (opts.videoUrl) handleSend({ videoUrl: opts.videoUrl, filePayload: sensitivePayload as unknown as FileBubbleData });
                 else if (opts.fileUrl) {
                   handleSend({
                     filePayload: {
@@ -3036,6 +3352,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       mime_type: opts.fileType || "application/octet-stream",
                       size: opts.fileSize,
                       source: "upload",
+                      ...sensitivePayload,
                     },
                   });
                 }
@@ -3095,60 +3412,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 }`}
               />
               <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center">
-                {!zivoOFMode && (
-                <div className="relative">
-                  <button type="button"
-                    onClick={() => setShowEffectPicker((s) => !s)}
-                    className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-                      pendingEffect ? "text-amber-500 bg-amber-500/10" : "text-muted-foreground/40 hover:text-muted-foreground"
-                    }`}
-                    aria-label="Send effect"
-                    title={pendingEffect ? `Effect: ${pendingEffect}` : "Send effect"}
-                  >
-                    {pendingEffect === "celebration" ? <span className="text-base">🎉</span>
-                      : pendingEffect === "fireworks" ? <span className="text-base">🎆</span>
-                      : pendingEffect === "hearts" ? <span className="text-base">❤️</span>
-                      : pendingEffect === "confetti" ? <span className="text-base">🎊</span>
-                      : pendingEffect === "lasers" ? <span className="text-base">⚡</span>
-                      : <Sparkles className="h-5 w-5" />}
-                  </button>
-                  {showEffectPicker && (
-                    <>
-                      <div className="fixed inset-0 z-30" onClick={() => setShowEffectPicker(false)} />
-                      <div className="absolute bottom-full right-0 mb-2 w-48 bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-lg shadow-black/10 overflow-hidden z-40">
-                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/30">
-                          Send with effect
-                        </div>
-                        {([
-                          { id: "celebration", emoji: "🎉", label: "Celebration" },
-                          { id: "fireworks", emoji: "🎆", label: "Fireworks" },
-                          { id: "hearts", emoji: "❤️", label: "Hearts" },
-                          { id: "confetti", emoji: "🎊", label: "Confetti" },
-                          { id: "lasers", emoji: "⚡", label: "Lasers" },
-                        ] as const).map((opt) => (
-                          <button type="button"
-                            key={opt.id}
-                            onClick={() => { setPendingEffect(opt.id); setShowEffectPicker(false); }}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-[14px] transition-colors ${pendingEffect === opt.id ? "bg-amber-500/10 text-amber-700 font-medium" : "hover:bg-muted/50 text-foreground"}`}
-                          >
-                            <span className="text-base">{opt.emoji}</span>
-                            <span>{opt.label}</span>
-                          </button>
-                        ))}
-                        {pendingEffect && (
-                          <button
-                            type="button"
-                            onClick={() => { setPendingEffect(null); setShowEffectPicker(false); }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[13px] text-muted-foreground hover:bg-muted/50 border-t border-border/30"
-                          >
-                            Clear effect
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-                )}
                 <button type="button"
                   onClick={() => setShowStickerKeyboard(!showStickerKeyboard)}
                   className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${
@@ -3335,7 +3598,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             onClose={() => setShowContactInfo(false)}
             onStartCall={(type) => { setShowContactInfo(false); void handleStartCall(type); }}
             onOpenMediaGallery={() => { setMediaGalleryTab("photos"); setShowContactInfo(false); setShowMediaGallery(true); }}
-            onOpenSearch={() => { setShowContactInfo(false); setShowSearch(true); }}
+            onOpenSearch={() => { setShowContactInfo(false); navigate("/chat/search"); }}
+            onOpenGift={() => { setShowContactInfo(false); setShowGiftPanel(true); }}
             onOpenCallHistory={() => { setShowContactInfo(false); setShowCallHistory(true); }}
             onOpenPersonalization={() => { setShowContactInfo(false); setShowPersonalization(true); }}
             onOpenSecurity={() => { setShowContactInfo(false); setShowSecurity(true); }}
@@ -3434,6 +3698,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             onClose={() => setShowGiftPanel(false)}
             recipientId={recipientId}
             recipientName={recipientName}
+            recipientAvatar={recipientAvatar}
           />
         </Suspense>
       )}

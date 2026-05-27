@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MessageCircle, Plus, Search, Phone, MessageSquare, Loader2,
-  StickyNote, Trash2, User, Filter,
+  StickyNote, Trash2, User, Filter, Car, Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -69,6 +69,50 @@ export default function AutoRepairCustomerNotesSection({ storeId }: Props) {
   const [noteType, setNoteType] = useState("internal");
   const [customerName, setCustomerName] = useState("");
   const [body, setBody] = useState("");
+  const [vehicleId, setVehicleId] = useState<string>("");
+  const [workorderId, setWorkorderId] = useState<string>("");
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["ar-notes-vehicles", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_customer_vehicles")
+        .select("id, owner_name, year, make, model, plate")
+        .eq("store_id", storeId)
+        .order("owner_name", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    staleTime: 60_000,
+  });
+
+  const { data: workOrders = [] } = useQuery({
+    queryKey: ["ar-notes-workorders", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_work_orders" as any)
+        .select("id, number, customer_name, vehicle_label, status")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    staleTime: 60_000,
+  });
+
+  const vehicleLookup = useMemo(() => {
+    const m = new Map<string, any>();
+    vehicles.forEach((v) => m.set(v.id, v));
+    return m;
+  }, [vehicles]);
+
+  const workOrderLookup = useMemo(() => {
+    const m = new Map<string, any>();
+    workOrders.forEach((w) => m.set(w.id, w));
+    return m;
+  }, [workOrders]);
 
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ["ar-customer-notes", storeId],
@@ -100,11 +144,20 @@ export default function AutoRepairCustomerNotesSection({ storeId }: Props) {
   const addNote = useMutation({
     mutationFn: async () => {
       if (!body.trim()) throw new Error("Note body is required");
+      let resolvedName = customerName.trim();
+      if (!resolvedName && vehicleId) {
+        resolvedName = vehicleLookup.get(vehicleId)?.owner_name ?? "";
+      }
+      if (!resolvedName && workorderId) {
+        resolvedName = workOrderLookup.get(workorderId)?.customer_name ?? "";
+      }
       const { error } = await supabase.from("ar_customer_notes" as any).insert({
         store_id: storeId,
         note_type: noteType,
-        customer_name: customerName.trim() || null,
+        customer_name: resolvedName || null,
         body: body.trim(),
+        vehicle_id: vehicleId || null,
+        workorder_id: workorderId || null,
       });
       if (error) throw error;
     },
@@ -113,6 +166,8 @@ export default function AutoRepairCustomerNotesSection({ storeId }: Props) {
       qc.invalidateQueries({ queryKey: ["ar-customer-notes", storeId] });
       setBody("");
       setCustomerName("");
+      setVehicleId("");
+      setWorkorderId("");
       setShowForm(false);
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
@@ -194,6 +249,43 @@ export default function AutoRepairCustomerNotesSection({ storeId }: Props) {
                     placeholder="Customer name"
                     className="h-8 text-xs"
                   />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] flex items-center gap-1"><Car className="w-3 h-3" /> Vehicle (optional)</Label>
+                  <Select value={vehicleId || "none"} onValueChange={(v) => setVehicleId(v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Link to vehicle…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— No vehicle —</SelectItem>
+                      {vehicles.map((v) => {
+                        const label = [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
+                        return (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.owner_name} — {label}{v.plate ? ` · ${v.plate}` : ""}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] flex items-center gap-1"><Wrench className="w-3 h-3" /> Work Order (optional)</Label>
+                  <Select value={workorderId || "none"} onValueChange={(v) => setWorkorderId(v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Link to WO…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— No work order —</SelectItem>
+                      {workOrders.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>
+                          {w.number} — {w.customer_name || w.vehicle_label || "WO"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -283,6 +375,18 @@ export default function AutoRepairCustomerNotesSection({ storeId }: Props) {
                         <Badge variant="outline" className={`text-[10px] border ${typeStyle}`}>{typeLabel}</Badge>
                         {n.customer_name && (
                           <span className="text-[11px] font-medium text-foreground">{n.customer_name}</span>
+                        )}
+                        {n.vehicle_id && vehicleLookup.has(n.vehicle_id) && (
+                          <Badge variant="outline" className="text-[10px] gap-1 px-1.5">
+                            <Car className="w-3 h-3" />
+                            {[vehicleLookup.get(n.vehicle_id).year, vehicleLookup.get(n.vehicle_id).make, vehicleLookup.get(n.vehicle_id).model].filter(Boolean).join(" ") || "Vehicle"}
+                          </Badge>
+                        )}
+                        {n.workorder_id && workOrderLookup.has(n.workorder_id) && (
+                          <Badge variant="outline" className="text-[10px] gap-1 px-1.5">
+                            <Wrench className="w-3 h-3" />
+                            {workOrderLookup.get(n.workorder_id).number}
+                          </Badge>
                         )}
                         <span className="text-[10px] text-muted-foreground ml-auto">
                           {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}

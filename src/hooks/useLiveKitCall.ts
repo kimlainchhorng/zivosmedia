@@ -284,7 +284,20 @@ export function useLiveKitCall({
         if (!cancelled) {
           setError(msg);
           setState("error");
-          toast.error(`Could not join call: ${msg}`);
+
+          const lower = msg.toLowerCase();
+          let userMessage = `Could not join call: ${msg}`;
+          if (lower.includes("livekit secrets missing")) {
+            userMessage = "Calls aren't set up for this environment yet. Ask your admin to configure LiveKit on Supabase.";
+          } else if (lower.includes("unauthorized") || /\b401\b/.test(lower)) {
+            userMessage = "You need to sign in again to start a call.";
+          } else if (lower.includes("invalid roomname")) {
+            userMessage = "Couldn't open this call — the room link is malformed.";
+          } else if (lower.includes("missing token")) {
+            userMessage = "Couldn't get a call token. Please try again in a moment.";
+          }
+          console.error("[useLiveKitCall] join failed:", msg);
+          toast.error(userMessage);
         }
       }
     })();

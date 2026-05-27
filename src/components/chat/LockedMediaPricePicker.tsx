@@ -9,6 +9,7 @@ import X from "lucide-react/dist/esm/icons/x";
 import ImageIcon from "lucide-react/dist/esm/icons/image";
 import Film from "lucide-react/dist/esm/icons/film";
 import { Button } from "@/components/ui/button";
+import { GROUP_LOCKED_MEDIA_STAR_PRESETS, formatStarsPrice } from "@/lib/chat/lockedMedia";
 
 const PRESET_PRICES = [0.99, 1.99, 4.99, 9.99, 19.99, 49.99];
 
@@ -16,21 +17,29 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onConfirm: (priceCents: number) => void;
+  mode?: "usd" | "stars";
 }
 
-export default function LockedMediaPricePicker({ open, onClose, onConfirm }: Props) {
+export default function LockedMediaPricePicker({ open, onClose, onConfirm, mode = "usd" }: Props) {
   const [selectedPrice, setSelectedPrice] = useState(0.99);
+  const [selectedStars, setSelectedStars] = useState<number>(249);
   const [customPrice, setCustomPrice] = useState("");
   const [useCustom, setUseCustom] = useState(false);
 
   if (!open) return null;
 
-  const finalPrice = useCustom ? parseFloat(customPrice) || 0 : selectedPrice;
-  const isValid = finalPrice >= 0.50 && finalPrice <= 999.99;
+  const isStars = mode === "stars";
+  const finalPrice = isStars
+    ? (useCustom ? Math.floor(Number(customPrice) || 0) : selectedStars)
+    : (useCustom ? parseFloat(customPrice) || 0 : selectedPrice);
+  const isValid = isStars
+    ? finalPrice >= 1 && finalPrice <= 1000000
+    : finalPrice >= 0.50 && finalPrice <= 999.99;
+  const priceLabel = isStars ? formatStarsPrice(finalPrice) : `$${finalPrice.toFixed(2)}`;
 
   const handleConfirm = () => {
     if (!isValid) return;
-    onConfirm(Math.round(finalPrice * 100));
+    onConfirm(isStars ? finalPrice : Math.round(finalPrice * 100));
   };
 
   return (
@@ -57,7 +66,7 @@ export default function LockedMediaPricePicker({ open, onClose, onConfirm }: Pro
               </div>
               <div>
                 <h3 className="text-sm font-bold text-foreground">Set Unlock Price</h3>
-                <p className="text-[11px] text-muted-foreground">Recipient pays to view</p>
+                <p className="text-[11px] text-muted-foreground">{isStars ? "Members spend Stars to view" : "Recipient pays to view"}</p>
               </div>
             </div>
             <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-muted">
@@ -67,17 +76,21 @@ export default function LockedMediaPricePicker({ open, onClose, onConfirm }: Pro
 
           {/* Preset prices */}
           <div className="grid grid-cols-3 gap-2">
-            {PRESET_PRICES.map((price) => (
+            {(isStars ? GROUP_LOCKED_MEDIA_STAR_PRESETS : PRESET_PRICES).map((price) => (
               <button type="button"
                 key={price}
-                onClick={() => { setSelectedPrice(price); setUseCustom(false); }}
+                onClick={() => {
+                  if (isStars) setSelectedStars(Number(price));
+                  else setSelectedPrice(Number(price));
+                  setUseCustom(false);
+                }}
                 className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  !useCustom && selectedPrice === price
+                  !useCustom && (isStars ? selectedStars === price : selectedPrice === price)
                     ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
                     : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
               >
-                ${price.toFixed(2)}
+                {isStars ? formatStarsPrice(Number(price)) : `$${Number(price).toFixed(2)}`}
               </button>
             ))}
           </div>
@@ -92,20 +105,24 @@ export default function LockedMediaPricePicker({ open, onClose, onConfirm }: Pro
             </button>
             {useCustom && (
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                {isStars ? (
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs leading-none">{"\u2b50"}</span>
+                ) : (
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                )}
                 <input
                   type="number"
-                  min="0.50"
-                  max="999.99"
-                  step="0.01"
+                  min={isStars ? "1" : "0.50"}
+                  max={isStars ? "1000000" : "999.99"}
+                  step={isStars ? "1" : "0.01"}
                   value={customPrice}
                   onChange={(e) => setCustomPrice(e.target.value)}
-                  placeholder="0.00"
+                  placeholder={isStars ? "249" : "0.00"}
                   className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-border bg-muted/30 text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30"
                   autoFocus
                 />
                 {customPrice && !isValid && (
-                  <p className="text-[10px] text-destructive mt-1">Min $0.50, max $999.99</p>
+                  <p className="text-[10px] text-destructive mt-1">{isStars ? "Min 1 Star, max 1,000,000" : "Min $0.50, max $999.99"}</p>
                 )}
               </div>
             )}
@@ -118,11 +135,11 @@ export default function LockedMediaPricePicker({ open, onClose, onConfirm }: Pro
             className="w-full rounded-xl font-bold text-sm h-11"
           >
             <Lock className="w-4 h-4 mr-2" />
-            Send Locked · ${finalPrice.toFixed(2)}
+            Send Locked · {priceLabel}
           </Button>
 
           <p className="text-[10px] text-center text-muted-foreground">
-            Photo or video will be blurred until recipient pays
+            {isStars ? "Photo or video will be blurred until a member unlocks it" : "Photo or video will be blurred until recipient pays"}
           </p>
         </div>
       </motion.div>

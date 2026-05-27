@@ -9,8 +9,20 @@ on:
       - "capacitor.config.ts"
       - "playwright.config.ts"
       - ".github/workflows/safe-area-visual.yml"
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
 
 permissions:
   contents: read
@@ -19,17 +31,28 @@ permissions:
 jobs:
   visual:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version-file: ".nvmrc"
           cache: npm
 
       - run: npm ci
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Seed authenticated storage state (optional)
@@ -74,7 +97,7 @@ jobs:
       - name: Summarize results for PR comment
         if: always() && github.event_name == 'pull_request'
         id: summary
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -116,7 +139,7 @@ jobs:
 
       - name: Post / update PR comment
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const marker = '<!-- safe-area-visual -->';

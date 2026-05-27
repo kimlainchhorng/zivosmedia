@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+
+# TypeScript incremental cache
+.tsbuildinfo.app
+dist
+dist-ssr
+*.local
+.booking-session/
+
+# Environment secrets — NEVER commit real .env files
+.env
+.env.*
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Claude AI workfiles
+.claude/worktrees/
+
+# Test & scratch output
+tmp/
+test-results/
+playwright-report/
+
+# Native build caches
+ios/DerivedData/
+ios/App/build/
+
+# Stray Playwright session profiles (Windows-style paths)
+Usersabiga*/
+
+# Broken git metadata backup (do not track — contains large pack files)
+.git.broken-backup/
+.scrape-session.local

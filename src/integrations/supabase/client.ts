@@ -2,11 +2,23 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-export const SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
+const DEFAULT_SUPABASE_CONFIG = {
+  url: "https://slirphzzwcogdbkeicff.supabase.co",
+  publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI",
+  projectRef: "slirphzzwcogdbkeicff",
+};
+
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_CONFIG.url;
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_CONFIG.publishableKey;
 const REMEMBER_ME_KEY = "zivo_remember_me";
-const SUPABASE_PROJECT_REF = "slirphzzwcogdbkeicff";
+const SUPABASE_PROJECT_REF =
+  import.meta.env.VITE_SUPABASE_PROJECT_ID ||
+  (SUPABASE_URL ? new URL(SUPABASE_URL).hostname.split(".")[0] : DEFAULT_SUPABASE_CONFIG.projectRef);
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY.");
+}
 
 const getPreferredStorage = (): Storage => {
   try {
@@ -67,5 +79,25 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: authStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true,
+  },
+  global: {
+    // Keep TCP connection alive across requests to avoid cold-start latency
+    // on mobile networks (saves ~100-300 ms per lightweight read after idle).
+    // Do not set keepalive on uploads/mutations: browsers cap keepalive
+    // request bodies at roughly 64KB, which breaks real photo/video sends.
+    fetch: (url, options: RequestInit = {}) => {
+      const method = (options.method || "GET").toUpperCase();
+      const canKeepAlive = !options.body && (method === "GET" || method === "HEAD");
+      return fetch(url, canKeepAlive ? { ...options, keepalive: true } : options);
+    },
+  },
+  realtime: {
+    params: {
+      // Reduce heartbeat interval so the WS connection stays alive on
+      // aggressive NAT/firewalls (default is 30 s, 20 s is safer).
+      heartbeatIntervalMs: 20_000,
+    },
+    timeout: 30_000,
+  },
 });

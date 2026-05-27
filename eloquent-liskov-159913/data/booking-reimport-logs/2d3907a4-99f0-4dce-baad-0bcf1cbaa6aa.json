@@ -1,0 +1,37 @@
+{
+  "run_at": "2026-05-16T22:59:47.278Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort",
+      "guesthouse",
+      "hostel",
+      "villa",
+      "lodge",
+      "motel",
+      "inn",
+      "boutique"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "2d3907a4-99f0-4dce-baad-0bcf1cbaa6aa",
+      "name": "Duong Chan Hotel",
+      "status": "updated",
+      "photos": 45,
+      "rooms": 9,
+      "bookingUrl": "https://www.booking.com/hotel/kh/duong-chan-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

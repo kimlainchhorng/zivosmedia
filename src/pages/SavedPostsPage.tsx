@@ -172,7 +172,7 @@ export default function SavedPostsPage() {
         </button>
         <div className="flex flex-1 items-center gap-2">
           <Bookmark className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-bold text-foreground">Saved</h1>
+          <h1 className="text-lg font-bold text-ig-gradient">Saved</h1>
         </div>
         <span className="text-sm text-muted-foreground">{visibleTiles.length} {visibleTiles.length === 1 ? "post" : "posts"}</span>
       </div>

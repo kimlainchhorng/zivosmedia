@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-16T23:00:51.014Z",
+  "store_id": "16189408-24fd-4c8d-a139-e6b8e0cf4e24",
+  "store_account_id": "CBD16189408",
+  "property_name": "WAT-KROM Villa",
+  "source_note": "Generated for ZIVO missing-media remediation. Booking.com/bstatic media must not be used unless the property/rightsholder or Booking.com has granted written reuse permission for ZIVO. Put property-owned/authorized files in the referenced local media folder, set media_authorized=true, and keep proof of permission.",
+  "permission_required": true,
+  "permission_status": "pending-written-authorization",
+  "permission_evidence": null,
+  "media_authorized": false,
+  "expected_media_folder": "data/hotel-imports/missing-media-2026-05-16/wat-krom-villa-media/",
+  "media": {
+    "logo_file": "wat-krom-villa-media/profile.jpg",
+    "banner_file": "wat-krom-villa-media/cover.jpg",
+    "gallery_images": [
+      {
+        "file": "wat-krom-villa-media/gallery/01.jpg",
+        "caption": "WAT-KROM Villa property photo",
+        "order": 0
+      },
+      {
+        "file": "wat-krom-villa-media/gallery/02.jpg",
+        "caption": "WAT-KROM Villa property photo",
+        "order": 1
+      },
+      {
+        "file": "wat-krom-villa-media/gallery/03.jpg",
+        "caption": "WAT-KROM Villa property photo",
+        "order": 2
+      }
+    ]
+  },
+  "store_profile": {
+    "name": "WAT-KROM Villa",
+    "category": "hotel",
+    "market": "KH",
+    "address": "Sihanoukville, Cambodia",
+    "phone": null,
+    "description": "Booking URL: https://www.booking.com/hotel/kh/wat-krom-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+    "rating": 4.5,
+    "latitude": 10.625,
+    "longitude": 103.522,
+    "is_active": true
+  },
+  "remediation_needs": [
+    "profile/logo image",
+    "cover/banner image",
+    "property gallery images",
+    "room inventory/details",
+    "phone"
+  ],
+  "rooms": []
+}

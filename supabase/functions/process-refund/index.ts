@@ -2,14 +2,16 @@ import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { scanContentForLinks, logBlockedAttempt, isAbuseThresholdExceeded, isIpAbuseThresholdExceeded, getRequestIpHash } from "../_shared/contentLinkValidation.ts";
 import { isLikelyMaliciousBot } from "../_shared/botDetection.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("process-refund", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
 
   try {
     if (isLikelyMaliciousBot(req.headers)) {
@@ -28,7 +30,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await userClient.auth.getUser();
     if (authErr || !user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // Verify admin role via has_role
     const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" } as any);
@@ -93,11 +95,15 @@ Deno.serve(async (req) => {
     // APPROVE / PARTIAL — execute Stripe refund
     const { data: ride } = await admin
       .from("ride_requests")
-      .select("id, user_id, payment_intent_id, stripe_payment_intent_id, captured_amount_cents, payment_amount")
+      .select("id, user_id, payment_intent_id, stripe_payment_intent_id, captured_amount_cents, payment_amount, payment_currency, payment_status")
       .eq("id", refundReq.ride_request_id)
       .maybeSingle();
     if (!ride) {
       return new Response(JSON.stringify({ error: "ride not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const currency = String((ride as any).payment_currency || "USD").toUpperCase();
+    if (currency !== "USD" || (ride as any).payment_status === "bakong_paid") {
+      return new Response(JSON.stringify({ error: "card payment required for automated refunds" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const piId = (ride.payment_intent_id || ride.stripe_payment_intent_id) as string | null;
     if (!piId) {
@@ -184,4 +190,4 @@ Deno.serve(async (req) => {
     console.error("[process-refund]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

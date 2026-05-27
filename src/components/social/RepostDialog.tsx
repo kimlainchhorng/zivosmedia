@@ -40,6 +40,8 @@ export default function RepostDialog({
     try {
       await onConfirm(withQuote ? quote.trim() || undefined : undefined);
       onClose();
+    } catch {
+      // onConfirm owns the toast; keep the dialog open so the user can retry.
     } finally {
       setSubmitting(false);
     }
@@ -58,7 +60,7 @@ export default function RepostDialog({
             initial={{ y: 400, opacity: 0.5 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 400, opacity: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+            style={{ paddingBottom: "max(2rem, var(--zivo-safe-bottom,0px))" }}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/30 sm:hidden" />
 

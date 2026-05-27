@@ -9,6 +9,8 @@ import { stripImageMetadata } from "@/utils/stripImageMetadata";
 import { pickImageFromLibrary } from "@/lib/imagePicker";
 
 import SEOHead from "@/components/SEOHead";
+import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
+import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 import {
   User, ArrowLeft, Loader2, Sparkles, Camera, ImagePlus, Check, X, MoveVertical,
   Shield, Star, ChevronRight, UserPlus, BadgeCheck,
@@ -39,6 +41,9 @@ import { motion, useScroll, useTransform, AnimatePresence, useMotionValueEvent }
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getPublicOrigin } from "@/lib/getPublicOrigin";
+import { invalidateAllStoryCaches } from "@/lib/storiesCache";
+import { copyText } from "@/lib/native/clipboard";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { assessLinkSync } from "@/hooks/useLinkRisk";
 import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
@@ -162,7 +167,7 @@ const Profile = () => {
   const { t, currentLanguage, changeLanguage } = useI18n();
   
   const { user, isAdmin } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useUserProfile();
+  const { data: profile, isLoading: profileLoading, isError: hasProfileError } = useUserProfile();
   const { username: claimedUsername } = useUsername();
   // Brand-name override (e.g. "ZIVO" for staff/founder accounts) — falls back to legal name.
   const brandName = (profile as { display_brand_name?: string | null } | undefined)?.display_brand_name || null;
@@ -172,7 +177,7 @@ const Profile = () => {
   const { data: merchantData } = useMerchantRole();
   const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
   const { unreadCount: notifUnreadCount, notifications, isLoading: notifLoading, markAsRead, markAllAsRead } = useNotifications(20);
-  const { data: latestVerificationRequest } = useQuery({
+  const { data: latestVerificationRequest, isError: hasVerificationRequestError } = useQuery({
     queryKey: ["verification-request", user?.id, "latest"],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -278,7 +283,11 @@ const Profile = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate("/feed");
   }, [impact, navigate]);
-  const handleToggleNotif = useCallback(() => { selectionChanged(); setShowNotifPanel(p => !p); }, [selectionChanged]);
+  const handleToggleNotif = useCallback(() => {
+    selectionChanged();
+    setShowLangPicker(false);
+    setShowNotifPanel(p => !p);
+  }, [selectionChanged]);
   const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
   const notifPanelRef = useRef<HTMLDivElement>(null);
   const notifBellRef = useRef<HTMLButtonElement>(null);
@@ -320,22 +329,28 @@ const Profile = () => {
     if (tpl.includes("promo") || tpl.includes("coupon")) return "/wallet/promos";
     return "/notifications";
   }, []);
-  const handleNotifClick = useCallback(async (n: { id: string; action_url: string | null; metadata: Record<string, any>; template: string; is_read: boolean }) => {
+  const handleNotifClick = useCallback((n: { id: string; action_url: string | null; metadata: Record<string, any>; template: string; is_read: boolean }) => {
     selectionChanged();
-    if (!n.is_read) { try { await markAsRead([n.id]); } catch {} }
+    if (!n.is_read) {
+      void markAsRead([n.id]).catch(() => undefined);
+    }
     setShowNotifPanel(false);
     navigate(resolveNotifLink(n));
   }, [markAsRead, navigate, resolveNotifLink, selectionChanged]);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const handleMarkAllRead = useCallback(async () => {
-    if (notifUnreadCount === 0) return;
+    if (notifUnreadCount === 0 || isMarkingAllRead) return;
     selectionChanged();
+    setIsMarkingAllRead(true);
     try {
       await markAllAsRead();
       toast.success("All notifications marked as read");
     } catch {
       toast.error("Couldn't mark all as read");
+    } finally {
+      setIsMarkingAllRead(false);
     }
-  }, [markAllAsRead, notifUnreadCount, selectionChanged]);
+  }, [isMarkingAllRead, markAllAsRead, notifUnreadCount, selectionChanged]);
   const handleResetCover = useCallback(() => { impact("light"); setCoverPosition(50); }, [impact]);
   
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -370,12 +385,50 @@ const Profile = () => {
 
   const profileTilt = use3DTilt(profileCardRef);
 
-  const [friendCount, setFriendCount] = useState(0);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [postsCount, setPostsCount] = useState(0);
+  // Social-graph counts unified into a single React Query instead of 4 ad-hoc
+  // useState + manual visibility-change listeners. React Query handles focus
+  // refetch + caching (staleTime 30s) so we don't burn 4 round-trips on every
+  // re-render of the profile header.
+  const { data: socialCounts, refetch: refetchSocialCounts, isError: hasSocialCountsError } = useQuery({
+    queryKey: ["profile-social-counts", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { friends: 0, followers: 0, following: 0, posts: 0 };
+      const [
+        { count: fc, error: friendsError },
+        { count: flc, error: followersError },
+        { count: fgc, error: followingError },
+        { count: pc, error: postsError },
+      ] = await Promise.all([
+        (supabase as any).from("friendships").select("id", { count: "exact", head: true })
+          .eq("status", "accepted")
+          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`),
+        (supabase as any).from("user_followers").select("id", { count: "exact", head: true })
+          .eq("following_id", user.id),
+        (supabase as any).from("user_followers").select("id", { count: "exact", head: true })
+          .eq("follower_id", user.id),
+        (supabase as any).from("user_posts").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_published", true),
+      ]);
+      const firstError = friendsError || followersError || followingError || postsError;
+      if (firstError) throw firstError;
+      return { friends: fc || 0, followers: flc || 0, following: fgc || 0, posts: pc || 0 };
+    },
+    enabled: !!user?.id,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+  });
+  const friendCount = socialCounts?.friends ?? 0;
+  const followerCount = socialCounts?.followers ?? 0;
+  const followingCount = socialCounts?.following ?? 0;
+  const postsCount = socialCounts?.posts ?? 0;
+  // Modal callbacks just invalidate — React Query refetches the canonical counts.
+  const setFriendCount = (_n: number) => { void refetchSocialCounts(); };
+  const setFollowerCount = (_n: number) => { void refetchSocialCounts(); };
+  const setFollowingCount = (_n: number) => { void refetchSocialCounts(); };
   const [socialModal, setSocialModal] = useState<{ open: boolean; tab: "friends" | "followers" | "following" }>({ open: false, tab: "friends" });
   const [shareOpen, setShareOpen] = useState(false);
+  const [profileLinkCopied, setProfileLinkCopied] = useState(false);
   const [modeOpen, setModeOpen] = useState(false);
   const [activeMode, setActiveMode] = useState<string>(() => {
     if (typeof window === "undefined") return "personal";
@@ -403,6 +456,32 @@ const Profile = () => {
   }, [zivoOFMode]);
 
   const workflowMode = zivoOFMode ? "creator" : activeMode;
+  const profileShareUrl = useMemo(
+    () => {
+      const origin = getPublicOrigin();
+      if (claimedUsername) return `${origin}/u/${encodeURIComponent(claimedUsername)}`;
+      if (user?.id) return `${origin}/user/${encodeURIComponent(user.id)}`;
+      return "";
+    },
+    [claimedUsername, user?.id],
+  );
+
+  const handleCopyProfileLink = useCallback(async () => {
+    selectionChanged();
+    if (!claimedUsername && !user?.id) {
+      toast.error("Profile link is not ready yet");
+      return;
+    }
+    try {
+      await copyText(profileShareUrl);
+      setProfileLinkCopied(true);
+      toast.success("Profile link copied");
+      window.setTimeout(() => setProfileLinkCopied(false), 1600);
+    } catch {
+      setShareOpen(true);
+      toast.info("Copy failed, share options opened");
+    }
+  }, [claimedUsername, profileShareUrl, selectionChanged, user?.id]);
 
   const getShopDashboardPath = useCallback(() => {
     if (!ownerStore?.id) return "/shop-dashboard";
@@ -423,31 +502,8 @@ const Profile = () => {
     navigate(getShopDashboardPath());
   }, [getShopDashboardPath, navigate, ownerStoreLoading, selectionChanged, user]);
 
-  // Load real friendship status, friend count & follower count.
-  // Refetches on tab visibility change so counts don't go stale after the
-  // user follows/unfollows / accepts a friend request from another screen.
-  const loadSocialCounts = useCallback(async () => {
-    if (!user?.id) return;
-    const [{ count: fc }, { count: flc }, { count: fgc }, { count: pc }] = await Promise.all([
-      supabase.from("friendships" as any).select("id", { count: "exact", head: true }).eq("status", "accepted").or(`user_id.eq.${user.id},friend_id.eq.${user.id}`),
-      supabase.from("followers" as any).select("id", { count: "exact", head: true }).eq("following_id", user.id),
-      supabase.from("followers" as any).select("id", { count: "exact", head: true }).eq("follower_id", user.id),
-      (supabase as any).from("user_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-    ]);
-    setFriendCount(fc || 0);
-    setFollowerCount(flc || 0);
-    setFollowingCount(fgc || 0);
-    setPostsCount(pc || 0);
-  }, [user?.id]);
-
-  useEffect(() => { void loadSocialCounts(); }, [loadSocialCounts]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    const onVisible = () => { if (document.visibilityState === "visible") void loadSocialCounts(); };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [user?.id, loadSocialCounts]);
+  // Social counts now flow through useQuery above — refetched on focus and
+  // staleTime'd so 4 round-trips don't fire on every re-render.
 
   useEffect(() => {
     setBioDraft(profile?.bio ?? "");
@@ -540,9 +596,14 @@ const Profile = () => {
   };
   const handleCoverDragEnd = () => { coverDragRef.current = null; };
   const saveCoverPosition = async () => {
-    await updateProfile.mutateAsync({ cover_position: Math.round(coverPosition) });
-    setCoverRepositioning(false);
-    toast.success("Cover position saved!");
+    if (updateProfile.isPending) return;
+    try {
+      await updateProfile.mutateAsync({ cover_position: Math.round(coverPosition) });
+      setCoverRepositioning(false);
+      toast.success("Cover position saved!");
+    } catch {
+      toast.error("Couldn't save cover position");
+    }
   };
 
 
@@ -550,7 +611,7 @@ const Profile = () => {
 
   const currentLang = LANGS.find(l => l.code === currentLanguage) || LANGS[0];
 
-  const { data: recentApps } = useQuery({
+  const { data: recentApps, isError: hasRecentAppsError } = useQuery({
     queryKey: ["profile-recent-apps", user?.id],
     enabled: !!user?.id,
     staleTime: 60_000,
@@ -581,12 +642,39 @@ const Profile = () => {
       .slice(0, 5);
   }, [bookings, recentApps]);
 
+  const hasAnyProfileData = Boolean(profile);
+  const hasProfileRefreshError =
+    hasAnyProfileData &&
+    (hasProfileError || hasVerificationRequestError || hasSocialCountsError || hasRecentAppsError);
+
+  const retryProfileQueries = useCallback(() => {
+    if (!user?.id) return;
+    invalidateAllStoryCaches(queryClient, user.id);
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["verification-request", user.id, "latest"] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-social-counts", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-recent-apps", user.id] }),
+    ]);
+  }, [queryClient, user?.id]);
+
   const handlePullRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["user-profile"] });
-  }, [queryClient]);
+    if (!user?.id) return;
+    invalidateAllStoryCaches(queryClient, user.id);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["verification-request", user.id, "latest"] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-social-counts", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-recent-apps", user.id] }),
+    ]);
+  }, [queryClient, user?.id]);
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh} className="min-h-screen bg-background relative overflow-hidden safe-area-bottom">
+    <PullToRefresh
+      onRefresh={handlePullRefresh}
+      mouseDragScroll
+      className="min-h-screen bg-background relative overflow-x-hidden safe-area-bottom"
+    >
       <SEOHead title="Profile Settings – ZIVO" description="Manage your ZIVO account, profile, and travel preferences." noIndex={true} />
 
       {/* Desktop NavBar */}
@@ -621,8 +709,7 @@ const Profile = () => {
           aria-label="Profile quick navigation"
           data-testid="profile-sticky-header"
           style={{
-            paddingTop: "var(--zivo-safe-top-sticky)",
-            height: "calc(var(--zivo-safe-top-sticky) + 3rem)",
+            height: "3rem",
           }}
           className="lg:hidden fixed top-0 inset-x-0 z-40 px-3 flex items-center gap-3"
         >
@@ -656,7 +743,9 @@ const Profile = () => {
             </Avatar>
           </span>
           <div className="flex items-center gap-1 min-w-0 flex-1" aria-live="polite">
-            <span className={cn(
+            <span
+              translate="no"
+              className={cn(
               "font-semibold text-sm truncate",
               "text-foreground"
             )}>
@@ -664,23 +753,117 @@ const Profile = () => {
             </span>
             {profile?.is_verified && <VerifiedBadge size={14} />}
           </div>
+          <div className="relative">
+            <motion.button
+              ref={langTriggerRef}
+              type="button"
+              onClick={() => {
+                selectionChanged();
+                setShowNotifPanel(false);
+                setShowLangPicker((open) => !open);
+              }}
+              aria-label="Change language"
+              aria-expanded={showLangPicker}
+              aria-controls="profile-language-menu"
+              whileTap={{ scale: 0.86 }}
+              transition={{ type: "spring", stiffness: 400, damping: 22 }}
+              className={cn(
+                "relative h-9 w-9 flex items-center justify-center rounded-full transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                showLangPicker ? "bg-primary/10 text-primary" : "hover:bg-muted/60 text-foreground"
+              )}
+              title="Change language"
+            >
+              <Globe className="h-5 w-5" />
+              <img
+                src={getFlagUrl(currentLang.cc)}
+                alt=""
+                className="absolute -right-0.5 -bottom-0.5 h-4 w-4 rounded-full border border-background bg-background object-cover shadow-sm"
+              />
+            </motion.button>
+            <AnimatePresence>
+              {showLangPicker && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.14 }}
+                    onClick={() => setShowLangPicker(false)}
+                    className="fixed inset-0 z-40 bg-transparent"
+                    aria-hidden
+                  />
+                  <motion.div
+                    id="profile-language-menu"
+                    role="dialog"
+                    aria-label="Change language"
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    className="fixed z-50 overflow-hidden rounded-2xl border border-border/60 bg-card/95 text-card-foreground shadow-2xl shadow-black/25 backdrop-blur-xl right-2 left-2 mx-auto max-w-[320px] lg:left-auto lg:right-20 lg:mx-0 lg:w-[260px]"
+                    style={{
+                      top: "calc(3rem + 6px)",
+                      maxHeight: "calc(100vh - 3rem - 24px)",
+                    }}
+                  >
+                    <div className="border-b border-border/40 bg-muted/30 px-3 py-2.5">
+                      <p className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                        <Globe className="h-3.5 w-3.5" />
+                        {t("lang.select")}
+                      </p>
+                    </div>
+                    <div className="max-h-[320px] overflow-y-auto py-1">
+                      {LANGS.map((lang) => {
+                        const selected = currentLanguage === lang.code;
+                        return (
+                          <button
+                            type="button"
+                            key={lang.code}
+                            onClick={() => {
+                              changeLanguage(lang.code);
+                              setShowLangPicker(false);
+                            }}
+                            className={cn(
+                              "relative flex w-full items-center gap-3 overflow-hidden px-3 py-2.5 text-left text-sm transition-colors",
+                              selected ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted/60 text-foreground"
+                            )}
+                          >
+                            <img
+                              src={getFlagUrl(lang.cc)}
+                              alt=""
+                              className="absolute right-0 top-1/2 h-[120%] w-auto -translate-y-1/2 opacity-[0.07] pointer-events-none"
+                            />
+                            <img
+                              src={getFlagUrl(lang.cc)}
+                              alt=""
+                              className="relative z-10 h-5 w-5 rounded-full object-cover ring-1 ring-border/50"
+                            />
+                            <span className="relative z-10 min-w-0 flex-1 truncate">{lang.label}</span>
+                            {selected && <Check className="relative z-10 h-4 w-4 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
           <motion.button
             type="button"
-            onClick={() => {
-              const url = `https://hizivo.com/u/${claimedUsername || user?.id || ""}`;
-              navigator.clipboard.writeText(url)
-                .then(() => toast.success("Profile link copied!"))
-                .catch(() => toast.error("Couldn't copy link"));
-            }}
-            aria-label="Copy profile link"
+            onClick={handleCopyProfileLink}
+            aria-label={profileLinkCopied ? "Profile link copied" : "Copy profile link"}
+            aria-pressed={profileLinkCopied}
             whileTap={{ scale: 0.86 }}
             transition={{ type: "spring", stiffness: 400, damping: 22 }}
             className={cn(
-              "h-9 w-9 flex items-center justify-center rounded-full transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none",
-              "hover:bg-muted/60 text-foreground"
+              "h-9 w-9 flex items-center justify-center rounded-full border transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none",
+              profileLinkCopied
+                ? "border-emerald-500/30 bg-emerald-500/12 text-emerald-600"
+                : "border-transparent hover:bg-muted/60 text-foreground"
             )}
           >
-            <Share2 className="h-5 w-5" />
+            {profileLinkCopied ? <Check className="h-5 w-5" /> : <LinkIcon className="h-5 w-5" />}
           </motion.button>
           <div className="relative">
           <motion.button
@@ -719,7 +902,7 @@ const Profile = () => {
                   transition={{ duration: 0.18 }}
                   onClick={() => setShowNotifPanel(false)}
                   className="lg:hidden fixed inset-0 z-40 bg-background/40 backdrop-blur-[2px]"
-                  style={{ top: "calc(var(--zivo-safe-top-sticky) + 3rem)" }}
+                  style={{ top: "3rem" }}
                   aria-hidden
                 />
                 <motion.div
@@ -733,8 +916,8 @@ const Profile = () => {
                   transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                   className="fixed z-50 origin-top-right overflow-hidden rounded-2xl border border-border/60 bg-card text-card-foreground shadow-2xl shadow-black/30 backdrop-blur-xl right-2 left-2 mx-auto max-w-[420px] lg:left-auto lg:right-4 lg:mx-0 lg:w-[400px]"
                   style={{
-                    top: "calc(var(--zivo-safe-top-sticky) + 3rem + 6px)",
-                    maxHeight: "calc(100vh - var(--zivo-safe-top-sticky) - 3rem - 24px)",
+                    top: "calc(3rem + 6px)",
+                    maxHeight: "calc(100vh - 3rem - 24px)",
                   }}
                 >
                 {/* Caret pointing at the bell */}
@@ -750,9 +933,10 @@ const Profile = () => {
                   {notifUnreadCount > 0 && (
                     <button type="button"
                       onClick={handleMarkAllRead}
+                      disabled={isMarkingAllRead}
                       className="rounded-full px-2 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                     >
-                      Mark all read
+                      {isMarkingAllRead ? "Marking..." : "Mark all read"}
                     </button>
                   )}
                 </div>
@@ -926,7 +1110,7 @@ const Profile = () => {
       {/* ── Scrollable content ── */}
       <div className="relative z-10 min-h-screen pb-24 scroll-smooth bg-background no-scrollbar">
         {/* Mobile: edge-to-edge full-screen (Facebook-style). Desktop: centered card. */}
-        <div className="px-0 lg:px-4 pt-[calc(var(--zivo-safe-top-sticky)+3rem)] lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
+        <div className="px-0 lg:px-4 pt-12 lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
 
           {profileLoading ? (
             <div className="flex items-center justify-center py-20">
@@ -934,8 +1118,27 @@ const Profile = () => {
                 <Loader2 className="h-8 w-8 text-primary" />
               </motion.div>
             </div>
+          ) : hasProfileError && !profile ? (
+            <LoadFailureCard
+              className="px-4 lg:px-0 py-10"
+              title="Profile refresh failed"
+              description="We couldn&apos;t load your profile right now. Retry to reconnect and restore your account data."
+              onRetry={retryProfileQueries}
+              onSecondary={() => navigate("/feed")}
+              secondaryLabel="Go Home"
+              trackingContext="profile"
+            />
           ) : (
             <div className="space-y-2 pt-0 lg:pt-1">
+              {hasProfileRefreshError && (
+                <DegradedDataBanner
+                  className="px-4 lg:px-0 pt-2"
+                  message="Showing cached profile data. Refresh failed."
+                  onRetry={retryProfileQueries}
+                  trackingContext="profile"
+                />
+              )}
+
               {/* ── Profile Card with Cover Photo ──
                   No ParallaxSection here: the hero card must paint immediately
                   to avoid a giant blank area at the top of the viewport. */}
@@ -1052,8 +1255,8 @@ const Profile = () => {
                           <div className="relative flex items-center gap-3 bg-background/90 backdrop-blur-xl rounded-full px-4 py-2 shadow-xl border border-border/50">
                             <MoveVertical className="h-4 w-4 text-muted-foreground" />
                             <span className="text-xs font-semibold text-foreground">Drag to reposition</span>
-                            <button type="button" onClick={saveCoverPosition} aria-label="Save cover position" className="p-1.5 rounded-full bg-primary text-primary-foreground transition active:scale-90 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
-                              <Check className="h-3.5 w-3.5" />
+                            <button type="button" onClick={saveCoverPosition} disabled={updateProfile.isPending} aria-label="Save cover position" className="p-1.5 rounded-full bg-primary text-primary-foreground transition active:scale-90 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
+                              {updateProfile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                             </button>
                             <button type="button" onClick={handleResetCover} aria-label="Reset cover position to center" className="p-1.5 rounded-full bg-muted/70 text-foreground hover:bg-muted transition active:scale-90 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
                               <RotateCcw className="h-3.5 w-3.5" />
@@ -1108,7 +1311,7 @@ const Profile = () => {
 
                     {/* Name & status */}
                     <div className="px-5 sm:px-6 pb-1 pt-1.5 sm:pt-2 text-left">
-                      <CardTitle className="flex items-center justify-start gap-2 text-xl sm:text-2xl font-bold tracking-tight">
+                      <CardTitle translate="no" className="flex items-center justify-start gap-2 text-xl sm:text-2xl font-bold tracking-tight">
                         <span>{headerName || t("profile.set_name")}</span>
                         {profile?.is_verified && <VerifiedBadge size={28} />}
                       </CardTitle>
@@ -1119,7 +1322,7 @@ const Profile = () => {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => navigate("/account/profile-edit")}
+                            onClick={() => navigate("/account/username?from=profile")}
                             className="text-primary hover:underline"
                           >
                             Set a username
@@ -1129,7 +1332,7 @@ const Profile = () => {
                       {/* Email hidden — only visible to account owner in settings */}
                       <div className="flex flex-wrap items-center justify-start gap-2 mt-2 sm:mt-3">
                         {isPlus && (
-                          <Badge className="bg-ig-gradient text-white border-0 font-semibold rounded-full px-3 py-1">
+                          <Badge translate="no" className="bg-ig-gradient text-white border-0 font-semibold rounded-full px-3 py-1">
                             <Crown className="w-3 h-3 mr-1" /> ZIVO+ {plan === "annual" ? "Annual" : "Monthly"}
                           </Badge>
                         )}
@@ -1539,7 +1742,12 @@ const Profile = () => {
 
               {/* ── Social Content Tabs (Posts, Videos, Live, Status) ── */}
               <ParallaxSection index={2.5}>
-                <ProfileContentTabs userId={user?.id} />
+                <ProfileContentTabs
+                  userId={user?.id}
+                  profileDisplayName={headerName || profile?.full_name}
+                  profileAvatarUrl={profile?.avatar_url}
+                  onPostsChanged={() => { void refetchSocialCounts(); }}
+                />
               </ParallaxSection>
 
 
@@ -1659,14 +1867,15 @@ const Profile = () => {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: "Edit profile", icon: Pencil, route: "/profile/edit" },
-                  { label: "Privacy", icon: Shield, route: "/settings/privacy" },
+                  { label: "Edit profile", icon: Pencil, route: "/account/profile-edit" },
+                  { label: "Privacy", icon: Shield, route: "/account/privacy" },
+                  { label: "18+ Blur", icon: Eye, route: "/account/privacy#sensitive" },
                   { label: "Notifications", icon: Bell, route: "/account/notifications" },
                   { label: "Wallet", icon: Wallet, route: "/wallet" },
-                  { label: "Saved places", icon: MapPin, route: "/saved-places" },
-                  { label: "Security", icon: Lock, route: "/settings/security" },
+                  { label: "Saved places", icon: MapPin, route: "/account/saved-places" },
+                  { label: "Security", icon: Lock, route: "/account/security" },
                   { label: "Language", icon: Globe, route: "/more" },
-                  { label: "Activity", icon: BarChart3, route: "/account/activity" },
+                  { label: "Activity", icon: BarChart3, route: "/account/activity-log" },
                   { label: "Share profile", icon: Share2, route: "" },
                 ].map((a) => {
                   const Icon = a.icon;
@@ -1773,6 +1982,7 @@ const Profile = () => {
       <UsernameShareSheet
         open={shareOpen}
         username={claimedUsername || null}
+        profileId={user?.id || null}
         displayName={headerName || undefined}
         onClose={() => setShareOpen(false)}
       />

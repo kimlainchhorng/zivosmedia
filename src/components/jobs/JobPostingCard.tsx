@@ -3,6 +3,7 @@
  */
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ const dbFrom = (table: string): unknown =>
   (supabase as unknown as { from: (t: string) => unknown }).from(table);
 
 export default function JobPostingCard({ job }: Props) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [applied, setApplied] = useState(false);
@@ -50,7 +52,12 @@ export default function JobPostingCard({ job }: Props) {
     : null;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border/40 bg-card p-4">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      onClick={() => navigate(`/jobs-hub/${job.id}`)}
+      className="rounded-2xl border border-border/40 bg-card p-4 cursor-pointer hover:bg-muted/20 transition-colors"
+    >
       <div className="flex items-start gap-2 mb-2">
         <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
           <Briefcase className="w-4 h-4" />
@@ -67,7 +74,7 @@ export default function JobPostingCard({ job }: Props) {
         {job.location && <span className="inline-flex items-center gap-0.5"><MapPin className="w-3 h-3" />{job.location}</span>}
       </div>
       <button type="button"
-        onClick={() => void apply()}
+        onClick={(e) => { e.stopPropagation(); void apply(); }}
         disabled={busy || applied}
         className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold active:opacity-80 disabled:opacity-60"
       >

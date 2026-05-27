@@ -8,27 +8,74 @@
 const ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-application-name, x-request-id";
 
-// Production origins.  Add staging / preview domains here as needed.
+declare const Deno:
+  | {
+      env: {
+        get(name: string): string | undefined;
+      };
+    }
+  | undefined;
+
+function readEnv(name: string): string {
+  try {
+    return typeof Deno !== "undefined" ? Deno.env.get(name) ?? "" : "";
+  } catch {
+    return "";
+  }
+}
+
+function parseCsvEnv(name: string): string[] {
+  return readEnv(name)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+// Production origins. Add staging / preview domains through CORS_ALLOWED_ORIGINS.
 const ALLOWED_ORIGINS = new Set<string>([
+  "https://zivollc.com",
+  "https://www.zivollc.com",
+  "https://app.zivollc.com",
+  "https://preview.zivollc.com",
+  "https://zivo-web.myzivo.workers.dev",
   "https://myzivo.com",
   "https://www.myzivo.com",
   "https://app.myzivo.com",
   // Supabase Studio (used by edge-function test runner)
   "https://supabase.com",
-  // Lovable preview (development only — remove before go-live)
-  "https://lovable.dev",
+  ...parseCsvEnv("CORS_ALLOWED_ORIGINS"),
 ]);
 
-// Domains whose origin prefixes are allowed (e.g. branch previews)
+// Domains whose origin prefixes are allowed (e.g. branch previews).
 const ALLOWED_ORIGIN_SUFFIXES = [
+  ".zivollc.com",
   ".myzivo.com",
-  ".lovable.app",
-  ".lovable.dev",
+  ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];
+
+function isPrivateLanHost(hostname: string): boolean {
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]") return true;
+  if (hostname.startsWith("192.168.")) return true;
+  if (hostname.startsWith("10.")) return true;
+  const parts = hostname.split(".").map((part) => Number(part));
+  return parts.length === 4 && parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
+}
+
+function isLocalDevelopmentOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    return isPrivateLanHost(url.hostname);
+  } catch {
+    return false;
+  }
+}
 
 export function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.has(origin)) return true;
+  if (isLocalDevelopmentOrigin(origin)) return true;
   try {
     const url = new URL(origin);
     return ALLOWED_ORIGIN_SUFFIXES.some(s => url.hostname.endsWith(s));

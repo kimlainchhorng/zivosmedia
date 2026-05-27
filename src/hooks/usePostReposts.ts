@@ -38,8 +38,8 @@ export function usePostReposts(userId: string | null) {
     postId: string,
     source: PostSource,
     quoteText?: string,
-  ): Promise<boolean> => {
-    if (!userId) return false;
+  ): Promise<boolean | null> => {
+    if (!userId) return null;
     const key = `${source}:${postId}`;
     const was = reposted.has(key);
 
@@ -66,7 +66,7 @@ export function usePostReposts(userId: string | null) {
         else next.delete(key);
         return next;
       });
-      return was;
+      return null;
     }
   }, [userId, reposted]);
 

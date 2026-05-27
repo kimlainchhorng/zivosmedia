@@ -1,0 +1,36 @@
+# API Readiness Report
+
+Generated: 2026-05-26T21:27:09.456Z
+
+## Summary
+
+- Critical findings: 0
+- Warnings: 3
+- Edge Functions inventoried: 262
+- High-risk Edge Functions: 112
+- Functions using withSecurity(): 116
+- Functions using strictCorsHeaders(): 99
+- Functions using service role: 212
+- Supabase migration drift: reportLocal=831, currentLocal=831, remote=0, matched=0, duplicateVersions=8, allowedDuplicateVersions=8, newDuplicateVersions=0, remoteError=yes
+
+## Critical
+
+- No critical API readiness issues found.
+
+## Warnings
+
+- [high-risk-function-without-wrapper] High-risk Edge Function does not use withSecurity(). (supabase/functions/twilio-webhook/index.ts)
+- [service-role-wildcard-cors] High-risk service-role function appears to use wildcard CORS without the shared security wrapper. (supabase/functions/twilio-webhook/index.ts)
+- [migration-history-unavailable] Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before production schema work. (docs/supabase-migration-drift-report.md)
+
+## High-Risk Functions Missing withSecurity()
+
+- supabase/functions/twilio-webhook/index.ts
+
+## Next Hardening Moves
+
+- Reconcile Supabase migration history before running production schema pushes.
+- Run npm run supabase:upgrade-readiness before a Postgres major-version upgrade.
+- Move browser Supabase URL/key to Vite env variables for staging and production separation.
+- Add withSecurity() to high-risk Edge Functions first, starting with payment, webhook, admin, auth, and wallet routes.
+- Replace wildcard CORS on authenticated/service-role functions with strictCorsHeaders().

@@ -1,6 +1,6 @@
 /**
  * LodgingBookingDrawer - Multi-step booking sheet (stay → add-ons → guest → review → success).
- * Writes a 'hold' lodge_reservations row with addons + fee breakdown + payment method.
+ * Creates a 'hold' lodge_reservations row through the server-side booking RPC.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { cancellationLabel, cancellationDescription } from "@/lib/lodging/cancellationCopy";
 import { validateGuest } from "@/lib/lodging/guestSchema";
+import { createLodgeGuestReservation } from "@/lib/lodging/createLodgeReservation";
 import type { LodgeAddon, RoomFees, ChildPolicy } from "@/hooks/lodging/useLodgeRooms";
 
 interface Props {
@@ -293,7 +294,8 @@ export function LodgingBookingDrawer({
     if (!reviewValid) { toast.error("Please read & accept the policies"); return; }
     setSubmitting(true);
     try {
-      // Race-condition guard: re-check availability immediately before insert
+      // Best-effort early warning; the RPC below repeats this inside the
+      // database transaction and is the source of truth.
       try {
         const fresh = await checkRoomConflictNow(roomId, checkIn, checkOut);
         if (fresh.conflict) {
@@ -306,7 +308,6 @@ export function LodgingBookingDrawer({
           return;
         }
       } catch (_) { /* non-fatal */ }
-      const ref = `RES-${Date.now().toString().slice(-6)}`;
       const policyConsent = {
         rules: {
           viewed_at: rulesViewedAt,
@@ -321,25 +322,29 @@ export function LodgingBookingDrawer({
       };
       const policyConsentVersion =
         (propertyProfile as any)?.updated_at || new Date().toISOString();
-      const { data: inserted, error } = await supabase.from("lodge_reservations" as any).insert({
+      const inserted = await createLodgeGuestReservation({
         store_id: storeId,
         room_id: roomId,
-        number: ref,
-        guest_name: name, guest_phone: phone, guest_email: email || null, guest_country: country || null,
-        adults, children, check_in: checkIn, check_out: checkOut,
-        status: "hold", source: "direct",
-        rate_cents: baseRateCents, total_cents: breakdown.total, payment_status: "unpaid",
+        guest_name: name,
+        guest_phone: phone,
+        guest_email: email || null,
+        guest_country: country || null,
+        adults,
+        children,
+        check_in: checkIn,
+        check_out: checkOut,
+        status: "hold",
+        source: "direct",
+        payment_method: payMethod,
         addons: breakdown.addonsSnapshot,
         addon_selections: breakdown.addonsSnapshot,
-        fee_breakdown: breakdown.feeBreakdown,
         guest_details: { name, phone, email, country, eta, notes, pay_method: payMethod },
         notes: notes || null,
         policy_consent: policyConsent,
         policy_consent_version: policyConsentVersion,
-      }).select("id").maybeSingle();
-      if (error) throw error;
-      setReference(ref);
-      const newId = (inserted as any)?.id || null;
+      });
+      setReference(inserted.number);
+      const newId = inserted.id || null;
       setReservationId(newId);
       setStep("success");
       onBooked?.();

@@ -4,23 +4,19 @@
  * Layout (top to bottom):
  *   - Sticky header: hamburger (CreateSheet trigger) | "Feed" | search | + | bell | chat (with unread badge)
  *   - Segmented tabs: For You / Friends / Following
- *   - Filter chips: All / Photos / Videos / Text
- *   - Composer (logged-in only): avatar + "What's on your mind, [Name]?" + Photo/Reels/Poll/Check In/Live row
- *   - Sign-in CTA (logged-out only)
  *   - Stories rail
  *   - Post list
  *
  * Routed at /feed.
  */
-import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Menu, Search, Plus, Bell, MessageSquare,
-  Image as ImageIcon, Film, BarChart3, MapPin, Radio,
   Loader2, Heart, MessageCircle, Share2, MoreHorizontal, Bookmark,
   UserPlus, Check,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -28,7 +24,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { toast } from "sonner";
-import { openPostShareSheet } from "@/components/social/PostShareSheet";
+import { openPostShareSheet } from "@/lib/social/postShareSheet";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import NavBar from "@/components/home/NavBar";
 import {
@@ -54,6 +50,10 @@ import { cn } from "@/lib/utils";
 import CreateSheet from "@/components/feed/CreateSheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
+import { copyText } from "@/lib/native/clipboard";
+import { normalizeSupabaseMediaUrl } from "@/utils/normalizeSupabaseMediaUrl";
+import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
+import { reportFeedQueryError } from "@/lib/feedQueryTelemetry";
 
 const FeedStoryRing = lazy(() => import("@/components/social/FeedStoryRing"));
 const ZivoMobileNav = lazy(() => import("@/components/app/ZivoMobileNav"));
@@ -63,7 +63,6 @@ const CreateStorySheet = lazy(() => import("@/components/profile/CreateStoryShee
 const FollowSuggestions = lazy(() => import("@/components/social/FollowSuggestions"));
 
 type FeedTab = "for-you" | "friends" | "following";
-type FeedFilter = "all" | "photos" | "videos" | "text";
 
 type FeedPost = {
   id: string;
@@ -86,29 +85,14 @@ type FeedPost = {
   tips_enabled?: boolean | null;
   is_pinned?: boolean | null;
   visibility?: string | null;
+  viewer_has_liked?: boolean;
+  viewer_has_saved?: boolean;
 };
 
 const TABS: { id: FeedTab; label: string }[] = [
   { id: "for-you", label: "For You" },
   { id: "friends", label: "Friends" },
   { id: "following", label: "Following" },
-];
-
-const FILTERS: { id: FeedFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "photos", label: "Photos" },
-  { id: "videos", label: "Videos" },
-  { id: "text", label: "Text" },
-];
-
-type QuickActionId = "photo" | "reels" | "poll" | "checkin" | "live";
-
-const QUICK_ACTIONS: { id: QuickActionId; label: string; icon: typeof ImageIcon; iconClass: string; tintClass: string }[] = [
-  { id: "photo", label: "Photo", icon: ImageIcon, iconClass: "text-emerald-600", tintClass: "bg-emerald-500/10" },
-  { id: "reels", label: "Reels", icon: Film, iconClass: "text-purple-500", tintClass: "bg-purple-500/10" },
-  { id: "poll", label: "Poll", icon: BarChart3, iconClass: "text-orange-500", tintClass: "bg-orange-500/10" },
-  { id: "checkin", label: "Check In", icon: MapPin, iconClass: "text-rose-500", tintClass: "bg-rose-500/10" },
-  { id: "live", label: "Live", icon: Radio, iconClass: "text-red-500", tintClass: "bg-red-500/10" },
 ];
 
 export default function SocialFeedPage() {
@@ -123,7 +107,6 @@ export default function SocialFeedPage() {
   const [storyOpen, setStoryOpen] = useState(false);
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
   const [tab, setTab] = useState<FeedTab>("for-you");
-  const [filter, setFilter] = useState<FeedFilter>("all");
 
   // Honor ?compose=post|reel|poll|photo|story and ?post=<id> from external links
   // (CreateSheet shortcuts, /saved tap-throughs, push notifications).
@@ -154,46 +137,42 @@ export default function SocialFeedPage() {
     queryKey: ["feed-header-chat-unread", user?.id],
     enabled: Boolean(user?.id),
     staleTime: 30_000,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!user?.id) return 0;
-      const { count } = await (supabase as any)
+      const { count } = await withSupabaseAbortSignal((supabase as any)
         .from("chat_messages")
         .select("id", { count: "exact", head: true })
         .neq("sender_id", user.id)
-        .is("read_at", null);
+        .is("read_at", null), signal);
       return count ?? 0;
     },
   });
 
-  const firstName = useMemo(() => {
-    const name = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
-    return name.split(/[\s_]/)[0] || "";
-  }, [profile?.full_name, user]);
-
   // Posts query — Friends/Following narrow the author set; For You is everyone.
   // Returns null when the tab needs auth and the user is logged out, so the
   // empty state can show a tailored Sign-in CTA instead of "no posts yet".
-  const { data: rawPosts, isLoading } = useQuery({
+  const { data: rawPosts, isLoading, isError: hasFeedError, error: feedError } = useQuery({
     queryKey: ["social-feed-posts", tab, user?.id],
-    queryFn: async (): Promise<FeedPost[] | null> => {
+    placeholderData: keepPreviousData,
+    queryFn: async ({ signal }): Promise<FeedPost[] | null> => {
       let allowedAuthorIds: string[] | null = null;
 
       if (tab === "friends") {
         if (!user?.id) return null;
-        const { data: friendships } = await supabase
+        const { data: friendships } = await withSupabaseAbortSignal(supabase
           .from("friendships")
           .select("user_id, friend_id")
           .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
-          .eq("status", "accepted");
+          .eq("status", "accepted"), signal);
         const rows = (friendships || []) as { user_id: string; friend_id: string }[];
         allowedAuthorIds = rows.map((r) => (r.user_id === user.id ? r.friend_id : r.user_id));
         if (allowedAuthorIds.length === 0) return [];
       } else if (tab === "following") {
         if (!user?.id) return null;
-        const { data: follows } = await (supabase as any)
+        const { data: follows } = await withSupabaseAbortSignal((supabase as any)
           .from("user_followers")
           .select("following_id")
-          .eq("follower_id", user.id);
+          .eq("follower_id", user.id), signal);
         allowedAuthorIds = (follows || []).map((r: any) => r.following_id).filter(Boolean) as string[];
         if (allowedAuthorIds.length === 0) return [];
       }
@@ -208,67 +187,67 @@ export default function SocialFeedPage() {
         query = query.in("user_id", allowedAuthorIds);
       }
 
-      const { data: posts } = await query;
+      const { data: posts } = await withSupabaseAbortSignal(query, signal);
       if (!posts?.length) return [];
 
       const userIds = [...new Set(posts.map((p: any) => p.user_id))] as string[];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, avatar_url")
-        .in("user_id", userIds);
+      const postIds = posts.map((p: any) => p.id).filter(Boolean) as string[];
+      const [{ data: profiles }, { data: likedRows }, { data: savedRows }] = await Promise.all([
+        withSupabaseAbortSignal(supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", userIds), signal),
+        user?.id && postIds.length
+          ? withSupabaseAbortSignal((supabase as any)
+              .from("post_likes")
+              .select("post_id")
+              .eq("user_id", user.id)
+              .in("post_id", postIds), signal)
+          : Promise.resolve({ data: [] }),
+        user?.id && postIds.length
+          ? withSupabaseAbortSignal((supabase as any)
+              .from("bookmarks")
+              .select("item_id")
+              .eq("user_id", user.id)
+              .eq("item_type", "post")
+              .in("item_id", postIds), signal)
+          : Promise.resolve({ data: [] }),
+      ]);
 
       const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      const likedPostIds = new Set((likedRows || []).map((row: any) => row.post_id));
+      const savedPostIds = new Set((savedRows || []).map((row: any) => row.item_id));
       return posts.map((p: any) => {
         const author = profileMap.get(p.user_id);
         return {
           ...p,
           author_name: author?.full_name || null,
           author_avatar: author?.avatar_url || null,
+          viewer_has_liked: likedPostIds.has(p.id),
+          viewer_has_saved: savedPostIds.has(p.id),
         };
       });
     },
   });
 
   const needsAuth = rawPosts === null;
-  const posts = useMemo(() => {
-    if (!rawPosts) return [];
-    return rawPosts.filter((p) => {
-      const urls = (p.media_urls && p.media_urls.length > 0) ? p.media_urls : (p.media_url ? [p.media_url] : []);
-      const isVideo = p.media_type === "video" || urls[0]?.match(/\.(mp4|mov|webm)/i);
-      const isImage = urls.length > 0 && !isVideo;
-      const isText = urls.length === 0;
-      switch (filter) {
-        case "photos": return isImage;
-        case "videos": return Boolean(isVideo);
-        case "text": return isText;
-        default: return true;
-      }
-    });
-  }, [rawPosts, filter]);
+  const posts = rawPosts ?? [];
 
-  const composerPlaceholder = firstName
-    ? `What's on your mind, ${firstName}?`
-    : "What's on your mind?";
+  useEffect(() => {
+    if (!hasFeedError || !feedError) return;
+    reportFeedQueryError(
+      {
+        scope: "social-feed-posts",
+        queryKey: "social-feed-posts",
+        userId: user?.id ?? null,
+        tab,
+      },
+      feedError,
+    );
+  }, [feedError, hasFeedError, tab, user?.id]);
 
   const goAuth = () => {
     navigate("/auth?next=" + encodeURIComponent("/feed"));
-  };
-
-  const handleQuickAction = (id: QuickActionId) => {
-    if (!user) {
-      goAuth();
-      return;
-    }
-    if (id === "live") {
-      navigate("/go-live");
-      return;
-    }
-    setComposerMode(
-      id === "photo" ? "photo" :
-      id === "reels" ? "reel" :
-      id === "poll" ? "poll" :
-      "post", // checkin opens default post composer
-    );
   };
 
   return (
@@ -319,10 +298,15 @@ export default function SocialFeedPage() {
           <button
             type="button"
             onClick={() => (user ? navigate("/notifications") : goAuth())}
-            className="p-2 rounded-full hover:bg-muted active:scale-95 transition-all"
+            className="relative p-2 rounded-full hover:bg-muted active:scale-95 transition-all"
             aria-label={notificationUnread > 0 ? `Notifications, ${notificationUnread} unread` : "Notifications"}
           >
             <Bell className="w-5 h-5" />
+            {notificationUnread > 0 && (
+              <span className="absolute -top-2 -right-2 z-10 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-black leading-none text-white shadow-md shadow-red-500/30 ring-2 ring-background">
+                {notificationUnread > 99 ? "99+" : notificationUnread}
+              </span>
+            )}
           </button>
 
           <button
@@ -362,80 +346,6 @@ export default function SocialFeedPage() {
         </div>
       </div>
 
-      {/* Filter chips */}
-      <div className="flex items-center gap-2 overflow-x-auto px-3 py-3 scrollbar-hide">
-        {FILTERS.map((f) => {
-          const active = f.id === filter;
-          return (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              className={cn(
-                "shrink-0 rounded-full px-3.5 h-8 text-[13px] font-semibold transition-colors",
-                active ? "bg-foreground text-background" : "bg-muted/70 text-foreground/85 hover:bg-muted",
-              )}
-            >
-              {f.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Composer (logged in) or Sign-in CTA (logged out) */}
-      {user ? (
-        <div className="border-y border-border/30 bg-card/30 px-3 py-3">
-          <button
-            type="button"
-            onClick={() => setComposerMode("post")}
-            className="flex w-full items-center gap-3"
-          >
-            <Avatar className="h-9 w-9 shrink-0">
-              <AvatarImage src={optimizeAvatar(profile?.avatar_url, 80) || profile?.avatar_url || user.user_metadata?.avatar_url} />
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
-                {firstName[0]?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <span className="flex-1 h-10 rounded-full bg-muted/70 px-4 inline-flex items-center text-[14px] text-muted-foreground">
-              {composerPlaceholder}
-            </span>
-          </button>
-
-          <div className="mt-2 -mx-1 flex items-stretch gap-0.5 border-t border-border/30 pt-1.5">
-            {QUICK_ACTIONS.map((qa) => {
-              const Icon = qa.icon;
-              return (
-                <button
-                  key={qa.id}
-                  type="button"
-                  onClick={() => handleQuickAction(qa.id)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg hover:bg-muted/40 active:scale-95 transition-all"
-                >
-                  <span className={cn("inline-flex items-center justify-center h-7 w-7 rounded-full", qa.tintClass)}>
-                    <Icon className={cn("h-4 w-4", qa.iconClass)} />
-                  </span>
-                  <span className="text-[12px] font-medium text-foreground/85">{qa.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="border-y border-border/30 bg-primary/5 px-4 py-5 text-center">
-          <p className="text-[15px] font-semibold">Sign in to share & follow</p>
-          <p className="mt-1 text-[12px] text-muted-foreground">
-            Post photos, go live, and follow creators on ZIVO.
-          </p>
-          <button
-            type="button"
-            onClick={goAuth}
-            className="mt-3 inline-flex h-9 items-center justify-center rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground active:opacity-80"
-          >
-            Sign in
-          </button>
-        </div>
-      )}
-
       {/* Stories rail (auth-gated inside the component already) */}
       <Suspense fallback={null}>
         <FeedStoryRing />
@@ -451,7 +361,6 @@ export default function SocialFeedPage() {
           <>
             <FeedEmptyState
               tab={tab}
-              filter={filter}
               needsAuth={needsAuth}
               onSignIn={goAuth}
               onDiscover={() => navigate("/explore")}
@@ -521,7 +430,9 @@ export default function SocialFeedPage() {
 function PostCard({ post, highlight = false }: { post: FeedPost; highlight?: boolean }) {
   const navigate = useNavigate();
   const ref = useRef<HTMLElement>(null);
-  const urls = (post.media_urls && post.media_urls.length > 0) ? post.media_urls : (post.media_url ? [post.media_url] : []);
+  const urls = ((post.media_urls && post.media_urls.length > 0) ? post.media_urls : (post.media_url ? [post.media_url] : []))
+    .map((url) => normalizeSupabaseMediaUrl(url, { preferredBucket: "user-posts" }))
+    .filter(Boolean);
   const isVideo = post.media_type === "video" || urls[0]?.match(/\.(mp4|mov|webm)/i);
   const relTime = (() => {
     try {
@@ -588,8 +499,16 @@ function PostCard({ post, highlight = false }: { post: FeedPost; highlight?: boo
               alt={post.caption || "Post"}
               loading="lazy"
               className="w-full max-h-[70vh] object-contain"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+                const fallback = event.currentTarget.parentElement?.querySelector("[data-media-fallback]") as HTMLElement | null;
+                if (fallback) fallback.hidden = false;
+              }}
             />
           )}
+          <div data-media-fallback hidden className="flex min-h-[240px] items-center justify-center px-4 py-10 text-sm text-zinc-300">
+            Media could not be loaded.
+          </div>
         </div>
       )}
 
@@ -602,8 +521,8 @@ function PostFooter({ post }: { post: FeedPost }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(() => !!post.viewer_has_liked);
+  const [saved, setSaved] = useState(() => !!post.viewer_has_saved);
   const [likes, setLikes] = useState(post.likes_count ?? 0);
   const [comments, setComments] = useState(post.comments_count ?? 0);
   const [shares, setShares] = useState(post.shares_count ?? 0);
@@ -614,27 +533,11 @@ function PostFooter({ post }: { post: FeedPost }) {
   // "I tapped like and nothing happened" reports).
   const userTouchedRef = useRef({ liked: false, saved: false });
 
-  // Hydrate like + save state for this post.
   useEffect(() => {
-    if (!user?.id) {
-      if (!userTouchedRef.current.liked) setLiked(false);
-      if (!userTouchedRef.current.saved) setSaved(false);
-      return;
-    }
-    let alive = true;
-    (async () => {
-      const [{ data: likeRow }, { data: saveRow }] = await Promise.all([
-        (supabase as any).from("post_likes").select("post_id").eq("user_id", user.id).eq("post_id", post.id).maybeSingle(),
-        (supabase as any).from("bookmarks").select("id").eq("user_id", user.id).eq("item_type", "post").eq("item_id", post.id).maybeSingle(),
-      ]);
-      if (!alive) return;
-      // Only apply the fetched state if the user hasn't manually toggled — their
-      // intent always wins over a late hydration result.
-      if (!userTouchedRef.current.liked) setLiked(!!likeRow);
-      if (!userTouchedRef.current.saved) setSaved(!!saveRow);
-    })();
-    return () => { alive = false; };
-  }, [post.id, user?.id]);
+    userTouchedRef.current = { liked: false, saved: false };
+    setLiked(!!post.viewer_has_liked);
+    setSaved(!!post.viewer_has_saved);
+  }, [post.id, post.viewer_has_liked, post.viewer_has_saved]);
 
   const goAuth = () => navigate("/auth?next=" + encodeURIComponent("/feed"));
 
@@ -753,97 +656,6 @@ function PostFooter({ post }: { post: FeedPost }) {
       },
     });
   };
-  // Legacy direct-copy / native-share fallback retained for any other call
-  // site that still imports it (no-op locally since handleShare now opens
-  // the sheet). Inlined to keep the diff focused.
-  const _legacyShare = async () => {
-    const shareUrl = getPostShareUrl(post.id);
-    const shareText = post.caption?.slice(0, 140) || "Check out this post on ZIVO";
-
-    // Last-resort fallback: works in iframes / restricted browsers where
-    // navigator.clipboard is blocked. Uses the legacy execCommand API and
-    // shows the URL in the toast so the user can long-press to copy it.
-    const fallbackCopy = (): boolean => {
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = shareUrl;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        const ok = document.execCommand("copy");
-        document.body.removeChild(ta);
-        return ok;
-      } catch { return false; }
-    };
-
-    const showLinkInToast = () => {
-      toast("Tap to copy this link", {
-        duration: 12000,
-        description: shareUrl,
-        action: {
-          label: "Copy",
-          onClick: () => { void navigator.clipboard?.writeText(shareUrl).catch(() => fallbackCopy()); },
-        },
-      });
-    };
-
-    let succeeded = false;
-
-    // 1) Try Capacitor (native iOS / Android share sheet)
-    try {
-      const { Share } = await import("@capacitor/share");
-      const canShare = await Share.canShare();
-      if (canShare.value) {
-        await Share.share({ title: "ZIVO post", text: shareText, url: shareUrl, dialogTitle: "Share post" });
-        succeeded = true;
-      }
-    } catch { /* fall through */ }
-
-    // 2) Try Web Share API (mobile browsers)
-    if (!succeeded && typeof navigator !== "undefined" && (navigator as any).share) {
-      try {
-        await (navigator as any).share({ title: "ZIVO post", text: shareText, url: shareUrl });
-        succeeded = true;
-      } catch (e) {
-        // AbortError = user cancelled the share sheet — that's fine, just exit.
-        if ((e as { name?: string })?.name === "AbortError") return;
-      }
-    }
-
-    // 3) Async clipboard
-    if (!succeeded) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        succeeded = true;
-        toast.success("Link copied", { description: "Paste it anywhere to share this post." });
-      } catch { /* fall through */ }
-    }
-
-    // 4) Legacy execCommand
-    if (!succeeded && fallbackCopy()) {
-      succeeded = true;
-      toast.success("Link copied", { description: "Paste it anywhere to share this post." });
-    }
-
-    // 5) Last resort: surface the link in the toast so the user can copy manually
-    if (!succeeded) {
-      showLinkInToast();
-      return; // don't bump the share count if we couldn't actually share
-    }
-
-    setShares((n) => n + 1);
-    try {
-      await (supabase as any).rpc("increment_post_shares", { p_post_id: post.id });
-    } catch {
-      await (supabase as any)
-        .from("user_posts")
-        .update({ shares_count: (post.shares_count ?? 0) + 1 })
-        .eq("id", post.id);
-    }
-  };
-
   // Owner-controlled toggles: when off the matching button is hidden for
   // viewers and disabled for the owner (so the owner sees they're "Off").
   const isOwn = !!user?.id && user.id === post.user_id;
@@ -932,7 +744,6 @@ function PostCaption({ caption }: { caption: string }) {
   );
 }
 
-// eslint-disable-next-line
 /**
  * PostMoreMenu — the "…" dropdown next to each post header.
  * Was a no-op stub. Now exposes Copy link / Hide post / Mute author /
@@ -964,7 +775,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   const handleCopyLink = async () => {
     const url = getPostShareUrl(post.id);
     try {
-      await navigator.clipboard.writeText(url);
+      await copyText(url);
       toast.success("Link copied");
     } catch {
       toast.error("Couldn't copy link");
@@ -1384,17 +1195,28 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
     friendStatus === "pending_in" ? <><UserPlus className="h-3.5 w-3.5" />Accept</> :
     <><UserPlus className="h-3.5 w-3.5" />Add Friend</>;
 
-  const FollowBtn = (
+  const FollowBtn = following ? (
     <button
       type="button"
       onClick={handleFollow}
       disabled={followBusy}
-      aria-pressed={following}
+      aria-pressed="true"
       className={cn(
         "shrink-0 inline-flex items-center gap-1 h-7 px-3 rounded-full text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-60",
-        following
-          ? "bg-muted text-foreground/80 hover:bg-muted/80"
-          : "bg-primary text-primary-foreground hover:opacity-90",
+        "bg-muted text-foreground/80 hover:bg-muted/80",
+      )}
+    >
+      {followLabel}
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={handleFollow}
+      disabled={followBusy}
+      aria-pressed="false"
+      className={cn(
+        "shrink-0 inline-flex items-center gap-1 h-7 px-3 rounded-full text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-60",
+        "bg-primary text-primary-foreground hover:opacity-90",
       )}
     >
       {followLabel}
@@ -1406,15 +1228,28 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
 
   // Personal → single Add Friend pill (auto-follows on send/accept,
   // auto-unfollows on cancel/unfriend — friend implies follow).
-  return (
+  return friendStatus === "accepted" ? (
     <button
       type="button"
       onClick={handleFriend}
       disabled={friendBusy}
-      aria-pressed={friendStatus === "accepted"}
+      aria-pressed="true"
       className={cn(
         "shrink-0 inline-flex items-center gap-1 h-7 px-3 rounded-full text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-60",
-        friendStatus === "accepted" || friendStatus === "pending_out"
+        "bg-muted text-foreground/80 hover:bg-muted/80",
+      )}
+    >
+      {friendLabel}
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={handleFriend}
+      disabled={friendBusy}
+      aria-pressed="false"
+      className={cn(
+        "shrink-0 inline-flex items-center gap-1 h-7 px-3 rounded-full text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-60",
+        friendStatus === "pending_out"
           ? "bg-muted text-foreground/80 hover:bg-muted/80"
           : "bg-primary text-primary-foreground hover:opacity-90",
       )}
@@ -1457,13 +1292,11 @@ function ActionButton({
 
 function FeedEmptyState({
   tab,
-  filter,
   needsAuth,
   onSignIn,
   onDiscover,
 }: {
   tab: FeedTab;
-  filter: FeedFilter;
   needsAuth: boolean;
   onSignIn: () => void;
   onDiscover: () => void;
@@ -1499,9 +1332,6 @@ function FeedEmptyState({
     title = "Nothing in Following yet";
     body = "Follow creators and you'll see their posts here.";
     cta = { label: "Discover creators", onClick: onDiscover };
-  } else if (filter !== "all") {
-    title = `No ${filter} to show`;
-    body = `Try switching to "All" to see every kind of post.`;
   }
 
   return (

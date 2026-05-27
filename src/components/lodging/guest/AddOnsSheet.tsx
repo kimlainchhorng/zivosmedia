@@ -28,6 +28,7 @@ interface Props {
   addons: LodgingAddon[];
   nights: number;
   guests: number;
+  formatMoney?: (cents: number) => string;
   onPurchased?: (result?: "success" | "failed") => void;
 }
 
@@ -61,11 +62,12 @@ const highlightTarget = (selector: string) => {
   window.setTimeout(() => target.classList.remove("transition-shadow", "ring-2", "ring-primary", "ring-offset-2", "ring-offset-background"), 1600);
 };
 
-export default function AddOnsSheet({ open, onOpenChange, reservationId, addons, nights, guests, onPurchased }: Props) {
+export default function AddOnsSheet({ open, onOpenChange, reservationId, addons, nights, guests, formatMoney, onPurchased }: Props) {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [eligibility, setEligibility] = useState<Record<string, Eligibility>>({});
+  const money = formatMoney ?? ((cents: number) => `$${((cents || 0) / 100).toFixed(2)}`);
 
   useEffect(() => {
     if (!open || !reservationId) return;
@@ -109,7 +111,7 @@ export default function AddOnsSheet({ open, onOpenChange, reservationId, addons,
       window.setTimeout(() => highlightTarget("#addon-status"), 180);
       return;
     }
-    toast.success("Add-on charge successful", { description: `Charged $${((data?.charged_cents || total) / 100).toFixed(2)} to your saved card.` });
+    toast.success("Add-on charge successful", { description: `Charged ${money(data?.charged_cents || total)} to your saved card.` });
     setQty({});
     onPurchased?.("success");
     onOpenChange(false);
@@ -143,7 +145,7 @@ export default function AddOnsSheet({ open, onOpenChange, reservationId, addons,
                       <p className="font-semibold text-sm">{addon.name || addon.label || "Add-on"}</p>
                       {addon.description && <p className="text-xs text-muted-foreground mt-1">{addon.description}</p>}
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary">${(addonPrice(addon) / 100).toFixed(2)}</Badge>
+                        <Badge variant="secondary">{money(addonPrice(addon))}</Badge>
                         <span className="text-xs text-muted-foreground">{unitLabel[unit] || unit.replace(/_/g, " ")}</span>
                       </div>
                     </div>
@@ -154,7 +156,7 @@ export default function AddOnsSheet({ open, onOpenChange, reservationId, addons,
                     </div>
                   </div>
                   {rule?.eligible === false && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" /> {rule.reason || "Unavailable for this reservation."}</p>}
-                  {count > 0 && <p className="text-xs text-muted-foreground">Line total: ${(lineTotal(addon, count, nights, guests) / 100).toFixed(2)}</p>}
+                  {count > 0 && <p className="text-xs text-muted-foreground">Line total: {money(lineTotal(addon, count, nights, guests))}</p>}
                 </div>
               );
             })
@@ -165,7 +167,7 @@ export default function AddOnsSheet({ open, onOpenChange, reservationId, addons,
             <p className="text-xs text-muted-foreground">Your default saved Stripe card will be charged off-session. If no saved card exists, you’ll be asked to add one in Wallet.</p>
             <div className="flex items-center justify-between pt-2 border-t">
               <span className="font-semibold">Total</span>
-              <span className="font-bold">${(total / 100).toFixed(2)}</span>
+              <span className="font-bold">{money(total)}</span>
             </div>
           </div>
 

@@ -15,9 +15,12 @@ const JobsHubPage = lazy(() => import("@/pages/hubs/JobsHubPage"));
 const VoiceRoomsHubPage = lazy(() => import("@/pages/hubs/VoiceRoomsHubPage"));
 const FitnessHubPage = lazy(() => import("@/pages/hubs/FitnessHubPage"));
 const CreateEventPage = lazy(() => import("@/pages/hubs/CreateEventPage"));
+const EventDetailPage = lazy(() => import("@/pages/hubs/EventDetailPage"));
 const CreateListingPage = lazy(() => import("@/pages/hubs/CreateListingPage"));
 const CreateJobPage = lazy(() => import("@/pages/hubs/CreateJobPage"));
+const JobPostingDetailPage = lazy(() => import("@/pages/hubs/JobPostingDetailPage"));
 const StartVoiceRoomPage = lazy(() => import("@/pages/hubs/StartVoiceRoomPage"));
+const VoiceRoomDetailPage = lazy(() => import("@/pages/hubs/VoiceRoomDetailPage"));
 const CreateSupportTicketPage = lazy(() => import("@/pages/support/CreateSupportTicketPage"));
 const TwoFactorSetupSheet = lazy(() => import("@/components/security/TwoFactorSetupSheet"));
 const OnboardingTour = lazy(() => import("@/components/onboarding/OnboardingTour"));
@@ -34,7 +37,7 @@ const OTAUpdateBanner = lazy(() => import("@/components/shared/OTAUpdateBanner")
 const NavigationProgressBar = lazy(() => import("@/components/app/NavigationProgressBar"));
 const ScrollRestoration = lazy(() => import("@/components/app/ScrollRestoration"));
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -62,7 +65,7 @@ const PaymentReturnHandler = lazyWithRetry(() => import("@/components/lodging/Pa
 const IncomingCallListener = lazyWithRetry(() => import("@/components/chat/IncomingCallListener"));
 const ChatNotificationListener = lazyWithRetry(() => import("@/components/chat/ChatNotificationListener"));
 const RuntimeSecurityGuard = lazyWithRetry(() => import("@/components/security/RuntimeSecurityGuard"));
-const SpatialCursor = lazyWithRetry(() => import("./components/ui/SpatialCursor").then(m => ({ default: m.SpatialCursor })));
+const GlobalAutoTranslator = lazyWithRetry(() => import("@/components/common/GlobalAutoTranslator"));
 const StoryDebugPanel = lazyWithRetry(() => import("@/components/stories/StoryDebugPanel"));
 const PostShareSheet = lazyWithRetry(() => import("@/components/social/PostShareSheet"));
 const ShareToChatSheet = lazyWithRetry(() => import("@/components/chat/ShareToChatSheet"));
@@ -81,6 +84,8 @@ const PushNotificationsBootstrap = lazyWithRetry(() => import("@/hooks/usePushNo
   return { default: PushNotificationsBootstrap };
 }));
 const ENABLE_DEV_ROUTES = import.meta.env.DEV;
+const SHOW_REQUEST_HEALTH_BADGE =
+  import.meta.env.DEV && import.meta.env.VITE_SHOW_REQUEST_HEALTH === "true";
 let PostMenuRegressionPage: ReturnType<typeof lazy> | null = null;
 let SafeAreaQAPage: ReturnType<typeof lazy> | null = null;
 let ChatCallPreviewPage: ReturnType<typeof lazy> | null = null;
@@ -104,6 +109,8 @@ import { perfLog } from "@/lib/perfTrace";
 import { pathFromNativeOpenUrl } from "@/lib/nativeDeepLinks";
 import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
 import { P2P_TRANSFER_EVENT, hasPendingP2PTransfer, subscribeP2PTransferMount } from "@/lib/p2pTransfer";
+import { recordRequestIssue } from "@/lib/requestHealth";
+import RequestHealthBadge from "@/components/dev/RequestHealthBadge";
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
@@ -113,11 +120,13 @@ const PublicDocumentView = lazy(() => import("./pages/PublicDocumentView"));
 const PairPage = lazy(() => lazyRetry(() => import("./pages/PairPage")));
 const EstimateApprovalPage = lazy(() => lazyRetry(() => import("./pages/EstimateApprovalPage")));
 const RepairStatusPage = lazy(() => lazyRetry(() => import("./pages/RepairStatusPage")));
+const InspectionViewPage = lazy(() => lazyRetry(() => import("./pages/InspectionViewPage")));
 
 const Index = lazy(() => lazyRetry(() => import("./pages/Index")));
 const AdminDriverModerationPage = lazy(() => import("./pages/admin/AdminDriverModerationPage"));
 const AdminTripHeatmapPage = lazy(() => import("./pages/admin/AdminTripHeatmapPage"));
 const AdminRefundsPage = lazy(() => import("./pages/admin/AdminRefundsPage"));
+const AdminDriverPayoutsPage = lazy(() => import("./pages/admin/AdminDriverPayoutsPage"));
 const AdminMessageModerationPage = lazy(() => import("./pages/admin/AdminMessageModerationPage"));
 const AdminCallClosuresPage = lazy(() => import("./pages/admin/AdminCallClosuresPage"));
 const AdminModerationQAPage = lazy(() => import("./pages/admin/AdminModerationQAPage"));
@@ -149,6 +158,7 @@ const ShopOrdersPage = lazy(() => import("./pages/app/shop/ShopOrdersPage"));
 const ShopSettingsPage = lazy(() => import("./pages/app/shop/ShopSettingsPage"));
 const ShopPromotionsPage = lazy(() => import("./pages/app/shop/ShopPromotionsPage"));
 const ShopAnalyticsPage = lazy(() => import("./pages/app/shop/ShopAnalyticsPage"));
+const ShopPaymentsPage = lazy(() => import("./pages/app/shop/ShopPaymentsPage"));
 const ShopDeliveryPage = lazy(() => import("./pages/app/shop/ShopDeliveryPage"));
 const ReferAFriendPage = lazy(() => import("./pages/app/ReferAFriendPage"));
 const MetaPrivacyDisclosure = lazy(() => import("./pages/legal/MetaPrivacyDisclosure"));
@@ -214,45 +224,42 @@ const DeliveryChatPage = lazy(() => import("./pages/DeliveryChatPage"));
 const GroceryMarketplace = lazy(() => import("./pages/GroceryMarketplace"));
 // Historical names are inverted: ReelsFeedPage renders the main social feed,
 // while FeedPage renders the fullscreen reels experience on /reels.
-const FeedPage = lazy(() => import("./pages/FeedPage"));
-const ReelsFeedPage = lazy(() => import("./pages/ReelsFeedPage"));
-const SocialFeedPage = lazy(() => import("./pages/SocialFeedPage"));
+const FeedPage = lazyWithRetry(() => import("./pages/FeedPage"));
+const ReelsFeedPage = lazyWithRetry(() => import("./pages/ReelsFeedPage"));
+const SocialFeedPage = lazyWithRetry(() => import("./pages/SocialFeedPage"));
 const SoundPage = lazy(() => import("./pages/SoundPage"));
-const ChatHubPage = lazy(() => import("./pages/ChatHubPage"));
-const DirectInboxPage = lazy(() => import("./pages/DirectInboxPage"));
-const DirectThreadPage = lazy(() => import("./pages/DirectThreadPage"));
-const ForYouFeedPage = lazy(() => import("./pages/ForYouFeedPage"));
-const ContactsPage = lazy(() => import("./pages/chat/ContactsPage"));
-const ContactRequestsPage = lazy(() => import("./pages/chat/ContactRequestsPage"));
-const MessageRequestsPage = lazy(() => import("./pages/chat/MessageRequestsPage"));
-const NearbyChatPage = lazy(() => import("./pages/chat/NearbyChatPage"));
-const FindContactsPage = lazy(() => import("./pages/chat/FindContactsPage"));
-const FindByUsernamePage = lazy(() => import("./pages/chat/FindByUsernamePage"));
-const BlockedUsersPage = lazy(() => import("./pages/chat/BlockedUsersPage"));
-const JoinGroupPage = lazy(() => import("./pages/chat/JoinGroupPage"));
-const PrivacySecurityPage = lazy(() => import("./pages/chat/settings/PrivacySecurityPage"));
-const ActiveSessionsPage = lazy(() => import("./pages/chat/settings/ActiveSessionsPage"));
-const TwoStepSetupPage = lazy(() => import("./pages/chat/settings/TwoStepSetupPage"));
-const PasscodeSetupPage = lazy(() => import("./pages/chat/settings/PasscodeSetupPage"));
-const LoginAlertsPage = lazy(() => import("./pages/chat/settings/LoginAlertsPage"));
-const ChatPrivacyHubPage = lazy(() => import("./pages/chat/settings/ChatPrivacyHubPage"));
-const ChatSearchAllPage = lazy(() => import("./pages/chat/ChatSearchAllPage"));
-const CustomFoldersPage = lazy(() => import("./pages/chat/CustomFoldersPage"));
-const BroadcastListsPage = lazy(() => import("./pages/chat/BroadcastListsPage"));
-const NewBroadcastPage = lazy(() => import("./pages/chat/NewBroadcastPage"));
-const BotFatherPage = lazy(() => import("./pages/chat/BotFatherPage"));
-const BotDetailPage = lazy(() => import("./pages/chat/BotDetailPage"));
-const BotDiscoverPage = lazy(() => import("./pages/chat/BotDiscoverPage"));
-const BotAdminPage = lazy(() => import("./pages/chat/BotAdminPage"));
-const BotPublicProfilePage = lazy(() => import("./pages/BotPublicProfilePage"));
-const BotCollectionPage = lazy(() => import("./pages/chat/BotCollectionPage"));
-const BotInboxPage = lazy(() => import("./pages/chat/BotInboxPage"));
-const StorageManagerPage = lazy(() => import("./pages/chat/settings/StorageManagerPage"));
-const AppLockGate = lazy(() => import("./components/chat/settings/AppLockGate"));
+const ChatHubPage = lazyWithRetry(() => import("./pages/ChatHubPage"));
+const ContactsPage = lazyWithRetry(() => import("./pages/chat/ContactsPage"));
+const ContactRequestsPage = lazyWithRetry(() => import("./pages/chat/ContactRequestsPage"));
+const MessageRequestsPage = lazyWithRetry(() => import("./pages/chat/MessageRequestsPage"));
+const NearbyChatPage = lazyWithRetry(() => import("./pages/chat/NearbyChatPage"));
+const FindContactsPage = lazyWithRetry(() => import("./pages/chat/FindContactsPage"));
+const FindByUsernamePage = lazyWithRetry(() => import("./pages/chat/FindByUsernamePage"));
+const BlockedUsersPage = lazyWithRetry(() => import("./pages/chat/BlockedUsersPage"));
+const JoinGroupPage = lazyWithRetry(() => import("./pages/chat/JoinGroupPage"));
+const PrivacySecurityPage = lazyWithRetry(() => import("./pages/chat/settings/PrivacySecurityPage"));
+const ActiveSessionsPage = lazyWithRetry(() => import("./pages/chat/settings/ActiveSessionsPage"));
+const TwoStepSetupPage = lazyWithRetry(() => import("./pages/chat/settings/TwoStepSetupPage"));
+const PasscodeSetupPage = lazyWithRetry(() => import("./pages/chat/settings/PasscodeSetupPage"));
+const LoginAlertsPage = lazyWithRetry(() => import("./pages/chat/settings/LoginAlertsPage"));
+const ChatPrivacyHubPage = lazyWithRetry(() => import("./pages/chat/settings/ChatPrivacyHubPage"));
+const ChatSearchAllPage = lazyWithRetry(() => import("./pages/chat/ChatSearchAllPage"));
+const CustomFoldersPage = lazyWithRetry(() => import("./pages/chat/CustomFoldersPage"));
+const BroadcastListsPage = lazyWithRetry(() => import("./pages/chat/BroadcastListsPage"));
+const NewBroadcastPage = lazyWithRetry(() => import("./pages/chat/NewBroadcastPage"));
+const BotFatherPage = lazyWithRetry(() => import("./pages/chat/BotFatherPage"));
+const BotDetailPage = lazyWithRetry(() => import("./pages/chat/BotDetailPage"));
+const BotDiscoverPage = lazyWithRetry(() => import("./pages/chat/BotDiscoverPage"));
+const BotAdminPage = lazyWithRetry(() => import("./pages/chat/BotAdminPage"));
+const BotPublicProfilePage = lazyWithRetry(() => import("./pages/BotPublicProfilePage"));
+const BotCollectionPage = lazyWithRetry(() => import("./pages/chat/BotCollectionPage"));
+const BotInboxPage = lazyWithRetry(() => import("./pages/chat/BotInboxPage"));
+const StorageManagerPage = lazyWithRetry(() => import("./pages/chat/settings/StorageManagerPage"));
+const AppLockGate = lazyWithRetry(() => import("./components/chat/settings/AppLockGate"));
 const MfaChallengeDialog = lazy(() => import("./components/auth/MfaChallengeDialog"));
-const GroupCallEntryPage = lazy(() => import("./pages/chat/GroupCallEntryPage"));
-const RecordingsPage = lazy(() => import("./pages/chat/RecordingsPage"));
-const ChatSearchPage = lazy(() => import("./pages/chat/ChatSearchPage"));
+const GroupCallEntryPage = lazyWithRetry(() => import("./pages/chat/GroupCallEntryPage"));
+const RecordingsPage = lazyWithRetry(() => import("./pages/chat/RecordingsPage"));
+const ChatSearchPage = lazyWithRetry(() => import("./pages/chat/ChatSearchPage"));
 const ChannelsDirectoryPage = lazy(() => import("./pages/channels/ChannelsDirectoryPage"));
 const NewChannelPage = lazy(() => import("./pages/channels/NewChannelPage"));
 const ChannelPage = lazy(() => import("./pages/channels/ChannelPage"));
@@ -263,6 +270,10 @@ const PrivacySettingsPage = lazy(() => import("./pages/account/PrivacySettingsPa
 const CreatorDashboardPage = lazy(() => import("./pages/CreatorDashboardPage"));
 const CreatorAnalyticsPage = lazy(() => import("./pages/CreatorAnalyticsPage"));
 const CreatorSetupPage = lazy(() => import("./pages/CreatorSetupPage"));
+const CreatorWelcomePage = lazy(() => import("./pages/CreatorWelcomePage"));
+const AdultDiscoveryPage = lazy(() => import("./pages/AdultDiscoveryPage"));
+const CreatePPVPostPage = lazy(() => import("./pages/CreatePPVPostPage"));
+const PPVPostsPage = lazy(() => import("./pages/PPVPostsPage"));
 const CreatorLiveEarningsPage = lazy(() => import("./pages/CreatorLiveEarningsPage"));
 const CreatorSubscribersPage = lazy(() => import("./pages/CreatorSubscribersPage"));
 const CreatorTipsPage = lazy(() => import("./pages/CreatorTipsPage"));
@@ -333,6 +344,7 @@ const DriverShoppingList = lazy(() => import("./pages/DriverShoppingList"));
 const DriverOrdersPage = lazy(() => import("./pages/DriverOrdersPage"));
 const AdminShoppingOrders = lazy(() => import("./pages/admin/AdminShoppingOrders"));
 const AdminAnalyticsDashboard = lazy(() => import("./pages/admin/AdminAnalyticsDashboard"));
+const AdminFeedDiagnosticsPage = lazy(() => import("./pages/admin/AdminFeedDiagnosticsPage"));
 const AdminNotificationAnalyticsPage = lazy(() => import("./pages/admin/AdminNotificationAnalyticsPage"));
 const AdminStoriesFunnelPage = lazy(() => import("./pages/admin/AdminStoriesFunnelPage"));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
@@ -359,7 +371,43 @@ const AdminLodgingWebhookEventsPage = lazy(() => import("./pages/admin/AdminLodg
 const StoreAssetsUploadCheck = lazy(() => import("./pages/admin/StoreAssetsUploadCheck"));
 const StoreSetup = lazy(() => import("./pages/store/StoreSetup"));
 const BusinessPageWizard = lazy(() => import("./pages/business/BusinessPageWizard"));
+const BusinessSoftwareDownloadPage = lazy(() => import("./pages/store/BusinessSoftwareDownloadPage"));
+const AutoRepairDesktopAppPage = lazy(() => import("./pages/store/AutoRepairDesktopAppPage"));
 const ServiceBookingPage = lazy(() => import("./pages/store/ServiceBookingPage"));
+const PublicSalonBookingPage = lazy(() => import("./pages/salon/PublicSalonBookingPage"));
+const PublicCarRentalBookingPage = lazy(() => import("./pages/car-rental/PublicCarRentalBookingPage"));
+const PublicCarRentalBookingDetailPage = lazy(() => import("./pages/car-rental/PublicCarRentalBookingDetailPage"));
+const PublicCarDealershipListingPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipListingPage"));
+const PublicCarDealershipDetailPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipDetailPage"));
+const PublicCarDealershipReviewSubmitPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipReviewSubmitPage"));
+const CarRentalDailySheetPage = lazy(() => import("./pages/admin/CarRentalDailySheetPage"));
+const CarRentalReceiptPage = lazy(() => import("./pages/admin/CarRentalReceiptPage"));
+const PublicCarRentalReviewSubmitPage = lazy(() => import("./pages/car-rental/PublicCarRentalReviewSubmitPage"));
+const MyCarRentalsPage = lazy(() => import("./pages/car-rental/MyCarRentalsPage"));
+const PublicCafeOrderPage = lazy(() => import("./pages/cafe/PublicCafeOrderPage"));
+const CafeReceiptPage = lazy(() => import("./pages/cafe/CafeReceiptPage"));
+const CafeKitchenTicketPage = lazy(() => import("./pages/cafe/CafeKitchenTicketPage"));
+const CafeOrderStatusPage = lazy(() => import("./pages/cafe/CafeOrderStatusPage"));
+const CafeReviewSubmitPage = lazy(() => import("./pages/cafe/CafeReviewSubmitPage"));
+const CafeGiftCardCheckPage = lazy(() => import("./pages/cafe/CafeGiftCardCheckPage"));
+const CafeReservePage = lazy(() => import("./pages/cafe/CafeReservePage"));
+const CafeStorefrontPage = lazy(() => import("./pages/cafe/CafeStorefrontPage"));
+const CafeDailySummaryPage = lazy(() => import("./pages/admin/CafeDailySummaryPage"));
+const CafeQrSheetPage = lazy(() => import("./pages/admin/CafeQrSheetPage"));
+const PublicSalonBookingDetailPage = lazy(() => import("./pages/salon/PublicSalonBookingDetailPage"));
+const SalonReceiptPage = lazy(() => import("./pages/admin/SalonReceiptPage"));
+const SalonDailySchedulePage = lazy(() => import("./pages/admin/SalonDailySchedulePage"));
+const SalonDailySummaryPage = lazy(() => import("./pages/admin/SalonDailySummaryPage"));
+const SalonQueueDisplayPage = lazy(() => import("./pages/admin/SalonQueueDisplayPage"));
+const SalonGiftCardCheckPage = lazy(() => import("./pages/salon/SalonGiftCardCheckPage"));
+const PublicStylistDayPage = lazy(() => import("./pages/salon/PublicStylistDayPage"));
+const PublicStylistEarningsPage = lazy(() => import("./pages/salon/PublicStylistEarningsPage"));
+const PublicSalonMembershipPage = lazy(() => import("./pages/salon/PublicSalonMembershipPage"));
+const PublicSalonCheckinPage = lazy(() => import("./pages/salon/PublicSalonCheckinPage"));
+const PublicReviewSubmitPage = lazy(() => import("./pages/salon/PublicReviewSubmitPage"));
+const SalonMyAreaPage = lazy(() => import("./pages/salon/SalonMyAreaPage"));
+
+
 const AdminEmployeesPage = lazy(() => import("./pages/admin/AdminEmployeesPage"));
 const AdminSystemHealth = lazy(() => import("./pages/admin/AdminSystemHealth"));
 const AdminAppStoreAssets = lazy(() => import("./pages/admin/AdminAppStoreAssets"));
@@ -558,7 +606,121 @@ const AITripPlanner = lazy(() => import("./pages/AITripPlanner"));
 const MultiCityBuilder = lazy(() => import("./pages/MultiCityBuilder"));
 const ZivoPlus = lazy(() => import("./pages/ZivoPlus"));
 const MembershipPage = lazy(() => import("./pages/MembershipPage"));
-const ComingSoonPage = lazy(() => import("./pages/ComingSoonPage"));
+const LibraryPage = lazy(() => import("./pages/LibraryPage"));
+const MediaLibraryPage = lazy(() => import("./pages/MediaLibraryPage"));
+const CreatorGoalsPage = lazy(() => import("./pages/CreatorGoalsPage"));
+const PodcastsPage = lazy(() => import("./pages/PodcastsPage"));
+const BrandDealsPage = lazy(() => import("./pages/BrandDealsPage"));
+const PromotePage = lazy(() => import("./pages/PromotePage"));
+const SoundsPage = lazy(() => import("./pages/SoundsPage"));
+const TrackPackagePage = lazy(() => import("./pages/TrackPackagePage"));
+const ReceiptsPage = lazy(() => import("./pages/ReceiptsPage"));
+const MindfulnessPage = lazy(() => import("./pages/MindfulnessPage"));
+const MedicationsPage = lazy(() => import("./pages/MedicationsPage"));
+const NutritionPage = lazy(() => import("./pages/NutritionPage"));
+const ARFiltersPage = lazy(() => import("./pages/ARFiltersPage"));
+const TaxInfoPage = lazy(() => import("./pages/TaxInfoPage"));
+const StoryArchivePage = lazy(() => import("./pages/StoryArchivePage"));
+const HighlightsPage = lazy(() => import("./pages/HighlightsPage"));
+const CloseFriendsPage = lazy(() => import("./pages/CloseFriendsPage"));
+const CollectionsPage = lazy(() => import("./pages/CollectionsPage"));
+const PollsPage = lazy(() => import("./pages/PollsPage"));
+const CreatorMilestonesPage = lazy(() => import("./pages/CreatorMilestonesPage"));
+const MentionsPage = lazy(() => import("./pages/MentionsPage"));
+const PostAlbumsPage = lazy(() => import("./pages/PostAlbumsPage"));
+const CollabsPage = lazy(() => import("./pages/CollabsPage"));
+const StickerStorePage = lazy(() => import("./pages/StickerStorePage"));
+const CouponsPage = lazy(() => import("./pages/CouponsPage"));
+const ReferralsPage = lazy(() => import("./pages/ReferralsPage"));
+const ChatThemesPage = lazy(() => import("./pages/ChatThemesPage"));
+const RewardsCenterPage = lazy(() => import("./pages/RewardsCenterPage"));
+const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
+const CreatorEarningsPage = lazy(() => import("./pages/CreatorEarningsPage"));
+const NotificationPrefsPage = lazy(() => import("./pages/NotificationPrefsPage"));
+const StoryInsightsPage = lazy(() => import("./pages/StoryInsightsPage"));
+const DevicesPage = lazy(() => import("./pages/DevicesPage"));
+const InterestsPage = lazy(() => import("./pages/InterestsPage"));
+const ChallengesPage = lazy(() => import("./pages/ChallengesPage"));
+const GameScoresPage = lazy(() => import("./pages/GameScoresPage"));
+const ClubsPage = lazy(() => import("./pages/ClubsPage"));
+const ForumsPage = lazy(() => import("./pages/ForumsPage"));
+const PlaylistsPage = lazy(() => import("./pages/PlaylistsPage"));
+const TrendingTopicsPage = lazy(() => import("./pages/TrendingTopicsPage"));
+const ReelEffectsPage = lazy(() => import("./pages/ReelEffectsPage"));
+const PlacesPage = lazy(() => import("./pages/PlacesPage"));
+const ReactionPacksPage = lazy(() => import("./pages/ReactionPacksPage"));
+const TravelJournalsPage = lazy(() => import("./pages/TravelJournalsPage"));
+const SurveysPage = lazy(() => import("./pages/SurveysPage"));
+const ExchangeRatesPage = lazy(() => import("./pages/ExchangeRatesPage"));
+const HashtagsDirectoryPage = lazy(() => import("./pages/HashtagsDirectoryPage"));
+const CoinWalletPage = lazy(() => import("./pages/CoinWalletPage"));
+const GifLibraryPage = lazy(() => import("./pages/GifLibraryPage"));
+const SplitBillsPage = lazy(() => import("./pages/SplitBillsPage"));
+const FitnessActivitiesPage = lazy(() => import("./pages/FitnessActivitiesPage"));
+const FanBadgesPage = lazy(() => import("./pages/FanBadgesPage"));
+const MyUnlocksPage = lazy(() => import("./pages/MyUnlocksPage"));
+const VoiceNotesPage = lazy(() => import("./pages/VoiceNotesPage"));
+const AffiliateLinksPage = lazy(() => import("./pages/AffiliateLinksPage"));
+const GiftHistoryPage = lazy(() => import("./pages/GiftHistoryPage"));
+const SharedTodosPage = lazy(() => import("./pages/SharedTodosPage"));
+const MarketplaceCartPage = lazy(() => import("./pages/MarketplaceCartPage"));
+const PointsHistoryPage = lazy(() => import("./pages/PointsHistoryPage"));
+const ModerationAppealsPage = lazy(() => import("./pages/ModerationAppealsPage"));
+const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
+const ChatMediaGalleryPage = lazy(() => import("./pages/ChatMediaGalleryPage"));
+const LoginActivityPage = lazy(() => import("./pages/LoginActivityPage"));
+const AMAPage = lazy(() => import("./pages/AMAPage"));
+const VoicemailsPage = lazy(() => import("./pages/VoicemailsPage"));
+const TrustScorePage = lazy(() => import("./pages/TrustScorePage"));
+const WarningsPage = lazy(() => import("./pages/WarningsPage"));
+const ChatWallpapersPage = lazy(() => import("./pages/ChatWallpapersPage"));
+const PromoUsagePage = lazy(() => import("./pages/PromoUsagePage"));
+const BugReportsPage = lazy(() => import("./pages/BugReportsPage"));
+const StreaksPage = lazy(() => import("./pages/StreaksPage"));
+const MyChallengeSubmissionsPage = lazy(() => import("./pages/MyChallengeSubmissionsPage"));
+const PollHistoryPage = lazy(() => import("./pages/PollHistoryPage"));
+const SpamDetectionsPage = lazy(() => import("./pages/SpamDetectionsPage"));
+const PlaceClicksPage = lazy(() => import("./pages/PlaceClicksPage"));
+const PriceAlertsPage = lazy(() => import("./pages/PriceAlertsPage"));
+const RideQuotesPage = lazy(() => import("./pages/RideQuotesPage"));
+const AutoMessagesLogPage = lazy(() => import("./pages/AutoMessagesLogPage"));
+const OrderDisputesPage = lazy(() => import("./pages/OrderDisputesPage"));
+const FlightPriceAlertsPage = lazy(() => import("./pages/FlightPriceAlertsPage"));
+const AudioRoomsPage = lazy(() => import("./pages/AudioRoomsPage"));
+const CoinTransfersPage = lazy(() => import("./pages/CoinTransfersPage"));
+const LiveLocationsPage = lazy(() => import("./pages/LiveLocationsPage"));
+const FriendRequestsPage = lazy(() => import("./pages/FriendRequestsPage"));
+const GroupOrdersPage = lazy(() => import("./pages/GroupOrdersPage"));
+const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
+const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
+const LeaderboardsPage = lazy(() => import("./pages/LeaderboardsPage"));
+const RecentlyViewedPage = lazy(() => import("./pages/RecentlyViewedPage"));
+const TwoStepAuthPage = lazy(() => import("./pages/TwoStepAuthPage"));
+const MyJobApplicationsPage = lazy(() => import("./pages/MyJobApplicationsPage"));
+const OnboardingProgressPage = lazy(() => import("./pages/OnboardingProgressPage"));
+const ProfileViewsPage = lazy(() => import("./pages/ProfileViewsPage"));
+const StorePromoCodesPage = lazy(() => import("./pages/StorePromoCodesPage"));
+const EmojiPacksPage = lazy(() => import("./pages/EmojiPacksPage"));
+const LiveChatSessionsPage = lazy(() => import("./pages/LiveChatSessionsPage"));
+const MutedBlockedUsersPage = lazy(() => import("./pages/MutedBlockedUsersPage"));
+const MutedChatsPage = lazy(() => import("./pages/MutedChatsPage"));
+const PushDevicesPage = lazy(() => import("./pages/PushDevicesPage"));
+const CreatorPayoutsPage = lazy(() => import("./pages/CreatorPayoutsPage"));
+const P2PMoneyPage = lazy(() => import("./pages/P2PMoneyPage"));
+const MusicStickersPage = lazy(() => import("./pages/MusicStickersPage"));
+const AvatarMoodsPage = lazy(() => import("./pages/AvatarMoodsPage"));
+const DownloadedPacksPage = lazy(() => import("./pages/DownloadedPacksPage"));
+const LegalDisputesPage = lazy(() => import("./pages/LegalDisputesPage"));
+const MyPodcastsPage = lazy(() => import("./pages/MyPodcastsPage"));
+const SavedLocationsPage = lazy(() => import("./pages/SavedLocationsPage"));
+const StoryCommentsPage = lazy(() => import("./pages/StoryCommentsPage"));
+const RestaurantReviewDetailsPage = lazy(() => import("./pages/RestaurantReviewDetailsPage"));
+const StoryViewersPage = lazy(() => import("./pages/StoryViewersPage"));
+const ItinerariesPage = lazy(() => import("./pages/ItinerariesPage"));
+const ConsentLogPage = lazy(() => import("./pages/ConsentLogPage"));
+const TenantMembershipsPage = lazy(() => import("./pages/TenantMembershipsPage"));
+const RecommendationScoresPage = lazy(() => import("./pages/RecommendationScoresPage"));
+const BusinessRenterAccountPage = lazy(() => import("./pages/BusinessAccountPage"));
 
 const Vision = lazy(() => import("./pages/Vision"));
 const BrandMission = lazy(() => import("./pages/BrandMission"));
@@ -584,7 +746,7 @@ const AccountSessionsPage = lazy(() => import("./pages/account/AccountSessionsPa
 const LinkedDevicesPage = lazy(() => import("./pages/account/LinkedDevicesPage"));
 const LinkDevicePage = lazy(() => import("./pages/account/LinkDevicePage"));
 const ScanDevicePage = lazy(() => import("./pages/account/ScanDevicePage"));
-const SecretChatPage = lazy(() => import("./pages/chat/SecretChatPage"));
+const SecretChatPage = lazyWithRetry(() => import("./pages/chat/SecretChatPage"));
 const PreferencesPage = lazy(() => import("./pages/account/PreferencesPage"));
 const PrivacyControls = lazy(() => import("./pages/account/PrivacyControls"));
 const NotificationSettings = lazy(() => import("./pages/account/NotificationSettings"));
@@ -652,33 +814,164 @@ const CheapFlightsGuide = lazy(() => import("./pages/guides/CheapFlightsGuide"))
 const CityGuide = lazy(() => import("./pages/guides/CityGuide"));
 const BestTimeToBook = lazy(() => import("./pages/guides/BestTimeToBook"));
 
+function extractHttpStatus(error: unknown): number | null {
+  if (typeof error === "object" && error !== null) {
+    const maybeStatus = (error as { status?: unknown }).status;
+    if (typeof maybeStatus === "number" && Number.isFinite(maybeStatus)) {
+      return maybeStatus;
+    }
+
+    const maybeCode = (error as { code?: unknown }).code;
+    if (typeof maybeCode === "string" && /^\d{3}$/.test(maybeCode)) {
+      return Number(maybeCode);
+    }
+
+    const maybeMessage = (error as { message?: unknown }).message;
+    if (typeof maybeMessage === "string") {
+      const statusMatch = maybeMessage.match(/\b([45]\d\d)\b/);
+      if (statusMatch) return Number(statusMatch[1]);
+    }
+  }
+
+  return null;
+}
+
+function shouldRetryQuery(failureCount: number, error: unknown) {
+  const info = categorizeError(error);
+  const status = extractHttpStatus(error);
+
+  if (info.type === "auth") return false;
+  if (status !== null && [400, 401, 403, 404, 409, 410, 412, 422].includes(status)) {
+    return false;
+  }
+
+  if (info.type === "rate_limit" || status === 429) {
+    return failureCount < 3;
+  }
+
+  if (info.type === "network" || (status !== null && status >= 500)) {
+    return failureCount < 3;
+  }
+
+  return failureCount < 2;
+}
+
+function queryRetryDelay(attempt: number, error: unknown) {
+  const info = categorizeError(error);
+  const baseDelay = info.type === "rate_limit" ? 1500 : 800;
+  const exponential = Math.min(baseDelay * 2 ** attempt, 12_000);
+  const jitter = 0.8 + Math.random() * 0.4;
+  return Math.round(exponential * jitter);
+}
+
+function shouldRetryMutation(failureCount: number, error: unknown) {
+  const info = categorizeError(error);
+  const status = extractHttpStatus(error);
+  if (info.type === "auth") return false;
+  if (status !== null && [400, 401, 403, 404, 409, 410, 412, 422].includes(status)) {
+    return false;
+  }
+  return (info.type === "network" || info.type === "rate_limit" || status === 429) && failureCount < 2;
+}
+
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      const info = categorizeError(error);
+      recordRequestIssue({
+        scope: "query",
+        category: info.type,
+        status: extractHttpStatus(error),
+        retryable: info.isRetryable,
+        key: query.queryHash,
+        path: typeof window !== "undefined" ? window.location.pathname : undefined,
+      });
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      const info = categorizeError(error);
+      recordRequestIssue({
+        scope: "mutation",
+        category: info.type,
+        status: extractHttpStatus(error),
+        retryable: info.isRetryable,
+        key: mutation.options.mutationKey ? JSON.stringify(mutation.options.mutationKey) : undefined,
+        path: typeof window !== "undefined" ? window.location.pathname : undefined,
+      });
+    },
+  }),
   defaultOptions: {
     queries: {
-      staleTime: 60_000, // 1 min default — reduce unnecessary refetches
-      gcTime: 5 * 60_000, // keep cache 5 min
+      staleTime: 2 * 60_000, // 2 min — halve unnecessary background refetches
+      gcTime: 10 * 60_000, // keep cache 10 min (was 5 min)
       refetchOnWindowFocus: false, // don't refetch every tab switch
+      refetchOnReconnect: "always", // always sync after network reconnects
       retry: (failureCount, error) => {
-        const info = categorizeError(error);
-        if (info.type === "auth") return false;
-        return failureCount < 2;
+        const nextRetry = shouldRetryQuery(failureCount, error);
+        if (nextRetry) {
+          const info = categorizeError(error);
+          recordRequestIssue({
+            scope: "retry",
+            category: info.type,
+            status: extractHttpStatus(error),
+            retryable: info.isRetryable,
+            path: typeof window !== "undefined" ? window.location.pathname : undefined,
+          });
+        }
+        if (import.meta.env.DEV && nextRetry) {
+          perfLog("query.retry", {
+            failureCount,
+            category: categorizeError(error).type,
+            status: extractHttpStatus(error),
+          });
+        }
+        return nextRetry;
       },
-      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+      retryDelay: queryRetryDelay,
     },
     mutations: {
-      retry: (failureCount, error) => {
-        const info = categorizeError(error);
-        return info.type === "network" && failureCount < 1;
-      },
+      retry: shouldRetryMutation,
+      retryDelay: queryRetryDelay,
     },
   },
 });
 
 const PageLoader = forwardRef<HTMLDivElement>(function PageLoader(_, ref) {
-  const isFeedLikeRoute = typeof window !== "undefined" && (
-    window.location.pathname.startsWith("/feed") ||
-    window.location.pathname.startsWith("/reels")
-  );
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const isFeedLikeRoute = pathname.startsWith("/feed") || pathname.startsWith("/reels");
+  const isChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
+
+  if (isChatRoute) {
+    return (
+      <div ref={ref} className="min-h-[100dvh] bg-background">
+        <div className="mx-auto w-full max-w-2xl px-3 pt-4">
+          <div className="h-10 rounded-full bg-muted/60 animate-pulse mb-4" />
+          <div className="flex gap-3 mb-4 overflow-hidden">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-14 w-14 rounded-full bg-muted/50 animate-pulse shrink-0" />
+            ))}
+          </div>
+          <div className="flex gap-2 mb-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-7 w-16 rounded-full bg-muted/40 animate-pulse" />
+            ))}
+          </div>
+          <div className="space-y-2.5">
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-1 py-2">
+                <div className="h-12 w-12 rounded-full bg-muted/60 animate-pulse shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3 w-1/3 rounded bg-muted/60 animate-pulse" />
+                  <div className="h-2.5 w-2/3 rounded bg-muted/40 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isFeedLikeRoute) {
     return (
@@ -901,7 +1194,6 @@ function RouteAwareGlobalUI() {
       <PWAUpdatePrompt />
       <PWAInstallBanner />
       <InAppBrowserInterstitial />
-      <SpatialCursor />
       <RuntimeSecurityGuard />
       {user && <MfaChallengeDialog />}
       {user && <IncomingCallListener />}
@@ -1004,6 +1296,8 @@ function useDesktopViewport() {
 
 function DesktopNavBootstrap() {
   const isDesktop = useDesktopViewport();
+  const location = useLocation();
+  if (location.pathname.startsWith("/desktop/auto-repair")) return null;
   return isDesktop ? <Suspense fallback={null}><GlobalDesktopNav /></Suspense> : null;
 }
 
@@ -1019,7 +1313,7 @@ function OTAUpdateBannerBridge() {
 }
 
 function OTAUpdateBootstrap() {
-  const ready = useAfterFirstPaint(5000);
+  const ready = useAfterFirstPaint(1500);
   return ready ? <OTAUpdateBannerBridge /> : null;
 }
 
@@ -1049,6 +1343,8 @@ const App = () => (
               <SkipToContent />
               <Toaster />
               <Sonner />
+              <Suspense fallback={null}><GlobalAutoTranslator /></Suspense>
+              {SHOW_REQUEST_HEALTH_BADGE && <RequestHealthBadge />}
               <DeferredPassiveChatOverlays />
               <BrowserRouter
                 future={{
@@ -1082,6 +1378,7 @@ const App = () => (
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
                             <Route path="/" element={<Index />} />
+                            
                             <Route path="/login" element={<Login />} />
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/unsubscribe" element={<Unsubscribe />} />
@@ -1140,6 +1437,7 @@ const App = () => (
                 <Route path="/shop-dashboard/settings" element={<ProtectedRoute><ShopSettingsPage /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/promotions" element={<ProtectedRoute><ShopPromotionsPage /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/analytics" element={<ProtectedRoute><ShopAnalyticsPage /></ProtectedRoute>} />
+                <Route path="/shop-dashboard/payments" element={<ProtectedRoute><ShopPaymentsPage /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/delivery" element={<ProtectedRoute><ShopDeliveryPage /></ProtectedRoute>} />
                 <Route path="/shop-dashboard" element={<ProtectedRoute><ShopDashboard /></ProtectedRoute>} />
                 <Route path="/services" element={<ProtectedRoute><ServicesPage /></ProtectedRoute>} />
@@ -1179,11 +1477,13 @@ const App = () => (
                 <Route path="/pair/:token" element={<PairPage />} />
                 <Route path="/estimate/:token" element={<EstimateApprovalPage />} />
                 <Route path="/repair/:token" element={<RepairStatusPage />} />
+                <Route path="/inspection/:token" element={<InspectionViewPage />} />
                 <Route path={SOCIAL_ROUTE_PATHS.reelDetail} element={<FeedPage />} />
                 <Route path="/sound/:soundName" element={<SoundPage />} />
                 <Route path="/dl/:kind/:id" element={<DeepLinkLandingPage />} />
                 <Route path="/stories/:storyId" element={<StoryDeepLinkPage />} />
                 <Route path="/shop/:storeId" element={<StoreProfilePage />} />
+                
                 <Route path="/refer" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
                 <Route path={SOCIAL_ROUTE_PATHS.chat} element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
                 <Route path="/direct" element={<ProtectedRoute><DirectInboxPage /></ProtectedRoute>} />
@@ -1230,6 +1530,10 @@ const App = () => (
                 <Route path="/creators" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>} />
                 <Route path="/creator-dashboard" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>} />
                 <Route path="/creator/setup" element={<ProtectedRoute><CreatorSetupPage /></ProtectedRoute>} />
+                <Route path="/creator/welcome" element={<ProtectedRoute><CreatorWelcomePage /></ProtectedRoute>} />
+                <Route path="/explore/18-plus" element={<ProtectedRoute><AdultDiscoveryPage /></ProtectedRoute>} />
+                <Route path="/ppv" element={<ProtectedRoute><PPVPostsPage /></ProtectedRoute>} />
+                <Route path="/ppv/create" element={<ProtectedRoute><CreatePPVPostPage /></ProtectedRoute>} />
                 <Route path="/creator-analytics" element={<ProtectedRoute><CreatorAnalyticsPage /></ProtectedRoute>} />
                 <Route path="/creator/live-earnings" element={<ProtectedRoute><CreatorLiveEarningsPage /></ProtectedRoute>} />
                 <Route path="/creator/subscribers" element={<ProtectedRoute><CreatorSubscribersPage /></ProtectedRoute>} />
@@ -1288,6 +1592,43 @@ const App = () => (
                 <Route path="/store-map" element={<StoreMapPage />} />
                 <Route path="/store-map/list" element={<StoresListPage />} />
                 <Route path="/book/:slug" element={<ServiceBookingPage />} />
+                {/* /salon/me must come before /salon/:slug so React Router
+                    matches the literal path before the slug parameter. */}
+                <Route path="/salon/me" element={<ProtectedRoute><SalonMyAreaPage /></ProtectedRoute>} />
+                <Route path="/salon/:slug/membership" element={<PublicSalonMembershipPage />} />
+                <Route path="/salon/:slug/check-in" element={<PublicSalonCheckinPage />} />
+                <Route path="/salon/:slug" element={<PublicSalonBookingPage />} />
+                <Route path="/car-rental/:slug" element={<PublicCarRentalBookingPage />} />
+                {/* More-specific routes first so React Router matches /v/:vehicleId
+                    and /review/:dealId before /:slug. */}
+                <Route path="/car-dealership/:slug/v/:vehicleId" element={<PublicCarDealershipDetailPage />} />
+                <Route path="/car-dealership/:slug/review/:dealId" element={<PublicCarDealershipReviewSubmitPage />} />
+                <Route path="/car-dealership/:slug" element={<PublicCarDealershipListingPage />} />
+                <Route path="/car-rental-booking" element={<PublicCarRentalBookingDetailPage />} />
+                <Route path="/car-rental-booking/:code" element={<PublicCarRentalBookingDetailPage />} />
+                <Route path="/admin/stores/:storeId/car-rental-daily-sheet" element={<CarRentalDailySheetPage />} />
+                <Route path="/admin/stores/:storeId/car-rental-receipt/:reservationId" element={<CarRentalReceiptPage />} />
+                <Route path="/car-rental-review/:reservationId" element={<PublicCarRentalReviewSubmitPage />} />
+                <Route path="/my-rentals" element={<MyCarRentalsPage />} />
+                <Route path="/cafe/:slug/gift-card-check" element={<CafeGiftCardCheckPage />} />
+                <Route path="/cafe/:slug/about" element={<CafeStorefrontPage />} />
+                <Route path="/cafe/:slug/reserve" element={<CafeReservePage />} />
+                <Route path="/cafe/:slug" element={<PublicCafeOrderPage />} />
+                <Route path="/cafe/receipt/:orderId" element={<CafeReceiptPage />} />
+                <Route path="/cafe/kitchen-ticket/:orderId" element={<CafeKitchenTicketPage />} />
+                <Route path="/cafe/order/:orderId" element={<CafeOrderStatusPage />} />
+                <Route path="/cafe/review/:orderId" element={<CafeReviewSubmitPage />} />
+                <Route path="/admin/cafe-summary/:storeId/:date" element={<CafeDailySummaryPage />} />
+                <Route path="/admin/cafe-qr-sheet/:storeId" element={<CafeQrSheetPage />} />
+                <Route path="/booking/:id" element={<PublicSalonBookingDetailPage />} />
+                <Route path="/admin/salon-receipt/:bookingId" element={<SalonReceiptPage />} />
+                <Route path="/admin/salon-schedule/:storeId/:date" element={<SalonDailySchedulePage />} />
+                <Route path="/admin/salon-summary/:storeId/:date" element={<SalonDailySummaryPage />} />
+                <Route path="/admin/salon-queue/:storeId" element={<SalonQueueDisplayPage />} />
+                <Route path="/gift-card" element={<SalonGiftCardCheckPage />} />
+                <Route path="/stylist/:stylistId/earnings" element={<PublicStylistEarningsPage />} />
+                <Route path="/stylist/:stylistId" element={<PublicStylistDayPage />} />
+                <Route path="/review/:bookingId" element={<PublicReviewSubmitPage />} />
                 <Route path="/grocery/store/:slug" element={<GroceryStorePage />} />
                 <Route path="/grocery/shop/:slug" element={<StoreProfilePage />} />
                 <Route path="/store/:slug" element={<StoreProfilePage />} />
@@ -1320,6 +1661,7 @@ const App = () => (
                 <Route path="/admin/payments/webhook-status" element={<ProtectedRoute requireAdmin={true}><AdminWebhookStatusPage /></ProtectedRoute>} />
                 <Route path="/admin/drivers/verification" element={<ProtectedRoute requireAdmin={true}><AdminDriverVerificationPage /></ProtectedRoute>} />
                 <Route path="/admin/drivers/moderation" element={<ProtectedRoute requireAdmin={true}><AdminDriverModerationPage /></ProtectedRoute>} />
+                <Route path="/admin/drivers/payouts" element={<ProtectedRoute requireAdmin={true}><AdminDriverPayoutsPage /></ProtectedRoute>} />
                 <Route path="/admin/operations/heatmap" element={<ProtectedRoute requireAdmin={true}><AdminTripHeatmapPage /></ProtectedRoute>} />
                 <Route path="/admin/payments/refunds" element={<ProtectedRoute requireAdmin={true}><AdminRefundsPage /></ProtectedRoute>} />
                 <Route path="/admin/moderation/messages" element={<ProtectedRoute requireAdmin={true}><AdminMessageModerationPage /></ProtectedRoute>} />
@@ -1332,6 +1674,7 @@ const App = () => (
                 <Route path="/package-delivery" element={<PreserveQueryRedirect to="/delivery" />} />
                 <Route path="/admin/shopping-orders" element={<ProtectedRoute requireAdmin={true}><AdminShoppingOrders /></ProtectedRoute>} />
                 <Route path="/admin/analytics" element={<ProtectedRoute requireAdmin={true}><AdminAnalyticsDashboard /></ProtectedRoute>} />
+                <Route path="/admin/feed-diagnostics" element={<ProtectedRoute requireAdmin={true}><AdminFeedDiagnosticsPage /></ProtectedRoute>} />
                 <Route path="/admin/notifications/analytics" element={<ProtectedRoute requireAdmin={true}><AdminNotificationAnalyticsPage /></ProtectedRoute>} />
                 <Route path="/admin/stories-funnel" element={<ProtectedRoute requireAdmin={true}><AdminStoriesFunnelPage /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute requireAdmin={true}><AdminUsersPage /></ProtectedRoute>} />
@@ -1357,6 +1700,8 @@ const App = () => (
                 <Route path="/admin/lodging/webhook-events" element={<ProtectedRoute requireAdmin={true}><AdminLodgingWebhookEventsPage /></ProtectedRoute>} />
                 <Route path="/store/setup" element={<ProtectedRoute><StoreSetup /></ProtectedRoute>} />
                 <Route path="/business/new" element={<ProtectedRoute><BusinessPageWizard /></ProtectedRoute>} />
+                <Route path="/business/software/:storeId" element={<ProtectedRoute><BusinessSoftwareDownloadPage /></ProtectedRoute>} />
+                <Route path="/desktop/auto-repair/:storeId" element={<ProtectedRoute requireAdmin={true} allowStoreOwner={true}><AutoRepairDesktopAppPage /></ProtectedRoute>} />
                 <Route path="/admin/employees" element={<ProtectedRoute requireAdmin={true}><AdminEmployeesPage /></ProtectedRoute>} />
                 <Route path="/admin/wallet" element={<ProtectedRoute requireAdmin={true}><AdminWalletPage /></ProtectedRoute>} />
                 <Route path="/admin/system-health" element={<ProtectedRoute requireAdmin={true}><AdminSystemHealth /></ProtectedRoute>} />
@@ -1468,9 +1813,12 @@ const App = () => (
                 <Route path="/voice-rooms" element={<VoiceRoomsHubPage />} />
                 <Route path="/fitness" element={<FitnessHubPage />} />
                 <Route path="/events-hub/create" element={<CreateEventPage />} />
+                <Route path="/events-hub/:id" element={<EventDetailPage />} />
                 <Route path="/marketplace-hub/create" element={<CreateListingPage />} />
-                <Route path="/jobs-hub/create" element={<CreateJobPage />} />
-                <Route path="/voice-rooms/create" element={<StartVoiceRoomPage />} />
+                <Route path="/jobs-hub/create" element={<ProtectedRoute><CreateJobPage /></ProtectedRoute>} />
+                <Route path="/jobs-hub/:id" element={<JobPostingDetailPage />} />
+                <Route path="/voice-rooms/create" element={<ProtectedRoute><StartVoiceRoomPage /></ProtectedRoute>} />
+                <Route path="/voice-rooms/:id" element={<VoiceRoomDetailPage />} />
                 <Route path="/support/new" element={<CreateSupportTicketPage />} />
                 <Route path="/traveler" element={<ProtectedRoute><TravelerDashboard /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
@@ -1504,15 +1852,116 @@ const App = () => (
                 <Route path="/account/invoices" element={<ProtectedRoute><AccountInvoicesPage /></ProtectedRoute>} />
 
                 {/* Other ComingSoon placeholders */}
-                <Route path="/filters" element={<ComingSoonPage title="AR Filters" description="Browse and apply AR effects in stories, reels, and live streams." />} />
-                <Route path="/promote" element={<ProtectedRoute><ComingSoonPage title="Promote Posts" description="Boost reach for your posts, reels, and stories." /></ProtectedRoute>} />
-                <Route path="/brand-deals" element={<ProtectedRoute><ComingSoonPage title="Brand Deals" description="Connect with brands for sponsorships and partnerships." /></ProtectedRoute>} />
-                <Route path="/library" element={<ProtectedRoute><ComingSoonPage title="Content Library" description="All your saved drafts, snippets, and templates." /></ProtectedRoute>} />
-                <Route path="/podcasts" element={<ComingSoonPage title="Podcasts" description="Listen to ZIVO podcasts on the go." />} />
-                <Route path="/sounds" element={<ComingSoonPage title="Sound Effects" description="Audio & sound effects library for creators." />} />
-                <Route path="/media-library" element={<ProtectedRoute><ComingSoonPage title="Media Library" description="All your photos, videos, and assets." /></ProtectedRoute>} />
-                <Route path="/creator/goals" element={<ProtectedRoute><ComingSoonPage title="Creator Goals" description="Track milestones and creator achievements." /></ProtectedRoute>} />
-                <Route path="/track" element={<ProtectedRoute><ComingSoonPage title="Track Package" description="Live tracking for deliveries and shipments." /></ProtectedRoute>} />
+                <Route path="/filters" element={<ARFiltersPage />} />
+                <Route path="/promote" element={<ProtectedRoute><PromotePage /></ProtectedRoute>} />
+                <Route path="/brand-deals" element={<ProtectedRoute><BrandDealsPage /></ProtectedRoute>} />
+                <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
+                <Route path="/archive" element={<ProtectedRoute><StoryArchivePage /></ProtectedRoute>} />
+                <Route path="/highlights" element={<ProtectedRoute><HighlightsPage /></ProtectedRoute>} />
+                <Route path="/close-friends" element={<ProtectedRoute><CloseFriendsPage /></ProtectedRoute>} />
+                <Route path="/collections" element={<ProtectedRoute><CollectionsPage /></ProtectedRoute>} />
+                <Route path="/polls" element={<ProtectedRoute><PollsPage /></ProtectedRoute>} />
+                <Route path="/creator/milestones" element={<ProtectedRoute><CreatorMilestonesPage /></ProtectedRoute>} />
+                <Route path="/mentions" element={<ProtectedRoute><MentionsPage /></ProtectedRoute>} />
+                <Route path="/albums" element={<ProtectedRoute><PostAlbumsPage /></ProtectedRoute>} />
+                <Route path="/collabs" element={<ProtectedRoute><CollabsPage /></ProtectedRoute>} />
+                <Route path="/stickers" element={<StickerStorePage />} />
+                <Route path="/coupons" element={<CouponsPage />} />
+                <Route path="/referrals" element={<ProtectedRoute><ReferralsPage /></ProtectedRoute>} />
+                <Route path="/chat-themes" element={<ProtectedRoute><ChatThemesPage /></ProtectedRoute>} />
+                <Route path="/rewards-center" element={<ProtectedRoute><RewardsCenterPage /></ProtectedRoute>} />
+                <Route path="/achievements" element={<AchievementsPage />} />
+                <Route path="/creator/earnings" element={<ProtectedRoute><CreatorEarningsPage /></ProtectedRoute>} />
+                <Route path="/notifications/preferences" element={<ProtectedRoute><NotificationPrefsPage /></ProtectedRoute>} />
+                <Route path="/story-insights" element={<ProtectedRoute><StoryInsightsPage /></ProtectedRoute>} />
+                <Route path="/devices" element={<ProtectedRoute><DevicesPage /></ProtectedRoute>} />
+                <Route path="/interests" element={<ProtectedRoute><InterestsPage /></ProtectedRoute>} />
+                <Route path="/challenges" element={<ChallengesPage />} />
+                <Route path="/game-scores" element={<ProtectedRoute><GameScoresPage /></ProtectedRoute>} />
+                <Route path="/clubs" element={<ClubsPage />} />
+                <Route path="/forums" element={<ForumsPage />} />
+                <Route path="/playlists" element={<ProtectedRoute><PlaylistsPage /></ProtectedRoute>} />
+                <Route path="/trending" element={<TrendingTopicsPage />} />
+                <Route path="/reel-effects" element={<ReelEffectsPage />} />
+                <Route path="/places" element={<PlacesPage />} />
+                <Route path="/reaction-packs" element={<ReactionPacksPage />} />
+                <Route path="/journals" element={<ProtectedRoute><TravelJournalsPage /></ProtectedRoute>} />
+                <Route path="/surveys" element={<SurveysPage />} />
+                <Route path="/exchange-rates" element={<ExchangeRatesPage />} />
+                <Route path="/hashtags" element={<HashtagsDirectoryPage />} />
+                <Route path="/coins" element={<ProtectedRoute><CoinWalletPage /></ProtectedRoute>} />
+                <Route path="/gifs" element={<GifLibraryPage />} />
+                <Route path="/split-bills" element={<ProtectedRoute><SplitBillsPage /></ProtectedRoute>} />
+                <Route path="/fitness" element={<ProtectedRoute><FitnessActivitiesPage /></ProtectedRoute>} />
+                <Route path="/fan-badges" element={<ProtectedRoute><FanBadgesPage /></ProtectedRoute>} />
+                <Route path="/my-unlocks" element={<ProtectedRoute><MyUnlocksPage /></ProtectedRoute>} />
+                <Route path="/voice-notes" element={<ProtectedRoute><VoiceNotesPage /></ProtectedRoute>} />
+                <Route path="/affiliate-links" element={<ProtectedRoute><AffiliateLinksPage /></ProtectedRoute>} />
+                <Route path="/gift-history" element={<ProtectedRoute><GiftHistoryPage /></ProtectedRoute>} />
+                <Route path="/shared-todos" element={<ProtectedRoute><SharedTodosPage /></ProtectedRoute>} />
+                <Route path="/marketplace-cart" element={<ProtectedRoute><MarketplaceCartPage /></ProtectedRoute>} />
+                <Route path="/points-history" element={<ProtectedRoute><PointsHistoryPage /></ProtectedRoute>} />
+                <Route path="/moderation-appeals" element={<ProtectedRoute><ModerationAppealsPage /></ProtectedRoute>} />
+                <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
+                <Route path="/chat-media" element={<ProtectedRoute><ChatMediaGalleryPage /></ProtectedRoute>} />
+                <Route path="/login-activity" element={<ProtectedRoute><LoginActivityPage /></ProtectedRoute>} />
+                <Route path="/ama" element={<AMAPage />} />
+                <Route path="/voicemails" element={<ProtectedRoute><VoicemailsPage /></ProtectedRoute>} />
+                <Route path="/trust-score" element={<ProtectedRoute><TrustScorePage /></ProtectedRoute>} />
+                <Route path="/warnings" element={<ProtectedRoute><WarningsPage /></ProtectedRoute>} />
+                <Route path="/chat-wallpapers" element={<ProtectedRoute><ChatWallpapersPage /></ProtectedRoute>} />
+                <Route path="/promo-usage" element={<ProtectedRoute><PromoUsagePage /></ProtectedRoute>} />
+                <Route path="/bug-reports" element={<ProtectedRoute><BugReportsPage /></ProtectedRoute>} />
+                <Route path="/streaks" element={<ProtectedRoute><StreaksPage /></ProtectedRoute>} />
+                <Route path="/my-challenges" element={<ProtectedRoute><MyChallengeSubmissionsPage /></ProtectedRoute>} />
+                <Route path="/poll-history" element={<ProtectedRoute><PollHistoryPage /></ProtectedRoute>} />
+                <Route path="/spam-detections" element={<ProtectedRoute><SpamDetectionsPage /></ProtectedRoute>} />
+                <Route path="/place-clicks" element={<ProtectedRoute><PlaceClicksPage /></ProtectedRoute>} />
+                <Route path="/price-alerts" element={<ProtectedRoute><PriceAlertsPage /></ProtectedRoute>} />
+                <Route path="/ride-quotes" element={<ProtectedRoute><RideQuotesPage /></ProtectedRoute>} />
+                <Route path="/auto-messages" element={<ProtectedRoute><AutoMessagesLogPage /></ProtectedRoute>} />
+                <Route path="/order-disputes" element={<ProtectedRoute><OrderDisputesPage /></ProtectedRoute>} />
+                <Route path="/flight-price-alerts" element={<ProtectedRoute><FlightPriceAlertsPage /></ProtectedRoute>} />
+                <Route path="/audio-rooms" element={<AudioRoomsPage />} />
+                <Route path="/coin-transfers" element={<ProtectedRoute><CoinTransfersPage /></ProtectedRoute>} />
+                <Route path="/live-locations" element={<ProtectedRoute><LiveLocationsPage /></ProtectedRoute>} />
+                <Route path="/friend-requests" element={<ProtectedRoute><FriendRequestsPage /></ProtectedRoute>} />
+                <Route path="/group-orders" element={<ProtectedRoute><GroupOrdersPage /></ProtectedRoute>} />
+                <Route path="/transactions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
+                <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
+                <Route path="/leaderboards" element={<LeaderboardsPage />} />
+                <Route path="/recently-viewed" element={<ProtectedRoute><RecentlyViewedPage /></ProtectedRoute>} />
+                <Route path="/two-step-auth" element={<ProtectedRoute><TwoStepAuthPage /></ProtectedRoute>} />
+                <Route path="/my-applications" element={<ProtectedRoute><MyJobApplicationsPage /></ProtectedRoute>} />
+                <Route path="/onboarding-progress" element={<ProtectedRoute><OnboardingProgressPage /></ProtectedRoute>} />
+                <Route path="/profile-views" element={<ProtectedRoute><ProfileViewsPage /></ProtectedRoute>} />
+                <Route path="/store-promos" element={<StorePromoCodesPage />} />
+                <Route path="/emoji-packs" element={<EmojiPacksPage />} />
+                <Route path="/live-chat-sessions" element={<ProtectedRoute><LiveChatSessionsPage /></ProtectedRoute>} />
+                <Route path="/muted-blocked" element={<ProtectedRoute><MutedBlockedUsersPage /></ProtectedRoute>} />
+                <Route path="/muted-chats" element={<ProtectedRoute><MutedChatsPage /></ProtectedRoute>} />
+                <Route path="/push-devices" element={<ProtectedRoute><PushDevicesPage /></ProtectedRoute>} />
+                <Route path="/creator-payouts" element={<ProtectedRoute><CreatorPayoutsPage /></ProtectedRoute>} />
+                <Route path="/p2p-money" element={<ProtectedRoute><P2PMoneyPage /></ProtectedRoute>} />
+                <Route path="/music-stickers" element={<MusicStickersPage />} />
+                <Route path="/avatar-moods" element={<AvatarMoodsPage />} />
+                <Route path="/downloaded-packs" element={<ProtectedRoute><DownloadedPacksPage /></ProtectedRoute>} />
+                <Route path="/legal-disputes" element={<ProtectedRoute><LegalDisputesPage /></ProtectedRoute>} />
+                <Route path="/my-podcasts" element={<ProtectedRoute><MyPodcastsPage /></ProtectedRoute>} />
+                <Route path="/saved-locations" element={<ProtectedRoute><SavedLocationsPage /></ProtectedRoute>} />
+                <Route path="/story-comments" element={<ProtectedRoute><StoryCommentsPage /></ProtectedRoute>} />
+                <Route path="/restaurant-reviews" element={<ProtectedRoute><RestaurantReviewDetailsPage /></ProtectedRoute>} />
+                <Route path="/story-viewers" element={<ProtectedRoute><StoryViewersPage /></ProtectedRoute>} />
+                <Route path="/itineraries" element={<ProtectedRoute><ItinerariesPage /></ProtectedRoute>} />
+                <Route path="/consent-log" element={<ProtectedRoute><ConsentLogPage /></ProtectedRoute>} />
+                <Route path="/tenant-memberships" element={<ProtectedRoute><TenantMembershipsPage /></ProtectedRoute>} />
+                <Route path="/recommendation-scores" element={<ProtectedRoute><RecommendationScoresPage /></ProtectedRoute>} />
+                <Route path="/business-account" element={<ProtectedRoute><BusinessRenterAccountPage /></ProtectedRoute>} />
+                <Route path="/podcasts" element={<PodcastsPage />} />
+                <Route path="/sounds" element={<SoundsPage />} />
+                <Route path="/media-library" element={<ProtectedRoute><MediaLibraryPage /></ProtectedRoute>} />
+                <Route path="/creator/goals" element={<ProtectedRoute><CreatorGoalsPage /></ProtectedRoute>} />
+                <Route path="/track" element={<ProtectedRoute><TrackPackagePage /></ProtectedRoute>} />
                 {/* Redirect legacy paths to the real implementations */}
                 <Route path="/account/cookies" element={<Navigate to="/account/data-rights#cookies" replace />} />
                 <Route path="/account/translation" element={<Navigate to="/account/preferences#translation" replace />} />
@@ -1520,12 +1969,12 @@ const App = () => (
                 <Route path="/account/contact" element={<Navigate to="/account/profile-edit" replace />} />
 
                 {/* Wellness — placeholders */}
-                <Route path="/wellness/meds" element={<ProtectedRoute><ComingSoonPage title="Medications" description="Track meds, doses, and refills with reminders." /></ProtectedRoute>} />
-                <Route path="/wellness/mindfulness" element={<ProtectedRoute><ComingSoonPage title="Mindfulness" description="Guided meditation, breathing, and sleep stories." /></ProtectedRoute>} />
-                <Route path="/wellness/nutrition" element={<ProtectedRoute><ComingSoonPage title="Nutrition" description="Log meals, calories, macros, and water intake." /></ProtectedRoute>} />
-                <Route path="/account/tax" element={<ProtectedRoute><ComingSoonPage title="Tax Info" description="Tax forms, 1099s, and reporting." /></ProtectedRoute>} />
-                <Route path="/account/receipts" element={<ProtectedRoute><ComingSoonPage title="Receipts" description="Past payments and order receipts." /></ProtectedRoute>} />
-                <Route path="/account/reviews" element={<ProtectedRoute><ComingSoonPage title="My Reviews" description="Ratings and reviews you've left." /></ProtectedRoute>} />
+                <Route path="/wellness/meds" element={<ProtectedRoute><MedicationsPage /></ProtectedRoute>} />
+                <Route path="/wellness/mindfulness" element={<ProtectedRoute><MindfulnessPage /></ProtectedRoute>} />
+                <Route path="/wellness/nutrition" element={<ProtectedRoute><NutritionPage /></ProtectedRoute>} />
+                <Route path="/account/tax" element={<ProtectedRoute><TaxInfoPage /></ProtectedRoute>} />
+                <Route path="/account/receipts" element={<ProtectedRoute><ReceiptsPage /></ProtectedRoute>} />
+                <Route path="/account/reviews" element={<ProtectedRoute><MyReviewsPage /></ProtectedRoute>} />
                 <Route path="/account/subscriptions" element={<ProtectedRoute><AccountSubscriptionsPage /></ProtectedRoute>} />
                 <Route path="/account/tips" element={<ProtectedRoute><AccountTipsPage /></ProtectedRoute>} />
 

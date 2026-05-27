@@ -1,0 +1,1 @@
+UPDATE public.store_profiles SET owner_id = '04e0e3aa-70ec-4346-a817-92e3223546bf' WHERE id = '0013f47a-b8f6-4748-a112-ca5e03300abf';

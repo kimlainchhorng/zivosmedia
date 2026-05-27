@@ -10,15 +10,31 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface MonthStats {
   totalRides: number;
-  totalSpent: number;
+  spentByCurrency: Record<string, number>;
   totalDistanceMi: number;
   totalDurationMin: number;
+}
+
+function formatKhr(amount: number): string {
+  return `${Math.round(amount).toLocaleString("en-US")} KHR`;
+}
+
+function formatUsd(amount: number): string {
+  return `$${amount.toFixed(0)}`;
+}
+
+function formatSpent(totals: Record<string, number>): string {
+  const entries = Object.entries(totals).filter(([, amount]) => amount > 0);
+  if (entries.length === 0) return "$0";
+  return entries
+    .map(([currency, amount]) => currency === "KHR" ? formatKhr(amount) : formatUsd(amount))
+    .join(" + ");
 }
 
 export default function RideHistoryInsights() {
   const { user } = useAuth();
   const [period, setPeriod] = useState<"week" | "month">("month");
-  const [stats, setStats] = useState<MonthStats>({ totalRides: 0, totalSpent: 0, totalDistanceMi: 0, totalDurationMin: 0 });
+  const [stats, setStats] = useState<MonthStats>({ totalRides: 0, spentByCurrency: {}, totalDistanceMi: 0, totalDurationMin: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,20 +47,26 @@ export default function RideHistoryInsights() {
 
     supabase
       .from("ride_requests")
-      .select("payment_amount, distance_miles, duration_minutes")
+      .select("payment_amount, payment_currency, payment_status, bakong_amount_khr, distance_miles, duration_minutes")
       .eq("user_id", user.id)
       .eq("status", "completed")
       .gte("created_at", startDate.toISOString())
       .then(({ data }) => {
         if (data && data.length > 0) {
+          const spentByCurrency = data.reduce((totals: Record<string, number>, r) => {
+            const currency = (r.payment_currency || (r.payment_status === "bakong_paid" ? "KHR" : "USD")).toUpperCase();
+            const amount = currency === "KHR" ? Number(r.bakong_amount_khr ?? r.payment_amount ?? 0) : Number(r.payment_amount ?? 0);
+            totals[currency] = (totals[currency] ?? 0) + amount;
+            return totals;
+          }, {});
           setStats({
             totalRides: data.length,
-            totalSpent: data.reduce((sum, r) => sum + (r.payment_amount || 0), 0),
+            spentByCurrency,
             totalDistanceMi: Math.round(data.reduce((sum, r) => sum + (r.distance_miles || 0), 0) * 10) / 10,
             totalDurationMin: Math.round(data.reduce((sum, r) => sum + (r.duration_minutes || 0), 0)),
           });
         } else {
-          setStats({ totalRides: 0, totalSpent: 0, totalDistanceMi: 0, totalDurationMin: 0 });
+          setStats({ totalRides: 0, spentByCurrency: {}, totalDistanceMi: 0, totalDurationMin: 0 });
         }
         setLoading(false);
       });
@@ -89,7 +111,7 @@ export default function RideHistoryInsights() {
       <div className="grid grid-cols-2 gap-2 px-4">
         {[
           { label: "Rides", value: loading ? "—" : stats.totalRides.toString(), icon: Car, color: "text-primary" },
-          { label: "Spent", value: loading ? "—" : `$${stats.totalSpent.toFixed(0)}`, icon: DollarSign, color: "text-emerald-500" },
+          { label: "Spent", value: loading ? "—" : formatSpent(stats.spentByCurrency), icon: DollarSign, color: "text-emerald-500" },
           { label: "Distance", value: loading ? "—" : `${stats.totalDistanceMi} mi`, icon: TrendingUp, color: "text-sky-500" },
           { label: "Time", value: loading ? "—" : formatDuration(stats.totalDurationMin), icon: Clock, color: "text-amber-500" },
         ].map((stat) => {

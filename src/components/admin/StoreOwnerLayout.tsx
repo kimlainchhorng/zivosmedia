@@ -2,7 +2,8 @@
  * Store Owner Layout — Simplified sidebar for store owners (non-admin).
  * Shows Profile, Products, Payment as sidebar navigation.
  */
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,8 +26,16 @@ import { Helmet } from "react-helmet-async";
 import { useFocusTrap } from "./useFocusTrap";
 import { useFocusReturn } from "./ads/useFocusReturn";
 import { isLodgingStoreCategory } from "@/hooks/useOwnerStoreProfile";
+import { isAutoRepairTab, isCafeTab, isCarRentalTab, isCarDealershipTab } from "@/lib/admin/storeTabRouting";
 import type { LodgingCompletionItem } from "@/lib/lodging/lodgingCompletion";
 import { useLodgingSidebarBadges } from "@/hooks/lodging/useLodgingSidebarBadges";
+import { useSalonSidebarBadges } from "@/hooks/salon/useSalonSidebarBadges";
+import { useSalonRealtimeNotifications } from "@/hooks/salon/useSalonRealtimeNotifications";
+import { useCafeSidebarBadges } from "@/hooks/cafe/useCafeSidebarBadges";
+import { useCafeRealtimeNotifications } from "@/hooks/cafe/useCafeRealtimeNotifications";
+import { useCarRentalSidebarBadges } from "@/hooks/car-rental/useCarRentalSidebarBadges";
+import { useCarRentalRealtimeNotifications } from "@/hooks/car-rental/useCarRentalRealtimeNotifications";
+import { useDealershipSidebarBadges } from "@/hooks/car-dealership/useDealershipSidebarBadges";
 
 interface StoreOwnerLayoutProps {
   children: ReactNode;
@@ -63,17 +72,6 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
     }
     setSidebarOpen(true);
   };
-
-  // Restore per-tab scroll position when sidebar opens
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const r = requestAnimationFrame(() => {
-      if (navRef.current) {
-        navRef.current.scrollTop = scrollMemoryRef.current[tabKey] ?? 0;
-      }
-    });
-    return () => cancelAnimationFrame(r);
-  }, [sidebarOpen, tabKey]);
 
   // Lock background scroll via overflow:hidden
   useEffect(() => {
@@ -137,39 +135,103 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   };
 
   const normalizedStoreCategory = (storeCategory || "").toLowerCase().trim();
-  const isAutoRepair = normalizedStoreCategory === "auto-repair";
+  const isAutoRepair = normalizedStoreCategory === "auto-repair" || isAutoRepairTab(activeTab);
   const isLodging = isLodgingStoreCategory(storeCategory);
-  const productsLabel = isAutoRepair ? "Services" : isLodging ? "Rooms" : "Products";
+  const isSalon = normalizedStoreCategory === "salon";
+  const isCafe = normalizedStoreCategory === "cafe" || isCafeTab(activeTab);
+  const isCarRental = normalizedStoreCategory === "car-rental" || normalizedStoreCategory === "car rental" || isCarRentalTab(activeTab);
+  const isCarDealership = normalizedStoreCategory === "car-dealership" || normalizedStoreCategory === "car dealership" || isCarDealershipTab(activeTab);
+  const productsLabel = isAutoRepair ? "Services" : isLodging ? "Rooms" : isCarRental ? "Fleet" : isCarDealership ? "Inventory" : "Products";
   const paymentLabel = isAutoRepair ? "Bookings" : "Payment & Payouts";
 
+  // Restore per-tab scroll position when sidebar opens, but Auto Repair should
+  // always open at the top so the shop tools are immediately visible.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const r = requestAnimationFrame(() => {
+      if (navRef.current) {
+        const shouldStartAtTop = isAutoRepair && (activeTab?.startsWith("ar-") || activeTab === "software");
+        navRef.current.scrollTop = shouldStartAtTop ? 0 : scrollMemoryRef.current[tabKey] ?? 0;
+      }
+    });
+    return () => cancelAnimationFrame(r);
+  }, [activeTab, isAutoRepair, sidebarOpen, tabKey]);
+
   const { data: lodgingBadges } = useLodgingSidebarBadges(storeId, isLodging);
+  const salonBadges = useSalonSidebarBadges(storeId, isSalon);
+  useSalonRealtimeNotifications(storeId, isSalon);
+  const cafeBadges = useCafeSidebarBadges(storeId, isCafe);
+  useCafeRealtimeNotifications(storeId, isCafe);
+  const carRentalBadges = useCarRentalSidebarBadges(storeId, isCarRental);
+  useCarRentalRealtimeNotifications(storeId, isCarRental);
+  const dealershipBadges = useDealershipSidebarBadges(storeId, isCarDealership);
   const badgeFor = (id: string): number | undefined => {
-    if (!isLodging || !lodgingBadges) return undefined;
-    if (id === "lodge-inbox") return lodgingBadges.inboxUnread || undefined;
-    if (id === "lodge-concierge") return lodgingBadges.conciergeOpen || undefined;
-    if (id === "lodge-lostfound") return lodgingBadges.lostFoundUnclaimed || undefined;
-    if (id === "lodge-frontdesk") return lodgingBadges.frontDeskToday || undefined;
+    if (isLodging && lodgingBadges) {
+      if (id === "lodge-inbox") return lodgingBadges.inboxUnread || undefined;
+      if (id === "lodge-concierge") return lodgingBadges.conciergeOpen || undefined;
+      if (id === "lodge-lostfound") return lodgingBadges.lostFoundUnclaimed || undefined;
+      if (id === "lodge-frontdesk") return lodgingBadges.frontDeskToday || undefined;
+    }
+    if (isSalon) {
+      if (id === "salon-bookings") return salonBadges.bookingsPending || undefined;
+      if (id === "salon-waitlist") return salonBadges.waitlist || undefined;
+      if (id === "salon-reviews") return salonBadges.reviewsUnreplied || undefined;
+      if (id === "salon-retail") return salonBadges.retailLowStock || undefined;
+      if (id === "salon-reminders") return salonBadges.remindersDueSoon || undefined;
+      if (id === "salon-campaigns") return salonBadges.campaignsSending || undefined;
+    }
+    if (isCafe) {
+      if (id === "cafe-orders") return cafeBadges.ordersOpen || undefined;
+      if (id === "cafe-kds") return cafeBadges.kdsActive || undefined;
+      // Pending reservations take priority over occupied-tables — a customer
+      // is waiting for the owner to confirm; that's more urgent than seating.
+      if (id === "cafe-tables") return (cafeBadges.reservationsPending || cafeBadges.tablesOccupied) || undefined;
+      if (id === "cafe-reviews") return cafeBadges.reviewsUnreplied || undefined;
+    }
+    if (isCarRental) {
+      if (id === "car-rental-reservations") return carRentalBadges.reservationsPending || undefined;
+      if (id === "car-rental-returns") return (carRentalBadges.returnsOverdue || carRentalBadges.returnsActive) || undefined;
+      if (id === "car-rental-reviews") return carRentalBadges.reviewsUnack || undefined;
+      if (id === "car-rental-maintenance") return carRentalBadges.maintenanceActive || undefined;
+    }
+    if (isCarDealership) {
+      if (id === "cd-leads") return (dealershipBadges.leadsNew + dealershipBadges.leadsFollowupDue) || undefined;
+      if (id === "cd-test-drives") return dealershipBadges.testDrivesToday || undefined;
+      if (id === "cd-sales") return dealershipBadges.salesPending || undefined;
+      if (id === "cd-financing") return dealershipBadges.financingPending || undefined;
+      if (id === "cd-reviews") return dealershipBadges.reviewsUnreplied || undefined;
+    }
     return undefined;
   };
 
   const navItems = [
     { id: "profile", label: "Profile", icon: Store },
-    { id: "orders", label: `Orders${orderCount ? ` (${orderCount})` : ""}`, icon: ClipboardList },
-    // Lodging uses the dedicated "Rooms & Rates" entry under HOTEL OPS instead.
-    ...(!isLodging ? [
+    // Salon / Cafe / Car Rental / Car Dealership replace "Orders" with their dedicated tickets view.
+    ...(!isSalon && !isCafe && !isCarRental && !isCarDealership ? [
+      { id: "orders", label: `Orders${orderCount ? ` (${orderCount})` : ""}`, icon: ClipboardList },
+    ] : []),
+    // Lodging uses the dedicated "Rooms & Rates" entry under HOTEL OPS.
+    // Salon replaces "Products" with the "Service Menu" inside its module.
+    // Cafe replaces "Products" with "Menu & Categories".
+    // Car Rental replaces "Products" with "Fleet" inside its module.
+    // Car Dealership replaces "Products" with "Inventory" inside its module.
+    ...(!isLodging && !isSalon && !isCafe && !isCarRental && !isCarDealership ? [
       { id: "products", label: `${productsLabel}${productCount != null ? ` (${productCount})` : ""}`, icon: isAutoRepair ? Package : Package },
     ] : []),
-    { id: "payment", label: paymentLabel, icon: isAutoRepair ? Calendar : isLodging ? CalendarRange : CreditCard },
+    // Cafe / Car Rental / Car Dealership have their own Finance tabs; hide the generic Payment.
+    ...(!isCafe && !isCarRental && !isCarDealership ? [
+      { id: "payment", label: paymentLabel, icon: isAutoRepair ? Calendar : isLodging ? CalendarRange : CreditCard },
+    ] : []),
     ...(isAutoRepair ? [
-      { id: "ar-dashboard", label: "Shop Dashboard", icon: LayoutDashboard },
-      { id: "_ar_frontdesk_label", label: "FRONT DESK", icon: ClipboardList, divider: true },
+      { id: "ar-dashboard", label: "Auto Repair Dashboard", icon: LayoutDashboard },
+      { id: "_ar_frontdesk_label", label: "AUTO REPAIR FRONT DESK", icon: ClipboardList, divider: true },
       { id: "customer-bookings", label: "Customer Bookings", icon: CalendarCheck },
       { id: "ar-service-catalog", label: "Service Catalog", icon: BookOpen },
       { id: "ar-estimates", label: "Estimates", icon: FileSignature },
       { id: "ar-invoices", label: "Invoices", icon: FileText },
       { id: "ar-vehicles", label: "Customer Vehicles", icon: Car },
       { id: "ar-autocheck", label: "Auto Check (VIN)", icon: ScanSearch },
-      { id: "_ar_shopfloor_label", label: "SHOP FLOOR", icon: Wrench, divider: true },
+      { id: "_ar_shopfloor_label", label: "AUTO REPAIR SHOP FLOOR", icon: Wrench, divider: true },
       { id: "ar-workorders", label: "Work Orders", icon: Hammer },
       { id: "ar-labor-time", label: "Labor Time", icon: Timer },
       { id: "ar-inspections", label: "Inspections", icon: ClipboardCheck },
@@ -177,11 +239,11 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
       { id: "ar-reminders", label: "Reminders & Recalls", icon: BellRing },
       { id: "ar-loaners", label: "Loaner Vehicles", icon: Car },
       { id: "ar-photos", label: "Job Photos", icon: Camera },
-      { id: "_ar_inventory_label", label: "INVENTORY", icon: Package, divider: true },
+      { id: "_ar_inventory_label", label: "AUTO REPAIR INVENTORY", icon: Package, divider: true },
       { id: "ar-parts", label: "Part Shop", icon: Wrench },
       { id: "ar-tires", label: "Tire Inventory", icon: CircleDot },
       { id: "ar-parts-suppliers", label: "Parts Suppliers", icon: Package },
-      { id: "_ar_carecare_label", label: "CUSTOMER CARE", icon: ShieldCheck, divider: true },
+      { id: "_ar_carecare_label", label: "AUTO REPAIR CUSTOMER CARE", icon: ShieldCheck, divider: true },
       { id: "ar-warranty", label: "Warranty & Comebacks", icon: ShieldAlert },
       { id: "ar-fleet", label: "Fleet Accounts", icon: Truck },
       { id: "ar-reviews", label: "Reviews & Ratings", icon: Star },
@@ -251,9 +313,114 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
       { id: "lodge-handover", label: "Shift Handover", icon: ScrollText },
       { id: "lodge-folio", label: "Guest Folio", icon: Receipt },
     ] : []),
-    { id: "customers", label: "Customers", icon: Users },
-    { id: "marketing", label: "Marketing & Ads", icon: Megaphone },
-    { id: "livestream", label: "Live Stream", icon: Tv },
+    ...(isCafe ? [
+      { id: "cafe-dashboard", label: "Cafe Dashboard", icon: LayoutDashboard },
+      { id: "_cafe_pos_label", label: "POS & TICKETS", icon: ClipboardList, divider: true },
+      { id: "cafe-orders", label: "Orders & Tickets", icon: ClipboardList },
+      { id: "cafe-kds", label: "Kitchen Display", icon: UtensilsCrossed },
+      { id: "cafe-tables", label: "Floor Plan & Tables", icon: QrCode },
+      { id: "_cafe_menu_label", label: "MENU & RECIPES", icon: BookOpen, divider: true },
+      { id: "cafe-menu", label: "Menu & Categories", icon: BookOpen },
+      { id: "cafe-modifiers", label: "Modifiers", icon: ListChecks },
+      { id: "cafe-inventory", label: "Inventory & Stock", icon: Package },
+      { id: "cafe-recipes", label: "Recipes", icon: Utensils },
+      { id: "cafe-purchasing", label: "Purchasing", icon: Truck },
+      { id: "_cafe_growth_label", label: "GROWTH", icon: Megaphone, divider: true },
+      { id: "cafe-customers", label: "Customers", icon: Users },
+      { id: "cafe-loyalty", label: "Loyalty & Rewards", icon: Star },
+      { id: "cafe-gift-cards", label: "Gift Cards", icon: CreditCard },
+      { id: "cafe-promotions", label: "Promotions", icon: Tag },
+      { id: "cafe-reviews", label: "Reviews & Ratings", icon: Star },
+      { id: "_cafe_team_label", label: "TEAM", icon: UserCog, divider: true },
+      { id: "cafe-baristas", label: "Baristas & Team", icon: UserCog },
+      { id: "cafe-shifts", label: "Shift Schedule", icon: Calendar },
+      { id: "cafe-timeclock", label: "Time Clock", icon: Clock },
+      { id: "cafe-tips", label: "Tips & Pooling", icon: Banknote },
+      { id: "_cafe_finance_label", label: "FINANCE", icon: DollarSign, divider: true },
+      { id: "cafe-payment", label: "Payment & Payouts", icon: CreditCard },
+      { id: "cafe-income", label: "Income & Revenue", icon: DollarSign },
+      { id: "cafe-expenses", label: "Expenses & Bills", icon: Wallet },
+      { id: "cafe-reports", label: "Reports & Analytics", icon: BarChart3 },
+    ] : []),
+    ...(isSalon ? [
+      { id: "salon-dashboard", label: "Salon Dashboard", icon: LayoutDashboard },
+      { id: "_salon_appts_label", label: "APPOINTMENTS", icon: CalendarCheck, divider: true },
+      { id: "salon-bookings", label: "Bookings & Calendar", icon: CalendarRange },
+      { id: "salon-walkins", label: "Walk-ins", icon: ClipboardList },
+      { id: "salon-waitlist", label: "Waitlist", icon: Timer },
+      { id: "_salon_services_label", label: "SERVICES & MENU", icon: BookOpen, divider: true },
+      { id: "salon-services", label: "Service Menu", icon: BookOpen },
+      { id: "salon-packages", label: "Packages & Bundles", icon: Gift },
+      { id: "salon-retail", label: "Retail Products", icon: Package },
+      { id: "_salon_team_label", label: "STYLISTS & TEAM", icon: UserCog, divider: true },
+      { id: "salon-stylists", label: "Stylists & Specialists", icon: UserCog },
+      { id: "salon-schedules", label: "Stylist Schedules", icon: Calendar },
+      { id: "salon-timeclock", label: "Time Clock", icon: Clock },
+      { id: "salon-commissions", label: "Tips & Commissions", icon: Banknote },
+      { id: "_salon_client_label", label: "CLIENT CARE", icon: HeartPulse, divider: true },
+      { id: "salon-clients", label: "Clients", icon: Users },
+      { id: "salon-history", label: "Service History", icon: ScrollText },
+      { id: "salon-loyalty", label: "Loyalty & Rewards", icon: Star },
+      { id: "salon-gift-cards", label: "Gift Cards", icon: CreditCard },
+      { id: "salon-reviews", label: "Reviews & Ratings", icon: Star },
+      { id: "_salon_finance_label", label: "FINANCE", icon: DollarSign, divider: true },
+      { id: "salon-income", label: "Income & Revenue", icon: DollarSign },
+      { id: "salon-expenses", label: "Expenses & Bills", icon: Wallet },
+      { id: "salon-reports", label: "Reports & Analytics", icon: BarChart3 },
+    ] : []),
+    ...(isCarRental ? [
+      { id: "car-rental-dashboard", label: "Car Rental Dashboard", icon: LayoutDashboard },
+      { id: "_cr_ops_label", label: "RENTAL OPERATIONS", icon: CalendarRange, divider: true },
+      { id: "car-rental-reservations", label: "Reservations", icon: CalendarRange },
+      { id: "car-rental-checkout", label: "Pickup Check-out", icon: KeyRound },
+      { id: "car-rental-returns", label: "Return & Check-in", icon: ClipboardCheck },
+      { id: "_cr_fleet_label", label: "FLEET & PRICING", icon: Car, divider: true },
+      { id: "car-rental-fleet", label: "Fleet & Vehicles", icon: Car },
+      { id: "car-rental-rates", label: "Rates & Plans", icon: DollarSign },
+      { id: "car-rental-addons", label: "Add-ons & Extras", icon: PackagePlus },
+      { id: "car-rental-locations", label: "Pickup Locations", icon: Building2 },
+      { id: "car-rental-maintenance", label: "Maintenance Log", icon: Wrench },
+      { id: "_cr_customer_label", label: "CUSTOMERS", icon: Users, divider: true },
+      { id: "car-rental-customers", label: "Renters", icon: Users },
+      { id: "car-rental-reviews", label: "Reviews & Ratings", icon: Star },
+      { id: "_cr_growth_label", label: "GROWTH", icon: Megaphone, divider: true },
+      { id: "car-rental-promotions", label: "Promotions & Codes", icon: Tag },
+      { id: "_cr_finance_label", label: "FINANCE", icon: DollarSign, divider: true },
+      { id: "car-rental-income", label: "Income & Revenue", icon: DollarSign },
+      { id: "car-rental-expenses", label: "Expenses & Bills", icon: Wallet },
+      { id: "car-rental-reports", label: "Reports & Analytics", icon: BarChart3 },
+    ] : []),
+    ...(isCarDealership ? [
+      { id: "cd-dashboard", label: "Dealership Dashboard", icon: LayoutDashboard },
+      { id: "_cd_sales_label", label: "SALES PIPELINE", icon: ClipboardList, divider: true },
+      { id: "cd-leads", label: "Leads & Pipeline", icon: ClipboardList },
+      { id: "cd-test-drives", label: "Test Drives", icon: CalendarCheck },
+      { id: "cd-sales", label: "Sales & Deals", icon: FileSignature },
+      { id: "cd-financing", label: "Financing", icon: Banknote },
+      { id: "cd-trade-ins", label: "Trade-ins", icon: Car },
+      { id: "_cd_inventory_label", label: "INVENTORY", icon: Car, divider: true },
+      { id: "cd-inventory", label: "Vehicle Inventory", icon: Car },
+      { id: "_cd_customer_label", label: "CUSTOMERS", icon: Users, divider: true },
+      { id: "cd-customers", label: "Customers", icon: Users },
+      { id: "cd-reviews", label: "Reviews & Ratings", icon: Star },
+      { id: "_cd_growth_label", label: "GROWTH", icon: Megaphone, divider: true },
+      { id: "cd-promotions", label: "Promotions & Specials", icon: Tag },
+      { id: "_cd_finance_label", label: "FINANCE", icon: DollarSign, divider: true },
+      { id: "cd-income", label: "Income & Revenue", icon: DollarSign },
+      { id: "cd-expenses", label: "Expenses & Bills", icon: Wallet },
+      { id: "cd-reports", label: "Reports & Analytics", icon: BarChart3 },
+    ] : []),
+    // Cafe has its own Customers / Reviews / Loyalty tabs under GROWTH.
+    // Car Rental has its own Customers tab under CUSTOMERS.
+    // Car Dealership has its own Customers tab under CUSTOMERS.
+    ...(!isCafe && !isCarRental && !isCarDealership ? [
+      { id: "customers", label: "Customers", icon: Users },
+      { id: "marketing", label: "Marketing & Ads", icon: Megaphone },
+    ] : []),
+    // Live Stream is hidden for salons & cafes & car rental & dealerships — not relevant to those workflows.
+    ...(!isSalon && !isCafe && !isCarRental && !isCarDealership ? [
+      { id: "livestream", label: "Live Stream", icon: Tv },
+    ] : []),
   ];
 
   const employeeItems = [
@@ -315,7 +482,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="safe-area-top min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+          <header className="min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -346,11 +513,17 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
         {/* Header — gradient brand strip */}
         <div
           className="relative flex items-center justify-between px-3 border-b border-border shrink-0 bg-gradient-to-br from-primary/8 via-card to-card"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: '10px' }}
+          style={{ paddingTop: 'calc(var(--zivo-safe-top,0px) + 10px)', paddingBottom: '10px' }}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {storeLogoUrl ? (
-              <img src={storeLogoUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0 ring-1 ring-border shadow-sm" />
+	              <img
+	                src={storeLogoUrl}
+	                alt=""
+	                className="w-8 h-8 rounded-lg object-cover shrink-0 ring-1 ring-border shadow-sm"
+	                loading="eager"
+	                decoding="async"
+	              />
             ) : (
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 ring-1 ring-primary/20">
                 <Store className="w-4 h-4 text-primary" />
@@ -384,7 +557,31 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
           className="flex-1 min-h-0 px-2 py-2 overflow-y-scroll scroll-momentum overscroll-contain touch-pan-y"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
-          <p id="sidebar-group-manage" className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70">Manage</p>
+          <div className={cn(isAutoRepair && "sticky top-0 z-10 -mx-2 mb-1 bg-card px-2 pb-1 pt-1")}>
+            <p id="sidebar-group-manage" className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70">
+              {isAutoRepair ? "Auto Repair" : isSalon ? "Salon" : isCafe ? "Cafe" : isCarRental ? "Car Rental" : isCarDealership ? "Car Dealership" : "Manage"}
+            </p>
+            {isAutoRepair && (
+              <button
+                type="button"
+                onClick={() => { onTabChange?.("ar-dashboard"); closeSidebar(); }}
+                className={cn(
+                  "mb-1.5 flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
+                  activeTab === "ar-dashboard"
+                    ? "border-emerald-500/35 bg-emerald-500/12 text-emerald-800 dark:text-emerald-300"
+                    : "border-emerald-500/20 bg-emerald-500/8 text-foreground hover:bg-emerald-500/12"
+                )}
+              >
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/12">
+                  <Wrench className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[12px] font-bold">Auto Repair Software</p>
+                  <p className="truncate text-[10px] text-muted-foreground">Work orders, VIN, invoices, parts</p>
+                </div>
+              </button>
+            )}
+          </div>
           {isLodging && (
             <div className="mb-1.5 rounded-md border border-primary/15 bg-primary/5 px-2 py-1 text-primary">
               <button type="button"
@@ -480,7 +677,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
         {/* Footer actions */}
         <div
           className="border-t border-border p-1 space-y-0.5 shrink-0"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}
+          style={{ paddingBottom: 'calc(var(--zivo-safe-bottom,0px) + 4px)' }}
         >
           <button type="button"
             onClick={() => { onTabChange?.("settings"); closeSidebar(); }}

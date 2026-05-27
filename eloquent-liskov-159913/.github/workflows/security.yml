@@ -1,0 +1,65 @@
+name: Security
+
+# Runs the secret scanner and dependency audit:
+#   • on every PR (so a leak / known-vuln dep blocks merge)
+#   • weekly (so a newly-disclosed vuln in shipped deps surfaces fast)
+#   • on demand via the Actions tab
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
+  schedule:
+    # Mondays 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Dependency audit + secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: npm audit (high+)
+        run: npm run security:audit
+
+      - name: Secret scan
+        run: npm run security:check-secrets
+
+      - name: TypeScript build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run build

@@ -4,6 +4,7 @@
  */
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import {
   ArrowLeft, Wallet, CreditCard, Star, Trash2, Plus, Shield,
   Users, Gift, Trophy,
@@ -27,9 +28,10 @@ import { useLiveEarnings } from "@/hooks/useLiveEarnings";
 import AddCardForm from "@/components/wallet/AddCardForm";
 import UnifiedPayoutCard from "@/components/wallet/UnifiedPayoutCard";
 import WithdrawalReceipt, { type WithdrawalReceiptData } from "@/components/wallet/WithdrawalReceipt";
+import { getStripe } from "@/lib/stripe";
 import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import SEOHead from "@/components/SEOHead";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { formatDistanceToNow, format } from "date-fns";
 
 /** Validate a payout-method form and return a map of field → error message. Empty when valid. */
@@ -101,6 +103,113 @@ const CASHOUT_METHODS = [
 
 const QUICK_AMOUNTS = [5, 10, 25, 50, 100];
 
+function formatTopupAmount(amountCents: number) {
+  return `$${(amountCents / 100).toFixed(2)}`;
+}
+
+function WalletTopupPaymentForm({
+  amountCents,
+  paymentIntentId,
+  onBack,
+  onPaid,
+}: {
+  amountCents: number;
+  paymentIntentId: string | null;
+  onBack: () => void;
+  onPaid: (data: any) => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+  const [paymentReady, setPaymentReady] = useState(false);
+  const [paymentLoadError, setPaymentLoadError] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!stripe || !elements || !paymentReady) {
+      toast.message("Payment form is still loading");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
+        confirmParams: {
+          return_url: `${window.location.origin}/wallet?topup=success`,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || "Payment failed");
+      }
+
+      const resolvedPaymentIntentId = paymentIntent?.id || paymentIntentId;
+      if (!resolvedPaymentIntentId) {
+        throw new Error("Payment could not be verified");
+      }
+
+      if (paymentIntent && paymentIntent.status !== "succeeded") {
+        toast.message("Payment is processing. Your balance will update shortly.");
+        onPaid({ credited: false });
+        return;
+      }
+
+      const { data, error: verifyError } = await supabase.functions.invoke("verify-user-wallet-topup", {
+        body: { payment_intent_id: resolvedPaymentIntentId },
+      });
+
+      if (verifyError) {
+        throw new Error(verifyError.message || "Could not credit wallet");
+      }
+
+      onPaid(data);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not finish payment");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 [-webkit-overflow-scrolling:touch]">
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <PaymentElement
+            onReady={() => {
+              setPaymentReady(true);
+              setPaymentLoadError(null);
+            }}
+            onLoadError={(event) => {
+              setPaymentReady(false);
+              setPaymentLoadError(event.error.message || "Payment form could not load");
+            }}
+          />
+        </div>
+        {!paymentReady && !paymentLoadError && (
+          <p className="mt-3 text-[12px] font-medium text-muted-foreground">
+            Loading secure payment form...
+          </p>
+        )}
+        {paymentLoadError && (
+          <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-[12px] font-medium text-destructive">
+            {paymentLoadError}
+          </p>
+        )}
+      </div>
+      <div className="shrink-0 border-t border-border/30 bg-background/95 px-5 pb-[max(1rem,var(--zivo-safe-bottom,0px))] pt-3 flex gap-2">
+        <Button type="button" variant="outline" className="flex-1" disabled={submitting} onClick={onBack}>
+          Back
+        </Button>
+        <Button type="submit" className="flex-1" disabled={!stripe || !elements || !paymentReady || submitting}>
+          {submitting ? "Paying..." : paymentReady ? `Pay ${formatTopupAmount(amountCents)}` : "Loading..."}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function WalletPage() {
   const navigate = useNavigate();
   const [showAddCard, setShowAddCard] = useState(false);
@@ -143,23 +252,77 @@ export default function WalletPage() {
   const { points, isLoading: pointsLoading } = useLoyaltyPoints();
   const { totals: liveEarnings, payouts: liveGiftPayouts } = useLiveEarnings();
 
-  // ── Wallet topup (Stripe Checkout) ─────────────────────────────────────
+  // ── Wallet topup (in-ZIVO Stripe Elements) ─────────────────────────────
   const [topupOpen, setTopupOpen] = useState(false);
-  const [topupAmount, setTopupAmount] = useState("");
+  const [topupAmount, setTopupAmount] = useState("25");
   const [topupBusy, setTopupBusy] = useState(false);
+  const [topupStep, setTopupStep] = useState<"amount" | "payment">("amount");
+  const [topupClientSecret, setTopupClientSecret] = useState<string | null>(null);
+  const [topupPaymentIntentId, setTopupPaymentIntentId] = useState<string | null>(null);
+  const [topupError, setTopupError] = useState<string | null>(null);
+  const topupDragControls = useDragControls();
   const TOPUP_QUICK = [10, 25, 50, 100, 250];
+  const parsedTopupAmount = Number.parseFloat(topupAmount || "0");
+  const topupAmountCents = Number.isFinite(parsedTopupAmount) ? Math.round(parsedTopupAmount * 100) : 0;
 
-  // Run a one-shot verify when redirected back from Stripe Checkout.
+  const openTopup = () => {
+    setTopupAmount((current) => current || "25");
+    setTopupStep("amount");
+    setTopupClientSecret(null);
+    setTopupPaymentIntentId(null);
+    setTopupError(null);
+    setTopupOpen(true);
+  };
+
+  const closeTopup = () => {
+    if (topupBusy) return;
+    setTopupOpen(false);
+    setTopupStep("amount");
+    setTopupClientSecret(null);
+    setTopupPaymentIntentId(null);
+    setTopupError(null);
+  };
+
+  // Run a one-shot verify when Stripe returns from an auth challenge.
+  // Also handles deep-link entry from PPV / paid-DM "Top up" CTAs:
+  //   ?topup_amount=<cents>  → opens topup sheet pre-filled
+  //   ?return_to=<url>       → after successful credit, route back automatically
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
     const status = url.searchParams.get("topup");
     const sid = url.searchParams.get("session_id");
-    if (status === "success" && sid) {
+    const paymentIntentId = url.searchParams.get("payment_intent");
+    const redirectStatus = url.searchParams.get("redirect_status");
+
+    // Deep-link entry — preserve return_to across the Stripe redirect via
+    // sessionStorage. Strip from URL so the sheet doesn't reopen on remount.
+    const deepReturnTo = url.searchParams.get("return_to");
+    if (deepReturnTo) {
+      try { window.sessionStorage.setItem("zivo:wallet-return-to", deepReturnTo); } catch { /* ignore */ }
+      url.searchParams.delete("return_to");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    }
+    const deepAmountCents = url.searchParams.get("topup_amount");
+    if (deepAmountCents) {
+      const cents = Number(deepAmountCents);
+      if (Number.isFinite(cents) && cents > 0) {
+        // Round up to the nearest dollar so the input shows a clean value.
+        const dollars = (Math.ceil(cents / 100)).toFixed(2);
+        setTopupAmount(dollars);
+        setTopupStep("amount");
+        setTopupOpen(true);
+      }
+      url.searchParams.delete("topup_amount");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    }
+
+    const shouldVerify = (status === "success" || redirectStatus === "succeeded") && (sid || paymentIntentId);
+    if (shouldVerify) {
       (async () => {
         try {
           const { data, error } = await supabase.functions.invoke("verify-user-wallet-topup", {
-            body: { session_id: sid },
+            body: paymentIntentId ? { payment_intent_id: paymentIntentId } : { session_id: sid },
           });
           if (error) {
             toast.error("Could not verify topup");
@@ -172,9 +335,26 @@ export default function WalletPage() {
           // Strip the params so we don't re-run on every reload.
           url.searchParams.delete("topup");
           url.searchParams.delete("session_id");
+          url.searchParams.delete("payment_intent");
+          url.searchParams.delete("payment_intent_client_secret");
+          url.searchParams.delete("redirect_status");
           window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
           queryClient.invalidateQueries({ queryKey: ["customer-wallet"] });
           queryClient.invalidateQueries({ queryKey: ["wallet-transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["wallet-summary"] });
+
+          // Deep-link return: route back to wherever the user started the topup
+          // (e.g. the PPV detail) so they can immediately unlock.
+          try {
+            const returnTo = window.sessionStorage.getItem("zivo:wallet-return-to");
+            if (returnTo) {
+              window.sessionStorage.removeItem("zivo:wallet-return-to");
+              // Only follow same-origin paths to prevent open-redirect.
+              if (returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+                navigate(returnTo, { replace: true });
+              }
+            }
+          } catch { /* ignore */ }
         }
       })();
     } else if (status === "cancel") {
@@ -186,69 +366,39 @@ export default function WalletPage() {
   }, []);
 
   const handleTopup = async () => {
-    const cents = Math.round(Number(topupAmount) * 100);
+    const cents = topupAmountCents;
     if (!Number.isFinite(cents) || cents < 500) {
       toast.error("Minimum topup is $5");
       return;
     }
     setTopupBusy(true);
+    setTopupError(null);
     try {
       const { data, error } = await supabase.functions.invoke("create-user-wallet-topup", {
         body: {
           amount_cents: cents,
           currency: "USD",
-          // The edge function appends &session_id={CHECKOUT_SESSION_ID} for us,
-          // so we just pass the bare path here.
-          success_url: `${window.location.origin}/wallet?topup=success`,
-          cancel_url: `${window.location.origin}/wallet?topup=cancel`,
+          ui_mode: "embedded",
         },
       });
       if (error) throw error;
-      const url = (data as any)?.url;
-      const sessionId = (data as any)?.session_id || (data as any)?.id || null;
-      if (!url) throw new Error("No checkout url returned");
-
-      // Open Stripe Checkout *inside* the app (SFSafariViewController on iOS,
-      // Custom Tabs on Android). When the user dismisses the sheet, hook into
-      // Browser.browserFinished — verify the session if we have its id, and
-      // always refetch the wallet so webhook-credited balances appear.
-      const { Capacitor } = await import("@capacitor/core");
-      if (Capacitor.isNativePlatform()) {
-        const { Browser } = await import("@capacitor/browser");
-        const listener = await Browser.addListener("browserFinished" as never, async () => {
-          try {
-            if (sessionId) {
-              const { data: vData } = await supabase.functions.invoke(
-                "verify-user-wallet-topup",
-                { body: { session_id: sessionId } },
-              );
-              if ((vData as any)?.credited) {
-                toast.success(`Wallet credited · balance $${(((vData as any).balance_cents ?? 0) / 100).toFixed(2)}`);
-              }
-            }
-          } catch { /* webhook will eventually credit; refetch covers it */ }
-          queryClient.invalidateQueries({ queryKey: ["customer-wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["wallet-transactions"] });
-          setTopupBusy(false);
-          setTopupOpen(false);
-          // Detach so a future top-up attempt registers a fresh listener
-          // instead of stacking handlers that all fire on every dismiss.
-          await listener.remove();
-        });
-        try {
-          await Browser.open({ url, presentationStyle: "popover" });
-        } catch (err) {
-          // Don't leak the listener if presentation fails.
-          await listener.remove();
-          throw err;
-        }
-        return;
+      const clientSecret = (data as any)?.client_secret;
+      const paymentIntentId = (data as any)?.payment_intent_id || null;
+      if (!clientSecret) {
+        const message = (data as any)?.url
+          ? "Payment backend needs deployment before in-ZIVO top up can start."
+          : "No in-app payment form returned.";
+        throw new Error(message);
       }
 
-      // Web fallback: full-page redirect (the existing behaviour).
-      window.location.href = url;
+      setTopupClientSecret(clientSecret);
+      setTopupPaymentIntentId(paymentIntentId);
+      setTopupStep("payment");
     } catch (e) {
-      toast.error("Could not start topup");
+      const message = e instanceof Error ? e.message : "Could not start topup";
+      setTopupError(message);
+      toast.error(message);
+    } finally {
       setTopupBusy(false);
     }
   };
@@ -399,7 +549,7 @@ export default function WalletPage() {
               </motion.p>
               <button
                 type="button"
-                onClick={() => setTopupOpen(true)}
+                onClick={openTopup}
                 className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-[#0a0a0a] text-[12px] font-bold active:scale-95 transition-transform shadow-md"
               >
                 <Plus className="w-3.5 h-3.5" /> Top up
@@ -1305,80 +1455,144 @@ export default function WalletPage() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
-          onClick={() => !topupBusy && setTopupOpen(false)}
+          onClick={closeTopup}
         >
           <motion.div
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ type: "spring", damping: 26, stiffness: 280 }}
+            drag="y"
+            dragControls={topupDragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.35 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 90 || info.velocity.y > 650) {
+                closeTopup();
+              }
+            }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-md bg-background rounded-t-2xl sm:rounded-2xl pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col overflow-hidden"
+            className="w-full sm:max-w-md max-h-[calc(100dvh-var(--zivo-safe-top,0px)-0.75rem)] bg-background rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden"
           >
-            <div className="px-5 pt-5 pb-3 border-b border-border/30">
+            <button
+              type="button"
+              aria-label="Swipe down to close"
+              onPointerDown={(event) => topupDragControls.start(event)}
+              className="shrink-0 cursor-grab touch-none px-5 pt-3 pb-1 active:cursor-grabbing"
+            >
+              <span className="mx-auto block h-1 w-11 rounded-full bg-muted-foreground/20" />
+            </button>
+
+            <div className="shrink-0 px-5 pt-2 pb-3 border-b border-border/30">
               <h3 className="text-lg font-bold">Top up wallet</h3>
               <p className="text-[12px] text-muted-foreground mt-0.5">
-                Funded by Stripe. Settles instantly after payment.
+                Pay securely inside ZIVO. Your balance updates after payment.
               </p>
             </div>
 
-            <div className="px-5 py-4 space-y-3">
-              <div className="grid grid-cols-5 gap-2">
-                {TOPUP_QUICK.map((amt) => (
-                  <button type="button"
-                    key={amt}
-                    onClick={() => setTopupAmount(String(amt))}
-                    className={`py-2 rounded-lg text-sm font-bold border transition-colors ${
-                      topupAmount === String(amt)
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-muted/40 border-border hover:bg-muted"
-                    }`}
-                  >
-                    ${amt}
-                  </button>
-                ))}
-              </div>
+            {topupStep === "amount" && (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-3 [-webkit-overflow-scrolling:touch]">
+                  <div className="grid grid-cols-5 gap-2">
+                    {TOPUP_QUICK.map((amt) => (
+                      <button type="button"
+                        key={amt}
+                        onClick={() => setTopupAmount(String(amt))}
+                        className={`py-2 rounded-lg text-sm font-bold border transition-colors ${
+                          topupAmount === String(amt)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted/40 border-border hover:bg-muted"
+                        }`}
+                      >
+                        ${amt}
+                      </button>
+                    ))}
+                  </div>
 
-              <div>
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Or enter amount
-                </label>
-                <div className="mt-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    min={5}
-                    step={1}
-                    value={topupAmount}
-                    onChange={(e) => setTopupAmount(e.target.value)}
-                    placeholder="25.00"
-                    className="pl-7 text-base font-semibold"
-                  />
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Or enter amount
+                    </label>
+                    <div className="mt-1 relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={5}
+                        step={1}
+                        value={topupAmount}
+                        onChange={(e) => setTopupAmount(e.target.value)}
+                        placeholder="Enter amount"
+                        className="pl-7 text-base font-semibold"
+                      />
+                    </div>
+                    {topupAmount && topupAmountCents > 0 && topupAmountCents < 500 && (
+                      <p className="text-[11px] text-foreground dark:text-foreground mt-1">Minimum is $5</p>
+                    )}
+                    {topupError && (
+                      <p className="mt-2 rounded-xl bg-destructive/10 px-3 py-2 text-[12px] font-medium text-destructive">
+                        {topupError}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                {topupAmount && Number(topupAmount) > 0 && Number(topupAmount) < 5 && (
-                  <p className="text-[11px] text-foreground dark:text-foreground mt-1">Minimum is $5</p>
-                )}
-              </div>
-            </div>
 
-            <div className="px-5 pb-5 pt-1 flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                disabled={topupBusy}
-                onClick={() => setTopupOpen(false)}
+                <div className="shrink-0 border-t border-border/30 bg-background/95 px-5 pb-[max(1rem,var(--zivo-safe-bottom,0px))] pt-3 flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={topupBusy}
+                    onClick={closeTopup}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={topupBusy || topupAmountCents < 500}
+                    onClick={handleTopup}
+                  >
+                    {topupBusy ? "Preparing..." : `Continue ${formatTopupAmount(topupAmountCents)}`}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {topupStep === "payment" && topupClientSecret && (
+              <Elements
+                stripe={getStripe()}
+                options={{
+                  clientSecret: topupClientSecret,
+                  appearance: {
+                    theme: "stripe",
+                    variables: {
+                      borderRadius: "12px",
+                    },
+                  },
+                }}
               >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1"
-                disabled={topupBusy || !topupAmount || Number(topupAmount) < 5}
-                onClick={handleTopup}
-              >
-                {topupBusy ? "Opening Stripe…" : `Top up $${topupAmount || "0"}`}
-              </Button>
-            </div>
+                <WalletTopupPaymentForm
+                  amountCents={topupAmountCents}
+                  paymentIntentId={topupPaymentIntentId}
+                  onBack={() => {
+                    setTopupStep("amount");
+                    setTopupClientSecret(null);
+                    setTopupPaymentIntentId(null);
+                  }}
+                  onPaid={(data) => {
+                    if (data?.credited) {
+                      toast.success(`Wallet credited · balance $${(((data as any).balance_cents ?? 0) / 100).toFixed(2)}`);
+                    } else {
+                      toast.success("Payment received");
+                    }
+                    queryClient.invalidateQueries({ queryKey: ["customer-wallet"] });
+                    queryClient.invalidateQueries({ queryKey: ["wallet-transactions"] });
+                    queryClient.invalidateQueries({ queryKey: ["wallet-summary"] });
+                    closeTopup();
+                  }}
+                />
+              </Elements>
+            )}
           </motion.div>
         </motion.div>
       )}

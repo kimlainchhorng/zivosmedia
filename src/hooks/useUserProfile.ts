@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
+import { invalidateAllStoryCaches } from "@/lib/storiesCache";
 
 export type UserProfile = {
   id: string;
@@ -193,8 +194,13 @@ export const useUploadAvatar = () => {
 
       return publicUrl;
     },
-    onSuccess: () => {
+    onSuccess: (avatarUrl) => {
+      queryClient.setQueryData<UserProfile | null>(["userProfile", user?.id], (previous) =>
+        previous ? { ...previous, avatar_url: avatarUrl } : previous,
+      );
       queryClient.invalidateQueries({ queryKey: ["userProfile", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["accountSummary", user?.id] });
+      invalidateAllStoryCaches(queryClient, user?.id);
       toast.success("Avatar updated successfully");
     },
     onError: (error) => {
@@ -236,8 +242,12 @@ export const useUploadCover = () => {
 
       return publicUrl;
     },
-    onSuccess: () => {
+    onSuccess: (coverUrl) => {
+      queryClient.setQueryData<UserProfile | null>(["userProfile", user?.id], (previous) =>
+        previous ? { ...previous, cover_url: coverUrl, cover_position: 50 } : previous,
+      );
       queryClient.invalidateQueries({ queryKey: ["userProfile", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["accountSummary", user?.id] });
       toast.success("Cover photo updated successfully");
     },
     onError: (error) => {

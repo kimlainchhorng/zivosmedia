@@ -11,6 +11,27 @@ export const slugify = (s: string) =>
 export const SLUG_TAKEN_MESSAGE =
   "That business name is already taken — try a small variation.";
 
+/**
+ * Map raw Postgres / network errors into something humans can act on.
+ * Keep the original message in the console so we still have something to grep.
+ */
+export function friendlyDbError(error: unknown): string {
+  const e = (error ?? {}) as { code?: string; message?: string };
+  const code = e.code;
+  const msg = (e.message || "").toLowerCase();
+
+  if (code === "23505") return SLUG_TAKEN_MESSAGE;
+  if (code === "23502") return "Some required info is missing — please complete the previous step and try again.";
+  if (code === "23514") return "One of the fields has an invalid value. Please double-check and try again.";
+  if (code === "42501" || msg.includes("row-level security") || msg.includes("violates row-level security policy")) {
+    return "You don't have permission to save this — try signing out and back in.";
+  }
+  if (msg.includes("network") || msg.includes("failed to fetch")) {
+    return "Couldn't reach the server — please check your connection and try again.";
+  }
+  return "Couldn't save your progress. Please try again in a moment.";
+}
+
 /** Find a slug that isn't taken by another owner. Returns null if all attempts collide. */
 export async function findAvailableSlug(
   base: string,
@@ -75,12 +96,13 @@ export async function persistWizardPartial({
     if (!slug) return { id: null, error: SLUG_TAKEN_MESSAGE };
 
     // store_profiles has no `email` column — keep it out of the payload.
+    // `category` is NOT NULL with a DB default — only include it when the
+    // user has actually picked one (Step 2+) so early drafts can save.
     const payload: Record<string, unknown> = {
       owner_id: userId,
       name: snapshot.bizName.trim(),
       slug,
       description: snapshot.bizDescription.trim() || null,
-      category: snapshot.category || null,
       phone: snapshot.bizPhone.replace(/\D/g, "") || null,
       logo_url: snapshot.logoUrl,
       banner_url: snapshot.bannerUrl,
@@ -91,6 +113,9 @@ export async function persistWizardPartial({
       telegram_url: snapshot.telegramUrl.trim() || null,
       setup_complete: false,
     };
+    if (snapshot.category) {
+      payload.category = snapshot.category;
+    }
     if (snapshot.paymentTypes.length > 0) {
       payload.payment_types = snapshot.paymentTypes;
     }
@@ -103,8 +128,8 @@ export async function persistWizardPartial({
         .update(payload as never)
         .eq("id", storeId);
       if (error) {
-        if ((error as any).code === "23505") return { id: null, error: SLUG_TAKEN_MESSAGE };
-        return { id: null, error: error.message };
+        console.error("[wizardPersistence] update failed", error);
+        return { id: null, error: friendlyDbError(error) };
       }
     } else {
       const { data, error } = await supabase
@@ -113,8 +138,8 @@ export async function persistWizardPartial({
         .select("id")
         .single();
       if (error) {
-        if ((error as any).code === "23505") return { id: null, error: SLUG_TAKEN_MESSAGE };
-        return { id: null, error: error.message };
+        console.error("[wizardPersistence] insert failed", error);
+        return { id: null, error: friendlyDbError(error) };
       }
       nextId = (data as any).id;
     }
@@ -133,6 +158,7 @@ export async function persistWizardPartial({
 
     return { id: nextId };
   } catch (e: any) {
-    return { id: null, error: e?.message || "Could not save progress" };
+    console.error("[wizardPersistence] unexpected error", e);
+    return { id: null, error: friendlyDbError(e) };
   }
 }

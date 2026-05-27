@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "skipLibCheck": true,
+    "strictNullChecks": false
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}

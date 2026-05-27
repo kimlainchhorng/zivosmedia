@@ -1,0 +1,110 @@
+name: Lodging wiring check
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'src/lib/admin/**'
+      - 'src/pages/admin/AdminLodgingWiringCheckPage.tsx'
+      - 'scripts/wiring-check.ts'
+      - '.github/workflows/wiring-check.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  wiring-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Run wiring check
+        id: wiring
+        continue-on-error: true
+        env:
+          CI: 'true'
+          SUPABASE_URL: 'https://slirphzzwcogdbkeicff.supabase.co'
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: deno run --allow-net --allow-env --allow-write scripts/wiring-check.ts
+
+      - name: Upload CSV artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wiring-report-${{ github.sha }}
+          path: |
+            wiring-report.csv
+            wiring-report.json
+          if-no-files-found: warn
+
+      - name: Comment on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let report = null;
+            try {
+              const raw = fs.readFileSync('./wiring-report.json', 'utf8');
+              report = JSON.parse(raw);
+            } catch (_) {
+              report = { pass: 0, fail: -1, error: 'wiring-report.json not produced' };
+            }
+
+            const pass = report.pass ?? 0;
+            const fail = report.fail ?? 0;
+            const newF = report.new_failures ?? 0;
+            const checks = report.report?.checks || [];
+            const failing = checks.filter(c => !c.pass);
+
+            const status = fail === 0 ? '✅ PASS' : '❌ FAIL';
+            let body = `## ${status} — Lodging wiring check\n\n`;
+            body += `- **Pass:** ${pass}\n- **Fail:** ${fail}\n- **New regressions:** ${newF}\n\n`;
+
+            if (failing.length > 0) {
+              body += `### Failing checks\n`;
+              for (const c of failing.slice(0, 25)) {
+                const msg = (c.message || '').slice(0, 80);
+                body += `- **${c.name}** _(${c.group})_ — ${msg}\n`;
+              }
+              if (failing.length > 25) body += `\n…and ${failing.length - 25} more.\n`;
+            }
+
+            body += `\n📎 Full CSV available in the workflow artifact \`wiring-report-${{ github.sha }}\`.`;
+            body += `\n<sub>sticky-comment: lodging-wiring-check</sub>`;
+
+            // Sticky: find existing comment with our marker and update it.
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes('sticky-comment: lodging-wiring-check'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail job on wiring failure
+        if: steps.wiring.outcome == 'failure'
+        run: |
+          echo "Wiring check reported failures — failing the job."
+          exit 1

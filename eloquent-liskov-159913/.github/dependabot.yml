@@ -1,0 +1,51 @@
+version: 2
+updates:
+  # npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    groups:
+      # Group all Capacitor packages into one PR
+      capacitor:
+        patterns:
+          - "@capacitor/*"
+      # Group all Radix UI packages
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+      # Group all TanStack packages
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      # Group Stripe packages
+      stripe:
+        patterns:
+          - "@stripe/*"
+      # Group testing tools
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "playwright"
+          - "@playwright/*"
+    ignore:
+      # Only patch/minor for react — major bumps need manual testing
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5

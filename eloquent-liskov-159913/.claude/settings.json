@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:4173/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:4175/)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl -s \"http://127.0.0.1:4175/feed\")",
+      "Bash(grep -n \"^  return \\($\\\\|^  return \\(\" src/pages/ReelsFeedPage.tsx)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\abiga\\\\OneDrive\\\\Documents\\\\GitHub\\\\myzivo\\\\myzivo\\\\src\" -Recurse -Filter \"*.tsx\" -Depth 3)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell(head -30)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\abiga\\\\OneDrive\\\\Documents\\\\GitHub\\\\myzivo\\\\myzivo\\\\src\\\\pages\" -Recurse -Filter \"*.tsx\")",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem src *)",
+      "Bash(Select-Object Name)",
+      "Read(//c/Users/abiga/OneDMove/Documents/GitHub/myzivo/myzivo/src/components/chat/**)",
+      "Bash(grep -n \"1200\\\\|500\\\\|2500\\\\|3000\\\\|[\\\\$£€]\" \"c:/Users/abiga/OneDrive/Documents/GitHub/myzivo/myzivo/src/pages/app/personal/PersonalPayStubsPage.tsx\")",
+      "Bash(grep -E \"\\\\.ts$|\\\\.tsx$\")"
+    ]
+  }
+}

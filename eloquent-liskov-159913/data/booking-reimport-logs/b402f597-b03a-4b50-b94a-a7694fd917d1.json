@@ -1,0 +1,37 @@
+{
+  "run_at": "2026-05-16T23:03:54.535Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort",
+      "guesthouse",
+      "hostel",
+      "villa",
+      "lodge",
+      "motel",
+      "inn",
+      "boutique"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "b402f597-b03a-4b50-b94a-a7694fd917d1",
+      "name": "Farmhouse Resort & Spa",
+      "status": "updated",
+      "photos": 64,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/farmhouse-smiling-gecko.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

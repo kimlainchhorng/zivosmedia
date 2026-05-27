@@ -6,9 +6,19 @@
  * EMVCo / NBC Bakong KHQR specification.
  */
 
-/** Static merchant QR string (no amount). Source of truth for merchant info. */
-const STATIC_KHQR =
+/** Fallback static merchant QR string (no amount). Source of truth for merchant info. */
+const DEFAULT_STATIC_KHQR =
   "00020101021130510016abaakhppxxx@abaa01151260319063643400208ABA Bank5204421553031165802KH5915CHHORNG KIMLAIN6010PHNOM PENH624168370010PAYWAY@ABA0106941478020903218711963040E41";
+
+/**
+ * Public merchant QR used to derive the receiving account.
+ *
+ * Set VITE_KHQR_STATIC_MERCHANT_QR to your own static Bakong/KHQR merchant QR
+ * before deploying. This value is safe to expose: it is the same QR customers
+ * would see at the counter.
+ */
+const STATIC_KHQR =
+  import.meta.env.VITE_KHQR_STATIC_MERCHANT_QR?.trim() || DEFAULT_STATIC_KHQR;
 
 const USD_TO_KHR = 4062.5;
 
@@ -42,19 +52,49 @@ interface ParsedTlv {
   [tag: string]: string;
 }
 
-/** Parse a flat TLV string into { tag → value } map. */
-function parseTlv(s: string): ParsedTlv {
-  const out: ParsedTlv = {};
+type TlvEntry = [tag: string, value: string];
+
+function stripCrc(qr: string): string {
+  return qr.replace(/6304[0-9A-Fa-f]{4}$/, "");
+}
+
+/** Parse a flat TLV string into ordered [tag, value] entries. */
+function parseTlvEntries(s: string): TlvEntry[] {
+  const out: TlvEntry[] = [];
   let i = 0;
-  while (i < s.length - 4) {
+  while (i <= s.length - 4) {
     const tag = s.slice(i, i + 2);
     const len = parseInt(s.slice(i + 2, i + 4), 10);
     if (Number.isNaN(len)) break;
     const val = s.slice(i + 4, i + 4 + len);
-    out[tag] = val;
+    if (val.length !== len) break;
+    out.push([tag, val]);
     i += 4 + len;
   }
   return out;
+}
+
+/** Parse a flat TLV string into { tag -> value } map. */
+function parseTlv(s: string): ParsedTlv {
+  return Object.fromEntries(parseTlvEntries(s));
+}
+
+function upsertNestedTlv(existing: string | undefined, tag: string, value: string): string {
+  const entries = parseTlvEntries(existing || "");
+  let replaced = false;
+  const next = entries.map(([entryTag, entryValue]): TlvEntry => {
+    if (entryTag === tag) {
+      replaced = true;
+      return [tag, value];
+    }
+    return [entryTag, entryValue];
+  });
+  if (!replaced) next.push([tag, value]);
+  return next.map(([entryTag, entryValue]) => tlv(entryTag, entryValue)).join("");
+}
+
+function formatKhqrAmount(amount: number, currency: Currency): string {
+  return currency === "KHR" ? String(Math.round(amount)) : amount.toFixed(2);
 }
 
 /**
@@ -70,19 +110,19 @@ export function buildDynamicKhqr(
   reference?: string
 ): string {
   // Strip CRC (last 8 chars: "6304XXXX") and parse remaining fields.
-  const body = STATIC_KHQR.slice(0, -8);
+  const body = stripCrc(STATIC_KHQR);
   const fields = parseTlv(body);
 
   // Override / inject:
   fields["01"] = "12"; // dynamic
   fields["52"] = fields["52"] || "4215"; // MCC
   fields["53"] = CURRENCY[currency]; // currency
-  fields["54"] = amount.toFixed(2); // amount
+  fields["54"] = formatKhqrAmount(amount, currency); // amount
 
   if (reference) {
     // Tag 62 = additional data; subtag 01 = bill / reference.
     const ref = reference.slice(0, 25);
-    fields["62"] = tlv("01", ref);
+    fields["62"] = upsertNestedTlv(fields["62"], "01", ref);
   }
 
   // Reassemble in canonical order.
@@ -101,4 +141,16 @@ export function buildDynamicKhqr(
 /** Format USD amount as KHR string (rounded to nearest riel). */
 export function usdToKhrString(usd: number): string {
   return Math.round(usd * USD_TO_KHR).toLocaleString();
+}
+
+export function getKhqrMerchantName(): string {
+  return parseTlv(stripCrc(STATIC_KHQR))["59"] || "Bakong merchant";
+}
+
+export function formatBakongBillId(reference?: string | null): string | null {
+  if (!reference) return null;
+  const trimmed = reference.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split("-").filter(Boolean);
+  return (parts[parts.length - 1] || trimmed.slice(-8)).toUpperCase();
 }

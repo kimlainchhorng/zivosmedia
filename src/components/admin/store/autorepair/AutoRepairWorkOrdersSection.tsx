@@ -2,7 +2,7 @@
  * Auto Repair — Work Orders
  * List + Kanban, tech assignment, edit, KPI strip, Convert to Invoice.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
+import ServiceCatalogPickerDialog from "./ServiceCatalogPickerDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
+import { suggestReminders } from "@/lib/autorepair/serviceIntervals";
 
 interface Props { storeId: string }
 
@@ -52,6 +54,15 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(blankForm);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+
+  useEffect(() => {
+    const search = sessionStorage.getItem("ar_workorder_search");
+    if (search) {
+      setQ(search);
+      sessionStorage.removeItem("ar_workorder_search");
+    }
+  }, []);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["ar-work-orders", storeId],
@@ -151,12 +162,52 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
+  const scheduleFollowUps = async (wo: any) => {
+    const text = [wo.notes, wo.customer_name, wo.vehicle_label,
+      Array.isArray(wo.parts_used) ? wo.parts_used.map((p: any) => p?.name).filter(Boolean).join(" ") : "",
+    ].filter(Boolean).join(" ");
+    const mileage = wo.mileage_in != null ? Number(wo.mileage_in) : null;
+    const suggestions = suggestReminders({ text, currentMileage: mileage });
+    if (suggestions.length === 0) return 0;
+    const rows = suggestions.map((s) => ({
+      store_id: storeId,
+      reminder_type: s.reminderType,
+      channel: "email" as const,
+      status: "scheduled" as const,
+      due_at: s.dueAtIso,
+      due_mileage: s.dueMileage,
+      customer_name: wo.customer_name ?? null,
+      customer_phone: wo.customer_phone ?? null,
+      customer_email: wo.customer_email ?? null,
+      vehicle_label: wo.vehicle_label ?? null,
+      vehicle_id: wo.vehicle_id ?? null,
+      source_workorder_id: wo.id,
+      message: `Follow-up for ${s.reminderType} from RO ${wo.number || wo.id}`,
+    }));
+    const { error } = await supabase.from("ar_service_reminders" as any).upsert(rows, {
+      onConflict: "source_workorder_id,reminder_type",
+      ignoreDuplicates: true,
+    });
+    if (error) {
+      console.warn("Could not auto-schedule reminders:", error.message);
+      return 0;
+    }
+    return suggestions.length;
+  };
+
   const update = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: any }) => {
+    mutationFn: async ({ id, patch, source }: { id: string; patch: any; source?: any }) => {
       const { error } = await supabase.from("ar_work_orders" as any).update(patch).eq("id", id);
       if (error) throw error;
+      if (patch?.status === "done" && source) {
+        const count = await scheduleFollowUps(source);
+        if (count > 0) toast.success(`Scheduled ${count} follow-up reminder${count === 1 ? "" : "s"}`, { duration: 4000 });
+      }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-reminders", storeId] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -198,11 +249,15 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
       if (error) throw error;
       await supabase.from("ar_work_orders" as any)
         .update({ status: "done", converted_invoice: true }).eq("id", o.id);
+      const reminderCount = await scheduleFollowUps(o);
+      return { reminderCount };
     },
-    onSuccess: () => {
-      toast.success("Converted to Invoice — check the Invoices tab");
+    onSuccess: (res: any) => {
+      const remPart = res?.reminderCount ? ` · ${res.reminderCount} follow-up reminder${res.reminderCount === 1 ? "" : "s"} scheduled` : "";
+      toast.success(`Converted to Invoice${remPart}`);
       qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-invoices", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-reminders", storeId] });
     },
     onError: (e: any) => toast.error(e.message ?? "Conversion failed"),
   });
@@ -269,7 +324,7 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
           )}
           {o.status !== "done" && (
             <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600" title="Mark Done"
-              onClick={() => update.mutate({ id: o.id, patch: { status: "done", completed_at: new Date().toISOString() } })}>
+              onClick={() => update.mutate({ id: o.id, patch: { status: "done", completed_at: new Date().toISOString() }, source: o })}>
               <CheckCheck className="w-3.5 h-3.5" />
             </Button>
           )}
@@ -435,6 +490,30 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
         }}
       />
 
+      <ServiceCatalogPickerDialog
+        open={catalogOpen}
+        onOpenChange={setCatalogOpen}
+        storeId={storeId}
+        title="Price Book — apply service"
+        onPick={(lines, service) => {
+          const laborLine = lines.find((l) => l.kind === "labor");
+          const hours = laborLine ? laborLine.qty : Number(service.labor_hours ?? 0);
+          const laborCents = Math.round(hours * Number(service.labor_rate_cents ?? 0));
+          const partsCents = (service.parts ?? []).reduce(
+            (s: number, p: any) => s + Math.round(Number(p?.qty ?? 0) * Number(p?.unit_cents ?? 0)),
+            0,
+          );
+          const total = laborCents + partsCents;
+          setForm((f) => ({
+            ...f,
+            labor_hours: hours > 0 ? String(hours) : f.labor_hours,
+            total_cents_str: total > 0 ? (total / 100).toFixed(2) : f.total_cents_str,
+            notes: f.notes ? `${f.notes}\n${service.name}` : service.name,
+          }));
+          toast.success(`Applied "${service.name}" from Price Book`);
+        }}
+      />
+
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -478,13 +557,22 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs">Labor hours</Label>
-                  <button
-                    type="button"
-                    onClick={() => setGuideOpen(true)}
-                    className="flex items-center gap-1 text-[11px] text-primary font-medium hover:underline"
-                  >
-                    <BookOpen className="w-3 h-3" /> Labor Guide
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCatalogOpen(true)}
+                      className="flex items-center gap-1 text-[11px] text-primary font-medium hover:underline"
+                    >
+                      <BookOpen className="w-3 h-3" /> Price Book
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGuideOpen(true)}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium hover:underline"
+                    >
+                      Labor Guide
+                    </button>
+                  </div>
                 </div>
                 <Input type="number" min="0" step="0.5" placeholder="e.g. 2.5" value={form.labor_hours}
                   onChange={(e) => setForm({ ...form, labor_hours: e.target.value })} />
