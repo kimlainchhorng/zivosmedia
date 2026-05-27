@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { signedUrlFor } from "@/lib/security/signedMedia";
 import PPVPostDetail from "@/components/ppv/PPVPostDetail";
 
-type Tab = "mine" | "unlocked";
+type Tab = "mine" | "unlocked" | "paid-dms";
 
 type PPVPost = {
   id: string;
@@ -105,6 +105,48 @@ export default function PPVPostsPage() {
     enabled: !!user,
   });
 
+  // Fan's paid DM unlocks — locked text/media messages the user has paid to
+  // read. Joined with direct_messages for the snippet + sender info.
+  const { data: dmUnlocks = [] } = useQuery({
+    queryKey: ["dm-unlocks", "fan-inbox", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await (supabase as any)
+        .from("direct_message_unlocks")
+        .select(
+          "id, unlocked_at, amount_cents_paid, creator_id, message_id, direct_messages:message_id(id, message, message_type, sender_id, created_at)"
+        )
+        .eq("unlocker_id", user.id)
+        .order("unlocked_at", { ascending: false });
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+    enabled: !!user,
+  });
+
+  // Resolve creator display names in one round-trip for the paid DM list.
+  const creatorIds = useMemo(
+    () => Array.from(new Set(dmUnlocks.map((u: any) => u.creator_id))),
+    [dmUnlocks]
+  );
+  const { data: dmCreatorProfiles = {} as Record<string, { full_name: string | null; avatar_url: string | null }> } = useQuery({
+    queryKey: ["dm-unlock-creators", creatorIds.sort().join(",")],
+    queryFn: async () => {
+      if (creatorIds.length === 0) return {};
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", creatorIds);
+      const map: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
+      ((data as any[]) ?? []).forEach((p) => {
+        map[p.user_id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+      });
+      return map;
+    },
+    enabled: creatorIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const totals = useMemo(() => {
     const revenue = myPosts.reduce((s, p) => s + p.revenue_cents, 0);
     const unlockCount = myPosts.reduce((s, p) => s + p.unlock_count, 0);
@@ -157,7 +199,7 @@ export default function PPVPostsPage() {
 
         {/* Tabs */}
         <div className="flex border-t border-border/30">
-          {(["mine", "unlocked"] as const).map((t) => (
+          {(["mine", "unlocked", "paid-dms"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -167,7 +209,7 @@ export default function PPVPostsPage() {
                 tab === t ? "text-rose-500" : "text-muted-foreground"
               )}
             >
-              {t === "mine" ? "My Posts" : "Unlocked"}
+              {t === "mine" ? "My Posts" : t === "unlocked" ? "Unlocked" : "Paid DMs"}
               {tab === t && (
                 <motion.div
                   layoutId="ppv-tab-bar"
@@ -289,6 +331,54 @@ export default function PPVPostsPage() {
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground self-center shrink-0" />
               </div>
+            );
+          })}
+
+        {tab === "paid-dms" && dmUnlocks.length === 0 && (
+          <EmptyState
+            title="No paid DMs yet"
+            desc="Locked messages you pay to read will appear here."
+            cta="Open chat"
+            onCta={() => navigate("/chat")}
+          />
+        )}
+
+        {tab === "paid-dms" &&
+          dmUnlocks.map((u: any) => {
+            const msg = u.direct_messages;
+            const profile = dmCreatorProfiles[u.creator_id];
+            const name = profile?.full_name || "Creator";
+            const messageType = msg?.message_type as string | undefined;
+            const isMediaUnlock = messageType === "locked_image" || messageType === "locked_video";
+            const snippet = isMediaUnlock
+              ? messageType === "locked_video"
+                ? "🎥 Locked video"
+                : "📷 Locked photo"
+              : (msg?.message as string | undefined) || "Locked message";
+            return (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => navigate(`/chat?with=${u.creator_id}`)}
+                className="w-full text-left flex gap-3 p-3 rounded-2xl border border-border/40 bg-card hover:border-rose-500/40 transition-colors"
+              >
+                <div className="h-12 w-12 rounded-full bg-muted overflow-hidden shrink-0">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-rose-500/25 to-pink-500/15" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-[13px] truncate">{name}</p>
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{snippet}</p>
+                  <p className="text-[10px] text-emerald-500 font-bold mt-1">
+                    Unlocked · ${(u.amount_cents_paid / 100).toFixed(2)} ·{" "}
+                    {formatDistanceToNow(new Date(u.unlocked_at), { addSuffix: true })}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground self-center shrink-0" />
+              </button>
             );
           })}
       </div>

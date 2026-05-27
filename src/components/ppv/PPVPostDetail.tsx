@@ -10,19 +10,21 @@
  * Payment integration (wallet / Stripe) is layered on later; this component
  * just records the unlock in the table — same pattern as creator_tips.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, lazy, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, Lock, Loader2, DollarSign, Users, Eye, CheckCircle2, Flame,
-  Pencil, Trash2, EyeOff, MoreVertical, X, Check, ChevronRight, Crown,
+  Pencil, Trash2, EyeOff, MoreVertical, X, Check, ChevronRight, Crown, Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { signedUrlFor, signedUrlsFor } from "@/lib/security/signedMedia";
 import { cn } from "@/lib/utils";
+
+const TipSheet = lazy(() => import("@/components/social/TipSheet"));
 
 interface PPVPost {
   id: string;
@@ -56,6 +58,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
   const [editFreeForSubs, setEditFreeForSubs] = useState(false);
   const [previewAsFan, setPreviewAsFan] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
 
   const { data: post, isLoading } = useQuery({
     queryKey: ["ppv-post", postId],
@@ -539,6 +542,24 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
             )}
           </div>
 
+          {/* Post-unlock tip CTA — appears once the visitor has unlocked */}
+          {!isOwner && !!unlock && (
+            <button
+              type="button"
+              onClick={() => setTipOpen(true)}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-rose-500/30 bg-gradient-to-r from-rose-500/10 to-pink-500/5 hover:from-rose-500/15 hover:to-pink-500/10 transition-colors text-left active:scale-[0.99]"
+            >
+              <div className="h-9 w-9 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
+                <Heart className="h-4 w-4 text-rose-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-extrabold text-[13px]">Loved it? Tip the creator</p>
+                <p className="text-[10px] text-muted-foreground">100% goes to {creator?.full_name || "the creator"}</p>
+              </div>
+              <span className="text-[11px] font-extrabold text-rose-500">Tip →</span>
+            </button>
+          )}
+
           {/* Subscriber-tier badge — surfaces the bundled-benefit upfront */}
           {!isOwner && !unlock && post.free_for_subscribers && (
             <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-start gap-2.5">
@@ -778,6 +799,19 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Tip sheet — opened from the post-unlock CTA */}
+      {tipOpen && post && (
+        <Suspense fallback={null}>
+          <TipSheet
+            open={tipOpen}
+            onClose={() => setTipOpen(false)}
+            creatorId={post.creator_id}
+            creatorName={creator?.full_name || creator?.username || "Creator"}
+            creatorAvatar={creator?.avatar_url ?? null}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
