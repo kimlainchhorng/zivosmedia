@@ -31,6 +31,8 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = true
   [functions.chat-send-premium-gift]
     verify_jwt = true
+  [functions.chat-unlock-group-media]
+    verify_jwt = true
   [functions.stripe-lodging-webhook]
     verify_jwt = false
   [functions.dispatch-escalate]

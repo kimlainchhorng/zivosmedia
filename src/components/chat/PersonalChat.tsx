@@ -55,6 +55,8 @@ import Ban from "lucide-react/dist/esm/icons/ban";
 import Flag from "lucide-react/dist/esm/icons/flag";
 import Eraser from "lucide-react/dist/esm/icons/eraser";
 import PhoneCall from "lucide-react/dist/esm/icons/phone-call";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -828,7 +830,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     : "On";
   const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [showMediaGallery, setShowMediaGallery] = useState(false);
-  const [mediaGalleryTab, setMediaGalleryTab] = useState<"photos" | "videos" | "voice" | "files" | "links">("photos");
+  const [mediaGalleryTab, setMediaGalleryTab] = useState<"photos" | "videos" | "gif" | "music" | "voice" | "files" | "links">("photos");
   const [showStickerKeyboard, setShowStickerKeyboard] = useState(false);
   const [showAutoDelete, setShowAutoDelete] = useState(false);
   const [showMiniApps, setShowMiniApps] = useState(false);
@@ -1762,6 +1764,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       );
       toast.error(navigator.onLine ? "Still couldn't send — try again" : "You're offline");
     }
+  }, []);
+
+  const discardFailedSend = useCallback((optimisticId: string) => {
+    failedSendsRef.current.delete(optimisticId);
+    outboxRemove(optimisticId);
+    setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
   }, []);
 
   // Auto-retry queued failed messages when the network comes back.
@@ -3813,7 +3821,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         forwardedFromName={msg.forwarded_from_user_id ? (forwardedNames[msg.forwarded_from_user_id] ?? null) : null}
                         onMiniAppAction={handleMiniAppAction}
                         autoTranslate={autoTranslate}
-                        />                    )}
+                      />
+                    )}
 
                     {/* Aggregated emoji reactions chip row — pre-loaded to avoid N+1 queries */}
                     {!msg.id.startsWith("opt-") && msg.message_type !== "media_album" && (
@@ -3824,15 +3833,30 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       />
                     )}
 
-                    {/* Failed-send indicator with tap-to-retry */}
+                    {/* Failed-send recovery controls */}
                     {msg._upload_status === "failed" && isMe && (
-                      <button type="button"
-                        onClick={() => retryFailedSend(msg.id)}
-                        className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 text-[11px] font-medium text-destructive hover:underline"
-                      >
-                        <span aria-hidden>!</span>
-                        Failed · Tap to retry
-                      </button>
+                      <div className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-1.5 py-1 text-[11px] font-medium text-destructive">
+                        <span className="px-1">Failed</span>
+                        <button
+                          type="button"
+                          onClick={() => retryFailedSend(msg.id)}
+                          className="inline-flex h-6 items-center gap-1 rounded-full px-2 hover:bg-destructive/10"
+                          aria-label="Resend failed message"
+                          title="Resend"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Resend
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => discardFailedSend(msg.id)}
+                          className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-destructive/10"
+                          aria-label="Discard failed message"
+                          title="Discard"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
                     )}
                   </motion.div>
                   </div>
@@ -4045,9 +4069,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   });
                 }
               }}
-              renderTrigger={(open) => {
+              onOpenPickerReady={(open) => {
                 filePickerTriggerRef.current = open;
-                return null;
               }}
             />
 
@@ -4240,9 +4263,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           <ChatMediaGallery
             open={showMediaGallery}
             onClose={() => setShowMediaGallery(false)}
-            recipientId={recipientId}
-            recipientName={recipientName}
+            source={{
+              type: "dm",
+              recipientId,
+              recipientName,
+              isMessageUnlocked: dmUnlocks.isUnlocked,
+            }}
             initialTab={mediaGalleryTab}
+            onJumpToMessage={scrollToMessage}
           />
         </Suspense>
       )}
@@ -4341,6 +4369,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             onOpenSecurity={() => { setShowContactInfo(false); setShowSecurity(true); }}
             onOpenMiniApps={() => { setShowContactInfo(false); setShowMiniApps(true); }}
             onOpenNotifSettings={() => { setShowContactInfo(false); setShowNotifSettings(true); }}
+            onOpenGifs={() => { setMediaGalleryTab("gif"); setShowContactInfo(false); setShowMediaGallery(true); }}
+            onOpenMusic={() => { setMediaGalleryTab("music"); setShowContactInfo(false); setShowMediaGallery(true); }}
             onOpenFiles={() => { setMediaGalleryTab("files"); setShowContactInfo(false); setShowMediaGallery(true); }}
             onOpenLinks={() => { setMediaGalleryTab("links"); setShowContactInfo(false); setShowMediaGallery(true); }}
           />

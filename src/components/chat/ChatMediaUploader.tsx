@@ -1,7 +1,7 @@
 /**
  * ChatMediaUploader — Enhanced file/media sharing with documents, progress tracking
  */
-import { useState, useRef, useCallback, type ReactNode } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { signedUrlFor } from "@/lib/security/signedMedia";
@@ -28,7 +28,7 @@ interface ChatMediaUploaderProps {
     fileType?: string;
     fileSize?: number;
   }) => void;
-  renderTrigger?: (openFilePicker: (kind?: ChatMediaUploadPicker) => void) => ReactNode;
+  onOpenPickerReady?: (openFilePicker: ((kind?: ChatMediaUploadPicker) => void) | null) => void;
 }
 
 const FILE_LIMITS: Record<UploadCategory, number> = {
@@ -56,23 +56,48 @@ function getFileIcon(type: string) {
   return <FileText className="w-5 h-5 text-orange-500" />;
 }
 
-export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: ChatMediaUploaderProps) {
+export function ChatMediaUploader({ recipientId, onMediaSent, onOpenPickerReady }: ChatMediaUploaderProps) {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [preview, setPreview] = useState<{ url: string; name: string; size: number; type: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewObjectUrlRef = useRef<string | null>(null);
+  const activeUploadIdRef = useRef(0);
 
   const openFilePicker = useCallback((kind: ChatMediaUploadPicker = "document") => {
+    if (uploading) return;
     if (fileRef.current) {
       fileRef.current.accept = ACCEPT_TYPES[kind];
       fileRef.current.click();
     }
+  }, [uploading]);
+
+  useEffect(() => {
+    onOpenPickerReady?.(openFilePicker);
+    return () => onOpenPickerReady?.(null);
+  }, [onOpenPickerReady, openFilePicker]);
+
+  const clearPreviewObjectUrl = useCallback(() => {
+    if (!previewObjectUrlRef.current) return;
+    URL.revokeObjectURL(previewObjectUrlRef.current);
+    previewObjectUrlRef.current = null;
   }, []);
+
+  const resetPickerState = useCallback(() => {
+    clearPreviewObjectUrl();
+    setUploading(false);
+    setProgress(0);
+    setPreview(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }, [clearPreviewObjectUrl]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
+    if (!file || !user?.id) {
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
 
     const category: UploadCategory = file.type.startsWith("image")
       ? "image"
@@ -85,6 +110,7 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
 
     if (file.size > limit) {
       toast.error(`File must be under ${formatFileSize(limit)}`);
+      resetPickerState();
       return;
     }
 
@@ -92,26 +118,32 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
     const securityCheck = validateFileClient(file, category as FileCategory);
     if (!securityCheck.ok) {
       toast.error(securityCheck.error ?? "File rejected");
+      resetPickerState();
       return;
     }
 
     // Preview
     if (file.type.startsWith("image")) {
       const url = URL.createObjectURL(file);
+      previewObjectUrlRef.current = url;
       setPreview({ url, name: file.name, size: file.size, type: file.type });
     } else {
       setPreview({ url: "", name: file.name, size: file.size, type: file.type });
     }
 
     // Upload
+    const uploadId = activeUploadIdRef.current + 1;
+    activeUploadIdRef.current = uploadId;
     setUploading(true);
     setProgress(0);
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
 
     try {
       const ext = file.name.split(".").pop() || "bin";
       const path = `${user.id}/${Date.now()}.${ext}`;
 
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
+        if (activeUploadIdRef.current !== uploadId) return;
         setProgress((p) => Math.min(p + 15, 85));
       }, 200);
 
@@ -119,7 +151,10 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
         .from("chat-media-files")
         .upload(path, file, { contentType: file.type });
 
-      clearInterval(progressInterval);
+      if (activeUploadIdRef.current !== uploadId) {
+        await supabase.storage.from("chat-media-files").remove([path]).catch(() => {});
+        return;
+      }
 
       if (error) throw error;
 
@@ -153,20 +188,20 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
 
       toast.success("File sent");
     } catch {
-      toast.error("Upload failed");
+      if (activeUploadIdRef.current === uploadId) {
+        toast.error("Upload failed");
+      }
+    } finally {
+      if (progressInterval) clearInterval(progressInterval);
+      if (activeUploadIdRef.current === uploadId) {
+        resetPickerState();
+      }
     }
-
-    setUploading(false);
-    setProgress(0);
-    setPreview(null);
-    if (fileRef.current) fileRef.current.value = "";
-  }, [user?.id, recipientId, onMediaSent]);
+  }, [user?.id, recipientId, onMediaSent, resetPickerState]);
 
   const cancelUpload = () => {
-    setPreview(null);
-    setUploading(false);
-    setProgress(0);
-    if (fileRef.current) fileRef.current.value = "";
+    activeUploadIdRef.current += 1;
+    resetPickerState();
   };
 
   return (
@@ -180,9 +215,6 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
         className="hidden"
         onChange={handleFileSelect}
       />
-
-      {/* eslint-disable-next-line react-hooks/refs -- trigger calls the picker from user events, not during render */}
-      {renderTrigger?.(openFilePicker)}
 
       {/* Upload progress overlay */}
       <AnimatePresence>

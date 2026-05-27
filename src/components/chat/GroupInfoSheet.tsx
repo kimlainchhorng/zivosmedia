@@ -99,6 +99,8 @@ interface Props {
   onSearch: () => void;
   onOpenInvites: () => void;
   onOpenPinned?: () => void;
+  onOpenMediaTab?: (tab: Exclude<GroupInfoTab, "members">) => void;
+  isMessageUnlocked?: (messageId: string) => boolean;
   onStartCall: (kind: "audio" | "video") => void;
   onGroupUpdated: (patch: { name?: string; avatar?: string | null }) => void;
   onMembersChanged: () => void;
@@ -212,6 +214,8 @@ export default function GroupInfoSheet({
   onSearch,
   onOpenInvites,
   onOpenPinned,
+  onOpenMediaTab,
+  isMessageUnlocked,
   onStartCall,
   onGroupUpdated,
   onMembersChanged,
@@ -361,6 +365,14 @@ export default function GroupInfoSheet({
   const initials = initialsFor(groupName);
   const sharedMediaCount = photoMessages.length + videoMessages.length + gifMessages.length;
   const sharedFilesCount = fileMessages.length + voiceMessages.length + musicMessages.length;
+
+  const openMediaTab = (nextTab: Exclude<GroupInfoTab, "members">) => {
+    if (onOpenMediaTab) {
+      onOpenMediaTab(nextTab);
+      return;
+    }
+    setTab(nextTab);
+  };
 
   const handleSaveName = async () => {
     const nextName = draftName.trim();
@@ -608,7 +620,7 @@ export default function GroupInfoSheet({
                 icon={HardDrive}
                 label="Storage and media"
                 value={`${sharedMediaCount} media, ${sharedFilesCount} files`}
-                onClick={() => setTab(photoMessages.length > 0 ? "photos" : videoMessages.length > 0 ? "videos" : sharedFilesCount > 0 ? "files" : "photos")}
+                onClick={() => openMediaTab(photoMessages.length > 0 ? "photos" : videoMessages.length > 0 ? "videos" : sharedFilesCount > 0 ? "files" : "photos")}
               />
               <InfoSettingRow
                 icon={ShieldCheck}
@@ -663,7 +675,7 @@ export default function GroupInfoSheet({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setTab(item.id)}
+                  onClick={() => item.id === "members" ? setTab(item.id) : openMediaTab(item.id)}
                   className={cn(
                     "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
                     tab === item.id ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground",
@@ -770,7 +782,12 @@ export default function GroupInfoSheet({
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">
                   {photoMessages.map((message) => (
-                    <GroupMediaTile key={message.id} message={message} kind="photo" />
+                    <GroupMediaTile
+                      key={message.id}
+                      message={message}
+                      kind="photo"
+                      canViewLockedOriginal={message.sender_id === user?.id || Boolean(isMessageUnlocked?.(message.id))}
+                    />
                   ))}
                 </div>
               )
@@ -782,7 +799,12 @@ export default function GroupInfoSheet({
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">
                   {videoMessages.map((message) => (
-                    <GroupMediaTile key={message.id} message={message} kind="video" />
+                    <GroupMediaTile
+                      key={message.id}
+                      message={message}
+                      kind="video"
+                      canViewLockedOriginal={message.sender_id === user?.id || Boolean(isMessageUnlocked?.(message.id))}
+                    />
                   ))}
                 </div>
               )
@@ -842,7 +864,13 @@ export default function GroupInfoSheet({
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">
                   {gifMessages.map((message) => (
-                    <GroupMediaTile key={message.id} message={message} badge="GIF" kind="gif" />
+                    <GroupMediaTile
+                      key={message.id}
+                      message={message}
+                      badge="GIF"
+                      kind="gif"
+                      canViewLockedOriginal={message.sender_id === user?.id || Boolean(isMessageUnlocked?.(message.id))}
+                    />
                   ))}
                 </div>
               )
@@ -949,16 +977,28 @@ function GroupPlayableRow({
   );
 }
 
-function GroupMediaTile({ message, badge, kind }: { message: GroupInfoMessage; badge?: string; kind?: "photo" | "video" | "gif" }) {
+function GroupMediaTile({
+  message,
+  badge,
+  kind,
+  canViewLockedOriginal = false,
+}: {
+  message: GroupInfoMessage;
+  badge?: string;
+  kind?: "photo" | "video" | "gif";
+  canViewLockedOriginal?: boolean;
+}) {
   const locked = isLockedMediaMessage(message.message_type);
-  const rawSrc = getGroupMediaGalleryPath(message, !locked) || payloadUrl(message) || extractFirstUrl(message.message) || "";
-  const isVideoTile = kind === "video" || Boolean(message.video_url && !locked);
-  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, isVideoTile && !locked ? "display" : "thumbnail");
+  const lockedForViewer = locked && !canViewLockedOriginal;
+  const canViewOriginal = !locked || canViewLockedOriginal;
+  const rawSrc = getGroupMediaGalleryPath(message, canViewOriginal) || payloadUrl(message) || extractFirstUrl(message.message) || "";
+  const isVideoTile = kind === "video" || Boolean(message.video_url && canViewOriginal);
+  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, isVideoTile && canViewOriginal ? "display" : "thumbnail");
   const duration = formatDuration(message.file_payload?.duration_ms);
   const lockedItems = lockedItemsFor(message);
   const lockedCount = lockedItems.length;
   const lockedPrice = lockedPriceFor(message);
-  const tileBadge = badge || (locked ? (lockedCount > 1 ? `${lockedCount} items` : "Locked") : duration || (isVideoTile ? "Video" : ""));
+  const tileBadge = badge || (lockedForViewer ? (lockedCount > 1 ? `${lockedCount} items` : "Locked") : duration || (isVideoTile ? "Video" : ""));
   const unlockLabel = lockedPrice ? `Unlock for ${formatStarsPrice(lockedPrice)}` : "Locked";
 
   return (
@@ -967,9 +1007,9 @@ function GroupMediaTile({ message, badge, kind }: { message: GroupInfoMessage; b
       target="_blank"
       rel="noreferrer"
       className="group relative aspect-square overflow-hidden rounded-lg bg-muted"
-      aria-label={locked ? `${unlockLabel} preview` : isVideoTile ? "Open shared video" : "Open shared photo"}
+      aria-label={lockedForViewer ? `${unlockLabel} preview` : isVideoTile ? "Open shared video" : "Open shared photo"}
     >
-      {isVideoTile && !locked && resolvedSrc ? (
+      {isVideoTile && !lockedForViewer && resolvedSrc ? (
         <video src={resolvedSrc} className="h-full w-full object-cover" muted playsInline preload="metadata" />
       ) : resolvedSrc ? (
         <img
@@ -984,7 +1024,7 @@ function GroupMediaTile({ message, badge, kind }: { message: GroupInfoMessage; b
           {isVideoTile ? <Video className="h-6 w-6 text-muted-foreground" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
         </div>
       )}
-      {locked && (
+      {lockedForViewer && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/18 px-2">
           <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-bold leading-none text-white shadow-lg">
             {unlockLabel}

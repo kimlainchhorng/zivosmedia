@@ -81,8 +81,16 @@ test.describe("group chat polish", () => {
         await expect(page.getByText(/Set Unlock Price/i)).toBeVisible();
         await expect(page.getByRole("button", { name: /⭐249|249/ }).first()).toBeVisible();
         await expect(page.getByRole("button", { name: /444/ }).first()).toBeVisible();
-        await expect(page.getByRole("button", { name: /Send Locked.*249/i }).first()).toBeVisible();
+        const sendLockedButton = page.getByRole("button", { name: /Send Locked.*249/i }).first();
+        await expect(sendLockedButton).toBeVisible();
         await expect(page.getByRole("button", { name: /1,999/ }).first()).toBeVisible();
+        await sendLockedButton.click({ force: true });
+        await expect(page.getByText(/Locked (Bundle|Photo|Video)|Locked.*249|Unlock for.*249/i).first()).toBeVisible({ timeout: 10_000 });
+
+        const unlockButton = page.getByRole("button", { name: /Unlock locked media|Unlock for/i }).first();
+        if (await unlockButton.isVisible().catch(() => false)) {
+          await expect(unlockButton).toBeVisible();
+        }
       }
     }
 

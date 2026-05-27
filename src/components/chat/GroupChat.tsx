@@ -28,6 +28,7 @@ import Reply from "lucide-react/dist/esm/icons/reply";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import Forward from "lucide-react/dist/esm/icons/forward";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 import MoreVertical from "lucide-react/dist/esm/icons/more-vertical";
 import BellOff from "lucide-react/dist/esm/icons/bell-off";
 import Bell from "lucide-react/dist/esm/icons/bell";
@@ -35,6 +36,7 @@ import Search from "lucide-react/dist/esm/icons/search";
 import LogOut from "lucide-react/dist/esm/icons/log-out";
 import Pin from "lucide-react/dist/esm/icons/pin";
 import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
+import ImageIcon from "lucide-react/dist/esm/icons/image";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -71,6 +73,7 @@ const ChatSocialShare = lazy(() => import("./ChatSocialShareSheet"));
 const PollCreator = lazy(() => import("./ChatPollCreator"));
 const ChatMessageBubble = lazy(() => import("./ChatMessageBubble"));
 const ChatMediaUploader = lazy(() => import("./ChatMediaUploader").then(m => ({ default: m.ChatMediaUploader })));
+const ChatMediaGallery = lazy(() => import("./ChatMediaGallery"));
 const FileBubble = lazy(() => import("./FileBubble"));
 const ChatPollBubble = lazy(() => import("./ChatPollBubble"));
 const ChatContactBubble = lazy(() => import("./ChatContactBubble"));
@@ -505,6 +508,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const [showMembers, setShowMembers] = useState(false);
   const [showInvites, setShowInvites] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showSharedMedia, setShowSharedMedia] = useState(false);
+  const [sharedMediaTab, setSharedMediaTab] = useState<"photos" | "videos" | "gif" | "music" | "voice" | "files" | "links">("photos");
   const [membersRefreshKey, setMembersRefreshKey] = useState(0);
   const [groupCall, setGroupCall] = useState<"audio" | "video" | null>(autoStartCall ?? null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -618,6 +623,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       });
     });
   }, [highlightMessage]);
+
+  const openSharedMedia = useCallback((nextTab: "photos" | "videos" | "gif" | "music" | "voice" | "files" | "links" = "photos") => {
+    setSharedMediaTab(nextTab);
+    setShowInfo(false);
+    setShowSharedMedia(true);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -1394,6 +1405,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       );
       toast.error(navigator.onLine ? "Still couldn't send — try again" : "You're offline");
     }
+  }, []);
+
+  const discardFailedGroupSend = useCallback((optimisticId: string) => {
+    failedSendsRef.current.delete(optimisticId);
+    outboxRemove(optimisticId);
+    setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
   }, []);
 
   // Restore persisted failed group sends + auto-retry on reconnect.
@@ -2251,6 +2268,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 <DropdownMenuItem onClick={() => setShowInfo(true)}>
                   <Users className="mr-2 h-4 w-4" /> Group info
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openSharedMedia("photos")}>
+                  <ImageIcon className="mr-2 h-4 w-4" /> Shared media
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={toggleMute}>
                   {isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
                   {isMuted ? "Unmute" : "Mute"} notifications
@@ -2500,15 +2520,30 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                     </div>
                   )}
 
-                  {/* Failed-send indicator with tap-to-retry */}
+                  {/* Failed-send recovery controls */}
                   {msg._upload_status === "failed" && isMe && (
-                    <button type="button"
-                      onClick={() => retryFailedGroupSend(msg.id)}
-                      className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 text-[11px] font-medium text-destructive hover:underline"
-                    >
-                      <span aria-hidden>!</span>
-                      Failed · Tap to retry
-                    </button>
+                    <div className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-1.5 py-1 text-[11px] font-medium text-destructive">
+                      <span className="px-1">Failed</span>
+                      <button
+                        type="button"
+                        onClick={() => retryFailedGroupSend(msg.id)}
+                        className="inline-flex h-6 items-center gap-1 rounded-full px-2 hover:bg-destructive/10"
+                        aria-label="Resend failed message"
+                        title="Resend"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        Resend
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => discardFailedGroupSend(msg.id)}
+                        className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-destructive/10"
+                        aria-label="Discard failed message"
+                        title="Discard"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -2870,9 +2905,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
               });
             }}
-            renderTrigger={(open) => {
+            onOpenPickerReady={(open) => {
               filePickerTriggerRef.current = open;
-              return null;
             }}
           />
 
@@ -3103,6 +3137,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           setShowInfo(false);
           jumpToMessage(activePinnedMessage.id);
         }}
+        onOpenMediaTab={(nextTab) => openSharedMedia(nextTab)}
+        isMessageUnlocked={(messageId) => unlockedGroupMediaIds.has(messageId)}
         onStartCall={(kind) => {
           setShowInfo(false);
           void primeCallAudio();
@@ -3115,6 +3151,24 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         onMembersChanged={() => setMembersRefreshKey((value) => value + 1)}
         onLeft={onClose}
       />
+      {showSharedMedia && (
+        <Suspense fallback={null}>
+          <ChatMediaGallery
+            open={showSharedMedia}
+            onClose={() => setShowSharedMedia(false)}
+            source={{
+              type: "group",
+              groupId,
+              groupName: currentGroupName,
+              messages,
+              senderLabelFor: getSenderName,
+              isMessageUnlocked: (messageId) => unlockedGroupMediaIds.has(messageId),
+            }}
+            initialTab={sharedMediaTab}
+            onJumpToMessage={jumpToMessage}
+          />
+        </Suspense>
+      )}
 
       {/* Leave group confirmation */}
       <AnimatePresence>
