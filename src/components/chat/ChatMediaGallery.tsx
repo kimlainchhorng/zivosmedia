@@ -1,81 +1,50 @@
 /**
- * ChatMediaGallery — Shared media tab showing all photos, videos, voice notes, files exchanged in a conversation
+ * ChatMediaGallery — shared media hub for direct and group conversations.
  */
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Image, Video, Mic, FileText, Download, ArrowLeft, Play, Link2, Music2 } from "lucide-react";
+import { X, Image, Video, Mic, FileText, Download, ArrowLeft, Play, Link2, Music2, LocateFixed, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
-import { validateExternalUrl } from "@/lib/urlSafety";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { parseLegacyMusicShare } from "./musicShare";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
+import { isStoragePath } from "@/lib/security/signedMedia";
+import { recordChatMediaCacheEntry } from "@/lib/chat/mediaCache";
+import {
+  CHAT_MEDIA_GALLERY_TABS,
+  normalizeChatMediaMessages,
+  type ChatMediaGalleryItem,
+  type ChatMediaGalleryMessage,
+  type ChatMediaGalleryTab,
+} from "./chatMediaGalleryModel";
 
-type MediaTab = "photos" | "videos" | "gif" | "voice" | "music" | "files" | "links";
+const CHAT_MEDIA_BUCKET = "chat-media-files";
+
+export type ChatMediaGallerySource =
+  | {
+      type: "dm";
+      recipientId: string;
+      recipientName: string;
+      isMessageUnlocked?: (messageId: string) => boolean;
+    }
+  | {
+      type: "group";
+      groupId: string;
+      groupName: string;
+      messages: ChatMediaGalleryMessage[];
+      senderLabelFor?: (senderId: string) => string;
+      isMessageUnlocked?: (messageId: string) => boolean;
+    };
 
 interface ChatMediaGalleryProps {
   open: boolean;
   onClose: () => void;
-  recipientId: string;
-  recipientName: string;
-  initialTab?: MediaTab;
-}
-
-interface MediaItem {
-  id: string;
-  url: string;
-  type: MediaTab;
-  message?: string;
-  created_at: string;
-  sender_id: string;
-  duration_ms?: number | null;
-  mime_type?: string | null;
-}
-
-interface DirectMessageMediaRow {
-  id: string;
-  image_url: string | null;
-  video_url: string | null;
-  voice_url: string | null;
-  message_type: string | null;
-  message: string | null;
-  file_payload?: {
-    url?: string;
-    filename?: string;
-    mime_type?: string;
-    duration_ms?: number | null;
-    title?: string;
-    preview_url?: string;
-  } | null;
-  created_at: string;
-  sender_id: string;
-}
-
-const URL_RE = /https?:\/\/[^\s<>"')]+/gi;
-
-function firstUrl(value?: string | null) {
-  return value?.match(URL_RE)?.[0] || "";
-}
-
-function isGifUrl(value?: string | null) {
-  return Boolean(value && /\.gif(?:[?#]|$)/i.test(value));
-}
-
-function parseGifShare(message?: string | null): { label: string; url: string } | null {
-  const match = message?.trim().match(/^\[gif\]\s*([^:]+):\s*(https?:\/\/\S+)$/i);
-  if (!match) return null;
-  return { label: match[1].trim() || "GIF", url: match[2].trim() };
-}
-
-function isMusicLink(value?: string | null) {
-  if (!value) return false;
-  try {
-    const url = new URL(value);
-    const host = url.hostname.toLowerCase();
-    return host.includes("spotify.com") || host.includes("music.apple.com") || host.includes("soundcloud.com") || host.includes("youtu");
-  } catch {
-    return value.includes("/sound/");
-  }
+  source?: ChatMediaGallerySource;
+  recipientId?: string;
+  recipientName?: string;
+  initialTab?: ChatMediaGalleryTab;
+  onJumpToMessage?: (messageId: string) => void;
 }
 
 function formatDuration(ms?: number | null) {
@@ -86,13 +55,173 @@ function formatDuration(ms?: number | null) {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export default function ChatMediaGallery({ open, onClose, recipientId, recipientName, initialTab = "photos" }: ChatMediaGalleryProps) {
+function tabLabel(tab: ChatMediaGalleryTab) {
+  if (tab === "gif") return "GIFs";
+  return tab.charAt(0).toUpperCase() + tab.slice(1);
+}
+
+function itemMeta(item: ChatMediaGalleryItem) {
+  return `${item.senderLabel} - ${format(new Date(item.createdAt), "MMM d, h:mm a")}`;
+}
+
+function useGalleryMediaUrl(item: ChatMediaGalleryItem, purpose: "display" | "download" | "thumbnail" = "display") {
+  return useSignedMedia(item.url, CHAT_MEDIA_BUCKET, purpose);
+}
+
+function useRecordGalleryCache(item: ChatMediaGalleryItem, resolvedUrl: string | null) {
   const { user } = useAuth();
-  const [tab, setTab] = useState<MediaTab>(initialTab);
-  const [items, setItems] = useState<MediaItem[]>([]);
+  useEffect(() => {
+    if (!resolvedUrl) return;
+    recordChatMediaCacheEntry({
+      userId: user?.id,
+      url: resolvedUrl,
+      bucket: item.cacheBucket,
+      bytes: item.size,
+      storagePath: isStoragePath(item.url) ? item.url : null,
+      cacheKind: item.cacheKind,
+    });
+  }, [item.cacheBucket, item.cacheKind, item.size, item.url, resolvedUrl, user?.id]);
+}
+
+function MediaTile({
+  item,
+  onPreview,
+  onJump,
+}: {
+  item: ChatMediaGalleryItem;
+  onPreview: (url: string, type: "image" | "video") => void;
+  onJump: (messageId: string) => void;
+}) {
+  const isVideoTab = item.kind === "videos";
+  const rendersVideo = isVideoTab && !item.locked;
+  const url = useGalleryMediaUrl(item, rendersVideo ? "display" : "thumbnail");
+  useRecordGalleryCache(item, url);
+
+  return (
+    <div className="group relative overflow-hidden rounded-xl bg-muted">
+      <button
+        type="button"
+        onClick={() => url && onPreview(url, rendersVideo ? "video" : "image")}
+        className={`relative block w-full overflow-hidden bg-muted ${isVideoTab ? "aspect-video" : "aspect-square"}`}
+        aria-label={item.locked ? "Open locked media preview" : isVideoTab ? "Open shared video" : item.kind === "gif" ? "Open shared GIF" : "Open shared photo"}
+        title={item.locked ? "Open preview" : isVideoTab ? "Open video" : item.kind === "gif" ? "Open GIF" : "Open photo"}
+      >
+        {rendersVideo && url ? (
+          <video src={url} className="h-full w-full object-cover" preload="metadata" muted playsInline />
+        ) : url ? (
+          <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            {isVideoTab ? <Video className="h-6 w-6 text-muted-foreground" /> : <Image className="h-6 w-6 text-muted-foreground" />}
+          </div>
+        )}
+        {rendersVideo && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/85">
+              <Play className="ml-0.5 h-4 w-4 text-foreground" />
+            </div>
+          </div>
+        )}
+        {(item.kind === "gif" || item.locked || formatDuration(item.durationMs)) && (
+          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+            {item.locked && <Lock className="h-2.5 w-2.5" />}
+            {item.locked ? "Preview" : item.kind === "gif" ? "GIF" : formatDuration(item.durationMs)}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => onJump(item.messageId)}
+        className="absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+        aria-label="Jump to message"
+        title="Jump to message"
+      >
+        <LocateFixed className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function PlayableRow({ item, onJump }: { item: ChatMediaGalleryItem; onJump: (messageId: string) => void }) {
+  const url = useGalleryMediaUrl(item);
+  useRecordGalleryCache(item, url);
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-muted/40 p-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+        {item.kind === "music" ? <Music2 className="h-4 w-4 text-primary" /> : <Mic className="h-4 w-4 text-primary" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-semibold text-foreground">{item.title}</p>
+        <p className="text-[10px] text-muted-foreground">{itemMeta(item)}{formatDuration(item.durationMs) ? ` - ${formatDuration(item.durationMs)}` : ""}</p>
+      </div>
+      {url && <audio src={url} controls className="h-8 max-w-[120px]" preload="metadata" />}
+      <button type="button" onClick={() => onJump(item.messageId)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-background" aria-label="Jump to message" title="Jump to message">
+        <LocateFixed className="h-4 w-4 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
+
+function FileRow({ item, onJump }: { item: ChatMediaGalleryItem; onJump: (messageId: string) => void }) {
+  const url = useGalleryMediaUrl(item, "download");
+  useRecordGalleryCache(item, url);
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-muted/40 p-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+        <FileText className="h-4 w-4 text-primary" />
+      </div>
+      <a href={url || undefined} target="_blank" rel="noreferrer" className="min-w-0 flex-1 hover:underline">
+        <p className="truncate text-xs font-semibold text-foreground">{item.title}</p>
+        <p className="text-[10px] text-muted-foreground">{itemMeta(item)}</p>
+      </a>
+      <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <button type="button" onClick={() => onJump(item.messageId)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-background" aria-label="Jump to message" title="Jump to message">
+        <LocateFixed className="h-4 w-4 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
+
+function LinkRow({ item, onJump }: { item: ChatMediaGalleryItem; onJump: (messageId: string) => void }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-muted/40 p-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500/10">
+        <Link2 className="h-4 w-4 text-blue-500" />
+      </div>
+      <button type="button" onClick={() => void openExternalUrl(item.url)} className="min-w-0 flex-1 text-left">
+        <p className="truncate text-xs font-semibold text-primary">{item.title}</p>
+        <p className="text-[10px] text-muted-foreground">{itemMeta(item)}</p>
+      </button>
+      <button type="button" onClick={() => onJump(item.messageId)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-background" aria-label="Jump to message" title="Jump to message">
+        <LocateFixed className="h-4 w-4 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
+
+export default function ChatMediaGallery({
+  open,
+  onClose,
+  source,
+  recipientId,
+  recipientName,
+  initialTab = "photos",
+  onJumpToMessage,
+}: ChatMediaGalleryProps) {
+  const { user } = useAuth();
+  const [tab, setTab] = useState<ChatMediaGalleryTab>(initialTab);
+  const [items, setItems] = useState<ChatMediaGalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<"image" | "video">("image");
+
+  const effectiveSource = useMemo(
+    () => source || (recipientId ? { type: "dm" as const, recipientId, recipientName: recipientName || "Chat" } : null),
+    [recipientId, recipientName, source],
+  );
+  const title = effectiveSource?.type === "group" ? effectiveSource.groupName : effectiveSource?.recipientName || "Chat";
 
   useEffect(() => {
     if (!open) return;
@@ -100,167 +229,106 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
   }, [initialTab, open]);
 
   useEffect(() => {
-    if (!open || !user?.id) return;
+    if (!open || !effectiveSource) return;
+
+    if (effectiveSource.type === "group") {
+      setLoading(false);
+      setItems(normalizeChatMediaMessages(effectiveSource.messages, {
+        currentUserId: user?.id,
+        senderLabelFor: effectiveSource.senderLabelFor,
+        isMessageUnlocked: effectiveSource.isMessageUnlocked,
+      }));
+      return;
+    }
+
+    if (!user?.id) return;
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
       const { data } = await (supabase as any)
         .from("direct_messages" as any)
         .select("id, image_url, video_url, voice_url, message_type, message, file_payload, created_at, sender_id")
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`)
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${effectiveSource.recipientId}),and(sender_id.eq.${effectiveSource.recipientId},receiver_id.eq.${user.id})`)
         .order("created_at", { ascending: false })
         .limit(500);
 
-      if (data) {
-        const rows = data as DirectMessageMediaRow[];
-        const media: MediaItem[] = [];
-        for (const msg of rows) {
-          const mimeType = msg.file_payload?.mime_type?.toLowerCase() || "";
-          const durationMs = msg.file_payload?.duration_ms ?? null;
-          const gifShare = parseGifShare(msg.message);
-          const musicShare = parseLegacyMusicShare(msg.message);
-          const messageUrl = firstUrl(msg.message);
-
-          if (msg.image_url) {
-            media.push({
-              id: `${msg.id}-image`,
-              url: msg.image_url,
-              type: msg.message_type === "gif" || isGifUrl(msg.image_url) ? "gif" : "photos",
-              message: msg.message,
-              created_at: msg.created_at,
-              sender_id: msg.sender_id,
-              duration_ms: durationMs,
-              mime_type: mimeType,
-            });
-          }
-          if (msg.video_url) {
-            media.push({
-              id: `${msg.id}-video`,
-              url: msg.video_url,
-              type: msg.message_type === "gif" || isGifUrl(msg.video_url) ? "gif" : "videos",
-              message: msg.message,
-              created_at: msg.created_at,
-              sender_id: msg.sender_id,
-              duration_ms: durationMs,
-              mime_type: mimeType,
-            });
-          }
-          if (gifShare && !msg.image_url && !msg.video_url) {
-            media.push({ id: `${msg.id}-gif`, url: gifShare.url, type: "gif", message: gifShare.label, created_at: msg.created_at, sender_id: msg.sender_id });
-          }
-          if (msg.voice_url) {
-            media.push({ id: `${msg.id}-voice`, url: msg.voice_url, type: "voice", message: msg.message, created_at: msg.created_at, sender_id: msg.sender_id, duration_ms: durationMs, mime_type: mimeType });
-          }
-          if (msg.file_payload?.url) {
-            const fileUrl = msg.file_payload.url;
-            const fileType: MediaTab = mimeType === "image/gif" || isGifUrl(fileUrl)
-              ? "gif"
-              : mimeType.startsWith("image/")
-                ? "photos"
-                : mimeType.startsWith("video/")
-                  ? "videos"
-                  : mimeType.startsWith("audio/")
-                    ? "music"
-                    : "files";
-            media.push({
-              id: `${msg.id}-file`,
-              url: fileUrl,
-              type: fileType,
-              message: msg.file_payload.filename || msg.file_payload.title || msg.message || "File",
-              created_at: msg.created_at,
-              sender_id: msg.sender_id,
-              duration_ms: durationMs,
-              mime_type: mimeType,
-            });
-          }
-          if (musicShare && !msg.file_payload?.url) {
-            media.push({
-              id: `${msg.id}-music`,
-              url: musicShare.previewUrl || messageUrl || musicShare.soundPath,
-              type: "music",
-              message: [musicShare.title, musicShare.artist].filter(Boolean).join(" - "),
-              created_at: msg.created_at,
-              sender_id: msg.sender_id,
-            });
-          } else if (msg.message_type === "music" || isMusicLink(messageUrl)) {
-            media.push({
-              id: `${msg.id}-music-link`,
-              url: messageUrl,
-              type: "music",
-              message: msg.message || "Music",
-              created_at: msg.created_at,
-              sender_id: msg.sender_id,
-            });
-          }
-          // Extract links from text messages
-          if (msg.message && msg.message_type === "text") {
-            const urls = msg.message.match(URL_RE);
-            if (urls) {
-              for (const [index, u] of urls.entries()) {
-                const safeUrl = validateExternalUrl(u);
-                if (!safeUrl) continue;
-                media.push({ id: `${msg.id}-link-${index}`, url: safeUrl, type: "links", message: msg.message, created_at: msg.created_at, sender_id: msg.sender_id });
-              }
-            }
-          }
-        }
-        setItems(media);
-      }
+      if (cancelled) return;
+      setItems(normalizeChatMediaMessages((data || []) as ChatMediaGalleryMessage[], {
+        currentUserId: user.id,
+        peerName: effectiveSource.recipientName,
+        isMessageUnlocked: effectiveSource.isMessageUnlocked,
+      }));
       setLoading(false);
     };
-    load();
-  }, [open, user?.id, recipientId]);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveSource, open, user?.id]);
 
-  const filtered = items.filter((i) => i.type === tab);
+  const counts = useMemo(() => {
+    return CHAT_MEDIA_GALLERY_TABS.reduce<Record<ChatMediaGalleryTab, number>>((acc, itemTab) => {
+      acc[itemTab] = items.filter((item) => item.kind === itemTab).length;
+      return acc;
+    }, { photos: 0, videos: 0, gif: 0, music: 0, voice: 0, files: 0, links: 0 });
+  }, [items]);
 
-  const tabs: { id: MediaTab; label: string; icon: typeof Image; count: number }[] = [
-    { id: "photos", label: "Photos", icon: Image, count: items.filter(i => i.type === "photos").length },
-    { id: "videos", label: "Videos", icon: Video, count: items.filter(i => i.type === "videos").length },
-    { id: "gif", label: "GIF", icon: Image, count: items.filter(i => i.type === "gif").length },
-    { id: "voice", label: "Voice", icon: Mic, count: items.filter(i => i.type === "voice").length },
-    { id: "music", label: "Music", icon: Music2, count: items.filter(i => i.type === "music").length },
-    { id: "files", label: "Files", icon: FileText, count: items.filter(i => i.type === "files").length },
-    { id: "links", label: "Links", icon: Link2, count: items.filter(i => i.type === "links").length },
+  const filtered = items.filter((item) => item.kind === tab);
+
+  const tabs: { id: ChatMediaGalleryTab; label: string; icon: typeof Image; count: number }[] = [
+    { id: "photos", label: "Photos", icon: Image, count: counts.photos },
+    { id: "videos", label: "Videos", icon: Video, count: counts.videos },
+    { id: "gif", label: "GIF", icon: Image, count: counts.gif },
+    { id: "music", label: "Music", icon: Music2, count: counts.music },
+    { id: "voice", label: "Voice", icon: Mic, count: counts.voice },
+    { id: "files", label: "Files", icon: FileText, count: counts.files },
+    { id: "links", label: "Links", icon: Link2, count: counts.links },
   ];
 
-  if (!open) return null;
+  const jumpToMessage = (messageId: string) => {
+    onJumpToMessage?.(messageId);
+    onClose();
+  };
+
+  if (!open || !effectiveSource) return null;
 
   return (
     <motion.div
-      className="fixed inset-0 z-[9999] bg-background flex flex-col"
+      className="fixed inset-0 z-[9999] flex flex-col bg-background"
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
     >
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border/30 safe-area-top">
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Back" title="Back">
+      <div className="sticky top-0 z-10 border-b border-border/30 bg-background/95 backdrop-blur-xl safe-area-top">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button type="button" onClick={onClose} className="flex min-h-[44px] min-w-[44px] items-center justify-center" aria-label="Back" title="Back">
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-foreground">Shared Media</p>
-            <p className="text-[10px] text-muted-foreground">{recipientName}</p>
+            <p className="truncate text-[10px] text-muted-foreground">{title}</p>
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 overflow-x-auto px-4 pb-1 no-scrollbar">
-          {tabs.map((t) => (
-            <button type="button"
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`shrink-0 flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
-                tab === t.id ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
+          {tabs.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              onClick={() => setTab(item.id)}
+              aria-label={`${item.label} ${item.count}`}
+              className={`flex shrink-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
+                tab === item.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <t.icon className="w-3.5 h-3.5" />
-              <span>{t.label}</span>
-              {t.count > 0 && (
-                <span className={`min-w-[16px] h-4 px-1 text-[9px] rounded-full flex items-center justify-center ${
-                  tab === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              <item.icon className="h-3.5 w-3.5" />
+              <span>{item.label}</span>
+              {item.count > 0 && (
+                <span className={`flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] ${
+                  tab === item.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 }`}>
-                  {t.count}
+                  {item.count}
                 </span>
               )}
             </button>
@@ -268,138 +336,55 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="flex h-40 items-center justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-muted-foreground/50">
-            <p className="text-sm font-medium">No {tab} shared</p>
-            <p className="text-xs mt-1">Media shared in this conversation will appear here</p>
+          <div className="flex h-40 flex-col items-center justify-center text-muted-foreground/60">
+            <p className="text-sm font-medium">No {tabLabel(tab)} shared</p>
+            <p className="mt-1 text-xs">Shared items in this conversation will appear here</p>
           </div>
         ) : tab === "photos" || tab === "gif" ? (
           <div className="grid grid-cols-3 gap-1.5">
-            {filtered.map((item) => (
-              <button type="button"
-                key={item.id}
-                onClick={() => { setPreviewUrl(item.url); setPreviewType("image"); }}
-                className="aspect-square rounded-xl overflow-hidden bg-muted relative"
-                aria-label={tab === "gif" ? "Open GIF" : "Open photo"}
-                title={tab === "gif" ? "Open GIF" : "Open photo"}
-              >
-                <img src={item.url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                {tab === "gif" && (
-                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/65 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
-                    GIF
-                  </span>
-                )}
-              </button>
-            ))}
+            {filtered.map((item) => <MediaTile key={item.id} item={item} onPreview={(url) => { setPreviewUrl(url); setPreviewType("image"); }} onJump={jumpToMessage} />)}
           </div>
         ) : tab === "videos" ? (
           <div className="grid grid-cols-2 gap-2">
-            {filtered.map((item) => (
-              <button type="button"
-                key={item.id}
-                onClick={() => { setPreviewUrl(item.url); setPreviewType("video"); }}
-                className="aspect-video rounded-xl overflow-hidden bg-muted relative"
-              >
-                <video src={item.url} className="w-full h-full object-cover" preload="metadata" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <div className="w-10 h-10 rounded-full bg-background/80 flex items-center justify-center">
-                    <Play className="w-4 h-4 text-foreground ml-0.5" />
-                  </div>
-                </div>
-                <span className="absolute bottom-1.5 right-1.5 text-[9px] text-white bg-black/50 px-1.5 py-0.5 rounded-full">
-                  {formatDuration(item.duration_ms) || format(new Date(item.created_at), "MMM d")}
-                </span>
-              </button>
-            ))}
+            {filtered.map((item) => <MediaTile key={item.id} item={item} onPreview={(url, type) => { setPreviewUrl(url); setPreviewType(type); }} onJump={jumpToMessage} />)}
           </div>
         ) : tab === "voice" || tab === "music" ? (
           <div className="space-y-2">
-            {filtered.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/30">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  {tab === "music" ? <Music2 className="w-4 h-4 text-primary" /> : <Mic className="w-4 h-4 text-primary" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">{tab === "music" ? item.message || "Music" : "Voice Note"}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {item.sender_id === user?.id ? "You" : recipientName} • {format(new Date(item.created_at), "MMM d, h:mm a")}
-                  </p>
-                </div>
-                {item.url && <audio src={item.url} controls className="h-8 max-w-[120px]" preload="metadata" />}
-              </div>
-            ))}
+            {filtered.map((item) => <PlayableRow key={item.id} item={item} onJump={jumpToMessage} />)}
           </div>
         ) : tab === "files" ? (
           <div className="space-y-2">
-            {filtered.map((item) => (
-              <a
-                key={item.id}
-                href={item.url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/30 hover:bg-muted/60 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">{item.message || "File"}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {item.sender_id === user?.id ? "You" : recipientName} • {format(new Date(item.created_at), "MMM d, h:mm a")}
-                  </p>
-                </div>
-                <Download className="w-4 h-4 text-muted-foreground" />
-              </a>
-            ))}
+            {filtered.map((item) => <FileRow key={item.id} item={item} onJump={jumpToMessage} />)}
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.map((item) => (
-              <button type="button"
-                key={item.id}
-                onClick={() => {
-                  void openExternalUrl(item.url);
-                }}
-                className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/30 hover:bg-muted/60 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <Link2 className="w-4 h-4 text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-primary truncate">{item.url}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {format(new Date(item.created_at), "MMM d, h:mm a")}
-                  </p>
-                </div>
-              </button>
-            ))}
+            {filtered.map((item) => <LinkRow key={item.id} item={item} onJump={jumpToMessage} />)}
           </div>
         )}
       </div>
 
-      {/* Image/Video Preview Modal */}
       <AnimatePresence>
         {previewUrl && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[99999] bg-black flex items-center justify-center"
+            className="fixed inset-0 z-[99999] flex items-center justify-center bg-black"
             onClick={() => setPreviewUrl(null)}
           >
-            <button type="button" className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center safe-area-top" aria-label="Close preview" title="Close preview">
-              <X className="w-5 h-5 text-white" />
+            <button type="button" className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 safe-area-top" aria-label="Close preview" title="Close preview">
+              <X className="h-5 w-5 text-white" />
             </button>
             {previewType === "image" ? (
-              <img src={previewUrl} alt="" className="max-w-full max-h-full object-contain" loading="eager" decoding="async" />
+              <img src={previewUrl} alt="" className="max-h-full max-w-full object-contain" loading="eager" decoding="async" />
             ) : (
-              <video src={previewUrl} controls autoPlay playsInline preload="metadata" className="max-w-full max-h-full" onClick={(e) => e.stopPropagation()} />
+              <video src={previewUrl} controls autoPlay playsInline preload="metadata" className="max-h-full max-w-full" onClick={(event) => event.stopPropagation()} />
             )}
           </motion.div>
         )}

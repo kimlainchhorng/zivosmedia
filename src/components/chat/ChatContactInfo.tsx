@@ -20,6 +20,7 @@ import Bell from "lucide-react/dist/esm/icons/bell";
 import BellOff from "lucide-react/dist/esm/icons/bell-off";
 import Search from "lucide-react/dist/esm/icons/search";
 import ImageIcon from "lucide-react/dist/esm/icons/image";
+import ImagePlay from "lucide-react/dist/esm/icons/image-play";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import Link2 from "lucide-react/dist/esm/icons/link-2";
 import UserRound from "lucide-react/dist/esm/icons/user-round";
@@ -122,6 +123,8 @@ interface ChatContactInfoProps {
   onOpenNotifSettings?: () => void;
   onOpenFiles?: () => void;
   onOpenLinks?: () => void;
+  onOpenGifs?: () => void;
+  onOpenMusic?: () => void;
   onOpenGift?: () => void;
 }
 
@@ -142,6 +145,8 @@ export default function ChatContactInfo({
   onOpenNotifSettings,
   onOpenFiles,
   onOpenLinks,
+  onOpenGifs,
+  onOpenMusic,
   onOpenGift,
 }: ChatContactInfoProps) {
   const navigate = useNavigate();
@@ -190,8 +195,7 @@ export default function ChatContactInfo({
       const { data } = await dbFrom("direct_messages")
         .select("id, image_url, video_url, message_type, created_at")
         .or(`and(sender_id.eq.${user!.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user!.id})`)
-        .or("message_type.eq.image,message_type.eq.video,image_url.neq.")
-        .not("image_url", "is", null)
+        .or("message_type.eq.image,message_type.eq.video,message_type.eq.gif,image_url.not.is.null,video_url.not.is.null")
         .order("created_at", { ascending: false })
         .limit(6);
       return ((data || []) as SharedMediaRow[]).filter((m) => m.image_url || m.video_url);
@@ -651,16 +655,14 @@ export default function ChatContactInfo({
         {/* Sections */}
         <div className="pb-24">
           {/* Media & Files section */}
-          {sharedMedia.length === 0 && (
-            <>
-              <Section title="Media, Files & Links">
-                <SectionButton icon={ImageIcon} label="Media" chevron onClick={onOpenMediaGallery} />
-                <SectionButton icon={FileText} label="Files" chevron onClick={onOpenFiles} />
-                <SectionButton icon={Link2} label="Links" chevron onClick={onOpenLinks} />
-              </Section>
-              <div className="h-[6px] bg-muted/30" />
-            </>
-          )}
+          <Section title="Media, Files & Links">
+            <SectionButton icon={ImageIcon} label="Media" chevron onClick={onOpenMediaGallery} />
+            <SectionButton icon={ImagePlay} label="GIFs" chevron onClick={onOpenGifs} />
+            <SectionButton icon={Music2} label="Music" chevron onClick={onOpenMusic} />
+            <SectionButton icon={FileText} label="Files" chevron onClick={onOpenFiles} />
+            <SectionButton icon={Link2} label="Links" chevron onClick={onOpenLinks} />
+          </Section>
+          <div className="h-[6px] bg-muted/30" />
 
           {/* Customize section */}
           <Section title="Customize Chat">

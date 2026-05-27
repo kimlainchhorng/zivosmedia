@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatMediaUploader } from "./ChatMediaUploader";
 
@@ -60,8 +60,9 @@ async function renderUploader() {
     <ChatMediaUploader
       recipientId="receiver-1"
       onMediaSent={onMediaSent}
-      onOpenPickerReady={(open) => {
+      renderTrigger={(open) => {
         openPicker = open;
+        return null;
       }}
     />,
   );
@@ -143,5 +144,30 @@ describe("ChatMediaUploader", () => {
     expect(mocks.toastError).toHaveBeenCalledWith("File must be under 25.0 MB");
     expect(mocks.storageUpload).not.toHaveBeenCalled();
     expect(onMediaSent).not.toHaveBeenCalled();
+    expect(input.value).toBe("");
+  });
+
+  it("does not reopen the picker while an upload is in progress", async () => {
+    let finishUpload!: (value: { error: null }) => void;
+    mocks.storageUpload.mockReturnValue(new Promise((resolve) => {
+      finishUpload = resolve;
+    }));
+    const { input, onMediaSent, getOpenPicker } = await renderUploader();
+    const clickSpy = vi.spyOn(input, "click").mockImplementation(() => undefined);
+    const file = new File(["audio"], "track.mp3", { type: "audio/mpeg" });
+
+    getOpenPicker()("audio");
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByText("track.mp3");
+    clickSpy.mockClear();
+    getOpenPicker()("audio");
+
+    expect(clickSpy).not.toHaveBeenCalled();
+
+    finishUpload({ error: null });
+    await waitFor(() => {
+      expect(onMediaSent).toHaveBeenCalled();
+    });
   });
 });

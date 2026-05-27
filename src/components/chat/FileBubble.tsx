@@ -2,7 +2,7 @@
  * FileBubble — generic file/document message bubble with thumbnail (if available),
  * filename, size, page count, and download / open actions.
  */
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import Download from "lucide-react/dist/esm/icons/download";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
@@ -11,6 +11,8 @@ import FileSpreadsheet from "lucide-react/dist/esm/icons/file-spreadsheet";
 import FileVideo from "lucide-react/dist/esm/icons/file-video";
 import FileAudio from "lucide-react/dist/esm/icons/file-audio";
 import File from "lucide-react/dist/esm/icons/file";
+import Play from "lucide-react/dist/esm/icons/play";
+import Pause from "lucide-react/dist/esm/icons/pause";
 import { useAuth } from "@/contexts/AuthContext";
 import { recordChatMediaCacheEntry, type ChatMediaCacheBucket } from "@/lib/chat/mediaCache";
 
@@ -51,8 +53,20 @@ function fmtBytes(n?: number) {
   return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${u[i]}`;
 }
 
+function fmtTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
+  const whole = Math.floor(seconds);
+  const minutes = Math.floor(whole / 60);
+  const remaining = whole % 60;
+  return `${minutes}:${remaining.toString().padStart(2, "0")}`;
+}
+
 export default function FileBubble({ file, mine }: { file: FileBubbleData; mine?: boolean }) {
   const { user } = useAuth();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const Icon = iconFor(file.mime_type);
   const isPdf = file.mime_type === "application/pdf";
   const isScan = file.source === "scan";
@@ -63,6 +77,32 @@ export default function FileBubble({ file, mine }: { file: FileBubbleData; mine?
     file.page_count ? `${file.page_count} page${file.page_count > 1 ? "s" : ""}` : null,
     fmtBytes(file.size),
   ].filter(Boolean).join(" · ");
+
+  const toggleAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+      return;
+    }
+    void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  }, [playing]);
+
+  const seekAudio = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const nextTime = Number(event.currentTarget.value);
+    const audio = audioRef.current;
+    if (!audio || !Number.isFinite(nextTime)) return;
+    audio.currentTime = nextTime;
+    setCurrentTime(nextTime);
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      if (audio && !audio.paused) audio.pause();
+    };
+  }, [file.url]);
 
   useEffect(() => {
     recordChatMediaCacheEntry({
@@ -114,12 +154,52 @@ export default function FileBubble({ file, mine }: { file: FileBubbleData; mine?
       {isAudio && (
         <div className="px-3 pb-3">
           <audio
+            ref={audioRef}
             src={file.url}
-            controls
             preload="metadata"
-            aria-label={`Play ${file.filename}`}
-            className="h-9 w-full rounded-lg"
+            className="hidden"
+            onLoadedMetadata={(event) => {
+              const nextDuration = event.currentTarget.duration;
+              setDuration(Number.isFinite(nextDuration) ? nextDuration : 0);
+            }}
+            onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onEnded={() => {
+              setPlaying(false);
+              setCurrentTime(duration);
+            }}
           />
+          <div className={`rounded-xl border p-2 ${mine ? "border-primary/15 bg-background/65" : "border-border/30 bg-background/70"}`}>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleAudio}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
+                aria-label={`${playing ? "Pause" : "Play"} ${file.filename}`}
+                title={playing ? "Pause" : "Play"}
+              >
+                {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2 text-[10px] font-medium text-muted-foreground">
+                  <span>{fmtTime(currentTime)}</span>
+                  <span>{fmtTime(duration)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || 0}
+                  step="0.01"
+                  value={duration ? Math.min(currentTime, duration) : 0}
+                  onChange={seekAudio}
+                  disabled={!duration}
+                  aria-label={`Seek ${file.filename}`}
+                  className="mt-1 h-1.5 w-full accent-primary disabled:opacity-60"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
       <div className="flex border-t border-border/30">
