@@ -46,6 +46,7 @@ import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 
 const TopFans = lazy(() => import("@/components/social/TopFans"));
+const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
 
 /** Fullscreen post overlay with swipe-down-to-close from header. */
 function PublicPostOverlay({
@@ -249,6 +250,7 @@ export default function PublicProfilePage() {
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set());
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [blockingUser, setBlockingUser] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   // OF creator age gate — persistent via useAdultGate (DB + localStorage)
   const adultGate = useAdultGate();
   const ofAgeConfirmed = adultGate.isConfirmed;
@@ -680,7 +682,11 @@ export default function PublicProfilePage() {
 
   const handleReportProfile = () => {
     setShowProfileMenu(false);
-    navigate(`/feedback?type=profile&target=${encodeURIComponent(targetUserId || "")}`);
+    if (!user) {
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
+    setReportOpen(true);
   };
 
   const handleBlockProfile = async () => {
@@ -1580,6 +1586,18 @@ export default function PublicProfilePage() {
           creatorName={resolvedProfile?.full_name || "Creator"}
           creatorAvatar={resolvedProfile?.avatar_url}
         />
+      )}
+
+      {targetUserId && reportOpen && (
+        <Suspense fallback={null}>
+          <ReportSheet
+            open={reportOpen}
+            onClose={() => setReportOpen(false)}
+            contentType="creator"
+            contentId={targetUserId}
+            reportedUserId={targetUserId}
+          />
+        </Suspense>
       )}
 
       <ZivoMobileNav />
