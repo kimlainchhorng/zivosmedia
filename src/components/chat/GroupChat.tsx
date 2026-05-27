@@ -516,7 +516,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const [groupSearchQ, setGroupSearchQ] = useState("");
   const [activePinnedIndex, setActivePinnedIndex] = useState(0);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
-  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const pinnedHighlightTimerRef = useRef<number | null>(null);
   const [showMiniApps, setShowMiniApps] = useState(false);
   const [miniAppView, setMiniAppView] = useState<"menu" | "poll" | "todo" | "split" | "book_table" | "trip_idea">("menu");
@@ -597,7 +596,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     setGroupSearchQ("");
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        const node = messageRefs.current[messageId];
+        const selectorId = CSS.escape(messageId);
+        const node = document.querySelector<HTMLElement>(`[data-group-message-id="${selectorId}"]`);
         if (!node) {
           toast("Pinned message is not loaded yet");
           return;
@@ -2321,6 +2321,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         ) : (
           <>
           <AnimatePresence initial={false}>
+          {/* eslint-disable-next-line react-hooks/refs -- voice resend/discard callbacks read refs only after user actions */}
           {filteredMessages.map((msg, idx) => {
             const isMe = msg.sender_id === user?.id;
             const senderName = getSenderName(msg.sender_id);
@@ -2335,10 +2336,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             return (
               <div
                 key={msg.id}
-                ref={(node) => {
-                  if (node) messageRefs.current[msg.id] = node;
-                  else delete messageRefs.current[msg.id];
-                }}
                 data-group-message-id={msg.id}
                 className={`scroll-mt-32 rounded-2xl transition-[box-shadow,background-color] duration-300 ${
                   highlightedMessageId === msg.id ? "bg-sky-500/10 shadow-[0_0_0_2px_rgba(14,165,233,0.55)]" : ""
