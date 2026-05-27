@@ -238,6 +238,23 @@ function buildLastSeenSignature(map: Record<string, string>) {
   return entries.map(([chatId, seenAt]) => `${chatId}:${seenAt}`).join("|");
 }
 
+function getChatPreviewText(message: any, fallback = "") {
+  if (!message) return fallback;
+  const text = String(message.message || "").trim();
+  const messageType = message.message_type || "text";
+
+  if (messageType === "voice") return "Voice message";
+  if (messageType === "file") return "File";
+  if (messageType === "media_album") {
+    return text && text !== "Photo album" && text !== "Media album"
+      ? `Photo album: ${text}`
+      : "Photo album";
+  }
+  if (messageType === "image" || message.image_url) return text && text !== "Photo" ? text : "Photo";
+  if (messageType === "video" || message.video_url) return text && text !== "Video" ? text : "Video";
+  return text || fallback;
+}
+
 type OpenChatState = {
   recipientId?: string;
   recipientName?: string;
@@ -502,16 +519,25 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
   const markOverlayChatSeen = useCallback((category: "ride" | "support", chatId: string) => {
     const seenAt = new Date().toISOString();
+    const markSeen = (prev: Record<string, string>) => {
+      const previousSeenAt = prev[chatId] ? Date.parse(prev[chatId]) : 0;
+      if (previousSeenAt && Date.now() - previousSeenAt < 1_000) return prev;
+      return { ...prev, [chatId]: seenAt };
+    };
     if (category === "ride") {
-      setRideLastSeen((prev) => ({ ...prev, [chatId]: seenAt }));
+      setRideLastSeen(markSeen);
       return;
     }
-    setSupportLastSeen((prev) => ({ ...prev, [chatId]: seenAt }));
+    setSupportLastSeen(markSeen);
   }, []);
 
   const markGroupChatSeen = useCallback((groupId: string) => {
     const seenAt = new Date().toISOString();
-    setGroupLastSeen((prev) => ({ ...prev, [groupId]: seenAt }));
+    setGroupLastSeen((prev) => {
+      const previousSeenAt = prev[groupId] ? Date.parse(prev[groupId]) : 0;
+      if (previousSeenAt && Date.now() - previousSeenAt < 1_000) return prev;
+      return { ...prev, [groupId]: seenAt };
+    });
   }, []);
 
   // The embedded chat slideout (rendered by FeedSidebar) has no action toolbar
@@ -1082,11 +1108,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           avatar: profile?.avatar_url || null,
           isVerified: profile?.is_verified === true,
           isBusiness,
-          lastMessage: entry.lastMsg.message_type === "voice"
-            ? "🎤 Voice message"
-            : entry.lastMsg.message_type === "file"
-            ? "📎 File"
-            : entry.lastMsg.message || (entry.lastMsg.image_url ? "📷 Image" : entry.lastMsg.video_url ? "🎥 Video" : ""),
+          lastMessage: getChatPreviewText(entry.lastMsg),
           lastTime: entry.lastMsg.created_at,
           unread: entry.unread,
           isOnline,
@@ -1179,9 +1201,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           id: g.id,
           name: g.name,
           avatar: g.avatar_url,
-          lastMessage: lastMsg?.message_type === "voice"
-            ? "🎤 Voice message"
-            : lastMsg?.message || "Group created",
+          lastMessage: getChatPreviewText(lastMsg, "Group created"),
           lastTime: lastMsg?.created_at || g.created_at,
           unread: unreadByGroup.get(g.id) || 0,
           isGroup: true,

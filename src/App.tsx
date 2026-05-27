@@ -38,7 +38,7 @@ const NavigationProgressBar = lazy(() => import("@/components/app/NavigationProg
 const ScrollRestoration = lazy(() => import("@/components/app/ScrollRestoration"));
 
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RemoteConfigProvider } from "@/contexts/RemoteConfigContext";
@@ -1332,6 +1332,15 @@ function AuthBackgroundServices() {
   );
 }
 
+function DirectThreadRedirect() {
+  const { partnerId } = useParams();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  if (partnerId) params.set("with", partnerId);
+  const query = params.toString();
+  return <Navigate to={`/chat${query ? `?${query}` : ""}${location.hash}`} replace />;
+}
+
 const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
@@ -1486,9 +1495,9 @@ const App = () => (
                 
                 <Route path="/refer" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
                 <Route path={SOCIAL_ROUTE_PATHS.chat} element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
-                <Route path="/direct" element={<ProtectedRoute><DirectInboxPage /></ProtectedRoute>} />
-                <Route path="/direct/t/:partnerId" element={<ProtectedRoute><DirectThreadPage /></ProtectedRoute>} />
-                <Route path="/for-you" element={<ProtectedRoute><ForYouFeedPage /></ProtectedRoute>} />
+                <Route path="/direct" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
+                <Route path="/direct/t/:partnerId" element={<ProtectedRoute><DirectThreadRedirect /></ProtectedRoute>} />
+                <Route path="/for-you" element={<ProtectedRoute><ReelsFeedPage /></ProtectedRoute>} />
                 <Route path="/chat/saved" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
                 <Route path="/chat/contacts" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
                 <Route path="/chat/contacts/requests" element={<ProtectedRoute><ContactRequestsPage /></ProtectedRoute>} />
