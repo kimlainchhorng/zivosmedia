@@ -1730,6 +1730,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       size: file.size,
       source: "local",
     }));
+    const durationPromises = mediaFiles.map(({ file, kind }) =>
+      kind === "video" ? getVideoDurationMs(file) : Promise.resolve(null),
+    );
     const firstImage = localItems.find((item) => item.type === "image");
     const firstVideo = localItems.find((item) => item.type === "video");
     const optimisticMsg: GroupMessage = {
@@ -1761,7 +1764,27 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     void (async () => {
       const uploadedPaths: string[] = [];
       const dbItems: MediaAlbumSendItem[] = [];
-      const displayItems: MediaAlbumSendItem[] = [...localItems];
+      let displayItems: MediaAlbumSendItem[] = [...localItems];
+
+      void Promise.all(durationPromises).then((durationByIndex) => {
+        let changed = false;
+        displayItems = displayItems.map((item, index) => {
+          const durationMs = durationByIndex[index];
+          if (item.type !== "video" || !durationMs || item.duration_ms) return item;
+          changed = true;
+          return { ...item, duration_ms: durationMs };
+        });
+        if (!changed) return;
+        setMessages((prev) => prev.map((m) => m.id === optimisticId
+          ? {
+              ...m,
+              file_payload: {
+                ...((m.file_payload as Record<string, unknown> | null) || {}),
+                album_items: displayItems,
+              },
+            }
+          : m));
+      });
 
       try {
         for (let index = 0; index < mediaFiles.length; index += 1) {
@@ -1794,7 +1817,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           }
 
           if (!dbMediaUrl) throw new Error(`Could not prepare album item ${index + 1}`);
-          const durationMs = kind === "video" ? await getVideoDurationMs(file) : null;
+          const durationMs = await durationPromises[index];
           const dbItem: MediaAlbumSendItem = {
             id: displayItems[index].id,
             type: kind,
@@ -2713,6 +2736,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               onVideoSelect={() => videoInputRef.current?.click()}
               onLocationShare={handleLocationShare}
               onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+              lockedMediaHint="Stars unlock"
               onSendGift={() => setShowGiftPanel(true)}
               onOpenWallet={() => setShowWalletSheet(true)}
               onScanDocument={() => setShowScanner(true)}
@@ -2735,7 +2759,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
 
           <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
           <input ref={videoInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose media" aria-label="Choose media" />
-          <input ref={lockedImageInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
+          <input ref={lockedImageInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
           <ChatMediaUploader
             recipientId={groupId}
@@ -2943,6 +2967,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         onOpenInvites={() => {
           setShowInfo(false);
           setShowInvites(true);
+        }}
+        onOpenPinned={() => {
+          setShowInfo(false);
+          setShowGroupSearch(true);
+          setGroupSearchQ(pinnedPreview || "");
         }}
         onStartCall={(kind) => {
           setShowInfo(false);

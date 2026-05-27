@@ -47,6 +47,8 @@ interface ChatAttachMenuProps {
   onShareZivoCard?: () => void;
   disappearingEnabled: boolean;
   sensitiveMediaMarked?: boolean;
+  lockedMediaHint?: string;
+  lockedMediaLabel?: string;
   /** Override label of the disappearing-messages menu item (e.g. "1d", "7d", "30d", "Off"). Defaults to "24h". */
   disappearingLabel?: string;
 }
@@ -82,14 +84,21 @@ const PRIMARY_VISIBLE_COUNT = 8;
 
 export default function ChatAttachMenu({
   open, onClose, onImageSelect, onVideoSelect, onLocationShare, onToggleDisappearing, onLockedImageSelect, onLockedTextSelect,
-  onToggleSensitiveMedia, onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, disappearingLabel,
+  onToggleSensitiveMedia, onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, lockedMediaHint, lockedMediaLabel, disappearingLabel,
 }: ChatAttachMenuProps) {
   const { isPlus, plan } = useZivoPlus();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const navigate = useNavigate();
+  const configuredItems = menuItems
+    .filter((it) => it.id !== "locked-text" || !!onLockedTextSelect)
+    .map((it) => (
+      it.id === "locked"
+        ? { ...it, label: lockedMediaLabel ?? it.label, hint: lockedMediaHint ?? it.hint }
+        : it
+    ));
   const visibleItems = zivoOFMode
-    ? menuItems.filter((it) => ["image", "video", "sensitive", "locked", "locked-text", "money", "gift"].includes(it.id))
-    : menuItems;
+    ? configuredItems.filter((it) => ["image", "video", "sensitive", "locked", "locked-text", "money", "gift"].includes(it.id))
+    : configuredItems;
   const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
   const [recentIds, setRecentIds] = useState<string[]>([]);
@@ -152,6 +161,8 @@ export default function ChatAttachMenu({
   const canUseLocked = isPlus && plan && LOCK_UNLOCK_PLANS.has(plan);
 
   const isActionUnavailable = (id: string): boolean => {
+    if (id === "locked") return !onLockedImageSelect;
+    if (id === "locked-text") return !onLockedTextSelect;
     if (id === "gift") return !onSendGift;
     if (id === "money") return !onOpenWallet;
     if (id === "file") return !onFileSelect;
@@ -165,7 +176,7 @@ export default function ChatAttachMenu({
   };
 
   const unavailableReason = (id: string): string | null => {
-    if (id === "locked" && !canUseLocked) return "Requires Chat+ or Pro";
+    if ((id === "locked" || id === "locked-text") && !canUseLocked) return "Requires Chat+ or Pro";
     if (isActionUnavailable(id)) return "Not available here";
     return null;
   };

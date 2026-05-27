@@ -150,6 +150,7 @@ export default function ChatNotificationListener() {
           let preview = msg.message || msg.content || "";
           if (msg.message_type === "image" || msg.message_type === "locked_image") preview = "📷 Photo";
           else if (msg.message_type === "video" || msg.message_type === "locked_video") preview = "🎥 Video";
+          else if (msg.message_type === "locked_album") preview = "🔒 Album";
           else if (msg.message_type === "voice") preview = "🎤 Voice message";
           else if (msg.message_type === "location") preview = "📍 Location";
           else if (msg.message_type === "sticker") preview = "🎭 Sticker";

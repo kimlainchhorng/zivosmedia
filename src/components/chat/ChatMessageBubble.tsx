@@ -727,6 +727,8 @@ function MediaAlbumTile({
     <button
       type="button"
       onClick={open}
+      data-testid="media-album-tile"
+      data-album-index={index}
       className="group relative h-full min-h-0 w-full overflow-hidden bg-muted text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       aria-label={isVideo ? "Open album video" : "Open album photo"}
     >
@@ -773,6 +775,62 @@ function MediaAlbumTile({
   );
 }
 
+type MediaAlbumCellLayout = {
+  gridColumn?: string;
+  gridRow?: string;
+};
+
+function span(value: number) {
+  return `span ${value} / span ${value}`;
+}
+
+function getMediaAlbumLayout(count: number): {
+  columns: number;
+  rows: number;
+  cells: MediaAlbumCellLayout[];
+} {
+  if (count <= 1) {
+    return { columns: 1, rows: 1, cells: [{}] };
+  }
+
+  if (count === 2) {
+    return { columns: 2, rows: 1, cells: [{}, {}] };
+  }
+
+  if (count === 3) {
+    return {
+      columns: 2,
+      rows: 2,
+      cells: [
+        { gridRow: span(2) },
+        {},
+        {},
+      ],
+    };
+  }
+
+  if (count === 4) {
+    return { columns: 2, rows: 2, cells: [{}, {}, {}, {}] };
+  }
+
+  const rowSpansByCount: Record<number, number[]> = {
+    5: [2, 2, 2, 3, 3],
+    6: [2, 2, 2, 2, 2, 2],
+    7: [2, 2, 2, 3, 3, 6],
+    8: [2, 2, 2, 2, 2, 2, 3, 3],
+  };
+  const columns = 6;
+  const cells = (rowSpansByCount[count] || rowSpansByCount[8]).map((columnSpan) => ({
+    gridColumn: span(columnSpan),
+  }));
+
+  return {
+    columns,
+    rows: count <= 6 ? 2 : 3,
+    cells,
+  };
+}
+
 function MediaAlbumGrid({
   items,
   messageId,
@@ -780,52 +838,38 @@ function MediaAlbumGrid({
   items: MediaAlbumItem[];
   messageId: string;
 }) {
-  const visibleItems = items.slice(0, 4);
+  const visibleItems = items.slice(0, 8);
   const overflowCount = Math.max(0, items.length - visibleItems.length);
+  const layout = getMediaAlbumLayout(visibleItems.length);
   const gallery = items.map((item, index) => ({
     id: item.id || `${messageId}:${index}`,
     url: item.url,
     type: item.type,
   }));
 
-  if (visibleItems.length === 1) {
-    return (
-      <div data-testid="media-album-grid" className="aspect-[4/5] max-h-[min(440px,58vh)] min-h-[260px] w-full">
-        <MediaAlbumTile item={visibleItems[0]} messageId={`${messageId}:0`} gallery={gallery} index={0} />
-      </div>
-    );
-  }
-
-  if (visibleItems.length === 2) {
-    return (
-      <div data-testid="media-album-grid" className="grid aspect-[4/5] max-h-[min(440px,58vh)] min-h-[260px] w-full grid-cols-2 gap-0.5">
-        {visibleItems.map((item, index) => (
-          <MediaAlbumTile key={item.id || `${item.url}-${index}`} item={item} messageId={`${messageId}:${index}`} gallery={gallery} index={index} />
-        ))}
-      </div>
-    );
-  }
-
-  const sideItems = visibleItems.slice(1);
-
   return (
     <div
       data-testid="media-album-grid"
-      className="grid h-[min(440px,58vh)] min-h-[300px] w-full gap-0.5"
-      style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(76px, 30%)" }}
+      className="grid aspect-[4/5] max-h-[min(440px,58vh)] min-h-[260px] w-full gap-0.5 overflow-hidden"
+      style={{
+        gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+      }}
     >
-      <div className="row-span-3 min-h-0">
-        <MediaAlbumTile item={visibleItems[0]} messageId={`${messageId}:0`} gallery={gallery} index={0} />
-      </div>
-      {sideItems.map((item, index) => (
-        <MediaAlbumTile
-          key={item.id || `${item.url}-${index + 1}`}
-          item={item}
-          messageId={`${messageId}:${index + 1}`}
-          gallery={gallery}
-          index={index + 1}
-          overflowCount={index === sideItems.length - 1 ? overflowCount : 0}
-        />
+      {visibleItems.map((item, index) => (
+        <div
+          key={item.id || `${item.url}-${index}`}
+          className="min-h-0 min-w-0"
+          style={layout.cells[index]}
+        >
+          <MediaAlbumTile
+            item={item}
+            messageId={`${messageId}:${index}`}
+            gallery={gallery}
+            index={index}
+            overflowCount={index === visibleItems.length - 1 ? overflowCount : 0}
+          />
+        </div>
       ))}
     </div>
   );

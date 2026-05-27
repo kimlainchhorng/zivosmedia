@@ -250,6 +250,13 @@ function getChatPreviewText(message: any, fallback = "") {
       ? `Photo album: ${text}`
       : "Photo album";
   }
+  if (messageType === "locked_album") {
+    return text && text !== "Locked Album" && text !== "Locked album"
+      ? `Locked album: ${text}`
+      : "Locked album";
+  }
+  if (messageType === "locked_image") return text && text !== "Locked Photo" ? text : "Locked photo";
+  if (messageType === "locked_video") return text && text !== "Locked Video" ? text : "Locked video";
   if (messageType === "image" || message.image_url) return text && text !== "Photo" ? text : "Photo";
   if (messageType === "video" || message.video_url) return text && text !== "Video" ? text : "Video";
   return text || fallback;

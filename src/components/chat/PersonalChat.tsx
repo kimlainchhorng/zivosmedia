@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { useDirectMessageUnlocks } from "@/hooks/useDirectMessageUnlocks";
-import { isLockedDirectMessage } from "@/lib/chat/lockedMedia";
+import { getLockedMediaPreviewPath, isLockedDirectMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 import MediaGalleryLightbox from "./MediaGalleryLightbox";
 import { OPEN_MEDIA_EVENT, type OpenMediaDetail } from "@/lib/chat/openMedia";
 import { openP2PTransfer } from "@/lib/p2pTransfer";
@@ -276,6 +276,7 @@ const dbFrom = (table: string): any => (supabase as any).from(table);
 const CHAT_MEDIA_BUCKET = "chat-media-files";
 const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
+const LOCKED_MEDIA_BUNDLE_LIMIT = 10;
 const MIXED_MEDIA_ACCEPT = "image/*,video/*,.gif";
 const MEDIA_MESSAGE_TEXT = {
   image: "Photo",
@@ -357,6 +358,85 @@ function extensionForChatMedia(file: File, kind: ChatMediaKind): string {
   if (file.type === "video/quicktime") return "mov";
   if (file.type === "video/webm") return "webm";
   return kind === "video" ? "mp4" : "jpg";
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Could not render media preview"));
+    }, "image/jpeg", 0.72);
+  });
+}
+
+function drawBlurredPreview(source: CanvasImageSource, width: number, height: number): Promise<Blob> {
+  const canvas = document.createElement("canvas");
+  const maxSide = 360;
+  const ratio = Math.min(maxSide / Math.max(width, height), 1);
+  const targetWidth = Math.max(160, Math.round(width * ratio));
+  const targetHeight = Math.max(160, Math.round(height * ratio));
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return Promise.reject(new Error("Canvas unavailable"));
+  ctx.fillStyle = "#111827";
+  ctx.fillRect(0, 0, targetWidth, targetHeight);
+  ctx.filter = "blur(14px)";
+  ctx.drawImage(source, -18, -18, targetWidth + 36, targetHeight + 36);
+  ctx.filter = "none";
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillRect(0, 0, targetWidth, targetHeight);
+  return canvasToBlob(canvas);
+}
+
+async function createImagePreviewBlob(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.decoding = "async";
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Could not load image preview"));
+      img.src = url;
+    });
+    return await drawBlurredPreview(img, img.naturalWidth || 320, img.naturalHeight || 320);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function createVideoPreviewBlob(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement("video");
+    video.src = url;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("Video preview timed out")), 7000);
+      video.onloadeddata = () => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+      video.onerror = () => {
+        window.clearTimeout(timeout);
+        reject(new Error("Could not load video preview"));
+      };
+    });
+    try {
+      video.currentTime = Math.min(0.1, Math.max(0, (video.duration || 1) / 2));
+    } catch {
+      // Some browser codecs reject seeking before enough metadata is available.
+    }
+    return await drawBlurredPreview(video, video.videoWidth || 320, video.videoHeight || 568);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function createLockedMediaPreviewBlob(file: File, isVideo: boolean): Promise<Blob> {
+  return isVideo ? createVideoPreviewBlob(file) : createImagePreviewBlob(file);
 }
 
 async function getVideoDurationMs(file: File): Promise<number | null> {
@@ -703,7 +783,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       window.removeEventListener("dragend", resetDragState);
     };
   }, []);
-  const [pendingLockedFile, setPendingLockedFile] = useState<File | null>(null);
+  const [pendingLockedFiles, setPendingLockedFiles] = useState<File[]>([]);
   const [chatStyle, setChatStyle] = useState({ wallpaper: "default", themeColor: "default", fontSize: "medium" });
   const [callEvents, setCallEvents] = useState<CallEvent[]>([]);
   const [dismissedMissedCallMarker, setDismissedMissedCallMarker] = useState<MissedCallDismissMarker | null>(null);
@@ -963,6 +1043,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     else if (messageType === "locked_image") preview = "Sent you a locked photo 🔒📷";
     else if (messageType === "video") preview = "Sent you a video 🎥";
     else if (messageType === "locked_video") preview = "Sent you a locked video 🔒🎥";
+    else if (messageType === "locked_album") preview = messageText.trim() || "Sent you a locked album 🔒";
     else if (messageType === "voice") preview = "Sent you a voice message 🎤";
     else if (messageType === "location") preview = "Shared a location 📍";
     else if (messageType === "sticker") preview = "Sent you a sticker 🎭";
@@ -1411,7 +1492,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       : locationLat != null ? "location"
       : "text");
     const textSensitivity = detectSensitiveContent(rawText);
-    const isMediaSend = Boolean(imageUrl || videoUrl || filePayload) || ["image", "video", "file", "locked_image", "locked_video"].includes(msgType);
+    const isMediaSend = Boolean(imageUrl || videoUrl || filePayload) || ["image", "video", "file", "locked_image", "locked_video", "locked_album"].includes(msgType);
     const shouldMarkSensitiveMedia = isMediaSend && (markNextMediaSensitive || textSensitivity.isSensitive);
     if (textSensitivity.isSensitive && !isMediaSend) {
       toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
@@ -2020,6 +2101,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       size: file.size,
       source: "local",
     }));
+    const durationPromises = mediaFiles.map(({ file, kind }) =>
+      kind === "video" ? getVideoDurationMs(file) : Promise.resolve(null),
+    );
     const firstImage = localItems.find((item) => item.type === "image");
     const firstVideo = localItems.find((item) => item.type === "video");
     const optimisticMsg: Message = {
@@ -2058,7 +2142,27 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     void (async () => {
       const uploadedPaths: string[] = [];
       const dbItems: MediaAlbumSendItem[] = [];
-      const displayItems: MediaAlbumSendItem[] = [...localItems];
+      let displayItems: MediaAlbumSendItem[] = [...localItems];
+
+      void Promise.all(durationPromises).then((durationByIndex) => {
+        let changed = false;
+        displayItems = displayItems.map((item, index) => {
+          const durationMs = durationByIndex[index];
+          if (item.type !== "video" || !durationMs || item.duration_ms) return item;
+          changed = true;
+          return { ...item, duration_ms: durationMs };
+        });
+        if (!changed) return;
+        setMessages((prev) => prev.map((m) => m.id === optimisticId
+          ? {
+              ...m,
+              file_payload: {
+                ...((m.file_payload as Record<string, unknown> | null) || {}),
+                album_items: displayItems,
+              } as unknown as FileBubbleData,
+            }
+          : m));
+      });
 
       try {
         for (let index = 0; index < mediaFiles.length; index += 1) {
@@ -2091,7 +2195,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           }
 
           if (!dbMediaUrl) throw new Error(`Could not prepare album item ${index + 1}`);
-          const durationMs = kind === "video" ? await getVideoDurationMs(file) : null;
+          const durationMs = await durationPromises[index];
           const dbItem: MediaAlbumSendItem = {
             id: displayItems[index].id,
             type: kind,
@@ -2203,19 +2307,29 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
   // Locked media: first show price picker
   const handleLockedMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-    const isVideo = file.type.startsWith("video");
-    const maxSize = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
-    if (file.size > maxSize) {
-      toast.error(`File must be under ${formatUploadLimit(maxSize)}`);
-      if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
+    const files = Array.from(e.target.files || []);
+    if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
+    if (files.length === 0 || !user?.id) return;
+    if (files.length > LOCKED_MEDIA_BUNDLE_LIMIT) {
+      toast.error(`Choose up to ${LOCKED_MEDIA_BUNDLE_LIMIT} photos or videos`);
       return;
     }
-    setPendingLockedFile(file);
+
+    const invalidFile = files.find((file) => {
+      const kind = getChatMediaKind(file);
+      if (!kind) return true;
+      return file.size > getUploadLimitForKind(kind);
+    });
+    if (invalidFile) {
+      const kind = getChatMediaKind(invalidFile);
+      const limit = kind ? getUploadLimitForKind(kind) : IMAGE_UPLOAD_LIMIT_BYTES;
+      toast.error(`${invalidFile.name || "File"} must be an image or video under ${formatUploadLimit(limit)}`);
+      return;
+    }
+
+    setPendingLockedFiles(files);
     setLockedPriceIntent("media");
     setShowLockedPricePicker(true);
-    if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
   };
 
   // Paid DM (locked text): open price picker; we send the current composer text
@@ -2284,12 +2398,162 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   // Locked media: upload after price confirmed
   const handleLockedMediaConfirm = async (priceCents: number) => {
     setShowLockedPricePicker(false);
-    const file = pendingLockedFile;
-    setPendingLockedFile(null);
-    if (!file || !user?.id) return;
-    const isVideo = file.type.startsWith("video");
+    setLockedPriceIntent(null);
+    const files = pendingLockedFiles;
+    setPendingLockedFiles([]);
+    if (files.length === 0 || !user?.id) return;
+
+    const finalPrice = Math.floor(Number(priceCents) || 0);
+    if (finalPrice <= 0) {
+      toast.error("Choose a price");
+      return;
+    }
+
+    const clientSendId = randomMediaId();
+    const optimisticId = `opt-locked-${clientSendId}`;
+    const isAlbum = files.length > 1;
+    const caption = input.trim();
+    const firstKind = getChatMediaKind(files[0]);
+    if (!firstKind) return;
+    const messageType = isAlbum ? "locked_album" : firstKind === "video" ? "locked_video" : "locked_image";
+    const priceLabel = `$${(finalPrice / 100).toFixed(2)}`;
+    const label = `Locked ${isAlbum ? "Album" : firstKind === "video" ? "Video" : "Photo"} · ${priceLabel}`;
+    const currentReply = replyTo;
+    const textSensitivity = detectSensitiveContent(caption);
+    const shouldMarkSensitiveMedia = markNextMediaSensitive || textSensitivity.isSensitive;
+    const preparedItems: Array<{
+      id: string;
+      file: File;
+      kind: ChatMediaKind;
+      localUrl: string;
+      previewBlob: Blob;
+      previewLocalUrl: string;
+      originalPath?: string;
+      previewPath?: string;
+    }> = [];
+    const cleanupPaths: string[] = [];
+
+    setInput("");
+    clearDraft();
+    setReplyTo(null);
+    if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
     setUploadingMedia(true);
+    setSending(true);
     try {
+      const file = files[0];
+      const isVideo = firstKind === "video";
+
+      if (isAlbum) {
+        for (const selectedFile of files) {
+          const kind = getChatMediaKind(selectedFile);
+          if (!kind) throw new Error("Unsupported locked media type");
+          const previewBlob = await createLockedMediaPreviewBlob(selectedFile, kind === "video");
+          preparedItems.push({
+            id: randomMediaId(),
+            file: selectedFile,
+            kind,
+            localUrl: URL.createObjectURL(selectedFile),
+            previewBlob,
+            previewLocalUrl: URL.createObjectURL(previewBlob),
+          });
+        }
+
+        const optimisticLockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          original_path: item.localUrl,
+          preview_path: item.previewLocalUrl,
+          mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+          size: item.file.size,
+        }));
+        const sensitivePayload = shouldMarkSensitiveMedia ? {
+          sensitive: true,
+          is_sensitive: true,
+          sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+        } : {};
+        const optimisticFilePayload = {
+          client_send_id: clientSendId,
+          source: "locked-media",
+          locked_preview_url: optimisticLockedItems[0]?.preview_path || null,
+          locked_preview_image_url: optimisticLockedItems[0]?.preview_path || null,
+          locked_price_cents: finalPrice,
+          locked_items: optimisticLockedItems,
+          ...sensitivePayload,
+        } as unknown as FileBubbleData;
+        const optimisticMsg: Message = {
+          id: optimisticId, sender_id: user.id, receiver_id: recipientId,
+          message: caption || label,
+          image_url: null,
+          video_url: null,
+          voice_url: null, message_type: messageType,
+          reply_to_id: currentReply?.id || null, location_lat: null, location_lng: null, location_label: null,
+          is_pinned: false, expires_at: null, created_at: new Date().toISOString(), is_read: false,
+          locked_price_cents: finalPrice,
+          file_payload: optimisticFilePayload,
+        };
+        setMessages((prev) => [...prev, optimisticMsg]);
+        scrollToBottom(true);
+
+        for (let index = 0; index < preparedItems.length; index += 1) {
+          const item = preparedItems[index];
+          const ext = extensionForChatMedia(item.file, item.kind);
+          const pathSeed = `${Date.now()}-${clientSendId}-${index}-${item.id}`;
+          item.originalPath = `${user.id}/locked/dm/${recipientId}/${pathSeed}.${ext}`;
+          item.previewPath = `${user.id}/locked-previews/dm/${recipientId}/${pathSeed}.jpg`;
+
+          const { error: mediaError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.originalPath, item.file, {
+            contentType: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+            cacheControl: "3600",
+            upsert: false,
+          });
+          if (mediaError) throw mediaError;
+          cleanupPaths.push(item.originalPath);
+
+          const { error: previewError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.previewPath, item.previewBlob, {
+            contentType: "image/jpeg",
+            cacheControl: "3600",
+            upsert: false,
+          });
+          if (previewError) throw previewError;
+          cleanupPaths.push(item.previewPath);
+        }
+
+        const lockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          original_path: item.originalPath,
+          preview_path: item.previewPath,
+          mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+          size: item.file.size,
+        }));
+        const firstItem = lockedItems[0];
+        const filePayload = {
+          client_send_id: clientSendId,
+          source: "locked-media",
+          locked_preview_url: firstItem?.preview_path || null,
+          locked_preview_image_url: firstItem?.preview_path || null,
+          locked_price_cents: finalPrice,
+          locked_items: lockedItems,
+          ...sensitivePayload,
+        } as unknown as FileBubbleData;
+
+        const insertData: DirectMessageInsert = {
+          sender_id: user.id,
+          receiver_id: recipientId,
+          message: caption || label,
+          message_type: messageType,
+          locked_price_cents: finalPrice,
+          file_payload: filePayload,
+        };
+        if (currentReply) insertData.reply_to_id = currentReply.id;
+
+        const { error: albumInsertErr } = await dbFrom("direct_messages").insert(insertData);
+        if (albumInsertErr) throw albumInsertErr;
+        void sendChatPush(messageType, caption || label);
+        toast.success("Locked album sent");
+        return;
+      }
+
       const ext = extensionForChatMedia(file, isVideo ? "video" : "image");
       const path = `${user.id}/locked/${Date.now()}-${randomMediaId()}.${ext}`;
       const { error } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(path, file, {
@@ -2331,9 +2595,19 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         });
       if (insertErr) throw insertErr;
       void sendChatPush(messageType, text || label);
-    } catch { toast.error("Failed to upload locked media"); }
-    setUploadingMedia(false);
-    setSending(false);
+    } catch (error) {
+      console.warn("[dm/locked-media] upload/send failed", error);
+      if (cleanupPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(cleanupPaths).catch(() => {});
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      toast.error("Failed to upload locked media");
+    } finally {
+      setUploadingMedia(false);
+      setSending(false);
+      for (const item of preparedItems) {
+        setTimeout(() => URL.revokeObjectURL(item.localUrl), 30000);
+        setTimeout(() => URL.revokeObjectURL(item.previewLocalUrl), 30000);
+      }
+    }
   };
 
 
@@ -3337,6 +3611,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         filePayload={msg.file_payload}
                         senderId={msg.sender_id}
                         lockedPriceCents={msg.locked_price_cents}
+                        lockedPreviewUrl={getLockedMediaPreviewPath(msg.file_payload)}
                         initiallyLocked={
                           isLockedDirectMessage(msg.message_type) && !isMe
                             ? !dmUnlocks.isUnlocked(msg.id)
@@ -3585,7 +3860,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
               <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
               <input ref={videoInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose media" aria-label="Choose media" />
-              <input ref={lockedImageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
+              <input ref={lockedImageInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
               {/* Locked media / paid DM price picker */}
               {showLockedPricePicker && (
@@ -3594,7 +3869,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     open={showLockedPricePicker}
                     onClose={() => {
                       setShowLockedPricePicker(false);
-                      setPendingLockedFile(null);
+                      setPendingLockedFiles([]);
                       setLockedPriceIntent(null);
                     }}
                     onConfirm={(priceCents) =>

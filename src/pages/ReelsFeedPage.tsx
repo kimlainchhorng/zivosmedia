@@ -428,6 +428,26 @@ function FeedWorkflowRail({
     else startCreate("photo");
   };
 
+  return (
+    <section className="mx-3 my-3 grid grid-cols-3 gap-2 sm:grid-cols-6" aria-label="Create">
+      {FEED_CREATOR_WORKFLOWS.map(({ action, label, description, icon: Icon, tone }) => (
+        <button
+          key={action}
+          type="button"
+          onClick={() => handleWorkflow(action)}
+          className="group rounded-2xl border border-border/50 bg-card px-2 py-3 text-center shadow-sm transition-colors hover:bg-muted/40"
+        >
+          <span className={cn("mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-sm transition-transform group-hover:scale-105", tone)}>
+            <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+          </span>
+          <span className="block text-[12px] font-extrabold leading-tight text-foreground">{label}</span>
+          <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted-foreground">{description}</span>
+        </button>
+      ))}
+    </section>
+  );
+}
+
 const FEED_POST_NOTIFICATIONS_EVENT = "zivo:feed-post-notifications-changed";
 const FEED_SNOOZED_AUTHORS_EVENT = "zivo:feed-snoozed-authors-changed";
 const FEED_SNOOZE_DAYS = 30;
@@ -686,20 +706,15 @@ function GuestFeedCta({ onLogin, onSignup }: { onLogin: () => void; onSignup: ()
             Log in
           </button>
           <button
-            key={action}
             type="button"
             onClick={onSignup}
             className="h-8 rounded-full bg-ig-gradient px-3 text-[12px] font-bold text-white active:scale-95 shadow-sm hover:opacity-90 transition-opacity"
           >
-            <span className={cn("mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-sm transition-transform group-hover:scale-105", tone)}>
-              <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-            </span>
-            <span className="block text-[12px] font-extrabold leading-tight text-foreground">{label}</span>
-            <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted-foreground">{description}</span>
+            Sign up
           </button>
-        ))}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 
