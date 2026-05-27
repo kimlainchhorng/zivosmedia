@@ -2,7 +2,8 @@
  * Salon stylists CRUD plus per-stylist service assignment.
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type StylistStripeConnectStatus = "not_connected" | "pending" | "active" | "restricted";
 
@@ -56,7 +57,7 @@ async function syncStylistServices(stylistId: string, serviceIds: string[]) {
     .eq("stylist_id", stylistId);
   if (readErr) throw readErr;
 
-  const currentIds = new Set((current ?? []).map((r) => (r as any).service_id as string));
+  const currentIds = new Set<string>((current ?? []).map((r: any) => r.service_id as string));
   const nextIds = new Set(serviceIds);
   const toAdd = [...nextIds].filter((id) => !currentIds.has(id));
   const toRemove = [...currentIds].filter((id) => !nextIds.has(id));

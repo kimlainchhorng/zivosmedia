@@ -4,7 +4,8 @@
  * removeIngredient — all keyed on the (menu, inventory) pair.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface CafeRecipe {
   id: string;

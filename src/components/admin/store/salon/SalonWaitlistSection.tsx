@@ -15,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 import { useSalonServices } from "@/hooks/salon/useSalonServices";
 import { useSalonStylists } from "@/hooks/salon/useSalonStylists";
 import { useSalonClients } from "@/hooks/salon/useSalonClients";

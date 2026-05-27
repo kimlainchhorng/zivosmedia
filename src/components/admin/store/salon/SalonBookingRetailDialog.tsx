@@ -9,7 +9,8 @@ import { Package, Loader2, Plus, Minus, Trash2, Search, AlertTriangle } from "lu
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 interface BookingRetailItem {
   id: string;

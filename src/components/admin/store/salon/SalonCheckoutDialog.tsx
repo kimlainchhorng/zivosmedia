@@ -19,7 +19,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 import { useSalonPaymentSettings } from "@/hooks/salon/useSalonPaymentSettings";
 import type { SalonBooking } from "@/hooks/salon/useSalonBookings";
 

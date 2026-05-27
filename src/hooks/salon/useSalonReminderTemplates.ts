@@ -8,7 +8,8 @@
  * patch) + resetToDefault(template_key). RLS keeps writes owner-scoped.
  */
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type SalonTemplateKey =
   | "salon-booking-reminder-24h"

@@ -5,7 +5,8 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 import {
   UserCog, Plus, Edit, Trash2, Loader2, AlertCircle, Copy, Check,
   Eye, EyeOff, Search, Mail, Phone, Percent,

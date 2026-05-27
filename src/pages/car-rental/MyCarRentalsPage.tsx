@@ -59,7 +59,7 @@ interface StoreMini {
 
 
 export default function MyCarRentalsPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [stores, setStores] = useState<Map<string, StoreMini>>(new Map());

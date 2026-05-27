@@ -8,7 +8,8 @@
  * later as cafe_tip_distributions; for now the section shows the math.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type TipSplitMode = "equal" | "by_hours" | "weighted";
 

@@ -30,7 +30,8 @@ import {
   type SalonClientDraft,
 } from "@/hooks/salon/useSalonClients";
 import { useSalonStylists } from "@/hooks/salon/useSalonStylists";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 import { writeBookingPreset } from "@/lib/salon/bookingPreset";
 
 interface SalonClientsSectionProps {

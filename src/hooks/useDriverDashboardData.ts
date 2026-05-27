@@ -105,15 +105,13 @@ export function useDriverDashboardData() {
 
       // Fetch today's completed ride earnings. This includes modern ride_requests
       // payouts, including manual KHR Bakong/KHQR earnings converted for display.
-      const { data: todayRideEarningsRows } = await supabase
-        .from("driver_earnings")
+      const { data: todayRideEarningsRows } = await (supabase as any).from("driver_earnings")
         .select("net_amount, tip_amount, currency, created_at")
         .eq("driver_id", driverId)
         .gte("created_at", todayStart.toISOString());
 
       // Fetch week's completed ride earnings
-      const { data: weekRideEarningsRows } = await supabase
-        .from("driver_earnings")
+      const { data: weekRideEarningsRows } = await (supabase as any).from("driver_earnings")
         .select("net_amount, tip_amount, currency, created_at")
         .eq("driver_id", driverId)
         .gte("created_at", weekStart.toISOString());

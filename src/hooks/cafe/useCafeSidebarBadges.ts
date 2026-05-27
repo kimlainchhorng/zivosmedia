@@ -3,7 +3,8 @@
  * whenever cafe_orders or cafe_payments changes for this store.
  */
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface CafeSidebarBadges {
   ordersOpen: number;            // pending + accepted + preparing

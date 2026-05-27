@@ -2,7 +2,8 @@
  * Salon services CRUD for the Service Menu UI.
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface SalonService {
   id: string;

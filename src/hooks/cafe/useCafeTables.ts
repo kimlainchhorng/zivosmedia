@@ -3,7 +3,8 @@
  * salon services hook shape so the UI stays consistent.
  */
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface CafeTable {
   id: string;

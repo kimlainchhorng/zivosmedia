@@ -16,7 +16,8 @@ import { useSalonStylists } from "@/hooks/salon/useSalonStylists";
 import { useSalonServices } from "@/hooks/salon/useSalonServices";
 import SalonOnboardingChecklist from "./SalonOnboardingChecklist";
 import SalonActivityFeed from "./SalonActivityFeed";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 interface SalonDashboardSectionProps {
   storeId: string;

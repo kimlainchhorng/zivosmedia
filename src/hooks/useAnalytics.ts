@@ -69,7 +69,7 @@ export const useRevenueData = () => {
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("ride_requests")
         .select("status, payment_amount, payment_currency, payment_status, captured_amount_cents, quoted_total, bakong_amount_khr, created_at")
         .gte("created_at", sixMonthsAgo.toISOString())

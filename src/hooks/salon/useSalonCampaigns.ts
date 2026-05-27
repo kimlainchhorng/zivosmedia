@@ -10,7 +10,8 @@
  * RLS gates everything to the store owner.
  */
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type SalonCampaignStatus = "draft" | "sending" | "sent" | "failed" | "cancelled";
 export type SalonCohortKind = "all" | "dormant" | "tag" | "recent" | "birthday_month";

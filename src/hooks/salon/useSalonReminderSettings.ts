@@ -5,7 +5,8 @@
  * already populated. The first save creates the row.
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface SalonReminderSettings {
   store_id: string | null;

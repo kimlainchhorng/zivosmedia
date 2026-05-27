@@ -15,7 +15,8 @@
  * autogen types file doesn't include cafe_* yet.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type CafeOrderStatus =
   | "pending" | "accepted" | "preparing" | "ready"

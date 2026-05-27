@@ -2,7 +2,8 @@
  * Cafe expense log — straightforward CRUD.
  */
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface CafeExpense {
   id: string;

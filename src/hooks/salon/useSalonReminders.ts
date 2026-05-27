@@ -4,7 +4,8 @@
  * fields needed to render a meaningful row description.
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type SalonReminderType = "booking_lead" | "birthday" | "winback";
 export type SalonReminderStatus = "pending" | "sent" | "cancelled" | "failed";

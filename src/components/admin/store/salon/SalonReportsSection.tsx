@@ -4,7 +4,8 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, Loader2, AlertCircle, TrendingUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

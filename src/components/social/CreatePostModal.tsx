@@ -21,6 +21,7 @@ import { stripImageMetadata } from "@/utils/stripImageMetadata";
 import { nativeConfirm } from "@/lib/native/dialog";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { detectSensitiveContent, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
+import ProductPickerSheet from "@/components/social/ProductPickerSheet";
 
 interface CreatePostModalProps {
   userId: string;
