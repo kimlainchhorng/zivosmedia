@@ -72,6 +72,24 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
 
   const isOwner = !!user && !!post && user.id === post.creator_id;
 
+  // Is the current visitor an active subscriber to the creator? When true on a
+  // free_for_subscribers post, unlocking is free via the RPC's tier path.
+  const { data: isActiveSubscriber } = useQuery({
+    queryKey: ["ppv-active-sub", post?.creator_id, user?.id],
+    queryFn: async (): Promise<boolean> => {
+      if (!user || !post) return false;
+      const { count } = await (supabase as any)
+        .from("creator_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("creator_id", post.creator_id)
+        .eq("subscriber_id", user.id)
+        .eq("status", "active");
+      return (count as number) > 0;
+    },
+    enabled: !!user && !!post && !isOwner && !!post?.free_for_subscribers,
+    staleTime: 60 * 1000,
+  });
+
   // Creator's profile — for the byline below the title.
   const { data: creator } = useQuery({
     queryKey: ["ppv-creator", post?.creator_id],
@@ -521,20 +539,35 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
             )}
           </div>
 
+          {/* Subscriber-tier badge — surfaces the bundled-benefit upfront */}
+          {!isOwner && !unlock && post.free_for_subscribers && (
+            <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-start gap-2.5">
+              <Crown className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+              <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-400 leading-relaxed">
+                {isActiveSubscriber
+                  ? "You're an active subscriber — unlock free."
+                  : "Subscribers unlock free. Non-subs pay the price below."}
+              </p>
+            </div>
+          )}
+
           {/* Unlock CTA (visitors only) */}
           {!isOwner && !unlock && (() => {
+            const subFree = !!post.free_for_subscribers && !!isActiveSubscriber;
             const balance = walletBalance ?? 0;
-            const canAfford = balance >= post.price_cents;
+            const canAfford = subFree || balance >= post.price_cents;
             return (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] px-1">
-                  <span className="text-muted-foreground">
-                    Wallet: <span className="font-bold text-foreground">${(balance / 100).toFixed(2)}</span>
-                  </span>
-                  {!canAfford && user && (
-                    <a href="/wallet" className="font-bold text-rose-500 hover:underline">Top up →</a>
-                  )}
-                </div>
+                {!subFree && (
+                  <div className="flex items-center justify-between text-[11px] px-1">
+                    <span className="text-muted-foreground">
+                      Wallet: <span className="font-bold text-foreground">${(balance / 100).toFixed(2)}</span>
+                    </span>
+                    {!canAfford && user && (
+                      <a href="/wallet" className="font-bold text-rose-500 hover:underline">Top up →</a>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => unlockMut.mutate()}
@@ -542,12 +575,16 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                   className={cn(
                     "w-full h-14 rounded-2xl font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
                     user && canAfford
-                      ? "bg-rose-500 text-white hover:bg-rose-600"
+                      ? subFree
+                        ? "bg-amber-500 text-white hover:bg-amber-600"
+                        : "bg-rose-500 text-white hover:bg-rose-600"
                       : "bg-muted/50 text-muted-foreground cursor-not-allowed",
                   )}
                 >
                   {unlockMut.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : subFree ? (
+                    <Crown className="h-4 w-4" />
                   ) : (
                     <Lock className="h-4 w-4" />
                   )}
@@ -555,10 +592,20 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                     ? "Unlocking…"
                     : !user
                       ? "Sign in to unlock"
-                      : !canAfford
-                        ? `Need $${((post.price_cents - balance) / 100).toFixed(2)} more`
-                        : `Unlock for $${(post.price_cents / 100).toFixed(2)}`}
+                      : subFree
+                        ? "Unlock free with subscription"
+                        : !canAfford
+                          ? `Need $${((post.price_cents - balance) / 100).toFixed(2)} more`
+                          : `Unlock for $${(post.price_cents / 100).toFixed(2)}`}
                 </button>
+                {post.free_for_subscribers && !isActiveSubscriber && user && (
+                  <a
+                    href={creator?.share_code ? `/u/${creator.share_code}` : "#"}
+                    className="block w-full text-center text-[12px] font-bold text-amber-600 dark:text-amber-400 hover:underline py-1"
+                  >
+                    Or subscribe to unlock everything →
+                  </a>
+                )}
               </div>
             );
           })()}

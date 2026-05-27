@@ -18,6 +18,7 @@ interface PPVCard {
   preview_path: string | null;
   media_paths: string[];
   unlock_count: number;
+  free_for_subscribers: boolean;
 }
 
 function PreviewThumb({ path }: { path: string | null }) {
@@ -59,7 +60,7 @@ export default function CreatorPPVStrip({ creatorUserId, className }: Props) {
       if (!creatorUserId) return [];
       const { data, error } = await (supabase as any)
         .from("ppv_posts")
-        .select("id, title, price_cents, preview_path, media_paths, unlock_count")
+        .select("id, title, price_cents, preview_path, media_paths, unlock_count, free_for_subscribers")
         .eq("creator_id", creatorUserId)
         .eq("is_published", true)
         .order("created_at", { ascending: false })
@@ -97,7 +98,16 @@ export default function CreatorPPVStrip({ creatorUserId, className }: Props) {
             className="snap-start shrink-0 w-32 group"
           >
             <div className="relative aspect-[3/4] rounded-xl overflow-hidden border border-rose-500/20 bg-muted">
-              <PreviewThumb path={post.preview_path || post.media_paths[0] || null} />
+              {/* Only fall back to the lock-icon placeholder when no preview is
+                  set — media_paths[0] is gated by RLS for non-owners, so the
+                  signed URL comes back empty and would otherwise leave the
+                  card stuck on a pulsing skeleton. */}
+              <PreviewThumb path={post.preview_path || null} />
+              {post.free_for_subscribers && (
+                <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-0.5 text-[8px] font-extrabold uppercase tracking-wide bg-amber-500 text-white rounded-full px-1.5 py-0.5">
+                  Subs free
+                </span>
+              )}
               <div className="absolute bottom-0 inset-x-0 p-2">
                 <div className="flex items-center justify-between gap-1.5">
                   <span className="text-[11px] font-extrabold text-white drop-shadow">
