@@ -51,6 +51,11 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveForm, setSaveForm] = useState({ owner_name: "", plate: "", mileage: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  // If a vehicle with this VIN already exists for the store, the dialog flips
+  // to update-mode: form is prefilled from the existing row, the Save button
+  // becomes "Update Existing", and the user can opt out with "Create new anyway".
+  const [existingMatch, setExistingMatch] = useState<{ id: string; owner_name: string; plate: string | null; mileage: number | null; notes: string | null } | null>(null);
+  const [forceCreateNew, setForceCreateNew] = useState(false);
 
   const { data: history = [] } = useQuery({
     queryKey: ["ar-vin-lookups", storeId],
@@ -72,11 +77,19 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
     }
   }, [history, result]);
 
-  const fetchRecalls = async (v: string) => {
+  const fetchRecalls = async (make: string, model?: string, year?: string) => {
     setRecallLoading(true);
     setRecalls([]);
     try {
-      const res = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v)}&model=&modelYear=`);
+      // NHTSA accepts model + modelYear to scope the search; passing only make
+      // returns noisy fleet-wide recalls. All three together gives the most
+      // accurate per-vehicle list.
+      const params = new URLSearchParams({
+        make,
+        model: model ?? "",
+        modelYear: year ?? "",
+      });
+      const res = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?${params.toString()}`);
       if (!res.ok) return;
       const json = await res.json();
       setRecalls((json.results ?? []).slice(0, 10));
@@ -106,7 +119,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
       };
       setResult(decoded);
 
-      if (data.make) fetchRecalls(data.make);
+      if (data.make) fetchRecalls(data.make, data.model, data.year);
 
       const { error: insertErr } = await supabase.from("ar_vin_lookups").insert({
         store_id: storeId,
@@ -129,12 +142,39 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
     toast.success("Lookup removed");
   };
 
+  // Open the Save dialog and check for an existing vehicle with this VIN to
+  // avoid duplicate rows in the customer garage.
+  const openSaveDialog = async () => {
+    if (!result) return;
+    setForceCreateNew(false);
+    setExistingMatch(null);
+    setSaveForm({ owner_name: "", plate: "", mileage: "", notes: "" });
+    setSaveOpen(true);
+    if (!result.vin) return;
+    const { data, error } = await supabase
+      .from("ar_customer_vehicles")
+      .select("id, owner_name, plate, mileage, notes")
+      .eq("store_id", storeId)
+      .eq("vin", result.vin)
+      .maybeSingle();
+    if (!error && data) {
+      setExistingMatch(data as any);
+      // Prefill form from the existing row so update-mode is one-click.
+      setSaveForm({
+        owner_name: data.owner_name ?? "",
+        plate: data.plate ?? "",
+        mileage: data.mileage != null ? String(data.mileage) : "",
+        notes: data.notes ?? "",
+      });
+    }
+  };
+
   const saveToVehicles = async () => {
     if (!result) return;
     if (!saveForm.owner_name.trim()) { toast.error("Owner name is required"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("ar_customer_vehicles").insert({
+      const payload = {
         store_id: storeId,
         owner_name: saveForm.owner_name.trim(),
         make: result.make ?? "Unknown",
@@ -144,12 +184,24 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
         plate: saveForm.plate.trim() || null,
         mileage: saveForm.mileage ? parseInt(saveForm.mileage, 10) : null,
         notes: saveForm.notes.trim() || null,
-      });
-      if (error) throw error;
+      };
+      const updateExisting = existingMatch && !forceCreateNew;
+      if (updateExisting) {
+        const { error } = await supabase
+          .from("ar_customer_vehicles")
+          .update(payload)
+          .eq("id", existingMatch!.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("ar_customer_vehicles").insert(payload);
+        if (error) throw error;
+      }
       qc.invalidateQueries({ queryKey: ["ar-customer-vehicles", storeId] });
-      toast.success("Vehicle saved to garage");
+      toast.success(updateExisting ? "Vehicle updated" : "Vehicle saved to garage");
       setSaveOpen(false);
       setSaveForm({ owner_name: "", plate: "", mileage: "", notes: "" });
+      setExistingMatch(null);
+      setForceCreateNew(false);
     } catch (e: any) {
       toast.error(e.message ?? "Failed to save vehicle");
     } finally {
@@ -161,7 +213,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
     setResult({ vin: h.vin, ...(h.decoded as object) });
     setVin(h.vin);
     setRecalls([]);
-    if (h.decoded?.make) fetchRecalls(h.decoded.make);
+    if (h.decoded?.make) fetchRecalls(h.decoded.make, h.decoded.model, h.decoded.year);
   };
 
   const timeAgo = (iso: string) => {
@@ -201,7 +253,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
                 {[result.year, result.make, result.model].filter(Boolean).join(" ") || "Vehicle"}
                 <Badge variant="secondary"><CheckCircle2 className="w-3 h-3 mr-1" /> Verified</Badge>
               </CardTitle>
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setSaveOpen(true)}>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={openSaveDialog}>
                 <Plus className="w-3.5 h-3.5" /> Save to Vehicles
               </Button>
             </div>
@@ -283,15 +335,28 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
       )}
 
       {/* Save to Vehicles dialog */}
-      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+      <Dialog open={saveOpen} onOpenChange={(o) => { setSaveOpen(o); if (!o) { setExistingMatch(null); setForceCreateNew(false); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-base">Save to Vehicle Garage</DialogTitle>
+            <DialogTitle className="text-base">
+              {existingMatch && !forceCreateNew ? "Update Existing Vehicle" : "Save to Vehicle Garage"}
+            </DialogTitle>
           </DialogHeader>
           {result && (
             <div className="p-3 rounded-lg bg-muted/40 text-sm mb-2">
               <p className="font-medium">{[result.year, result.make, result.model].filter(Boolean).join(" ")}</p>
               <p className="text-xs text-muted-foreground font-mono">{result.vin}</p>
+            </div>
+          )}
+          {existingMatch && !forceCreateNew && (
+            <div className="p-3 rounded-lg border border-blue-500/40 bg-blue-500/5 text-xs space-y-2 mb-2">
+              <p className="text-blue-700">
+                This VIN is already in your garage as <strong>{existingMatch.owner_name || "an unnamed owner"}</strong>.
+                Saving will update that record. Changes won't create a duplicate.
+              </p>
+              <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => { setForceCreateNew(true); setSaveForm({ owner_name: "", plate: "", mileage: "", notes: "" }); }}>
+                Create new record anyway
+              </Button>
             </div>
           )}
           <div className="space-y-3">
@@ -321,7 +386,11 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveOpen(false)}>Cancel</Button>
             <Button onClick={saveToVehicles} disabled={saving}>
-              {saving ? "Saving…" : "Save Vehicle"}
+              {saving
+                ? "Saving…"
+                : existingMatch && !forceCreateNew
+                  ? "Update Existing"
+                  : "Save Vehicle"}
             </Button>
           </DialogFooter>
         </DialogContent>

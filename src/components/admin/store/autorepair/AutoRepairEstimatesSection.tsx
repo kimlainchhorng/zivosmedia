@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import {
   FileSignature, Plus, Send, ArrowRightCircle, Search, Trash2,
   ClipboardList, Download, Pencil, ChevronDown, ChevronUp,
-  Link2, CheckCircle2, XCircle, BookOpen,
+  Link2, CheckCircle2, XCircle, BookOpen, Mail, MessageSquare, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
@@ -230,6 +230,26 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
     setSendingId(null);
   };
 
+  // Invoke ar-estimate-send edge function: sends a real email/SMS to the
+  // customer with the approval link. Auto-generates the share_token if
+  // missing and flips status to 'sent'.
+  const sendByChannel = useMutation({
+    mutationFn: async ({ id, channel }: { id: string; channel: "email" | "sms" }) => {
+      const { data, error } = await supabase.functions.invoke("ar-estimate-send", {
+        body: { estimate_id: id, channel },
+      });
+      if (error) throw error;
+      const result = (data ?? {}) as { ok?: boolean; error?: string };
+      if (!result.ok) throw new Error(result.error || "Send failed");
+      return result;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(vars.channel === "email" ? "Estimate emailed" : "Estimate SMS sent");
+      qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to send"),
+  });
+
   const printEstimate = (e: any) => {
     const items: LineItem[] = e.line_items ?? [];
     const html = `
@@ -344,11 +364,41 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
                           {(e.status === "draft" || e.status === "sent") && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-600" title="Copy customer approval link"
-                              disabled={sendingId === e.id}
-                              onClick={() => sendToCustomer(e)}>
-                              <Link2 className="w-3.5 h-3.5" />
-                            </Button>
+                            <>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-600" title="Copy customer approval link"
+                                disabled={sendingId === e.id}
+                                onClick={() => sendToCustomer(e)}>
+                                <Link2 className="w-3.5 h-3.5" />
+                              </Button>
+                              {e.customer_email && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  title={`Email estimate to ${e.customer_email}`}
+                                  disabled={sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "email"}
+                                  onClick={() => sendByChannel.mutate({ id: e.id, channel: "email" })}
+                                >
+                                  {sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "email"
+                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    : <Mail className="w-3.5 h-3.5" />}
+                                </Button>
+                              )}
+                              {e.customer_phone && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  title={`SMS estimate to ${e.customer_phone}`}
+                                  disabled={sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "sms"}
+                                  onClick={() => sendByChannel.mutate({ id: e.id, channel: "sms" })}
+                                >
+                                  {sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "sms"
+                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    : <MessageSquare className="w-3.5 h-3.5" />}
+                                </Button>
+                              )}
+                            </>
                           )}
                           {!e.converted_workorder_id && e.status !== "declined" && e.status !== "expired" && (
                             <Button size="icon" variant="ghost" className="h-7 w-7" title="Convert to Work Order"

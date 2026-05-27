@@ -21,13 +21,19 @@ import Phone from "lucide-react/dist/esm/icons/phone";
 import Mail from "lucide-react/dist/esm/icons/mail";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import FileSignature from "lucide-react/dist/esm/icons/file-signature";
+import Receipt from "lucide-react/dist/esm/icons/receipt";
 import Scan from "lucide-react/dist/esm/icons/scan";
 import ClipboardList from "lucide-react/dist/esm/icons/clipboard-list";
 import History from "lucide-react/dist/esm/icons/history";
 import { toast } from "sonner";
 import VehicleHistoryDialog from "./VehicleHistoryDialog";
 
-interface Props { storeId: string; onNewEstimate?: (vehicle: Vehicle) => void; onViewWorkOrders?: (vehicle: Vehicle) => void }
+interface Props {
+  storeId: string;
+  onNewEstimate?: (vehicle: Vehicle) => void;
+  onNewInvoice?: (vehicle: Vehicle) => void;
+  onViewWorkOrders?: (vehicle: Vehicle) => void;
+}
 
 type Vehicle = {
   id: string;
@@ -58,7 +64,7 @@ const COLOR_DOT: Record<string, string> = {
   yellow: "bg-yellow-400", orange: "bg-orange-500", brown: "bg-amber-800",
 };
 
-export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onViewWorkOrders }: Props) {
+export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNewInvoice, onViewWorkOrders }: Props) {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -250,6 +256,11 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onVi
                     {onNewEstimate && (
                       <Button size="sm" variant="secondary" className="flex-1 h-8 gap-1.5" onClick={() => onNewEstimate(v)}>
                         <FileSignature className="w-3 h-3" /> Estimate
+                      </Button>
+                    )}
+                    {onNewInvoice && (
+                      <Button size="sm" variant="secondary" className="flex-1 h-8 gap-1.5" onClick={() => onNewInvoice(v)}>
+                        <Receipt className="w-3 h-3" /> Invoice
                       </Button>
                     )}
                     {onViewWorkOrders && (

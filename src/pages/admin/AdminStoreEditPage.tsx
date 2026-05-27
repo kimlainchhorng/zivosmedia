@@ -4264,7 +4264,55 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-autocheck"><div><AutoRepairAutoCheckSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-parts"><div><AutoRepairPartShopSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-inspections"><div><AutoRepairInspectionsSection storeId={storeId!} onCreateEstimate={(data) => { sessionStorage.setItem("ar_estimate_prefill", JSON.stringify(data)); handleTabChange("ar-estimates"); toast.success("Estimate prefilled from inspection"); }} /></div></TabsContent>
-              <TabsContent value="ar-vehicles"><div><AutoRepairVehiclesSection storeId={storeId!} onNewEstimate={(v) => { const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" "); sessionStorage.setItem("ar_estimate_prefill", JSON.stringify({ vehicle_label: vehicleLabel, customer_name: v.owner_name || "", customer_phone: v.owner_phone || "", customer_email: v.owner_email || "", notes: "", line_items: [] })); handleTabChange("ar-estimates"); toast.success(`Estimate prefilled for ${vehicleLabel}`); }} onViewWorkOrders={(v) => { const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" "); sessionStorage.setItem("ar_workorder_search", vehicleLabel); handleTabChange("ar-workorders"); toast.info(`Filtering Work Orders by "${vehicleLabel}"`); }} /></div></TabsContent>
+              <TabsContent value="ar-vehicles"><div><AutoRepairVehiclesSection
+                storeId={storeId!}
+                onNewEstimate={(v) => {
+                  const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" ");
+                  sessionStorage.setItem("ar_estimate_prefill", JSON.stringify({
+                    vehicle_label: vehicleLabel,
+                    vin: v.vin || "",
+                    year: v.year ? String(v.year) : "",
+                    make: v.make || "",
+                    model: v.model || "",
+                    customer_name: v.owner_name || "",
+                    customer_phone: v.owner_phone || "",
+                    customer_email: v.owner_email || "",
+                    notes: "",
+                    line_items: [],
+                  }));
+                  handleTabChange("ar-estimates");
+                  toast.success(`Estimate prefilled for ${vehicleLabel}`);
+                }}
+                onNewInvoice={(v) => {
+                  const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" ");
+                  // Split owner_name into first/last for the invoice form's fields.
+                  const parts = (v.owner_name || "").trim().split(/\s+/);
+                  const firstName = parts[0] || "";
+                  const lastName = parts.slice(1).join(" ");
+                  sessionStorage.setItem("ar_invoice_prefill", JSON.stringify({
+                    type: "invoice",
+                    vehicle_label: vehicleLabel,
+                    vin: v.vin || "",
+                    year: v.year ? String(v.year) : "",
+                    make: v.make || "",
+                    model: v.model || "",
+                    customer_name: v.owner_name || "",
+                    firstName,
+                    lastName,
+                    phone: v.owner_phone || "",
+                    email: v.owner_email || "",
+                    address: "",
+                  }));
+                  handleTabChange("ar-invoices");
+                  toast.success(`Invoice prefilled for ${vehicleLabel}`);
+                }}
+                onViewWorkOrders={(v) => {
+                  const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" ");
+                  sessionStorage.setItem("ar_workorder_search", vehicleLabel);
+                  handleTabChange("ar-workorders");
+                  toast.info(`Filtering Work Orders by "${vehicleLabel}"`);
+                }}
+              /></div></TabsContent>
               <TabsContent value="ar-estimates"><div><AutoRepairEstimatesSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-workorders"><div><AutoRepairWorkOrdersSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-labor-time"><div><AutoRepairLaborTimeSection storeId={storeId!} /></div></TabsContent>

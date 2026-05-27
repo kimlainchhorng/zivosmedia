@@ -87,18 +87,32 @@ type FleetAccount = {
 // True if the id looks like a real Postgres uuid.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Compute the dollar amount for a single line item
-const lineAmount = (i: LineItem): number => {
-  const gross =
-    i.category === "labor" ? (i.hours ?? 0) * (i.price ?? 0) :
-    i.category === "part" ? (i.qty ?? 0) * (i.price ?? 0) :
-    (i.price ?? 0); // diagnosis = flat fee
+// Gross (pre-discount) dollar amount for a single line item.
+const lineGross = (i: LineItem): number =>
+  i.category === "labor" ? (i.hours ?? 0) * (i.price ?? 0) :
+  i.category === "part" ? (i.qty ?? 0) * (i.price ?? 0) :
+  (i.price ?? 0); // diagnosis = flat fee
+
+// Discount portion (always >= 0) for a single line item.
+const lineDiscount = (i: LineItem): number => {
+  const gross = lineGross(i);
   const discVal = Math.max(0, i.discount ?? 0);
-  if ((i.discountType ?? "pct") === "amt") {
-    return Math.max(0, gross - discVal);
-  }
-  const pct = Math.min(100, discVal);
-  return gross * (1 - pct / 100);
+  if ((i.discountType ?? "pct") === "amt") return Math.min(discVal, gross);
+  return gross * Math.min(100, discVal) / 100;
+};
+
+// Net (post-discount) dollar amount for a single line item.
+const lineAmount = (i: LineItem): number => Math.max(0, lineGross(i) - lineDiscount(i));
+
+// Doc-level totals derived from items. Tax is currently always 0 (no UI field
+// yet); kept in the shape so callers can wire a tax rate later without
+// changing call sites.
+const docTotals = (items: LineItem[]) => {
+  const subtotal = items.reduce((s, i) => s + lineGross(i), 0);
+  const discount = items.reduce((s, i) => s + lineDiscount(i), 0);
+  const tax = 0;
+  const total = Math.max(0, subtotal - discount + tax);
+  return { subtotal, discount, tax, total };
 };
 
 interface Props { storeId: string }
@@ -208,6 +222,44 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   };
 
   useEffect(() => { reloadAll();   }, [storeId]);
+
+  // Hand-off from Vehicles section: open a fresh invoice draft pre-filled with
+  // the chosen vehicle + owner. Cleared after consumption so refreshes don't re-open it.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("ar_invoice_prefill");
+    if (!raw) return;
+    try {
+      const p = JSON.parse(raw);
+      skipNextSave.current = true;
+      setEditingId(null);
+      setDraft({
+        ...emptyDraft(),
+        id: crypto.randomUUID(),
+        type: p.type === "estimate" ? "estimate" : "invoice",
+        number: nextDocNumber(p.type === "estimate" ? "estimate" : "invoice"),
+        firstName: p.firstName ?? "",
+        lastName: p.lastName ?? "",
+        customer: p.customer_name ?? `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim(),
+        phone: p.phone ?? "",
+        email: p.email ?? "",
+        address: p.address ?? "",
+        vin: p.vin ?? "",
+        year: p.year ?? "",
+        make: p.make ?? "",
+        model: p.model ?? "",
+        vehicle: p.vehicle_label ?? [p.year, p.make, p.model].filter(Boolean).join(" "),
+      });
+      setTab(p.type === "estimate" ? "estimate" : "invoice");
+      setCreating(true);
+      toast.info(`Prefilled new ${p.type === "estimate" ? "estimate" : "invoice"} for ${p.vehicle_label || "customer"}`);
+    } catch {
+      // ignore malformed prefill
+    }
+    sessionStorage.removeItem("ar_invoice_prefill");
+    // Intentionally not in deps — should run once on mount, matching the
+    // workorder_search pattern in AutoRepairWorkOrdersSection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load fleet accounts for this store (used by the invoice form to pick a fleet billing target).
   useEffect(() => {
@@ -352,7 +404,11 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const save = async () => {
     if (!draft.firstName || !draft.lastName || !draft.vehicle) { toast.error("First name, last name, and vehicle are required"); return; }
     const customer = `${draft.firstName} ${draft.lastName}`.trim();
-    const subtotalCents = Math.round(total(draft.items) * 100);
+    const t = docTotals(draft.items);
+    const subtotalCents = Math.round(t.subtotal * 100);
+    const discountCents = Math.round(t.discount * 100);
+    const taxCents = Math.round(t.tax * 100);
+    const totalCents = Math.round(t.total * 100);
     const tableName = draft.type === "invoice" ? "ar_invoices" : "ar_estimates";
 
     try {
@@ -371,7 +427,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         vehicle_model: draft.model || null,
         items: draft.items as any,
         subtotal_cents: subtotalCents,
-        total_cents: subtotalCents,
+        discount_cents: discountCents,
+        tax_cents: taxCents,
+        total_cents: totalCents,
         status: draft.status === "paid" ? "paid" : draft.status === "sent" ? "sent" : "draft",
       };
 
@@ -411,7 +469,11 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
       return;
     }
     const customer = `${draft.firstName} ${draft.lastName}`.trim();
-    const subtotalCents = Math.round(total(draft.items) * 100);
+    const t = docTotals(draft.items);
+    const subtotalCents = Math.round(t.subtotal * 100);
+    const discountCents = Math.round(t.discount * 100);
+    const taxCents = Math.round(t.tax * 100);
+    const totalCents = Math.round(t.total * 100);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -428,7 +490,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         vehicle_model: draft.model || null,
         items: draft.items as any,
         subtotal_cents: subtotalCents,
-        total_cents: subtotalCents,
+        discount_cents: discountCents,
+        tax_cents: taxCents,
+        total_cents: totalCents,
       };
 
       // 1. Persist the estimate (insert if new, update if editing a real DB row).
@@ -1049,14 +1113,18 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     if (!est) return;
     try {
       const number = nextDocNumber("invoice");
-      const subtotalCents = Math.round(total(est.items) * 100);
+      const t = docTotals(est.items);
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("ar_invoices" as any).insert({
         store_id: storeId, number, estimate_id: est.id,
         customer_name: est.customer, customer_phone: est.phone || null, customer_email: est.email || null,
         customer_address: est.address || null, vehicle_label: est.vehicle || null, vin: est.vin || null,
         vehicle_year: est.year || null, vehicle_make: est.make || null, vehicle_model: est.model || null,
-        items: est.items as any, subtotal_cents: subtotalCents, total_cents: subtotalCents,
+        items: est.items as any,
+        subtotal_cents: Math.round(t.subtotal * 100),
+        discount_cents: Math.round(t.discount * 100),
+        tax_cents: Math.round(t.tax * 100),
+        total_cents: Math.round(t.total * 100),
         status: "draft", created_by: user?.id,
       });
       if (error) throw error;
