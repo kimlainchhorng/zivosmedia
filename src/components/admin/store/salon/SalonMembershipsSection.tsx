@@ -227,7 +227,7 @@ export default function SalonMembershipsSection({ storeId }: SalonMembershipsSec
 
   const removeTier = async (t: Tier) => {
     if (!window.confirm(`Delete "${t.name}"? Existing subscribers stay billed via Stripe — cancel them from the active members table first.`)) return;
-    const { error: err } = await (supabase.from("salon_membership_tiers") as any).delete().eq("id", t.id);
+    const { error: err } = await (supabase as any).from("salon_membership_tiers").delete().eq("id", t.id);
     if (err) { toast.error(err.message); return; }
     toast.success("Tier removed.");
     await load();
