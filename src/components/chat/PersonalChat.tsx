@@ -2260,7 +2260,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           ? {
               ...m,
               file_payload: {
-                ...((m.file_payload as Record<string, unknown> | null) || {}),
+                ...((m.file_payload as unknown as Record<string, unknown> | null) || {}),
                 album_items: displayItems,
               } as unknown as FileBubbleData,
             }
@@ -2320,7 +2320,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 image_url: displayFirstImage?.url || null,
                 video_url: displayFirstImage ? null : displayFirstVideo?.url || null,
                 file_payload: {
-                  ...((m.file_payload as Record<string, unknown> | null) || {}),
+                  ...((m.file_payload as unknown as Record<string, unknown> | null) || {}),
                   album_items: displayItems,
                   source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
                 } as unknown as FileBubbleData,
@@ -2691,9 +2691,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       setInput("");
       clearDraft();
       setSending(true);
-      const optimisticId = `opt-${Date.now()}`;
+      const singleOptId = `opt-${Date.now()}`;
       const optimisticMsg: Message = {
-        id: optimisticId, sender_id: user.id, receiver_id: recipientId,
+        id: singleOptId, sender_id: user.id, receiver_id: recipientId,
         message: text || label,
         image_url: isVideo ? null : signedUrl,
         video_url: isVideo ? signedUrl : null,

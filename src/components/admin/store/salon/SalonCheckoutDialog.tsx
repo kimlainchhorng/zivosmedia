@@ -137,9 +137,9 @@ export default function SalonCheckoutDialog({ storeId, booking, onClose, onCompl
     if (!booking?.client_id) return;
     let cancelled = false;
     (async () => {
-      const { data, error: err } = await supabase.rpc("salon_get_active_membership_for_client", {
+      const { data, error: err } = await (supabase.rpc as any)("salon_get_active_membership_for_client", {
         p_client_id: booking.client_id,
-      } as never);
+      });
       if (cancelled || err) return;
       const row = (Array.isArray(data) ? data[0] : null) as {
         id: string;
@@ -340,12 +340,12 @@ export default function SalonCheckoutDialog({ storeId, booking, onClose, onCompl
       remaining -= recorded;
     }
 
-    const { error: err } = await supabase.rpc("salon_record_booking_payments", {
+    const { error: err } = await (supabase.rpc as any)("salon_record_booking_payments", {
       p_booking_id: booking.id,
       p_tip_cents: tipCents,
       p_tax_cents: taxCents,
       p_payments: tenders,
-    } as never);
+    });
     setSubmitting(false);
     if (err) {
       console.error("[SalonCheckout] complete failed", err);

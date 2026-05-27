@@ -372,7 +372,7 @@ function DealershipDashboardInner({ storeId, storeSlug, onJumpToTab }: Props) {
               <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
               <YAxis
                 type="category" dataKey="status"
-                tick={{ fontSize: 11, textTransform: "capitalize" }}
+                tick={{ fontSize: 11 }}
                 tickLine={false} axisLine={false} width={68}
               />
               <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />

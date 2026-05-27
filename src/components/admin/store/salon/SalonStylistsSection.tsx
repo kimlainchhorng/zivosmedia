@@ -48,6 +48,12 @@ const EMPTY_DRAFT: SalonStylistDraft = {
   user_id: null,
   is_active: true,
   service_ids: [],
+  stripe_connect_account_id: null,
+  stripe_connect_status: "not_connected",
+  stripe_connect_charges_enabled: false,
+  stripe_connect_payouts_enabled: false,
+  stripe_connect_details_submitted: false,
+  stripe_connect_updated_at: null,
 };
 
 const initialsOf = (name: string) => {
@@ -109,6 +115,12 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
       user_id: st.user_id,
       is_active: st.is_active,
       service_ids: st.service_ids,
+      stripe_connect_account_id: st.stripe_connect_account_id,
+      stripe_connect_status: st.stripe_connect_status,
+      stripe_connect_charges_enabled: st.stripe_connect_charges_enabled,
+      stripe_connect_payouts_enabled: st.stripe_connect_payouts_enabled,
+      stripe_connect_details_submitted: st.stripe_connect_details_submitted,
+      stripe_connect_updated_at: st.stripe_connect_updated_at,
     });
     setDialogOpen(true);
   };

@@ -328,7 +328,7 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
                 <Input className="font-mono flex-1" placeholder="e.g. 1HGBH41JXMN109186" maxLength={17}
                   value={form.vin} onChange={e => setForm({ ...form, vin: e.target.value.toUpperCase() })} />
                 <Button type="button" variant="outline" size="sm" className="gap-1.5 shrink-0"
-                  onClick={decodeVin} disabled={vinDecoding || form.vin.replace(/[^A-HJ-NPR-Z0-9]/gi, "").length !== 17}>
+                  onClick={() => { void decodeVin(); }} disabled={vinDecoding || form.vin.replace(/[^A-HJ-NPR-Z0-9]/gi, "").length !== 17}>
                   {vinDecoding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
                   Decode
                 </Button>
