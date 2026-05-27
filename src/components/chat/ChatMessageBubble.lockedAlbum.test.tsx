@@ -132,7 +132,7 @@ describe("ChatMessageBubble locked albums", () => {
         filePayload={{
           album_items: [
             { id: "one", type: "image", url: "one.jpg" },
-            { id: "two", type: "image", url: "two.jpg" },
+            { id: "two", type: "video", url: "two.mp4", duration_ms: 5000 },
             { id: "three", type: "image", url: "three.jpg" },
             { id: "four", type: "image", url: "four.jpg" },
           ],
@@ -145,7 +145,9 @@ describe("ChatMessageBubble locked albums", () => {
     expect(screen.getByTestId("media-album-grid")).toBeInTheDocument();
     expect(screen.getByText("Weekend market photos")).toBeInTheDocument();
     expect(screen.getByText("3.2K")).toBeInTheDocument();
+    expect(screen.getByText("0:05")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "React with like" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Open album photo" })).toHaveLength(4);
+    expect(screen.getAllByRole("button", { name: "Open album photo" })).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "Open album video" })).toBeInTheDocument();
   });
 });

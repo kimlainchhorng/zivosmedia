@@ -222,6 +222,7 @@ type MediaAlbumSendItem = {
   mime_type: string;
   size: number;
   source: "upload" | "upload-inline" | "local";
+  duration_ms?: number | null;
 };
 
 function formatUploadLimit(bytes: number): string {
@@ -334,6 +335,34 @@ async function createVideoPreviewBlob(file: File): Promise<Blob> {
 
 function createLockedMediaPreviewBlob(file: File, isVideo: boolean): Promise<Blob> {
   return isVideo ? createVideoPreviewBlob(file) : createImagePreviewBlob(file);
+}
+
+async function getVideoDurationMs(file: File): Promise<number | null> {
+  if (!file.type.startsWith("video/")) return null;
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.src = url;
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("Video metadata timed out")), 7000);
+      video.onloadedmetadata = () => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+      video.onerror = () => {
+        window.clearTimeout(timeout);
+        reject(new Error("Could not load video metadata"));
+      };
+    });
+    return Number.isFinite(video.duration) && video.duration > 0
+      ? Math.round(video.duration * 1000)
+      : null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function formatTime(dateStr: string) {
@@ -1765,6 +1794,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           }
 
           if (!dbMediaUrl) throw new Error(`Could not prepare album item ${index + 1}`);
+          const durationMs = kind === "video" ? await getVideoDurationMs(file) : null;
           const dbItem: MediaAlbumSendItem = {
             id: displayItems[index].id,
             type: kind,
@@ -1773,6 +1803,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
             size: file.size,
             source: itemSource,
+            ...(durationMs ? { duration_ms: durationMs } : {}),
           };
           dbItems.push(dbItem);
           displayItems[index] = { ...dbItem, url: displayUrl || dbMediaUrl };

@@ -124,6 +124,7 @@ type MediaAlbumItem = {
   url: string;
   thumbnailUrl?: string | null;
   filename?: string | null;
+  durationMs?: number | null;
 };
 
 type MediaAlbumReaction = {
@@ -152,6 +153,11 @@ type RawMediaAlbumItem = {
   filename?: string | null;
   file_name?: string | null;
   mime_type?: string | null;
+  duration_ms?: number | string | null;
+  durationMs?: number | string | null;
+  duration_seconds?: number | string | null;
+  durationSeconds?: number | string | null;
+  duration?: number | string | null;
 };
 
 type RawMediaAlbumPayload = {
@@ -180,6 +186,28 @@ function coerceAlbumCount(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function coerceAlbumDurationMs(item: RawMediaAlbumItem): number | null {
+  const rawMs = item.duration_ms ?? item.durationMs;
+  const rawSeconds = item.duration_seconds ?? item.durationSeconds ?? item.duration;
+  const ms = typeof rawMs === "string" ? Number(rawMs) : rawMs;
+  if (typeof ms === "number" && Number.isFinite(ms) && ms > 0) return Math.round(ms);
+  const seconds = typeof rawSeconds === "string" ? Number(rawSeconds) : rawSeconds;
+  if (typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0) return Math.round(seconds * 1000);
+  return null;
+}
+
+function formatAlbumDurationLabel(durationMs?: number | null): string | null {
+  if (typeof durationMs !== "number" || !Number.isFinite(durationMs) || durationMs <= 0) return null;
+  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function normalizeAlbumReaction(value: unknown): MediaAlbumReaction | null {
@@ -216,6 +244,7 @@ function getMediaAlbumData(filePayload: unknown): MediaAlbumData {
         url: mediaUrl,
         thumbnailUrl: item.thumbnail_url || item.thumbnailUrl || item.preview_url || null,
         filename: item.filename || item.file_name || null,
+        durationMs: coerceAlbumDurationMs(item),
       };
     })
     .filter((item): item is MediaAlbumItem => Boolean(item));
@@ -680,6 +709,7 @@ function MediaAlbumTile({
   const displayUrl = useSignedMedia(item.thumbnailUrl || item.url, "chat-media-files", "display");
   const openUrl = useSignedMedia(item.url, "chat-media-files", "display");
   const isVideo = item.type === "video";
+  const durationLabel = formatAlbumDurationLabel(item.durationMs);
 
   const open = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -722,7 +752,12 @@ function MediaAlbumTile({
       ) : (
         <div className="h-full w-full animate-pulse bg-muted-foreground/10" />
       )}
-      {isVideo && (
+      {isVideo && durationLabel && (
+        <span className="absolute left-1.5 top-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white shadow">
+          {durationLabel}
+        </span>
+      )}
+      {isVideo && !durationLabel && (
         <div className="absolute inset-0 grid place-items-center bg-black/10">
           <div className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white shadow-lg">
             <Play className="h-4 w-4 translate-x-px" fill="currentColor" />
