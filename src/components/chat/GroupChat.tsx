@@ -10,14 +10,14 @@ import GroupReadReceipts from "./GroupReadReceipts";
 import { OPEN_MEDIA_EVENT, type OpenMediaDetail } from "@/lib/chat/openMedia";
 import { signedUrlFor } from "@/lib/security/signedMedia";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
+import ChatDateSeparator from "./ChatDateSeparator";
 import { fileToInlineChatMediaUrl } from "@/lib/chat/mediaInlineFallback";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import Send from "lucide-react/dist/esm/icons/send";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import Users from "lucide-react/dist/esm/icons/users";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
-import ImagePlus from "lucide-react/dist/esm/icons/image-plus";
-import Plus from "lucide-react/dist/esm/icons/plus";
+import Paperclip from "lucide-react/dist/esm/icons/paperclip";
 import Smile from "lucide-react/dist/esm/icons/smile";
 import X from "lucide-react/dist/esm/icons/x";
 import Mic from "lucide-react/dist/esm/icons/mic";
@@ -84,6 +84,8 @@ import { suggestStickersFor } from "@/lib/stickerSuggest";
 import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
 import { detectSensitiveContent, isGroupMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
+import { formatChatDateLabel } from "@/lib/chat/dateLabels";
+import { DEFAULT_CHAT_WALLPAPER_CLASS } from "./chatPersonalizationStyles";
 
 interface GroupChatProps {
   groupId: string;
@@ -372,6 +374,23 @@ function formatTime(dateStr: string) {
   return format(d, "MMM d, h:mm a");
 }
 
+function getGroupMessagePreview(message: GroupMessage) {
+  const text = (message.message || "").trim();
+  if (text) return text.length > 96 ? `${text.slice(0, 96)}...` : text;
+  if (message.message_type === "locked_album") return "Locked media bundle";
+  if (message.message_type === "locked_image") return "Locked photo";
+  if (message.message_type === "locked_video") return "Locked video";
+  if (message.message_type === "media_album") return "Photo album";
+  if (message.message_type === "image") return "Photo";
+  if (message.message_type === "video") return "Video";
+  if (message.message_type === "voice" || message.voice_url) return "Voice message";
+  if (message.message_type === "file" || message.message_type === "document") {
+    const filename = typeof message.file_payload?.filename === "string" ? message.file_payload.filename : "";
+    return filename || "File";
+  }
+  return "Pinned message";
+}
+
 // Split a message into plain-text and @mention segments. A mention is recognized only
 // when it matches a real group member's name (longest-match wins so "@John Doe" beats "@John").
 function renderMessageWithMentions(
@@ -495,6 +514,10 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const [actionTarget, setActionTarget] = useState<GroupMessage | null>(null);
   const [showGroupSearch, setShowGroupSearch] = useState(false);
   const [groupSearchQ, setGroupSearchQ] = useState("");
+  const [activePinnedIndex, setActivePinnedIndex] = useState(0);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const pinnedHighlightTimerRef = useRef<number | null>(null);
   const [showMiniApps, setShowMiniApps] = useState(false);
   const [miniAppView, setMiniAppView] = useState<"menu" | "poll" | "todo" | "split" | "book_table" | "trip_idea">("menu");
   const handleMiniAppAction = useCallback((type: string) => {
@@ -556,6 +579,41 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     requestAnimationFrame(() => {
       bottomAnchorRef.current?.scrollIntoView({ block: "end" });
     });
+  }, []);
+
+  const highlightMessage = useCallback((messageId: string) => {
+    if (pinnedHighlightTimerRef.current) {
+      window.clearTimeout(pinnedHighlightTimerRef.current);
+    }
+    setHighlightedMessageId(messageId);
+    pinnedHighlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedMessageId((current) => (current === messageId ? null : current));
+      pinnedHighlightTimerRef.current = null;
+    }, 1800);
+  }, []);
+
+  const jumpToMessage = useCallback((messageId: string) => {
+    setShowGroupSearch(false);
+    setGroupSearchQ("");
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const node = messageRefs.current[messageId];
+        if (!node) {
+          toast("Pinned message is not loaded yet");
+          return;
+        }
+        node.scrollIntoView({ block: "center", behavior: "smooth" });
+        highlightMessage(messageId);
+      });
+    });
+  }, [highlightMessage]);
+
+  useEffect(() => {
+    return () => {
+      if (pinnedHighlightTimerRef.current) {
+        window.clearTimeout(pinnedHighlightTimerRef.current);
+      }
+    };
   }, []);
 
   const handleTimelineScroll = useCallback(() => {
@@ -2067,14 +2125,25 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     ? visibleMessages.filter((m) => m.message?.toLowerCase().includes(groupSearchQ.toLowerCase()))
     : visibleMessages;
 
-  const pinnedPreview = useMemo(() => {
-    const candidate = [...visibleMessages]
-      .reverse()
-      .find((m) => m.is_pinned && !m.id.startsWith("opt-") && (m.message || "").trim().length > 0);
-    if (!candidate) return null;
-    const text = candidate.message.trim();
-    return text.length > 78 ? `${text.slice(0, 78)}...` : text;
-  }, [visibleMessages]);
+  const pinnedMessages = useMemo(
+    () => visibleMessages
+      .filter((m) => m.is_pinned && !m.id.startsWith("opt-"))
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)),
+    [visibleMessages],
+  );
+  const safePinnedIndex = pinnedMessages.length === 0 ? 0 : Math.min(activePinnedIndex, pinnedMessages.length - 1);
+  const activePinnedMessage = pinnedMessages[safePinnedIndex] ?? null;
+  const pinnedPreview = activePinnedMessage ? getGroupMessagePreview(activePinnedMessage) : null;
+
+  useEffect(() => {
+    if (pinnedMessages.length === 0) {
+      if (activePinnedIndex !== 0) setActivePinnedIndex(0);
+      return;
+    }
+    if (activePinnedIndex > pinnedMessages.length - 1) {
+      setActivePinnedIndex(pinnedMessages.length - 1);
+    }
+  }, [activePinnedIndex, pinnedMessages.length]);
 
   const initials = (currentGroupName || "G").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -2190,23 +2259,46 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         )}
       </AnimatePresence>
 
-      {pinnedPreview && (
-        <button
-          type="button"
-          onClick={() => {
-            setShowGroupSearch(true);
-            setGroupSearchQ(pinnedPreview);
-          }}
-          className="w-full border-b border-sky-400/30 bg-gradient-to-r from-sky-500/10 via-sky-400/5 to-transparent px-3 py-2 text-left hover:from-sky-500/15 hover:via-sky-400/10 transition-colors"
-          aria-label="Open pinned message in search"
-          title="Open pinned message in search"
-        >
+      {activePinnedMessage && pinnedPreview && (
+        <div className="w-full border-b border-sky-400/30 bg-gradient-to-r from-sky-500/10 via-sky-400/5 to-transparent px-3 py-2">
           <div className="flex items-center gap-2 border-l-2 border-sky-500/70 pl-2 lg:max-w-4xl lg:mx-auto lg:w-full">
-            <Pin className="h-3.5 w-3.5 text-sky-500 shrink-0" />
-            <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300">Pinned</span>
-            <span className="text-[11px] text-muted-foreground truncate">{pinnedPreview}</span>
+            <button
+              type="button"
+              onClick={() => jumpToMessage(activePinnedMessage.id)}
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-xl py-1 pr-2 text-left hover:bg-sky-500/10 active:scale-[0.99]"
+              aria-label={`Jump to pinned message ${safePinnedIndex + 1} of ${pinnedMessages.length}`}
+              title="Jump to pinned message"
+            >
+              <Pin className="h-3.5 w-3.5 shrink-0 text-sky-500" />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300">
+                    Pinned message
+                  </span>
+                  {pinnedMessages.length > 1 && (
+                    <span className="rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold leading-none text-sky-700 dark:text-sky-300">
+                      {safePinnedIndex + 1}/{pinnedMessages.length}
+                    </span>
+                  )}
+                </span>
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {getSenderName(activePinnedMessage.sender_id)}: {pinnedPreview}
+                </span>
+              </span>
+            </button>
+            {pinnedMessages.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setActivePinnedIndex((index) => (index + 1) % pinnedMessages.length)}
+                className="h-8 rounded-full bg-sky-500/15 px-2 text-[10px] font-bold text-sky-700 active:scale-95 dark:text-sky-300"
+                aria-label="Show next pinned message"
+                title="Next pinned message"
+              >
+                Next
+              </button>
+            )}
           </div>
-        </button>
+        </div>
       )}
 
       {/* Messages */}
@@ -2214,7 +2306,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       <div
         ref={scrollRef}
         onScroll={handleTimelineScroll}
-        className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-2 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.07),transparent_35%),linear-gradient(to_bottom,rgba(148,163,184,0.04),transparent_30%)] [-webkit-overflow-scrolling:touch] touch-pan-y [transform:translateZ(0)] [contain:layout_paint] lg:[&>*]:max-w-4xl lg:[&>*]:mx-auto lg:[&>*]:w-full"
+        className={`flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-2 [-webkit-overflow-scrolling:touch] touch-pan-y [transform:translateZ(0)] [contain:layout_paint] lg:[&>*]:max-w-4xl lg:[&>*]:mx-auto lg:[&>*]:w-full ${DEFAULT_CHAT_WALLPAPER_CLASS}`}
       >
         {loading ? (
           <div className="flex items-center justify-center h-40">
@@ -2238,21 +2330,22 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             const msgDate = new Date(msg.created_at).toDateString();
             const prevMsgDate = idx > 0 ? new Date(filteredMessages[idx - 1].created_at).toDateString() : null;
             const showDateSep = msgDate !== prevMsgDate;
-            const dateLabel = (() => {
-              const d = new Date(msg.created_at);
-              if (isToday(d)) return "Today";
-              if (isYesterday(d)) return "Yesterday";
-              return format(d, "MMMM d, yyyy");
-            })();
+            const dateLabel = formatChatDateLabel(msg.created_at);
 
             return (
-              <div key={msg.id}>
+              <div
+                key={msg.id}
+                ref={(node) => {
+                  if (node) messageRefs.current[msg.id] = node;
+                  else delete messageRefs.current[msg.id];
+                }}
+                data-group-message-id={msg.id}
+                className={`scroll-mt-32 rounded-2xl transition-[box-shadow,background-color] duration-300 ${
+                  highlightedMessageId === msg.id ? "bg-sky-500/10 shadow-[0_0_0_2px_rgba(14,165,233,0.55)]" : ""
+                }`}
+              >
                 {showDateSep && (
-                  <div data-chat-date={dateLabel} className="flex items-center gap-2 py-2 px-2">
-                    <div className="h-px flex-1 bg-border/30" />
-                    <span className="text-[10px] font-semibold text-muted-foreground/60 bg-background/80 px-2 py-0.5 rounded-full border border-border/20">{dateLabel}</span>
-                    <div className="h-px flex-1 bg-border/30" />
-                  </div>
+                  <ChatDateSeparator label={dateLabel} />
                 )}
                 <div className="space-y-1">
                   {repliedMsg && (
@@ -2331,6 +2424,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                           time={formatTime(msg.created_at)}
                           url={msg.voice_url}
                           durationMs={msg.file_payload?.duration_ms}
+                          sizeBytes={msg.file_payload?.size}
                           uploadStatus={msg._upload_status}
                           uploadProgress={msg._upload_progress}
                           uploadError={msg._upload_error}
@@ -2715,46 +2809,21 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           </button>
         )}
         <div className="flex items-end gap-1.5">
-          {/* Attach button with full attach menu */}
+          {/* Emoji button; attachments live inside the message field. */}
           <div className="relative shrink-0">
             <button type="button"
-              data-attach-trigger
-              onClick={() => setShowAttachMenu((prev) => !prev)}
-              disabled={uploadingImage}
-              className={`h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                showAttachMenu ? "bg-primary text-primary-foreground rotate-45" : "text-muted-foreground/60 hover:bg-muted/50"
-              }`}
-              aria-label="Attachments"
-              title="Attachments"
-            >
-              {uploadingImage ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <Plus className="h-5 w-5" />}
-            </button>
-            <ChatAttachMenu
-              open={showAttachMenu}
-              onClose={() => setShowAttachMenu(false)}
-              onImageSelect={() => fileInputRef.current?.click()}
-              onVideoSelect={() => videoInputRef.current?.click()}
-              onLocationShare={handleLocationShare}
-              onLockedImageSelect={() => lockedImageInputRef.current?.click()}
-              lockedMediaHint="Stars unlock"
-              onSendGift={() => setShowGiftPanel(true)}
-              onOpenWallet={() => setShowWalletSheet(true)}
-              onScanDocument={() => setShowScanner(true)}
-              onFileSelect={() => filePickerTriggerRef.current?.()}
-              onCreatePoll={() => setShowPollCreator(true)}
-              onShareContact={() => setShowContactPicker(true)}
-              onShareSocial={() => setShowSocialShare(true)}
-              onShareZivoCard={() => setShowZivoCardPicker(true)}
-              onToggleDisappearing={() => {
-                const next = disappearingSec == null ? 24 * 60 * 60 : disappearingSec === 24 * 60 * 60 ? 7 * 24 * 60 * 60 : disappearingSec === 7 * 24 * 60 * 60 ? 30 * 24 * 60 * 60 : null;
-                setDisappearingSec(next);
-                toast.success(next == null ? "Auto-delete: Off" : next === 24*60*60 ? "Auto-delete: 1 day" : next === 7*24*60*60 ? "Auto-delete: 7 days" : "Auto-delete: 30 days");
+              onClick={() => {
+                setShowAttachMenu(false);
+                setShowStickerKeyboard((prev) => !prev);
               }}
-              onToggleSensitiveMedia={handleToggleSensitiveMedia}
-              disappearingEnabled={disappearingSec != null}
-              sensitiveMediaMarked={markNextMediaSensitive}
-              disappearingLabel={disappearingSec == null ? "Off" : disappearingSec === 24*60*60 ? "1d" : disappearingSec === 7*24*60*60 ? "7d" : "30d"}
-            />
+              className={`h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                showStickerKeyboard ? "bg-primary/10 text-primary" : "text-muted-foreground/60 hover:bg-muted/50"
+              }`}
+              aria-label="Open stickers"
+              title="Open stickers"
+            >
+              <Smile className="h-5 w-5" />
+            </button>
           </div>
 
           <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
@@ -2894,13 +2963,44 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             />
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
               <button type="button"
-                onClick={() => setShowStickerKeyboard(!showStickerKeyboard)}
-                className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${showStickerKeyboard ? "text-primary bg-primary/10" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
-                aria-label="Open stickers"
-                title="Open stickers"
+                data-attach-trigger
+                onClick={() => {
+                  setShowStickerKeyboard(false);
+                  setShowAttachMenu((prev) => !prev);
+                }}
+                disabled={uploadingImage}
+                className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${showAttachMenu ? "text-primary bg-primary/10" : "text-muted-foreground/45 hover:text-muted-foreground"}`}
+                aria-label="Attachments"
+                title="Attachments"
               >
-                <Smile className="h-5 w-5" />
+                {uploadingImage ? <Loader2 className="h-[17px] w-[17px] animate-spin" /> : <Paperclip className="h-5 w-5" />}
               </button>
+              <ChatAttachMenu
+                open={showAttachMenu}
+                onClose={() => setShowAttachMenu(false)}
+                onImageSelect={() => fileInputRef.current?.click()}
+                onVideoSelect={() => videoInputRef.current?.click()}
+                onLocationShare={handleLocationShare}
+                onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+                lockedMediaHint="Stars unlock"
+                onSendGift={() => setShowGiftPanel(true)}
+                onOpenWallet={() => setShowWalletSheet(true)}
+                onScanDocument={() => setShowScanner(true)}
+                onFileSelect={() => filePickerTriggerRef.current?.()}
+                onCreatePoll={() => setShowPollCreator(true)}
+                onShareContact={() => setShowContactPicker(true)}
+                onShareSocial={() => setShowSocialShare(true)}
+                onShareZivoCard={() => setShowZivoCardPicker(true)}
+                onToggleDisappearing={() => {
+                  const next = disappearingSec == null ? 24 * 60 * 60 : disappearingSec === 24 * 60 * 60 ? 7 * 24 * 60 * 60 : disappearingSec === 7 * 24 * 60 * 60 ? 30 * 24 * 60 * 60 : null;
+                  setDisappearingSec(next);
+                  toast.success(next == null ? "Auto-delete: Off" : next === 24*60*60 ? "Auto-delete: 1 day" : next === 7*24*60*60 ? "Auto-delete: 7 days" : "Auto-delete: 30 days");
+                }}
+                onToggleSensitiveMedia={handleToggleSensitiveMedia}
+                disappearingEnabled={disappearingSec != null}
+                sensitiveMediaMarked={markNextMediaSensitive}
+                disappearingLabel={disappearingSec == null ? "Off" : disappearingSec === 24*60*60 ? "1d" : disappearingSec === 7*24*60*60 ? "7d" : "30d"}
+              />
             </div>
           </div>
 
@@ -2969,9 +3069,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           setShowInvites(true);
         }}
         onOpenPinned={() => {
+          if (!activePinnedMessage) return;
           setShowInfo(false);
-          setShowGroupSearch(true);
-          setGroupSearchQ(pinnedPreview || "");
+          jumpToMessage(activePinnedMessage.id);
         }}
         onStartCall={(kind) => {
           setShowInfo(false);

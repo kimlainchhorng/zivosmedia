@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { useDirectMessageUnlocks } from "@/hooks/useDirectMessageUnlocks";
+import { useContacts } from "@/hooks/useContacts";
 import { getLockedMediaPreviewPath, isLockedDirectMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 import MediaGalleryLightbox from "./MediaGalleryLightbox";
 import { OPEN_MEDIA_EVENT, type OpenMediaDetail } from "@/lib/chat/openMedia";
@@ -36,7 +37,7 @@ import Gift from "lucide-react/dist/esm/icons/gift";
 import X from "lucide-react/dist/esm/icons/x";
 import Mic from "lucide-react/dist/esm/icons/mic";
 import Search from "lucide-react/dist/esm/icons/search";
-import Plus from "lucide-react/dist/esm/icons/plus";
+import Paperclip from "lucide-react/dist/esm/icons/paperclip";
 import Pin from "lucide-react/dist/esm/icons/pin";
 import Settings from "lucide-react/dist/esm/icons/settings";
 import ImageIcon from "lucide-react/dist/esm/icons/image";
@@ -70,6 +71,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { primeCallAudio } from "@/lib/callAudio";
 import { classifyWebRTCFailure } from "@/hooks/useWebRTC";
 import ChatMessageBubble from "./ChatMessageBubble";
+import ChatDateSeparator from "./ChatDateSeparator";
 import StickyDatePill from "./StickyDatePill";
 import AvatarPreviewSheet from "./AvatarPreviewSheet";
 import { emitReactionAdded } from "./FloatingReactionsOverlay";
@@ -95,9 +97,10 @@ const DocumentScanner = lazy(() => import("./DocumentScanner"));
 import { useChatFiles } from "@/hooks/useChatFiles";
 import type { StickerSendPayload } from "./StickerKeyboard";
 import { suggestStickersFor } from "@/lib/stickerSuggest";
-import { getWallpaperClass } from "./chatPersonalizationStyles";
+import { getChatCanvasClass, getWallpaperStyle } from "./chatPersonalizationStyles";
 import CallEventBubble from "./CallEventBubble";
 import VoiceMessageBubble from "./VoiceMessageBubble";
+import { formatChatDateLabel } from "@/lib/chat/dateLabels";
 
 // Lazy-loaded panels (only downloaded when user opens them)
 const CallScreen = lazy(() => import("./CallScreen"));
@@ -507,13 +510,114 @@ function formatMsgTime(dateStr: string) {
   return format(d, "MMM d, h:mm a");
 }
 
+function DirectChatIntroCard({
+  name,
+  avatar,
+  initials,
+  isVerified,
+  isSavedContact,
+  onAddContact,
+  onOpenInfo,
+}: {
+  name: string;
+  avatar?: string | null;
+  initials: string;
+  isVerified?: boolean;
+  isSavedContact: boolean;
+  onAddContact: () => void;
+  onOpenInfo: () => void;
+}) {
+  return (
+    <div className="mx-auto my-3 w-full max-w-[280px] overflow-hidden rounded-lg border border-border/15 bg-background/80 text-center shadow-sm backdrop-blur-xl">
+      <button
+        type="button"
+        onClick={onOpenInfo}
+        className="flex w-full flex-col items-center px-4 pb-3 pt-4 text-center transition-colors hover:bg-muted/30"
+      >
+        <Avatar className="h-14 w-14 ring-2 ring-background/80">
+          <AvatarImage src={avatar || undefined} />
+          <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
+        </Avatar>
+        <span className="mt-2 inline-flex max-w-full items-center justify-center gap-1 text-[15px] font-bold text-foreground">
+          <span className="truncate">{name}</span>
+          {isBlueVerified(isVerified) && <VerifiedBadge size={14} interactive={false} />}
+        </span>
+        <span className="mt-0.5 text-[12px] font-medium text-muted-foreground">
+          {isSavedContact ? "In contacts" : "Not a contact"}
+        </span>
+      </button>
+      <div className="grid grid-cols-2 border-t border-border/15 text-[12px] font-semibold">
+        <button
+          type="button"
+          onClick={isSavedContact ? onOpenInfo : onAddContact}
+          className="px-3 py-2.5 text-primary transition-colors hover:bg-primary/5"
+        >
+          {isSavedContact ? "View Profile" : "Add Contact"}
+        </button>
+        <button
+          type="button"
+          onClick={onOpenInfo}
+          className="border-l border-border/15 px-3 py-2.5 text-muted-foreground transition-colors hover:bg-muted/40"
+        >
+          Info
+        </button>
+      </div>
+      <div className="border-t border-border/15 px-3 py-2 text-[11px] font-medium text-muted-foreground">
+        {isBlueVerified(isVerified) ? "Verified ZIVO account" : "Not an official account"}
+      </div>
+    </div>
+  );
+}
+
 export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, openGiftOnMount, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
   const { user } = useAuth();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
+  const { contacts, add: addContact, loading: contactsLoading } = useContacts();
   const navigate = useNavigate();
   const isSelfChat = !!user?.id && recipientId === user.id;
   const displayName = isSelfChat ? "Saved Messages" : recipientName;
   const [galleryState, setGalleryState] = useState<{ open: boolean; images: { id: string; url: string; type: "image" | "video" }[]; index: number }>({ open: false, images: [], index: 0 });
+  const isSavedContact = useMemo(
+    () => contacts.some((contact) => contact.contact_user_id === recipientId && contact.added_via !== "chat_history"),
+    [contacts, recipientId],
+  );
+  const contactBannerStorageKey = user?.id && !isSelfChat
+    ? `zivo:dm-contact-banner-dismissed:${user.id}:${recipientId}`
+    : null;
+  const [contactBannerDismissed, setContactBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    setContactBannerDismissed(false);
+    if (!contactBannerStorageKey) return;
+    try {
+      setContactBannerDismissed(localStorage.getItem(contactBannerStorageKey) === "1");
+    } catch {
+      // Ignore localStorage access problems; the banner can still be closed in memory.
+    }
+  }, [contactBannerStorageKey]);
+
+  const dismissContactBanner = useCallback(() => {
+    setContactBannerDismissed(true);
+    if (!contactBannerStorageKey) return;
+    try {
+      localStorage.setItem(contactBannerStorageKey, "1");
+    } catch {
+      // Best effort only.
+    }
+  }, [contactBannerStorageKey]);
+
+  const handleAddContactFromBanner = useCallback(async () => {
+    const result = await addContact(recipientId, { via: "chat" });
+    if (result.ok) {
+      toast.success(`${recipientName} added to contacts`);
+      dismissContactBanner();
+      return;
+    }
+    toast.error(result.error || "Couldn't add contact");
+  }, [addContact, dismissContactBanner, recipientId, recipientName]);
+
+  const shouldShowContactActionBanner =
+    !isSelfChat && !contactsLoading && !isSavedContact && !contactBannerDismissed;
 
   // Notify global listener that this chat is open
   useEffect(() => {
@@ -3122,6 +3226,34 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           </div>
         </div>
 
+        {shouldShowContactActionBanner && (
+          <div className="flex min-h-[44px] items-center border-t border-border/15 bg-background/95 text-[12px] font-bold uppercase tracking-normal">
+            <button
+              type="button"
+              onClick={() => { void handleAddContactFromBanner(); }}
+              className="flex flex-1 items-center justify-center px-3 py-3 text-primary transition-colors hover:bg-primary/5 active:bg-primary/10"
+            >
+              Add Contact
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSecurity(true)}
+              className="flex flex-1 items-center justify-center px-3 py-3 text-destructive transition-colors hover:bg-destructive/5 active:bg-destructive/10"
+            >
+              Block User
+            </button>
+            <button
+              type="button"
+              onClick={dismissContactBanner}
+              className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted/60"
+              aria-label="Dismiss contact actions"
+              title="Dismiss"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+
         {/* Pinned messages bar */}
         {pinnedMessages.length > 0 && (
           <button type="button"
@@ -3305,7 +3437,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           }
           sendSingleSelectedMedia(files[0], () => {});
         }}
-        className={`relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 flex flex-col bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.07),transparent_34%),linear-gradient(to_bottom,rgba(148,163,184,0.04),transparent_30%)] [-webkit-overflow-scrolling:touch] touch-pan-y [transform:translateZ(0)] [contain:layout_paint] ${getWallpaperClass(chatStyle.wallpaper)}`}
+        className={`relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 flex flex-col [-webkit-overflow-scrolling:touch] touch-pan-y [transform:translateZ(0)] [contain:layout_paint] ${getChatCanvasClass(chatStyle.wallpaper)}`}
+        style={getWallpaperStyle(chatStyle.wallpaper)}
       >
         {/* Drag-over overlay for desktop/iPad file drop */}
         {isDragOver && (
@@ -3332,8 +3465,16 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               </>
             ) : (
               <>
-                <p className="text-sm">No messages yet</p>
-                <p className="text-xs mt-1">Say hello to {recipientName}!</p>
+                <DirectChatIntroCard
+                  name={displayName}
+                  avatar={recipientAvatar}
+                  initials={initials}
+                  isVerified={recipientIsVerified}
+                  isSavedContact={isSavedContact}
+                  onAddContact={() => { void handleAddContactFromBanner(); }}
+                  onOpenInfo={() => setShowContactInfo(true)}
+                />
+                <p className="mt-1 text-xs">Say hello to {recipientName}!</p>
               </>
             )}
           </div>
@@ -3349,23 +3490,25 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 </button>
               </div>
             )}
+            {!isSelfChat && (
+              <DirectChatIntroCard
+                name={displayName}
+                avatar={recipientAvatar}
+                initials={initials}
+                isVerified={recipientIsVerified}
+                isSavedContact={isSavedContact}
+                onAddContact={() => { void handleAddContactFromBanner(); }}
+                onOpenInfo={() => setShowContactInfo(true)}
+              />
+            )}
             <AnimatePresence initial={false}>
             {visibleTimeline.map((item, idx) => {
                 const itemDate = new Date(item.created_at).toDateString();
                 const prevDate = idx > 0 ? new Date(visibleTimeline[idx - 1].created_at).toDateString() : null;
                 const showDateSep = itemDate !== prevDate;
-                const dateLabel = (() => {
-                  const d = new Date(item.created_at);
-                  if (isToday(d)) return "Today";
-                  if (isYesterday(d)) return "Yesterday";
-                  return format(d, "MMMM d, yyyy");
-                })();
+                const dateLabel = formatChatDateLabel(item.created_at);
                 const dateSep = showDateSep ? (
-                  <div key={`sep-${item.created_at}`} data-chat-date={dateLabel} className="flex items-center gap-2 py-2 px-2">
-                    <div className="h-px flex-1 bg-border/30" />
-                    <span className="text-[10px] font-semibold text-muted-foreground/60 bg-background/80 px-2 py-0.5 rounded-full border border-border/20">{dateLabel}</span>
-                    <div className="h-px flex-1 bg-border/30" />
-                  </div>
+                  <ChatDateSeparator key={`sep-${item.created_at}`} label={dateLabel} />
                 ) : null;
 
                 if (isCallEvent(item)) {
@@ -3480,6 +3623,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                             isPinned={msg.is_pinned}
                             url={msg.voice_url}
                             durationMs={(msg.file_payload as { duration_ms?: number } | null)?.duration_ms}
+                            sizeBytes={(msg.file_payload as { size?: number } | null)?.size}
                             uploadStatus={msg._upload_status}
                             uploadProgress={msg._upload_progress}
                             uploadError={msg._upload_error}
@@ -3805,60 +3949,22 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           <div className="flex items-end gap-1.5">
             {/* Action buttons — attach + emoji picker; extra tools accessible via attach menu */}
             <div className="flex items-end gap-0.5 shrink-0">
-              {/* Attach */}
+              {/* Emoji */}
               <div className="relative shrink-0">
                 <button type="button"
-                  data-attach-trigger
                   onClick={() => {
                     setShowQuickReplies(false);
-                    setShowAttachMenu((prev) => !prev);
+                    setShowAttachMenu(false);
+                    setShowStickerKeyboard((prev) => !prev);
                   }}
-                  disabled={uploadingMedia}
                   className={`h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                    showAttachMenu ? "bg-primary text-primary-foreground rotate-45" : "text-muted-foreground/60 hover:bg-muted/50"
+                    showStickerKeyboard ? "bg-primary/10 text-primary" : "text-muted-foreground/60 hover:bg-muted/50"
                   }`}
-                  aria-label="Attachments"
-                  title="Attachments"
+                  aria-label="Open stickers"
+                  title="Open stickers"
                 >
-                  {uploadingMedia ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <Plus className="h-5 w-5" />}
+                  <Smile className="h-5 w-5" />
                 </button>
-                <ChatAttachMenu
-                  open={showAttachMenu}
-                  onClose={() => setShowAttachMenu(false)}
-                  onImageSelect={() => fileInputRef.current?.click()}
-                  onVideoSelect={() => videoInputRef.current?.click()}
-                  onLocationShare={handleLocationShare}
-                  onToggleDisappearing={cycleAutoDelete}
-                  disappearingEnabled={disappearingMode}
-                  disappearingLabel={
-                    disappearingSec == null ? "Off" :
-                    disappearingSec === 24 * 60 * 60 ? "1d" :
-                    disappearingSec === 7 * 24 * 60 * 60 ? "7d" :
-                    disappearingSec === 30 * 24 * 60 * 60 ? "30d" :
-                    "On"
-                  }
-                  onLockedImageSelect={() => lockedImageInputRef.current?.click()}
-                  onLockedTextSelect={handleLockedTextSelect}
-                  onToggleSensitiveMedia={() => {
-                    setMarkNextMediaSensitive((prev) => {
-                      const next = !prev;
-                      toast.success(next ? "Next media will be blurred as 18+" : "18+ media blur marker off");
-                      return next;
-                    });
-                  }}
-                  sensitiveMediaMarked={markNextMediaSensitive}
-                  onSendGift={() => setShowGiftPanel(true)}
-                  onOpenWallet={() => {
-                    if (isSelfChat) { setShowWalletSheet(true); return; }
-                    openP2PTransfer({ receiverId: recipientId, receiverName: recipientName, mode: "send" });
-                  }}
-                  onScanDocument={() => setShowScanner(true)}
-                  onFileSelect={() => filePickerTriggerRef.current?.()}
-                  onCreatePoll={() => setShowPollCreator(true)}
-                  onShareContact={() => setShowContactPicker(true)}
-                  onShareSocial={() => setShowSocialShare(true)}
-                  onShareZivoCard={() => setShowZivoCardPicker(true)}
-                />
               </div>
 
               <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
@@ -3961,7 +4067,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   }
                 }}
                 placeholder={disappearingMode ? "Disappearing message…" : "Message…"}
-                className={`w-full h-12 pl-4 pr-24 rounded-full text-[15px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all ${
+                className={`w-full h-12 pl-4 pr-12 rounded-full text-[15px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all ${
                   disappearingMode
                     ? "bg-amber-500/5 border border-amber-500/15 focus:ring-2 focus:ring-amber-500/10"
                     : "bg-muted/30 border border-border/10 focus:ring-2 focus:ring-primary/15 focus:border-primary/20"
@@ -3969,15 +4075,58 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               />
               <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center">
                 <button type="button"
-                  onClick={() => setShowStickerKeyboard(!showStickerKeyboard)}
+                  data-attach-trigger
+                  onClick={() => {
+                    setShowQuickReplies(false);
+                    setShowStickerKeyboard(false);
+                    setShowAttachMenu((prev) => !prev);
+                  }}
+                  disabled={uploadingMedia}
                   className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-                    showStickerKeyboard ? "text-primary bg-primary/10" : "text-muted-foreground/40 hover:text-muted-foreground"
+                    showAttachMenu ? "text-primary bg-primary/10" : "text-muted-foreground/45 hover:text-muted-foreground"
                   }`}
-                  aria-label="Open stickers"
-                  title="Open stickers"
+                  aria-label="Attachments"
+                  title="Attachments"
                 >
-                  <Smile className="h-5 w-5" />
+                  {uploadingMedia ? <Loader2 className="h-[17px] w-[17px] animate-spin" /> : <Paperclip className="h-5 w-5" />}
                 </button>
+                <ChatAttachMenu
+                  open={showAttachMenu}
+                  onClose={() => setShowAttachMenu(false)}
+                  onImageSelect={() => fileInputRef.current?.click()}
+                  onVideoSelect={() => videoInputRef.current?.click()}
+                  onLocationShare={handleLocationShare}
+                  onToggleDisappearing={cycleAutoDelete}
+                  disappearingEnabled={disappearingMode}
+                  disappearingLabel={
+                    disappearingSec == null ? "Off" :
+                    disappearingSec === 24 * 60 * 60 ? "1d" :
+                    disappearingSec === 7 * 24 * 60 * 60 ? "7d" :
+                    disappearingSec === 30 * 24 * 60 * 60 ? "30d" :
+                    "On"
+                  }
+                  onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+                  onLockedTextSelect={handleLockedTextSelect}
+                  onToggleSensitiveMedia={() => {
+                    setMarkNextMediaSensitive((prev) => {
+                      const next = !prev;
+                      toast.success(next ? "Next media will be blurred as 18+" : "18+ media blur marker off");
+                      return next;
+                    });
+                  }}
+                  sensitiveMediaMarked={markNextMediaSensitive}
+                  onSendGift={() => setShowGiftPanel(true)}
+                  onOpenWallet={() => {
+                    if (isSelfChat) { setShowWalletSheet(true); return; }
+                    openP2PTransfer({ receiverId: recipientId, receiverName: recipientName, mode: "send" });
+                  }}
+                  onScanDocument={() => setShowScanner(true)}
+                  onFileSelect={() => filePickerTriggerRef.current?.()}
+                  onCreatePoll={() => setShowPollCreator(true)}
+                  onShareContact={() => setShowContactPicker(true)}
+                  onShareSocial={() => setShowSocialShare(true)}
+                  onShareZivoCard={() => setShowZivoCardPicker(true)}
+                />
               </div>
             </div>
 

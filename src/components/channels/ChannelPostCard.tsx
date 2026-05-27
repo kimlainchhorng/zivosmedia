@@ -1,6 +1,22 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, X, ChevronLeft, ChevronRight, Pin, PinOff, Share2, MoreHorizontal, Pencil, Trash2, Link as LinkIcon, Check, Loader2 } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  FileText,
+  Link as LinkIcon,
+  Loader2,
+  MoreHorizontal,
+  Music,
+  Pencil,
+  Pin,
+  PinOff,
+  Share2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import type { ChannelPost } from "@/hooks/useChannel";
@@ -28,8 +44,52 @@ interface Props {
 interface MediaItem {
   url: string;
   type?: string;
+  name?: string;
+  size?: number;
+  mime_type?: string;
   duration_ms?: number;
   waveform?: number[];
+}
+
+function attachmentType(item: any): string {
+  return String(item?.type || item?.mime_type || item?.mimeType || "").toLowerCase();
+}
+
+function isVoiceAttachment(item: any): boolean {
+  const type = attachmentType(item);
+  return type === "voice" || type.includes("voice");
+}
+
+function isMusicAttachment(item: any): boolean {
+  const type = attachmentType(item);
+  return type === "music" || type.startsWith("audio/") || type.includes("audio");
+}
+
+function isFileAttachment(item: any): boolean {
+  const type = attachmentType(item);
+  return type === "file" || type === "document" || type.includes("application/");
+}
+
+function attachmentLabel(item: MediaItem): string {
+  if (item.name?.trim()) return item.name.trim();
+  try {
+    const parsed = new URL(item.url);
+    return decodeURIComponent(parsed.pathname.split("/").filter(Boolean).pop() || parsed.hostname);
+  } catch {
+    return item.type || "Attachment";
+  }
+}
+
+function attachmentMeta(item: MediaItem): string {
+  const pieces = [item.mime_type || item.type, formatAttachmentSize(item.size)].filter(Boolean);
+  return pieces.join(" · ");
+}
+
+function formatAttachmentSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
 export function ChannelPostCard({ post, canManage = false, canComment = true, protectContent = false, onPinChanged }: Props) {
@@ -119,7 +179,7 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
     const excerpt = (post.body ?? "").slice(0, 240);
     const previewImage =
       Array.isArray(post.media)
-        ? post.media.find((m: any) => typeof m?.url === "string" && !String(m?.type ?? "").startsWith("video"))?.url ?? null
+        ? post.media.find((m: any) => typeof m?.url === "string" && ["image", "gif"].includes(String(m?.type ?? "").toLowerCase()))?.url ?? null
         : null;
     openShareToChat({
       kind: "activity",
@@ -188,11 +248,22 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
     [allMedia],
   );
   const voiceItems: MediaItem[] = useMemo(
-    () => allMedia.filter((m) => m?.url && m.type === "voice") as MediaItem[],
+    () => allMedia.filter((m) => m?.url && isVoiceAttachment(m)) as MediaItem[],
+    [allMedia],
+  );
+  const musicItems: MediaItem[] = useMemo(
+    () => allMedia.filter((m) => m?.url && isMusicAttachment(m)) as MediaItem[],
+    [allMedia],
+  );
+  const fileItems: MediaItem[] = useMemo(
+    () => allMedia.filter((m) => m?.url && isFileAttachment(m)) as MediaItem[],
     [allMedia],
   );
   const media: MediaItem[] = useMemo(
-    () => allMedia.filter((m) => m?.url && m.type !== "poll" && m.type !== "voice") as MediaItem[],
+    () =>
+      allMedia.filter(
+        (m) => m?.url && m.type !== "poll" && !isVoiceAttachment(m) && !isMusicAttachment(m) && !isFileAttachment(m),
+      ) as MediaItem[],
     [allMedia],
   );
 
@@ -444,6 +515,52 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
           </div>
         )}
 
+        {musicItems.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {musicItems.map((item, i) => (
+              <a
+                key={`music-${i}`}
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 p-3 hover:bg-muted/60"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <Music className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">{attachmentLabel(item)}</span>
+                  <span className="block truncate text-[11px] text-muted-foreground">{attachmentMeta(item) || "Music"}</span>
+                </span>
+                <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </a>
+            ))}
+          </div>
+        )}
+
+        {fileItems.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {fileItems.map((item, i) => (
+              <a
+                key={`file-${i}`}
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 p-3 hover:bg-muted/60"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">{attachmentLabel(item)}</span>
+                  <span className="block truncate text-[11px] text-muted-foreground">{attachmentMeta(item) || "File"}</span>
+                </span>
+                <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </a>
+            ))}
+          </div>
+        )}
+
         {media.length > 0 && (
           <div className={`mt-3 grid gap-1.5 ${gridClass}`}>
             {media.slice(0, 6).map((m, i) => {
@@ -483,17 +600,24 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
                       </div>
                     </>
                   ) : (
-                    <img
-	                      src={m.url}
-	                      alt=""
-	                      loading="lazy"
-	                      decoding="async"
-	                      draggable={false}
-	                      className="h-full w-full object-cover transition-transform hover:scale-[1.02]"
-                      onContextMenu={blockSaveGestures}
-                      onContextMenuCapture={blockSaveGestures}
-                      onDragStartCapture={blockSaveGestures}
-                    />
+                    <>
+                      <img
+                        src={m.url}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        draggable={false}
+                        className="h-full w-full object-cover transition-transform hover:scale-[1.02]"
+                        onContextMenu={blockSaveGestures}
+                        onContextMenuCapture={blockSaveGestures}
+                        onDragStartCapture={blockSaveGestures}
+                      />
+                      {m.type === "gif" && (
+                        <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          GIF
+                        </span>
+                      )}
+                    </>
                   )}
                   {isOverflow && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/60 text-lg font-semibold text-foreground">

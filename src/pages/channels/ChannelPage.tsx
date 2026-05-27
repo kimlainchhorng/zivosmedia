@@ -1,45 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Hash, ImageIcon, Inbox, Link as LinkIcon, Users } from "lucide-react";
+import { ChevronLeft, FileText, Hash, ImageIcon, Inbox, Info, Link as LinkIcon, Mic, Music, Play, Users } from "lucide-react";
 import { useChannel } from "@/hooks/useChannel";
 import { ChannelHeader } from "@/components/channels/ChannelHeader";
+import { ChannelInfoSheet } from "@/components/channels/ChannelInfoSheet";
 import { ChannelPostCard } from "@/components/channels/ChannelPostCard";
 import { ChannelPostComposer } from "@/components/channels/ChannelPostComposer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  buildChannelMediaBuckets,
+  channelPostMatchesTab,
+  type ChannelMediaTab,
+} from "@/lib/channels/channelMedia";
 import { getChannelShareUrl } from "@/lib/getPublicOrigin";
 import { shareContent } from "@/lib/native/share";
 import { copyText } from "@/lib/native/clipboard";
 import { toast } from "sonner";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 
-type ViewTab = "posts" | "media" | "links";
+type ViewTab = "posts" | ChannelMediaTab;
 
 export default function ChannelPage() {
   const { handle } = useParams<{ handle: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ViewTab>("posts");
   const [controlOpen, setControlOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const { channel, posts, isSubscribed, notificationsOn, role, loading, userId, subscribe, unsubscribe, setNotifications, refresh } =
     useChannel(handle);
 
-  const sortedPosts = [...posts].sort((a, b) => Number(!!b.is_pinned) - Number(!!a.is_pinned));
+  const sortedPosts = useMemo(() => [...posts].sort((a, b) => Number(!!b.is_pinned) - Number(!!a.is_pinned)), [posts]);
+  const mediaBuckets = useMemo(() => buildChannelMediaBuckets(sortedPosts), [sortedPosts]);
 
   const pinnedPost = sortedPosts.find((p) => p.is_pinned);
 
-  const filteredPosts =
-    activeTab === "posts"
-      ? sortedPosts
-      : activeTab === "media"
-        ? sortedPosts.filter((p) =>
-            Array.isArray(p.media) &&
-            p.media.some((m: any) => {
-              if (!m?.url) return false;
-              const type = String(m?.type || "").toLowerCase();
-              return type.startsWith("image") || type.startsWith("video");
-            }),
-          )
-        : sortedPosts.filter((p) => /https?:\/\//i.test(p.body || ""));
+  const filteredPosts = useMemo(
+    () => (activeTab === "posts" ? sortedPosts : sortedPosts.filter((post) => channelPostMatchesTab(post, activeTab))),
+    [activeTab, sortedPosts],
+  );
 
   useEffect(() => {
     if (!channel?.id) return;
@@ -119,31 +118,46 @@ export default function ChannelPage() {
     await copyChannelLink();
   };
 
+  const tabItems: { id: ViewTab; label: string; icon: typeof Hash; count: number }[] = [
+    { id: "posts", label: "Posts", icon: Hash, count: sortedPosts.length },
+    { id: "media", label: "Media", icon: ImageIcon, count: mediaBuckets.media.length },
+    { id: "files", label: "Files", icon: FileText, count: mediaBuckets.files.length },
+    { id: "links", label: "Links", icon: LinkIcon, count: mediaBuckets.links.length },
+    { id: "music", label: "Music", icon: Music, count: mediaBuckets.music.length },
+    { id: "gif", label: "GIF", icon: Play, count: mediaBuckets.gif.length },
+    { id: "voice", label: "Voice", icon: Mic, count: mediaBuckets.voice.length },
+  ];
+
   return (
     <div className="zivo-shell-mobile mx-auto max-w-2xl bg-background text-foreground pt-safe pb-20">
       <div className="zivo-sticky-mobile-header z-20 px-3 py-2">
         <div className="flex items-center gap-2">
-        <button type="button"
-          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/channels"))}
-          className="p-2 -ml-2 rounded-full text-foreground hover:bg-muted"
-          aria-label="Back"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
+          <button
+            type="button"
+            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/channels"))}
+            className="p-2 -ml-2 rounded-full text-foreground hover:bg-muted"
+            aria-label="Back"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-foreground truncate">{channel.name}</p>
             <p className="text-[11px] text-muted-foreground truncate inline-flex items-center gap-1">
               <Users className="w-3 h-3" /> {channel.subscriber_count.toLocaleString()} subscriber{channel.subscriber_count === 1 ? "" : "s"}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setInfoOpen(true)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
+            aria-label="Open channel info"
+          >
+            <Info className="h-4 w-4" />
+          </button>
         </div>
 
-        <div className="mt-2 grid grid-cols-3 rounded-xl bg-muted/70 p-1 ring-1 ring-border/40">
-          {([
-            { id: "posts", label: "Posts", icon: Hash },
-            { id: "media", label: "Media", icon: ImageIcon },
-            { id: "links", label: "Links", icon: LinkIcon },
-          ] as const).map((tab) => {
+        <div className="mt-2 flex gap-1 overflow-x-auto rounded-xl bg-muted/70 p-1 ring-1 ring-border/40">
+          {tabItems.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
@@ -152,13 +166,15 @@ export default function ChannelPage() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "h-8 rounded-lg text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors",
+                  "h-8 shrink-0 rounded-lg px-3 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors",
                   active
                     ? "bg-background text-foreground shadow-sm"
                     : "text-foreground/75 hover:text-foreground",
                 )}
               >
-                <Icon className={cn("w-3.5 h-3.5", !active && "opacity-90")} /> {tab.label}
+                <Icon className={cn("w-3.5 h-3.5", !active && "opacity-90")} />
+                {tab.label}
+                {tab.count > 0 && <span className="text-[10px] opacity-70">{tab.count}</span>}
               </button>
             );
           })}
@@ -199,24 +215,15 @@ export default function ChannelPage() {
             />
           ))}
         {filteredPosts.length === 0 && (() => {
-          const EmptyIcon = activeTab === "media" ? ImageIcon : activeTab === "links" ? LinkIcon : Inbox;
-          const emptyTitle =
-            activeTab === "posts" ? "No posts yet" : activeTab === "media" ? "No media shared yet" : "No links shared yet";
-          const emptySubtitle =
-            activeTab === "posts"
-              ? canPost
-                ? "Share something with your subscribers to get started."
-                : "New posts from this channel will show up here."
-              : activeTab === "media"
-                ? "Photos and videos posted to this channel will appear here."
-                : "Links shared in posts will appear here.";
+          const emptyState = getChannelEmptyState(activeTab, canPost);
+          const EmptyIcon = emptyState.icon;
           return (
             <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
               <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 text-muted-foreground">
                 <EmptyIcon className="h-5 w-5" />
               </div>
-              <p className="text-sm font-semibold text-foreground">{emptyTitle}</p>
-              <p className="mt-1 text-[12px] text-muted-foreground">{emptySubtitle}</p>
+              <p className="text-sm font-semibold text-foreground">{emptyState.title}</p>
+              <p className="mt-1 text-[12px] text-muted-foreground">{emptyState.subtitle}</p>
               {activeTab === "posts" && (
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                   {canPost && (
@@ -266,6 +273,74 @@ export default function ChannelPage() {
           </div>
         </div>
       )}
+
+      <ChannelInfoSheet
+        open={infoOpen}
+        onOpenChange={setInfoOpen}
+        channel={channel}
+        posts={sortedPosts}
+        isSubscribed={isSubscribed}
+        canManage={canPost}
+        notificationsOn={notificationsOn}
+        onSubscribe={subscribe}
+        onSetNotifications={setNotifications}
+        onShareToChat={shareChannel}
+        onCopyLink={copyChannelLink}
+        onExternalShare={shareChannelExternal}
+        onManage={() => navigate(`/c/${channel.handle}/manage`)}
+      />
     </div>
   );
+}
+
+function getChannelEmptyState(tab: ViewTab, canPost: boolean): { title: string; subtitle: string; icon: typeof Hash } {
+  switch (tab) {
+    case "posts":
+      return {
+        title: "No posts yet",
+        subtitle: canPost ? "Share something with your subscribers to get started." : "New posts from this channel will show up here.",
+        icon: Inbox,
+      };
+    case "media":
+      return {
+        title: "No media shared yet",
+        subtitle: "Photos and videos posted to this channel will appear here.",
+        icon: ImageIcon,
+      };
+    case "files":
+      return {
+        title: "No files shared yet",
+        subtitle: "Documents and downloads posted to this channel will appear here.",
+        icon: FileText,
+      };
+    case "links":
+      return {
+        title: "No links shared yet",
+        subtitle: "Links shared in posts will appear here.",
+        icon: LinkIcon,
+      };
+    case "music":
+      return {
+        title: "No music shared yet",
+        subtitle: "Audio and music links shared in posts will appear here.",
+        icon: Music,
+      };
+    case "gif":
+      return {
+        title: "No GIFs shared yet",
+        subtitle: "Animated GIFs posted to this channel will appear here.",
+        icon: Play,
+      };
+    case "voice":
+      return {
+        title: "No voice messages yet",
+        subtitle: "Voice notes posted to this channel will appear here.",
+        icon: Mic,
+      };
+  }
+  return {
+    title: "Nothing here yet",
+    subtitle: "Shared channel items will appear here.",
+    icon: Inbox,
+  };
 }

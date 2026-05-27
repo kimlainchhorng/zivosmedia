@@ -78,7 +78,7 @@ export default function StickyDatePill({ scrollRef }: Props) {
       style={{ top: pos.top, left: pos.left, width: pos.width }}
       aria-hidden
     >
-      <span className="text-[11px] font-semibold text-foreground/85 bg-background/85 backdrop-blur-md px-3 py-1 rounded-full border border-border/30 shadow-sm">
+      <span className="select-none rounded-full bg-black/40 px-3 py-1 text-[11px] font-bold leading-none text-white shadow-sm ring-1 ring-white/20 backdrop-blur-md dark:bg-white/15 dark:text-white">
         {label}
       </span>
     </div>

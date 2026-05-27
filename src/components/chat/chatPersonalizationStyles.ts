@@ -1,7 +1,10 @@
+export const DEFAULT_CHAT_WALLPAPER_CLASS =
+  "bg-[radial-gradient(circle_at_16px_18px,rgba(14,116,144,0.12)_0_1px,transparent_1.7px),radial-gradient(circle_at_46px_42px,rgba(16,185,129,0.11)_0_1.2px,transparent_1.9px),linear-gradient(135deg,rgba(236,253,245,0.96)_0%,rgba(219,234,254,0.9)_52%,rgba(254,249,195,0.74)_100%)] dark:bg-[radial-gradient(circle_at_16px_18px,rgba(125,211,252,0.13)_0_1px,transparent_1.7px),radial-gradient(circle_at_46px_42px,rgba(52,211,153,0.11)_0_1.2px,transparent_1.9px),linear-gradient(135deg,rgba(15,23,42,0.96)_0%,rgba(20,83,45,0.6)_54%,rgba(8,47,73,0.78)_100%)] [background-size:64px_64px,64px_64px,100%_100%]";
+
 export function getWallpaperClass(id: string): string {
   if (id.startsWith("custom:")) return "";
   const map: Record<string, string> = {
-    default: "",
+    default: DEFAULT_CHAT_WALLPAPER_CLASS,
     bubbles: "bg-gradient-to-br from-primary/5 to-accent/10",
     sunset: "bg-gradient-to-b from-orange-100/30 to-pink-100/30 dark:from-orange-950/20 dark:to-pink-950/20",
     ocean: "bg-gradient-to-b from-blue-100/30 to-cyan-100/30 dark:from-blue-950/20 dark:to-cyan-950/20",
@@ -13,6 +16,11 @@ export function getWallpaperClass(id: string): string {
     slate: "bg-gradient-to-b from-gray-200/30 to-slate-300/30 dark:from-gray-800/30 dark:to-slate-900/30",
   };
   return map[id] || "";
+}
+
+export function getChatCanvasClass(id = "default"): string {
+  if (id.startsWith("custom:")) return DEFAULT_CHAT_WALLPAPER_CLASS;
+  return getWallpaperClass(id) || DEFAULT_CHAT_WALLPAPER_CLASS;
 }
 
 export function getWallpaperStyle(id: string): React.CSSProperties | undefined {

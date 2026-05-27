@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGroupAdmin, type GroupMemberRow, type GroupRole } from "@/hooks/useGroupAdmin";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
-import { getGroupMediaGalleryPath, isLockedMediaMessage } from "@/lib/chat/lockedMedia";
+import { formatStarsPrice, getGroupMediaGalleryPath, getLockedMediaItems, isLockedMediaMessage } from "@/lib/chat/lockedMedia";
 
 interface ProfileLite {
   user_id: string;
@@ -66,6 +66,7 @@ interface GroupInfoMessage {
   video_url?: string | null;
   voice_url?: string | null;
   is_pinned?: boolean | null;
+  locked_price_coins?: number | null;
   created_at: string;
   file_payload?: {
     url?: string | null;
@@ -77,11 +78,13 @@ interface GroupInfoMessage {
     duration_ms?: number | null;
     locked_preview_url?: string | null;
     locked_preview_image_url?: string | null;
+    locked_price_coins?: number | null;
+    locked_items?: unknown;
     [key: string]: unknown;
   } | null;
 }
 
-type GroupInfoTab = "members" | "media" | "files" | "links" | "music" | "gif" | "voice";
+type GroupInfoTab = "members" | "photos" | "videos" | "files" | "links" | "music" | "gif" | "voice";
 
 interface Props {
   open: boolean;
@@ -158,14 +161,34 @@ function messageHasMusic(message: GroupInfoMessage) {
   );
 }
 
-function messageHasMedia(message: GroupInfoMessage) {
-  return Boolean(
-    message.image_url ||
-    message.video_url ||
-    message.message_type === "image" ||
-    message.message_type === "video" ||
-    isLockedMediaMessage(message.message_type),
-  );
+function lockedItemsFor(message: GroupInfoMessage) {
+  return getLockedMediaItems(message.file_payload || null);
+}
+
+function messageHasPhoto(message: GroupInfoMessage) {
+  if (messageHasGif(message) || messageHasVoice(message) || messageHasMusic(message)) return false;
+  if (message.image_url || message.message_type === "image") return true;
+  if (message.message_type === "locked_image") return true;
+  if (message.message_type === "locked_album") {
+    const items = lockedItemsFor(message);
+    return items.length === 0 || items.some((item) => item.kind !== "video");
+  }
+  return false;
+}
+
+function messageHasVideo(message: GroupInfoMessage) {
+  if (messageHasGif(message) || messageHasVoice(message) || messageHasMusic(message)) return false;
+  if (message.video_url || message.message_type === "video") return true;
+  if (message.message_type === "locked_video") return true;
+  if (message.message_type === "locked_album") {
+    return lockedItemsFor(message).some((item) => item.kind === "video");
+  }
+  return false;
+}
+
+function lockedPriceFor(message: GroupInfoMessage) {
+  const value = message.locked_price_coins ?? message.file_payload?.locked_price_coins;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function formatDuration(ms?: number | null) {
@@ -294,8 +317,13 @@ export default function GroupInfoSheet({
     [messages],
   );
 
-  const mediaMessages = useMemo(
-    () => messages.filter((message) => messageHasMedia(message) && !messageHasGif(message) && !messageHasVoice(message) && !messageHasMusic(message)),
+  const photoMessages = useMemo(
+    () => messages.filter(messageHasPhoto),
+    [messages],
+  );
+
+  const videoMessages = useMemo(
+    () => messages.filter(messageHasVideo),
     [messages],
   );
 
@@ -311,7 +339,9 @@ export default function GroupInfoSheet({
       (message.message_type === "file" || message.message_type === "document" || Boolean(payloadUrl(message))) &&
       !messageHasVoice(message) &&
       !messageHasMusic(message) &&
-      !messageHasGif(message)
+      !messageHasGif(message) &&
+      !messageHasPhoto(message) &&
+      !messageHasVideo(message)
     ),
     [messages],
   );
@@ -329,7 +359,7 @@ export default function GroupInfoSheet({
 
   const activeMemberCount = members.length || membersCount;
   const initials = initialsFor(groupName);
-  const sharedMediaCount = mediaMessages.length + gifMessages.length;
+  const sharedMediaCount = photoMessages.length + videoMessages.length + gifMessages.length;
   const sharedFilesCount = fileMessages.length + voiceMessages.length + musicMessages.length;
 
   const handleSaveName = async () => {
@@ -430,12 +460,13 @@ export default function GroupInfoSheet({
 
   const tabs: Array<{ id: GroupInfoTab; label: string; count: number }> = [
     { id: "members", label: "Members", count: activeMemberCount },
-    { id: "media", label: "Media", count: mediaMessages.length },
+    { id: "photos", label: "Photos", count: photoMessages.length },
+    { id: "videos", label: "Videos", count: videoMessages.length },
     { id: "files", label: "Files", count: fileMessages.length },
     { id: "links", label: "Links", count: linkMessages.length },
-    { id: "music", label: "Music", count: musicMessages.length },
-    { id: "gif", label: "GIF", count: gifMessages.length },
     { id: "voice", label: "Voice", count: voiceMessages.length },
+    { id: "gif", label: "GIFs", count: gifMessages.length },
+    { id: "music", label: "Music", count: musicMessages.length },
   ];
 
   return (
@@ -577,7 +608,7 @@ export default function GroupInfoSheet({
                 icon={HardDrive}
                 label="Storage and media"
                 value={`${sharedMediaCount} media, ${sharedFilesCount} files`}
-                onClick={() => setTab(sharedMediaCount > 0 ? "media" : sharedFilesCount > 0 ? "files" : "media")}
+                onClick={() => setTab(photoMessages.length > 0 ? "photos" : videoMessages.length > 0 ? "videos" : sharedFilesCount > 0 ? "files" : "photos")}
               />
               <InfoSettingRow
                 icon={ShieldCheck}
@@ -733,13 +764,25 @@ export default function GroupInfoSheet({
               </div>
             )}
 
-            {tab === "media" && (
-              mediaMessages.length === 0 ? (
-                <EmptyState icon={ImageIcon} label="No shared media yet" />
+            {tab === "photos" && (
+              photoMessages.length === 0 ? (
+                <EmptyState icon={ImageIcon} label="No photos shared yet" />
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">
-                  {mediaMessages.map((message) => (
-                    <GroupMediaTile key={message.id} message={message} />
+                  {photoMessages.map((message) => (
+                    <GroupMediaTile key={message.id} message={message} kind="photo" />
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "videos" && (
+              videoMessages.length === 0 ? (
+                <EmptyState icon={Video} label="No videos shared yet" />
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5">
+                  {videoMessages.map((message) => (
+                    <GroupMediaTile key={message.id} message={message} kind="video" />
                   ))}
                 </div>
               )
@@ -799,7 +842,7 @@ export default function GroupInfoSheet({
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">
                   {gifMessages.map((message) => (
-                    <GroupMediaTile key={message.id} message={message} badge="GIF" />
+                    <GroupMediaTile key={message.id} message={message} badge="GIF" kind="gif" />
                   ))}
                 </div>
               )
@@ -906,22 +949,46 @@ function GroupPlayableRow({
   );
 }
 
-function GroupMediaTile({ message, badge }: { message: GroupInfoMessage; badge?: string }) {
+function GroupMediaTile({ message, badge, kind }: { message: GroupInfoMessage; badge?: string; kind?: "photo" | "video" | "gif" }) {
   const locked = isLockedMediaMessage(message.message_type);
   const rawSrc = getGroupMediaGalleryPath(message, !locked) || payloadUrl(message) || extractFirstUrl(message.message) || "";
-  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, message.video_url && !locked ? "display" : "thumbnail");
+  const isVideoTile = kind === "video" || Boolean(message.video_url && !locked);
+  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, isVideoTile && !locked ? "display" : "thumbnail");
   const duration = formatDuration(message.file_payload?.duration_ms);
-  const tileBadge = badge || (locked ? "Locked" : duration || (message.video_url ? "Video" : ""));
+  const lockedItems = lockedItemsFor(message);
+  const lockedCount = lockedItems.length;
+  const lockedPrice = lockedPriceFor(message);
+  const tileBadge = badge || (locked ? (lockedCount > 1 ? `${lockedCount} items` : "Locked") : duration || (isVideoTile ? "Video" : ""));
+  const unlockLabel = lockedPrice ? `Unlock for ${formatStarsPrice(lockedPrice)}` : "Locked";
 
   return (
-    <a href={resolvedSrc || undefined} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-      {message.video_url && !locked && resolvedSrc ? (
+    <a
+      href={resolvedSrc || undefined}
+      target="_blank"
+      rel="noreferrer"
+      className="group relative aspect-square overflow-hidden rounded-lg bg-muted"
+      aria-label={locked ? `${unlockLabel} preview` : isVideoTile ? "Open shared video" : "Open shared photo"}
+    >
+      {isVideoTile && !locked && resolvedSrc ? (
         <video src={resolvedSrc} className="h-full w-full object-cover" muted playsInline preload="metadata" />
       ) : resolvedSrc ? (
-        <img src={resolvedSrc} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+        <img
+          src={resolvedSrc}
+          alt=""
+          className={cn("h-full w-full object-cover transition-transform duration-300", locked && "scale-105 blur-[1.5px]")}
+          loading="lazy"
+          decoding="async"
+        />
       ) : (
         <div className="flex h-full w-full items-center justify-center">
-          {message.video_url ? <Video className="h-6 w-6 text-muted-foreground" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+          {isVideoTile ? <Video className="h-6 w-6 text-muted-foreground" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+        </div>
+      )}
+      {locked && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/18 px-2">
+          <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-bold leading-none text-white shadow-lg">
+            {unlockLabel}
+          </span>
         </div>
       )}
       {tileBadge && (

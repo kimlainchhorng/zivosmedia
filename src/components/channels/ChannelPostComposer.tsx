@@ -7,7 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Send, ImagePlus, X, Loader2, Video as VideoIcon, BarChart3, Plus, MessageSquareOff, Mic, Square, Trash2 } from "lucide-react";
+import {
+  BarChart3,
+  FileText,
+  ImagePlus,
+  Loader2,
+  MessageSquareOff,
+  Mic,
+  Music,
+  Plus,
+  Send,
+  Square,
+  Trash2,
+  Video as VideoIcon,
+  X,
+} from "lucide-react";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 interface Props {
@@ -18,10 +32,53 @@ interface Props {
 interface MediaItem {
   url: string;
   path: string;
-  type: "image" | "video" | "voice";
+  type: "image" | "video" | "voice" | "gif" | "file" | "music";
+  name?: string;
+  size?: number;
+  mime_type?: string;
   /** Voice notes only — duration in ms + downsampled waveform peaks. */
   duration_ms?: number;
   waveform?: number[];
+}
+
+type UploadKind = "photo" | "video" | "gif" | "file" | "music";
+
+function getUploadMediaType(file: File, kind: UploadKind): MediaItem["type"] | null {
+  if (kind === "gif") return file.type === "image/gif" || /\.gif$/i.test(file.name) ? "gif" : null;
+  if (kind === "music") return file.type.startsWith("audio/") ? "music" : null;
+  if (kind === "file") return "file";
+  if (file.type === "image/gif" || /\.gif$/i.test(file.name)) return "gif";
+  if (kind === "photo") return file.type.startsWith("image/") ? "image" : null;
+  if (kind === "video") return file.type.startsWith("video/") ? "video" : null;
+  return null;
+}
+
+function getUploadLimit(
+  type: MediaItem["type"],
+  limits: { PHOTO_MAX: number; VIDEO_MAX: number; GIF_MAX: number; FILE_MAX: number; AUDIO_MAX: number },
+): number {
+  if (type === "video") return limits.VIDEO_MAX;
+  if (type === "gif") return limits.GIF_MAX;
+  if (type === "music") return limits.AUDIO_MAX;
+  if (type === "file") return limits.FILE_MAX;
+  return limits.PHOTO_MAX;
+}
+
+function getSafeExtension(fileName: string, type: MediaItem["type"]): string {
+  const ext = fileName.split(".").pop()?.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  if (ext) return ext;
+  if (type === "video") return "mp4";
+  if (type === "gif") return "gif";
+  if (type === "music") return "mp3";
+  if (type === "file") return "bin";
+  return "jpg";
+}
+
+function formatFileSize(bytes?: number | null): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
 export function ChannelPostComposer({ channelId, onPosted }: Props) {
@@ -114,6 +171,9 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
   };
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+  const gifRef = useRef<HTMLInputElement>(null);
+  const documentRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLInputElement>(null);
 
   // Poll editor — set to null when no poll is attached. Telegram channels
   // allow exactly one poll per post, so we model it as a single optional
@@ -144,8 +204,11 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
 
   const PHOTO_MAX = 10 * 1024 * 1024;
   const VIDEO_MAX = 100 * 1024 * 1024;
+  const GIF_MAX = 25 * 1024 * 1024;
+  const FILE_MAX = 50 * 1024 * 1024;
+  const AUDIO_MAX = 50 * 1024 * 1024;
 
-  const onPickFiles = async (files: FileList | null) => {
+  const onPickFiles = async (files: FileList | null, kind: UploadKind) => {
     if (!files || files.length === 0) return;
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) {
@@ -155,34 +218,46 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
     setUploading(true);
     const uploaded: MediaItem[] = [];
     for (const original of Array.from(files)) {
-      const isImage = original.type.startsWith("image/");
-      const isVideo = original.type.startsWith("video/");
-      if (!isImage && !isVideo) continue;
-      const limit = isImage ? PHOTO_MAX : VIDEO_MAX;
-      if (original.size > limit) {
-        toast.error(`${original.name} is over ${isImage ? "10MB" : "100MB"}`);
+      const mediaType = getUploadMediaType(original, kind);
+      if (!mediaType) {
+        toast.error(`${original.name} is not supported`);
         continue;
       }
-      // Strip EXIF only for images; videos go up as-is.
-      const f = isImage ? await stripImageMetadata(original) : original;
-      const ext = f.name.split(".").pop() || (isImage ? "jpg" : "mp4");
-      const path = `${u.user.id}/${channelId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const limit = getUploadLimit(mediaType, { PHOTO_MAX, VIDEO_MAX, GIF_MAX, FILE_MAX, AUDIO_MAX });
+      if (original.size > limit) {
+        toast.error(`${original.name} is over ${formatFileSize(limit)}`);
+        continue;
+      }
+      // Strip EXIF only for static images; GIF/video/audio/files go up as-is.
+      const f = mediaType === "image" ? await stripImageMetadata(original) : original;
+      const ext = getSafeExtension(f.name || original.name, mediaType);
+      const path = `${u.user.id}/${channelId}/${mediaType}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error } = await supabase.storage.from("channel-media").upload(path, f, {
         cacheControl: "3600",
         upsert: false,
-        contentType: f.type,
+        contentType: f.type || original.type || "application/octet-stream",
       });
       if (error) {
         toast.error(error.message);
         continue;
       }
       const { data: pub } = supabase.storage.from("channel-media").getPublicUrl(path);
-      uploaded.push({ url: pub.publicUrl, path, type: isImage ? "image" : "video" });
+      uploaded.push({
+        url: pub.publicUrl,
+        path,
+        type: mediaType,
+        name: original.name,
+        size: original.size,
+        mime_type: f.type || original.type,
+      });
     }
     setMedia((m) => [...m, ...uploaded].slice(0, 6));
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
     if (videoRef.current) videoRef.current.value = "";
+    if (gifRef.current) gifRef.current.value = "";
+    if (documentRef.current) documentRef.current.value = "";
+    if (audioRef.current) audioRef.current.value = "";
   };
 
   const removeMedia = async (idx: number) => {
@@ -248,10 +323,17 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
     const mediaPayload: any[] = [
       ...(pollAttachment ? [pollAttachment] : []),
       ...media.map((m) => {
+        const base = {
+          url: m.url,
+          type: m.type,
+          name: m.name,
+          size: m.size,
+          mime_type: m.mime_type,
+        };
         if (m.type === "voice") {
-          return { url: m.url, type: m.type, duration_ms: m.duration_ms, waveform: m.waveform };
+          return { ...base, duration_ms: m.duration_ms, waveform: m.waveform };
         }
-        return { url: m.url, type: m.type };
+        return base;
       }),
     ];
 
@@ -325,14 +407,27 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
                   </span>
                   <span className="text-[9px] uppercase tracking-wider opacity-70">Voice</span>
                 </div>
+              ) : m.type === "music" || m.type === "file" ? (
+                <div className="h-full w-full flex flex-col items-center justify-center gap-1.5 bg-muted/60 p-2 text-center text-muted-foreground">
+                  {m.type === "music" ? <Music className="h-6 w-6" /> : <FileText className="h-6 w-6" />}
+                  <span className="line-clamp-2 break-all text-[10px] font-semibold text-foreground">{m.name || m.type}</span>
+                  {m.size ? <span className="text-[9px] uppercase tracking-wider opacity-70">{formatFileSize(m.size)}</span> : null}
+                </div>
               ) : (
-	                <img
-	                  src={m.url}
-	                  alt=""
-	                  className="h-full w-full object-cover"
-	                  loading="lazy"
-	                  decoding="async"
-	                />
+                <>
+                  <img
+                    src={m.url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  {m.type === "gif" && (
+                    <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      GIF
+                    </span>
+                  )}
+                </>
               )}
               <button type="button"
                 onClick={() => removeMedia(i)}
@@ -352,14 +447,38 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => onPickFiles(e.target.files)}
+        onChange={(e) => onPickFiles(e.target.files, "photo")}
       />
       <input
         ref={videoRef}
         type="file"
         accept="video/*"
         className="hidden"
-        onChange={(e) => onPickFiles(e.target.files)}
+        onChange={(e) => onPickFiles(e.target.files, "video")}
+      />
+      <input
+        ref={gifRef}
+        type="file"
+        accept="image/gif,.gif"
+        multiple
+        className="hidden"
+        onChange={(e) => onPickFiles(e.target.files, "gif")}
+      />
+      <input
+        ref={documentRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.rar,.7z,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,text/plain,text/csv"
+        multiple
+        className="hidden"
+        onChange={(e) => onPickFiles(e.target.files, "file")}
+      />
+      <input
+        ref={audioRef}
+        type="file"
+        accept="audio/*"
+        multiple
+        className="hidden"
+        onChange={(e) => onPickFiles(e.target.files, "music")}
       />
 
       {voicePanelOpen && (
@@ -493,6 +612,39 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
           >
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <VideoIcon className="h-4 w-4" />}
             Video
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => gifRef.current?.click()}
+            disabled={uploading || media.length >= 6}
+            className="gap-1"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+            GIF
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => documentRef.current?.click()}
+            disabled={uploading || media.length >= 6}
+            className="gap-1"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            File
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => audioRef.current?.click()}
+            disabled={uploading || media.length >= 6}
+            className="gap-1"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Music className="h-4 w-4" />}
+            Music
           </Button>
           <Button
             type="button"

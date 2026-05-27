@@ -407,7 +407,6 @@ const getFeedLikesTable = (item: FeedItem): "post_likes" | "store_post_likes" =>
 // full reload doesn't double-count.
 const recordedFeedViews = new Set<string>();
 const POST_REACTIONS_ENABLED = import.meta.env.VITE_ENABLE_POST_REACTIONS === "true";
-<<<<<<< Updated upstream
 
 // Best-effort wrapper around the record_post_share RPC. The RPC logs the
 // share + bumps shares_count atomically; failures are swallowed so a flaky
@@ -848,100 +847,6 @@ export default function ReelsFeedPage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [storeSearchResults, setStoreSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [feedTab, setFeedTab] = useState<"For You" | "Friends" | "Following">(() => {
-    try {
-      const v = localStorage.getItem("zivo:feed-tab-v1");
-      if (v === "For You" || v === "Friends" || v === "Following") return v;
-    } catch { /* ignore */ }
-    return "For You";
-  });
-  useEffect(() => {
-    try { localStorage.setItem("zivo:feed-tab-v1", feedTab); } catch { /* ignore */ }
-  }, [feedTab]);
-  // Scroll to top when the user actually switches tabs or hashtag scope — skip the
-  // initial mount so a remembered tab from localStorage doesn't yank the page.
-  const tabMountedRef = useRef(false);
-  useEffect(() => {
-    if (!tabMountedRef.current) {
-      tabMountedRef.current = true;
-      return;
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [feedTab, selectedHashtag]);
-  const [sidebarContacts, setSidebarContacts] = useState<Array<{ id: string; name: string; avatar: string | null }>>([]);
-  const [trendingTags, setTrendingTags] = useState<Array<{ tag: string; count: number }>>([]);
-  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
-  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
-=======
-
-// Best-effort wrapper around the record_post_share RPC. The RPC logs the
-// share + bumps shares_count atomically; failures are swallowed so a flaky
-// network never blocks the UX or breaks the share itself.
-type ShareChannel = "copy_link" | "native" | "email" | "sms" | "whatsapp" | "telegram" | "facebook" | "x" | "other";
-const recordShareForFeedItem = (item: FeedItem, channel: ShareChannel) => {
-  if (item.source === "poll") return; // post_shares.source CHECK only allows store/user
-  const postId = getFeedInteractionPostId(item);
-  void (supabase as any).rpc("record_post_share", {
-    _post_id: postId,
-    _source: item.source,
-    _channel: channel,
-  });
-};
-
-export default function ReelsFeedPage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const hiddenPosts = useHiddenPosts();
-  const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
-  const [newPostsCount, setNewPostsCount] = useState(0);
-  const [showCreate, setShowCreate] = useState(false);
-  const [createMode, setCreateMode] = useState<"photo" | "reel" | "poll" | undefined>(undefined);
-  const [shareForPost, setShareForPost] = useState<{ shareUrl: string; shareText: string; shareMediaUrl?: string; shareMediaType?: "image" | "video"; sharePostId?: string; sharePostAuthorId?: string; sharePostAuthorName?: string } | null>(null);
-  const [commerceDraft, setCommerceDraft] = useState<{
-    linkType: "store_product" | "truck_sale";
-    storeId?: string;
-    storeProductId?: string;
-    truckSaleId?: string;
-    checkoutPath?: string;
-    mapLat?: number;
-    mapLng?: number;
-    mapLabel?: string;
-  } | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ name: string; avatar: string | null } | null>(null);
-  const { unreadCount: notificationUnread } = useNotifications(20);
-  const { prefs: chatPrefs } = useChatPrefs(userId ?? undefined);
-  const { data: unreadChatSenders } = useQuery({
-    queryKey: ["feed-header-chat-unread", userId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("direct_messages")
-        .select("sender_id")
-        .eq("receiver_id", userId!)
-        .eq("is_read", false);
-      return new Set((data ?? []).map((r: { sender_id: string }) => r.sender_id));
-    },
-    enabled: !!userId,
-    refetchInterval: 30000,
-    staleTime: 15000,
-  });
-  const headerChatUnread = (() => {
-    const real = unreadChatSenders ?? new Set<string>();
-    let manualOnly = 0;
-    for (const id of Object.keys(chatPrefs.unread)) {
-      if (!real.has(id)) manualOnly++;
-    }
-    return real.size + manualOnly;
-  })();
-  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
-  const [reelsStartIndex, setReelsStartIndex] = useState<number | null>(null);
-  const reelsScrollRef = useRef<HTMLDivElement>(null);
-  const fullscreenScrollRef = useRef<HTMLDivElement>(null);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [storeSearchResults, setStoreSearchResults] = useState<any[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [feedFilter, setFeedFilter] = useState<"all" | "photos" | "videos" | "text">("all");
   const [feedTab, setFeedTab] = useState<"For You" | "Friends" | "Following">(() => {
     try {
@@ -967,7 +872,6 @@ export default function ReelsFeedPage() {
   const [trendingTags, setTrendingTags] = useState<Array<{ tag: string; count: number }>>([]);
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
->>>>>>> Stashed changes
   const PAGE_INCREMENT = REELS_PAGE_INCREMENT;
   const PAGE_MAX = REELS_PAGE_MAX;
   const [pageSize, setPageSize] = useState(INITIAL_REELS_PAGE_SIZE);
