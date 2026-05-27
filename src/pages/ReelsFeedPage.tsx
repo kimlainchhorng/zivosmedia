@@ -923,6 +923,25 @@ export default function ReelsFeedPage() {
       { replace: true },
     );
   }, [location.pathname, location.search, navigate]);
+
+  // Lock body scroll + Esc closes while the reels viewer is open. Mirrors the
+  // pattern used by PostDetailOverlay so keyboard users can dismiss without
+  // hunting for the close button.
+  useEffect(() => {
+    if (reelsStartIndex === null) return;
+    if (typeof document === "undefined") return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeReelsViewer();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [reelsStartIndex, closeReelsViewer]);
+
   const reliabilityTrackingContext = isFeedRoute ? "feed" : "reels";
   const feedSuperAppResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
