@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
 import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";

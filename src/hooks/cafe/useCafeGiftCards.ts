@@ -6,7 +6,8 @@
  * trigger debits the card and rejects when funds are insufficient.
  */
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface CafeGiftCard {
   id: string;

@@ -7,7 +7,8 @@
  * supabase types don't include the cafe_* tables yet (mirrors the salon hooks).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface CafeCategory {
   id: string;

@@ -5,7 +5,8 @@
  * safety buffer baked into the SQL.
  */
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface CafePrepForecastRow {
   menu_item_id: string;

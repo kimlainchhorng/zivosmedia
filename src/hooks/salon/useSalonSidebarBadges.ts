@@ -4,7 +4,8 @@
  * relevant table changes for the store.
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface SalonSidebarBadges {
   bookingsPending: number;

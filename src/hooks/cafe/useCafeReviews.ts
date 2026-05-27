@@ -4,7 +4,8 @@
  * we expose a manual create() so an admin can record a paper-form review.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export interface CafeReview {
   id: string;

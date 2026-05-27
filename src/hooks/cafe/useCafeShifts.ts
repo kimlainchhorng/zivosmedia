@@ -4,7 +4,8 @@
  * returns shifts in a [from, to) window and exposes simple CRUD.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type CafeShiftStatus = "scheduled" | "in_progress" | "completed" | "no_show" | "cancelled";
 
