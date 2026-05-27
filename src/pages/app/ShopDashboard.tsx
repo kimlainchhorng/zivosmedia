@@ -1,16 +1,48 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Store, ArrowRight, Loader2 } from "lucide-react";
+import {
+  Store,
+  ArrowRight,
+  Loader2,
+  Settings,
+  Package,
+  ClipboardList,
+  TrendingUp,
+  CreditCard,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import StoreOwnerLayout from "@/components/admin/StoreOwnerLayout";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 
+type StoreRow = { id: string; name: string | null; logo_url: string | null; category: string | null };
+
+// Sidebar tab IDs that have their own routes — clicking them in the sidebar
+// should navigate to the sub-page instead of toggling local content.
+const TAB_ROUTES: Record<string, string> = {
+  employees: "/shop-dashboard/employees",
+  payroll: "/shop-dashboard/payroll",
+  "employee-schedule": "/shop-dashboard/employee-schedule",
+  "time-clock": "/shop-dashboard/time-clock",
+  "employee-rules": "/shop-dashboard/employee-rules",
+  attendance: "/shop-dashboard/attendance",
+  training: "/shop-dashboard/training",
+  documents: "/shop-dashboard/documents",
+};
+
 const ShopDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("ar-dashboard");
+
+  useEffect(() => {
+    const subRoute = TAB_ROUTES[activeTab];
+    if (subRoute) {
+      navigate(subRoute);
+      setActiveTab("ar-dashboard");
+    }
+  }, [activeTab, navigate]);
 
   const { data: store, isLoading } = useQuery({
     queryKey: ["my-store", user?.id],
@@ -20,7 +52,7 @@ const ShopDashboard = () => {
         .select("id, name, logo_url, category")
         .eq("owner_id", user!.id)
         .maybeSingle();
-      return data;
+      return data as StoreRow | null;
     },
     enabled: !!user,
   });
@@ -90,90 +122,49 @@ const ShopDashboard = () => {
     return <Navigate to={resolvedDashboard.path} replace />;
   }
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case "ar-dashboard":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Shop Dashboard</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="rounded-lg border border-border/40 bg-card p-4">
-                <p className="text-sm text-muted-foreground mb-2">Total Work Orders</p>
-                <p className="text-2xl font-bold">{stats?.totalOrders ?? 0}</p>
-              </div>
-              <div className="rounded-lg border border-border/40 bg-card p-4">
-                <p className="text-sm text-muted-foreground mb-2">Pending Estimates</p>
-                <p className="text-2xl font-bold">{stats?.pendingOrders ?? 0}</p>
-              </div>
-              <div className="rounded-lg border border-border/40 bg-card p-4">
-                <p className="text-sm text-muted-foreground mb-2">Revenue This Month</p>
-                <p className="text-2xl font-bold">${stats?.revenueDollars ?? "0.00"}</p>
-              </div>
-              <div className="rounded-lg border border-border/40 bg-card p-4">
-                <p className="text-sm text-muted-foreground mb-2">Active Customers</p>
-                <p className="text-2xl font-bold">{stats?.uniqueCustomers ?? 0}</p>
-              </div>
-            </div>
-          </div>
-        );
-      case "ar-parts":
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Part Shop</h2>
-            <p className="text-muted-foreground">Manage your auto parts inventory</p>
-            <button
-              type="button"
-              onClick={() => navigate("/shop-dashboard/products")}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
-            >
-              Go to Part Shop
-            </button>
-          </div>
-        );
-      case "ar-workorders":
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Work Orders</h2>
-            <p className="text-muted-foreground">Track and manage customer service work</p>
-          </div>
-        );
-      case "ar-estimates":
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Estimates</h2>
-            <p className="text-muted-foreground">Create and manage service estimates</p>
-          </div>
-        );
-      case "ar-invoices":
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Invoices</h2>
-            <p className="text-muted-foreground">Manage customer invoices and payments</p>
-          </div>
-        );
-      case "employees":
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Employees</h2>
-            <p className="text-muted-foreground">Manage your technicians and staff</p>
-            <button
-              type="button"
-              onClick={() => navigate("/shop-dashboard/employees")}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
-            >
-              Go to Employees
-            </button>
-          </div>
-        );
-      default:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Coming Soon</h2>
-            <p className="text-muted-foreground">This section is being prepared. Check back soon!</p>
-          </div>
-        );
-    }
-  };
+  const quickActions: Array<{
+    label: string;
+    icon: typeof Settings;
+    iconClass: string;
+    bgClass: string;
+    onClick: () => void;
+  }> = [
+    {
+      label: "Edit shop",
+      icon: Settings,
+      iconClass: "text-slate-600",
+      bgClass: "bg-slate-500/10",
+      onClick: () => navigate("/shop-dashboard/settings"),
+    },
+    {
+      label: "Products",
+      icon: Package,
+      iconClass: "text-emerald-600",
+      bgClass: "bg-emerald-500/10",
+      onClick: () => navigate("/shop-dashboard/products"),
+    },
+    {
+      label: "Orders",
+      icon: ClipboardList,
+      iconClass: "text-blue-600",
+      bgClass: "bg-blue-500/10",
+      onClick: () => navigate("/shop-dashboard/orders"),
+    },
+    {
+      label: "Analytics",
+      icon: TrendingUp,
+      iconClass: "text-violet-600",
+      bgClass: "bg-violet-500/10",
+      onClick: () => navigate("/shop-dashboard/analytics"),
+    },
+    {
+      label: "Payments",
+      icon: CreditCard,
+      iconClass: "text-amber-600",
+      bgClass: "bg-amber-500/10",
+      onClick: () => navigate("/shop-dashboard/payments"),
+    },
+  ];
 
   return (
     <StoreOwnerLayout
@@ -185,7 +176,44 @@ const ShopDashboard = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
     >
-      {renderContent()}
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">Shop Dashboard</h2>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+          {quickActions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={action.onClick}
+              className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border/40 bg-card p-3 hover:bg-muted/40 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${action.bgClass}`}>
+                <action.icon className={`w-5 h-5 ${action.iconClass}`} />
+              </div>
+              <span className="text-xs font-semibold text-foreground">{action.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="rounded-lg border border-border/40 bg-card p-4">
+            <p className="text-sm text-muted-foreground mb-2">Total Orders</p>
+            <p className="text-2xl font-bold">{stats?.totalOrders ?? 0}</p>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4">
+            <p className="text-sm text-muted-foreground mb-2">Pending Orders</p>
+            <p className="text-2xl font-bold">{stats?.pendingOrders ?? 0}</p>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4">
+            <p className="text-sm text-muted-foreground mb-2">Revenue This Month</p>
+            <p className="text-2xl font-bold">${stats?.revenueDollars ?? "0.00"}</p>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4">
+            <p className="text-sm text-muted-foreground mb-2">Active Customers</p>
+            <p className="text-2xl font-bold">{stats?.uniqueCustomers ?? 0}</p>
+          </div>
+        </div>
+      </div>
     </StoreOwnerLayout>
   );
 };
