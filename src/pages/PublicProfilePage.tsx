@@ -40,6 +40,7 @@ import { toUserPostInteractionId } from "@/lib/social/postInteraction";
 import CreatorTiersSubscribe from "@/components/creator/CreatorTiersSubscribe";
 import TopSupporters from "@/components/creator/TopSupporters";
 import CreatorPPVStrip from "@/components/ppv/CreatorPPVStrip";
+import { useAdultGate } from "@/hooks/useAdultGate";
 import TipSheet from "@/components/social/TipSheet";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
@@ -248,8 +249,9 @@ export default function PublicProfilePage() {
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set());
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [blockingUser, setBlockingUser] = useState(false);
-  // OF creator age gate — confirmed once per session
-  const [ofAgeConfirmed, setOfAgeConfirmed] = useState(false);
+  // OF creator age gate — persistent via useAdultGate (DB + localStorage)
+  const adultGate = useAdultGate();
+  const ofAgeConfirmed = adultGate.isConfirmed;
 
   const backTarget = useMemo(() => {
     if (source === "monetization") return "/monetization";
@@ -1019,7 +1021,7 @@ export default function PublicProfilePage() {
                 <p className="text-sm text-muted-foreground">This profile belongs to an OF Creator and may contain adult content. You must be 18 or older to view it.</p>
                 <div className="flex gap-3 w-full mt-2">
                   <button onClick={() => navigate(-1)} className="flex-1 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">Go back</button>
-                  <button onClick={() => setOfAgeConfirmed(true)} className="flex-1 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors">I am 18+</button>
+                  <button onClick={() => void adultGate.confirm()} className="flex-1 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors">I am 18+</button>
                 </div>
               </div>
             </div>

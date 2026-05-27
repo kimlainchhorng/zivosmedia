@@ -279,6 +279,25 @@ export default function ExplorePage() {
           />
         )}
 
+        {/* 18+ Discovery shortcut — surfaces OF creators that are filtered out
+            of the normal explore queries. Only shown when not actively searching. */}
+        {search.length <= 1 && !shouldShowExploreRecovery && (
+          <button
+            type="button"
+            onClick={() => navigate("/explore/18-plus")}
+            className="mx-4 mt-4 mb-1 w-[calc(100%-2rem)] flex items-center gap-3 p-3 rounded-2xl border border-rose-500/30 bg-gradient-to-r from-rose-500/10 to-pink-500/5 hover:from-rose-500/15 hover:to-pink-500/10 transition-colors text-left active:scale-[0.99]"
+          >
+            <div className="h-10 w-10 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
+              <span className="text-[12px] font-extrabold text-rose-500">18+</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-extrabold text-[13px]">Adult Creators</p>
+              <p className="text-[10px] text-muted-foreground">OF-style content · age-gated</p>
+            </div>
+            <span className="text-[10px] font-extrabold text-rose-500">Enter →</span>
+          </button>
+        )}
+
         {/* Search results */}
         {search.length > 1 && !shouldShowExploreRecovery && (
           <div className="p-4 space-y-2">
