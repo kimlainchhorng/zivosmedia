@@ -2,7 +2,7 @@
  * Auto Repair — Customer Vehicles (garage / CRM)
  * Wired to ar_customer_vehicles. VIN auto-fill via vin-decode edge function.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,9 +94,19 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
     );
   }, [vehicles, q]);
 
-  const decodeVin = async () => {
+  // Tracks the VIN last decoded by the auto-fill effect below, so we only run
+  // a network call once per unique 17-char VIN. Manual Decode button still works
+  // independently — it updates this ref too so the auto-effect doesn't refire.
+  const lastDecodedVin = useRef<string>("");
+
+  const decodeVin = async (opts?: { silent?: boolean }) => {
     const v = form.vin.trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
-    if (v.length !== 17) { toast.error("VIN must be exactly 17 characters"); return; }
+    if (v.length !== 17) {
+      if (!opts?.silent) toast.error("VIN must be exactly 17 characters");
+      return;
+    }
+    if (v === lastDecodedVin.current) return; // already done
+    lastDecodedVin.current = v;
     setVinDecoding(true);
     try {
       const { data, error } = await supabase.functions.invoke("vin-decode", { body: { vin: v } });
@@ -108,13 +118,36 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
         model: data.model || f.model,
         year: data.year ? String(data.year) : f.year,
       }));
-      toast.success("VIN decoded — make, model, year filled in");
+      if (!opts?.silent) toast.success("VIN decoded — make, model, year filled in");
     } catch (e: any) {
-      toast.error(`VIN decode failed: ${e.message}`);
+      // On failure, allow a retry by clearing the cache.
+      lastDecodedVin.current = "";
+      if (!opts?.silent) toast.error(`VIN decode failed: ${e.message}`);
     } finally {
       setVinDecoding(false);
     }
   };
+
+  // Auto-decode VIN when the field becomes a complete 17-char value, with a
+  // 500ms debounce so we don't fire mid-paste. On dialog open, seed the
+  // last-decoded ref with the row's existing VIN so we don't re-decode a VIN
+  // that's already on file (Edit mode); reset on close so reopening Add starts fresh.
+  useEffect(() => {
+    if (!open) {
+      lastDecodedVin.current = "";
+      return;
+    }
+    // On open transition, seed with whatever VIN is already in the form.
+    if (lastDecodedVin.current === "") {
+      lastDecodedVin.current = form.vin.trim().toUpperCase();
+    }
+    const cleaned = form.vin.trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
+    if (cleaned.length !== 17) return;
+    if (cleaned === lastDecodedVin.current) return;
+    const t = window.setTimeout(() => { decodeVin({ silent: true }); }, 500);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.vin, open]);
 
   const upsert = useMutation({
     mutationFn: async () => {

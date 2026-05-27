@@ -11,8 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Car, Wrench, FileSignature, Receipt, ClipboardCheck, MessageSquareText, Bell,
+  Camera, ShieldAlert,
 } from "lucide-react";
 import { format } from "date-fns";
+import { getWarrantyNetwork } from "@/config/warrantyNetworks";
+import WarrantyNetworkLogo from "./WarrantyNetworkLogo";
 
 type Vehicle = {
   id: string;
@@ -156,6 +159,40 @@ export default function VehicleHistoryDialog({ open, onOpenChange, storeId, vehi
     },
   });
 
+  // Photos / Warranties are tied to work orders, not the vehicle directly.
+  // We derive the WO ids from the workOrders query above so these stay in sync.
+  const woIds = useMemo(() => workOrders.map((w: any) => w.id), [workOrders]);
+
+  const { data: photos = [] } = useQuery({
+    queryKey: ["vehicle-history-photos", storeId, woIds],
+    enabled: enabled && woIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("ar_job_photos")
+        .select("*")
+        .eq("store_id", storeId)
+        .in("work_order_id", woIds)
+        .order("uploaded_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: warranties = [] } = useQuery({
+    queryKey: ["vehicle-history-warranties", storeId, woIds],
+    enabled: enabled && woIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_warranties" as any)
+        .select("*")
+        .eq("store_id", storeId)
+        .in("workorder_id", woIds)
+        .order("starts_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
   const totals = useMemo(() => {
     const paid = invoices.filter((i: any) => i.status === "paid").reduce((s: number, i: any) => s + (i.total_cents ?? 0), 0);
     const owed = invoices.reduce((s: number, i: any) => s + Math.max(0, (i.total_cents ?? 0) - (i.amount_paid_cents ?? 0)), 0);
@@ -194,6 +231,8 @@ export default function VehicleHistoryDialog({ open, onOpenChange, storeId, vehi
             <TabsTrigger value="ests" className="text-xs gap-1 h-7"><FileSignature className="w-3 h-3" /> Estimates ({estimates.length})</TabsTrigger>
             <TabsTrigger value="invs" className="text-xs gap-1 h-7"><Receipt className="w-3 h-3" /> Invoices ({invoices.length})</TabsTrigger>
             <TabsTrigger value="insp" className="text-xs gap-1 h-7"><ClipboardCheck className="w-3 h-3" /> Inspections ({inspections.length})</TabsTrigger>
+            <TabsTrigger value="photos" className="text-xs gap-1 h-7"><Camera className="w-3 h-3" /> Photos ({photos.length})</TabsTrigger>
+            <TabsTrigger value="warr" className="text-xs gap-1 h-7"><ShieldAlert className="w-3 h-3" /> Warranty ({warranties.length})</TabsTrigger>
             <TabsTrigger value="notes" className="text-xs gap-1 h-7"><MessageSquareText className="w-3 h-3" /> Notes ({notes.length})</TabsTrigger>
             <TabsTrigger value="rems" className="text-xs gap-1 h-7"><Bell className="w-3 h-3" /> Reminders ({reminders.length})</TabsTrigger>
           </TabsList>
@@ -280,6 +319,70 @@ export default function VehicleHistoryDialog({ open, onOpenChange, storeId, vehi
                         </div>
                         <Badge variant="outline" className="text-[10px] capitalize">{i.status.replace("_", " ")}</Badge>
                       </CardContent></Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="photos" className="mt-0">
+              {photos.length === 0 ? <Empty label="No photos uploaded for this vehicle yet." /> : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {photos.map((p: any) => (
+                    <a key={p.id} href={p.photo_url} target="_blank" rel="noopener noreferrer" className="block">
+                      <Card className="overflow-hidden hover:opacity-90 transition">
+                        <div className="aspect-video bg-muted relative">
+                          {p.photo_url && (
+                            <img src={p.photo_url} alt={p.caption ?? "Job photo"} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          )}
+                          {p.photo_type && (
+                            <Badge variant="outline" className="absolute top-1.5 left-1.5 text-[10px] bg-background/80 backdrop-blur capitalize">
+                              {p.photo_type.replace("-", " ")}
+                            </Badge>
+                          )}
+                        </div>
+                        <CardContent className="p-2">
+                          {p.caption && <p className="text-[11px] font-medium line-clamp-1">{p.caption}</p>}
+                          {p.uploaded_at && <p className="text-[10px] text-muted-foreground">{formatDate(p.uploaded_at)}</p>}
+                        </CardContent>
+                      </Card>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="warr" className="mt-0">
+              {warranties.length === 0 ? <Empty label="No warranties on file for this vehicle." /> : (
+                <div className="space-y-2">
+                  {warranties.map((w: any) => {
+                    // Read network/claim from real columns first, fall back to legacy notes markers.
+                    const networkId: string | undefined = w.network_id || (w.notes as string | undefined)?.match(/\[network:([^\]]+)\]/)?.[1];
+                    const claim: string | undefined = w.claim_number || (w.notes as string | undefined)?.match(/\[claim:([^\]]+)\]/)?.[1];
+                    const net = networkId ? getWarrantyNetwork(networkId) : undefined;
+                    const isExpired = w.expires_at && new Date(w.expires_at) < new Date();
+                    return (
+                      <Card key={w.id} className={isExpired ? "border-destructive/30" : ""}>
+                        <CardContent className="p-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {net && <WarrantyNetworkLogo network={net} size="md" />}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm truncate">{w.service_name || "Warranty"}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {net ? `${net.shortName ?? net.name} · ` : ""}
+                                {w.period_days ? `${w.period_days}d` : ""}
+                                {w.mileage_limit ? ` · ${w.mileage_limit.toLocaleString()} mi` : ""}
+                                {claim ? ` · Claim #${claim}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            {isExpired
+                              ? <Badge variant="destructive" className="text-[10px]">Expired</Badge>
+                              : <Badge variant="outline" className="text-[10px]">{w.expires_at ?? "—"}</Badge>}
+                          </div>
+                        </CardContent>
+                      </Card>
                     );
                   })}
                 </div>

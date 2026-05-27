@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import {
   FileSignature, Plus, Send, ArrowRightCircle, Search, Trash2,
   ClipboardList, Download, Pencil, ChevronDown, ChevronUp,
-  Link2, CheckCircle2, XCircle, BookOpen, Mail, MessageSquare, Loader2,
+  Link2, CheckCircle2, XCircle, BookOpen, Mail, MessageSquare, Loader2, Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
@@ -117,10 +117,31 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
       vehicle_label: e.vehicle_label ?? "",
       notes: e.notes ?? "",
       tax_rate: e.tax_rate != null ? String(e.tax_rate) : "0",
-      expiry_date: e.expiry_date ?? "",
+      // DB column is expires_at (date); UI form field stays expiry_date for clarity.
+      expiry_date: e.expires_at ?? "",
     });
     setItems((e.line_items as LineItem[]) ?? [blankItem()]);
     setOpen(true);
+  };
+
+  // Open the create form pre-filled from an existing estimate. Useful for repeat
+  // customers / recurring services. Generates a new number, resets status to draft,
+  // and clears the expiry so the duplicate is truly fresh.
+  const duplicateEstimate = (e: any) => {
+    setEditId(null);
+    setForm({
+      number: `EST-${Date.now().toString().slice(-6)}`,
+      customer_name: e.customer_name ?? "",
+      customer_phone: e.customer_phone ?? "",
+      customer_email: e.customer_email ?? "",
+      vehicle_label: e.vehicle_label ?? "",
+      notes: e.notes ?? "",
+      tax_rate: e.tax_rate != null ? String(e.tax_rate) : "0",
+      expiry_date: "",
+    });
+    setItems((e.line_items as LineItem[]) ?? [blankItem()]);
+    setOpen(true);
+    toast.info("Duplicated — review and save as a new estimate");
   };
 
   const saveEstimate = useMutation({
@@ -139,7 +160,7 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
         customer_phone: form.customer_phone || null,
         customer_email: form.customer_email || null,
         vehicle_label: form.vehicle_label || null,
-        expiry_date: form.expiry_date || null,
+        expires_at: form.expiry_date || null,
       };
       if (editId) {
         delete payload.status;
@@ -260,7 +281,7 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
       <p><b>Customer:</b> ${e.customer_name || "—"} &nbsp;|&nbsp; <b>Vehicle:</b> ${e.vehicle_label || "—"}</p>
       ${e.customer_phone ? `<p><b>Phone:</b> ${e.customer_phone}</p>` : ""}
       ${e.customer_email ? `<p><b>Email:</b> ${e.customer_email}</p>` : ""}
-      ${e.expiry_date ? `<p><b>Valid until:</b> ${new Date(e.expiry_date).toLocaleDateString()}</p>` : ""}
+      ${e.expires_at ? `<p><b>Valid until:</b> ${new Date(e.expires_at).toLocaleDateString()}</p>` : ""}
       <table><tr><th>Type</th><th>Description</th><th class="right">Qty</th><th class="right">Unit</th><th class="right">Total</th></tr>
       ${items.map(it => `<tr><td>${it.kind}</td><td>${it.name}</td><td class="right">${it.qty}</td><td class="right">$${(it.unit_cents / 100).toFixed(2)}</td><td class="right">$${(it.qty * it.unit_cents / 100).toFixed(2)}</td></tr>`).join("")}
       </table>
@@ -342,7 +363,7 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
                               <ArrowRightCircle className="w-3 h-3" /> WO created
                             </Badge>
                           )}
-                          {e.expiry_date && new Date(e.expiry_date) < new Date() && e.status !== "expired" && (
+                          {e.expires_at && new Date(e.expires_at) < new Date() && e.status !== "expired" && (
                             <Badge variant="destructive" className="text-[10px]">Expired</Badge>
                           )}
                         </div>
@@ -362,6 +383,10 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
                           <Button size="icon" variant="ghost" className="h-7 w-7" title="Edit"
                             onClick={() => openEdit(e)}>
                             <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Duplicate as new estimate"
+                            onClick={() => duplicateEstimate(e)}>
+                            <Copy className="w-3.5 h-3.5" />
                           </Button>
                           {(e.status === "draft" || e.status === "sent") && (
                             <>
@@ -428,7 +453,7 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
                       <div className="border-t px-4 py-3 bg-muted/20 space-y-2 text-sm">
                         {e.customer_email && <p className="text-xs text-muted-foreground">Email: {e.customer_email}</p>}
                         {e.customer_phone && <p className="text-xs text-muted-foreground">Phone: {e.customer_phone}</p>}
-                        {e.expiry_date && <p className="text-xs text-muted-foreground">Valid until: {new Date(e.expiry_date).toLocaleDateString()}</p>}
+                        {e.expires_at && <p className="text-xs text-muted-foreground">Valid until: {new Date(e.expires_at).toLocaleDateString()}</p>}
                         {e.share_token && (
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-blue-600 font-medium">Approval link active</span>

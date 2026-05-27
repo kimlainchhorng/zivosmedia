@@ -61,10 +61,17 @@ export default function AutoRepairWarrantySection({ storeId }: Props) {
 
   const filteredWarranties = useMemo(() => {
     let list = warranties;
-    if (networkFilter !== "all") list = list.filter((w: any) => (w.notes ?? "").includes(`[network:${networkFilter}]`));
+    if (networkFilter !== "all") {
+      // Match on the real column; fall back to legacy notes marker for any rows
+      // the backfill missed.
+      list = list.filter((w: any) =>
+        w.network_id === networkFilter ||
+        (!w.network_id && (w.notes ?? "").includes(`[network:${networkFilter}]`)),
+      );
+    }
     if (warrantySearch.trim()) {
       const s = warrantySearch.toLowerCase();
-      list = list.filter((w: any) => `${w.service_name ?? ""} ${w.notes ?? ""}`.toLowerCase().includes(s));
+      list = list.filter((w: any) => `${w.service_name ?? ""} ${w.claim_number ?? ""} ${w.notes ?? ""}`.toLowerCase().includes(s));
     }
     return list;
   }, [warranties, networkFilter, warrantySearch]);
@@ -82,19 +89,15 @@ export default function AutoRepairWarrantySection({ storeId }: Props) {
       const expires_at = form.period_days
         ? new Date(Date.now() + form.period_days * 86400000).toISOString().slice(0, 10)
         : null;
-      // Encode network + claim into notes (no schema change needed)
-      const tags = [
-        form.network_id ? `[network:${form.network_id}]` : "",
-        form.claim_number ? `[claim:${form.claim_number}]` : "",
-      ].filter(Boolean).join(" ");
-      const notes = [tags, form.notes].filter(Boolean).join("\n");
       const { error } = await supabase.from("ar_warranties" as any).insert({
         store_id: storeId,
         workorder_id: form.workorder_id,
         service_name: form.service_name,
         period_days: form.period_days,
         mileage_limit: form.mileage_limit,
-        notes,
+        notes: form.notes.trim() || null,
+        network_id: form.network_id || null,
+        claim_number: form.claim_number.trim() || null,
         expires_at,
       });
       if (error) throw error;
@@ -128,11 +131,17 @@ export default function AutoRepairWarrantySection({ storeId }: Props) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] }),
   });
 
-  const extractNetwork = (notes?: string) => {
-    const m = notes?.match(/\[network:([^\]]+)\]/);
+  // Read network/claim from the dedicated columns first; fall back to the
+  // legacy notes marker for any row the backfill migration didn't catch.
+  const extractNetwork = (w: any) => {
+    if (w?.network_id) return getWarrantyNetwork(w.network_id);
+    const m = (w?.notes as string | undefined)?.match(/\[network:([^\]]+)\]/);
     return m ? getWarrantyNetwork(m[1]) : undefined;
   };
-  const extractClaim = (notes?: string) => notes?.match(/\[claim:([^\]]+)\]/)?.[1];
+  const extractClaim = (w: any): string | undefined => {
+    if (w?.claim_number) return w.claim_number;
+    return (w?.notes as string | undefined)?.match(/\[claim:([^\]]+)\]/)?.[1];
+  };
 
   return (
     <div className="space-y-4">
@@ -182,8 +191,8 @@ export default function AutoRepairWarrantySection({ storeId }: Props) {
           ) : (
             <div className="space-y-2">
               {filteredWarranties.map((w: any) => {
-                const net = extractNetwork(w.notes);
-                const claim = extractClaim(w.notes);
+                const net = extractNetwork(w);
+                const claim = extractClaim(w);
                 const isExpired = w.expires_at && new Date(w.expires_at) < new Date();
                 return (
                   <div key={w.id} className={`flex items-center justify-between border rounded-lg p-3 gap-3 ${isExpired ? "border-destructive/40 bg-destructive/5" : "border-border"}`}>

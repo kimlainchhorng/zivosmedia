@@ -21,6 +21,8 @@ import History from "lucide-react/dist/esm/icons/history";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import TriangleAlert from "lucide-react/dist/esm/icons/triangle-alert";
+import Mail from "lucide-react/dist/esm/icons/mail";
+import MessageSquare from "lucide-react/dist/esm/icons/message-square";
 import { toast } from "sonner";
 
 interface VinResult {
@@ -49,13 +51,16 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
   const [recalls, setRecalls] = useState<Recall[]>([]);
   const [recallLoading, setRecallLoading] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [saveForm, setSaveForm] = useState({ owner_name: "", plate: "", mileage: "", notes: "" });
+  const [saveForm, setSaveForm] = useState({ owner_name: "", owner_phone: "", owner_email: "", plate: "", mileage: "", notes: "" });
   const [saving, setSaving] = useState(false);
   // If a vehicle with this VIN already exists for the store, the dialog flips
   // to update-mode: form is prefilled from the existing row, the Save button
   // becomes "Update Existing", and the user can opt out with "Create new anyway".
-  const [existingMatch, setExistingMatch] = useState<{ id: string; owner_name: string; plate: string | null; mileage: number | null; notes: string | null } | null>(null);
+  const [existingMatch, setExistingMatch] = useState<{ id: string; owner_name: string; owner_phone: string | null; owner_email: string | null; plate: string | null; mileage: number | null; notes: string | null } | null>(null);
   const [forceCreateNew, setForceCreateNew] = useState(false);
+  // Customer-of-record for the currently-decoded VIN (if it's in the garage).
+  // Drives the "Notify customer about recalls" buttons in the recall card.
+  const [vehicleOwner, setVehicleOwner] = useState<{ owner_name: string; owner_phone: string | null; owner_email: string | null } | null>(null);
 
   const { data: history = [] } = useQuery({
     queryKey: ["ar-vin-lookups", storeId],
@@ -76,6 +81,24 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
       setResult({ vin: history[0].vin, ...(history[0].decoded as object) });
     }
   }, [history, result]);
+
+  // When the displayed result changes, look up the customer-of-record for this
+  // VIN. Lets the Recalls section offer a one-click "Notify customer" action.
+  useEffect(() => {
+    let cancelled = false;
+    setVehicleOwner(null);
+    if (!result?.vin) return;
+    (async () => {
+      const { data } = await supabase
+        .from("ar_customer_vehicles")
+        .select("owner_name, owner_phone, owner_email")
+        .eq("store_id", storeId)
+        .eq("vin", result.vin)
+        .maybeSingle();
+      if (!cancelled && data) setVehicleOwner(data as any);
+    })();
+    return () => { cancelled = true; };
+  }, [result?.vin, storeId]);
 
   const fetchRecalls = async (make: string, model?: string, year?: string) => {
     setRecallLoading(true);
@@ -148,12 +171,12 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
     if (!result) return;
     setForceCreateNew(false);
     setExistingMatch(null);
-    setSaveForm({ owner_name: "", plate: "", mileage: "", notes: "" });
+    setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: "", mileage: "", notes: "" });
     setSaveOpen(true);
     if (!result.vin) return;
     const { data, error } = await supabase
       .from("ar_customer_vehicles")
-      .select("id, owner_name, plate, mileage, notes")
+      .select("id, owner_name, owner_phone, owner_email, plate, mileage, notes")
       .eq("store_id", storeId)
       .eq("vin", result.vin)
       .maybeSingle();
@@ -162,6 +185,8 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
       // Prefill form from the existing row so update-mode is one-click.
       setSaveForm({
         owner_name: data.owner_name ?? "",
+        owner_phone: (data as any).owner_phone ?? "",
+        owner_email: (data as any).owner_email ?? "",
         plate: data.plate ?? "",
         mileage: data.mileage != null ? String(data.mileage) : "",
         notes: data.notes ?? "",
@@ -177,6 +202,8 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
       const payload = {
         store_id: storeId,
         owner_name: saveForm.owner_name.trim(),
+        owner_phone: saveForm.owner_phone.trim() || null,
+        owner_email: saveForm.owner_email.trim() || null,
         make: result.make ?? "Unknown",
         model: result.model ?? "Unknown",
         year: result.year ? parseInt(result.year, 10) : null,
@@ -199,7 +226,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
       qc.invalidateQueries({ queryKey: ["ar-customer-vehicles", storeId] });
       toast.success(updateExisting ? "Vehicle updated" : "Vehicle saved to garage");
       setSaveOpen(false);
-      setSaveForm({ owner_name: "", plate: "", mileage: "", notes: "" });
+      setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: "", mileage: "", notes: "" });
       setExistingMatch(null);
       setForceCreateNew(false);
     } catch (e: any) {
@@ -207,6 +234,37 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Compose a customer-facing recall summary suitable for email body / SMS text.
+  const buildRecallMessage = () => {
+    const ownerFirstName = (vehicleOwner?.owner_name ?? "").trim().split(/\s+/)[0] || "there";
+    const vehicle = [result?.year, result?.make, result?.model].filter(Boolean).join(" ") || "your vehicle";
+    const lines = [
+      `Hi ${ownerFirstName},`,
+      ``,
+      `Our routine recall check on ${vehicle} (VIN ${result?.vin ?? ""}) turned up ${recalls.length} active NHTSA recall${recalls.length !== 1 ? "s" : ""}:`,
+      ...recalls.slice(0, 5).map((r, i) => `${i + 1}. ${r.Component || "General"}${r.NHTSACampaignNumber ? ` (campaign ${r.NHTSACampaignNumber})` : ""}`),
+      ``,
+      `These are typically repaired free of charge by a franchised dealer. Reply or call us to discuss next steps.`,
+      ``,
+      `— Your shop`,
+    ];
+    return lines.join("\n");
+  };
+
+  const notifyRecallsByEmail = () => {
+    if (!vehicleOwner?.owner_email) { toast.error("No email on file for this vehicle's owner"); return; }
+    const subject = encodeURIComponent(`Recall notice for your ${[result?.year, result?.make, result?.model].filter(Boolean).join(" ") || "vehicle"}`);
+    const body = encodeURIComponent(buildRecallMessage());
+    window.open(`mailto:${vehicleOwner.owner_email}?subject=${subject}&body=${body}`);
+  };
+
+  const notifyRecallsBySms = () => {
+    if (!vehicleOwner?.owner_phone) { toast.error("No phone on file for this vehicle's owner"); return; }
+    const body = encodeURIComponent(buildRecallMessage().slice(0, 480));
+    const tel = vehicleOwner.owner_phone.replace(/[^\d+]/g, "");
+    window.open(`sms:${tel}?&body=${body}`);
   };
 
   const loadHistory = (h: typeof history[0]) => {
@@ -278,9 +336,34 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
             )}
             {!recallLoading && recalls.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-orange-600 flex items-center gap-1.5">
-                  <TriangleAlert className="w-3.5 h-3.5" /> {recalls.length} Active Recall{recalls.length !== 1 ? "s" : ""} Found
-                </p>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-600 flex items-center gap-1.5">
+                    <TriangleAlert className="w-3.5 h-3.5" /> {recalls.length} Active Recall{recalls.length !== 1 ? "s" : ""} Found
+                  </p>
+                  {vehicleOwner && (vehicleOwner.owner_email || vehicleOwner.owner_phone) && (
+                    <div className="flex gap-1.5">
+                      {vehicleOwner.owner_email && (
+                        <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+                          onClick={notifyRecallsByEmail}
+                          title={`Email recall details to ${vehicleOwner.owner_email}`}>
+                          <Mail className="w-3 h-3" /> Email customer
+                        </Button>
+                      )}
+                      {vehicleOwner.owner_phone && (
+                        <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+                          onClick={notifyRecallsBySms}
+                          title={`SMS recall details to ${vehicleOwner.owner_phone}`}>
+                          <MessageSquare className="w-3 h-3" /> SMS customer
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {vehicleOwner && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Customer on file: <strong>{vehicleOwner.owner_name}</strong>
+                  </p>
+                )}
                 {recalls.slice(0, 3).map((r, i) => (
                   <div key={i} className="p-3 rounded-lg border border-orange-500/30 bg-orange-500/5 text-xs space-y-1">
                     <p className="font-medium">{r.Component || "General"}</p>
@@ -354,7 +437,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
                 This VIN is already in your garage as <strong>{existingMatch.owner_name || "an unnamed owner"}</strong>.
                 Saving will update that record. Changes won't create a duplicate.
               </p>
-              <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => { setForceCreateNew(true); setSaveForm({ owner_name: "", plate: "", mileage: "", notes: "" }); }}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => { setForceCreateNew(true); setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: "", mileage: "", notes: "" }); }}>
                 Create new record anyway
               </Button>
             </div>
@@ -364,6 +447,18 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
               <Label className="text-xs">Owner name *</Label>
               <Input placeholder="Customer full name" value={saveForm.owner_name}
                 onChange={e => setSaveForm(f => ({ ...f, owner_name: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Phone</Label>
+                <Input type="tel" placeholder="(555) 123-4567" value={saveForm.owner_phone}
+                  onChange={e => setSaveForm(f => ({ ...f, owner_phone: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Email</Label>
+                <Input type="email" placeholder="customer@example.com" value={saveForm.owner_email}
+                  onChange={e => setSaveForm(f => ({ ...f, owner_email: e.target.value }))} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, FileDown, TrendingUp, Timer, AlertOctagon, CheckCheck } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface Props { storeId: string }
 
@@ -60,7 +61,9 @@ export default function AutoRepairReportsSection({ storeId }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ar_estimates" as any)
-        .select("id,number,status,total_cents,created_at,customer_name")
+        // converted_workorder_id is needed by the approval-rate calc below;
+        // without it the metric collapses to just status='approved'.
+        .select("id,number,status,total_cents,created_at,customer_name,converted_workorder_id")
         .eq("store_id", storeId)
         .gte("created_at", from)
         .lte("created_at", `${to}T23:59:59`);
@@ -110,8 +113,34 @@ export default function AutoRepairReportsSection({ storeId }: Props) {
       byTech[k].hours += Number(o.labor_hours ?? 0);
     });
 
-    return { revenue, closedCount: closed.length, laborHours, avg, cbRate, convRate, avgDays, byStatus, byTech };
-  }, [orders, estimates]);
+    // Daily revenue series for the trend chart. Each closed work order's
+    // total_cents is bucketed by created_at date. Empty days are filled in so
+    // the chart x-axis stays even.
+    const dayMap = new Map<string, number>();
+    closed.forEach((o: any) => {
+      if (!o.created_at) return;
+      const key = new Date(o.created_at).toISOString().slice(0, 10);
+      dayMap.set(key, (dayMap.get(key) ?? 0) + (o.total_cents ?? 0));
+    });
+    const trend: Array<{ date: string; label: string; revenue: number }> = [];
+    if (from && to) {
+      const start = new Date(from);
+      const end = new Date(to);
+      // Cap at 90 buckets so very long ranges don't crash the chart.
+      const cursor = new Date(Math.max(start.getTime(), end.getTime() - 89 * 86400000));
+      while (cursor <= end) {
+        const key = cursor.toISOString().slice(0, 10);
+        trend.push({
+          date: key,
+          label: cursor.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+          revenue: (dayMap.get(key) ?? 0) / 100,
+        });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    }
+
+    return { revenue, closedCount: closed.length, laborHours, avg, cbRate, convRate, avgDays, byStatus, byTech, trend };
+  }, [orders, estimates, from, to]);
 
   const exportCsv = () => {
     const header = ["RO Number", "Customer", "Vehicle", "Status", "Comeback", "Labor Hrs", "Total", "Created", "Completed"];
@@ -203,6 +232,45 @@ export default function AutoRepairReportsSection({ storeId }: Props) {
           <p className="text-[10px] uppercase text-muted-foreground">Est. approval rate</p>
         </CardContent></Card>
       </div>
+
+      {/* Daily revenue trend */}
+      {stats.trend.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" /> Daily Revenue
+              <span className="text-[10px] text-muted-foreground font-normal ml-auto">Closed work orders</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.trend} margin={{ top: 4, right: 4, left: -16, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10 }}
+                    interval={stats.trend.length > 30 ? Math.floor(stats.trend.length / 8) : "preserveStartEnd"}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(v) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`}
+                  />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, padding: "6px 10px" }}
+                    formatter={(v: number) => [`$${v.toFixed(2)}`, "Revenue"]}
+                    labelFormatter={(label, payload) => {
+                      const d = payload?.[0]?.payload?.date;
+                      return d ? new Date(d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : label;
+                    }}
+                  />
+                  <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Status breakdown */}
       {Object.keys(stats.byStatus).length > 0 && (

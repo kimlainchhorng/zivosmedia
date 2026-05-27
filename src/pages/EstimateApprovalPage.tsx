@@ -88,7 +88,7 @@ export default function EstimateApprovalPage() {
   }
 
   const items: LineItem[] = est.line_items ?? [];
-  const isExpired = est.expiry_date && new Date(est.expiry_date) < new Date();
+  const isExpired = est.expires_at && new Date(est.expires_at) < new Date();
 
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
@@ -124,8 +124,8 @@ export default function EstimateApprovalPage() {
                 {isExpired && (
                   <Badge variant="destructive" className="text-[10px] mb-1">Expired</Badge>
                 )}
-                {est.expiry_date && !isExpired && (
-                  <p className="text-xs text-muted-foreground">Valid until {new Date(est.expiry_date).toLocaleDateString()}</p>
+                {est.expires_at && !isExpired && (
+                  <p className="text-xs text-muted-foreground">Valid until {new Date(est.expires_at).toLocaleDateString()}</p>
                 )}
               </div>
               <Badge

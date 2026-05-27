@@ -64,6 +64,10 @@ type Doc = {
   // Fleet billing (invoices only — estimates ignore these)
   fleetAccountId: string | null;
   poNumber: string;
+  // Service intake + notes (now persisted on both invoices and estimates)
+  intakeMethod: string;       // 'drop-off' | 'towing' | 'in-shop' | 'pickup' | ''
+  customerNotes: string;
+  diagnosisNotes: string;
 };
 
 const emptyDraft = (): Doc => ({
@@ -75,6 +79,7 @@ const emptyDraft = (): Doc => ({
   items: [{ id: crypto.randomUUID(), category: "labor", description: "", qty: 1, price: 0, hours: 1, discount: 0 }],
   status: "draft", createdAt: new Date().toISOString(),
   fleetAccountId: null, poNumber: "",
+  intakeMethod: "", customerNotes: "", diagnosisNotes: "",
 });
 
 type FleetAccount = {
@@ -189,6 +194,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           createdAt: row.created_at,
           fleetAccountId: row.fleet_account_id ?? null,
           poNumber: row.po_number ?? "",
+          intakeMethod: row.intake_method ?? "",
+          customerNotes: row.customer_notes ?? "",
+          diagnosisNotes: row.diagnosis_notes ?? "",
         });
       }
     }
@@ -215,6 +223,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           createdAt: row.created_at,
           fleetAccountId: null,
           poNumber: "",
+          intakeMethod: row.intake_method ?? "",
+          customerNotes: row.customer_notes ?? "",
+          diagnosisNotes: row.diagnosis_notes ?? "",
         });
       }
     }
@@ -431,6 +442,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         tax_cents: taxCents,
         total_cents: totalCents,
         status: draft.status === "paid" ? "paid" : draft.status === "sent" ? "sent" : "draft",
+        intake_method: draft.intakeMethod || null,
+        customer_notes: draft.customerNotes.trim() || null,
+        diagnosis_notes: draft.diagnosisNotes.trim() || null,
       };
 
       // Fleet billing fields only apply to invoices (the columns don't exist on ar_estimates).
@@ -493,6 +507,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         discount_cents: discountCents,
         tax_cents: taxCents,
         total_cents: totalCents,
+        intake_method: draft.intakeMethod || null,
+        customer_notes: draft.customerNotes.trim() || null,
+        diagnosis_notes: draft.diagnosisNotes.trim() || null,
       };
 
       // 1. Persist the estimate (insert if new, update if editing a real DB row).
@@ -1125,6 +1142,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         discount_cents: Math.round(t.discount * 100),
         tax_cents: Math.round(t.tax * 100),
         total_cents: Math.round(t.total * 100),
+        intake_method: est.intakeMethod || null,
+        customer_notes: est.customerNotes?.trim() || null,
+        diagnosis_notes: est.diagnosisNotes?.trim() || null,
         status: "draft", created_by: user?.id,
       });
       if (error) throw error;
