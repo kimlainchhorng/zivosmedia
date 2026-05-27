@@ -3,7 +3,8 @@
  * Returns sensible defaults until a row exists; the first save writes the row.
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type SalonStripeStatus = "not_connected" | "pending" | "active" | "restricted";
 

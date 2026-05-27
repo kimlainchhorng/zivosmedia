@@ -14,7 +14,8 @@
  * the portal fresh if the salon owner edits a booking or issues a new card.
  */
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 import { useAuth } from "@/contexts/AuthContext";
 import type { SalonBookingStatus } from "@/hooks/salon/useSalonBookings";
 

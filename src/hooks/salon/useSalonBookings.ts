@@ -4,7 +4,8 @@
  * records survive catalog edits.
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type SalonBookingStatus =
   | "pending"

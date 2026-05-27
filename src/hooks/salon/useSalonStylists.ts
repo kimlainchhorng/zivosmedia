@@ -2,7 +2,8 @@
  * Salon stylists CRUD plus per-stylist service assignment.
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+const supabase: any = _supabaseTyped;
 
 export type StylistStripeConnectStatus = "not_connected" | "pending" | "active" | "restricted";
 
