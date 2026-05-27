@@ -49,7 +49,8 @@ import StickyDatePill from "./StickyDatePill";
 import AvatarPreviewSheet from "./AvatarPreviewSheet";
 import ZivoActionBubble, { type ZivoCardPayload } from "./ZivoActionBubble";
 import ZivoCardPicker from "./ZivoCardPicker";
-import { enqueue as outboxEnqueue, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
+import { beginSend as outboxBeginSend, enqueue as outboxEnqueue, finishSend as outboxFinishSend, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
+import OutboxPendingBadge from "./OutboxPendingBadge";
 import ChatAttachMenu from "./ChatAttachMenu";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useChatFiles } from "@/hooks/useChatFiles";
@@ -1388,6 +1389,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const retryFailedGroupSend = useCallback(async (optimisticId: string) => {
     const payload = failedSendsRef.current.get(optimisticId);
     if (!payload) return;
+    if (!outboxBeginSend(optimisticId)) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "uploading" } : m)),
+      );
+      return;
+    }
     setMessages((prev) =>
       prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "uploading" } : m)),
     );
@@ -1404,6 +1411,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "failed" } : m)),
       );
       toast.error(navigator.onLine ? "Still couldn't send — try again" : "You're offline");
+    } finally {
+      outboxFinishSend(optimisticId);
     }
   }, []);
 
@@ -1413,7 +1422,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
   }, []);
 
-  // Restore persisted failed group sends + auto-retry on reconnect.
+  // Restore persisted failed group sends and stay in sync with the app-level outbox flusher.
   useEffect(() => {
     if (!groupId) return;
     const sync = () => {
@@ -1434,19 +1443,14 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           failedSendsRef.current.set(i.id, i.payload as unknown as GroupMessageInsert);
         }
       });
+      Array.from(failedSendsRef.current.keys()).forEach((id) => {
+        if (!queuedIds.has(id)) failedSendsRef.current.delete(id);
+      });
     };
     sync();
     const unsub = outboxSubscribe(sync);
-    const onOnline = () => {
-      const ids = Array.from(failedSendsRef.current.keys());
-      ids.forEach((id) => { void retryFailedGroupSend(id); });
-    };
-    window.addEventListener("online", onOnline);
-    return () => {
-      unsub();
-      window.removeEventListener("online", onOnline);
-    };
-  }, [groupId, retryFailedGroupSend]);
+    return unsub;
+  }, [groupId]);
 
   // ─── Voice send pipeline (cancellable + retriable) ────────────────────
   const handledVoiceBlobsRef = useRef<WeakSet<Blob>>(new WeakSet());
@@ -2230,6 +2234,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             </p>
           </button>
           <div className="flex items-center gap-0.5">
+            <OutboxPendingBadge chatKey={groupId} />
             <button type="button"
               onClick={() => { void primeCallAudio(); setGroupCall("video"); }}
               className="h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted/60 active:bg-muted transition-colors"
@@ -2543,6 +2548,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
+                    </div>
+                  )}
+                  {msg._upload_status === "uploading" && isMe && msg.message_type !== "voice" && (
+                    <div className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full border border-border/30 bg-muted/60 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Sending
                     </div>
                   )}
                 </div>

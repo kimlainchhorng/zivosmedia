@@ -48,6 +48,18 @@ const safeWrite = (items: OutboxItem[]) => {
   }
 };
 
+const sendingIds = new Set<string>();
+
+export function beginSend(id: string): boolean {
+  if (sendingIds.has(id)) return false;
+  sendingIds.add(id);
+  return true;
+}
+
+export function finishSend(id: string) {
+  sendingIds.delete(id);
+}
+
 export function enqueue(item: Omit<OutboxItem, "createdAt" | "attempts">) {
   const items = safeRead().filter((i) => i.id !== item.id);
   items.push({ ...item, createdAt: Date.now(), attempts: 0 });
@@ -102,6 +114,7 @@ export async function flush(): Promise<{ sent: number; failed: number }> {
     if (!auth?.user?.id) return { sent: 0, failed: 0 };
 
     for (const item of items) {
+      if (!beginSend(item.id)) continue;
       try {
         const { error } = await (supabase as unknown as {
           from: (t: string) => {
@@ -125,6 +138,8 @@ export async function flush(): Promise<{ sent: number; failed: number }> {
             : i,
         );
         safeWrite(items2);
+      } finally {
+        finishSend(item.id);
       }
     }
     return { sent, failed };

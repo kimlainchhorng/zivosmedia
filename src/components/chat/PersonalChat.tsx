@@ -79,8 +79,9 @@ import AvatarPreviewSheet from "./AvatarPreviewSheet";
 import { emitReactionAdded } from "./FloatingReactionsOverlay";
 import ZivoActionBubble, { type ZivoCardPayload } from "./ZivoActionBubble";
 import ZivoCardPicker from "./ZivoCardPicker";
-import { enqueue as outboxEnqueue, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
+import { beginSend as outboxBeginSend, enqueue as outboxEnqueue, finishSend as outboxFinishSend, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
 import FileBubble, { type FileBubbleData } from "./FileBubble";
+import OutboxPendingBadge from "./OutboxPendingBadge";
 import HoldToRecordMic from "./HoldToRecordMic";
 import ChatAttachMenu from "./ChatAttachMenu";
 import ChatPollCreator, { type PollDraft } from "./ChatPollCreator";
@@ -1745,6 +1746,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const retryFailedSend = useCallback(async (optimisticId: string) => {
     const payload = failedSendsRef.current.get(optimisticId);
     if (!payload) return;
+    if (!outboxBeginSend(optimisticId)) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "uploading" } : m)),
+      );
+      return;
+    }
     setMessages((prev) =>
       prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "uploading" } : m)),
     );
@@ -1763,6 +1770,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "failed" } : m)),
       );
       toast.error(navigator.onLine ? "Still couldn't send — try again" : "You're offline");
+    } finally {
+      outboxFinishSend(optimisticId);
     }
   }, []);
 
@@ -1771,16 +1780,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     outboxRemove(optimisticId);
     setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
   }, []);
-
-  // Auto-retry queued failed messages when the network comes back.
-  useEffect(() => {
-    const onOnline = () => {
-      const ids = Array.from(failedSendsRef.current.keys());
-      ids.forEach((id) => { void retryFailedSend(id); });
-    };
-    window.addEventListener("online", onOnline);
-    return () => window.removeEventListener("online", onOnline);
-  }, [retryFailedSend]);
 
   // Restore persisted failed sends for this chat on mount, and stay in sync
   // with the durable outbox (the app-level flusher may clear items in the
@@ -1808,6 +1807,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         if (!failedSendsRef.current.has(i.id)) {
           failedSendsRef.current.set(i.id, i.payload as unknown as DirectMessageInsert);
         }
+      });
+      Array.from(failedSendsRef.current.keys()).forEach((id) => {
+        if (!queuedIds.has(id)) failedSendsRef.current.delete(id);
       });
     };
     sync();
@@ -3216,6 +3218,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
           {/* Action buttons */}
           <div className="flex items-center gap-0.5">
+            <OutboxPendingBadge chatKey={recipientId} />
             {!isSelfChat && (
               <motion.button
                 whileTap={{ scale: 0.85 }}
@@ -3856,6 +3859,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
+                      </div>
+                    )}
+                    {msg._upload_status === "uploading" && isMe && msg.message_type !== "voice" && (
+                      <div className="self-end mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full border border-border/30 bg-muted/60 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Sending
                       </div>
                     )}
                   </motion.div>
