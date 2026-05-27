@@ -483,7 +483,9 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     () => isMe ? null : assessIncomingChatRisk(message || ""),
     [message, isMe],
   );
-  const isLockedType = messageType === "locked_image" || messageType === "locked_video";
+  const isLockedMediaType = messageType === "locked_image" || messageType === "locked_video";
+  const isLockedTextType = messageType === "locked_text";
+  const isLockedType = isLockedMediaType || isLockedTextType;
   const defaultLockedState = initiallyLocked ?? (isLockedType && !isMe);
   const [isLocked, setIsLocked] = useState(defaultLockedState);
   const [unlockLoading, setUnlockLoading] = useState(false);
@@ -1124,13 +1126,51 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%)" }} />
               )}
 
-              {/* Text portion — supports Telegram-style ||spoiler|| markers. */}
-              {textWithoutUrl && (
-                <p className={`whitespace-pre-wrap break-words px-4 pt-3 pb-1 relative z-[1] ${
-                  isMe ? "text-primary-foreground" : "text-foreground"
-                }`}>
-                  <SpoilerText text={textWithoutUrl} variant="bold" />
-                </p>
+              {/* Locked text — recipient sees a paywall until they unlock */}
+              {isLockedTextType && isLocked && !isMe ? (
+                <div className="px-4 py-4 relative z-[1] flex flex-col items-start gap-2">
+                  <div className="flex items-center gap-2 text-rose-500">
+                    <Lock className="h-4 w-4" />
+                    <span className="text-[12px] font-extrabold uppercase tracking-wide">
+                      Locked message
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-muted-foreground italic">
+                    Unlock to read the full message
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleUnlockPayment}
+                    disabled={unlockLoading}
+                    className="mt-1 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[12px] font-extrabold disabled:opacity-60"
+                  >
+                    {unlockLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Lock className="h-3.5 w-3.5" />
+                    )}
+                    {unlockLoading ? "Unlocking…" : `Unlock · ${unlockPriceLabel}`}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Sender's own locked text: show preview with a lock chip */}
+                  {isLockedTextType && isMe && (
+                    <div className="px-4 pt-3 -mb-1 relative z-[1]">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-rose-300 bg-rose-500/20 rounded-full px-2 py-0.5">
+                        <Lock className="h-2.5 w-2.5" /> Locked · {unlockPriceLabel}
+                      </span>
+                    </div>
+                  )}
+                  {/* Text portion — supports Telegram-style ||spoiler|| markers. */}
+                  {textWithoutUrl && (
+                    <p className={`whitespace-pre-wrap break-words px-4 pt-3 pb-1 relative z-[1] ${
+                      isMe ? "text-primary-foreground" : "text-foreground"
+                    }`}>
+                      <SpoilerText text={textWithoutUrl} variant="bold" />
+                    </p>
+                  )}
+                </>
               )}
 
               {/* Auto-translated inbound text. Hidden when not enabled, when

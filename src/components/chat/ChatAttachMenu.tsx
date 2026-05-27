@@ -35,6 +35,7 @@ interface ChatAttachMenuProps {
   onLocationShare: () => void;
   onToggleDisappearing: () => void;
   onLockedImageSelect?: () => void;
+  onLockedTextSelect?: () => void;
   onToggleSensitiveMedia?: () => void;
   onSendGift?: () => void;
   onOpenWallet?: () => void;
@@ -64,6 +65,7 @@ const menuItems = [
   { id: "gift", label: "Gift", hint: "Send a gift", icon: Gift, color: "text-amber-500", bg: "bg-amber-500/10" },
   { id: "money", label: "Money", hint: "Fast transfer", icon: Coins, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   { id: "locked", label: "Locked", hint: "Paid unlock", icon: Lock, color: "text-rose-500", bg: "bg-rose-500/10" },
+  { id: "locked-text", label: "Paid DM", hint: "Locked message", icon: Lock, color: "text-rose-500", bg: "bg-rose-500/10" },
   { id: "disappearing", label: "24h", hint: "Auto delete", icon: Timer, color: "text-amber-500", bg: "bg-amber-500/10" },
 ] as const;
 
@@ -79,14 +81,14 @@ const RECENT_LIMIT = 3;
 const PRIMARY_VISIBLE_COUNT = 8;
 
 export default function ChatAttachMenu({
-  open, onClose, onImageSelect, onVideoSelect, onLocationShare, onToggleDisappearing, onLockedImageSelect,
+  open, onClose, onImageSelect, onVideoSelect, onLocationShare, onToggleDisappearing, onLockedImageSelect, onLockedTextSelect,
   onToggleSensitiveMedia, onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, disappearingLabel,
 }: ChatAttachMenuProps) {
   const { isPlus, plan } = useZivoPlus();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const navigate = useNavigate();
   const visibleItems = zivoOFMode
-    ? menuItems.filter((it) => ["image", "video", "sensitive", "locked", "money", "gift"].includes(it.id))
+    ? menuItems.filter((it) => ["image", "video", "sensitive", "locked", "locked-text", "money", "gift"].includes(it.id))
     : menuItems;
   const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
@@ -234,6 +236,16 @@ export default function ChatAttachMenu({
           return;
         }
         onLockedImageSelect?.();
+        break;
+      case "locked-text":
+        if (!canUseLocked) {
+          toast("Lock & Unlock requires Chat+ or Pro plan", {
+            action: { label: "Upgrade", onClick: () => navigate("/zivo-plus") },
+          });
+          onClose();
+          return;
+        }
+        onLockedTextSelect?.();
         break;
       case "disappearing": onToggleDisappearing(); break;
     }

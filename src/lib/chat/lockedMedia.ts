@@ -21,6 +21,14 @@ export function isLockedMediaMessage(messageType: string | null | undefined): bo
   return messageType === "locked_image" || messageType === "locked_video";
 }
 
+export function isLockedTextMessage(messageType: string | null | undefined): boolean {
+  return messageType === "locked_text";
+}
+
+export function isLockedDirectMessage(messageType: string | null | undefined): boolean {
+  return isLockedMediaMessage(messageType) || isLockedTextMessage(messageType);
+}
+
 export function getLockedMediaPreviewPath(filePayload: LockedMediaMessageLike["file_payload"]): string | null {
   if (!filePayload) return null;
   const preview = filePayload.locked_preview_url || filePayload.locked_preview_image_url;

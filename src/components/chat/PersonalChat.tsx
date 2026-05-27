@@ -19,6 +19,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
+import { useDirectMessageUnlocks } from "@/hooks/useDirectMessageUnlocks";
+import { isLockedDirectMessage } from "@/lib/chat/lockedMedia";
 import MediaGalleryLightbox from "./MediaGalleryLightbox";
 import { OPEN_MEDIA_EVENT, type OpenMediaDetail } from "@/lib/chat/openMedia";
 import { openP2PTransfer } from "@/lib/p2pTransfer";
@@ -581,6 +583,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [showScheduler, setShowScheduler] = useState(false);
   const [showPinnedPanel, setShowPinnedPanel] = useState(false);
   const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
+  // Paid DM (locked text) flow — sender opens the same price picker, then we
+  // route to handleLockedTextConfirm (vs handleLockedMediaConfirm) based on intent.
+  const [lockedPriceIntent, setLockedPriceIntent] = useState<"media" | "text" | null>(null);
+  const dmUnlocks = useDirectMessageUnlocks(recipientId);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const giftDeepLinkOpenedRef = useRef(false);
   useEffect(() => {
@@ -1936,8 +1942,58 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       return;
     }
     setPendingLockedFile(file);
+    setLockedPriceIntent("media");
     setShowLockedPricePicker(true);
     if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
+  };
+
+  // Paid DM (locked text): open price picker; we send the current composer text
+  // as a locked_text message after the user confirms a price.
+  const handleLockedTextSelect = () => {
+    const text = input.trim();
+    if (!text) {
+      toast("Type a message first, then tap Paid DM");
+      return;
+    }
+    setLockedPriceIntent("text");
+    setShowLockedPricePicker(true);
+  };
+
+  const handleLockedTextConfirm = async (priceCents: number) => {
+    setShowLockedPricePicker(false);
+    setLockedPriceIntent(null);
+    const text = input.trim();
+    if (!text || !user?.id) return;
+    setInput("");
+    clearDraft();
+    setSending(true);
+    const optimisticId = `opt-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: optimisticId, sender_id: user.id, receiver_id: recipientId,
+      message: text,
+      image_url: null, video_url: null, voice_url: null,
+      message_type: "locked_text",
+      reply_to_id: null, location_lat: null, location_lng: null, location_label: null,
+      is_pinned: false, expires_at: null, created_at: new Date().toISOString(), is_read: false,
+      locked_price_cents: priceCents,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+    scrollToBottom(true);
+    try {
+      const { error: insertErr } = await dbFrom("direct_messages")
+        .insert({
+          sender_id: user.id, receiver_id: recipientId,
+          message: text,
+          message_type: "locked_text",
+          locked_price_cents: priceCents,
+        });
+      if (insertErr) throw insertErr;
+      void sendChatPush("locked_text" as any, `🔒 Paid DM · $${(priceCents / 100).toFixed(2)}`);
+    } catch {
+      toast.error("Failed to send paid DM");
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+    }
+    setSending(false);
   };
 
   // Locked media: upload after price confirmed
@@ -2992,6 +3048,20 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         filePayload={msg.file_payload}
                         senderId={msg.sender_id}
                         lockedPriceCents={msg.locked_price_cents}
+                        initiallyLocked={
+                          isLockedDirectMessage(msg.message_type) && !isMe
+                            ? !dmUnlocks.isUnlocked(msg.id)
+                            : undefined
+                        }
+                        onUnlockLockedMedia={
+                          isLockedDirectMessage(msg.message_type) && !isMe && !msg.id.startsWith("opt-")
+                            ? async (mid) => dmUnlocks.unlock({
+                                messageId: mid,
+                                creatorId: msg.sender_id,
+                                priceCents: msg.locked_price_cents ?? 0,
+                              })
+                            : undefined
+                        }
                         initialReactions={reactionsMap[msg.id]}
                         editedAt={msg.edited_at}
                         createdAt={msg.created_at}
@@ -3205,6 +3275,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     "On"
                   }
                   onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+                  onLockedTextSelect={handleLockedTextSelect}
                   onToggleSensitiveMedia={() => {
                     setMarkNextMediaSensitive((prev) => {
                       const next = !prev;
@@ -3231,13 +3302,21 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               <input ref={videoInputRef} type="file" accept="video/*,.gif" className="hidden" onChange={handleVideoSelect} title="Choose video" aria-label="Choose video" />
               <input ref={lockedImageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
-              {/* Locked media price picker */}
+              {/* Locked media / paid DM price picker */}
               {showLockedPricePicker && (
                 <Suspense fallback={null}>
                   <LockedMediaPricePicker
                     open={showLockedPricePicker}
-                    onClose={() => { setShowLockedPricePicker(false); setPendingLockedFile(null); }}
-                    onConfirm={handleLockedMediaConfirm}
+                    onClose={() => {
+                      setShowLockedPricePicker(false);
+                      setPendingLockedFile(null);
+                      setLockedPriceIntent(null);
+                    }}
+                    onConfirm={(priceCents) =>
+                      lockedPriceIntent === "text"
+                        ? handleLockedTextConfirm(priceCents)
+                        : handleLockedMediaConfirm(priceCents)
+                    }
                   />
                 </Suspense>
               )}
