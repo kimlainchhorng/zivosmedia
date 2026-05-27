@@ -17,15 +17,18 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft, Lock, Loader2, DollarSign, Users, Eye, CheckCircle2, Flame,
   Pencil, Trash2, EyeOff, MoreVertical, X, Check, ChevronRight, Crown, Heart, Calendar,
+  Flag, Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBlockUser } from "@/hooks/useBlockUser";
 import { signedUrlFor, signedUrlsFor } from "@/lib/security/signedMedia";
 import { cn } from "@/lib/utils";
 import { PPV_FREE_FOR_SUBS_UI_ENABLED } from "@/lib/ppv/featureFlags";
 
 const TipSheet = lazy(() => import("@/components/social/TipSheet"));
+const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
 
 interface PPVPost {
   id: string;
@@ -62,6 +65,8 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
   const [previewAsFan, setPreviewAsFan] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
 
   const { data: post, isLoading } = useQuery({
     queryKey: ["ppv-post", postId],
@@ -77,6 +82,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
   });
 
   const isOwner = !!user && !!post && user.id === post.creator_id;
+  const blockHook = useBlockUser(post?.creator_id ?? "");
 
   // Is the current visitor an active subscriber to the creator? When true on a
   // free_for_subscribers post, unlocking is free via the RPC's tier path.
@@ -332,7 +338,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
             <Lock className="h-4 w-4 text-rose-500" />
             {post?.title || "PPV Post"}
           </h1>
-          {isOwner && post && (
+          {post && (
             <div className="relative">
               <button
                 type="button"
@@ -356,43 +362,71 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                       transition={{ duration: 0.12 }}
                       className="absolute right-0 top-full mt-1 w-48 z-50 rounded-2xl border border-border bg-card shadow-lg overflow-hidden"
                     >
-                      <button
-                        type="button"
-                        onClick={openEdit}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left"
-                      >
-                        <Pencil className="h-4 w-4" /> Edit details
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewAsFan((v) => !v);
-                          setActionsOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left"
-                      >
-                        <Eye className="h-4 w-4" />
-                        {previewAsFan ? "Exit fan preview" : "View as fan"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={togglePublished}
-                        disabled={updateMut.isPending}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left disabled:opacity-60"
-                      >
-                        <EyeOff className="h-4 w-4" />
-                        {post.is_published ? "Unpublish" : "Republish"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setConfirmDelete(true);
-                          setActionsOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-rose-500/10 text-rose-500 text-left border-t border-border"
-                      >
-                        <Trash2 className="h-4 w-4" /> Delete
-                      </button>
+                      {isOwner ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={openEdit}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left"
+                          >
+                            <Pencil className="h-4 w-4" /> Edit details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPreviewAsFan((v) => !v);
+                              setActionsOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left"
+                          >
+                            <Eye className="h-4 w-4" />
+                            {previewAsFan ? "Exit fan preview" : "View as fan"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={togglePublished}
+                            disabled={updateMut.isPending}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left disabled:opacity-60"
+                          >
+                            <EyeOff className="h-4 w-4" />
+                            {post.is_published ? "Unpublish" : "Republish"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmDelete(true);
+                              setActionsOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-rose-500/10 text-rose-500 text-left border-t border-border"
+                          >
+                            <Trash2 className="h-4 w-4" /> Delete
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReportOpen(true);
+                              setActionsOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-muted/50 text-left"
+                          >
+                            <Flag className="h-4 w-4" /> Report post
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmBlock(true);
+                              setActionsOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold hover:bg-rose-500/10 text-rose-500 text-left border-t border-border"
+                          >
+                            <Ban className="h-4 w-4" />
+                            {blockHook.isBlocked ? "Unblock creator" : "Block creator"}
+                          </button>
+                        </>
+                      )}
                     </motion.div>
                   </>
                 )}
@@ -873,6 +907,81 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
           />
         </Suspense>
       )}
+
+      {/* Report sheet — non-owners only */}
+      {reportOpen && post && !isOwner && (
+        <Suspense fallback={null}>
+          <ReportSheet
+            open={reportOpen}
+            onClose={() => setReportOpen(false)}
+            contentType="ppv_post"
+            contentId={post.id}
+            reportedUserId={post.creator_id}
+          />
+        </Suspense>
+      )}
+
+      {/* Block confirm sheet — non-owners only */}
+      <AnimatePresence>
+        {confirmBlock && post && !isOwner && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex items-end sm:items-center justify-center"
+            onClick={() => setConfirmBlock(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="w-full max-w-sm m-4 rounded-2xl border border-border bg-card p-5 space-y-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="h-10 w-10 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
+                  <Ban className="h-5 w-5 text-rose-500" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-extrabold">
+                    {blockHook.isBlocked ? "Unblock this creator?" : "Block this creator?"}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {creator?.full_name || creator?.username || "Creator"}
+                  </p>
+                </div>
+              </div>
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
+                {blockHook.isBlocked
+                  ? "They will be able to message and interact with you again."
+                  : "You won't see their posts, profile, or messages. They won't be able to message you."}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmBlock(false)}
+                  className="flex-1 h-11 rounded-xl border border-border bg-card font-bold text-[13px] hover:bg-muted/50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await blockHook.toggle();
+                    setConfirmBlock(false);
+                    if (!blockHook.isBlocked) onBack();
+                  }}
+                  className="flex-1 h-11 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-[13px] flex items-center justify-center gap-1.5"
+                >
+                  <Ban className="h-4 w-4" />
+                  {blockHook.isBlocked ? "Unblock" : "Block"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
