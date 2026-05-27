@@ -1,0 +1,58 @@
+name: Release
+
+# Uses release-please to maintain a release PR from main. When the release PR
+# merges, it tags the commit and creates a GitHub Release with a generated
+# changelog from Conventional Commits.
+#
+# Required repo permissions:
+#   Settings -> Actions -> General -> Workflow permissions:
+#     "Read and write permissions" + "Allow GitHub Actions to create PRs"
+#
+# Required commit style: Conventional Commits (feat:, fix:, chore:, etc.).
+# Commits that don't match are still included but won't bump the version.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Release please
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+          package-name: vite_react_shadcn_ts
+          changelog-types: |
+            [
+              {"type":"feat","section":"Features","hidden":false},
+              {"type":"fix","section":"Bug Fixes","hidden":false},
+              {"type":"perf","section":"Performance","hidden":false},
+              {"type":"revert","section":"Reverts","hidden":false},
+              {"type":"docs","section":"Documentation","hidden":false},
+              {"type":"refactor","section":"Refactors","hidden":false},
+              {"type":"chore","section":"Chore","hidden":true},
+              {"type":"test","section":"Tests","hidden":true},
+              {"type":"ci","section":"CI","hidden":true}
+            ]
+
+      # If a release was just published, push a build tag the mobile-build
+      # workflow can pick up (mobile-build.yml triggers on v* tags).
+      - name: Output release info
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          echo "Released ${{ steps.release.outputs.tag_name }}"
+          echo "Mobile builds will be triggered automatically."

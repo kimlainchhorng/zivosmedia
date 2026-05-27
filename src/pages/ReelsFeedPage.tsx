@@ -108,6 +108,7 @@ import RelativeTime from "@/components/social/RelativeTime";
 import { topicForUserSync } from "@/lib/security/channelName";
 import TrendingHashtags, { postHasHashtag } from "@/components/social/TrendingHashtags";
 import CollapsibleCaption from "@/components/social/CollapsibleCaption";
+import PostProductsChips from "@/components/social/PostProductsChips";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
 import { formatCount, commentsLinkLabel } from "@/lib/social/formatCount";
@@ -2332,6 +2333,7 @@ export default function ReelsFeedPage() {
                 <button type="button" onClick={() => navigate("/ama")} className="px-4 py-2 bg-secondary text-foreground rounded-full text-xs font-bold hover:bg-muted active:scale-95 transition-all">AMA sessions</button>
                 <button type="button" onClick={() => navigate("/trending")} className="px-4 py-2 bg-secondary text-foreground rounded-full text-xs font-bold hover:bg-muted active:scale-95 transition-all">Trending</button>
               </div>
+
             </div>
           ) : (() => {
             const hiddenFiltered = (hiddenPosts.hidden.size > 0 || snoozedAuthorIds.size > 0)
@@ -5359,6 +5361,14 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             </div>
           )}
 
+          {/* Shoppable product chips */}
+          {!item.id.startsWith("p-") && (
+            <PostProductsChips
+              postId={item.id.startsWith("u-") ? item.id.slice(2) : item.id}
+              className="px-3"
+            />
+          )}
+
            {/* Media */}
           <div
             ref={containerRef}
@@ -6236,6 +6246,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   onClick={async () => {
                     if (!currentUserId) {
                       showGuestActionPrompt("Log in to report posts", "/feed");
+
                       return;
                     }
                     // Step to the success screen first so the UI feels instant.

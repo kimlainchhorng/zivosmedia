@@ -852,6 +852,40 @@ export default function CreatePostModal({
           </div>
         </div>
 
+        <div className="px-4 py-3 border-b border-border/20 bg-card">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {COMPOSER_WORKFLOWS.map((workflow) => {
+              const isActive = workflow.mode === workflowMode;
+              return (
+                <button
+                  type="button"
+                  key={workflow.mode}
+                  onClick={() => selectWorkflowMode(workflow.mode)}
+                  className={cn(
+                    "shrink-0 rounded-2xl border px-3 py-2 text-left transition-colors active:scale-[0.98]",
+                    isActive ? "border-primary bg-primary/10 text-primary" : "border-border/50 bg-muted/20 text-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <workflow.icon className="h-4 w-4" />
+                    <span className="text-[12px] font-bold">{workflow.label}</span>
+                  </span>
+                  <span className="block max-w-[112px] truncate text-[10px] font-medium text-muted-foreground">
+                    {workflow.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+            {workflowTips.map((tip) => (
+              <span key={tip} className="shrink-0 rounded-full bg-muted/50 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                {tip}
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* Author */}
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="h-10 w-10 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
@@ -1612,6 +1646,7 @@ export default function CreatePostModal({
             </motion.div>
           )}
         </AnimatePresence>
+
 
 
         {/* Add more media button */}

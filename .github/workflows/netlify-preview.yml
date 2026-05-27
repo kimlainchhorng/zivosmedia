@@ -1,0 +1,56 @@
+name: Netlify Preview Deploy
+
+# Builds the site on every PR and deploys a Netlify preview, then comments
+# the preview URL on the PR.
+#
+# Required repo secrets:
+#   NETLIFY_AUTH_TOKEN  - Personal access token from Netlify user settings
+#   NETLIFY_SITE_ID     - Site API ID from Netlify site settings -> general
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: netlify-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    name: Build and deploy preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run build
+
+      - name: Deploy preview to Netlify
+        id: netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: ./dist
+          deploy-message: "PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}"
+          alias: pr-${{ github.event.number }}
+          enable-pull-request-comment: true
+          enable-commit-comment: false
+          overwrites-pull-request-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
