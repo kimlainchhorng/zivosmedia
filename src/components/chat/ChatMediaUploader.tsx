@@ -1,7 +1,7 @@
 /**
  * ChatMediaUploader — Enhanced file/media sharing with documents, progress tracking
  */
-import { useState, useRef, useCallback, type ReactNode } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { signedUrlFor } from "@/lib/security/signedMedia";
@@ -28,7 +28,7 @@ interface ChatMediaUploaderProps {
     fileType?: string;
     fileSize?: number;
   }) => void;
-  renderTrigger?: (openFilePicker: (kind?: ChatMediaUploadPicker) => void) => ReactNode;
+  onOpenPickerReady?: (openFilePicker: ((kind?: ChatMediaUploadPicker) => void) | null) => void;
 }
 
 const FILE_LIMITS: Record<UploadCategory, number> = {
@@ -56,7 +56,7 @@ function getFileIcon(type: string) {
   return <FileText className="w-5 h-5 text-orange-500" />;
 }
 
-export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: ChatMediaUploaderProps) {
+export function ChatMediaUploader({ recipientId, onMediaSent, onOpenPickerReady }: ChatMediaUploaderProps) {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -69,6 +69,11 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
       fileRef.current.click();
     }
   }, []);
+
+  useEffect(() => {
+    onOpenPickerReady?.(openFilePicker);
+    return () => onOpenPickerReady?.(null);
+  }, [onOpenPickerReady, openFilePicker]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -180,9 +185,6 @@ export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: C
         className="hidden"
         onChange={handleFileSelect}
       />
-
-      {/* eslint-disable-next-line react-hooks/refs -- trigger calls the picker from user events, not during render */}
-      {renderTrigger?.(openFilePicker)}
 
       {/* Upload progress overlay */}
       <AnimatePresence>

@@ -53,23 +53,28 @@ vi.mock("framer-motion", () => {
   };
 });
 
-function renderUploader() {
+async function renderUploader() {
   const onMediaSent = vi.fn();
   let openPicker: ((kind?: "document" | "audio") => void) | null = null;
   const view = render(
     <ChatMediaUploader
       recipientId="receiver-1"
       onMediaSent={onMediaSent}
-      renderTrigger={(open) => {
+      onOpenPickerReady={(open) => {
         openPicker = open;
-        return null;
       }}
     />,
   );
   const input = view.container.querySelector('input[type="file"]') as HTMLInputElement;
   if (!input) throw new Error("file input missing");
-  if (!openPicker) throw new Error("file picker callback missing");
-  return { ...view, input, onMediaSent, openPicker };
+  await waitFor(() => {
+    expect(openPicker).toBeTypeOf("function");
+  });
+  const getOpenPicker = () => {
+    if (!openPicker) throw new Error("file picker callback missing");
+    return openPicker;
+  };
+  return { ...view, input, onMediaSent, getOpenPicker };
 }
 
 describe("ChatMediaUploader", () => {
@@ -82,22 +87,22 @@ describe("ChatMediaUploader", () => {
     mocks.signedUrlFor.mockResolvedValue("https://signed.example/audio.mp3");
   });
 
-  it("opens document and audio pickers with distinct accept filters", () => {
-    const { input, openPicker } = renderUploader();
+  it("opens document and audio pickers with distinct accept filters", async () => {
+    const { input, getOpenPicker } = await renderUploader();
 
-    openPicker();
+    getOpenPicker()();
     expect(input.accept).toContain(".pdf");
     expect(input.accept).toContain(".docx");
 
-    openPicker("audio");
+    getOpenPicker()("audio");
     expect(input.accept).toBe("audio/*");
   });
 
   it("uploads music as a file attachment payload", async () => {
-    const { input, onMediaSent, openPicker } = renderUploader();
+    const { input, onMediaSent, getOpenPicker } = await renderUploader();
     const file = new File(["audio"], "track.mp3", { type: "audio/mpeg" });
 
-    openPicker("audio");
+    getOpenPicker()("audio");
     fireEvent.change(input, { target: { files: [file] } });
 
     await waitFor(() => {
@@ -127,12 +132,12 @@ describe("ChatMediaUploader", () => {
     expect(mocks.toastSuccess).toHaveBeenCalledWith("File sent");
   });
 
-  it("rejects oversized audio before uploading", () => {
-    const { input, onMediaSent, openPicker } = renderUploader();
+  it("rejects oversized audio before uploading", async () => {
+    const { input, onMediaSent, getOpenPicker } = await renderUploader();
     const file = new File(["audio"], "too-large.mp3", { type: "audio/mpeg" });
     Object.defineProperty(file, "size", { value: 26 * 1024 * 1024 });
 
-    openPicker("audio");
+    getOpenPicker()("audio");
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(mocks.toastError).toHaveBeenCalledWith("File must be under 25.0 MB");
