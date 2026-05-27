@@ -13,6 +13,9 @@ import { toast } from "sonner";
 
 interface UnlockArgs {
   messageId: string;
+  /** Optional — when provided alongside an insufficient_funds error we render
+   *  a "Top up" toast action that deep-links to /wallet with the gap pre-filled. */
+  priceCents?: number;
 }
 
 export function useDirectMessageUnlocks(partnerId: string | null | undefined) {
@@ -57,10 +60,21 @@ export function useDirectMessageUnlocks(partnerId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: ["dm-unlocks", user?.id, partnerId] });
       qc.invalidateQueries({ queryKey: ["wallet-balance"] });
     },
-    onError: (err: any) => {
+    onError: (err: any, vars) => {
       const msg = String(err?.message ?? "");
       if (msg.includes("insufficient_funds")) {
-        toast.error("Not enough wallet balance — top up and try again.");
+        // $5 Stripe minimum; if the gap is smaller, top up at least $5.
+        const gap = Math.max(500, vars?.priceCents ?? 500);
+        const returnTo = partnerId ? `/chat?with=${partnerId}` : "/chat";
+        toast.error("Not enough wallet balance", {
+          description: `Top up $${(gap / 100).toFixed(2)} to unlock this message.`,
+          action: {
+            label: "Top up",
+            onClick: () => {
+              window.location.href = `/wallet?topup_amount=${gap}&return_to=${encodeURIComponent(returnTo)}`;
+            },
+          },
+        });
       } else {
         toast.error(err?.message ?? "Couldn't unlock");
       }
