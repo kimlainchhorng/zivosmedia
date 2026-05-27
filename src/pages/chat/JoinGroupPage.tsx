@@ -16,6 +16,9 @@ import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left";
 import { Button } from "@/components/ui/button";
 import { useSmartBack } from "@/lib/smartBack";
 import { toast } from "sonner";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
+
+const CHAT_MEDIA_BUCKET = "chat-media-files";
 
 function BackHeader({ onBack }: { onBack: () => void }) {
   return (
@@ -49,6 +52,7 @@ export default function JoinGroupPage() {
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const groupAvatarSrc = useSignedMedia(preview?.group?.avatar_url, CHAT_MEDIA_BUCKET, "thumbnail");
 
   // Load preview (RLS allows authenticated read of any invite by code)
   useEffect(() => {
@@ -122,9 +126,9 @@ export default function JoinGroupPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <BackHeader onBack={goBack} />
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
-      {preview?.group?.avatar_url ? (
+      {groupAvatarSrc ? (
         <img
-          src={preview.group.avatar_url}
+          src={groupAvatarSrc}
           alt=""
           className="w-20 h-20 rounded-full object-cover border border-border/60"
         />

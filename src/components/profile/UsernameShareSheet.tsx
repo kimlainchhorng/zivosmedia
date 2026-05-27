@@ -1,11 +1,12 @@
 /**
- * UsernameShareSheet — share your @username deep link.
+ * UsernameShareSheet - share your @username deep link.
  *
- * Telegram-style share card: shows the canonical `<origin>/@<username>` URL,
- * with copy + native-share + QR fallback. Pass `username` from the caller.
+ * Telegram-style share card: shows the canonical `<origin>/u/<username>` URL,
+ * with copy, native-share, and QR fallback. Pass `username` from the caller.
  */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
 import X from "lucide-react/dist/esm/icons/x";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import Check from "lucide-react/dist/esm/icons/check";
@@ -13,47 +14,54 @@ import Share2 from "lucide-react/dist/esm/icons/share-2";
 import AtSign from "lucide-react/dist/esm/icons/at-sign";
 import { toast } from "sonner";
 import { getPublicOrigin } from "@/lib/getPublicOrigin";
+import { copyText } from "@/lib/native/clipboard";
+import { shareContent } from "@/lib/native/share";
 
 interface Props {
   open: boolean;
   username: string | null;
+  profileId?: string | null;
   displayName?: string;
   onClose: () => void;
 }
 
-export default function UsernameShareSheet({ open, username, displayName, onClose }: Props) {
+export default function UsernameShareSheet({ open, username, profileId, displayName, onClose }: Props) {
   const [copied, setCopied] = useState(false);
-  // We expose `/u/<username>` as the canonical share URL — it's safe in
-  // every URL parser and equivalent to `/@<username>` (both routes resolve
-  // to the same page).
-  const url = username ? `${getPublicOrigin()}/u/${username}` : "";
+  // We expose `/u/<username>` as the canonical share URL because it is safe
+  // in every URL parser and resolves through the public username route.
+  const url = username
+    ? `${getPublicOrigin()}/u/${encodeURIComponent(username)}`
+    : profileId
+      ? `${getPublicOrigin()}/user/${encodeURIComponent(profileId)}`
+      : "";
+  const profileLabel = username ? `@${username}` : displayName || "your profile";
 
   const copy = async () => {
     if (!url) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await copyText(url);
       setCopied(true);
       toast.success("Link copied");
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Couldn't copy — long-press the link to copy manually");
+      toast.error("Couldn't copy. Long-press the link to copy manually.");
     }
   };
 
   const shareNative = async () => {
     if (!url) return;
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await navigator.share({
-          title: displayName ? `${displayName} on ZIVO` : `@${username}`,
-          text: `Find me on ZIVO: @${username}`,
-          url,
-        });
-      } catch {
-        // user cancelled or unsupported
+    try {
+      const result = await shareContent({
+        title: displayName ? `${displayName} on ZIVO` : `${profileLabel} on ZIVO`,
+        text: `Find me on ZIVO: ${profileLabel}`,
+        url,
+        dialogTitle: "Share profile",
+      });
+      if (!result.shared && !result.cancelled) {
+        await copy();
       }
-    } else {
-      void copy();
+    } catch {
+      await copy();
     }
   };
 
@@ -76,7 +84,7 @@ export default function UsernameShareSheet({ open, username, displayName, onClos
             exit={{ y: 80, opacity: 0 }}
             transition={{ type: "spring", damping: 26, stiffness: 280 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-md bg-background rounded-t-2xl sm:rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+            className="w-full sm:max-w-md bg-background rounded-t-2xl sm:rounded-2xl p-5 pb-[max(1.25rem,var(--zivo-safe-bottom,0px))]"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-foreground">Share your profile</h3>
@@ -89,12 +97,26 @@ export default function UsernameShareSheet({ open, username, displayName, onClos
               </button>
             </div>
 
-            {!username ? (
+            {!url ? (
               <div className="text-sm text-muted-foreground py-4 text-center">
                 Set a username first to get a shareable link.
               </div>
             ) : (
               <>
+                <div className="mb-4 flex justify-center">
+                  <div
+                    className="rounded-2xl border border-border/40 bg-white p-3 shadow-sm"
+                    aria-label="Profile QR code"
+                  >
+                    <QRCodeSVG
+                      value={url}
+                      size={148}
+                      level="H"
+                      includeMargin={false}
+                    />
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-muted/40 border border-border/30">
                   <AtSign className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -121,7 +143,7 @@ export default function UsernameShareSheet({ open, username, displayName, onClos
                 </div>
 
                 <p className="text-[11px] text-muted-foreground/80 mt-3 text-center">
-                  Anyone with this link can find your public profile on ZIVO.
+                  Anyone with this link or QR code can find your public profile on ZIVO.
                 </p>
               </>
             )}

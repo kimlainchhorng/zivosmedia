@@ -1,0 +1,16 @@
+export const KNOWN_DUPLICATE_MIGRATION_VERSIONS = [
+  "20260429230000",
+  "20260429240000",
+  "20260429250000",
+  "20260429260000",
+  "20260430020000",
+  "20260430040000",
+  "20260430050000",
+  "20260430060000",
+];
+
+export const KNOWN_DUPLICATE_MIGRATION_VERSION_SET = new Set(KNOWN_DUPLICATE_MIGRATION_VERSIONS);
+
+export function knownDuplicateVersionArgs() {
+  return KNOWN_DUPLICATE_MIGRATION_VERSIONS.map((version) => `--allow-duplicate-version=${version}`);
+}

@@ -13,12 +13,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import StoryViewer, { StoryGroup } from "@/components/stories/StoryViewer";
+import StoryViewer from "@/components/stories/StoryViewer";
+import type { StoryGroup } from "@/components/stories/StoryViewer";
 import StoryTextTile from "@/components/stories/StoryTextTile";
 import { useStoryDeepLink, useStoryViewerLocation } from "@/hooks/useStoryDeepLink";
 import { invalidateAllStoryCaches } from "@/lib/storiesCache";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 const CreateStorySheet = lazy(() => import("@/components/profile/CreateStorySheet"));
 
@@ -32,6 +34,11 @@ interface StoryRow {
   created_at: string;
   expires_at: string;
   view_count: number | null;
+  is_sensitive?: boolean | null;
+  sensitive_reason?: string | null;
+  hidden_at?: string | null;
+  hidden_reason?: string | null;
+  sensitive_report_count?: number | null;
 }
 
 interface StoryProfileRow {
@@ -52,13 +59,25 @@ export default function ChatStories() {
     enabled: !!user,
     refetchInterval: 60000,
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("stories" as any)
-        .select("id, user_id, media_url, media_type, text_overlay, audio_url, created_at, expires_at, view_count")
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: true });
+      const selectBase = "id, user_id, media_url, media_type, text_overlay, audio_url, created_at, expires_at, view_count";
+      const selectWithSafety = `${selectBase}, is_sensitive, sensitive_reason, hidden_at, hidden_reason, sensitive_report_count`;
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories" as any)
+          .select(select)
+          .gt("expires_at", new Date().toISOString());
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.order("created_at", { ascending: true });
+      };
+      let { data, error } = await queryStories(selectWithSafety, true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories(selectBase, false);
+        data = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
 
-      const stories = (data ?? []) as StoryRow[];
+      const stories = ((data ?? []) as StoryRow[]).filter((story) => !story.hidden_at);
       if (stories.length === 0) return [];
 
       const userIds = [...new Set(stories.map((s) => s.user_id))];
@@ -89,6 +108,11 @@ export default function ChatStories() {
           audioUrl: s.audio_url,
           createdAt: s.created_at,
           viewsCount: s.view_count ?? 0,
+          isSensitive: Boolean(s.is_sensitive),
+          sensitiveReason: s.sensitive_reason,
+          hiddenAt: s.hidden_at,
+          hiddenReason: s.hidden_reason,
+          sensitiveReportCount: s.sensitive_report_count ?? 0,
         });
       }
 
@@ -136,7 +160,7 @@ export default function ChatStories() {
                   {(() => {
                     const latest = myStories?.stories[myStories.stories.length - 1];
                     if (latest && latest.mediaType === "image" && latest.mediaUrl) {
-                      return <img src={latest.mediaUrl} alt="Your story" className="h-full w-full object-cover" loading="lazy" />;
+	                      return <img src={latest.mediaUrl} alt="Your story" className="h-full w-full object-cover" loading="lazy" decoding="async" />;
                     }
                     if (latest && latest.mediaType === "video" && latest.mediaUrl) {
                       return <video src={latest.mediaUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />;
@@ -146,7 +170,7 @@ export default function ChatStories() {
                     }
                     const avatar = myStories?.avatarUrl || myProfile?.avatar_url;
                     if (avatar) {
-                      return <img src={optimizeAvatar(avatar, 128) || avatar} alt="Your avatar" className="w-full h-full object-cover" />;
+	                      return <img src={optimizeAvatar(avatar, 128) || avatar} alt="Your avatar" className="w-full h-full object-cover" loading="lazy" decoding="async" />;
                     }
                     const initial = (myProfile?.full_name?.[0] || user?.email?.[0] || "").toUpperCase();
                     if (initial) {
@@ -194,7 +218,7 @@ export default function ChatStories() {
                 <div className="h-[54px] w-[54px] rounded-full p-[2px] bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_10px_-3px_hsl(160_84%_45%/0.55)]">
                   <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
                     {group.avatarUrl ? (
-                      <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" />
+	                      <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
                         {group.userName.charAt(0).toUpperCase()}

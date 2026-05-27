@@ -22,30 +22,27 @@ import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import Printer from "lucide-react/dist/esm/icons/printer";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import { toast } from "sonner";
+import { POINTS, COLORS, ICONS, type Status } from "@/lib/autorepair/inspectionPoints";
 
-const POINTS = [
-  "Brakes (Front)", "Brakes (Rear)", "Tires (Tread)", "Tire Pressure", "Battery Health",
-  "Engine Oil", "Coolant Level", "Transmission Fluid", "Power Steering Fluid", "Brake Fluid",
-  "Air Filter", "Cabin Filter", "Wiper Blades", "Headlights", "Taillights",
-  "Belts", "Hoses", "Suspension", "Exhaust System", "Check Engine Code",
-];
-
-type Status = "good" | "attention" | "urgent";
-const COLORS: Record<Status, string> = {
-  good: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30",
-  attention: "text-amber-600 bg-amber-500/10 border-amber-500/30",
-  urgent: "text-red-600 bg-red-500/10 border-red-500/30",
+export type EstimatePrefill = {
+  vehicle_label: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  notes: string;
+  line_items: Array<{ kind: "part" | "labor" | "diagnosis"; name: string; qty: number; unit_cents: number }>;
 };
-const ICONS: Record<Status, any> = { good: CheckCircle2, attention: AlertTriangle, urgent: XCircle };
 
 interface Props {
   storeId: string;
-  onCreateEstimate?: (vehicleLabel: string) => void;
+  onCreateEstimate?: (data: EstimatePrefill) => void;
 }
 type Inspection = {
   id: string;
   vehicle_label: string | null;
   technician_name: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
   status: string;
   checklist: Record<string, Status>;
   summary: string | null;
@@ -227,7 +224,26 @@ export default function AutoRepairInspectionsSection({ storeId, onCreateEstimate
                       <Link2 className="w-4 h-4" />
                     </Button>
                     {onCreateEstimate && ((c.attention || 0) + (c.urgent || 0) > 0) && (
-                      <Button size="sm" variant="outline" className="h-8 gap-1 text-amber-600 border-amber-500/40 hover:bg-amber-500/10" title="Create estimate from inspection findings" onClick={() => onCreateEstimate(i.vehicle_label || "")}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1 text-amber-600 border-amber-500/40 hover:bg-amber-500/10"
+                        title="Create estimate from inspection findings"
+                        onClick={() => onCreateEstimate({
+                          vehicle_label: i.vehicle_label || "",
+                          customer_name: i.customer_name || "",
+                          customer_phone: i.customer_phone || "",
+                          notes: `From inspection${i.summary ? `: ${i.summary}` : ""}`,
+                          line_items: Object.entries(cl)
+                            .filter(([, s]) => s === "attention" || s === "urgent")
+                            .map(([point, s]) => ({
+                              kind: "labor" as const,
+                              name: `${point}${s === "urgent" ? " (URGENT)" : " (attention)"}`,
+                              qty: 1,
+                              unit_cents: 0,
+                            })),
+                        })}
+                      >
                         <FileText className="w-3.5 h-3.5" /> Estimate
                       </Button>
                     )}

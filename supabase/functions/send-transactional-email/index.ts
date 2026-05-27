@@ -283,19 +283,48 @@ Deno.serve(async (req) => {
   }
 
   // 4. Render React Email template to HTML and plain text
-  const html = await renderAsync(
+  let html = await renderAsync(
     React.createElement(template.component, templateData)
   )
-  const plainText = await renderAsync(
+  let plainText = await renderAsync(
     React.createElement(template.component, templateData),
     { plainText: true }
   )
 
   // Resolve subject — supports static string or dynamic function
-  const resolvedSubject =
+  let resolvedSubject =
     typeof template.subject === 'function'
       ? template.subject(templateData)
       : template.subject
+
+  // 4b. Per-store template override — used by the salon Reminders system to
+  //     let each owner tune subject + body without touching the platform copy.
+  //     The override row's null fields fall through to the rendered template.
+  //     The override's body_html is rendered as-is with `{{merge_tag}}` →
+  //     templateData lookup (small subset of Handlebars-style replacement).
+  const overrideStoreId = (templateData as any)?.store_id as string | undefined
+  if (overrideStoreId && typeof overrideStoreId === 'string') {
+    try {
+      const { data: override } = await supabase
+        .from('salon_notification_template_overrides')
+        .select('subject, body_html, body_text')
+        .eq('store_id', overrideStoreId)
+        .eq('template_key', templateName)
+        .maybeSingle()
+      if (override) {
+        const interpolate = (s: string) => s.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m: string, key: string) => {
+          const v = (templateData as Record<string, unknown>)?.[key]
+          return v == null ? '' : String(v)
+        })
+        if ((override as any).subject) resolvedSubject = interpolate((override as any).subject)
+        if ((override as any).body_html) html = interpolate((override as any).body_html)
+        if ((override as any).body_text) plainText = interpolate((override as any).body_text)
+      }
+    } catch (e) {
+      // Best-effort: a failed lookup falls back to the platform template.
+      console.warn('[send-transactional-email] override lookup failed', e)
+    }
+  }
 
   // 5. Send email directly via Resend API
   const resendApiKey = Deno.env.get('RESEND_API_KEY')

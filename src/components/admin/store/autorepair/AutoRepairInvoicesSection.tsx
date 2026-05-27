@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Plus, DollarSign, Trash2, Receipt, ClipboardList, ArrowLeft, ScanSearch, Loader2, Check, CloudUpload, Wrench, Package, Stethoscope, Truck, KeyRound, Car, LogOut, Eye, ArrowRightLeft, BookOpen } from "lucide-react";
 import { toast } from "sonner";
@@ -60,6 +61,9 @@ type Doc = {
   items: LineItem[];
   status: "draft" | "sent" | "paid" | "approved";
   createdAt: string;
+  // Fleet billing (invoices only — estimates ignore these)
+  fleetAccountId: string | null;
+  poNumber: string;
 };
 
 const emptyDraft = (): Doc => ({
@@ -70,7 +74,15 @@ const emptyDraft = (): Doc => ({
   vehicle: "",
   items: [{ id: crypto.randomUUID(), category: "labor", description: "", qty: 1, price: 0, hours: 1, discount: 0 }],
   status: "draft", createdAt: new Date().toISOString(),
+  fleetAccountId: null, poNumber: "",
 });
+
+type FleetAccount = {
+  id: string;
+  name: string;
+  credit_limit_cents: number;
+  po_required: boolean;
+};
 
 // True if the id looks like a real Postgres uuid.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -100,6 +112,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null); // null = new doc
   const [draft, setDraft] = useState<Doc>(emptyDraft());
+  const [fleetAccounts, setFleetAccounts] = useState<FleetAccount[]>([]);
   const [vinLoading, setVinLoading] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -160,6 +173,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           items: Array.isArray(row.items) ? row.items : [],
           status: (row.status === "paid" ? "paid" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
           createdAt: row.created_at,
+          fleetAccountId: row.fleet_account_id ?? null,
+          poNumber: row.po_number ?? "",
         });
       }
     }
@@ -184,6 +199,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           items: Array.isArray(row.items) ? row.items : Array.isArray(row.line_items) ? row.line_items : [],
           status: (row.status === "approved" ? "approved" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
           createdAt: row.created_at,
+          fleetAccountId: null,
+          poNumber: "",
         });
       }
     }
@@ -191,6 +208,18 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   };
 
   useEffect(() => { reloadAll();   }, [storeId]);
+
+  // Load fleet accounts for this store (used by the invoice form to pick a fleet billing target).
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("ar_fleet_accounts" as any)
+        .select("id, name, credit_limit_cents, po_required")
+        .eq("store_id", storeId)
+        .order("name", { ascending: true });
+      if (!error && data) setFleetAccounts(data as unknown as FleetAccount[]);
+    })();
+  }, [storeId]);
   const draftKey = useMemo(() => `autorepair:invoice-draft:${storeId}`, [storeId]);
   const saveTimer = useRef<number | null>(null);
   const skipNextSave = useRef(true);
@@ -345,6 +374,12 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         total_cents: subtotalCents,
         status: draft.status === "paid" ? "paid" : draft.status === "sent" ? "sent" : "draft",
       };
+
+      // Fleet billing fields only apply to invoices (the columns don't exist on ar_estimates).
+      if (draft.type === "invoice") {
+        payload.fleet_account_id = draft.fleetAccountId || null;
+        payload.po_number = draft.poNumber.trim() || null;
+      }
 
       // Only treat as update if we have a real DB uuid.
       const isRealId = !!editingId && UUID_RE.test(editingId);
@@ -614,6 +649,57 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                   <Input placeholder="Street, City, State" value={draft.address} onChange={e => setDraft({ ...draft, address: e.target.value })} />
                 </div>
               </div>
+
+              {draft.type === "invoice" && fleetAccounts.length > 0 && (() => {
+                const selectedFleet = fleetAccounts.find(f => f.id === draft.fleetAccountId) ?? null;
+                const FLEET_NONE = "__none__";
+                return (
+                  <div className="mt-4 pt-4 border-t border-border space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <Truck className="w-3.5 h-3.5" /> Fleet billing (optional)
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">Fleet account</label>
+                        <Select
+                          value={draft.fleetAccountId ?? FLEET_NONE}
+                          onValueChange={(v) => setDraft({ ...draft, fleetAccountId: v === FLEET_NONE ? null : v })}
+                        >
+                          <SelectTrigger><SelectValue placeholder="None — bill customer directly" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={FLEET_NONE}>None — bill customer directly</SelectItem>
+                            {fleetAccounts.map(f => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.name}{f.po_required ? " · PO required" : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {selectedFleet && (
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">
+                            PO number{selectedFleet.po_required ? " *" : ""}
+                          </label>
+                          <Input
+                            placeholder={selectedFleet.po_required ? "Required by fleet" : "Optional"}
+                            value={draft.poNumber}
+                            onChange={e => setDraft({ ...draft, poNumber: e.target.value })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {selectedFleet && selectedFleet.credit_limit_cents > 0 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Credit limit: ${(selectedFleet.credit_limit_cents / 100).toLocaleString()}. Outstanding balance + this invoice must stay under the limit.
+                      </p>
+                    )}
+                    {selectedFleet?.po_required && !draft.poNumber.trim() && (
+                      <p className="text-[11px] text-amber-600">PO number is required for this fleet account.</p>
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 

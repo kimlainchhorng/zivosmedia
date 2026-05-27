@@ -6,9 +6,15 @@
  * external apps (WhatsApp, Telegram, Messenger, X, Email, SMS), and
  * fallback Copy link.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { invalidateAllStoryCaches } from "@/lib/storiesCache";
+import { copyText } from "@/lib/native/clipboard";
+import { shareContent } from "@/lib/native/share";
+import { registerPostShareSheetTargetSetter, type PostShareSheetTarget } from "@/lib/social/postShareSheet";
 import Send from "lucide-react/dist/esm/icons/send";
 import BookOpen from "lucide-react/dist/esm/icons/book-open";
 import Share2 from "lucide-react/dist/esm/icons/share-2";
@@ -16,25 +22,7 @@ import Link2 from "lucide-react/dist/esm/icons/link-2";
 import Mail from "lucide-react/dist/esm/icons/mail";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import Download from "lucide-react/dist/esm/icons/download";
-
-export interface PostShareSheetTarget {
-  postId: string;
-  url: string;
-  title?: string;
-  text?: string;
-  imageUrl?: string | null;
-  /** Called when an in-app DM share is selected. */
-  onSendToFriend?: () => void;
-  /** Called after any successful share so the parent can bump shares_count. */
-  onShared?: (channel: string) => void;
-}
-
-let setSheetTarget: ((t: PostShareSheetTarget | null) => void) | null = null;
-
-/** Imperative open — call from anywhere (e.g. the share button). */
-export function openPostShareSheet(target: PostShareSheetTarget) {
-  if (setSheetTarget) setSheetTarget(target);
-}
+import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 
 const externalIntents = (url: string, text: string) => {
   const u = encodeURIComponent(url);
@@ -50,86 +38,147 @@ const externalIntents = (url: string, text: string) => {
   ];
 };
 
-const robustCopy = async (text: string): Promise<boolean> => {
+const getShareHost = (url: string) => {
   try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch { /* fall through */ }
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.focus(); ta.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(ta);
-    return ok;
-  } catch { return false; }
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return "zivo.app";
+  }
+};
+
+const clampStoryText = (value: string, max = 180) => {
+  const clean = value.replace(/\s+/g, " ").trim();
+  return clean.length > max ? `${clean.slice(0, max - 1)}...` : clean;
+};
+
+const escapeSvgText = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const storyFallbackImage = (title: string, url: string) => {
+  const heading = escapeSvgText(clampStoryText(title || "ZIVO post", 72));
+  const host = (() => {
+    try { return new URL(url).host; } catch { return "myzivo.app"; }
+  })();
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stop-color="#10b981"/>
+          <stop offset="0.52" stop-color="#0891b2"/>
+          <stop offset="1" stop-color="#111827"/>
+        </linearGradient>
+      </defs>
+      <rect width="1080" height="1920" fill="url(#bg)"/>
+      <circle cx="900" cy="260" r="190" fill="#ffffff" opacity=".11"/>
+      <circle cx="170" cy="1530" r="250" fill="#ffffff" opacity=".1"/>
+      <rect x="108" y="520" width="864" height="880" rx="52" fill="#06131f" opacity=".48"/>
+      <text x="152" y="675" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="800">Shared on ZIVO</text>
+      <foreignObject x="152" y="760" width="776" height="360">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Inter, Arial, sans-serif; color: white; font-size: 72px; font-weight: 800; line-height: 1.08;">${heading}</div>
+      </foreignObject>
+      <text x="152" y="1280" fill="#d1fae5" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700">${escapeSvgText(host)}</text>
+    </svg>
+  `;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 };
 
 /** Mount once at app root so any caller can open the sheet. */
 export default function PostShareSheet() {
+  const queryClient = useQueryClient();
   const [target, _setTarget] = useState<PostShareSheetTarget | null>(null);
+  const [sharingToStory, setSharingToStory] = useState(false);
 
-  useEffect(() => { setSheetTarget = _setTarget; return () => { setSheetTarget = null; }; }, []);
+  useEffect(() => registerPostShareSheetTargetSetter(_setTarget), []);
 
   if (!target) return null;
 
   const { url, title = "ZIVO post", text = title, onSendToFriend, onShared } = target;
   const close = () => _setTarget(null);
   const intents = externalIntents(url, text);
+  const host = getShareHost(url);
+  const previewText = clampStoryText(text || title, 112);
+
+  const copyPostLink = async () => {
+    try {
+      await copyText(url);
+      toast.success("Link copied", { description: "Paste it anywhere to share this post." });
+      onShared?.("clipboard");
+      return true;
+    } catch {
+      toast("Tap to copy this link", {
+        duration: 12000,
+        description: url,
+        action: {
+          label: "Copy",
+          onClick: () => {
+            void copyText(url).then(() => {
+              toast.success("Link copied", { description: "Paste it anywhere to share this post." });
+              onShared?.("clipboard");
+            }).catch(() => {});
+          },
+        },
+      });
+      return false;
+    }
+  };
 
   const handleNativeSheet = async () => {
     try {
-      // Capacitor first (iOS/Android app)
-      const { Share } = await import("@capacitor/share");
-      const can = await Share.canShare();
-      if (can.value) {
-        await Share.share({ title, text, url, dialogTitle: "Share post" });
+      const result = await shareContent({ title, text, url, dialogTitle: "Share post" });
+      if (result.shared) {
         onShared?.("native");
         close();
         return;
       }
-    } catch { /* fall through to web share */ }
-    if (typeof navigator !== "undefined" && (navigator as { share?: (data: ShareData) => Promise<void> }).share) {
-      try {
-        await (navigator as unknown as { share: (data: ShareData) => Promise<void> }).share({ title, text, url });
-        onShared?.("native");
+      if (result.cancelled) {
         close();
         return;
-      } catch (e) {
-        if ((e as { name?: string })?.name === "AbortError") { close(); return; }
       }
-    }
+    } catch { /* fall through to copy fallback */ }
     // No native sheet — copy link as a graceful fallback.
-    const ok = await robustCopy(url);
-    if (ok) {
-      toast.success("Link copied", { description: "Paste it anywhere to share this post." });
-      onShared?.("clipboard");
-    } else {
-      toast("Tap to copy this link", { duration: 12000, description: url, action: { label: "Copy", onClick: () => robustCopy(url) } });
-    }
+    await copyPostLink();
     close();
   };
 
   const handleCopy = async () => {
-    const ok = await robustCopy(url);
-    if (ok) {
-      toast.success("Link copied", { description: "Paste it anywhere to share this post." });
-      onShared?.("clipboard");
-    } else {
-      toast("Tap to copy this link", { duration: 12000, description: url, action: { label: "Copy", onClick: () => robustCopy(url) } });
-    }
+    await copyPostLink();
     close();
   };
 
-  const handleStory = () => {
-    // Stub: deep link the user to the story composer pre-loaded with the post.
-    toast("Share to Story — coming soon", { description: "Re-share posts to your story is on the roadmap." });
-    close();
+  const handleStory = async () => {
+    if (sharingToStory) return;
+    setSharingToStory(true);
+    try {
+      const { data, error: authError } = await supabase.auth.getUser();
+      if (authError || !data.user) {
+        toast("Sign in to add this to your story");
+        return;
+      }
+
+      const caption = clampStoryText(`${text}\n${url}`, 240);
+      const mediaUrl = target.imageUrl || storyFallbackImage(text, url);
+      const { error } = await (supabase as any).from("stories").insert({
+        user_id: data.user.id,
+        media_url: mediaUrl,
+        media_type: "image",
+        text_overlay: caption,
+      });
+      if (error) throw error;
+
+      invalidateAllStoryCaches(queryClient, data.user.id);
+      onShared?.("story");
+      window.dispatchEvent(new CustomEvent("zivo-feed-refresh"));
+      toast.success("Added to your story", { description: "It will stay live for 24 hours." });
+      close();
+    } catch {
+      toast.error("Couldn't add this post to your story");
+    } finally {
+      setSharingToStory(false);
+    }
   };
 
   const handleDownload = async () => {
@@ -166,36 +215,78 @@ export default function PostShareSheet() {
 
   return (
     <Sheet open={!!target} onOpenChange={(o) => { if (!o) close(); }}>
-      <SheetContent side="bottom" className="rounded-t-2xl px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <SheetContent side="bottom" className="rounded-t-3xl px-4 pt-3 pb-[max(1.25rem,var(--zivo-safe-bottom,0px))]">
         <SheetHeader className="text-left">
-          <SheetTitle className="text-[15px] font-semibold">Share this post</SheetTitle>
+          <SheetTitle className="text-[17px] font-extrabold tracking-tight">Share post</SheetTitle>
           <SheetDescription className="sr-only">
             Choose where to share this post or copy its link.
           </SheetDescription>
         </SheetHeader>
 
-        {/* Primary actions */}
-        <div className="grid grid-cols-4 gap-3 mt-4">
+        <div className="mt-4 overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm">
+          <div className="flex gap-3 p-3">
+            {target.imageUrl ? (
+              <img
+                src={target.imageUrl}
+	                alt=""
+	                className="h-20 w-20 shrink-0 rounded-2xl object-cover"
+	                loading="lazy"
+	                decoding="async"
+	              />
+            ) : (
+              <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary via-sky-500 to-emerald-500 text-white">
+                <Share2 className="h-8 w-8" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1 py-1">
+              <p className="truncate text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                {host}
+              </p>
+              <p className="mt-1 line-clamp-2 text-[15px] font-extrabold leading-snug">
+                {title}
+              </p>
+              <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-muted-foreground">
+                {previewText}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 border-t border-border/40 bg-muted/20 px-3 py-2">
+            <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+              DM ready
+            </span>
+            <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+              Story ready
+            </span>
+            <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+              Public link
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-5 flex items-center justify-between px-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Recommended</p>
+          <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">Fast share</span>
+        </div>
+        <div className="mt-2 grid grid-cols-4 gap-2.5">
           {onSendToFriend && (
-            <ShareTile color="bg-primary text-primary-foreground" label="Send" onClick={() => { onSendToFriend(); onShared?.("dm"); close(); }}>
+            <ShareTile color="bg-primary text-primary-foreground" label="Send" description="To chat" onClick={() => { onSendToFriend(); onShared?.("dm"); close(); }}>
               <Send className="h-5 w-5" />
             </ShareTile>
           )}
-          <ShareTile color="bg-fuchsia-500 text-white" label="Story" onClick={handleStory}>
-            <BookOpen className="h-5 w-5" />
+          <ShareTile color="bg-fuchsia-500 text-white" label={sharingToStory ? "Sharing" : "Story"} description="24h post" onClick={handleStory} disabled={sharingToStory}>
+            {sharingToStory ? <Loader2 className="h-5 w-5 animate-spin" /> : <BookOpen className="h-5 w-5" />}
           </ShareTile>
-          <ShareTile color="bg-foreground text-background" label="Native" onClick={handleNativeSheet}>
+          <ShareTile color="bg-foreground text-background" label="Native" description="System" onClick={handleNativeSheet}>
             <Share2 className="h-5 w-5" />
           </ShareTile>
-          <ShareTile color="bg-muted text-foreground" label="Copy" onClick={handleCopy}>
+          <ShareTile color="bg-muted text-foreground" label="Copy" description="Link" onClick={handleCopy}>
             <Link2 className="h-5 w-5" />
           </ShareTile>
         </div>
 
-        {/* External targets */}
         <div className="mt-5">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 px-1">Send via</p>
-          <div className="grid grid-cols-4 gap-3">
+          <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Send via</p>
+          <div className="grid grid-cols-4 gap-2.5">
             {intents.map((it) => (
               <ShareTile key={it.id} color={`${it.color} text-white`} label={it.label} onClick={() => handleExternal(it)}>
                 {it.id === "sms" ? <MessageCircle className="h-5 w-5" /> :
@@ -204,24 +295,53 @@ export default function PostShareSheet() {
               </ShareTile>
             ))}
             {target.imageUrl && (
-              <ShareTile color="bg-zinc-700 text-white" label="Save" onClick={handleDownload}>
+              <ShareTile color="bg-zinc-700 text-white" label="Save" description="Media" onClick={handleDownload}>
                 <Download className="h-5 w-5" />
               </ShareTile>
             )}
           </div>
         </div>
 
-        <p className="text-[11px] text-muted-foreground text-center mt-5 mb-1 break-all">{url}</p>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="mt-5 flex w-full items-center gap-2 rounded-2xl border border-border/50 bg-muted/25 px-3 py-2.5 text-left transition-colors hover:bg-muted/40 active:scale-[0.99]"
+          aria-label="Copy share link"
+        >
+          <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-muted-foreground">{url}</span>
+        </button>
       </SheetContent>
     </Sheet>
   );
 }
 
-function ShareTile({ color, label, onClick, children }: { color: string; label: string; onClick: () => void; children: React.ReactNode }) {
+function ShareTile({
+  color,
+  label,
+  description,
+  onClick,
+  children,
+  disabled,
+}: {
+  color: string;
+  label: string;
+  description?: string;
+  onClick: () => void;
+  children: ReactNode;
+  disabled?: boolean;
+}) {
   return (
-    <button type="button" onClick={onClick} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
-      <span className={`flex items-center justify-center w-12 h-12 rounded-full shadow-sm ${color}`}>{children}</span>
-      <span className="text-[11px] font-medium text-foreground">{label}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={description ? `${label}: ${description}` : label}
+      className="flex min-h-[86px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/40 bg-background/70 px-1.5 py-2 text-center transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+    >
+      <span className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ${color}`}>{children}</span>
+      <span className="text-[11px] font-extrabold leading-tight text-foreground">{label}</span>
+      {description && <span className="text-[9px] font-semibold leading-tight text-muted-foreground">{description}</span>}
     </button>
   );
 }

@@ -2,10 +2,10 @@
  * MorePage — ZIVO Signature Design (2026)
  * Full hub with real user profile, quick actions, 70+ links, and organic design.
  */
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUsername } from "@/hooks/useUsername";
 import { useCoinBalance } from "@/hooks/useCoinBalance";
 import { formatCount } from "@/lib/social/formatCount";
@@ -44,6 +44,8 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { cn } from "@/lib/utils";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
+import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
+import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 import FeedSidebar from "@/components/social/FeedSidebar";
 import NavBar from "@/components/home/NavBar";
 import {
@@ -112,6 +114,9 @@ const whatsNew: { date: string; title: string; items: string[] }[] = [
     ],
   },
 ];
+
+const formatNotificationText = (text: string | null | undefined) =>
+  (text ?? "").replace(/\$(\d+(?:,\d{3})*)\.(\d{2})0{3,}\b/g, "$$$1.$2");
 
 /* ============================================= */
 /*  PARTNER OPTIONS                              */
@@ -198,6 +203,7 @@ const quickLinksMain: QuickLink[] = [
   { icon: ScrollText, label: "Subscriptions", href: "/account/subscriptions", description: "Plans & renewals", accent: "hsl(263 70% 58%)" },
   { icon: BadgeCheck, label: "Verification", href: "/account/verification", description: "Get verified", accent: "hsl(221 83% 53%)" },
   { icon: Calendar, label: "Bookings", href: "/booking-management", description: "Manage all", accent: "hsl(199 89% 48%)" },
+  { icon: Sparkles, label: "Salon visits", href: "/salon/me", description: "Visits & loyalty", accent: "hsl(340 75% 55%)" },
   { icon: Ticket, label: "Gift Cards", href: "/account/gift-cards", description: "Buy & redeem", accent: "hsl(340 75% 55%)" },
   { icon: FileText, label: "Invoices", href: "/account/invoices", description: "Tax invoices", accent: "hsl(215 16% 47%)" },
   { icon: Tag, label: "Promo Codes", href: "/account/promos", description: "Active offers", accent: "hsl(0 84% 60%)", badge: "Save" },
@@ -545,6 +551,7 @@ export default function MorePage() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { user, signOut, isAdmin } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [showPartnerSheet, setShowPartnerSheet] = useState(false);
@@ -571,48 +578,8 @@ export default function MorePage() {
   };
   const blurClass = privacyMode ? "blur-sm select-none" : "";
 
-  // ===== Currency switcher (localStorage) =====
-  const CURRENCY_KEY = "zivo:more:currency";
-  const [currency, setCurrency] = useState<string>(() => {
-    if (typeof window === "undefined") return "USD";
-    return window.localStorage.getItem(CURRENCY_KEY) || "USD";
-  });
-  const setCurrencyCode = (code: string) => {
-    setCurrency(code);
-    try { window.localStorage.setItem(CURRENCY_KEY, code); } catch {}
-  };
-  const currencies = [
-    { code: "USD", symbol: "$", label: "US Dollar" },
-    { code: "EUR", symbol: "€", label: "Euro" },
-    { code: "GBP", symbol: "£", label: "Pound" },
-    { code: "JPY", symbol: "¥", label: "Yen" },
-    { code: "INR", symbol: "₹", label: "Rupee" },
-    { code: "KRW", symbol: "₩", label: "Won" },
-    { code: "BRL", symbol: "R$", label: "Real" },
-    { code: "AUD", symbol: "A$", label: "AUD" },
-    { code: "CAD", symbol: "C$", label: "CAD" },
-    { code: "MXN", symbol: "MX$", label: "Peso" },
-  ];
-
   // ===== Help FAB sheet =====
   const [showHelpSheet, setShowHelpSheet] = useState(false);
-
-  // ===== Haptics toggle (Capacitor / browser vibrate) =====
-  const HAPTICS_KEY = "zivo:more:haptics";
-  const [hapticsOn, setHapticsOn] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return window.localStorage.getItem(HAPTICS_KEY) !== "0";
-  });
-  const toggleHaptics = () => {
-    setHapticsOn((p) => {
-      const n = !p;
-      try { window.localStorage.setItem(HAPTICS_KEY, n ? "1" : "0"); } catch {}
-      if (n && typeof navigator !== "undefined" && (navigator as any).vibrate) {
-        (navigator as any).vibrate(15);
-      }
-      return n;
-    });
-  };
 
   // ===== Quick share-profile dialog =====
   // Only the toggle state lives here; the URL + copy helper depend on `handle`,
@@ -657,42 +624,6 @@ export default function MorePage() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  // ===== Accessibility: font size + reduced motion =====
-  const FONT_SIZE_KEY = "zivo:more:fontSize";
-  const REDUCED_MOTION_KEY = "zivo:more:reducedMotion";
-  const fontSizes = [
-    { code: "S", scale: 0.92, label: "Small" },
-    { code: "M", scale: 1, label: "Medium" },
-    { code: "L", scale: 1.1, label: "Large" },
-    { code: "XL", scale: 1.22, label: "X-Large" },
-  ];
-  const [fontSize, setFontSize] = useState<string>(() => {
-    if (typeof window === "undefined") return "M";
-    return window.localStorage.getItem(FONT_SIZE_KEY) || "M";
-  });
-  const [reducedMotion, setReducedMotion] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(REDUCED_MOTION_KEY) === "1";
-  });
-  const setFontSizeCode = (code: string) => {
-    setFontSize(code);
-    try { window.localStorage.setItem(FONT_SIZE_KEY, code); } catch {}
-  };
-  const toggleReducedMotion = () => {
-    setReducedMotion((p) => {
-      const n = !p;
-      try { window.localStorage.setItem(REDUCED_MOTION_KEY, n ? "1" : "0"); } catch {}
-      return n;
-    });
-  };
-  const fontScaleClass = fontSize === "S"
-    ? "[font-size:0.92rem]"
-    : fontSize === "L"
-      ? "[font-size:1.1rem]"
-      : fontSize === "XL"
-        ? "[font-size:1.22rem]"
-        : "[font-size:1rem]";
 
   // ===== Device info (UA-based, lightweight) =====
   const deviceInfo = useMemo(() => {
@@ -793,27 +724,6 @@ export default function MorePage() {
   const toggleVoiceFallback = () => {
     // No-op when speech is unavailable; would log telemetry in prod
   };
-
-  // ===== Language switcher (localStorage) =====
-  const LANG_KEY = "zivo:more:lang";
-  const [lang, setLang] = useState<string>(() => {
-    if (typeof window === "undefined") return "en";
-    return window.localStorage.getItem(LANG_KEY) || "en";
-  });
-  const setLanguage = (code: string) => {
-    setLang(code);
-    try { window.localStorage.setItem(LANG_KEY, code); } catch {}
-  };
-  const languages = [
-    { code: "en", flag: "🇺🇸", label: "English" },
-    { code: "es", flag: "🇪🇸", label: "Español" },
-    { code: "fr", flag: "🇫🇷", label: "Français" },
-    { code: "pt", flag: "🇵🇹", label: "Português" },
-    { code: "de", flag: "🇩🇪", label: "Deutsch" },
-    { code: "ja", flag: "🇯🇵", label: "日本語" },
-    { code: "zh", flag: "🇨🇳", label: "中文" },
-    { code: "ar", flag: "🇸🇦", label: "العربية" },
-  ];
 
   // ===== PWA install prompt (beforeinstallprompt) =====
   const [installPrompt, setInstallPrompt] = useState<any>(null);
@@ -1028,14 +938,14 @@ export default function MorePage() {
   }, []);
 
   // Shared profile data — same source as /profile, so the name/badge stay in sync
-  const { data: profile } = useUserProfile();
+  const { data: profile, isError: hasProfileError, isLoading: isProfileLoading } = useUserProfile();
   const { username: claimedUsername } = useUsername();
   const { balance: coinBalance } = useCoinBalance();
   const { isPlus, plan } = useZivoPlus();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
 
   // Real post count — matches /profile
-  const { data: postsCount = 0 } = useQuery({
+  const { data: postsCount = 0, isError: hasPostsCountError, isLoading: isPostsCountLoading } = useQuery({
     queryKey: ["more-posts", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
@@ -1049,7 +959,7 @@ export default function MorePage() {
   });
 
   // Real friend count (accepted friendships) — matches /profile
-  const { data: friendCount = 0 } = useQuery({
+  const { data: friendCount = 0, isError: hasFriendCountError, isLoading: isFriendCountLoading } = useQuery({
     queryKey: ["more-friends", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
@@ -1064,7 +974,7 @@ export default function MorePage() {
   });
 
   // Unread notification count (lightweight count query)
-  const { data: unreadNotifCount = 0 } = useQuery({
+  const { data: unreadNotifCount = 0, isError: hasUnreadNotifError, isLoading: isUnreadNotifLoading } = useQuery({
     queryKey: ["more-unread-notifs", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
@@ -1079,7 +989,7 @@ export default function MorePage() {
   });
 
   // Upcoming flight bookings count
-  const { data: upcomingFlightCount = 0 } = useQuery({
+  const { data: upcomingFlightCount = 0, isError: hasUpcomingFlightsError, isLoading: isUpcomingFlightsLoading } = useQuery({
     queryKey: ["more-upcoming-flights", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
@@ -1094,7 +1004,7 @@ export default function MorePage() {
   });
 
   // Active grocery / eats orders count (in-progress)
-  const { data: activeOrdersCount = 0 } = useQuery({
+  const { data: activeOrdersCount = 0, isError: hasActiveOrdersError, isLoading: isActiveOrdersLoading } = useQuery({
     queryKey: ["more-active-orders", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
@@ -1109,7 +1019,11 @@ export default function MorePage() {
   });
 
   // Last 3 unread notifications (preview)
-  const { data: notifPreview = [] } = useQuery<Array<{ id: string; title: string; body: string; action_url: string | null; created_at: string }>>({
+  const {
+    data: notifPreview = [],
+    isError: hasNotifPreviewError,
+    isLoading: isNotifPreviewLoading,
+  } = useQuery<Array<{ id: string; title: string; body: string; action_url: string | null; created_at: string }>>({
     queryKey: ["more-notif-preview", user?.id],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -1126,7 +1040,7 @@ export default function MorePage() {
   });
 
   // Pending friend requests
-  const { data: pendingRequestsCount = 0 } = useQuery({
+  const { data: pendingRequestsCount = 0, isError: hasPendingRequestsError, isLoading: isPendingRequestsLoading } = useQuery({
     queryKey: ["more-pending-friends", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
@@ -1158,7 +1072,7 @@ export default function MorePage() {
   }, [unreadNotifCount, pendingRequestsCount]);
 
   // Real follower count (people following this user)
-  const { data: followerCount = 0 } = useQuery({
+  const { data: followerCount = 0, isError: hasFollowersError, isLoading: isFollowersLoading } = useQuery({
     queryKey: ["more-followers", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
@@ -1172,7 +1086,7 @@ export default function MorePage() {
   });
 
   // Real following count (people this user follows)
-  const { data: followingCount = 0 } = useQuery({
+  const { data: followingCount = 0, isError: hasFollowingError, isLoading: isFollowingLoading } = useQuery({
     queryKey: ["more-following", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
@@ -1222,6 +1136,61 @@ export default function MorePage() {
     const filled = checks.filter(Boolean).length;
     return Math.round((filled / checks.length) * 100);
   }, [profile, claimedUsername, isVerified]);
+
+  const hasAnyMoreData =
+    Boolean(profile) ||
+    notifPreview.length > 0 ||
+    postsCount > 0 ||
+    friendCount > 0 ||
+    followerCount > 0 ||
+    followingCount > 0 ||
+    unreadNotifCount > 0 ||
+    pendingRequestsCount > 0 ||
+    upcomingFlightCount > 0 ||
+    activeOrdersCount > 0;
+
+  const hasAnyMoreError =
+    hasProfileError ||
+    hasPostsCountError ||
+    hasFriendCountError ||
+    hasUnreadNotifError ||
+    hasUpcomingFlightsError ||
+    hasActiveOrdersError ||
+    hasNotifPreviewError ||
+    hasPendingRequestsError ||
+    hasFollowersError ||
+    hasFollowingError;
+
+  const hasAnyMoreLoading =
+    isProfileLoading ||
+    isPostsCountLoading ||
+    isFriendCountLoading ||
+    isUnreadNotifLoading ||
+    isUpcomingFlightsLoading ||
+    isActiveOrdersLoading ||
+    isNotifPreviewLoading ||
+    isPendingRequestsLoading ||
+    isFollowersLoading ||
+    isFollowingLoading;
+
+  const hasMoreRefreshError = hasAnyMoreData && hasAnyMoreError;
+  const shouldShowMoreRecovery = Boolean(user) && !hasAnyMoreData && !hasAnyMoreLoading && hasAnyMoreError;
+
+  const retryMoreQueries = useCallback(() => {
+    if (!user?.id) return;
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-posts", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-friends", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-unread-notifs", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-upcoming-flights", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-active-orders", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-notif-preview", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-pending-friends", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-followers", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-following", user.id] }),
+    ]);
+  }, [queryClient, user?.id]);
 
   // ===== Suggested next action (computed from user state) =====
   // Declared here (not earlier) because it depends on isEmailVerified,
@@ -1750,6 +1719,13 @@ export default function MorePage() {
             second search bar after 400px of scroll, which left two visually
             competing search inputs on screen at the same time. */}
         <h1 className="font-bold text-[17px] flex-1">More</h1>
+        <button type="button"
+          onClick={() => setShowHelpSheet(true)}
+          aria-label="Open help"
+          className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted/60 active:scale-90 transition-transform text-foreground"
+        >
+          <HelpCircle className="h-5 w-5" />
+        </button>
       </header>
 
       <div className="flex-1 lg:flex lg:pt-16">
@@ -1758,10 +1734,29 @@ export default function MorePage() {
         <main
           className={cn(
             "flex-1 flex flex-col px-5 pb-28 pt-4 lg:pt-6 lg:pb-8 lg:max-w-3xl lg:mx-auto zivo-aurora",
-            fontScaleClass,
-            reducedMotion && "[&_*]:!transition-none [&_*]:!animate-none",
           )}
         >
+          {hasMoreRefreshError && (
+            <DegradedDataBanner
+              className="mb-3"
+              message="Showing cached account data. Refresh failed."
+              onRetry={retryMoreQueries}
+              trackingContext="more"
+            />
+          )}
+
+          {shouldShowMoreRecovery && (
+            <LoadFailureCard
+              className="mb-4"
+              title="Account refresh failed"
+              description="We couldn&apos;t load your account hub right now. Retry to restore your profile and shortcuts."
+              onRetry={retryMoreQueries}
+              onSecondary={() => navigate('/feed')}
+              secondaryLabel="Go Feed"
+              trackingContext="more"
+            />
+          )}
+
           {/* Profile Card */}
           {user && renderProfileCard()}
 
@@ -2005,145 +2000,6 @@ export default function MorePage() {
             </motion.div>
           )}
 
-          {/* Accessibility: font size + reduced motion */}
-          {user && (
-            <div className="mb-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-1.5 px-1">Display</p>
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="zivo-card-organic flex items-center gap-3 p-2.5"
-            >
-              <Sliders className="w-4 h-4 text-muted-foreground shrink-0" />
-              <div className="flex items-center gap-1 shrink-0">
-                {fontSizes.map((f) => (
-                  <button type="button"
-                    key={f.code}
-                    onClick={() => setFontSizeCode(f.code)}
-                    aria-label={`${f.label} text`}
-                    className={cn(
-                      "w-7 h-7 rounded-lg flex items-center justify-center font-bold transition active:scale-95",
-                      f.code === "S" && "text-[9px]",
-                      f.code === "M" && "text-[11px]",
-                      f.code === "L" && "text-[13px]",
-                      f.code === "XL" && "text-[15px]",
-                      fontSize === f.code
-                        ? "bg-primary/15 text-primary border border-primary/30"
-                        : "bg-muted/50 text-foreground/70 hover:bg-muted",
-                    )}
-                  >
-                    A
-                  </button>
-                ))}
-              </div>
-              <div className="h-6 w-px bg-border/50 shrink-0" />
-              <button type="button"
-                onClick={toggleReducedMotion}
-                className={cn(
-                  "flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg transition flex-1",
-                  reducedMotion ? "bg-emerald-500/10" : "hover:bg-muted/50",
-                )}
-                title={reducedMotion ? "Reduce motion enabled" : "Reduce motion disabled"}
-              >
-                <span className="text-[11px] font-semibold text-foreground/80 truncate">
-                  Reduce motion
-                </span>
-                <span
-                  className={cn(
-                    "shrink-0 w-7 h-4 rounded-full relative transition",
-                    reducedMotion ? "bg-emerald-500" : "bg-muted-foreground/30",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all",
-                      reducedMotion ? "left-3.5" : "left-0.5",
-                    )}
-                  />
-                </span>
-              </button>
-              <div className="h-6 w-px bg-border/50 shrink-0" />
-              <button type="button"
-                onClick={toggleHaptics}
-                className={cn(
-                  "flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg transition flex-1",
-                  hapticsOn ? "bg-fuchsia-500/10" : "hover:bg-muted/50",
-                )}
-                title={hapticsOn ? "Haptics enabled" : "Haptics disabled"}
-              >
-                <span className="text-[11px] font-semibold text-foreground/80 truncate">
-                  Haptics
-                </span>
-                <span
-                  className={cn(
-                    "shrink-0 w-7 h-4 rounded-full relative transition",
-                    hapticsOn ? "bg-fuchsia-500" : "bg-muted-foreground/30",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all",
-                      hapticsOn ? "left-3.5" : "left-0.5",
-                    )}
-                  />
-                </span>
-              </button>
-            </motion.div>
-            </div>
-          )}
-
-          {/* Language switcher chips */}
-          {user && (
-            <div className="flex items-center gap-1.5 mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
-              <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider shrink-0">
-                <Languages className="w-3 h-3 inline mr-1 -mt-0.5" />
-                Language
-              </span>
-              {languages.map((l) => (
-                <button type="button"
-                  key={l.code}
-                  onClick={() => setLanguage(l.code)}
-                  className={cn(
-                    "shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-semibold transition active:scale-95",
-                    lang === l.code
-                      ? "bg-primary/15 text-primary border border-primary/30"
-                      : "bg-muted/50 text-foreground/70 hover:bg-muted",
-                  )}
-                  aria-label={`Switch to ${l.label}`}
-                >
-                  <span className="text-base leading-none">{l.flag}</span>
-                  <span className="hidden sm:inline">{l.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Currency switcher chips */}
-          {user && (
-            <div className="flex items-center gap-1.5 mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
-              <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider shrink-0">
-                <DollarSign className="w-3 h-3 inline mr-1 -mt-0.5" />
-                Currency
-              </span>
-              {currencies.map((c) => (
-                <button type="button"
-                  key={c.code}
-                  onClick={() => setCurrencyCode(c.code)}
-                  className={cn(
-                    "shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-semibold transition active:scale-95",
-                    currency === c.code
-                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
-                      : "bg-muted/50 text-foreground/70 hover:bg-muted",
-                  )}
-                  aria-label={`Switch to ${c.label}`}
-                >
-                  <span className="font-bold">{c.symbol}</span>
-                  <span>{c.code}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Country / Region switcher chips */}
           {user && (
             <div className="flex items-center gap-1.5 mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
@@ -2233,7 +2089,9 @@ export default function MorePage() {
                     <div className="w-1.5 h-1.5 rounded-full bg-foreground mt-1.5 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-[12px] leading-tight truncate">{n.title}</p>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{n.body}</p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                        {formatNotificationText(n.body)}
+                      </p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground/30 shrink-0 mt-0.5" />
                   </Link>
@@ -2788,7 +2646,7 @@ export default function MorePage() {
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label="Back to top"
-            className="fixed bottom-40 lg:bottom-24 right-5 z-30 w-10 h-10 rounded-full bg-card border border-border/60 shadow-md flex items-center justify-center active:scale-90 transition-transform"
+            className="fixed bottom-[calc(var(--zivo-safe-bottom,0px)+10rem)] lg:bottom-24 right-5 z-30 w-10 h-10 rounded-full bg-card border border-border/60 shadow-md flex items-center justify-center active:scale-90 transition-transform"
           >
             <ArrowLeft className="w-4 h-4 text-foreground rotate-90" />
           </motion.button>
@@ -2799,7 +2657,7 @@ export default function MorePage() {
       <button type="button"
         onClick={() => setShowHelpSheet(true)}
         aria-label="Open help"
-        className="fixed bottom-24 lg:bottom-8 right-5 z-30 w-12 h-12 rounded-full bg-gradient-to-br from-primary shadow-lg shadow-primary/30 flex items-center justify-center active:scale-90 transition-transform"
+        className="fixed bottom-[calc(var(--zivo-safe-bottom,0px)+6rem)] lg:bottom-8 right-5 z-30 hidden w-12 h-12 rounded-full bg-gradient-to-br from-primary shadow-lg shadow-primary/30 lg:flex items-center justify-center active:scale-90 transition-transform"
       >
         <HelpCircle className="w-5 h-5 text-white" />
       </button>

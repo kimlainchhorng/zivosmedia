@@ -3,7 +3,14 @@ import * as SwitchPrimitives from "@radix-ui/react-switch";
 
 import { cn } from "@/lib/utils";
 
-const Switch = React.forwardRef<
+// Wrapped in React.memo because Radix Switch internally calls
+// `useComposedRefs(forwardedRef, (node) => setButton(node))`, where the second
+// callback is a fresh function every render. Under React 19 that triggers the
+// previous ref-callback with null on each parent re-render, which calls
+// setButton(null) and queues another render — an infinite loop when the parent
+// re-renders for unrelated reasons. Shallow-comparing props avoids re-running
+// Radix's internals when nothing for Switch actually changed.
+const SwitchInner = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
 >(({ className, ...props }, ref) => (
@@ -22,6 +29,8 @@ const Switch = React.forwardRef<
     />
   </SwitchPrimitives.Root>
 ));
-Switch.displayName = SwitchPrimitives.Root.displayName;
+SwitchInner.displayName = SwitchPrimitives.Root.displayName;
+
+const Switch = React.memo(SwitchInner);
 
 export { Switch };

@@ -1,5 +1,5 @@
 /**
- * CreatePostModal — Facebook-style "Create Post" modal
+ * CreatePostModal — ZIVO creator composer modal
  * Shared component for Feed and Profile pages
  */
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X as XIcon, Globe, Users, Lock, FolderPlus, MapPin, Hash,
   ChevronDown, Image as ImageIcon, Play, Film, Radio, Plus, Search, Share2, Loader2,
-  Smile, Music, ShoppingBag,
+  Smile, Music, ShoppingBag, ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ import { uploadWithProgress } from "@/utils/uploadWithProgress";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
 import { nativeConfirm } from "@/lib/native/dialog";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
-import ProductPickerSheet from "@/components/social/ProductPickerSheet";
+import { detectSensitiveContent, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
 
 interface CreatePostModalProps {
   userId: string;
@@ -33,6 +33,7 @@ interface CreatePostModalProps {
   sharedPostId?: string;
   sharedPostAuthorId?: string;
   sharedPostAuthorName?: string;
+  remixType?: "duet" | "stitch";
   commerceLinkDraft?: {
     linkType: "store_product" | "truck_sale";
     storeId?: string;
@@ -59,6 +60,66 @@ const COMPOSER_WORKFLOWS = [
 ] as const;
 
 type ComposerWorkflow = (typeof COMPOSER_WORKFLOWS)[number]["mode"];
+
+const WORKFLOW_STYLES: Record<ComposerWorkflow, {
+  accent: string;
+  activeCard: string;
+  iconBubble: string;
+  soft: string;
+  text: string;
+}> = {
+  post: {
+    accent: "from-sky-500 via-blue-500 to-indigo-500",
+    activeCard: "border-sky-200 bg-sky-50 text-sky-700 shadow-[0_8px_24px_rgba(14,165,233,0.14)]",
+    iconBubble: "bg-sky-500 text-white",
+    soft: "bg-sky-50 text-sky-700",
+    text: "text-sky-700",
+  },
+  reel: {
+    accent: "from-fuchsia-500 via-rose-500 to-orange-400",
+    activeCard: "border-rose-200 bg-rose-50 text-rose-700 shadow-[0_8px_24px_rgba(244,63,94,0.14)]",
+    iconBubble: "bg-rose-500 text-white",
+    soft: "bg-rose-50 text-rose-700",
+    text: "text-rose-700",
+  },
+  story: {
+    accent: "from-amber-400 via-orange-500 to-pink-500",
+    activeCard: "border-orange-200 bg-orange-50 text-orange-700 shadow-[0_8px_24px_rgba(249,115,22,0.14)]",
+    iconBubble: "bg-orange-500 text-white",
+    soft: "bg-orange-50 text-orange-700",
+    text: "text-orange-700",
+  },
+  poll: {
+    accent: "from-violet-500 via-purple-500 to-indigo-500",
+    activeCard: "border-violet-200 bg-violet-50 text-violet-700 shadow-[0_8px_24px_rgba(139,92,246,0.14)]",
+    iconBubble: "bg-violet-500 text-white",
+    soft: "bg-violet-50 text-violet-700",
+    text: "text-violet-700",
+  },
+  shop: {
+    accent: "from-emerald-500 via-teal-500 to-cyan-500",
+    activeCard: "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-[0_8px_24px_rgba(16,185,129,0.14)]",
+    iconBubble: "bg-emerald-500 text-white",
+    soft: "bg-emerald-50 text-emerald-700",
+    text: "text-emerald-700",
+  },
+  live: {
+    accent: "from-red-500 via-pink-500 to-fuchsia-500",
+    activeCard: "border-red-200 bg-red-50 text-red-700 shadow-[0_8px_24px_rgba(239,68,68,0.14)]",
+    iconBubble: "bg-red-500 text-white",
+    soft: "bg-red-50 text-red-700",
+    text: "text-red-700",
+  },
+};
+
+const WORKFLOW_PROMPTS: Record<ComposerWorkflow, string> = {
+  post: "Share an update, tag people, or add a place...",
+  reel: "Write a short hook for your reel...",
+  story: "Add a quick story caption...",
+  poll: "Ask a clear question for your audience...",
+  shop: "Describe what you are selling or promoting...",
+  live: "Tell people what your live is about...",
+};
 
 const FILTERS = [
   { name: "Original", className: "[filter:none]" },
@@ -104,6 +165,14 @@ const FEELINGS = [
 ];
 
 const DRAFT_KEY = "zivo-post-draft";
+const isVideoMediaUrl = (url?: string) =>
+  Boolean(url && /\.(mp4|mov|webm|avi|mkv|m4v)(\?.*)?$/i.test(url));
+
+const getRemixCaptionSeed = (remixType?: "duet" | "stitch", authorName?: string) => {
+  if (!remixType) return null;
+  const sourceName = authorName?.trim() || "original creator";
+  return `${remixType === "duet" ? "Duet" : "Stitch"} with ${sourceName}`;
+};
 
 export default function CreatePostModal({
   userId,
@@ -116,6 +185,7 @@ export default function CreatePostModal({
   sharedPostId,
   sharedPostAuthorId,
   sharedPostAuthorName,
+  remixType,
   commerceLinkDraft,
   initialAudioName,
   initialMode,
@@ -192,6 +262,10 @@ export default function CreatePostModal({
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const [unlockPrice, setUnlockPrice] = useState<string>("");
   const [showUnlockInput, setShowUnlockInput] = useState(false);
+  const [markSensitive, setMarkSensitive] = useState(() => detectSensitiveContent(initialCaption).isSensitive);
+  const hasVideoAttachment =
+    files.some((file) => file.type.startsWith("video/")) ||
+    Boolean(sharedMediaUrl && (sharedMediaType === "video" || isVideoMediaUrl(sharedMediaUrl)));
 
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -228,6 +302,12 @@ export default function CreatePostModal({
 
   useEffect(() => { autoResize(); }, [caption, autoResize]);
 
+  useEffect(() => {
+    if (detectSensitiveContent(caption).isSensitive) {
+      setMarkSensitive(true);
+    }
+  }, [caption]);
+
   // Focus album input when shown
   useEffect(() => {
     if (showAlbumInput) albumInputRef.current?.focus();
@@ -239,7 +319,7 @@ export default function CreatePostModal({
       const timer = setTimeout(() => setShowCameraChoice(true), 400);
       return () => clearTimeout(timer);
     }
-  }, [initialAudioName]);
+  }, [files.length, initialAudioName, showCameraChoice]);
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -305,6 +385,7 @@ export default function CreatePostModal({
   };
 
   const hasSharedLink = !!initialCaption || !!sharedMediaUrl;
+  const remixCaptionSeed = getRemixCaptionSeed(remixType, sharedPostAuthorName);
 
   const [uploadStatus, setUploadStatus] = useState("");
 
@@ -333,11 +414,40 @@ export default function CreatePostModal({
     setMediaType("image");
   };
 
+  const handleWorkflowClick = (mode: ComposerWorkflow) => {
+    selectWorkflowMode(mode);
+    if (mode === "live") {
+      onClose();
+      navigate("/live");
+      return;
+    }
+    if (mode === "poll") {
+      captionRef.current?.focus();
+      return;
+    }
+    if (mode === "reel" || mode === "story") {
+      if (fileRef.current) {
+        fileRef.current.accept = "video/*";
+        fileRef.current.multiple = false;
+        fileRef.current.click();
+      }
+      return;
+    }
+    if (fileRef.current) {
+      fileRef.current.accept = "image/*";
+      fileRef.current.multiple = true;
+      fileRef.current.click();
+    }
+  };
+
   const handlePost = async () => {
     if (isPoll) {
       const valid = pollOptions.filter((o) => o.trim());
       if (!caption.trim()) { toast.error("Please write a poll question"); return; }
       if (valid.length < 2) { toast.error("Add at least 2 poll options"); return; }
+    } else if (workflowMode === "reel" && !hasVideoAttachment) {
+      toast.error("Add a video before sharing a reel");
+      return;
     } else if (files.length === 0 && !hasSharedLink && !caption.trim()) {
       toast.error("Please add a photo, video, or write something");
       return;
@@ -430,7 +540,7 @@ export default function CreatePostModal({
       } else if (sharedMediaUrl) {
         mediaUrl = sharedMediaUrl;
         allMediaUrls = [sharedMediaUrl];
-        finalMediaType = sharedMediaType || "image";
+        finalMediaType = sharedMediaType || (isVideoMediaUrl(sharedMediaUrl) ? "video" : "image");
       } else {
         finalMediaType = "image";
       }
@@ -438,6 +548,15 @@ export default function CreatePostModal({
       setUploadStatus("Creating post...");
 
       let finalCaption = caption.trim() || null;
+      if (remixCaptionSeed) {
+        const remixPrefix = remixType === "stitch" ? "stitch with" : "duet with";
+        const hasRemixPrefix = finalCaption?.toLowerCase().startsWith(remixPrefix);
+        if (!finalCaption) {
+          finalCaption = remixCaptionSeed;
+        } else if (!hasRemixPrefix) {
+          finalCaption = `${remixCaptionSeed}\n\n${finalCaption}`;
+        }
+      }
       if (feeling && finalCaption) {
         finalCaption = `${finalCaption}\n\n— feeling ${feeling.emoji} ${feeling.label}`;
       } else if (feeling) {
@@ -457,6 +576,9 @@ export default function CreatePostModal({
         }
       }
 
+      const sensitiveAnalysis = detectSensitiveContent(finalCaption, { creatorMarked: markSensitive });
+      const shouldMarkSensitive = markSensitive || sensitiveAnalysis.isSensitive;
+
       const insertData: any = {
         user_id: userId,
         media_type: finalMediaType,
@@ -467,16 +589,33 @@ export default function CreatePostModal({
         is_published: true,
         visibility,
       };
+      if (shouldMarkSensitive) {
+        insertData.is_sensitive = true;
+        insertData.sensitive_reason = sensitiveAnalysis.reason || "creator_marked";
+      }
       if (location) insertData.location = location;
       if (audioName.trim()) insertData.audio_name = audioName.trim();
       if (sharedPostId) insertData.shared_from_post_id = sharedPostId;
       if (sharedPostAuthorId) insertData.shared_from_user_id = sharedPostAuthorId;
 
-      const { data: insertedPost, error: insertErr } = await (supabase as any)
+      let { data: insertedPost, error: insertErr } = await (supabase as any)
         .from("user_posts")
         .insert(insertData)
         .select("id")
         .single();
+      if (insertErr && shouldMarkSensitive && isSensitiveSchemaDriftError(insertErr)) {
+        const retryData = { ...insertData };
+        delete retryData.is_sensitive;
+        delete retryData.sensitive_reason;
+        delete retryData.sensitive_report_count;
+        const retry = await (supabase as any)
+          .from("user_posts")
+          .insert(retryData)
+          .select("id")
+          .single();
+        insertedPost = retry.data;
+        insertErr = retry.error;
+      }
       if (insertErr) throw insertErr;
 
       if (commerceLinkDraft && insertedPost?.id) {
@@ -524,6 +663,9 @@ export default function CreatePostModal({
   const charCount = caption.length;
   const charLimit = 2200;
   const activeWorkflow = COMPOSER_WORKFLOWS.find((workflow) => workflow.mode === workflowMode) || COMPOSER_WORKFLOWS[0];
+  const activeWorkflowStyle = WORKFLOW_STYLES[workflowMode];
+  const ActiveWorkflowIcon = activeWorkflow.icon;
+  const captionPlaceholder = zivoOFMode ? "Compose a new post for your fans..." : WORKFLOW_PROMPTS[workflowMode];
   const publishLabel = workflowMode === "reel"
     ? "Share Reel"
     : workflowMode === "story"
@@ -538,10 +680,14 @@ export default function CreatePostModal({
   const canPublish = !uploading && (
     workflowMode === "live" ||
     isPoll ||
+    (workflowMode === "reel" && hasVideoAttachment) ||
+    (workflowMode !== "reel" && (
     files.length > 0 ||
     hasSharedLink ||
     !!caption.trim()
+    ))
   );
+  const composerSensitive = markSensitive || detectSensitiveContent(caption).isSensitive;
   const workflowTips = workflowMode === "reel"
     ? ["Video first", "Sound ready", "Short caption"]
     : workflowMode === "story"
@@ -553,6 +699,66 @@ export default function CreatePostModal({
           : workflowMode === "live"
             ? ["Check signal", "Set title", "Start live"]
             : ["Photo or text", "Tag people", "Add location"];
+  const workflowPicker = (
+    <div className="border-y border-border/20 bg-card px-4 py-3">
+      <div className="grid grid-cols-3 gap-2">
+        {COMPOSER_WORKFLOWS.map((workflow) => {
+          const isActive = workflow.mode === workflowMode;
+          const workflowStyle = WORKFLOW_STYLES[workflow.mode];
+          return (
+            <button
+              type="button"
+              key={workflow.mode}
+              aria-label={`${workflow.label} ${workflow.description}`}
+              aria-pressed={isActive}
+              onClick={() => handleWorkflowClick(workflow.mode)}
+              className={cn(
+                "min-h-[78px] rounded-2xl border px-2.5 py-2 text-left transition-all active:scale-[0.98]",
+                isActive ? workflowStyle.activeCard : "border-border/50 bg-muted/20 text-foreground hover:bg-muted/40",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <span className={cn(
+                  "grid h-7 w-7 shrink-0 place-items-center rounded-full",
+                  isActive ? workflowStyle.iconBubble : "bg-background text-muted-foreground",
+                )}>
+                  <workflow.icon className="h-3.5 w-3.5" />
+                </span>
+                <span className="truncate text-[12px] font-bold">{workflow.label}</span>
+              </span>
+              <span className="mt-1 block line-clamp-2 text-[10px] font-medium leading-snug text-muted-foreground">
+                {workflow.description}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-3 rounded-2xl border border-border/40 bg-muted/20 p-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold text-foreground">Workflow checklist</p>
+            <p className="truncate text-[10px] font-medium text-muted-foreground">{captionPlaceholder}</p>
+          </div>
+          <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold", activeWorkflowStyle.soft)}>
+            {activeWorkflow.label}
+          </span>
+        </div>
+        <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+          {workflowTips.map((tip) => (
+            <span key={tip} className="shrink-0 rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-muted-foreground shadow-sm ring-1 ring-border/30">
+              {tip}
+            </span>
+          ))}
+        </div>
+        {remixCaptionSeed && (
+          <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-background px-2.5 py-1 text-[10px] font-bold text-foreground shadow-sm ring-1 ring-border/30">
+            <Film className={cn("h-3 w-3 shrink-0", activeWorkflowStyle.text)} />
+            <span className="truncate">{remixCaptionSeed}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <motion.div
@@ -566,16 +772,22 @@ export default function CreatePostModal({
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         exit={{ y: 100 }}
-        className="w-full max-w-lg bg-card rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-auto pb-20 z-[60]"
+        className="w-full max-w-xl bg-card rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-auto pb-20 z-[60] shadow-2xl ring-1 ring-black/5"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 sticky top-0 bg-card z-10 rounded-t-3xl">
-          <button type="button" onClick={onClose} aria-label="Close create post" title="Close create post" className="text-muted-foreground active:scale-90 transition-transform">
+        <div className="sticky top-0 z-10 overflow-hidden rounded-t-3xl border-b border-border/30 bg-card/95 backdrop-blur-xl">
+          <div className={cn("h-1 w-full bg-gradient-to-r", activeWorkflowStyle.accent)} />
+          <div className="flex items-center justify-between px-4 py-3">
+          <button type="button" onClick={onClose} aria-label="Close create post" title="Close create post" className="grid h-9 w-9 place-items-center rounded-full bg-muted/60 text-muted-foreground active:scale-90 transition-transform hover:text-foreground">
             <XIcon className="h-5 w-5" />
           </button>
           <div className="min-w-0 text-center">
-            <h2 className="text-sm font-bold text-foreground">Creator Studio</h2>
-            <p className="text-[10px] font-medium text-muted-foreground truncate">{activeWorkflow.description}</p>
+            <div className="mx-auto mb-1 flex w-fit items-center gap-1.5 rounded-full bg-muted/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              <ActiveWorkflowIcon className={cn("h-3 w-3", activeWorkflowStyle.text)} />
+              ZIVO Studio
+            </div>
+            <h2 className="text-sm font-bold text-foreground">{activeWorkflow.label}</h2>
+            <p className="max-w-[190px] truncate text-[10px] font-medium text-muted-foreground sm:max-w-none">{activeWorkflow.description}</p>
           </div>
           <button type="button"
             onClick={() => {
@@ -590,9 +802,9 @@ export default function CreatePostModal({
             aria-label={publishLabel}
             title={publishLabel}
             className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-bold transition-all",
+              "min-w-[84px] rounded-full px-4 py-2 text-xs font-bold transition-all active:scale-[0.98]",
               canPublish
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? cn("bg-gradient-to-r text-white shadow-sm", activeWorkflowStyle.accent)
                 : "bg-muted text-muted-foreground"
             )}
           >
@@ -603,6 +815,41 @@ export default function CreatePostModal({
               </span>
             ) : publishLabel}
           </button>
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-b border-border/20 bg-card">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {COMPOSER_WORKFLOWS.map((workflow) => {
+              const isActive = workflow.mode === workflowMode;
+              return (
+                <button
+                  type="button"
+                  key={workflow.mode}
+                  onClick={() => selectWorkflowMode(workflow.mode)}
+                  className={cn(
+                    "shrink-0 rounded-2xl border px-3 py-2 text-left transition-colors active:scale-[0.98]",
+                    isActive ? "border-primary bg-primary/10 text-primary" : "border-border/50 bg-muted/20 text-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <workflow.icon className="h-4 w-4" />
+                    <span className="text-[12px] font-bold">{workflow.label}</span>
+                  </span>
+                  <span className="block max-w-[112px] truncate text-[10px] font-medium text-muted-foreground">
+                    {workflow.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+            {workflowTips.map((tip) => (
+              <span key={tip} className="shrink-0 rounded-full bg-muted/50 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                {tip}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="px-4 py-3 border-b border-border/20 bg-card">
@@ -643,7 +890,7 @@ export default function CreatePostModal({
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="h-10 w-10 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
             {userProfile?.avatar ? (
-              <img src={userProfile.avatar} alt="" className="h-full w-full object-cover" />
+	              <img src={userProfile.avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
             ) : (
               <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-sm font-bold">
                 {userProfile?.name?.[0] || "?"}
@@ -669,7 +916,7 @@ export default function CreatePostModal({
         <div className="px-4 relative">
           <textarea
             ref={captionRef}
-            placeholder={zivoOFMode ? "Compose a new post for your fans..." : "Write a caption... Use @ to tag people"}
+            placeholder={captionPlaceholder}
             value={caption}
             onChange={(e) => handleCaptionChange(e.target.value)}
             maxLength={charLimit}
@@ -816,6 +1063,21 @@ export default function CreatePostModal({
           </div>
 
           {/* Album button — inline input instead of prompt() */}
+          <button type="button"
+            onClick={() => setMarkSensitive((value) => !value)}
+            className={cn(
+              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px]",
+              composerSensitive
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/50"
+            )}
+            aria-pressed={composerSensitive}
+            title="Mark as 18+ sensitive media"
+          >
+            <ShieldAlert className="h-3.5 w-3.5" />
+            {composerSensitive ? "18+ on" : "18+"}
+          </button>
+
           {!zivoOFMode && (
           <div className="relative">
             <button type="button"
@@ -1039,6 +1301,8 @@ export default function CreatePostModal({
           )}
         </AnimatePresence>
 
+        {workflowPicker}
+
         {/* Feeling picker */}
         <AnimatePresence>
           {showFeelingPicker && (
@@ -1169,17 +1433,20 @@ export default function CreatePostModal({
               {(files[currentPreview]?.type?.startsWith("video") || (currentPreview === 0 && mediaType === "video" && files.length === 0)) ? (
                 <video
                   src={previews[currentPreview]}
-                  className={cn("h-full w-full object-cover", FILTERS[activeFilter]?.className ?? "[filter:none]")}
-                  controls
-                  muted
-                />
-              ) : (
-                <img
-                  src={previews[currentPreview]}
-                  alt=""
-                  className={cn("h-full w-full object-cover", FILTERS[activeFilter]?.className ?? "[filter:none]")}
-                />
-              )}
+	                  className={cn("h-full w-full object-cover", FILTERS[activeFilter]?.className ?? "[filter:none]")}
+	                  controls
+	                  muted
+	                  preload="metadata"
+	                />
+	              ) : (
+	                <img
+	                  src={previews[currentPreview]}
+	                  alt=""
+	                  className={cn("h-full w-full object-cover", FILTERS[activeFilter]?.className ?? "[filter:none]")}
+	                  loading="lazy"
+	                  decoding="async"
+	                />
+	              )}
 
               {files.length > 0 && (
                 <button type="button"
@@ -1227,10 +1494,10 @@ export default function CreatePostModal({
                       )}
                     >
                       {files[i]?.type?.startsWith("video") ? (
-                        <video src={p} className="h-full w-full object-cover" muted />
-                      ) : (
-                        <img src={p} alt="" className="h-full w-full object-cover" />
-                      )}
+	                        <video src={p} className="h-full w-full object-cover" muted preload="metadata" />
+	                      ) : (
+	                        <img src={p} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+	                      )}
                     </button>
                     <button
                       type="button"
@@ -1283,10 +1550,12 @@ export default function CreatePostModal({
                     )}
                   >
                     <img
-                      src={previews[0]}
-                      alt={f.name}
-                      className={cn("h-full w-full object-cover", f.className)}
-                    />
+	                      src={previews[0]}
+	                      alt={f.name}
+	                      className={cn("h-full w-full object-cover", f.className)}
+	                      loading="lazy"
+	                      decoding="async"
+	                    />
                   </div>
                   <span className={cn(
                     "text-[9px] font-medium",
@@ -1378,80 +1647,7 @@ export default function CreatePostModal({
           )}
         </AnimatePresence>
 
-        {/* Bottom toolbar — Add to your post */}
-        <div className="px-4 py-2 border-t border-border/30">
-          <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wide mb-2">Add to your post</p>
-          <div className="flex gap-1 overflow-x-auto scrollbar-none pb-1">
-            {(zivoOFMode
-              ? [
-                  { label: "Photo", icon: ImageIcon, color: "text-emerald-500", action: "photo" as const },
-                  { label: "Video", icon: Play, color: "text-rose-500", action: "video" as const },
-                  { label: "Reel", icon: Film, color: "text-indigo-500", action: "reel" as const },
-                  { label: "Unlock", icon: Lock, color: "text-[#00AEEF]", action: "unlock" as const },
-                ]
-              : [
-                  { label: "Photo", icon: ImageIcon, color: "text-emerald-500", action: "photo" as const },
-                  { label: "Video", icon: Play, color: "text-rose-500", action: "video" as const },
-                  { label: "Feeling", icon: Smile, color: "text-amber-500", action: "feeling" as const },
-                  { label: "Poll", icon: Hash, color: "text-violet-500", action: "poll" as const },
-                  { label: "Reel", icon: Film, color: "text-indigo-500", action: "reel" as const },
-                  { label: "Music", icon: Music, color: "text-sky-500", action: "audio" as const },
-                  { label: "Live", icon: Radio, color: "text-red-500", action: "live" as const },
-                ]
-            ).map((opt) => {
-              const isActive =
-                (opt.action === "audio" && showAudioInput) ||
-                (opt.action === "feeling" && (showFeelingPicker || !!feeling)) ||
-                (opt.action === "poll" && isPoll) ||
-                (opt.action === "unlock" && (showUnlockInput || !!unlockPrice)) ||
-                (opt.action === "reel" && workflowMode === "reel") ||
-                (opt.action === "photo" && workflowMode === "post" && selectedType === "Photo") ||
-                (opt.action === "video" && selectedType === "Video");
-              return (
-                <button type="button"
-                  key={opt.label}
-                  onClick={() => {
-                    if (opt.action === "live") { onClose(); navigate("/live"); return; }
-                    if (opt.action === "audio") { setShowAudioInput((v) => !v); return; }
-                    if (opt.action === "feeling") {
-                      setShowFeelingPicker((v) => !v);
-                      return;
-                    }
-                    if (opt.action === "poll") {
-                      selectWorkflowMode("poll");
-                      return;
-                    }
-                    if (opt.action === "unlock") {
-                      setShowUnlockInput((v) => !v);
-                      return;
-                    }
-                    const accept = opt.action === "video" || opt.action === "reel" ? "video/*" : "image/*";
-                    if (opt.action === "reel") {
-                      selectWorkflowMode("reel");
-                    } else {
-                      selectWorkflowMode("post");
-                    }
-                    setSelectedType(opt.label as any);
-                    if (fileRef.current) {
-                      fileRef.current.accept = accept;
-                      fileRef.current.multiple = opt.action === "photo";
-                      fileRef.current.click();
-                    }
-                  }}
-                  className={cn(
-                    "flex flex-col items-center gap-1 py-2 px-3 rounded-xl shrink-0 transition-colors active:scale-95",
-                    isActive ? "bg-primary/10" : "hover:bg-muted/30"
-                  )}
-                >
-                  <opt.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-primary" : opt.color)} />
-                  <span className={cn("text-[10px] font-medium", isActive ? "text-primary" : "text-muted-foreground")}>
-                    {opt.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+
 
         {/* Add more media button */}
         {files.length > 0 && files.length < 10 && (

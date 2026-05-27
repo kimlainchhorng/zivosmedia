@@ -81,7 +81,13 @@ export default function VoiceRoomsHubPage() {
           <p className="text-center text-sm text-muted-foreground py-16">No live rooms right now. Be the first to start one.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rooms.map((r) => <VoiceRoomCard key={r.id} room={r} />)}
+            {rooms.map((r) => (
+              <VoiceRoomCard
+                key={r.id}
+                room={r}
+                onJoin={(id) => navigate(`/voice-rooms/${id}`)}
+              />
+            ))}
           </div>
         )}
       </main>

@@ -42,7 +42,8 @@ export default function CoinPurchaseSuccess() {
           setCoins(data.coins ?? 0);
           setBalance(data.balance ?? null);
           setStatus("success");
-          queryClient.invalidateQueries();
+          queryClient.invalidateQueries({ queryKey: ["coin-transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["coin-purchases"] });
         } else {
           setStatus("pending");
         }
@@ -85,7 +86,7 @@ export default function CoinPurchaseSuccess() {
             </div>
             <h1 className="text-xl font-bold mb-1">Purchase Complete!</h1>
             <div className="flex items-center justify-center gap-2 mt-3 mb-1">
-              <img src={goldCoinIcon} alt="" className="w-6 h-6" />
+	              <img src={goldCoinIcon} alt="" className="w-6 h-6" loading="lazy" decoding="async" />
               <span className="text-2xl font-black text-amber-500">+{coins.toLocaleString()}</span>
             </div>
             {balance !== null && (

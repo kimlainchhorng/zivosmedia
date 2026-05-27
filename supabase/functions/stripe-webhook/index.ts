@@ -5,7 +5,7 @@
  */
 import { serve, createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import { notifyEatsOrderConfirmed, notifyEatsRefundIssued } from "../_shared/eats-notifications.ts";
 import { notifyGroceryOrderConfirmed } from "../_shared/grocery-notifications.ts";
 import { creditCreatorTipToWallet } from "../_shared/tipWalletCredit.ts";
@@ -75,6 +75,97 @@ async function upsertPurchaseRecord(
   }
 }
 
+function addMonthsUtc(date: Date, months: number) {
+  const next = new Date(date.getTime());
+  const originalDate = next.getUTCDate();
+  next.setUTCMonth(next.getUTCMonth() + months);
+  if (next.getUTCDate() < originalDate) {
+    next.setUTCDate(0);
+  }
+  return next;
+}
+
+function normalizeZivoPlusStatus(status: string | null | undefined) {
+  switch (status) {
+    case "active":
+    case "trialing":
+      return "active";
+    case "canceled":
+    case "cancelled":
+      return "cancelled";
+    case "past_due":
+    case "unpaid":
+      return "paused";
+    default:
+      return "expired";
+  }
+}
+
+async function syncZivoPlusSubscription(
+  supabase: any,
+  input: {
+    userId: string;
+    planId: string;
+    status: string;
+    billingCycle: string;
+    currentPeriodStart: string;
+    currentPeriodEnd?: string;
+    stripeSubscriptionId?: string | null;
+    extendByMonths?: number;
+  },
+) {
+  const normalizedStatus = normalizeZivoPlusStatus(input.status);
+  const now = new Date();
+  const { data: existing, error: existingError } = await supabase
+    .from("zivo_subscriptions")
+    .select("id, current_period_end")
+    .eq("user_id", input.userId)
+    .order("current_period_end", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+
+  const basePeriodEnd = existing?.current_period_end && new Date(existing.current_period_end) > now
+    ? new Date(existing.current_period_end)
+    : now;
+  const currentPeriodEnd = input.extendByMonths
+    ? addMonthsUtc(basePeriodEnd, input.extendByMonths).toISOString()
+    : input.currentPeriodEnd;
+
+  if (!currentPeriodEnd) {
+    throw new Error("current_period_end is required for ZIVO+ subscription sync");
+  }
+
+  const payload = {
+    user_id: input.userId,
+    plan_id: input.planId,
+    status: normalizedStatus,
+    billing_cycle: input.billingCycle === "yearly" ? "yearly" : "monthly",
+    current_period_start: input.currentPeriodStart,
+    current_period_end: currentPeriodEnd,
+    stripe_subscription_id: input.stripeSubscriptionId ?? null,
+    cancelled_at: normalizedStatus === "cancelled" ? now.toISOString() : null,
+  };
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from("zivo_subscriptions")
+      .update(payload)
+      .eq("id", existing.id);
+    if (error) throw error;
+    return existing.id;
+  }
+
+  const { data, error } = await supabase
+    .from("zivo_subscriptions")
+    .insert(payload)
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
 async function upsertShopPulse(
   supabase: any,
   storeId: string,
@@ -100,10 +191,13 @@ async function upsertShopPulse(
   }
 }
 
-serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(withSecurity("stripe-webhook", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+      status: 405,
+    });
   }
 
   try {
@@ -114,7 +208,9 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -326,6 +422,122 @@ serve(async (req) => {
             } catch {}
           }
           break;
+        }
+
+        if (metadata.type === "zivo_plus_gift") {
+          const recipientId = metadata.gift_recipient_id || metadata.user_id;
+          const planId = metadata.plan_id;
+          const giftMonths = Number.parseInt(metadata.gift_months || "0", 10);
+          const giftLabel = metadata.gift_duration_label || metadata.gift_duration || "premium";
+
+          if (session.payment_status !== "paid") {
+            console.log("[Webhook] ZIVO+ gift checkout not paid yet:", session.id);
+          } else if (!recipientId || !planId || !Number.isFinite(giftMonths) || giftMonths <= 0) {
+            console.error("[Webhook] ZIVO+ gift metadata missing", { session: session.id, recipientId, planId, giftMonths });
+          } else {
+            const now = new Date().toISOString();
+            try {
+              const localSubscriptionId = await syncZivoPlusSubscription(supabase, {
+                userId: recipientId,
+                planId,
+                status: "active",
+                billingCycle: metadata.billing_cycle || (giftMonths >= 12 ? "yearly" : "monthly"),
+                currentPeriodStart: now,
+                extendByMonths: giftMonths,
+              });
+              console.log("[Webhook] ZIVO+ gift activated", { recipientId, session: session.id, localSubscriptionId });
+
+              if (metadata.gift_sender_id) {
+                try {
+                  const giftCoins = giftMonths >= 12 ? 2500 : giftMonths >= 6 ? 1500 : 1000;
+                  const giftPayload = {
+                    kind: "premium_gift",
+                    gift_key: `zivo_premium_${metadata.gift_duration || `${giftMonths}_months`}`,
+                    name: `ZIVO Premium ${giftLabel}`,
+                    icon: "Premium",
+                    coins: giftCoins,
+                    total_coins: giftCoins,
+                    premium_months: giftMonths,
+                    subscription_id: localSubscriptionId,
+                    stripe_session_id: session.id,
+                  };
+                  const { data: existingGiftMessage, error: existingGiftError } = await supabase
+                    .from("direct_messages")
+                    .select("id")
+                    .eq("sender_id", metadata.gift_sender_id)
+                    .eq("receiver_id", recipientId)
+                    .eq("message_type", "gift")
+                    .contains("gift_payload", { stripe_session_id: session.id })
+                    .maybeSingle();
+
+                  if (existingGiftError) {
+                    console.warn("[Webhook] Premium gift message lookup failed", existingGiftError);
+                  } else if (!existingGiftMessage) {
+                    const { data: giftMessage, error: giftMessageError } = await supabase
+                      .from("direct_messages")
+                      .insert({
+                        sender_id: metadata.gift_sender_id,
+                        receiver_id: recipientId,
+                        message: `Gifted ${metadata.gift_recipient_name || "this chat"} ${giftLabel} of ZIVO Premium`,
+                        message_type: "gift",
+                        gift_payload: giftPayload,
+                      })
+                      .select("id")
+                      .single();
+
+                    if (giftMessageError) {
+                      console.error("[Webhook] Premium gift chat message insert failed", giftMessageError);
+                    } else {
+                      await supabase.rpc("fn_record_gift_transaction", {
+                        p_sender: metadata.gift_sender_id,
+                        p_receiver: recipientId,
+                        p_gift_key: giftPayload.gift_key,
+                        p_gift_name: giftPayload.name,
+                        p_coins: giftCoins,
+                        p_combo: 1,
+                        p_note: null,
+                        p_message_id: giftMessage.id,
+                      });
+                    }
+                  }
+                } catch (messageErr) {
+                  console.error("[Webhook] Premium gift chat message failed", messageErr);
+                }
+              }
+
+              try {
+                await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+                  body: JSON.stringify({
+                    user_id: recipientId,
+                    notification_type: "membership_gift_received",
+                    title: "ZIVO Premium gift received",
+                    body: `You received ${giftLabel} of ZIVO Premium.`,
+                    data: { type: "membership_gift_received", action_url: "/zivo-plus", subscription_id: localSubscriptionId },
+                  }),
+                });
+              } catch {}
+
+              if (metadata.gift_sender_id) {
+                try {
+                  await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+                    body: JSON.stringify({
+                      user_id: metadata.gift_sender_id,
+                      notification_type: "membership_gift_sent",
+                      title: "Premium gift sent",
+                      body: `Your ${giftLabel} ZIVO Premium gift was delivered.`,
+                      data: { type: "membership_gift_sent", recipient_id: recipientId, action_url: "/chat" },
+                    }),
+                  });
+                } catch {}
+              }
+            } catch (giftErr) {
+              console.error("[Webhook] ZIVO+ gift activation failed", giftErr);
+            }
+          }
         }
 
         if (metadata.type === "ride") {
@@ -764,6 +976,175 @@ serve(async (req) => {
               }
             }
           }
+        } else if (metadata.type === "salon_deposit") {
+          // Salon booking deposit collected at booking time. Idempotent via
+          // the booking's deposit_paid_cents > 0 short-circuit — Stripe retries
+          // the webhook on transient failures. We also save the Stripe
+          // Customer + PaymentMethod off-session so a no-show fee can later
+          // be charged via charge-salon-no-show-fee. card_brand/last4 are
+          // denormalized so the owner UI's confirm dialog can show
+          // "Visa ••4242" without an extra Stripe roundtrip.
+          const bookingId = metadata.salon_booking_id as string | undefined;
+          if (!bookingId) {
+            console.warn("[Webhook] salon_deposit missing booking id", { session: session.id });
+          } else if (session.payment_status !== "paid") {
+            console.log("[Webhook] salon_deposit session not yet paid:", session.id);
+          } else {
+            const { data: existing } = await supabase
+              .from("salon_bookings")
+              .select("id, status, deposit_paid_cents")
+              .eq("id", bookingId)
+              .maybeSingle();
+            if (!existing) {
+              console.warn("[Webhook] salon_deposit booking not found", { booking: bookingId });
+            } else if ((existing as any).deposit_paid_cents > 0) {
+              // Idempotent: already credited.
+              console.log("[Webhook] salon_deposit already credited", { booking: bookingId });
+            } else {
+              const amount = session.amount_total ?? 0;
+              const sessionPiId = typeof session.payment_intent === "string"
+                ? session.payment_intent
+                : (session.payment_intent as any)?.id ?? null;
+              const sessionCustomerId = typeof session.customer === "string"
+                ? session.customer
+                : (session.customer as any)?.id ?? null;
+
+              // Best-effort: fetch the PaymentIntent → PaymentMethod to capture
+              // the card brand/last4. Wrapped in try so a Stripe blip doesn't
+              // block the booking confirmation; the no-show flow tolerates
+              // missing card_brand (UI falls back to "card on file").
+              let paymentMethodId: string | null = null;
+              let cardBrand: string | null = null;
+              let cardLast4: string | null = null;
+              if (sessionPiId) {
+                try {
+                  const pi = await stripe.paymentIntents.retrieve(sessionPiId);
+                  paymentMethodId = typeof pi.payment_method === "string"
+                    ? pi.payment_method
+                    : (pi.payment_method as any)?.id ?? null;
+                  if (paymentMethodId) {
+                    const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+                    if (pm.card) {
+                      cardBrand = pm.card.brand ?? null;
+                      cardLast4 = pm.card.last4 ?? null;
+                    }
+                  }
+                } catch (pmErr) {
+                  console.warn("[Webhook] salon_deposit PM fetch failed (non-fatal)", pmErr);
+                }
+              }
+
+              await supabase
+                .from("salon_bookings")
+                .update({
+                  deposit_paid_cents: amount,
+                  deposit_paid_at: new Date().toISOString(),
+                  stripe_payment_intent_id: sessionPiId,
+                  stripe_customer_id: sessionCustomerId,
+                  stripe_payment_method_id: paymentMethodId,
+                  card_brand: cardBrand,
+                  card_last_four: cardLast4,
+                  status: "confirmed",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", bookingId);
+              console.log("[Webhook] salon_deposit credited", { booking: bookingId, amount, hasCard: !!paymentMethodId });
+            }
+          }
+        } else if (metadata.type === "salon_membership" && session.mode === "subscription") {
+          // Customer just subscribed to a membership tier. Stripe has now
+          // created the Customer + Subscription; persist the salon-side
+          // record so the admin sees them in the active members list and
+          // checkout can read the discount tier. Idempotent via the
+          // stripe_subscription_id partial unique index — re-fires from
+          // Stripe just UPDATE the row.
+          const subscriptionId = typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id;
+          const tierId = metadata.tier_id as string | undefined;
+          const storeId = metadata.store_id as string | undefined;
+          if (!subscriptionId || !tierId || !storeId) {
+            console.warn("[Webhook] salon_membership missing ids on checkout.completed", { session: session.id });
+          } else {
+            // Retrieve the subscription to get period bounds + status. The
+            // checkout.session payload doesn't include them inline.
+            const sub = await stripe.subscriptions.retrieve(subscriptionId);
+            const customerId = typeof session.customer === "string"
+              ? session.customer
+              : session.customer?.id ?? null;
+            const customerEmail = session.customer_details?.email
+              || (session.customer_email ?? null);
+            const customerName = session.customer_details?.name
+              || (sub.metadata?.client_name ?? null);
+
+            // Find-or-create the salon_clients row by email at this store.
+            // We don't trust customer-supplied phone here; just email +
+            // display name. The customer can later link to a hizivo user
+            // account via the existing salon_clients ↔ auth.users trigger.
+            let clientId: string | null = null;
+            if (customerEmail) {
+              const { data: existingClient } = await supabase
+                .from("salon_clients")
+                .select("id")
+                .eq("store_id", storeId)
+                .eq("email", customerEmail)
+                .maybeSingle();
+              if (existingClient) {
+                clientId = (existingClient as any).id;
+              } else {
+                const { data: newClient, error: insErr } = await supabase
+                  .from("salon_clients")
+                  .insert({
+                    store_id: storeId,
+                    display_name: customerName || customerEmail.split("@")[0] || "Member",
+                    email: customerEmail,
+                    sms_opt_in: false,
+                    email_opt_in: true,
+                    marketing_opt_in: false,
+                  } as never)
+                  .select("id")
+                  .single();
+                if (insErr) {
+                  console.error("[Webhook] salon_membership client insert failed", insErr);
+                } else {
+                  clientId = (newClient as any).id;
+                }
+              }
+            }
+
+            if (!clientId) {
+              console.warn("[Webhook] salon_membership couldn't resolve client", { session: session.id });
+            } else {
+              // Map Stripe status → our enum. Defaults to 'incomplete' so
+              // a still-in-flight subscription doesn't grant the discount.
+              const nextStatus = sub.status === "active" ? "active"
+                : sub.status === "trialing" ? "trialing"
+                : sub.status === "past_due" ? "past_due"
+                : sub.status === "canceled" ? "cancelled"
+                : sub.status === "paused" ? "paused"
+                : "incomplete";
+
+              await supabase.from("salon_client_memberships").upsert({
+                store_id: storeId,
+                client_id: clientId,
+                tier_id: tierId,
+                status: nextStatus,
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                stripe_checkout_session_id: session.id,
+                current_period_start: sub.current_period_start
+                  ? new Date(sub.current_period_start * 1000).toISOString()
+                  : null,
+                current_period_end: sub.current_period_end
+                  ? new Date(sub.current_period_end * 1000).toISOString()
+                  : null,
+                cancel_at_period_end: sub.cancel_at_period_end ?? false,
+                started_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }, { onConflict: "stripe_subscription_id" });
+              console.log("[Webhook] salon_membership created", { subscription: subscriptionId, client: clientId, tier: tierId });
+            }
+          }
         }
         // ──── Record 2% platform fee ────
         const merchantId = metadata.merchant_id || metadata.restaurant_id || metadata.store_id || null;
@@ -891,6 +1272,25 @@ serve(async (req) => {
         break;
       }
 
+      case "checkout.session.expired": {
+        // Customer abandoned the Checkout flow. Currently only the salon
+        // deposit flow cares — clear the stored session_id so a retry mints
+        // a fresh session. Other domains don't track session_id on the row.
+        const session = event.data.object as Stripe.Checkout.Session;
+        const metadata = session.metadata ?? {};
+        if (metadata.type === "salon_deposit" && metadata.salon_booking_id) {
+          await supabase
+            .from("salon_bookings")
+            .update({
+              stripe_checkout_session_id: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", metadata.salon_booking_id)
+            .eq("stripe_checkout_session_id", session.id); // only clear if still ours
+        }
+        break;
+      }
+
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log("[Webhook] Payment succeeded:", paymentIntent.id);
@@ -990,6 +1390,41 @@ serve(async (req) => {
           });
         }
 
+        // ZIVO wallet in-app top-up. The client also verifies immediately after
+        // confirmPayment; this webhook is the safety net if the app closes.
+        if (paymentIntent.metadata?.type === "user_wallet_topup") {
+          const walletUserId = paymentIntent.metadata.user_id;
+          const amountCents = Number(
+            paymentIntent.metadata.amount_cents ??
+            paymentIntent.amount_received ??
+            paymentIntent.amount ??
+            0,
+          );
+          const currency = String(paymentIntent.metadata.currency ?? paymentIntent.currency ?? "USD").toUpperCase();
+
+          if (!walletUserId || !Number.isFinite(amountCents) || amountCents <= 0) {
+            console.warn("[Webhook] user_wallet_topup missing user/amount", { pi: paymentIntent.id });
+          } else {
+            const { error: walletTopupErr } = await supabase.rpc("credit_user_wallet_topup", {
+              p_user_id: walletUserId,
+              p_amount_cents: amountCents,
+              p_currency: currency,
+              p_stripe_reference: paymentIntent.id,
+              p_description: `Stripe topup ${paymentIntent.id}`,
+            });
+
+            if (walletTopupErr) {
+              console.error("[Webhook] user_wallet_topup credit failed", walletTopupErr);
+            } else {
+              console.log("[Webhook] user_wallet_topup credited", {
+                user: walletUserId,
+                amount_cents: amountCents,
+                pi: paymentIntent.id,
+              });
+            }
+          }
+        }
+
         // Creator tip via in-app PaymentIntent (create-tip-payment-intent).
         // Without this branch the tip stays at status='pending' and the creator's
         // wallet never receives the funds — only the checkout-session flow was
@@ -1037,6 +1472,195 @@ serve(async (req) => {
                     }),
                   });
                 } catch {}
+              }
+            }
+          }
+        }
+
+        // ──── Salon no-show fee succeeded ────
+        // Mirrors the salon_deposit credit pattern. The owner triggered this
+        // charge from charge-salon-no-show-fee; the webhook finalizes the
+        // booking row + records the 2% platform fee. Idempotent via the
+        // no_show_fee_charged_cents > 0 short-circuit.
+        if (paymentIntent.metadata?.type === "salon_no_show") {
+          const noShowBookingId = paymentIntent.metadata.salon_booking_id as string | undefined;
+          if (noShowBookingId) {
+            const { data: existingNoShow } = await supabase
+              .from("salon_bookings")
+              .select("id, no_show_fee_charged_cents")
+              .eq("id", noShowBookingId)
+              .maybeSingle();
+            if (!existingNoShow) {
+              console.warn("[Webhook] salon_no_show booking not found", { booking: noShowBookingId });
+            } else if (((existingNoShow as any).no_show_fee_charged_cents ?? 0) > 0) {
+              console.log("[Webhook] salon_no_show already credited", { booking: noShowBookingId });
+            } else {
+              const amount = paymentIntent.amount_received || paymentIntent.amount || 0;
+              await supabase
+                .from("salon_bookings")
+                .update({
+                  no_show_fee_charged_cents: amount,
+                  no_show_fee_payment_intent_id: paymentIntent.id,
+                  // Clear any prior failure state — a successful retry
+                  // shouldn't leave the red "Charge failed" badge up.
+                  no_show_fee_charge_failed_at: null,
+                  no_show_fee_charge_failed_reason: null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", noShowBookingId);
+              console.log("[Webhook] salon_no_show credited", { booking: noShowBookingId, amount });
+
+              // 2% platform fee ledger (mirrors the salon_deposit pattern at
+              // checkout.session.completed). storeId comes from PI metadata.
+              const storeId = paymentIntent.metadata.store_id || null;
+              if (amount > 0) {
+                try {
+                  const feePct = 2.00;
+                  let waived = false;
+                  let waiverId: string | null = null;
+                  if (storeId) {
+                    const { data: waiver } = await supabase
+                      .from("merchant_fee_waivers")
+                      .select("id, waiver_pct")
+                      .eq("store_id", storeId)
+                      .gte("expires_at", new Date().toISOString())
+                      .lte("starts_at", new Date().toISOString())
+                      .order("waiver_pct", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    if (waiver && (waiver as any).waiver_pct >= 100) {
+                      waived = true;
+                      waiverId = (waiver as any).id;
+                    }
+                  }
+                  const feeAmountCents = waived ? 0 : Math.round(amount * feePct / 100);
+                  await supabase.from("platform_fee_ledger").insert({
+                    order_type: "salon_no_show",
+                    order_id: paymentIntent.id,
+                    merchant_id: storeId,
+                    gross_amount_cents: amount,
+                    fee_pct: waived ? 0 : feePct,
+                    fee_amount_cents: feeAmountCents,
+                    waived,
+                    waiver_id: waiverId,
+                  });
+                  if (feeAmountCents > 0) {
+                    await supabase.from("admin_wallet_ledger").upsert(
+                      {
+                        source_type: "platform_fee",
+                        source_id: paymentIntent.id,
+                        transaction_id: paymentIntent.id,
+                        amount_cents: feeAmountCents,
+                        currency: (paymentIntent.currency ?? "usd").toUpperCase(),
+                        metadata: {
+                          order_type: "salon_no_show",
+                          merchant_id: storeId,
+                          gross_amount_cents: amount,
+                          fee_pct: feePct,
+                        },
+                      },
+                      { onConflict: "transaction_id,source_type,source_id" }
+                    );
+                  }
+                } catch (feeErr) {
+                  console.error("[Webhook] salon_no_show platform fee recording failed:", feeErr);
+                }
+              }
+            }
+          }
+        }
+
+        // ──── Salon online tip succeeded ────
+        // Customer triggered this via charge-salon-tip. The edge function
+        // already credits tip_cents inline when the PI returns 'succeeded'
+        // synchronously, but Stripe may also confirm async (3DS step-up
+        // after the initial off-session attempt) — in that case the webhook
+        // is the only path that credits the tip. Idempotent via the
+        // tip_charged_at IS NULL guard.
+        if (paymentIntent.metadata?.type === "salon_tip") {
+          const tipBookingId = paymentIntent.metadata.salon_booking_id as string | undefined;
+          if (tipBookingId) {
+            const { data: existingTip } = await supabase
+              .from("salon_bookings")
+              .select("id, tip_cents, tip_charged_at")
+              .eq("id", tipBookingId)
+              .maybeSingle();
+            if (!existingTip) {
+              console.warn("[Webhook] salon_tip booking not found", { booking: tipBookingId });
+            } else if ((existingTip as any).tip_charged_at) {
+              console.log("[Webhook] salon_tip already credited", { booking: tipBookingId });
+            } else {
+              const amount = paymentIntent.amount_received || paymentIntent.amount || 0;
+              const priorTip = Number((existingTip as any).tip_cents ?? 0) || 0;
+              await supabase
+                .from("salon_bookings")
+                .update({
+                  tip_cents: priorTip + amount,
+                  tip_charged_at: new Date().toISOString(),
+                  tip_stripe_payment_intent_id: paymentIntent.id,
+                  // Clear any prior failure state — a successful retry
+                  // shouldn't leave a red "Tip charge failed" badge up.
+                  tip_charge_failed_at: null,
+                  tip_charge_failed_reason: null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", tipBookingId);
+              console.log("[Webhook] salon_tip credited", { booking: tipBookingId, amount });
+
+              // 2% platform fee ledger — mirrors the no-show / deposit pattern.
+              const storeId = paymentIntent.metadata.store_id || null;
+              if (amount > 0) {
+                try {
+                  const feePct = 2.00;
+                  let waived = false;
+                  let waiverId: string | null = null;
+                  if (storeId) {
+                    const { data: waiver } = await supabase
+                      .from("merchant_fee_waivers")
+                      .select("id, waiver_pct")
+                      .eq("store_id", storeId)
+                      .gte("expires_at", new Date().toISOString())
+                      .lte("starts_at", new Date().toISOString())
+                      .order("waiver_pct", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    if (waiver && (waiver as any).waiver_pct >= 100) {
+                      waived = true;
+                      waiverId = (waiver as any).id;
+                    }
+                  }
+                  const feeAmountCents = waived ? 0 : Math.round(amount * feePct / 100);
+                  await supabase.from("platform_fee_ledger").insert({
+                    order_type: "salon_tip",
+                    order_id: paymentIntent.id,
+                    merchant_id: storeId,
+                    gross_amount_cents: amount,
+                    fee_pct: waived ? 0 : feePct,
+                    fee_amount_cents: feeAmountCents,
+                    waived,
+                    waiver_id: waiverId,
+                  });
+                  if (feeAmountCents > 0) {
+                    await supabase.from("admin_wallet_ledger").upsert(
+                      {
+                        source_type: "platform_fee",
+                        source_id: paymentIntent.id,
+                        transaction_id: paymentIntent.id,
+                        amount_cents: feeAmountCents,
+                        currency: (paymentIntent.currency ?? "usd").toUpperCase(),
+                        metadata: {
+                          order_type: "salon_tip",
+                          merchant_id: storeId,
+                          gross_amount_cents: amount,
+                          fee_pct: feePct,
+                        },
+                      },
+                      { onConflict: "transaction_id,source_type,source_id" }
+                    );
+                  }
+                } catch (feeErr) {
+                  console.error("[Webhook] salon_tip platform fee recording failed:", feeErr);
+                }
               }
             }
           }
@@ -1098,6 +1722,52 @@ serve(async (req) => {
             message: `Payment failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
             severity: 'high',
           });
+        }
+
+        // ──── Salon no-show fee failed (e.g., card declined off-session) ────
+        // The edge function persists the same fields synchronously on a
+        // catch — the webhook is the async safety net for cases where the
+        // PI authorization succeeded then later flipped to requires_action
+        // / requires_payment_method.
+        if (paymentIntent.metadata?.type === "salon_no_show") {
+          const noShowBookingId = paymentIntent.metadata.salon_booking_id as string | undefined;
+          if (noShowBookingId) {
+            const reason = paymentIntent.last_payment_error?.message
+              || paymentIntent.last_payment_error?.code
+              || "unknown";
+            await supabase
+              .from("salon_bookings")
+              .update({
+                no_show_fee_charge_failed_at: new Date().toISOString(),
+                no_show_fee_charge_failed_reason: reason,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", noShowBookingId);
+            console.log("[Webhook] salon_no_show charge failed", { booking: noShowBookingId, reason });
+          }
+        }
+
+        // ──── Salon online tip failed (e.g., card declined off-session) ────
+        // The charge-salon-tip edge function persists the failure synchronously
+        // on a catch — this is the async safety net for cases where the PI
+        // authorization succeeded then later flipped to requires_action /
+        // requires_payment_method.
+        if (paymentIntent.metadata?.type === "salon_tip") {
+          const tipBookingId = paymentIntent.metadata.salon_booking_id as string | undefined;
+          if (tipBookingId) {
+            const reason = paymentIntent.last_payment_error?.message
+              || paymentIntent.last_payment_error?.code
+              || "unknown";
+            await supabase
+              .from("salon_bookings")
+              .update({
+                tip_charge_failed_at: new Date().toISOString(),
+                tip_charge_failed_reason: reason,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", tipBookingId);
+            console.log("[Webhook] salon_tip charge failed", { booking: tipBookingId, reason });
+          }
         }
         break;
       }
@@ -1182,6 +1852,31 @@ serve(async (req) => {
               metadata: { refund_id: charge.refunds?.data?.[0]?.id },
             });
           }
+
+          // Salon booking deposit refunds — the owner can refund the deposit
+          // manually from Stripe's dashboard; our DB stays in sync via this
+          // webhook. amount_refunded is the cumulative refund across all
+          // refund events on the charge, so we always overwrite (not increment).
+          await supabase
+            .from("salon_bookings")
+            .update({
+              deposit_refunded_cents: charge.amount_refunded,
+              deposit_refunded_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("stripe_payment_intent_id", paymentIntentId);
+
+          // Salon no-show fee refunds — same pattern, different column. The
+          // no-show charge lives on a separate PI (created off-session by
+          // charge-salon-no-show-fee) so we key off no_show_fee_payment_intent_id.
+          await supabase
+            .from("salon_bookings")
+            .update({
+              no_show_fee_refunded_cents: charge.amount_refunded,
+              no_show_fee_refunded_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("no_show_fee_payment_intent_id", paymentIntentId);
         }
         break;
       }
@@ -1375,23 +2070,19 @@ serve(async (req) => {
         // Only handle membership subscriptions
         if (metadata.type === "membership" && metadata.user_id && metadata.plan_id) {
           console.log("[Webhook] Membership subscription event:", event.type, "Sub:", subscription.id);
-          
-          const subscriptionData = {
-            user_id: metadata.user_id,
-            plan_id: metadata.plan_id,
-            status: subscription.status,
-            stripe_subscription_id: subscription.id,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          };
 
-          // Upsert subscription record
-          const { error: upsertError } = await supabase
-            .from("zivo_subscriptions")
-            .upsert(subscriptionData, { onConflict: "user_id" });
-
-          if (upsertError) {
-            console.error("[Webhook] Error upserting membership:", upsertError);
-          } else {
+          try {
+            const currentPeriodStart = (subscription as any).current_period_start ?? subscription.start_date;
+            const currentPeriodEnd = (subscription as any).current_period_end ?? (subscription as any).items?.data?.[0]?.current_period_end;
+            await syncZivoPlusSubscription(supabase, {
+              userId: metadata.user_id,
+              planId: metadata.plan_id,
+              status: subscription.status,
+              billingCycle: metadata.billing_cycle || (metadata.plan === "annual" ? "yearly" : "monthly"),
+              currentPeriodStart: new Date(currentPeriodStart * 1000).toISOString(),
+              currentPeriodEnd: new Date(currentPeriodEnd * 1000).toISOString(),
+              stripeSubscriptionId: subscription.id,
+            });
             console.log("[Webhook] Membership subscription synced:", metadata.user_id, "Status:", subscription.status);
             // Notify user: ZIVO+ activated
             if (subscription.status === "active") {
@@ -1403,6 +2094,42 @@ serve(async (req) => {
                 });
               } catch {}
             }
+          } catch (upsertError) {
+            console.error("[Webhook] Error syncing membership:", upsertError);
+          }
+        }
+
+        // ──── Salon membership subscription update ────
+        // The checkout.session.completed handler creates the
+        // salon_client_memberships row; this lifecycle event keeps status +
+        // period bounds in sync as the subscription lives through trial →
+        // active → past_due → cancel.
+        if (metadata.type === "salon_membership") {
+          const nextStatus = subscription.status === "active" ? "active"
+            : subscription.status === "trialing" ? "trialing"
+            : subscription.status === "past_due" ? "past_due"
+            : subscription.status === "canceled" ? "cancelled"
+            : subscription.status === "paused" ? "paused"
+            : "incomplete";
+
+          const { error: salonSubErr } = await supabase
+            .from("salon_client_memberships")
+            .update({
+              status: nextStatus,
+              current_period_start: (subscription as any).current_period_start
+                ? new Date((subscription as any).current_period_start * 1000).toISOString()
+                : null,
+              current_period_end: (subscription as any).current_period_end
+                ? new Date((subscription as any).current_period_end * 1000).toISOString()
+                : null,
+              cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("stripe_subscription_id", subscription.id);
+          if (salonSubErr) {
+            console.error("[Webhook] salon_membership update failed", salonSubErr);
+          } else {
+            console.log("[Webhook] salon_membership synced", { sub: subscription.id, status: nextStatus });
           }
         }
         break;
@@ -1444,10 +2171,10 @@ serve(async (req) => {
 
         if (metadata.type === "membership") {
           console.log("[Webhook] Membership subscription deleted:", subscription.id);
-          
+
           const { error: updateError } = await supabase
             .from("zivo_subscriptions")
-            .update({ 
+            .update({
               status: "cancelled",
               cancelled_at: new Date().toISOString(),
             })
@@ -1466,6 +2193,27 @@ serve(async (req) => {
                 });
               } catch {}
             }
+          }
+        }
+
+        // ──── Salon membership cancellation ────
+        if (metadata.type === "salon_membership") {
+          const cancelledAt = subscription.canceled_at
+            ? new Date(subscription.canceled_at * 1000).toISOString()
+            : new Date().toISOString();
+          const { error: salonCancelErr } = await supabase
+            .from("salon_client_memberships")
+            .update({
+              status: "cancelled",
+              cancelled_at: cancelledAt,
+              cancel_at_period_end: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("stripe_subscription_id", subscription.id);
+          if (salonCancelErr) {
+            console.error("[Webhook] salon_membership cancel failed", salonCancelErr);
+          } else {
+            console.log("[Webhook] salon_membership cancelled", subscription.id);
           }
         }
         break;
@@ -1607,6 +2355,69 @@ serve(async (req) => {
         break;
       }
 
+      case "account.updated": {
+        // Stripe sends this whenever a connected Express/Standard/Custom
+        // account's onboarding state changes — payouts enable, requirements
+        // become due, capabilities flip, etc. We only act on accounts our
+        // connect-onboard-stylist function created (metadata.source set).
+        const account = event.data.object as Stripe.Account;
+        const source = (account.metadata?.source as string | undefined) ?? "";
+        const stylistId = (account.metadata?.stylist_id as string | undefined) ?? "";
+
+        if (source !== "salon_stylist" || !stylistId) {
+          // Other connect flows (creator wallets, owner accounts) update their
+          // own state via stripe_connect_accounts elsewhere. This handler is
+          // intentionally scoped to stylist accounts only.
+          console.log("[Webhook] account.updated — not a salon_stylist account", {
+            account: account.id,
+            source,
+          });
+          break;
+        }
+
+        const detailsSubmitted = account.details_submitted ?? false;
+        const chargesEnabled = account.charges_enabled ?? false;
+        const payoutsEnabled = account.payouts_enabled ?? false;
+        const disabledReason = account.requirements?.disabled_reason ?? null;
+
+        // Status precedence:
+        //   - disabled_reason set → restricted (Stripe blocked them)
+        //   - payouts_enabled === true → active (good state)
+        //   - details_submitted === false → pending (still onboarding)
+        //   - otherwise → pending (submitted but Stripe still reviewing)
+        let nextStatus: "pending" | "active" | "restricted" = "pending";
+        if (disabledReason) {
+          nextStatus = "restricted";
+        } else if (payoutsEnabled) {
+          nextStatus = "active";
+        }
+
+        const { error: upErr } = await supabase
+          .from("salon_stylists")
+          .update({
+            stripe_connect_status: nextStatus,
+            stripe_connect_charges_enabled: chargesEnabled,
+            stripe_connect_payouts_enabled: payoutsEnabled,
+            stripe_connect_details_submitted: detailsSubmitted,
+            stripe_connect_updated_at: new Date().toISOString(),
+          })
+          .eq("id", stylistId)
+          .eq("stripe_connect_account_id", account.id);
+
+        if (upErr) {
+          console.error("[Webhook] account.updated — stylist update failed", upErr);
+        } else {
+          console.log("[Webhook] stylist Stripe Connect updated", {
+            stylist: stylistId,
+            account: account.id,
+            status: nextStatus,
+            payouts: payoutsEnabled,
+            disabled: disabledReason,
+          });
+        }
+        break;
+      }
+
       default:
         console.log("[Webhook] Unhandled event type:", event.type);
     }
@@ -1623,4 +2434,4 @@ serve(async (req) => {
       status: 500,
     });
   }
-});
+}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

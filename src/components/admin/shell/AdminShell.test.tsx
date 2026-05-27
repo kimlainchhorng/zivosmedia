@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LayoutDashboard, Package } from "lucide-react";
 import { AdminShell } from "./AdminShell";
 import type { NavConfig } from "./nav/types";
@@ -19,14 +20,23 @@ const testNav: NavConfig = {
 };
 
 function renderShell(initialPath = "/test/dashboard") {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <AdminShell vertical="restaurant" nav={testNav} title="Test Shell">
-          <div data-testid="page-content">Hello content</div>
-        </AdminShell>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={queryClient}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <AdminShell vertical="restaurant" nav={testNav} title="Test Shell">
+            <div data-testid="page-content">Hello content</div>
+          </AdminShell>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 

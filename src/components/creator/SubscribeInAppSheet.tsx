@@ -60,6 +60,7 @@ function SubscribeForm({ creatorId, creatorName, tier, onClose }: Omit<Props, "o
       if (data?.error) throw new Error(data.error);
       const clientSecret: string | null = data?.client_secret ?? null;
       if (!clientSecret) throw new Error("Missing client secret");
+      const mode: "payment" | "subscription" = data?.mode === "subscription" ? "subscription" : "payment";
 
       const { error: stripeErr, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: { card },
@@ -73,15 +74,26 @@ function SubscribeForm({ creatorId, creatorName, tier, onClose }: Omit<Props, "o
         return;
       }
 
-      // Record the subscription in our DB so the visitor preview reflects it.
-      await (supabase as any).from("creator_subscriptions").insert({
-        creator_id: creatorId,
-        subscriber_id: user.id,
-        tier_id: tier.id,
-        status: "active",
-        price_cents: tier.price_cents,
-        stripe_subscription_id: data?.subscription_id ?? null,
-      });
+      // Recording the row goes through confirm-tier-subscription, which
+      // re-fetches the PaymentIntent / Subscription from Stripe to verify
+      // status server-side before writing via service_role. The client-side
+      // INSERT path no longer works — cs_ins is now restricted to free tiers
+      // (see migration 20260528000010).
+      const { data: confirmData, error: confirmErr } = await supabase.functions.invoke(
+        "confirm-tier-subscription",
+        {
+          body: {
+            mode,
+            tier_id: tier.id,
+            creator_id: creatorId,
+            ...(mode === "subscription"
+              ? { subscription_id: data?.subscription_id ?? null }
+              : { payment_intent_id: data?.payment_intent_id ?? paymentIntent?.id ?? null }),
+          },
+        },
+      );
+      if (confirmErr) throw confirmErr;
+      if (confirmData?.error) throw new Error(confirmData.error);
 
       setDone(true);
       toast.success(`Subscribed to ${creatorName}!`);
@@ -206,7 +218,7 @@ export default function SubscribeInAppSheet({ open, onClose, creatorId, creatorN
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-background rounded-t-3xl pb-[calc(2rem+env(safe-area-inset-bottom,0px))] max-h-[90dvh] overflow-y-auto"
+            className="w-full max-w-md bg-background rounded-t-3xl pb-[calc(2rem+var(--zivo-safe-bottom,0px))] max-h-[90dvh] overflow-y-auto"
           >
             <div className="flex justify-center py-3 sticky top-0 bg-background z-10">
               <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />

@@ -1,16 +1,18 @@
 import { createClient } from "../_shared/deps.ts";
 import { scanContentForLinks, logBlockedAttempt, isAbuseThresholdExceeded, isIpAbuseThresholdExceeded, getRequestIpHash } from "../_shared/contentLinkValidation.ts";
 import { isLikelyMaliciousBot } from "../_shared/botDetection.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const VALID_CATEGORIES = new Set(["overcharge", "no_service", "safety", "other"]);
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("submit-refund-request", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
+  }
 
   try {
     if (isLikelyMaliciousBot(req.headers)) {
@@ -41,7 +43,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "requested_amount_cents must be positive" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     const ipHash = await getRequestIpHash(req);
     if (await isIpAbuseThresholdExceeded(admin, ipHash)) {
@@ -72,7 +74,7 @@ Deno.serve(async (req) => {
     // Validate ride: completed, owned by user, within 30 days
     const { data: ride, error: rideErr } = await admin
       .from("ride_requests")
-      .select("id, user_id, status, captured_amount_cents, payment_amount, completed_at, created_at, payment_status")
+      .select("id, user_id, status, captured_amount_cents, payment_amount, payment_currency, payment_intent_id, stripe_payment_intent_id, completed_at, created_at, payment_status")
       .eq("id", ride_request_id)
       .maybeSingle();
 
@@ -84,6 +86,11 @@ Deno.serve(async (req) => {
     }
     if (ride.status !== "completed") {
       return new Response(JSON.stringify({ error: "ride not completed" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const currency = String((ride as any).payment_currency || "USD").toUpperCase();
+    const paymentIntentId = (ride as any).payment_intent_id || (ride as any).stripe_payment_intent_id;
+    if (currency !== "USD" || ride.payment_status === "bakong_paid" || !paymentIntentId) {
+      return new Response(JSON.stringify({ error: "card payment required for automated refunds" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const completedAt = ride.completed_at ? new Date(ride.completed_at as string) : new Date(ride.created_at as string);
     const daysSince = (Date.now() - completedAt.getTime()) / 86_400_000;
@@ -149,4 +156,4 @@ Deno.serve(async (req) => {
     console.error("[submit-refund-request]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));

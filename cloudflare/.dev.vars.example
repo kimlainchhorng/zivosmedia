@@ -1,0 +1,2 @@
+MEDIA_WRITE_TOKEN=replace-with-a-long-random-token
+ALLOWED_ORIGINS=http://localhost:8787,http://localhost:8081,https://zivollc.com,https://www.zivollc.com,https://app.zivollc.com,https://preview.zivollc.com,https://zivo-web.myzivo.workers.dev

@@ -3,7 +3,7 @@
  * Organic layout, aurora mesh, emerald identity
  * Creator types: "content" (general) | "of" (18+ adult / OnlyFans-style)
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,38 +18,28 @@ import {
   ChevronDown, RefreshCw, AlertTriangle,
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import SEOHead from "@/components/SEOHead";
 import CreatorTipsLedger from "@/components/creator/CreatorTipsLedger";
 import { VerifyIdentityButton } from "@/components/creator/VerifyIdentityButton";
+import CreatorTypePicker from "@/components/creator/CreatorTypePicker";
 import { cn } from "@/lib/utils";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
-
-// ─── Creator type persistence ─────────────────────────────────────────────────
-const CREATOR_TYPE_KEY = "zivo:creator_type";
-type CreatorType = "content" | "of" | null;
-
-function getStoredCreatorType(): CreatorType {
-  try { return (localStorage.getItem(CREATOR_TYPE_KEY) as CreatorType) ?? null; }
-  catch { return null; }
-}
-function setStoredCreatorType(t: CreatorType) {
-  try { if (t) localStorage.setItem(CREATOR_TYPE_KEY, t); else localStorage.removeItem(CREATOR_TYPE_KEY); }
-  catch { /* ignore */ }
-}
+import { useCreatorType } from "@/hooks/useCreatorType";
 
 export default function CreatorDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { totals: liveEarnings } = useLiveEarnings();
-  const { setOFMode } = useZivoOFMode();
+  const { creatorType, needsSelection } = useCreatorType();
 
-  // Creator type state
-  const [creatorType, setCreatorType] = useState<CreatorType>(getStoredCreatorType);
-  const [showTypePicker, setShowTypePicker] = useState<boolean>(creatorType === null);
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [pendingType, setPendingType] = useState<"content" | "of" | null>(null);
+  const [showTypePicker, setShowTypePicker] = useState(false);
+
+  // First-time creators: route through the richer welcome page instead of
+  // showing the modal cold. Returning users can still tap the badge to switch.
+  useEffect(() => {
+    if (needsSelection) navigate("/creator/welcome", { replace: true });
+  }, [needsSelection, navigate]);
 
   const { data: creator } = useQuery({
     queryKey: ["creator-profile", user?.id],
@@ -127,40 +117,51 @@ export default function CreatorDashboardPage() {
     enabled: !!user,
   });
 
+  // PPV revenue: sum of revenue_cents across this creator's posts.
+  const { data: ppvRevenueCents = 0 } = useQuery({
+    queryKey: ["creator-ppv-revenue", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { data } = await (supabase as any)
+        .from("ppv_posts")
+        .select("revenue_cents")
+        .eq("creator_id", user.id);
+      return ((data as any[]) || []).reduce((s: number, p: any) => s + (p.revenue_cents ?? 0), 0);
+    },
+    enabled: !!user,
+  });
+
+  // Paid DM revenue: sum of amount_cents_paid across unlocks where this user
+  // is the creator (i.e. fans paid to read their messages).
+  const { data: dmRevenueCents = 0 } = useQuery({
+    queryKey: ["creator-dm-revenue", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { data } = await (supabase as any)
+        .from("direct_message_unlocks")
+        .select("amount_cents_paid")
+        .eq("creator_id", user.id);
+      return ((data as any[]) || []).reduce((s: number, r: any) => s + (r.amount_cents_paid ?? 0), 0);
+    },
+    enabled: !!user,
+  });
+
   const totalTips = tips.reduce((sum: number, t: any) => sum + (t.amount_cents || 0), 0);
   const liveEarningsCents = liveEarnings?.earnings_cents ?? 0;
   const liveCoins = liveEarnings?.total_coins_received ?? 0;
-  const totalEarnings = (creator?.total_earnings_cents || 0) + totalTips + liveEarningsCents;
-
-  // ─── Apply creator type ───────────────────────────────────────────────────
-  const applyCreatorType = async (type: "content" | "of") => {
-    setStoredCreatorType(type);
-    setCreatorType(type);
-    setShowTypePicker(false);
-    setPendingType(null);
-    setAgeConfirmed(false);
-    // OF mode: enable ZIVO OF mode globally
-    if (type === "of") setOFMode(true);
-    else setOFMode(false);
-    // Persist OF status to Supabase so discovery/search can filter this profile
-    if (user) {
-      await (supabase as any)
-        .from("profiles")
-        .update({ is_of_creator: type === "of" })
-        .eq("user_id", user.id);
-    }
-  };
+  const unlockRevenueCents = ppvRevenueCents + dmRevenueCents;
+  const totalEarnings = (creator?.total_earnings_cents || 0) + totalTips + liveEarningsCents + unlockRevenueCents;
 
   // ─── OF-specific quick actions ────────────────────────────────────────────
   const ofQuickActions = [
-    { label: "Exclusive Content", icon: Lock, href: "/digital-products", accent: "hsl(340 75% 55%)" },
+    { label: "Create PPV", icon: Lock, href: "/ppv/create", accent: "hsl(340 75% 55%)" },
+    { label: "PPV Inbox", icon: Flame, href: "/ppv", accent: "hsl(0 84% 60%)" },
     { label: "Subscriptions", icon: Crown, href: "/monetization", accent: "hsl(38 92% 50%)" },
-    { label: "Tips & PPV", icon: Heart, href: "/monetization#tips", accent: "hsl(0 84% 60%)" },
-    { label: "Gallery", icon: ImagePlus, href: "/digital-products", accent: "hsl(263 70% 58%)" },
+    { label: "Exclusive Content", icon: ImagePlus, href: "/digital-products", accent: "hsl(263 70% 58%)" },
     { label: "DM Requests", icon: MessageSquare, href: "/chat", accent: "hsl(199 89% 48%)" },
-    { label: "Promotions", icon: Flame, href: "/affiliate-hub", accent: "hsl(25 95% 53%)" },
     { label: "Analytics", icon: BarChart3, href: "/creator-analytics", accent: "hsl(172 66% 50%)" },
     { label: "Wallet", icon: Wallet, href: "/wallet", accent: "hsl(142 71% 45%)" },
+    { label: "Promotions", icon: Heart, href: "/affiliate-hub", accent: "hsl(25 95% 53%)" },
     { label: "Share Profile", icon: Share2, href: "/qr-profile", accent: "hsl(221 83% 53%)" },
   ];
 
@@ -170,7 +171,8 @@ export default function CreatorDashboardPage() {
     { label: "Verify your identity (18+)", desc: "Required for adult content payouts", icon: ShieldCheck, href: "/account/verification", done: !!creator?.is_verified, accent: "hsl(340 75% 55%)" },
     { label: "Add payout method", desc: "Bank, PayPal or Wallet", icon: CreditCard, href: "/creator/setup?step=payout", done: !!creator?.payout_method, accent: "hsl(38 92% 50%)" },
     { label: "Create subscriber tiers", desc: "Free / paid / premium", icon: Crown, href: "/monetization", done: tiers.length > 0, accent: "hsl(0 84% 60%)" },
-    { label: "Enable tips & PPV", desc: "Sell exclusive content & messages", icon: Heart, href: "/monetization#tips", done: !!creator?.tips_enabled, accent: "hsl(25 95% 53%)" },
+    { label: "Enable tips", desc: "Let fans support you", icon: Heart, href: "/monetization#tips", done: !!creator?.tips_enabled, accent: "hsl(25 95% 53%)" },
+    { label: "Drop your first PPV", desc: "Lock content behind a one-time price", icon: Lock, href: "/ppv/create", done: false, accent: "hsl(340 75% 55%)" },
     { label: "Set your OnlyFans link", desc: "Add your OF link in profile", icon: Flame, href: "/account/profile-edit", done: !!(creator as any)?.social_onlyfans, accent: "hsl(0 84% 60%)" },
   ];
 
@@ -190,7 +192,7 @@ export default function CreatorDashboardPage() {
     { label: "Tips Income", value: `$${(totalTips / 100).toFixed(2)}`, icon: Heart, accent: "hsl(0 84% 60%)" },
     { label: "Live Gifts", value: `$${(liveEarningsCents / 100).toFixed(2)}`, icon: Gift, accent: "hsl(25 95% 53%)" },
     { label: "Sub Tiers", value: String(tiers.length), icon: Crown, accent: "hsl(38 92% 50%)" },
-    { label: "PPV / DMs", value: "—", icon: Lock, accent: "hsl(263 70% 58%)" },
+    { label: "PPV / DMs", value: `$${(unlockRevenueCents / 100).toFixed(2)}`, icon: Lock, accent: "hsl(263 70% 58%)" },
   ];
 
   const quickActions = [
@@ -260,154 +262,12 @@ export default function CreatorDashboardPage() {
     <div className="min-h-dvh bg-background pb-24">
       <SEOHead title="Creator Dashboard – ZIVO" description="Manage your creator earnings, subscribers, and content on ZIVO." noIndex />
 
-      {/* ── Creator Type Picker Modal ─────────────────────────────────────── */}
-      <AnimatePresence>
-        {showTypePicker && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center px-5"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 16 }}
-              transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="w-full max-w-sm flex flex-col gap-5"
-            >
-              {/* Title */}
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <Sparkles className="h-7 w-7 text-primary" />
-                </div>
-                <h2 className="text-[22px] font-extrabold tracking-tight">Choose your creator type</h2>
-                <p className="text-[13px] text-muted-foreground mt-1">
-                  Pick the workflow that matches how you create. You can switch anytime.
-                </p>
-              </div>
-
-              {/* Content Creator card */}
-              <button
-                type="button"
-                onClick={() => { setPendingType("content"); setAgeConfirmed(false); }}
-                className={cn(
-                  "w-full text-left rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
-                  pendingType === "content"
-                    ? "border-primary bg-primary/8"
-                    : "border-border/50 bg-card hover:border-primary/40 hover:bg-primary/4"
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Video className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-extrabold text-[15px]">Content Creator</p>
-                      {pendingType === "content" && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
-                    </div>
-                    <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
-                      Videos, posts, live streams, affiliate links, digital products & subscriptions. Open to all ages.
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {["Posts & Reels", "Live", "Subscriptions", "Shop", "Affiliates"].map((t) => (
-                        <span key={t} className="text-[10px] font-semibold bg-muted/60 rounded-full px-2 py-0.5">{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </button>
-
-              {/* OF Creator card */}
-              <button
-                type="button"
-                onClick={() => { setPendingType("of"); setAgeConfirmed(false); }}
-                className={cn(
-                  "w-full text-left rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
-                  pendingType === "of"
-                    ? "border-rose-500 bg-rose-500/8"
-                    : "border-border/50 bg-card hover:border-rose-500/40 hover:bg-rose-500/4"
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="h-11 w-11 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
-                    <Flame className="h-5 w-5 text-rose-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-extrabold text-[15px]">OF Creator</p>
-                      <span className="text-[9px] font-extrabold bg-rose-500/15 text-rose-500 rounded-full px-2 py-0.5 uppercase tracking-wide">18+</span>
-                      {pendingType === "of" && <CheckCircle2 className="h-4 w-4 text-rose-500 shrink-0" />}
-                    </div>
-                    <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
-                      OnlyFans-style workflow — exclusive paid content, PPV, tips, DMs and subscriber tiers. Adults only.
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {["Exclusive Content", "PPV", "Paid DMs", "Tips", "Subscriber Tiers"].map((t) => (
-                        <span key={t} className="text-[10px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full px-2 py-0.5">{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 18+ age confirmation — only shown when OF is selected */}
-                <AnimatePresence>
-                  {pendingType === "of" && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mt-3 pt-3 border-t border-rose-500/20">
-                        <label className="flex items-start gap-2.5 cursor-pointer">
-                          <div
-                            onClick={(e) => { e.stopPropagation(); setAgeConfirmed((v) => !v); }}
-                            className={cn(
-                              "mt-0.5 h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
-                              ageConfirmed ? "bg-rose-500 border-rose-500" : "border-border"
-                            )}
-                          >
-                            {ageConfirmed && <CheckCircle2 className="h-3 w-3 text-white" />}
-                          </div>
-                          <span className="text-[12px] text-muted-foreground leading-relaxed" onClick={(e) => { e.stopPropagation(); setAgeConfirmed((v) => !v); }}>
-                            I confirm I am 18 years of age or older and agree to ZIVO's adult content terms.
-                          </span>
-                        </label>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </button>
-
-              {/* Apply button */}
-              <button
-                type="button"
-                disabled={!pendingType || (pendingType === "of" && !ageConfirmed)}
-                onClick={() => pendingType && applyCreatorType(pendingType)}
-                className={cn(
-                  "w-full h-13 rounded-2xl font-extrabold text-[15px] transition-all active:scale-[0.98]",
-                  pendingType === "of" && ageConfirmed
-                    ? "bg-rose-500 text-white hover:bg-rose-600"
-                    : pendingType === "content"
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-muted/50 text-muted-foreground cursor-not-allowed"
-                )}
-              >
-                {pendingType === "of" ? "Apply OF Creator Workflow" : pendingType === "content" ? "Apply Content Creator" : "Select a creator type"}
-              </button>
-
-              {/* Skip — only show if user already has a type set */}
-              {creatorType && (
-                <button type="button" onClick={() => setShowTypePicker(false)} className="text-center text-[13px] text-muted-foreground hover:text-foreground">
-                  Cancel
-                </button>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Creator type picker — initial selection + switcher */}
+      <CreatorTypePicker
+        open={showTypePicker}
+        onClose={() => setShowTypePicker(false)}
+        canSkip={!!creatorType}
+      />
 
       {/* Header with ZIVO ribbon */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30 zivo-ribbon">
@@ -419,7 +279,7 @@ export default function CreatorDashboardPage() {
           {/* Creator type badge — tap to switch */}
           <button
             type="button"
-            onClick={() => { setPendingType(creatorType); setAgeConfirmed(false); setShowTypePicker(true); }}
+            onClick={() => setShowTypePicker(true)}
             className={cn(
               "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide border transition-colors",
               creatorType === "of"
@@ -446,7 +306,7 @@ export default function CreatorDashboardPage() {
           </p>
           <button
             type="button"
-            onClick={() => { setPendingType(null); setAgeConfirmed(false); setShowTypePicker(true); }}
+            onClick={() => setShowTypePicker(true)}
             className="text-[10px] font-bold text-rose-500 hover:underline shrink-0"
           >
             Change
@@ -474,10 +334,15 @@ export default function CreatorDashboardPage() {
 
           {/* OF earnings breakdown strip */}
           {creatorType === "of" && (
-            <div className="flex justify-center gap-4 mt-3 pt-3 border-t border-border/20">
+            <div className="flex justify-center gap-3 mt-3 pt-3 border-t border-border/20 flex-wrap">
               <div className="text-center">
                 <p className="text-[13px] font-extrabold text-rose-500">${(totalTips / 100).toFixed(2)}</p>
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Tips</p>
+              </div>
+              <div className="w-px bg-border/30" />
+              <div className="text-center">
+                <p className="text-[13px] font-extrabold text-violet-500">${(unlockRevenueCents / 100).toFixed(2)}</p>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">PPV/DM</p>
               </div>
               <div className="w-px bg-border/30" />
               <div className="text-center">
@@ -487,7 +352,7 @@ export default function CreatorDashboardPage() {
               <div className="w-px bg-border/30" />
               <div className="text-center">
                 <p className="text-[13px] font-extrabold text-amber-500">{subscribers.length}</p>
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Subscribers</p>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Subs</p>
               </div>
             </div>
           )}

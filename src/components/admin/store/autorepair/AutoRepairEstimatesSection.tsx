@@ -1,7 +1,7 @@
 /**
  * Auto Repair — Estimates & Quotes
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
+import ServiceCatalogPickerDialog from "./ServiceCatalogPickerDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 
 interface Props { storeId: string }
@@ -51,6 +52,27 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
   const [form, setForm] = useState(blankForm);
   const [items, setItems] = useState<LineItem[]>([blankItem()]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("ar_estimate_prefill");
+    if (!raw) return;
+    try {
+      const p = JSON.parse(raw);
+      setForm({
+        ...blankForm,
+        customer_name: p.customer_name ?? "",
+        customer_phone: p.customer_phone ?? "",
+        customer_email: p.customer_email ?? "",
+        vehicle_label: p.vehicle_label ?? "",
+        notes: p.notes ?? "",
+      });
+      if (Array.isArray(p.line_items) && p.line_items.length > 0) setItems(p.line_items);
+      else setItems([blankItem()]);
+      setEditId(null);
+      setOpen(true);
+    } catch { /* ignore */ }
+    sessionStorage.removeItem("ar_estimate_prefill");
+  }, []);
 
   const { data: estimates = [], isLoading } = useQuery({
     queryKey: ["ar-estimates", storeId],
@@ -189,6 +211,7 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
 
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
 
   const sendToCustomer = async (est: any) => {
     setSendingId(est.id);
@@ -420,6 +443,20 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
         }}
       />
 
+      <ServiceCatalogPickerDialog
+        open={catalogOpen}
+        onOpenChange={setCatalogOpen}
+        storeId={storeId}
+        title="Price Book — add to estimate"
+        onPick={(lines, service) => {
+          setItems((arr) => {
+            const onlyBlank = arr.length === 1 && !arr[0].name && !arr[0].unit_cents;
+            return onlyBlank ? lines : [...arr, ...lines];
+          });
+          toast.success(`Added "${service.name}" — ${lines.length} line item${lines.length === 1 ? "" : "s"}`);
+        }}
+      />
+
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -486,14 +523,18 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
                   </div>
                 ))}
               </div>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex gap-2 flex-wrap">
                 <Button size="sm" variant="outline"
                   onClick={() => setItems((a) => [...a, blankItem()])}>
                   <Plus className="w-3 h-3 mr-1" /> Add line
                 </Button>
                 <Button size="sm" variant="outline" className="gap-1 text-primary border-primary/30 hover:bg-primary/5"
+                  onClick={() => setCatalogOpen(true)}>
+                  <BookOpen className="w-3 h-3" /> From Price Book
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1 text-muted-foreground"
                   onClick={() => setGuideOpen(true)}>
-                  <BookOpen className="w-3 h-3" /> From Labor Guide
+                  <BookOpen className="w-3 h-3" /> Labor Guide
                 </Button>
               </div>
             </div>

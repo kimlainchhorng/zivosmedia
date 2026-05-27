@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Printer, Mail, MessageSquare, Download, X } from "lucide-react";
 import { toast } from "sonner";
+import { generateDocumentPdf, downloadPdf, type PdfDoc } from "@/lib/admin/invoicePdf";
 
 type LineCategory = "labor" | "part" | "diagnosis";
 export type PreviewLineItem = {
@@ -163,18 +164,41 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
     setTimeout(() => { w.focus(); w.print(); }, 300);
   };
 
+  const toPdfDoc = (): PdfDoc => ({
+    type: doc.type,
+    number: doc.number,
+    customer: doc.customer || `${doc.firstName} ${doc.lastName}`.trim() || "—",
+    phone: doc.phone,
+    email: doc.email,
+    address: doc.address,
+    vehicle: doc.vehicle || `${doc.year} ${doc.make} ${doc.model}`.trim() || "—",
+    vin: doc.vin,
+    items: doc.items.map((i) => ({
+      category: i.category,
+      description: i.description,
+      qty: i.qty,
+      price: i.price,
+      hours: i.hours,
+      discount: i.discount,
+      discountType: i.discountType,
+    })),
+    status: doc.status,
+    createdAt: doc.createdAt,
+  });
+
   const handleDownload = () => {
-    const html = buildPrintableHtml();
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${docTypeLabel}-${doc.number}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success("Downloaded");
+    try {
+      const blob = generateDocumentPdf({
+        doc: toPdfDoc(),
+        storeName,
+        storeAddress,
+        storePhone,
+      });
+      downloadPdf(blob, `${docTypeLabel}-${doc.number}.pdf`);
+      toast.success("PDF downloaded");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to generate PDF");
+    }
   };
 
   const handleEmail = () => {

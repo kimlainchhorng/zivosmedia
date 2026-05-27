@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap index for hizivo.com.
+  Currently only one child sitemap (the unified URL list). Forward-compatible:
+  add per-theme sitemaps here later (travel, social, jobs, shop) without
+  changing how Search Console references this index.
+-->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://hizivo.com/sitemap.xml</loc>
+    <lastmod>2026-04-30</lastmod>
+  </sitemap>
+</sitemapindex>

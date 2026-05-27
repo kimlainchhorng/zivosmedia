@@ -18,9 +18,13 @@ import {
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { FeedIncidentSummaryCard } from "@/components/admin/FeedIncidentSummaryCard";
 import { cn } from "@/lib/utils";
+import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 type TimeRange = "7d" | "30d" | "90d" | "1y";
+
+const USD_TO_KHR = 4062.5;
 
 function rangeDays(range: TimeRange): number {
   return range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
@@ -41,6 +45,25 @@ function getPrevDateRange(range: TimeRange): string {
 function pct(curr: number, prev: number): number {
   if (prev === 0) return curr > 0 ? 100 : 0;
   return ((curr - prev) / prev) * 100;
+}
+
+function isRideRevenueStatus(row: any): boolean {
+  const paymentStatus = String(row.payment_status || "").toLowerCase();
+  const rideStatus = String(row.status || "").toLowerCase();
+  if (["paid", "captured", "bakong_paid", "aba_paid"].includes(paymentStatus)) return true;
+  return paymentStatus === "cash" && rideStatus === "completed";
+}
+
+function rideRequestRevenueUsd(row: any): number {
+  if (!isRideRevenueStatus(row)) return 0;
+  const currency = String(row.payment_currency || (row.payment_status === "bakong_paid" ? "KHR" : "USD")).toUpperCase();
+  if (currency === "KHR") {
+    const khr = Number(row.bakong_amount_khr ?? row.payment_amount ?? 0);
+    return Number.isFinite(khr) ? khr / USD_TO_KHR : 0;
+  }
+  const cents = Number(row.captured_amount_cents ?? 0);
+  if (Number.isFinite(cents) && cents > 0) return cents / 100;
+  return Number(row.payment_amount ?? row.quoted_total ?? 0) || 0;
 }
 
 const PIE_COLORS = [
@@ -175,7 +198,7 @@ export default function AdminAnalyticsDashboard() {
     queryKey: ["admin-trips", timeRange],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("trips")
+        .from("ride_requests")
         .select("id, status, created_at")
         .gte("created_at", since);
       if (error) return [];
@@ -246,15 +269,15 @@ export default function AdminAnalyticsDashboard() {
     enabled: isAdmin,
   });
 
-  // Ride revenue — paid trips only
+  // Ride revenue: paid ride requests, including KHR Bakong/KHQR payments.
   const { data: tripRevenueRaw } = useQuery({
     queryKey: ["admin-trip-revenue", timeRange],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("trips")
-        .select("fare_amount, created_at")
+        .from("ride_requests")
+        .select("created_at, status, payment_amount, payment_currency, payment_status, captured_amount_cents, quoted_total, bakong_amount_khr")
         .gte("created_at", since)
-        .eq("payment_status", "paid");
+        .in("payment_status", ["paid", "captured", "bakong_paid", "aba_paid", "cash"]);
       if (error) return [];
       return data || [];
     },
@@ -535,13 +558,22 @@ export default function AdminAnalyticsDashboard() {
   const { data: storiesRaw } = useQuery({
     queryKey: ["admin-stories", timeRange],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("stories")
-        .select("view_count, created_at")
-        .gte("created_at", since)
-        .limit(10000);
+      const queryStories = (select: string, includeHiddenFilter: boolean) => {
+        let query = (supabase as any)
+          .from("stories")
+          .select(select)
+          .gte("created_at", since);
+        if (includeHiddenFilter) query = query.is("hidden_at", null);
+        return query.limit(10000);
+      };
+      let { data, error } = await queryStories("view_count, created_at, hidden_at", true);
+      if (error && isStorySafetySchemaDriftError(error)) {
+        const fallback = await queryStories("view_count, created_at", false);
+        data = fallback.data;
+        error = fallback.error;
+      }
       if (error) return [];
-      return data || [];
+      return ((data || []) as Array<{ hidden_at?: string | null }>).filter((story) => !story.hidden_at);
     },
     enabled: isAdmin,
   });
@@ -619,7 +651,7 @@ export default function AdminAnalyticsDashboard() {
           .gte("created_at", prevSince).lt("created_at", since),
         supabase.from("analytics_events").select("id", { count: "exact", head: true })
           .eq("event_name", "page_view").gte("created_at", prevSince).lt("created_at", since),
-        supabase.from("trips").select("id", { count: "exact", head: true })
+        supabase.from("ride_requests").select("id", { count: "exact", head: true })
           .gte("created_at", prevSince).lt("created_at", since),
         supabase.from("store_orders").select("id", { count: "exact", head: true })
           .gte("created_at", prevSince).lt("created_at", since),
@@ -804,7 +836,7 @@ export default function AdminAnalyticsDashboard() {
   const gmv = useMemo(() => {
     const travel = stats?.revenue ?? 0;
     const rides = (tripRevenueRaw || []).reduce(
-      (s, t: any) => s + (Number(t.fare_amount) || 0),
+      (s, t: any) => s + rideRequestRevenueUsd(t),
       0,
     );
     const store = (storeRevenueRaw || []).reduce(
@@ -939,7 +971,7 @@ export default function AdminAnalyticsDashboard() {
     });
     (tripRevenueRaw || []).forEach((t: any) => {
       const day = (t.created_at as string).slice(0, 10);
-      ensure(day).rides += Number(t.fare_amount) || 0;
+      ensure(day).rides += rideRequestRevenueUsd(t);
     });
     (storeRevenueRaw || []).forEach((o: any) => {
       const day = (o.created_at as string).slice(0, 10);
@@ -1285,7 +1317,7 @@ export default function AdminAnalyticsDashboard() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-8 text-center">
-            <h1 className="text-xl font-bold text-foreground mb-2">Access Denied</h1>
+            <h1 className="text-xl font-bold text-ig-gradient mb-2">Access Denied</h1>
             <p className="text-muted-foreground">This page is restricted to administrators.</p>
             <Button onClick={() => navigate("/")} className="mt-4">Go Home</Button>
           </CardContent>
@@ -1349,6 +1381,8 @@ export default function AdminAnalyticsDashboard() {
           </div>
         </div>
 
+        <FeedIncidentSummaryCard range="24h" title="Incident Radar" />
+
         {/* ── Section 1: Travel & Bookings ── */}
         <section className="space-y-3">
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
@@ -1408,7 +1442,7 @@ export default function AdminAnalyticsDashboard() {
               title="Rides"
               value={`$${gmv.rides.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               icon={Car}
-              subtitle={`${(tripRevenueRaw || []).length} paid trips`}
+              subtitle={`${(tripRevenueRaw || []).filter(isRideRevenueStatus).length} paid rides`}
               color="orange"
             />
             <StatCard
@@ -1637,6 +1671,8 @@ export default function AdminAnalyticsDashboard() {
             <button type="button"
               onClick={() => navigate("/admin/drivers/verification")}
               className="text-left"
+              aria-label="Open drivers pending verification queue"
+              title="Open drivers pending verification queue"
             >
               <StatCard
                 title="Drivers Pending"
@@ -1649,6 +1685,8 @@ export default function AdminAnalyticsDashboard() {
             <button type="button"
               onClick={() => navigate("/admin/payments/refunds")}
               className="text-left"
+              aria-label="Open queued refunds"
+              title="Open queued refunds"
             >
               <StatCard
                 title="Refunds Queued"
@@ -1661,6 +1699,8 @@ export default function AdminAnalyticsDashboard() {
             <button type="button"
               onClick={() => navigate("/admin/moderation")}
               className="text-left"
+              aria-label="Open pending moderation reports"
+              title="Open pending moderation reports"
             >
               <StatCard
                 title="Open Reports"

@@ -1,0 +1,26 @@
+{
+  "run_at": "2026-05-16T22:13:54.906Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": 1,
+    "FORCE": false,
+    "DRY_RUN": true,
+    "ROOMS_ONLY": false
+  },
+  "summary": {
+    "total": 1,
+    "updated": 0,
+    "not_found": 1,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "8808c9d5-0d93-4108-bdb0-76bcf9c0432e",
+      "name": "ARK House",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    }
+  ]
+}

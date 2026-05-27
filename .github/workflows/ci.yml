@@ -1,13 +1,25 @@
 name: CI
 
-# Lint, type-check, and unit tests on every PR and push to main.
-# Keeps the gate fast: < 5 min. E2E lives in e2e.yml.
+# Full type-check + lint + unit tests + production build on every push/PR.
+# Blocks merge if any step fails.
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
   workflow_dispatch:
 
 permissions:
@@ -18,59 +30,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint
+  ci:
+    name: Type-check · Lint · Test · Build
     runs-on: ubuntu-latest
-    # Advisory until we burn down the pre-existing 98 errors / 299 warnings on
-    # main. CI surfaces them on every PR but doesn't fail. Flip to required
-    # (drop `continue-on-error`) once `npm run lint` exits clean.
-    continue-on-error: true
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm run lint
+    timeout-minutes: 20
 
-  type-check:
-    name: Type-check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
-          node-version: "24"
+          fetch-depth: 0
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - name: TypeScript
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # ── TypeScript ──────────────────────────────────────────────────────────
+      - name: TypeScript type-check
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
+          NODE_OPTIONS: "--max-old-space-size=8192"
         run: npm run type-check
 
-  unit-tests:
-    name: Unit tests (vitest)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm test
+      # ── Lint ────────────────────────────────────────────────────────────────
+      - name: ESLint
+        run: npm run lint -- --max-warnings=0
 
-  supabase-migrations:
-    name: Supabase migration integrity
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # ── Database migration safety ───────────────────────────────────────────
+      - name: Supabase migration drift check (PR advisory)
+        if: github.event_name == 'pull_request'
+        run: npm run supabase:migrations:check
+        continue-on-error: true
+
+      - name: Supabase migration drift check (main strict)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm run supabase:migrations:check:main
+
+      # ── Unit tests ──────────────────────────────────────────────────────────
+      - name: Vitest unit tests
+        run: npm test
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+
+      # ── Production build ────────────────────────────────────────────────────
+      - name: Production build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run build
+
+      # ── Upload build artifacts (for other jobs or debugging) ────────────────
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
         with:
-          node-version: "24"
-      - run: npm run supabase:migrations:check
+          name: dist-${{ github.sha }}
+          path: dist/
+          retention-days: 3
+          if-no-files-found: error

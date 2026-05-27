@@ -19,6 +19,7 @@ interface Props {
   checkIn: string;
   totalCents: number;
   paidCents: number;
+  formatMoney?: (cents: number) => string;
 }
 
 type Preview = {
@@ -33,9 +34,7 @@ type Preview = {
 };
 
 const REASONS = ["Plans changed", "Found alternative", "Property issue", "Travel restrictions", "Other"];
-const money = (cents: number) => `$${((cents || 0) / 100).toFixed(2)}`;
-
-export default function CancelReservationSheet({ open, onOpenChange, reservationId, paidCents }: Props) {
+export default function CancelReservationSheet({ open, onOpenChange, reservationId, paidCents, formatMoney }: Props) {
   const [reason, setReason] = useState(REASONS[0]);
   const [details, setDetails] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -43,6 +42,7 @@ export default function CancelReservationSheet({ open, onOpenChange, reservation
   const [preview, setPreview] = useState<Preview | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const { requestCancel } = useReservationActions(reservationId);
+  const money = formatMoney ?? ((cents: number) => `$${((cents || 0) / 100).toFixed(2)}`);
 
   useEffect(() => {
     if (!open || !reservationId) return;

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BellRing, Plus, Search, ShieldAlert, CheckCircle2, Trash2, Clock, Car } from "lucide-react";
+import { BellRing, Plus, Search, ShieldAlert, CheckCircle2, Trash2, Clock, Car, Mail, MessageSquare, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
@@ -37,6 +37,7 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
     due_mileage: "",
     customer_name: "",
     customer_phone: "",
+    customer_email: "",
     vehicle_label: "",
   });
 
@@ -79,6 +80,7 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
         status: "scheduled",
         customer_name: form.customer_name || null,
         customer_phone: form.customer_phone || null,
+        customer_email: form.customer_email || null,
         vehicle_label: form.vehicle_label || null,
         due_mileage: form.due_mileage ? parseInt(form.due_mileage, 10) : null,
       };
@@ -90,7 +92,7 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
       toast.success("Reminder scheduled");
       qc.invalidateQueries({ queryKey: ["ar-reminders", storeId] });
       setOpen(false);
-      setForm({ reminder_type: "Oil change", channel: "email", message: "", due_at: "", due_mileage: "", customer_name: "", customer_phone: "", vehicle_label: "" });
+      setForm({ reminder_type: "Oil change", channel: "email", message: "", due_at: "", due_mileage: "", customer_name: "", customer_phone: "", customer_email: "", vehicle_label: "" });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
@@ -174,6 +176,39 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
 
   const isOverdue = (r: any) => r.due_at && new Date(r.due_at) < new Date() && r.status === "scheduled";
 
+  const buildMessage = (r: any) => {
+    const who = r.customer_name ? `Hi ${r.customer_name.split(" ")[0]}` : "Hi there";
+    const vehicle = r.vehicle_label ? ` for your ${r.vehicle_label}` : "";
+    const dueDate = r.due_at ? ` (due ${new Date(r.due_at).toLocaleDateString()})` : "";
+    const mileage = r.due_mileage ? ` or around ${r.due_mileage.toLocaleString()} miles` : "";
+    const base = `${who}, this is a friendly reminder that your ${r.reminder_type.toLowerCase()}${vehicle} is coming up${dueDate}${mileage}. Reply or call us to book a time.`;
+    return r.message?.trim() ? `${r.message.trim()}\n\n${base}` : base;
+  };
+
+  const sendEmail = (r: any) => {
+    if (!r.customer_email) { toast.error("No email on file for this customer"); return; }
+    const subject = encodeURIComponent(`Service reminder: ${r.reminder_type}`);
+    const body = encodeURIComponent(buildMessage(r));
+    window.open(`mailto:${r.customer_email}?subject=${subject}&body=${body}`);
+    markSent.mutate(r.id);
+  };
+
+  const sendSms = (r: any) => {
+    if (!r.customer_phone) { toast.error("No phone on file for this customer"); return; }
+    const body = encodeURIComponent(buildMessage(r));
+    window.open(`sms:${r.customer_phone}?&body=${body}`);
+    markSent.mutate(r.id);
+  };
+
+  const copyMessage = async (r: any) => {
+    try {
+      await navigator.clipboard.writeText(buildMessage(r));
+      toast.success("Reminder message copied");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -218,7 +253,23 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
                       {r.message && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{r.message}</p>}
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs"
+                      {r.customer_email && (
+                        <Button size="icon" variant="outline" className="h-7 w-7" title={`Email ${r.customer_email}`}
+                          onClick={() => sendEmail(r)}>
+                          <Mail className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      {r.customer_phone && (
+                        <Button size="icon" variant="outline" className="h-7 w-7" title={`SMS ${r.customer_phone}`}
+                          onClick={() => sendSms(r)}>
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-7 w-7" title="Copy message"
+                        onClick={() => copyMessage(r)}>
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" title="Mark as sent (no message)"
                         onClick={() => markSent.mutate(r.id)}>
                         <CheckCircle2 className="w-3 h-3" /> Sent
                       </Button>
@@ -331,6 +382,11 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
                 <Input type="tel" placeholder="Phone" value={form.customer_phone}
                   onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} />
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Email</Label>
+              <Input type="email" placeholder="customer@example.com" value={form.customer_email}
+                onChange={(e) => setForm({ ...form, customer_email: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Vehicle</Label>

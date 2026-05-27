@@ -191,5 +191,5 @@ Disallow: /more
 # ===========================
 # SITEMAP
 # ===========================
-Sitemap: https://hizivo.com/sitemap-index.xml
-Sitemap: https://hizivo.com/sitemap.xml
+Sitemap: https://zivollc.com/sitemap-index.xml
+Sitemap: https://zivollc.com/sitemap.xml
