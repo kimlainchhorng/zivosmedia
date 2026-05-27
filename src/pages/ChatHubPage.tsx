@@ -497,7 +497,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const [rideLastSeen, setRideLastSeen] = useState<Record<string, string>>({});
   const [supportLastSeen, setSupportLastSeen] = useState<Record<string, string>>({});
   const [openShopChat, setOpenShopChat] = useState<{ storeId: string; name: string; logo?: string | null } | null>(null);
-  const [openPersonalChat, _setOpenPersonalChat] = useState<{ id: string; name: string; avatar?: string | null; isVerified?: boolean; prefillInput?: string; openGiftOnMount?: boolean } | null>(null);
+  const [openPersonalChat, _setOpenPersonalChat] = useState<{ id: string; name: string; avatar?: string | null; isVerified?: boolean; prefillInput?: string; openGiftOnMount?: boolean; initialJumpMessageId?: string | null } | null>(null);
   // Wrap the raw setter so every call site automatically picks up a pending
   // forward prefill (set by ChannelPostCard.forwardToDm). Keeps the per-row
   // click handlers untouched.
@@ -514,7 +514,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     }
     _setOpenPersonalChat(next);
   };
-  const [openGroupChat, setOpenGroupChat] = useState<{ id: string; name: string; avatar?: string | null; autoStartCall?: "audio" | "video" | null } | null>(null);
+  const [openGroupChat, setOpenGroupChat] = useState<{ id: string; name: string; avatar?: string | null; autoStartCall?: "audio" | "video" | null; initialJumpMessageId?: string | null } | null>(null);
   const [openRideChat, setOpenRideChat] = useState<{ rideRequestId: string; counterpartName?: string } | null>(null);
   const [openSupportChat, setOpenSupportChat] = useState<{ ticketId: string } | null>(null);
   const [isInviteSharing, setIsInviteSharing] = useState(false);
@@ -726,9 +726,11 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
     if (!withId || !user) return;
     const openGiftOnMount = searchParams.get("gift") === "1";
+    const initialJumpMessageId = searchParams.get("msg");
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("with");
     nextParams.delete("gift");
+    nextParams.delete("msg");
     setSearchParams(nextParams, { replace: true });
     setActive("personal");
     // If a forward-from-channel stashed a prefill, consume it now so the
@@ -754,6 +756,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         isVerified: (data as any)?.is_verified === true,
         prefillInput,
         openGiftOnMount,
+        initialJumpMessageId,
       });
     })();
   }, [searchParams, user, setSearchParams]);
@@ -762,8 +765,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   useEffect(() => {
     const groupId = searchParams.get("group");
     if (!groupId || !user) return;
+    const initialJumpMessageId = searchParams.get("msg");
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("group");
+    nextParams.delete("msg");
     setSearchParams(nextParams, { replace: true });
     setFolder("groups");
     (async () => {
@@ -776,7 +781,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         toast.error("Could not open group");
         return;
       }
-      setOpenGroupChat({ id: data.id, name: data.name || "Group", avatar: data.avatar_url || null });
+      setOpenGroupChat({ id: data.id, name: data.name || "Group", avatar: data.avatar_url || null, initialJumpMessageId });
     })();
   }, [searchParams, setSearchParams, user]);
 
@@ -794,6 +799,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const shouldSkipLastOpenRestore = Boolean(
     searchParams.get("with") ||
     searchParams.get("group") ||
+    searchParams.get("msg") ||
     searchParams.get("unlocked") ||
     normalizedRouteOpenChat ||
     routeState?.shareUrl ||
@@ -3436,6 +3442,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 recipientIsVerified={openPersonalChat.isVerified === true}
                 prefillInput={openPersonalChat.prefillInput}
                 openGiftOnMount={openPersonalChat.openGiftOnMount}
+                initialJumpMessageId={openPersonalChat.initialJumpMessageId}
                 onClose={() => { setOpenPersonalChat(null); setPendingCall(null); queryClient.invalidateQueries({ queryKey: ["chat-hub-personal"] }); }}
                 autoStartCall={pendingCall}
                 onCallStarted={() => setPendingCall(null)}
@@ -3484,6 +3491,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 groupName={openGroupChat.name}
                 groupAvatar={openGroupChat.avatar}
                 autoStartCall={openGroupChat.autoStartCall ?? null}
+                initialJumpMessageId={openGroupChat.initialJumpMessageId}
                 onClose={() => {
                   setOpenGroupChat(null);
                   queryClient.invalidateQueries({ queryKey: ["chat-hub-groups"] });

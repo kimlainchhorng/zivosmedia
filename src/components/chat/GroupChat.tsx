@@ -3207,6 +3207,23 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           />
         </Suspense>
       )}
+      {navigatorMode && (
+        <Suspense fallback={null}>
+          <ChatMessageNavigator
+            open={!!navigatorMode}
+            onClose={() => setNavigatorMode(null)}
+            initialMode={navigatorMode}
+            source={{
+              type: "group",
+              chatId: groupId,
+              groupName: currentGroupName,
+              senderLabelFor: getSenderName,
+            }}
+            onJumpToMessage={jumpToMessage}
+            onUnpinMessage={(messageId) => handlePinMsg(messageId, false)}
+          />
+        </Suspense>
+      )}
 
       {/* Leave group confirmation */}
       <AnimatePresence>

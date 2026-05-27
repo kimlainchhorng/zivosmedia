@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { format } from "date-fns";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
 import FileText from "lucide-react/dist/esm/icons/file-text";
@@ -76,7 +76,11 @@ export default function ChatMessageNavigator({
     return () => window.clearTimeout(timer);
   }, [query]);
 
+  const sourceType = source.type;
+  const chatId = source.chatId;
   const title = source.type === "dm" ? source.peerName : source.groupName;
+  const peerName = source.type === "dm" ? source.peerName : undefined;
+  const senderLabelFor = source.type === "group" ? source.senderLabelFor : undefined;
   const searchReady = mode === "pinned" || debouncedQuery.length >= 2;
 
   useEffect(() => {
@@ -90,17 +94,17 @@ export default function ChatMessageNavigator({
     setErrorText("");
 
     const load = async () => {
-      const rows = source.type === "dm"
-        ? await fetchDirectRows(source.chatId, user.id, mode, debouncedQuery)
-        : await fetchGroupRows(source.chatId, mode, debouncedQuery);
+      const rows = sourceType === "dm"
+        ? await fetchDirectRows(chatId, user.id, mode, debouncedQuery)
+        : await fetchGroupRows(chatId, mode, debouncedQuery);
       if (cancelled) return;
       setItems(
         normalizeChatMessageNavigationRows(rows, {
-          sourceType: source.type,
-          chatId: source.chatId,
+          sourceType,
+          chatId,
           currentUserId: user.id,
-          peerLabel: source.type === "dm" ? source.peerName : undefined,
-          senderLabelFor: source.type === "group" ? source.senderLabelFor : undefined,
+          peerLabel: peerName,
+          senderLabelFor,
         }),
       );
     };
@@ -119,7 +123,7 @@ export default function ChatMessageNavigator({
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, mode, open, searchReady, source, user?.id]);
+  }, [chatId, debouncedQuery, mode, open, peerName, searchReady, senderLabelFor, sourceType, user?.id]);
 
   const emptyText = useMemo(() => {
     if (mode === "search" && debouncedQuery.length < 2) return "Type at least 2 characters to search this chat.";
@@ -130,6 +134,11 @@ export default function ChatMessageNavigator({
   const handleJump = async (messageId: string) => {
     await onJumpToMessage(messageId);
     onClose();
+  };
+
+  const handleUnpin = async (messageId: string) => {
+    await onUnpinMessage?.(messageId);
+    setItems((prev) => prev.filter((item) => item.messageId !== messageId));
   };
 
   return (
@@ -193,7 +202,7 @@ export default function ChatMessageNavigator({
                   item={item}
                   term={mode === "search" ? debouncedQuery : ""}
                   onJump={() => void handleJump(item.messageId)}
-                  onUnpin={mode === "pinned" && onUnpinMessage ? () => void onUnpinMessage(item.messageId) : undefined}
+                  onUnpin={mode === "pinned" && onUnpinMessage ? () => void handleUnpin(item.messageId) : undefined}
                 />
               ))}
             </div>
@@ -204,7 +213,7 @@ export default function ChatMessageNavigator({
   );
 }
 
-function ModeButton({ active, icon, label, onClick }: { active: boolean; icon: React.ReactNode; label: string; onClick: () => void }) {
+function ModeButton({ active, icon, label, onClick }: { active: boolean; icon: ReactNode; label: string; onClick: () => void }) {
   return (
     <button
       type="button"

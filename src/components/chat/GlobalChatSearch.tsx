@@ -5,7 +5,7 @@
  *  - Chats        : DM threads the user already has (from chat_history)
  *  - Contacts     : profiles by name/username (excludes Zivo Driver)
  *  - Channels     : public channels by name/handle
- *  - Messages     : direct_messages text matches in user's threads
+ *  - Messages     : direct and group message text matches
  *
  * Open from any chat header search bar. Each row deep-links to the right route.
  */
@@ -40,7 +40,8 @@ type ChannelRow = {
   members_count?: number | null;
 };
 
-type MessageHit = {
+type DirectMessageHit = {
+  sourceType: "dm";
   id: string;
   message: string;
   sender_id: string;
@@ -48,12 +49,32 @@ type MessageHit = {
   created_at: string;
 };
 
+type GroupMessageHit = {
+  sourceType: "group";
+  id: string;
+  message: string;
+  sender_id: string;
+  group_id: string;
+  group_name: string;
+  created_at: string;
+};
+
+export type MessageHit = DirectMessageHit | GroupMessageHit;
+
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
 const dbFrom = (table: string): any => (supabase as any).from(table);
+
+export function buildGlobalMessageHitPath(hit: MessageHit, currentUserId: string) {
+  if (hit.sourceType === "group") {
+    return `/chat?group=${encodeURIComponent(hit.group_id)}&msg=${encodeURIComponent(hit.id)}`;
+  }
+  const partnerId = hit.sender_id === currentUserId ? hit.receiver_id : hit.sender_id;
+  return `/chat?with=${encodeURIComponent(partnerId)}&msg=${encodeURIComponent(hit.id)}`;
+}
 
 export default function GlobalChatSearch({ open, onClose }: Props) {
   const { user } = useAuth();
@@ -107,11 +128,12 @@ export default function GlobalChatSearch({ open, onClose }: Props) {
         .or(`name.ilike.${term},handle.ilike.${term}`)
         .limit(5);
 
-      // 3) Messages in user's DM threads
-      const messagesP = supabase
+      // 3) Messages in user's direct chats
+      const directMessagesP = supabase
         .from("direct_messages")
-        .select("id, message, sender_id, receiver_id, created_at")
+        .select("id, message, sender_id, receiver_id, created_at, hidden_at")
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .is("hidden_at", null)
         .ilike("message", term)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -122,13 +144,52 @@ export default function GlobalChatSearch({ open, onClose }: Props) {
         .eq("user_id", user.id)
         .limit(50);
 
-      const [{ data: cData }, { data: chData }, { data: mData }, { data: histData }] =
-        await Promise.all([contactsP, channelsP, messagesP, chatsP]);
+      const groupMembershipP = dbFrom("chat_group_members")
+        .select("group_id")
+        .eq("user_id", user.id)
+        .limit(100);
+
+      const [{ data: cData }, { data: chData }, { data: dmData }, { data: histData }, { data: groupMembershipData }] =
+        await Promise.all([contactsP, channelsP, directMessagesP, chatsP, groupMembershipP]);
 
       if (cancelled) return;
       setContacts((cData ?? []) as ProfileRow[]);
       setChannels(((chData ?? []) as ChannelRow[]).filter(Boolean));
-      setMessages((mData ?? []) as MessageHit[]);
+
+      const directHits = ((dmData ?? []) as Array<Omit<DirectMessageHit, "sourceType">>)
+        .map((message) => ({ ...message, sourceType: "dm" as const }));
+      const groupIds = Array.from(
+        new Set(((groupMembershipData ?? []) as Array<{ group_id?: string | null }>).map((row) => row.group_id).filter(Boolean) as string[]),
+      );
+      let groupHits: GroupMessageHit[] = [];
+      if (groupIds.length > 0) {
+        const [{ data: groupMessageData }, { data: groupMetaData }] = await Promise.all([
+          dbFrom("group_messages")
+            .select("id, message, sender_id, group_id, created_at, hidden_at")
+            .in("group_id", groupIds)
+            .is("hidden_at", null)
+            .ilike("message", term)
+            .order("created_at", { ascending: false })
+            .limit(5),
+          dbFrom("chat_groups")
+            .select("id, name")
+            .in("id", groupIds),
+        ]);
+        const groupNames = new Map(
+          ((groupMetaData ?? []) as Array<{ id: string; name: string | null }>).map((group) => [group.id, group.name || "Group"]),
+        );
+        groupHits = ((groupMessageData ?? []) as Array<Omit<GroupMessageHit, "sourceType" | "group_name">>)
+          .map((message) => ({
+            ...message,
+            sourceType: "group" as const,
+            group_name: groupNames.get(message.group_id) || "Group",
+          }));
+      }
+
+      if (cancelled) return;
+      setMessages([...directHits, ...groupHits]
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+        .slice(0, 10));
 
       // Resolve chat partners → matching profile rows
       const partnerIds: string[] = Array.from(
@@ -269,14 +330,13 @@ export default function GlobalChatSearch({ open, onClose }: Props) {
           {messages.length > 0 && (
             <Section icon={<FileText className="w-3.5 h-3.5" />} title="Messages">
               {messages.map((m) => {
-                const partnerId = m.sender_id === user?.id ? m.receiver_id : m.sender_id;
                 return (
                   <Row
-                    key={`m-${m.id}`}
-                    onClick={() => go(`/chat/dm/${partnerId}?msg=${m.id}`)}
+                    key={`${m.sourceType}-${m.id}`}
+                    onClick={() => user?.id && go(buildGlobalMessageHitPath(m, user.id))}
                     avatar={<div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center"><FileText className="w-4 h-4 text-muted-foreground" /></div>}
                     title={<HighlightedText text={m.message} term={debounced} />}
-                    subtitle={new Date(m.created_at).toLocaleDateString()}
+                    subtitle={m.sourceType === "group" ? `${m.group_name} · ${new Date(m.created_at).toLocaleDateString()}` : new Date(m.created_at).toLocaleDateString()}
                   />
                 );
               })}
