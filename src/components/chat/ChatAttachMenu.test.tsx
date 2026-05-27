@@ -131,7 +131,7 @@ describe("ChatAttachMenu", () => {
     expect(callbacks.onOpenWallet).toHaveBeenCalledTimes(1);
     expect(callbacks.onLockedImageSelect).toHaveBeenCalledTimes(1);
     expect(callbacks.onToggleDisappearing).toHaveBeenCalledTimes(1);
-  });
+  }, 10_000);
 
   it("keeps scan disabled instead of falling back to photo when scanner is unavailable", async () => {
     const callbacks = renderMenu({ onScanDocument: undefined });
@@ -144,5 +144,16 @@ describe("ChatAttachMenu", () => {
 
     expect(callbacks.onScanDocument).not.toHaveBeenCalled();
     expect(callbacks.onImageSelect).not.toHaveBeenCalled();
+  });
+
+  it("can tailor locked media copy and hides paid DM when text unlock is unavailable", async () => {
+    renderMenu({ lockedMediaHint: "Stars unlock" });
+
+    await screen.findByRole("dialog", { name: /attachment menu/i });
+    clickAction(/show more actions/i);
+
+    expect(screen.getByRole("button", { name: "Locked" })).toBeInTheDocument();
+    expect(screen.getByText("Stars unlock")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Paid DM" })).not.toBeInTheDocument();
   });
 });

@@ -38,7 +38,7 @@ const NavigationProgressBar = lazy(() => import("@/components/app/NavigationProg
 const ScrollRestoration = lazy(() => import("@/components/app/ScrollRestoration"));
 
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RemoteConfigProvider } from "@/contexts/RemoteConfigContext";
@@ -229,6 +229,8 @@ const ReelsFeedPage = lazyWithRetry(() => import("./pages/ReelsFeedPage"));
 const SocialFeedPage = lazyWithRetry(() => import("./pages/SocialFeedPage"));
 const SoundPage = lazy(() => import("./pages/SoundPage"));
 const ChatHubPage = lazyWithRetry(() => import("./pages/ChatHubPage"));
+const DirectInboxPage = lazyWithRetry(() => import("./pages/DirectInboxPage"));
+
 const ContactsPage = lazyWithRetry(() => import("./pages/chat/ContactsPage"));
 const ContactRequestsPage = lazyWithRetry(() => import("./pages/chat/ContactRequestsPage"));
 const MessageRequestsPage = lazyWithRetry(() => import("./pages/chat/MessageRequestsPage"));
@@ -402,6 +404,8 @@ const SalonQueueDisplayPage = lazy(() => import("./pages/admin/SalonQueueDisplay
 const SalonGiftCardCheckPage = lazy(() => import("./pages/salon/SalonGiftCardCheckPage"));
 const PublicStylistDayPage = lazy(() => import("./pages/salon/PublicStylistDayPage"));
 const PublicStylistEarningsPage = lazy(() => import("./pages/salon/PublicStylistEarningsPage"));
+const PublicSalonMembershipPage = lazy(() => import("./pages/salon/PublicSalonMembershipPage"));
+const PublicSalonCheckinPage = lazy(() => import("./pages/salon/PublicSalonCheckinPage"));
 const PublicReviewSubmitPage = lazy(() => import("./pages/salon/PublicReviewSubmitPage"));
 const SalonMyAreaPage = lazy(() => import("./pages/salon/SalonMyAreaPage"));
 
@@ -593,6 +597,7 @@ const Reliability = lazy(() => import("./pages/Reliability"));
 const TrustStatement = lazy(() => import("./pages/TrustStatement"));
 const SecurityStatus = lazy(() => import("./pages/SecurityStatus"));
 const SavedPostsPage = lazy(() => import("./pages/SavedPostsPage"));
+const SavedCollectionPage = lazy(() => import("./pages/SavedCollectionPage"));
 const HashtagPage = lazy(() => import("./pages/HashtagPage"));
 const Status = lazy(() => import("./pages/Status"));
 const FAQPage = lazy(() => import("./pages/FAQPage"));
@@ -1329,6 +1334,15 @@ function AuthBackgroundServices() {
   );
 }
 
+function DirectThreadRedirect() {
+  const { partnerId } = useParams();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  if (partnerId) params.set("with", partnerId);
+  const query = params.toString();
+  return <Navigate to={`/chat${query ? `?${query}` : ""}${location.hash}`} replace />;
+}
+
 const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
@@ -1483,6 +1497,9 @@ const App = () => (
                 
                 <Route path="/refer" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
                 <Route path={SOCIAL_ROUTE_PATHS.chat} element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
+                <Route path="/direct" element={<ProtectedRoute><DirectInboxPage /></ProtectedRoute>} />
+                <Route path="/direct/t/:partnerId" element={<ProtectedRoute><DirectThreadRedirect /></ProtectedRoute>} />
+                <Route path="/for-you" element={<ProtectedRoute><ReelsFeedPage /></ProtectedRoute>} />
                 <Route path="/chat/saved" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
                 <Route path="/chat/contacts" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
                 <Route path="/chat/contacts/requests" element={<ProtectedRoute><ContactRequestsPage /></ProtectedRoute>} />
@@ -1589,6 +1606,8 @@ const App = () => (
                 {/* /salon/me must come before /salon/:slug so React Router
                     matches the literal path before the slug parameter. */}
                 <Route path="/salon/me" element={<ProtectedRoute><SalonMyAreaPage /></ProtectedRoute>} />
+                <Route path="/salon/:slug/membership" element={<PublicSalonMembershipPage />} />
+                <Route path="/salon/:slug/check-in" element={<PublicSalonCheckinPage />} />
                 <Route path="/salon/:slug" element={<PublicSalonBookingPage />} />
                 <Route path="/car-rental/:slug" element={<PublicCarRentalBookingPage />} />
                 {/* More-specific routes first so React Router matches /v/:vehicleId
@@ -2042,6 +2061,7 @@ const App = () => (
                 <Route path="/security-status" element={<SecurityStatus />} />
                 {/* /saved is taken by BookmarksPage above; tile-grid view lives at /saved-posts */}
                 <Route path="/saved-posts" element={<ProtectedRoute><SavedPostsPage /></ProtectedRoute>} />
+                <Route path="/saved-collections/:id" element={<ProtectedRoute><SavedCollectionPage /></ProtectedRoute>} />
                 <Route path="/tag/:tag" element={<HashtagPage />} />
                 <Route path="/ai-trip-planner" element={<AITripPlanner />} />
                 <Route path="/multi-city-builder" element={<MultiCityBuilder />} />

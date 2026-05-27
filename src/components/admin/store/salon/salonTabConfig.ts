@@ -11,6 +11,7 @@ import {
   LayoutDashboard, CalendarRange, ClipboardList, Timer,
   BookOpen, Gift, Package, UserCog, Calendar, Banknote,
   Users, ScrollText, Star, DollarSign, Wallet, BarChart3, Clock, CreditCard, Bell, Megaphone,
+  Crown,
 } from "lucide-react";
 
 export interface SalonTabMeta {
@@ -234,6 +235,17 @@ export const SALON_TAB_META: Record<string, SalonTabMeta> = {
       "Compose subject + body + SMS in one place",
       "Preview recipient count before sending",
       "Per-recipient delivery status drilldown",
+    ],
+  },
+  "salon-memberships": {
+    title: "Memberships",
+    description: "Recurring-billing tiers your regulars sign up for — they get a discount, you get predictable revenue.",
+    Icon: Crown,
+    bullets: [
+      "Define tiers (e.g. $99/mo, 15% off services)",
+      "Stripe Subscriptions handle billing",
+      "Public signup page at /salon/<slug>/membership",
+      "Discount auto-applies at checkout",
     ],
   },
 };

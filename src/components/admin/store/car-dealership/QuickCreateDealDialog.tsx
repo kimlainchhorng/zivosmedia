@@ -41,6 +41,8 @@ export interface QuickDealSeed {
   sale_price_cents: number;
   /** Optional salesperson seeded from the lead's assigned rep. */
   salesperson_user_id?: string | null;
+  /** Optional salesperson display name carried over from the lead. */
+  salesperson_name?: string | null;
 }
 
 interface Props {
@@ -99,7 +101,7 @@ export default function QuickCreateDealDialog({
       customer_name: seed.customer_name,
       customer_phone: seed.customer_phone,
       customer_email: seed.customer_email,
-      salesperson_name: null,
+      salesperson_name: seed.salesperson_name ?? null,
       sale_price_cents: salePrice,
       trade_in_value_cents: 0,
       trade_in_payoff_cents: 0,

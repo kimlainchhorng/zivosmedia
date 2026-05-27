@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type {
   DealershipLead, DealershipLeadDraft, DealershipLeadSource, DealershipLeadStatus,
 } from "@/hooks/car-dealership/useDealershipLeads";
@@ -60,6 +61,7 @@ const emptyDraft = (): DealershipLeadDraft => ({
   customer_id: null,
   vehicle_id: null,
   assigned_to_user_id: null,
+  salesperson_name: null,
   display_name: "",
   email: null,
   phone: null,
@@ -244,6 +246,7 @@ export default function CarDealershipLeadDialog({
 }: Props) {
   const [draft, setDraft] = useState<DealershipLeadDraft>(emptyDraft());
   const [activeTab, setActiveTab] = useState("details");
+  const [salespeople, setSalespeople] = useState<string[]>([]);
 
   useEffect(() => {
     if (editing) {
@@ -254,6 +257,39 @@ export default function CarDealershipLeadDialog({
     }
     setActiveTab("details");
   }, [editing, open]);
+
+  // Fetch the union of distinct salesperson_name values currently used on
+  // sales + leads for this store. Used to populate the picker datalist.
+  useEffect(() => {
+    if (!open || !storeId) return;
+    let cancelled = false;
+    (async () => {
+      const [salesR, leadsR] = await Promise.all([
+        supabase
+          .from("car_dealership_sales")
+          .select("salesperson_name")
+          .eq("store_id", storeId)
+          .not("salesperson_name", "is", null),
+        supabase
+          .from("car_dealership_leads")
+          .select("salesperson_name")
+          .eq("store_id", storeId)
+          .not("salesperson_name", "is", null),
+      ]);
+      if (cancelled) return;
+      const set = new Set<string>();
+      for (const r of salesR.data ?? []) {
+        const n = (r as { salesperson_name: string | null }).salesperson_name?.trim();
+        if (n) set.add(n);
+      }
+      for (const r of leadsR.data ?? []) {
+        const n = (r as { salesperson_name: string | null }).salesperson_name?.trim();
+        if (n) set.add(n);
+      }
+      setSalespeople(Array.from(set).sort((a, b) => a.localeCompare(b)));
+    })();
+    return () => { cancelled = true; };
+  }, [open, storeId]);
 
   const update = <K extends keyof DealershipLeadDraft>(key: K, value: DealershipLeadDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -281,7 +317,7 @@ export default function CarDealershipLeadDialog({
             </TabsList>
 
             <TabsContent value="details" className="flex-1 overflow-y-auto px-6 pb-2 mt-3 data-[state=inactive]:hidden">
-              <LeadDetailsForm draft={draft} update={update} />
+              <LeadDetailsForm draft={draft} update={update} salespeople={salespeople} />
             </TabsContent>
 
             <TabsContent value="activity" className="flex-1 overflow-y-auto px-6 pb-2 mt-3 data-[state=inactive]:hidden">
@@ -301,7 +337,7 @@ export default function CarDealershipLeadDialog({
           /* Simple layout when adding */
           <>
             <div className="flex-1 overflow-y-auto px-6 py-4">
-              <LeadDetailsForm draft={draft} update={update} />
+              <LeadDetailsForm draft={draft} update={update} salespeople={salespeople} />
             </div>
             <div className="shrink-0 border-t px-6 py-3 flex justify-end gap-2">
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
@@ -320,9 +356,11 @@ export default function CarDealershipLeadDialog({
 function LeadDetailsForm({
   draft,
   update,
+  salespeople,
 }: {
   draft: DealershipLeadDraft;
   update: <K extends keyof DealershipLeadDraft>(key: K, value: DealershipLeadDraft[K]) => void;
+  salespeople: string[];
 }) {
   return (
     <div className="space-y-4">
@@ -416,13 +454,27 @@ function LeadDetailsForm({
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Next follow-up</Label>
-        <Input
-          type="datetime-local"
-          value={draft.next_followup_at ? draft.next_followup_at.slice(0, 16) : ""}
-          onChange={(e) => update("next_followup_at", e.target.value ? new Date(e.target.value).toISOString() : null)}
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Salesperson</Label>
+          <Input
+            list="cd-lead-salespeople"
+            value={draft.salesperson_name ?? ""}
+            onChange={(e) => update("salesperson_name", e.target.value || null)}
+            placeholder="Assign someone"
+          />
+          <datalist id="cd-lead-salespeople">
+            {salespeople.map((s) => <option key={s} value={s} />)}
+          </datalist>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Next follow-up</Label>
+          <Input
+            type="datetime-local"
+            value={draft.next_followup_at ? draft.next_followup_at.slice(0, 16) : ""}
+            onChange={(e) => update("next_followup_at", e.target.value ? new Date(e.target.value).toISOString() : null)}
+          />
+        </div>
       </div>
 
       <div className="space-y-1.5">

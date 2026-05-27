@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Plus, DollarSign, Trash2, Receipt, ClipboardList, ArrowLeft, ScanSearch, Loader2, Check, CloudUpload, Wrench, Package, Stethoscope, Truck, KeyRound, Car, LogOut, Eye, ArrowRightLeft, BookOpen } from "lucide-react";
 import { toast } from "sonner";
@@ -60,6 +61,9 @@ type Doc = {
   items: LineItem[];
   status: "draft" | "sent" | "paid" | "approved";
   createdAt: string;
+  // Fleet billing (invoices only — estimates ignore these)
+  fleetAccountId: string | null;
+  poNumber: string;
 };
 
 const emptyDraft = (): Doc => ({
@@ -70,23 +74,45 @@ const emptyDraft = (): Doc => ({
   vehicle: "",
   items: [{ id: crypto.randomUUID(), category: "labor", description: "", qty: 1, price: 0, hours: 1, discount: 0 }],
   status: "draft", createdAt: new Date().toISOString(),
+  fleetAccountId: null, poNumber: "",
 });
+
+type FleetAccount = {
+  id: string;
+  name: string;
+  credit_limit_cents: number;
+  po_required: boolean;
+};
 
 // True if the id looks like a real Postgres uuid.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Compute the dollar amount for a single line item
-const lineAmount = (i: LineItem): number => {
-  const gross =
-    i.category === "labor" ? (i.hours ?? 0) * (i.price ?? 0) :
-    i.category === "part" ? (i.qty ?? 0) * (i.price ?? 0) :
-    (i.price ?? 0); // diagnosis = flat fee
+// Gross (pre-discount) dollar amount for a single line item.
+const lineGross = (i: LineItem): number =>
+  i.category === "labor" ? (i.hours ?? 0) * (i.price ?? 0) :
+  i.category === "part" ? (i.qty ?? 0) * (i.price ?? 0) :
+  (i.price ?? 0); // diagnosis = flat fee
+
+// Discount portion (always >= 0) for a single line item.
+const lineDiscount = (i: LineItem): number => {
+  const gross = lineGross(i);
   const discVal = Math.max(0, i.discount ?? 0);
-  if ((i.discountType ?? "pct") === "amt") {
-    return Math.max(0, gross - discVal);
-  }
-  const pct = Math.min(100, discVal);
-  return gross * (1 - pct / 100);
+  if ((i.discountType ?? "pct") === "amt") return Math.min(discVal, gross);
+  return gross * Math.min(100, discVal) / 100;
+};
+
+// Net (post-discount) dollar amount for a single line item.
+const lineAmount = (i: LineItem): number => Math.max(0, lineGross(i) - lineDiscount(i));
+
+// Doc-level totals derived from items. Tax is currently always 0 (no UI field
+// yet); kept in the shape so callers can wire a tax rate later without
+// changing call sites.
+const docTotals = (items: LineItem[]) => {
+  const subtotal = items.reduce((s, i) => s + lineGross(i), 0);
+  const discount = items.reduce((s, i) => s + lineDiscount(i), 0);
+  const tax = 0;
+  const total = Math.max(0, subtotal - discount + tax);
+  return { subtotal, discount, tax, total };
 };
 
 interface Props { storeId: string }
@@ -100,6 +126,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null); // null = new doc
   const [draft, setDraft] = useState<Doc>(emptyDraft());
+  const [fleetAccounts, setFleetAccounts] = useState<FleetAccount[]>([]);
   const [vinLoading, setVinLoading] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -160,6 +187,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           items: Array.isArray(row.items) ? row.items : [],
           status: (row.status === "paid" ? "paid" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
           createdAt: row.created_at,
+          fleetAccountId: row.fleet_account_id ?? null,
+          poNumber: row.po_number ?? "",
         });
       }
     }
@@ -184,6 +213,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           items: Array.isArray(row.items) ? row.items : Array.isArray(row.line_items) ? row.line_items : [],
           status: (row.status === "approved" ? "approved" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
           createdAt: row.created_at,
+          fleetAccountId: null,
+          poNumber: "",
         });
       }
     }
@@ -191,6 +222,56 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   };
 
   useEffect(() => { reloadAll();   }, [storeId]);
+
+  // Hand-off from Vehicles section: open a fresh invoice draft pre-filled with
+  // the chosen vehicle + owner. Cleared after consumption so refreshes don't re-open it.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("ar_invoice_prefill");
+    if (!raw) return;
+    try {
+      const p = JSON.parse(raw);
+      skipNextSave.current = true;
+      setEditingId(null);
+      setDraft({
+        ...emptyDraft(),
+        id: crypto.randomUUID(),
+        type: p.type === "estimate" ? "estimate" : "invoice",
+        number: nextDocNumber(p.type === "estimate" ? "estimate" : "invoice"),
+        firstName: p.firstName ?? "",
+        lastName: p.lastName ?? "",
+        customer: p.customer_name ?? `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim(),
+        phone: p.phone ?? "",
+        email: p.email ?? "",
+        address: p.address ?? "",
+        vin: p.vin ?? "",
+        year: p.year ?? "",
+        make: p.make ?? "",
+        model: p.model ?? "",
+        vehicle: p.vehicle_label ?? [p.year, p.make, p.model].filter(Boolean).join(" "),
+      });
+      setTab(p.type === "estimate" ? "estimate" : "invoice");
+      setCreating(true);
+      toast.info(`Prefilled new ${p.type === "estimate" ? "estimate" : "invoice"} for ${p.vehicle_label || "customer"}`);
+    } catch {
+      // ignore malformed prefill
+    }
+    sessionStorage.removeItem("ar_invoice_prefill");
+    // Intentionally not in deps — should run once on mount, matching the
+    // workorder_search pattern in AutoRepairWorkOrdersSection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load fleet accounts for this store (used by the invoice form to pick a fleet billing target).
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("ar_fleet_accounts" as any)
+        .select("id, name, credit_limit_cents, po_required")
+        .eq("store_id", storeId)
+        .order("name", { ascending: true });
+      if (!error && data) setFleetAccounts(data as unknown as FleetAccount[]);
+    })();
+  }, [storeId]);
   const draftKey = useMemo(() => `autorepair:invoice-draft:${storeId}`, [storeId]);
   const saveTimer = useRef<number | null>(null);
   const skipNextSave = useRef(true);
@@ -323,7 +404,11 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const save = async () => {
     if (!draft.firstName || !draft.lastName || !draft.vehicle) { toast.error("First name, last name, and vehicle are required"); return; }
     const customer = `${draft.firstName} ${draft.lastName}`.trim();
-    const subtotalCents = Math.round(total(draft.items) * 100);
+    const t = docTotals(draft.items);
+    const subtotalCents = Math.round(t.subtotal * 100);
+    const discountCents = Math.round(t.discount * 100);
+    const taxCents = Math.round(t.tax * 100);
+    const totalCents = Math.round(t.total * 100);
     const tableName = draft.type === "invoice" ? "ar_invoices" : "ar_estimates";
 
     try {
@@ -342,9 +427,17 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         vehicle_model: draft.model || null,
         items: draft.items as any,
         subtotal_cents: subtotalCents,
-        total_cents: subtotalCents,
+        discount_cents: discountCents,
+        tax_cents: taxCents,
+        total_cents: totalCents,
         status: draft.status === "paid" ? "paid" : draft.status === "sent" ? "sent" : "draft",
       };
+
+      // Fleet billing fields only apply to invoices (the columns don't exist on ar_estimates).
+      if (draft.type === "invoice") {
+        payload.fleet_account_id = draft.fleetAccountId || null;
+        payload.po_number = draft.poNumber.trim() || null;
+      }
 
       // Only treat as update if we have a real DB uuid.
       const isRealId = !!editingId && UUID_RE.test(editingId);
@@ -376,7 +469,11 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
       return;
     }
     const customer = `${draft.firstName} ${draft.lastName}`.trim();
-    const subtotalCents = Math.round(total(draft.items) * 100);
+    const t = docTotals(draft.items);
+    const subtotalCents = Math.round(t.subtotal * 100);
+    const discountCents = Math.round(t.discount * 100);
+    const taxCents = Math.round(t.tax * 100);
+    const totalCents = Math.round(t.total * 100);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -393,7 +490,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         vehicle_model: draft.model || null,
         items: draft.items as any,
         subtotal_cents: subtotalCents,
-        total_cents: subtotalCents,
+        discount_cents: discountCents,
+        tax_cents: taxCents,
+        total_cents: totalCents,
       };
 
       // 1. Persist the estimate (insert if new, update if editing a real DB row).
@@ -614,6 +713,57 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                   <Input placeholder="Street, City, State" value={draft.address} onChange={e => setDraft({ ...draft, address: e.target.value })} />
                 </div>
               </div>
+
+              {draft.type === "invoice" && fleetAccounts.length > 0 && (() => {
+                const selectedFleet = fleetAccounts.find(f => f.id === draft.fleetAccountId) ?? null;
+                const FLEET_NONE = "__none__";
+                return (
+                  <div className="mt-4 pt-4 border-t border-border space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <Truck className="w-3.5 h-3.5" /> Fleet billing (optional)
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">Fleet account</label>
+                        <Select
+                          value={draft.fleetAccountId ?? FLEET_NONE}
+                          onValueChange={(v) => setDraft({ ...draft, fleetAccountId: v === FLEET_NONE ? null : v })}
+                        >
+                          <SelectTrigger><SelectValue placeholder="None — bill customer directly" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={FLEET_NONE}>None — bill customer directly</SelectItem>
+                            {fleetAccounts.map(f => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.name}{f.po_required ? " · PO required" : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {selectedFleet && (
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">
+                            PO number{selectedFleet.po_required ? " *" : ""}
+                          </label>
+                          <Input
+                            placeholder={selectedFleet.po_required ? "Required by fleet" : "Optional"}
+                            value={draft.poNumber}
+                            onChange={e => setDraft({ ...draft, poNumber: e.target.value })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {selectedFleet && selectedFleet.credit_limit_cents > 0 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Credit limit: ${(selectedFleet.credit_limit_cents / 100).toLocaleString()}. Outstanding balance + this invoice must stay under the limit.
+                      </p>
+                    )}
+                    {selectedFleet?.po_required && !draft.poNumber.trim() && (
+                      <p className="text-[11px] text-amber-600">PO number is required for this fleet account.</p>
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 
@@ -963,14 +1113,18 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     if (!est) return;
     try {
       const number = nextDocNumber("invoice");
-      const subtotalCents = Math.round(total(est.items) * 100);
+      const t = docTotals(est.items);
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("ar_invoices" as any).insert({
         store_id: storeId, number, estimate_id: est.id,
         customer_name: est.customer, customer_phone: est.phone || null, customer_email: est.email || null,
         customer_address: est.address || null, vehicle_label: est.vehicle || null, vin: est.vin || null,
         vehicle_year: est.year || null, vehicle_make: est.make || null, vehicle_model: est.model || null,
-        items: est.items as any, subtotal_cents: subtotalCents, total_cents: subtotalCents,
+        items: est.items as any,
+        subtotal_cents: Math.round(t.subtotal * 100),
+        discount_cents: Math.round(t.discount * 100),
+        tax_cents: Math.round(t.tax * 100),
+        total_cents: Math.round(t.total * 100),
         status: "draft", created_by: user?.id,
       });
       if (error) throw error;

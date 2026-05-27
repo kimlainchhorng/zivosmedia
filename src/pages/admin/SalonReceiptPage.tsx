@@ -38,6 +38,21 @@ interface ReceiptRetailItem {
   quantity: number;
 }
 
+interface ReceiptPayment {
+  method: "cash" | "card" | "gift_card" | "check" | "other";
+  amount_cents: number;
+  reference: string | null;
+  created_at: string;
+}
+
+const PAYMENT_LABEL: Record<ReceiptPayment["method"], string> = {
+  cash: "Cash",
+  card: "Card",
+  gift_card: "Gift card",
+  check: "Check",
+  other: "Other",
+};
+
 interface ReceiptStore {
   name: string;
   address: string | null;
@@ -54,6 +69,7 @@ export default function SalonReceiptPage() {
   const [addons, setAddons] = useState<ReceiptAddon[]>([]);
   const [items, setItems] = useState<ReceiptRetailItem[]>([]);
   const [store, setStore] = useState<ReceiptStore | null>(null);
+  const [payments, setPayments] = useState<ReceiptPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,7 +89,7 @@ export default function SalonReceiptPage() {
         setLoading(false);
         return;
       }
-      const [addonsRes, itemsRes, storeRes] = await Promise.all([
+      const [addonsRes, itemsRes, storeRes, paymentsRes] = await Promise.all([
         supabase.from("salon_booking_addons")
           .select("name, price_cents, quantity")
           .eq("booking_id", bookingId),
@@ -84,12 +100,17 @@ export default function SalonReceiptPage() {
           .select("name, address, phone")
           .eq("id", (b as any).store_id)
           .maybeSingle(),
+        supabase.from("salon_booking_payments")
+          .select("method, amount_cents, reference, created_at")
+          .eq("booking_id", bookingId)
+          .order("created_at", { ascending: true }),
       ]);
       if (cancelled) return;
       setBooking(b as unknown as ReceiptBooking);
       setAddons((addonsRes.data ?? []) as unknown as ReceiptAddon[]);
       setItems((itemsRes.data ?? []) as unknown as ReceiptRetailItem[]);
       setStore(storeRes.data as unknown as ReceiptStore);
+      setPayments((paymentsRes.data ?? []) as unknown as ReceiptPayment[]);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -256,6 +277,29 @@ export default function SalonReceiptPage() {
               </p>
             )}
           </section>
+
+          {/* Multi-tender breakdown. Gracefully absent for older bookings
+              that pre-date the salon_booking_payments table. */}
+          {payments.length > 0 && (
+            <section className="border-t border-dashed border-border pt-3 text-sm">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Payment</p>
+              <ul className="space-y-1">
+                {payments.map((p, i) => (
+                  <li key={i} className="flex justify-between">
+                    <span className="text-foreground">
+                      {PAYMENT_LABEL[p.method]}
+                      {p.reference && (
+                        <span className="ml-1 text-[11px] text-muted-foreground">
+                          · {p.reference}
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-medium text-foreground">{formatPrice(p.amount_cents)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <footer className="mt-6 border-t border-dashed border-border pt-4 text-center">
             <p className="text-sm font-semibold text-foreground">Thank you!</p>

@@ -18,14 +18,15 @@ import { createClient } from "./deps.ts";
 export type SalonReminderEvent =
   | "booking_reminder_24h"
   | "birthday_offer"
-  | "winback_offer";
+  | "winback_offer"
+  | "review_request";
 
 interface ReminderRow {
   id: string;
   store_id: string;
   client_id: string | null;
   booking_id: string | null;
-  reminder_type: "booking_24h" | "birthday" | "winback";
+  reminder_type: "booking_24h" | "booking_lead" | "birthday" | "winback" | "review_request";
   channel_sms: boolean;
   channel_email: boolean;
   idempotency_key: string;
@@ -45,6 +46,7 @@ const TEMPLATE_KEY: Record<SalonReminderEvent, string> = {
   booking_reminder_24h: "salon-booking-reminder-24h",
   birthday_offer: "salon-birthday-offer",
   winback_offer: "salon-winback-offer",
+  review_request: "salon-review-request",
 };
 
 const maskEmail = (email?: string | null) => email ? email.replace(/(^.).*(@.*$)/, "$1***$2") : null;
@@ -156,6 +158,9 @@ export async function sendSalonReminder(
           .eq("user_id", recipient.user_id)
           .maybeSingle();
         if (prefs.data) {
+          // booking_reminder_24h is the only purely transactional event;
+          // everything else (birthday/winback/review) is marketing under
+          // TCPA so we require explicit marketing opt-in.
           const enabledCheck = event === "booking_reminder_24h"
             ? (prefs.data.sms_enabled === true && prefs.data.operational_enabled !== false)
             : (prefs.data.sms_enabled === true && prefs.data.marketing_enabled === true);

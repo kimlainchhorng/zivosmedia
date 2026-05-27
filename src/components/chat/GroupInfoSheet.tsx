@@ -1,18 +1,29 @@
 import { type ChangeEvent, type ComponentType, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import Bell from "lucide-react/dist/esm/icons/bell";
+import BellOff from "lucide-react/dist/esm/icons/bell-off";
 import Camera from "lucide-react/dist/esm/icons/camera";
 import Check from "lucide-react/dist/esm/icons/check";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import FileText from "lucide-react/dist/esm/icons/file-text";
+import Folder from "lucide-react/dist/esm/icons/folder";
+import HardDrive from "lucide-react/dist/esm/icons/hard-drive";
 import ImageIcon from "lucide-react/dist/esm/icons/image";
+import Languages from "lucide-react/dist/esm/icons/languages";
 import Link2 from "lucide-react/dist/esm/icons/link-2";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import LogOut from "lucide-react/dist/esm/icons/log-out";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
+import Mic from "lucide-react/dist/esm/icons/mic";
+import MonitorSmartphone from "lucide-react/dist/esm/icons/monitor-smartphone";
+import Music2 from "lucide-react/dist/esm/icons/music-2";
 import Pencil from "lucide-react/dist/esm/icons/pencil";
 import Phone from "lucide-react/dist/esm/icons/phone";
+import Pin from "lucide-react/dist/esm/icons/pin";
 import Search from "lucide-react/dist/esm/icons/search";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
+import Smile from "lucide-react/dist/esm/icons/smile";
 import UserPlus from "lucide-react/dist/esm/icons/user-plus";
 import Users from "lucide-react/dist/esm/icons/users";
 import Video from "lucide-react/dist/esm/icons/video";
@@ -53,13 +64,24 @@ interface GroupInfoMessage {
   message_type: string;
   image_url: string | null;
   video_url?: string | null;
+  voice_url?: string | null;
+  is_pinned?: boolean | null;
   created_at: string;
   file_payload?: {
+    url?: string | null;
+    filename?: string | null;
+    name?: string | null;
+    fileName?: string | null;
+    title?: string | null;
+    mime_type?: string | null;
+    duration_ms?: number | null;
     locked_preview_url?: string | null;
     locked_preview_image_url?: string | null;
     [key: string]: unknown;
   } | null;
 }
+
+type GroupInfoTab = "members" | "media" | "files" | "links" | "music" | "gif" | "voice";
 
 interface Props {
   open: boolean;
@@ -73,6 +95,7 @@ interface Props {
   onToggleMute: () => void;
   onSearch: () => void;
   onOpenInvites: () => void;
+  onOpenPinned?: () => void;
   onStartCall: (kind: "audio" | "video") => void;
   onGroupUpdated: (patch: { name?: string; avatar?: string | null }) => void;
   onMembersChanged: () => void;
@@ -99,8 +122,58 @@ function roleLabel(role: GroupRole) {
 }
 
 function getFileLabel(message: GroupInfoMessage) {
-  const payload = message.file_payload as { name?: string; fileName?: string; title?: string } | null;
-  return payload?.name || payload?.fileName || payload?.title || message.message || "Attachment";
+  const payload = message.file_payload as { filename?: string; name?: string; fileName?: string; title?: string } | null;
+  return payload?.filename || payload?.name || payload?.fileName || payload?.title || message.message || "Attachment";
+}
+
+function payloadUrl(message: GroupInfoMessage) {
+  return typeof message.file_payload?.url === "string" ? message.file_payload.url : "";
+}
+
+function payloadMime(message: GroupInfoMessage) {
+  return (message.file_payload?.mime_type || "").toLowerCase();
+}
+
+function messageHasGif(message: GroupInfoMessage) {
+  const url = [message.image_url, message.video_url, payloadUrl(message), message.message].filter(Boolean).join(" ");
+  return message.message_type === "gif" || payloadMime(message) === "image/gif" || /\.gif(?:[?#]|$)/i.test(url);
+}
+
+function messageHasVoice(message: GroupInfoMessage) {
+  return Boolean(message.voice_url) || message.message_type === "voice" || message.message_type === "voice_note";
+}
+
+function messageHasMusic(message: GroupInfoMessage) {
+  const mime = payloadMime(message);
+  const text = `${message.message || ""} ${payloadUrl(message)}`.toLowerCase();
+  if (messageHasVoice(message)) return false;
+  return (
+    message.message_type === "music" ||
+    message.message_type === "audio" ||
+    mime.startsWith("audio/") ||
+    text.includes("/sound/") ||
+    text.includes("spotify.com") ||
+    text.includes("music.apple.com") ||
+    text.includes("soundcloud.com")
+  );
+}
+
+function messageHasMedia(message: GroupInfoMessage) {
+  return Boolean(
+    message.image_url ||
+    message.video_url ||
+    message.message_type === "image" ||
+    message.message_type === "video" ||
+    isLockedMediaMessage(message.message_type),
+  );
+}
+
+function formatDuration(ms?: number | null) {
+  if (!ms || !Number.isFinite(ms) || ms <= 0) return "";
+  const totalSeconds = Math.max(1, Math.round(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export default function GroupInfoSheet({
@@ -115,6 +188,7 @@ export default function GroupInfoSheet({
   onToggleMute,
   onSearch,
   onOpenInvites,
+  onOpenPinned,
   onStartCall,
   onGroupUpdated,
   onMembersChanged,
@@ -123,7 +197,7 @@ export default function GroupInfoSheet({
   const { user } = useAuth();
   const { members, isAdmin, loading, refresh, updateGroupMeta, leave } = useGroupAdmin(groupId);
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
-  const [tab, setTab] = useState<"members" | "media" | "links" | "files">("members");
+  const [tab, setTab] = useState<GroupInfoTab>("members");
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(groupName);
   const [savingName, setSavingName] = useState(false);
@@ -205,14 +279,23 @@ export default function GroupInfoSheet({
     return [...members].sort((a, b) => order[a.role] - order[b.role]);
   }, [members]);
 
+  const gifMessages = useMemo(
+    () => messages.filter(messageHasGif),
+    [messages],
+  );
+
+  const voiceMessages = useMemo(
+    () => messages.filter(messageHasVoice),
+    [messages],
+  );
+
+  const musicMessages = useMemo(
+    () => messages.filter(messageHasMusic),
+    [messages],
+  );
+
   const mediaMessages = useMemo(
-    () => messages.filter((message) =>
-      message.image_url ||
-      message.video_url ||
-      message.message_type === "image" ||
-      message.message_type === "video" ||
-      isLockedMediaMessage(message.message_type)
-    ),
+    () => messages.filter((message) => messageHasMedia(message) && !messageHasGif(message) && !messageHasVoice(message) && !messageHasMusic(message)),
     [messages],
   );
 
@@ -224,7 +307,17 @@ export default function GroupInfoSheet({
   }, [messages]);
 
   const fileMessages = useMemo(
-    () => messages.filter((message) => message.message_type === "file" || message.message_type === "document"),
+    () => messages.filter((message) =>
+      (message.message_type === "file" || message.message_type === "document" || Boolean(payloadUrl(message))) &&
+      !messageHasVoice(message) &&
+      !messageHasMusic(message) &&
+      !messageHasGif(message)
+    ),
+    [messages],
+  );
+
+  const pinnedMessages = useMemo(
+    () => messages.filter((message) => message.is_pinned),
     [messages],
   );
 
@@ -236,6 +329,8 @@ export default function GroupInfoSheet({
 
   const activeMemberCount = members.length || membersCount;
   const initials = initialsFor(groupName);
+  const sharedMediaCount = mediaMessages.length + gifMessages.length;
+  const sharedFilesCount = fileMessages.length + voiceMessages.length + musicMessages.length;
 
   const handleSaveName = async () => {
     const nextName = draftName.trim();
@@ -333,11 +428,14 @@ export default function GroupInfoSheet({
     }
   };
 
-  const tabs = [
-    { id: "members" as const, label: "Members", count: activeMemberCount },
-    { id: "media" as const, label: "Media", count: mediaMessages.length },
-    { id: "links" as const, label: "Links", count: linkMessages.length },
-    { id: "files" as const, label: "Files", count: fileMessages.length },
+  const tabs: Array<{ id: GroupInfoTab; label: string; count: number }> = [
+    { id: "members", label: "Members", count: activeMemberCount },
+    { id: "media", label: "Media", count: mediaMessages.length },
+    { id: "files", label: "Files", count: fileMessages.length },
+    { id: "links", label: "Links", count: linkMessages.length },
+    { id: "music", label: "Music", count: musicMessages.length },
+    { id: "gif", label: "GIF", count: gifMessages.length },
+    { id: "voice", label: "Voice", count: voiceMessages.length },
   ];
 
   return (
@@ -460,6 +558,54 @@ export default function GroupInfoSheet({
                 {muted ? <VolumeX className="h-5 w-5 text-primary" /> : <Volume2 className="h-5 w-5 text-primary" />}
                 <span className="text-[11px] font-semibold">{muted ? "Muted" : "Mute"}</span>
               </button>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-border/35 bg-muted/20 p-1">
+              <InfoSettingRow
+                icon={muted ? BellOff : Bell}
+                label="Notifications"
+                value={muted ? "Muted" : "On"}
+                onClick={onToggleMute}
+              />
+              <InfoSettingRow
+                icon={Pin}
+                label="Pinned messages"
+                value={pinnedMessages.length > 0 ? `${pinnedMessages.length} pinned` : "None"}
+                onClick={pinnedMessages.length > 0 ? onOpenPinned : undefined}
+              />
+              <InfoSettingRow
+                icon={HardDrive}
+                label="Storage and media"
+                value={`${sharedMediaCount} media, ${sharedFilesCount} files`}
+                onClick={() => setTab(sharedMediaCount > 0 ? "media" : sharedFilesCount > 0 ? "files" : "media")}
+              />
+              <InfoSettingRow
+                icon={ShieldCheck}
+                label="Privacy and permissions"
+                value={isAdmin ? "Admin controls" : "Member access"}
+              />
+              <InfoSettingRow
+                icon={Folder}
+                label="Chat folders"
+                value="Managed from chat list"
+                onClick={() => toast("Chat folders are in Chat tools")}
+              />
+              <InfoSettingRow
+                icon={MonitorSmartphone}
+                label="Active sessions"
+                value="This device"
+                onClick={() => toast("Active sessions are in Chat tools")}
+              />
+              <InfoSettingRow
+                icon={Languages}
+                label="Language"
+                value="App default"
+              />
+              <InfoSettingRow
+                icon={Smile}
+                label="Stickers and emoji"
+                value="Available in composer"
+              />
             </div>
 
             <div className="mt-5 grid gap-2">
@@ -634,6 +780,42 @@ export default function GroupInfoSheet({
                 </div>
               )
             )}
+
+            {tab === "music" && (
+              musicMessages.length === 0 ? (
+                <EmptyState icon={Music2} label="No music shared yet" />
+              ) : (
+                <div className="space-y-2">
+                  {musicMessages.map((message) => (
+                    <GroupPlayableRow key={message.id} message={message} icon={Music2} label={getFileLabel(message) || "Music"} />
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "gif" && (
+              gifMessages.length === 0 ? (
+                <EmptyState icon={ImageIcon} label="No GIFs shared yet" />
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5">
+                  {gifMessages.map((message) => (
+                    <GroupMediaTile key={message.id} message={message} badge="GIF" />
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "voice" && (
+              voiceMessages.length === 0 ? (
+                <EmptyState icon={Mic} label="No voice messages yet" />
+              ) : (
+                <div className="space-y-2">
+                  {voiceMessages.map((message) => (
+                    <GroupPlayableRow key={message.id} message={message} icon={Mic} label="Voice message" />
+                  ))}
+                </div>
+              )
+            )}
           </div>
         </div>
 
@@ -657,21 +839,95 @@ function EmptyState({ icon: Icon, label }: { icon: ComponentType<{ className?: s
   );
 }
 
-function GroupMediaTile({ message }: { message: GroupInfoMessage }) {
-  const locked = isLockedMediaMessage(message.message_type);
-  const rawSrc = getGroupMediaGalleryPath(message, !locked) || "";
-  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, message.video_url && !locked ? "display" : "thumbnail");
+function InfoSettingRow({
+  icon: Icon,
+  label,
+  value,
+  onClick,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  onClick?: () => void;
+}) {
+  const content = (
+    <>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-background/80 text-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{label}</span>
+      <span className="max-w-[42%] shrink-0 truncate text-right text-xs font-medium text-muted-foreground">{value}</span>
+    </>
+  );
+
+  if (!onClick) {
+    return <div className="flex items-center gap-3 rounded-xl px-2.5 py-2.5">{content}</div>;
+  }
 
   return (
-    <a href={resolvedSrc || undefined} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg bg-muted">
-      {message.video_url && !locked ? (
-        <div className="flex h-full w-full items-center justify-center bg-muted">
-          <Video className="h-6 w-6 text-muted-foreground" />
-        </div>
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-background/70 active:scale-[0.99]">
+      {content}
+    </button>
+  );
+}
+
+function extractFirstUrl(value?: string | null) {
+  return value?.match(/https?:\/\/[^\s<>"')]+/i)?.[0] || "";
+}
+
+function GroupPlayableRow({
+  message,
+  icon: Icon,
+  label,
+}: {
+  message: GroupInfoMessage;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  const rawSrc = message.voice_url || payloadUrl(message) || extractFirstUrl(message.message);
+  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, "display");
+  const duration = formatDuration(message.file_payload?.duration_ms);
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-muted/30 px-3 py-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">
+          {duration ? `${duration} - ` : ""}{format(new Date(message.created_at), "MMM d, h:mm a")}
+        </p>
+      </div>
+      {resolvedSrc && (
+        <audio src={resolvedSrc} controls className="h-8 w-28 shrink-0" preload="metadata" />
+      )}
+    </div>
+  );
+}
+
+function GroupMediaTile({ message, badge }: { message: GroupInfoMessage; badge?: string }) {
+  const locked = isLockedMediaMessage(message.message_type);
+  const rawSrc = getGroupMediaGalleryPath(message, !locked) || payloadUrl(message) || extractFirstUrl(message.message) || "";
+  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, message.video_url && !locked ? "display" : "thumbnail");
+  const duration = formatDuration(message.file_payload?.duration_ms);
+  const tileBadge = badge || (locked ? "Locked" : duration || (message.video_url ? "Video" : ""));
+
+  return (
+    <a href={resolvedSrc || undefined} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+      {message.video_url && !locked && resolvedSrc ? (
+        <video src={resolvedSrc} className="h-full w-full object-cover" muted playsInline preload="metadata" />
       ) : resolvedSrc ? (
         <img src={resolvedSrc} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
       ) : (
-        <ImageIcon className="m-auto h-6 w-6 text-muted-foreground" />
+        <div className="flex h-full w-full items-center justify-center">
+          {message.video_url ? <Video className="h-6 w-6 text-muted-foreground" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+        </div>
+      )}
+      {tileBadge && (
+        <span className="absolute left-1.5 top-1.5 rounded-full bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+          {tileBadge}
+        </span>
       )}
     </a>
   );

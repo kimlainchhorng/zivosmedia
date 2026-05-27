@@ -3,14 +3,15 @@
  */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Image, Video, Mic, FileText, Download, ArrowLeft, Play } from "lucide-react";
+import { X, Image, Video, Mic, FileText, Download, ArrowLeft, Play, Link2, Music2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { validateExternalUrl } from "@/lib/urlSafety";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { parseLegacyMusicShare } from "./musicShare";
 
-type MediaTab = "photos" | "videos" | "voice" | "files" | "links";
+type MediaTab = "photos" | "videos" | "gif" | "voice" | "music" | "files" | "links";
 
 interface ChatMediaGalleryProps {
   open: boolean;
@@ -27,6 +28,8 @@ interface MediaItem {
   message?: string;
   created_at: string;
   sender_id: string;
+  duration_ms?: number | null;
+  mime_type?: string | null;
 }
 
 interface DirectMessageMediaRow {
@@ -40,9 +43,47 @@ interface DirectMessageMediaRow {
     url?: string;
     filename?: string;
     mime_type?: string;
+    duration_ms?: number | null;
+    title?: string;
+    preview_url?: string;
   } | null;
   created_at: string;
   sender_id: string;
+}
+
+const URL_RE = /https?:\/\/[^\s<>"')]+/gi;
+
+function firstUrl(value?: string | null) {
+  return value?.match(URL_RE)?.[0] || "";
+}
+
+function isGifUrl(value?: string | null) {
+  return Boolean(value && /\.gif(?:[?#]|$)/i.test(value));
+}
+
+function parseGifShare(message?: string | null): { label: string; url: string } | null {
+  const match = message?.trim().match(/^\[gif\]\s*([^:]+):\s*(https?:\/\/\S+)$/i);
+  if (!match) return null;
+  return { label: match[1].trim() || "GIF", url: match[2].trim() };
+}
+
+function isMusicLink(value?: string | null) {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    return host.includes("spotify.com") || host.includes("music.apple.com") || host.includes("soundcloud.com") || host.includes("youtu");
+  } catch {
+    return value.includes("/sound/");
+  }
+}
+
+function formatDuration(ms?: number | null) {
+  if (!ms || !Number.isFinite(ms) || ms <= 0) return "";
+  const totalSeconds = Math.max(1, Math.round(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export default function ChatMediaGallery({ open, onClose, recipientId, recipientName, initialTab = "photos" }: ChatMediaGalleryProps) {
@@ -73,28 +114,91 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
         const rows = data as DirectMessageMediaRow[];
         const media: MediaItem[] = [];
         for (const msg of rows) {
-          if (msg.image_url) media.push({ id: msg.id, url: msg.image_url, type: "photos", message: msg.message, created_at: msg.created_at, sender_id: msg.sender_id });
-          if (msg.video_url) media.push({ id: msg.id, url: msg.video_url, type: "videos", message: msg.message, created_at: msg.created_at, sender_id: msg.sender_id });
-          if (msg.voice_url) media.push({ id: msg.id, url: msg.voice_url, type: "voice", message: msg.message, created_at: msg.created_at, sender_id: msg.sender_id });
+          const mimeType = msg.file_payload?.mime_type?.toLowerCase() || "";
+          const durationMs = msg.file_payload?.duration_ms ?? null;
+          const gifShare = parseGifShare(msg.message);
+          const musicShare = parseLegacyMusicShare(msg.message);
+          const messageUrl = firstUrl(msg.message);
+
+          if (msg.image_url) {
+            media.push({
+              id: `${msg.id}-image`,
+              url: msg.image_url,
+              type: msg.message_type === "gif" || isGifUrl(msg.image_url) ? "gif" : "photos",
+              message: msg.message,
+              created_at: msg.created_at,
+              sender_id: msg.sender_id,
+              duration_ms: durationMs,
+              mime_type: mimeType,
+            });
+          }
+          if (msg.video_url) {
+            media.push({
+              id: `${msg.id}-video`,
+              url: msg.video_url,
+              type: msg.message_type === "gif" || isGifUrl(msg.video_url) ? "gif" : "videos",
+              message: msg.message,
+              created_at: msg.created_at,
+              sender_id: msg.sender_id,
+              duration_ms: durationMs,
+              mime_type: mimeType,
+            });
+          }
+          if (gifShare && !msg.image_url && !msg.video_url) {
+            media.push({ id: `${msg.id}-gif`, url: gifShare.url, type: "gif", message: gifShare.label, created_at: msg.created_at, sender_id: msg.sender_id });
+          }
+          if (msg.voice_url) {
+            media.push({ id: `${msg.id}-voice`, url: msg.voice_url, type: "voice", message: msg.message, created_at: msg.created_at, sender_id: msg.sender_id, duration_ms: durationMs, mime_type: mimeType });
+          }
           if (msg.file_payload?.url) {
+            const fileUrl = msg.file_payload.url;
+            const fileType: MediaTab = mimeType === "image/gif" || isGifUrl(fileUrl)
+              ? "gif"
+              : mimeType.startsWith("image/")
+                ? "photos"
+                : mimeType.startsWith("video/")
+                  ? "videos"
+                  : mimeType.startsWith("audio/")
+                    ? "music"
+                    : "files";
             media.push({
               id: `${msg.id}-file`,
-              url: msg.file_payload.url,
-              type: "files",
-              message: msg.file_payload.filename || msg.message || "File",
+              url: fileUrl,
+              type: fileType,
+              message: msg.file_payload.filename || msg.file_payload.title || msg.message || "File",
+              created_at: msg.created_at,
+              sender_id: msg.sender_id,
+              duration_ms: durationMs,
+              mime_type: mimeType,
+            });
+          }
+          if (musicShare && !msg.file_payload?.url) {
+            media.push({
+              id: `${msg.id}-music`,
+              url: musicShare.previewUrl || messageUrl || musicShare.soundPath,
+              type: "music",
+              message: [musicShare.title, musicShare.artist].filter(Boolean).join(" - "),
+              created_at: msg.created_at,
+              sender_id: msg.sender_id,
+            });
+          } else if (msg.message_type === "music" || isMusicLink(messageUrl)) {
+            media.push({
+              id: `${msg.id}-music-link`,
+              url: messageUrl,
+              type: "music",
+              message: msg.message || "Music",
               created_at: msg.created_at,
               sender_id: msg.sender_id,
             });
           }
           // Extract links from text messages
           if (msg.message && msg.message_type === "text") {
-            const urlRegex = /https?:\/\/[^\s]+/g;
-            const urls = msg.message.match(urlRegex);
+            const urls = msg.message.match(URL_RE);
             if (urls) {
-              for (const u of urls) {
+              for (const [index, u] of urls.entries()) {
                 const safeUrl = validateExternalUrl(u);
                 if (!safeUrl) continue;
-                media.push({ id: `${msg.id}-link`, url: safeUrl, type: "links", message: msg.message, created_at: msg.created_at, sender_id: msg.sender_id });
+                media.push({ id: `${msg.id}-link-${index}`, url: safeUrl, type: "links", message: msg.message, created_at: msg.created_at, sender_id: msg.sender_id });
               }
             }
           }
@@ -111,9 +215,11 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
   const tabs: { id: MediaTab; label: string; icon: typeof Image; count: number }[] = [
     { id: "photos", label: "Photos", icon: Image, count: items.filter(i => i.type === "photos").length },
     { id: "videos", label: "Videos", icon: Video, count: items.filter(i => i.type === "videos").length },
+    { id: "gif", label: "GIF", icon: Image, count: items.filter(i => i.type === "gif").length },
     { id: "voice", label: "Voice", icon: Mic, count: items.filter(i => i.type === "voice").length },
+    { id: "music", label: "Music", icon: Music2, count: items.filter(i => i.type === "music").length },
     { id: "files", label: "Files", icon: FileText, count: items.filter(i => i.type === "files").length },
-    { id: "links", label: "Links", icon: FileText, count: items.filter(i => i.type === "links").length },
+    { id: "links", label: "Links", icon: Link2, count: items.filter(i => i.type === "links").length },
   ];
 
   if (!open) return null;
@@ -139,12 +245,12 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
         </div>
 
         {/* Tabs */}
-        <div className="flex px-4 gap-1 pb-1">
+        <div className="flex gap-1 overflow-x-auto px-4 pb-1 no-scrollbar">
           {tabs.map((t) => (
             <button type="button"
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition-colors ${
+              className={`shrink-0 flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
                 tab === t.id ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -173,17 +279,22 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
             <p className="text-sm font-medium">No {tab} shared</p>
             <p className="text-xs mt-1">Media shared in this conversation will appear here</p>
           </div>
-        ) : tab === "photos" ? (
+        ) : tab === "photos" || tab === "gif" ? (
           <div className="grid grid-cols-3 gap-1.5">
             {filtered.map((item) => (
               <button type="button"
                 key={item.id}
                 onClick={() => { setPreviewUrl(item.url); setPreviewType("image"); }}
-                className="aspect-square rounded-xl overflow-hidden bg-muted"
-                aria-label="Open photo"
-                title="Open photo"
+                className="aspect-square rounded-xl overflow-hidden bg-muted relative"
+                aria-label={tab === "gif" ? "Open GIF" : "Open photo"}
+                title={tab === "gif" ? "Open GIF" : "Open photo"}
               >
                 <img src={item.url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                {tab === "gif" && (
+                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/65 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+                    GIF
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -202,25 +313,25 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
                   </div>
                 </div>
                 <span className="absolute bottom-1.5 right-1.5 text-[9px] text-white bg-black/50 px-1.5 py-0.5 rounded-full">
-                  {format(new Date(item.created_at), "MMM d")}
+                  {formatDuration(item.duration_ms) || format(new Date(item.created_at), "MMM d")}
                 </span>
               </button>
             ))}
           </div>
-        ) : tab === "voice" ? (
+        ) : tab === "voice" || tab === "music" ? (
           <div className="space-y-2">
             {filtered.map((item) => (
               <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/30">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Mic className="w-4 h-4 text-primary" />
+                  {tab === "music" ? <Music2 className="w-4 h-4 text-primary" /> : <Mic className="w-4 h-4 text-primary" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground">Voice Note</p>
+                  <p className="text-xs font-medium text-foreground truncate">{tab === "music" ? item.message || "Music" : "Voice Note"}</p>
                   <p className="text-[10px] text-muted-foreground">
                     {item.sender_id === user?.id ? "You" : recipientName} • {format(new Date(item.created_at), "MMM d, h:mm a")}
                   </p>
                 </div>
-                <audio src={item.url} controls className="h-8 max-w-[120px]" preload="metadata" />
+                {item.url && <audio src={item.url} controls className="h-8 max-w-[120px]" preload="metadata" />}
               </div>
             ))}
           </div>
@@ -258,7 +369,7 @@ export default function ChatMediaGallery({ open, onClose, recipientId, recipient
                 className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/30 hover:bg-muted/60 transition-colors"
               >
                 <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4 text-blue-500" />
+                  <Link2 className="w-4 h-4 text-blue-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-primary truncate">{item.url}</p>

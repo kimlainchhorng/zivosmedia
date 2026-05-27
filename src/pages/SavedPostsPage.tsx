@@ -17,6 +17,8 @@ import Play from "lucide-react/dist/esm/icons/play";
 import Image from "lucide-react/dist/esm/icons/image";
 
 import ReelThumbnail from "@/components/social/ReelThumbnail";
+import SavedCollectionsRail from "@/components/social/SavedCollectionsRail";
+import AddToCollectionPopover from "@/components/social/AddToCollectionPopover";
 
 interface SavedTile {
   bookmarkId: string;
@@ -33,10 +35,25 @@ interface SavedTile {
 export default function SavedPostsPage() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
+
+  // Bookmark IDs in the currently-selected collection (used to filter tiles).
+  const { data: collectionMemberIds } = useQuery<Set<string>>({
+    queryKey: ["saved-collection-member-ids", selectedCollectionId],
+    enabled: !!selectedCollectionId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("saved_collection_posts")
+        .select("post_bookmark_id")
+        .eq("collection_id", selectedCollectionId);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: any) => r.post_bookmark_id));
+    },
+  });
 
   const { data: tiles = [], isLoading, refetch } = useQuery<SavedTile[]>({
     queryKey: ["saved-posts", userId],
@@ -125,6 +142,10 @@ export default function SavedPostsPage() {
     },
   });
 
+  const visibleTiles = selectedCollectionId
+    ? tiles.filter((t) => collectionMemberIds?.has(t.bookmarkId))
+    : tiles;
+
   async function handleRemove(bookmarkId: string) {
     try {
       await (supabase as any).from("post_bookmarks").delete().eq("id", bookmarkId);
@@ -153,8 +174,16 @@ export default function SavedPostsPage() {
           <Bookmark className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-bold text-ig-gradient">Saved</h1>
         </div>
-        <span className="text-sm text-muted-foreground">{tiles.length} {tiles.length === 1 ? "post" : "posts"}</span>
+        <span className="text-sm text-muted-foreground">{visibleTiles.length} {visibleTiles.length === 1 ? "post" : "posts"}</span>
       </div>
+
+      {/* Collections rail */}
+      {userId && (
+        <SavedCollectionsRail
+          selectedId={selectedCollectionId}
+          onSelect={setSelectedCollectionId}
+        />
+      )}
 
       {/* Content */}
       {!userId ? (
@@ -172,6 +201,21 @@ export default function SavedPostsPage() {
         <div className="flex justify-center py-20">
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
         </div>
+      ) : selectedCollectionId && visibleTiles.length === 0 && tiles.length > 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+          <Bookmark className="h-10 w-10 text-muted-foreground/40" />
+          <p className="font-semibold">This collection is empty</p>
+          <p className="text-sm text-muted-foreground">
+            Tap the folder icon on any saved post to add it here.
+          </p>
+          <button
+            type="button"
+            onClick={() => setSelectedCollectionId(null)}
+            className="mt-2 rounded-full bg-muted px-5 py-2 text-sm font-semibold"
+          >
+            Show all saved
+          </button>
+        </div>
       ) : tiles.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
           <Bookmark className="h-12 w-12 text-muted-foreground/40" />
@@ -188,7 +232,7 @@ export default function SavedPostsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 max-w-7xl mx-auto">
-          {tiles.map((tile) => (
+          {visibleTiles.map((tile) => (
             <motion.div
               key={tile.bookmarkId}
               initial={{ opacity: 0, scale: 0.96 }}
@@ -235,6 +279,10 @@ export default function SavedPostsPage() {
                 onClick={() => navigate(tile.feedHref)}
                 className="absolute inset-0 cursor-pointer focus:outline-none"
                 aria-label={`Open: ${tile.caption ?? "post"}`}
+              />
+              <AddToCollectionPopover
+                bookmarkId={tile.bookmarkId}
+                className="absolute left-1.5 top-1.5 z-10 rounded-full bg-black/55 p-2 text-white shadow-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity active:scale-90 backdrop-blur-sm"
               />
               <button type="button"
                 onClick={(e) => { e.stopPropagation(); handleRemove(tile.bookmarkId); }}

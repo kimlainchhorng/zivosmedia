@@ -3,13 +3,12 @@
  * Full-width cards with author info, media, captions, and engagement
  * Everyone can post photos/videos that show up here
  */
-import { lazy, Suspense, useState, useRef, useCallback, useEffect, memo, useMemo, type PointerEvent } from "react";
+import { lazy, Suspense, useState, useRef, useCallback, useEffect, memo, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeSupabaseMediaUrl } from "@/utils/normalizeSupabaseMediaUrl";
-import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
+import { normalizeStorePostMediaUrl } from "@/utils/normalizeStorePostMediaUrl";
 import SEOHead from "@/components/SEOHead";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import Heart from "lucide-react/dist/esm/icons/heart";
@@ -21,6 +20,7 @@ import MoreHorizontal from "lucide-react/dist/esm/icons/more-horizontal";
 import Play from "lucide-react/dist/esm/icons/play";
 import Volume2 from "lucide-react/dist/esm/icons/volume-2";
 import VolumeX from "lucide-react/dist/esm/icons/volume-x";
+import ImageIcon from "lucide-react/dist/esm/icons/image";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Camera from "lucide-react/dist/esm/icons/camera";
 import XIcon from "lucide-react/dist/esm/icons/x";
@@ -92,18 +92,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
-import { copyText } from "@/lib/native/clipboard";
-import { shareContent } from "@/lib/native/share";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/shared/PullToRefresh";
-import { useHiddenPosts, type FeedPreferenceSource } from "@/hooks/useHiddenPosts";
-import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
+import { useHiddenPosts } from "@/hooks/useHiddenPosts";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useChatPrefs } from "@/hooks/useChatPrefs";
-import { useAuth } from "@/contexts/AuthContext";
 import RelativeTime from "@/components/social/RelativeTime";
 import { topicForUserSync } from "@/lib/security/channelName";
 import TrendingHashtags, { postHasHashtag } from "@/components/social/TrendingHashtags";
@@ -116,25 +112,13 @@ import { EngagementSkeleton } from "@/components/social/EngagementSkeleton";
 import SwipeableSheet from "@/components/social/SwipeableSheet";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
-import { useFeedMute } from "@/components/social/useFeedMute";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 import { perfLog, perfMeasure, perfNow } from "@/lib/perfTrace";
-import { reportFeedQueryError } from "@/lib/feedQueryTelemetry";
-import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
-import LoadFailureCard from "@/components/reliability/LoadFailureCard";
-import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
-import { detectSensitiveContent, isSensitiveReportReason, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
 
 const INITIAL_REELS_PAGE_SIZE = 18;
 const REELS_PAGE_INCREMENT = 12;
 const REELS_PAGE_MAX = 180;
-const REEL_CLOSE_SWIPE_THRESHOLD = 92;
-const REEL_CLOSE_SWIPE_MAX_OFFSET = 180;
 let reelsFirstMediaMetadataLogged = false;
-const REELS_USER_POSTS_SELECT =
-  "id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, user_id, shared_from_post_id, shared_from_user_id, location, is_pinned, comments_enabled, sharing_enabled, is_sensitive, sensitive_reason";
-const REELS_USER_POSTS_SELECT_FALLBACK =
-  "id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, user_id, shared_from_post_id, shared_from_user_id, location, is_pinned, comments_enabled, sharing_enabled";
 
 // ── Lazy components ──────────────────────────────────────────────────────────
 // All lazy() calls are grouped AFTER imports. Interleaving them with imports
@@ -385,8 +369,6 @@ interface FeedItem {
   created_at: string;
   location?: string | null;
   is_pinned?: boolean;
-  is_sensitive?: boolean | null;
-  sensitive_reason?: string | null;
   // Share tracking
   shared_from_post_id?: string | null;
   shared_from_user_id?: string | null;
@@ -412,48 +394,20 @@ interface FeedItem {
   } | null;
 }
 
-const isFeedVideoMediaUrl = (url: string) => /\.(mp4|mov|webm|avi|mkv|m4v)(\?.*)?$/i.test(url);
-const normalizeUserPostMediaType = (
-  mediaType: string | null | undefined,
-  mediaUrls: string[] = [],
-): "image" | "video" =>
-  mediaType === "video" || mediaType === "reel" || mediaUrls.some(isFeedVideoMediaUrl) ? "video" : "image";
-const hasNonAsciiText = (text: string): boolean =>
-  Array.from(text).some((char) => (char.codePointAt(0) ?? 0) > 0x7f);
+const normalizeUserPostMediaType = (mediaType: string | null | undefined): "image" | "video" =>
+  mediaType === "video" || mediaType === "reel" ? "video" : "image";
 
 const stripFeedUserPrefix = (postId: string): string => postId.replace(/^u-/, "");
 const getReelsSharePostId = (item: FeedItem): string => stripFeedUserPrefix(item.id);
 const getFeedInteractionPostId = (item: FeedItem): string => item.source === "user" ? stripFeedUserPrefix(item.id) : item.id;
 const getFeedLikesTable = (item: FeedItem): "post_likes" | "store_post_likes" => item.source === "user" ? "post_likes" : "store_post_likes";
-const getFeedPreferenceSource = (item: FeedItem): FeedPreferenceSource | null =>
-  item.source === "store" || item.source === "user" ? item.source : null;
-const getFeedAuthorSnoozeKey = (source: FeedPreferenceSource, authorId: string) => `${source}:${authorId}`;
-
-const parseFeedPreferencePostKey = (postKey: string | null): { source: FeedPreferenceSource; postId: string } | null => {
-  if (!postKey) return null;
-  const separator = postKey.indexOf(":");
-  if (separator <= 0) return null;
-  const source = postKey.slice(0, separator);
-  const postId = stripFeedUserPrefix(postKey.slice(separator + 1));
-  if ((source !== "store" && source !== "user") || !postId) return null;
-  return { source, postId };
-};
-
-const rememberReelForReelsTab = (postId: string) => {
-  try {
-    sessionStorage.setItem("zivo_reel_active_id", postId);
-    localStorage.setItem("zivo_reel_source", "all");
-  } catch { /* ignore private-mode storage failures */ }
-};
 
 // Per-session dedup set for FeedCard view tracking — one bump per post per
 // session. Lives at module scope so navigating between feed tabs without a
 // full reload doesn't double-count.
 const recordedFeedViews = new Set<string>();
-
-// Shared mute state lives in useFeedMute (exported so it can be unit-tested
-// and reused by other surfaces that show feed videos).
 const POST_REACTIONS_ENABLED = import.meta.env.VITE_ENABLE_POST_REACTIONS === "true";
+<<<<<<< Updated upstream
 
 // Best-effort wrapper around the record_post_share RPC. The RPC logs the
 // share + bumps shares_count atomically; failures are swallowed so a flaky
@@ -470,19 +424,73 @@ const recordShareForFeedItem = async (item: FeedItem, channel: ShareChannel): Pr
   return !error;
 };
 
-const loginWithReturnTo = (path: string) => `/login?redirect=${encodeURIComponent(path)}`;
+function FeedWorkflowRail({
+  isSignedIn,
+  onRequireAuth,
+  onCreate,
+  onCreateMode,
+  onNavigate,
+}: {
+  isSignedIn: boolean;
+  onRequireAuth: (returnTo: string) => void;
+  onCreate: () => void;
+  onCreateMode: (mode: "photo" | "reel" | "poll" | "story" | "shop" | "live" | undefined) => void;
+  onNavigate: (path: string) => void;
+}) {
+  const startCreate = (mode: Parameters<typeof onCreateMode>[0]) => {
+    onCreateMode(mode);
+    onCreate();
+  };
 
-const showGuestActionPrompt = (message: string, returnTo = "/feed") => {
-  toast(message, {
-    description: "Create a free ZIVO account to like, comment, save, follow, and personalize your feed.",
-    action: {
-      label: "Log in",
-      onClick: () => {
-        window.location.assign(loginWithReturnTo(returnTo));
-      },
-    },
-  });
-};
+  const handleWorkflow = (action: FeedWorkflowAction) => {
+    if (action === "jobs") {
+      if (!isSignedIn) {
+        onRequireAuth("/personal/employer");
+        return;
+      }
+      onNavigate("/personal/employer");
+      return;
+    }
+
+    if (action === "live") {
+      if (!isSignedIn) {
+        onRequireAuth("/live");
+        return;
+      }
+      onNavigate("/live");
+      return;
+    }
+
+    if (!isSignedIn) {
+      onRequireAuth(`/feed?compose=${action}`);
+      return;
+    }
+
+    if (action === "story") startCreate("story");
+    else if (action === "reel") startCreate("reel");
+    else if (action === "shop") startCreate("shop");
+    else startCreate("photo");
+  };
+
+  return (
+    <section className="mx-3 my-3 grid grid-cols-3 gap-2 sm:grid-cols-6" aria-label="Create">
+      {FEED_CREATOR_WORKFLOWS.map(({ action, label, description, icon: Icon, tone }) => (
+        <button
+          key={action}
+          type="button"
+          onClick={() => handleWorkflow(action)}
+          className="group rounded-2xl border border-border/50 bg-card px-2 py-3 text-center shadow-sm transition-colors hover:bg-muted/40"
+        >
+          <span className={cn("mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-sm transition-transform group-hover:scale-105", tone)}>
+            <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+          </span>
+          <span className="block text-[12px] font-extrabold leading-tight text-foreground">{label}</span>
+          <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted-foreground">{description}</span>
+        </button>
+      ))}
+    </section>
+  );
+}
 
 const FEED_POST_NOTIFICATIONS_EVENT = "zivo:feed-post-notifications-changed";
 const FEED_SNOOZED_AUTHORS_EVENT = "zivo:feed-snoozed-authors-changed";
@@ -864,21 +872,106 @@ export default function ReelsFeedPage() {
   const [trendingTags, setTrendingTags] = useState<Array<{ tag: string; count: number }>>([]);
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+=======
+
+// Best-effort wrapper around the record_post_share RPC. The RPC logs the
+// share + bumps shares_count atomically; failures are swallowed so a flaky
+// network never blocks the UX or breaks the share itself.
+type ShareChannel = "copy_link" | "native" | "email" | "sms" | "whatsapp" | "telegram" | "facebook" | "x" | "other";
+const recordShareForFeedItem = (item: FeedItem, channel: ShareChannel) => {
+  if (item.source === "poll") return; // post_shares.source CHECK only allows store/user
+  const postId = getFeedInteractionPostId(item);
+  void (supabase as any).rpc("record_post_share", {
+    _post_id: postId,
+    _source: item.source,
+    _channel: channel,
+  });
+};
+
+export default function ReelsFeedPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const hiddenPosts = useHiddenPosts();
+  const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
+  const [newPostsCount, setNewPostsCount] = useState(0);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createMode, setCreateMode] = useState<"photo" | "reel" | "poll" | undefined>(undefined);
+  const [shareForPost, setShareForPost] = useState<{ shareUrl: string; shareText: string; shareMediaUrl?: string; shareMediaType?: "image" | "video"; sharePostId?: string; sharePostAuthorId?: string; sharePostAuthorName?: string } | null>(null);
+  const [commerceDraft, setCommerceDraft] = useState<{
+    linkType: "store_product" | "truck_sale";
+    storeId?: string;
+    storeProductId?: string;
+    truckSaleId?: string;
+    checkoutPath?: string;
+    mapLat?: number;
+    mapLng?: number;
+    mapLabel?: string;
+  } | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<{ name: string; avatar: string | null } | null>(null);
+  const { unreadCount: notificationUnread } = useNotifications(20);
+  const { prefs: chatPrefs } = useChatPrefs(userId ?? undefined);
+  const { data: unreadChatSenders } = useQuery({
+    queryKey: ["feed-header-chat-unread", userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("direct_messages")
+        .select("sender_id")
+        .eq("receiver_id", userId!)
+        .eq("is_read", false);
+      return new Set((data ?? []).map((r: { sender_id: string }) => r.sender_id));
+    },
+    enabled: !!userId,
+    refetchInterval: 30000,
+    staleTime: 15000,
+  });
+  const headerChatUnread = (() => {
+    const real = unreadChatSenders ?? new Set<string>();
+    let manualOnly = 0;
+    for (const id of Object.keys(chatPrefs.unread)) {
+      if (!real.has(id)) manualOnly++;
+    }
+    return real.size + manualOnly;
+  })();
+  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
+  const [reelsStartIndex, setReelsStartIndex] = useState<number | null>(null);
+  const reelsScrollRef = useRef<HTMLDivElement>(null);
+  const fullscreenScrollRef = useRef<HTMLDivElement>(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [storeSearchResults, setStoreSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [feedFilter, setFeedFilter] = useState<"all" | "photos" | "videos" | "text">("all");
+  const [feedTab, setFeedTab] = useState<"For You" | "Friends" | "Following">(() => {
+    try {
+      const v = localStorage.getItem("zivo:feed-tab-v1");
+      if (v === "For You" || v === "Friends" || v === "Following") return v;
+    } catch { /* ignore */ }
+    return "For You";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("zivo:feed-tab-v1", feedTab); } catch { /* ignore */ }
+  }, [feedTab]);
+  // Scroll to top when the user actually switches tabs or filters — skip the
+  // initial mount so a remembered tab from localStorage doesn't yank the page.
+  const tabMountedRef = useRef(false);
+  useEffect(() => {
+    if (!tabMountedRef.current) {
+      tabMountedRef.current = true;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [feedTab, feedFilter, selectedHashtag]);
+  const [sidebarContacts, setSidebarContacts] = useState<Array<{ id: string; name: string; avatar: string | null }>>([]);
+  const [trendingTags, setTrendingTags] = useState<Array<{ tag: string; count: number }>>([]);
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+>>>>>>> Stashed changes
   const PAGE_INCREMENT = REELS_PAGE_INCREMENT;
   const PAGE_MAX = REELS_PAGE_MAX;
   const [pageSize, setPageSize] = useState(INITIAL_REELS_PAGE_SIZE);
   const [sidebarDataReady, setSidebarDataReady] = useState(false);
-  // Defensive: if the user is stuck on a Friends/Following tab but their social
-  // graph is empty (new account, never followed anyone), the feed looks broken.
-  const socialGraphLoadedRef = useRef(false);
-  useEffect(() => {
-    if (!sidebarDataReady) return;
-    if (socialGraphLoadedRef.current) return;
-    socialGraphLoadedRef.current = true;
-    if ((feedTab === "Friends" || feedTab === "Following") && friendIds.size === 0 && followingIds.size === 0) {
-      setFeedTab("For You");
-    }
-  }, [feedTab, friendIds, followingIds, sidebarDataReady]);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const feedPageTopRef = useRef<HTMLDivElement>(null);
   const feedTopRef = useRef<HTMLDivElement>(null);
@@ -886,43 +979,6 @@ export default function ReelsFeedPage() {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
   const isFeedRoute = location.pathname.startsWith("/feed");
-  const closeReelsViewer = useCallback(() => {
-    setReelsStartIndex(null);
-
-    const params = new URLSearchParams(location.search);
-    if (!params.has("post")) return;
-
-    params.delete("post");
-    params.delete("src");
-    params.delete("comments");
-    navigate(
-      {
-        pathname: location.pathname,
-        search: params.toString(),
-      },
-      { replace: true },
-    );
-  }, [location.pathname, location.search, navigate]);
-
-  // Lock body scroll + Esc closes while the reels viewer is open. Mirrors the
-  // pattern used by PostDetailOverlay so keyboard users can dismiss without
-  // hunting for the close button.
-  useEffect(() => {
-    if (reelsStartIndex === null) return;
-    if (typeof document === "undefined") return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeReelsViewer();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [reelsStartIndex, closeReelsViewer]);
-
-  const reliabilityTrackingContext = isFeedRoute ? "feed" : "reels";
   const feedSuperAppResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return FEED_SUPER_APP_TARGETS;
@@ -951,70 +1007,6 @@ export default function ReelsFeedPage() {
     closeFeedSearch();
     navigate(href);
   }, [closeFeedSearch, navigate]);
-
-  const goLogin = useCallback((returnTo = "/feed") => {
-    navigate(loginWithReturnTo(returnTo));
-  }, [navigate]);
-
-  const goSignup = useCallback(() => {
-    navigate("/signup");
-  }, [navigate]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("search") === "1") {
-      setShowSearch(true);
-      params.delete("search");
-      navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
-    }
-  }, [location.pathname, location.search, navigate]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const compose = params.get("compose");
-    if (!compose || !authReady) return;
-
-    const clearComposeParam = () => {
-      params.delete("compose");
-      navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
-    };
-
-    if (!userId) {
-      goLogin(`/feed?compose=${encodeURIComponent(compose)}`);
-      return;
-    }
-
-    if (compose === "live") {
-      clearComposeParam();
-      navigate("/live");
-      return;
-    }
-
-    const modeByCompose: Record<string, "photo" | "reel" | "poll" | "story" | "shop"> = {
-      post: "photo",
-      photo: "photo",
-      reel: "reel",
-      story: "story",
-      poll: "poll",
-      shop: "shop",
-      marketplace: "shop",
-    };
-    const mode = modeByCompose[compose];
-    if (!mode) {
-      clearComposeParam();
-      return;
-    }
-
-    setCreateMode(mode);
-    setShowCreate(true);
-    clearComposeParam();
-  }, [authReady, goLogin, location.pathname, location.search, navigate, userId]);
-
-  useEffect(() => {
-    const openSearch = () => setShowSearch(true);
-    window.addEventListener("zivo-open-feed-search", openSearch);
-    return () => window.removeEventListener("zivo-open-feed-search", openSearch);
-  }, []);
 
   useEffect(() => {
     const markReady = () => setSidebarDataReady(true);
@@ -1073,46 +1065,35 @@ export default function ReelsFeedPage() {
   }, [queryClient]);
 
   useEffect(() => {
-    if (authLoading) {
-      setAuthReady(false);
-      return;
-    }
+    supabase.auth.getUser().then(({ data }) => {
+      const authUser = data.user;
+      const uid = authUser?.id || null;
+      setUserId(uid);
+      if (!uid) return;
 
-    const uid = authUser?.id || null;
-    setUserId(uid);
-    setAuthReady(true);
-
-    if (!uid || !authUser) {
-      setUserProfile(null);
-      return;
-    }
-
-    const metaAvatar = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null;
-    const metaName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split("@")[0] || "You";
-    setUserProfile({
-      name: metaName,
-      avatar: optimizeAvatar(metaAvatar, 96) || metaAvatar || null,
-    });
-
-    let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("full_name, avatar_url")
-      .or(`id.eq.${uid},user_id.eq.${uid}`)
-      .limit(1)
-      .maybeSingle()
-      .then(({ data: p }) => {
-        if (cancelled || !p) return;
-        setUserProfile({
-          name: (p as any).full_name || metaName,
-          avatar: optimizeAvatar((p as any).avatar_url, 96) || optimizeAvatar(metaAvatar, 96) || metaAvatar || null,
-        });
+      const metaAvatar = authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture || null;
+      const metaName = authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || authUser?.email?.split("@")[0] || "You";
+      setUserProfile({
+        name: metaName,
+        avatar: optimizeAvatar(metaAvatar, 96) || metaAvatar || null,
       });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoading, authUser]);
+      supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .or(`id.eq.${uid},user_id.eq.${uid}`)
+        .limit(1)
+        .maybeSingle()
+        .then(({ data: p }) => {
+          if (p) {
+            setUserProfile({
+              name: (p as any).full_name || metaName,
+              avatar: optimizeAvatar((p as any).avatar_url, 96) || optimizeAvatar(metaAvatar, 96) || metaAvatar || null,
+            });
+          }
+        });
+    });
+  }, []);
 
   // Sidebar contacts + trending tags
   useEffect(() => {
@@ -1190,11 +1171,11 @@ export default function ReelsFeedPage() {
   // banner so we don't promote a discovery surface that has nothing to show.
   const { data: liveStreamsCount = 0 } = useQuery({
     queryKey: ["feed-live-count"],
-    queryFn: async ({ signal }) => {
-      const { count } = await withSupabaseAbortSignal((supabase as any)
+    queryFn: async () => {
+      const { count } = await (supabase as any)
         .from("live_streams")
         .select("id", { count: "exact", head: true })
-        .eq("status", "live"), signal);
+        .eq("status", "live");
       return count || 0;
     },
     refetchInterval: 30_000,
@@ -1228,32 +1209,31 @@ export default function ReelsFeedPage() {
     if (showSearch) searchInputRef.current?.focus();
   }, [showSearch]);
 
-  const { data: items = [], isLoading, isFetching, isError: hasGridError, error: gridError } = useQuery({
+  const { data: items = [], isLoading, isFetching } = useQuery({
     queryKey: ["reels-feed-grid", pageSize],
-    placeholderData: keepPreviousData,
-    queryFn: async ({ signal }) => {
+    queryFn: async () => {
       const feedStartedAt = perfNow();
       const allItems: FeedItem[] = [];
 
       // Fetch store posts
-      const { data: storePosts } = await withSupabaseAbortSignal(supabase
+      const { data: storePosts } = await supabase
         .from("store_posts")
         .select("id, media_urls, media_type, caption, likes_count, comments_count, shares_count, view_count, created_at, store_id")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
-        .limit(pageSize), signal);
+        .limit(pageSize);
 
       if (storePosts?.length) {
         const storeIds = [...new Set(storePosts.map((p: any) => p.store_id))];
-        const { data: stores } = await withSupabaseAbortSignal(supabase
+        const { data: stores } = await supabase
           .from("store_profiles")
           .select("id, name, logo_url, slug, is_verified")
-          .in("id", storeIds), signal);
+          .in("id", storeIds);
         const storeMap = new Map((stores || []).map((s: any) => [s.id, s]));
 
         for (const post of storePosts as any[]) {
           const store = storeMap.get(post.store_id);
-          const urls: string[] = (post.media_urls || []).map((u: string) => normalizeSupabaseMediaUrl(u, { preferredBucket: "store-posts" }));
+          const urls: string[] = (post.media_urls || []).map((u: string) => normalizeStorePostMediaUrl(u));
           // Allow text-only announcements through (matches the user_posts loop
           // below at line ~686). Previously we dropped any post without media,
           // so store text updates never reached the feed.
@@ -1281,32 +1261,14 @@ export default function ReelsFeedPage() {
         }
       }
 
-
       // Fetch user posts
       try {
-        let { data: userPosts, error: userPostsError } = await withSupabaseAbortSignal((supabase as any)
+        const { data: userPosts } = await (supabase as any)
           .from("user_posts")
-          .select(REELS_USER_POSTS_SELECT)
+          .select("id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, user_id, shared_from_post_id, shared_from_user_id, location, is_pinned")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
-          .limit(pageSize), signal);
-        if (userPostsError && isSensitiveSchemaDriftError(userPostsError)) {
-          const retry = await withSupabaseAbortSignal((supabase as any)
-            .from("user_posts")
-            .select(REELS_USER_POSTS_SELECT_FALLBACK)
-            .eq("is_published", true)
-            .order("created_at", { ascending: false })
-            .limit(pageSize), signal);
-          userPosts = retry.data;
-          userPostsError = retry.error;
-        }
-
-        // Diagnostic: surface RLS or query failures the outer catch{} swallows.
-        // Open dev console to see how many user_posts the RLS policies returned
-        // — "I don't see other users' posts" usually means RLS filtered them.
-        if (typeof window !== "undefined") {
-          console.info("[feed] user_posts →", { rows: userPosts?.length ?? 0, error: userPostsError ?? null });
-        }
+          .limit(pageSize);
 
         if (userPosts?.length) {
           const userIds = [...new Set(userPosts.map((p: any) => p.user_id))] as string[];
@@ -1328,31 +1290,25 @@ export default function ReelsFeedPage() {
 
           const originalUserIds = [...new Set(originalUserPosts.map((p) => p.user_id))] as string[];
           const allProfileIds = [...new Set([...userIds, ...sharedFromUserIds, ...originalUserIds].filter(Boolean))] as string[];
-          // Collapsed from 4 round-trips to 2: each profile table is hit once
-          // with an OR matching either `id` or `user_id` against the same list.
-          // Historical IDs can be either, so we match both in a single query.
-          const profileIdsCsv = allProfileIds.join(",");
           const [
-            { data: publicProfilesMerged },
-            { data: profileSettingsMerged },
+            { data: publicProfilesById },
+            { data: publicProfilesByUserId },
+            { data: profileSettingsById },
+            { data: profileSettingsByUserId },
           ] = await Promise.all([
             allProfileIds.length
-              ? (supabase as any)
-                  .from("public_profiles")
-                  .select("id, user_id, full_name, avatar_url")
-                  .or(`id.in.(${profileIdsCsv}),user_id.in.(${profileIdsCsv})`)
+              ? (supabase as any).from("public_profiles").select("id, user_id, full_name, avatar_url").in("id", allProfileIds)
               : Promise.resolve({ data: [] as any[] }),
             allProfileIds.length
-              ? (supabase as any)
-                  .from("profiles")
-                  .select("id, user_id, comment_control, hide_like_counts, allow_sharing, allow_mentions, is_verified")
-                  .or(`id.in.(${profileIdsCsv}),user_id.in.(${profileIdsCsv})`)
+              ? (supabase as any).from("public_profiles").select("id, user_id, full_name, avatar_url").in("user_id", allProfileIds)
+              : Promise.resolve({ data: [] as any[] }),
+            allProfileIds.length
+              ? (supabase as any).from("profiles").select("id, user_id, comment_control, hide_like_counts, allow_sharing, allow_mentions, is_verified").in("id", allProfileIds)
+              : Promise.resolve({ data: [] as any[] }),
+            allProfileIds.length
+              ? (supabase as any).from("profiles").select("id, user_id, comment_control, hide_like_counts, allow_sharing, allow_mentions, is_verified").in("user_id", allProfileIds)
               : Promise.resolve({ data: [] as any[] }),
           ]);
-          // Single-source arrays — downstream Map builders still set under both
-          // keys (profile.id and profile.user_id), so one array is enough.
-          const publicProfilesRows = publicProfilesMerged ?? [];
-          const profileSettingsRows = profileSettingsMerged ?? [];
 
           let sharedStores: Array<{ id: string; name: string; logo_url: string | null; slug: string; is_verified?: boolean | null }> = [];
           const sharedStoreIds = [...new Set(originalStorePosts.map((p) => p.store_id))] as string[];
@@ -1365,13 +1321,13 @@ export default function ReelsFeedPage() {
           }
 
           const publicProfileMap = new Map<string, any>();
-          publicProfilesRows.forEach((profile: any) => {
+          [...(publicProfilesById || []), ...(publicProfilesByUserId || [])].forEach((profile: any) => {
             if (profile?.id) publicProfileMap.set(profile.id, profile);
             if (profile?.user_id) publicProfileMap.set(profile.user_id, profile);
           });
 
           const profileSettingsMap = new Map<string, any>();
-          profileSettingsRows.forEach((profile: any) => {
+          [...(profileSettingsById || []), ...(profileSettingsByUserId || [])].forEach((profile: any) => {
             if (profile?.id) profileSettingsMap.set(profile.id, profile);
             if (profile?.user_id) profileSettingsMap.set(profile.user_id, profile);
           });
@@ -1383,11 +1339,8 @@ export default function ReelsFeedPage() {
           for (const post of userPosts as any[]) {
             const profileDisplay = publicProfileMap.get(post.user_id);
             const profileSettings = profileSettingsMap.get(post.user_id);
-            const postMediaUrls: string[] = Array.isArray(post.media_urls) && post.media_urls.length > 0
-              ? post.media_urls.map((url: string) => normalizeSupabaseMediaUrl(url, { preferredBucket: "user-posts" }))
-              : post.media_url ? [normalizeSupabaseMediaUrl(post.media_url, { preferredBucket: "user-posts" })] : [];
-            if (!postMediaUrls.length && !post.caption?.trim()) continue;
-            const normalizedMediaType = normalizeUserPostMediaType(post.media_type, postMediaUrls);
+            if (!post.media_url && !post.caption?.trim()) continue;
+            const normalizedMediaType = normalizeUserPostMediaType(post.media_type);
 
             const originalUserPost = post.shared_from_post_id ? originalUserPostMap.get(post.shared_from_post_id) : null;
             const originalStorePost = post.shared_from_post_id ? originalStorePostMap.get(post.shared_from_post_id) : null;
@@ -1420,6 +1373,10 @@ export default function ReelsFeedPage() {
               sharedFromUserAvatar = optimizeAvatar(sharedProfile?.avatar_url, 96) || sharedProfile?.avatar_url || null;
             }
 
+            const postMediaUrls: string[] = Array.isArray(post.media_urls) && post.media_urls.length > 0
+              ? post.media_urls
+              : post.media_url ? [post.media_url] : [];
+
             allItems.push({
               id: `u-${post.id}`,
               source: "user",
@@ -1435,8 +1392,6 @@ export default function ReelsFeedPage() {
               author_id: post.user_id,
               author_is_verified: !!profileSettings?.is_verified,
               created_at: post.created_at,
-              is_sensitive: !!post.is_sensitive,
-              sensitive_reason: post.sensitive_reason || null,
               shared_from_post_id: post.shared_from_post_id || null,
               shared_from_user_id: sharedFromUserId,
               shared_from_user_name: sharedFromUserName,
@@ -1444,11 +1399,9 @@ export default function ReelsFeedPage() {
               shared_from_caption: sharedFromCaption,
               shared_from_source: sharedFromSource,
               shared_from_store_slug: sharedFromStoreSlug,
-              comment_control: post.comments_enabled === false
-                ? "off"
-                : profileSettings?.comment_control ?? "everyone",
+              comment_control: profileSettings?.comment_control ?? "everyone",
               hide_like_counts: profileSettings?.hide_like_counts ?? false,
-              allow_sharing: post.sharing_enabled !== false && profileSettings?.allow_sharing !== false,
+              allow_sharing: profileSettings?.allow_sharing ?? true,
               allow_mentions: profileSettings?.allow_mentions ?? true,
               location: post.location || null,
               is_pinned: post.is_pinned || false,
@@ -1470,7 +1423,7 @@ export default function ReelsFeedPage() {
                 .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
                 .forEach((row: any) => {
                   if (!mediaMap.has(row.post_id)) mediaMap.set(row.post_id, []);
-                  if (row.media_url) mediaMap.get(row.post_id)!.push(normalizeSupabaseMediaUrl(row.media_url, { preferredBucket: "user-posts" }));
+                  if (row.media_url) mediaMap.get(row.post_id)!.push(row.media_url);
                 });
               allItems.forEach((item) => {
                 if (item.source !== "user") return;
@@ -1489,22 +1442,24 @@ export default function ReelsFeedPage() {
         const storePostIds = allItems.filter((i) => i.source === "store").map((i) => i.id);
         const userPostIds = allItems.filter((i) => i.source === "user").map((i) => i.id.replace(/^u-/, ""));
 
-        // Single round-trip for both sources. Previous code hit the same table
-        // (social_reel_links) twice — once per source — even though they're
-        // already in Promise.all, that's 2 connections and 2 SQL plans.
-        // OR'd predicate keeps the (post_source, post_id) index usable.
-        const orParts: string[] = [];
-        if (storePostIds.length) orParts.push(`and(post_source.eq.store,post_id.in.(${storePostIds.join(",")}))`);
-        if (userPostIds.length)  orParts.push(`and(post_source.eq.user,post_id.in.(${userPostIds.join(",")}))`);
+        const [storeLinksRes, userLinksRes] = await Promise.all([
+          storePostIds.length
+            ? (supabase as any)
+                .from("social_reel_links")
+                .select("post_id, post_source, link_type, store_id, store_product_id, truck_sale_id, checkout_path, map_lat, map_lng, map_label")
+                .eq("post_source", "store")
+                .in("post_id", storePostIds)
+            : Promise.resolve({ data: [] as any[] }),
+          userPostIds.length
+            ? (supabase as any)
+                .from("social_reel_links")
+                .select("post_id, post_source, link_type, store_id, store_product_id, truck_sale_id, checkout_path, map_lat, map_lng, map_label")
+                .eq("post_source", "user")
+                .in("post_id", userPostIds)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
 
-        const linksRes = orParts.length
-          ? await (supabase as any)
-              .from("social_reel_links")
-              .select("post_id, post_source, link_type, store_id, store_product_id, truck_sale_id, checkout_path, map_lat, map_lng, map_label")
-              .or(orParts.join(","))
-          : { data: [] as any[] };
-
-        const links = (linksRes.data || []) as any[];
+        const links = [...(storeLinksRes.data || []), ...(userLinksRes.data || [])] as any[];
         const linkMap = new Map(links.map((row) => [`${row.post_source}:${row.post_id}`, row]));
 
         allItems.forEach((item) => {
@@ -1688,16 +1643,6 @@ export default function ReelsFeedPage() {
   });
 
   useEffect(() => {
-    if (!hasGridError || !gridError) return;
-    reportFeedQueryError(
-      { scope: "reels-feed-grid", queryKey: "reels-feed-grid", userId, tab: feedTab, pageSize },
-      gridError,
-    );
-  }, [feedTab, gridError, hasGridError, pageSize, userId]);
-
-
-
-  useEffect(() => {
     const postId = new URLSearchParams(location.search).get("post");
     if (!postId || items.length === 0) return;
 
@@ -1708,7 +1653,6 @@ export default function ReelsFeedPage() {
       const videoItems = items.filter((item) => item.media_type === "video");
       const videoIndex = videoItems.findIndex((item) => item.id === target.id);
       if (videoIndex >= 0) {
-        rememberReelForReelsTab(target.id);
         setReelsStartIndex(videoIndex);
       }
       return;
@@ -1716,7 +1660,6 @@ export default function ReelsFeedPage() {
 
     const itemIndex = items.findIndex((item) => item.id === target.id);
     if (itemIndex >= 0) {
-      rememberReelForReelsTab(target.id);
       setFullscreenIndex(itemIndex);
     }
   }, [items, location.search]);
@@ -1776,7 +1719,7 @@ export default function ReelsFeedPage() {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [pageSize, isFetching, items.length, PAGE_INCREMENT, PAGE_MAX]);
+  }, [pageSize, isFetching, items.length]);
 
   // Listen for chat panel state to adjust layout
   const [chatOpen, setChatOpen] = useState(false);
@@ -1822,24 +1765,24 @@ export default function ReelsFeedPage() {
       </div>
 
       <div className={cn(
-        "bg-background lg:flex lg:pt-[60px] transition-all duration-300",
+        "lg:flex lg:pt-[60px] transition-all duration-300",
         chatOpen && "lg:pr-[400px] xl:pr-[420px] 2xl:pr-[440px]"
       )}>
         {/* Desktop Sidebar */}
         <Suspense fallback={null}><FeedSidebar /></Suspense>
 
         {/* Main Feed Content */}
-        <PullToRefresh onRefresh={handlePullRefresh} className="zivo-shell-mobile bg-background lg:pb-0 flex-1 w-full lg:max-w-[600px] lg:mx-auto">
+        <PullToRefresh onRefresh={handlePullRefresh} className="zivo-shell-mobile bg-background lg:pb-0 flex-1 lg:max-w-2xl xl:max-w-3xl lg:mx-auto">
           {/* Header — hidden on desktop since the global NavBar already provides search */}
           <div
             data-testid="feed-sticky-header"
             className="lg:hidden zivo-sticky-mobile-header"
           >
-            <div style={{ paddingTop: "max(var(--zivo-safe-top, 0px), 8px)" }}>
+            <div className="zivo-pt-safe-overlay">
               <div
                 className={cn(
                   "overflow-hidden transition-all duration-300 ease-out",
-                  "max-h-[128px] opacity-100",
+                  "max-h-[200px] opacity-100",
                   headerHidden && "shadow-sm"
                 )}
               >
@@ -1882,7 +1825,7 @@ export default function ReelsFeedPage() {
                             <div className="flex items-center justify-between px-4 pt-3 pb-2">
                               <h3 className="text-[15px] font-bold text-foreground">Create</h3>
                               <button type="button"
-                                onClick={() => { setCreateMode("photo"); setShowCreate(true); }}
+                                onClick={() => setShowCreate(true)}
                                 className="text-[12px] font-semibold text-primary hover:underline"
                               >
                                 See all
@@ -1893,10 +1836,10 @@ export default function ReelsFeedPage() {
                                 { label: "Business", desc: "Page for your shop", icon: Building2, color: "text-emerald-500", route: "/business/new" },
                                 { label: "Group", desc: "Build a community", icon: Users, color: "text-blue-500", route: "/communities" },
                                 { label: "Event", desc: "Bring people together", icon: Calendar, color: "text-amber-500", route: "/explore" },
-                                { label: "Reel", desc: "Short video", icon: Film, color: "text-fuchsia-500", route: "/feed?compose=reel" },
+                                { label: "Reel", desc: "Short video", icon: Film, color: "text-fuchsia-500", route: "/reels" },
                                 { label: "Story", desc: "Share for 24h", icon: Camera, color: "text-pink-500", route: "/feed?compose=story" },
-                                { label: "Live", desc: "Go live now", icon: Radio, color: "text-red-500", route: "/feed?compose=live" },
-                                { label: "Marketplace", desc: "Sell items", icon: ShoppingBag, color: "text-orange-500", route: "/feed?compose=shop" },
+                                { label: "Live", desc: "Go live now", icon: Radio, color: "text-red-500", route: "/go-live" },
+                                { label: "Marketplace", desc: "Sell items", icon: ShoppingBag, color: "text-orange-500", route: "/marketplace" },
                                 { label: "Job", desc: "Post a hiring", icon: Briefcase, color: "text-sky-500", route: "/personal/employer" },
                                 { label: "Spaces", desc: "Audio room", icon: Mic2, color: "text-violet-500", route: "/spaces" },
                                 { label: "Post", desc: "Photo, text, poll", icon: Plus, color: "text-foreground", action: "compose" as const },
@@ -1910,7 +1853,6 @@ export default function ReelsFeedPage() {
                                     // resolves the right arm without picking
                                     // `never` and erroring on `.route`.
                                     if ("action" in item && item.action === "compose") {
-                                      setCreateMode("photo");
                                       setShowCreate(true);
                                     } else if ("route" in item) {
                                       navigate(item.route);
@@ -1958,7 +1900,7 @@ export default function ReelsFeedPage() {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <h1 className="text-base font-bold text-ig-gradient shrink-0 drop-shadow-sm">Feed</h1>
+                  <h1 className="text-base font-bold text-foreground shrink-0 drop-shadow-sm">Feed</h1>
                   <div className="flex-1 relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                     <input
@@ -1975,22 +1917,15 @@ export default function ReelsFeedPage() {
                     )}
                   </div>
                   <button type="button"
-                    onClick={() => {
-                      if (!userId) {
-                        goLogin("/feed?compose=post");
-                        return;
-                      }
-                      setCreateMode("photo");
-                      setShowCreate(true);
-                    }}
-                    className="shrink-0 h-10 w-10 rounded-full bg-ig-gradient flex items-center justify-center text-white shadow-sm hover:opacity-90 active:scale-95 transition"
+                    onClick={() => userId ? setShowCreate(true) : navigate("/auth")}
+                    className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center text-foreground hover:bg-muted/60 active:scale-95 transition"
                     aria-label="Create post"
                     title="Create post"
                   >
-                    <Plus className="h-5 w-5" strokeWidth={2.5} />
+                    <Plus className="h-5 w-5" />
                   </button>
                   <button type="button"
-                    onClick={() => userId ? navigate("/notifications") : goLogin("/notifications")}
+                    onClick={() => navigate("/notifications")}
                     className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center text-foreground hover:bg-muted/60 active:scale-95 transition relative"
                     aria-label={notificationUnread > 0 ? `Notifications, ${notificationUnread} unread` : "Notifications"}
                     title={notificationUnread > 0 ? `Notifications, ${notificationUnread} unread` : "Notifications"}
@@ -2003,7 +1938,7 @@ export default function ReelsFeedPage() {
                     )}
                   </button>
                   <button type="button"
-                    onClick={() => userId ? navigate("/chat") : goLogin("/chat")}
+                    onClick={() => navigate("/chat")}
                     className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center text-foreground hover:bg-muted/60 active:scale-95 transition relative"
                     aria-label={headerChatUnread > 0 ? `Messages, ${headerChatUnread} unread` : "Messages"}
                     title={headerChatUnread > 0 ? `Messages, ${headerChatUnread} unread` : "Messages"}
@@ -2019,12 +1954,12 @@ export default function ReelsFeedPage() {
                 <div
                   className={cn(
                     "overflow-hidden transition-all duration-300 ease-out",
-                    headerHidden ? "max-h-0 opacity-0" : "max-h-[48px] opacity-100"
+                    headerHidden ? "max-h-0 opacity-0" : "max-h-[76px] opacity-100"
                   )}
                 >
                   {/* Tab strip — For You / Friends / Following (signed-in only) */}
                   {userId && (
-                    <div className="flex justify-center gap-8 px-3 pt-1 pb-2">
+                    <div className="flex justify-center gap-8 px-3 pb-2">
                       {(["For You", "Friends", "Following"] as const).map((label) => (
                         <button type="button"
                           key={label}
@@ -2042,6 +1977,23 @@ export default function ReelsFeedPage() {
                       ))}
                     </div>
                   )}
+                  {/* Content type filter chips */}
+                  <div className="flex gap-1.5 px-3 pb-1 overflow-x-auto scrollbar-hide">
+                    {(["all", "photos", "videos", "text"] as const).map((f) => (
+                      <button type="button"
+                        key={f}
+                        onClick={() => setFeedFilter(f)}
+                        className={cn(
+                          "shrink-0 min-h-[40px] px-3.5 py-2 rounded-full text-[12px] font-semibold transition-all active:scale-95",
+                          feedFilter === f
+                            ? "bg-foreground text-background"
+                            : "bg-muted/50 text-muted-foreground"
+                        )}
+                      >
+                        {f === "all" ? "All" : f === "photos" ? "Photos" : f === "videos" ? "Videos" : "Text"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2146,7 +2098,7 @@ export default function ReelsFeedPage() {
                             >
                               <div className="h-11 w-11 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0 flex items-center justify-center">
                                 {s.logo_url ? (
-                                  <img src={s.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                                  <img src={s.logo_url} alt="" className="h-full w-full object-cover" />
                                 ) : (
                                   <span className="text-xs font-bold text-muted-foreground">{(s.name || "S")[0].toUpperCase()}</span>
                                 )}
@@ -2195,19 +2147,59 @@ export default function ReelsFeedPage() {
             )}
           </AnimatePresence>
 
+
+          {/* Create post — Facebook-style card composer */}
           <div ref={feedPageTopRef} data-feed-page-top aria-hidden="true" />
+
+          {userId && (
+            <div className="border-b border-border/10 bg-card px-3 pt-2.5 pb-1.5">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="h-9 w-9 rounded-full overflow-hidden bg-muted border border-primary/20 shrink-0">
+                  {userProfile?.avatar ? (
+                    <img src={userProfile.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-muted-foreground/50">
+                      <Camera className="h-3.5 w-3.5" />
+                    </div>
+                  )}
+                </div>
+                <button type="button"
+                  onClick={() => setShowCreate(true)}
+                  className="flex-1 text-left px-4 py-1.5 rounded-full bg-muted/40 border border-border/30 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors"
+                >
+                  {(() => {
+                    const first = (userProfile?.name || "").trim().split(/\s+/)[0];
+                    return first ? `What's on your mind, ${first}?` : "What's on your mind?";
+                  })()}
+                </button>
+              </div>
+              <div className="border-t border-border/15 pt-1 flex gap-1 overflow-x-auto scrollbar-hide lg:max-w-md lg:mx-auto lg:gap-2" role="toolbar" aria-label="Create post">
+                <button type="button" onClick={() => { setCreateMode("photo"); setShowCreate(true); }} aria-label="Share a photo" title="Share a photo" className="flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1 rounded-lg bg-muted/20 hover:bg-muted/50 transition-colors min-w-[58px]">
+                  <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
+                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Photo</span>
+                </button>
+                <button type="button" onClick={() => { setCreateMode("reel"); setShowCreate(true); }} aria-label="Create a Reel" title="Create a Reel" className="flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1 rounded-lg bg-muted/20 hover:bg-muted/50 transition-colors min-w-[58px]">
+                  <Film className="h-3.5 w-3.5 text-violet-500" />
+                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Reels</span>
+                </button>
+                <button type="button" onClick={() => { setCreateMode("poll"); setShowCreate(true); }} aria-label="Create a poll" title="Create a poll" className="flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1 rounded-lg bg-muted/20 hover:bg-muted/50 transition-colors min-w-[58px]">
+                  <TrendingUp className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Poll</span>
+                </button>
+                <button type="button" onClick={() => navigate("/check-in")} aria-label="Check in to a place" title="Check in to a place" className="flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1 rounded-lg bg-muted/20 hover:bg-muted/50 transition-colors min-w-[58px]">
+                  <MapPin className="h-3.5 w-3.5 text-red-500" />
+                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Check In</span>
+                </button>
+                <button type="button" onClick={() => navigate("/live")} aria-label="Go live" title="Go live" className="flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1 rounded-lg bg-muted/20 hover:bg-muted/50 transition-colors min-w-[58px]">
+                  <Radio className="h-3.5 w-3.5 text-rose-600" />
+                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Live</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Anchor for scroll-to-top after tapping the new-posts banner */}
           <div ref={feedTopRef} aria-hidden="true" />
-
-          {/* Story Rings */}
-          <div className="hidden lg:block">
-            <Suspense fallback={null}><FeedStoryRing /></Suspense>
-          </div>
-
-          {authReady && !userId && (
-            <GuestFeedCta onLogin={() => goLogin("/feed")} onSignup={goSignup} />
-          )}
 
           {/* Realtime new-posts banner */}
           <AnimatePresence>
@@ -2220,9 +2212,9 @@ export default function ReelsFeedPage() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.96 }}
                 transition={{ type: "spring", damping: 24, stiffness: 320 }}
-                className="sticky top-[52px] lg:top-3 z-30 mx-auto my-2 flex items-center gap-2 rounded-full bg-ig-gradient text-white px-4 py-1.5 text-xs font-bold shadow-lg shadow-rose-500/30 hover:opacity-90 active:scale-95 transition-opacity"
+                className="sticky top-[52px] lg:top-3 z-30 mx-auto my-2 flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-xs font-semibold shadow-lg shadow-primary/30 active:scale-95"
               >
-                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary-foreground animate-pulse" />
                 {newPostsCount} new {newPostsCount === 1 ? "post" : "posts"} — tap to refresh
               </motion.button>
             )}
@@ -2257,17 +2249,23 @@ export default function ReelsFeedPage() {
               and pushed real feed posts further down the screen. The Feed page
               should land users in content, not in another greeting. */}
 
-          {/* Active scope summary — shown when tab or hashtag narrows the feed */}
-          {(selectedHashtag || feedTab !== "For You") && (
+          {/* Active filter summary — shown when any filter narrows the feed */}
+          {(selectedHashtag || feedTab !== "For You" || feedFilter !== "all") && (
             <div className="mx-3 mt-2 mb-1 flex items-center justify-between gap-2 rounded-full bg-muted/60 px-3 py-1.5">
               <div className="flex items-center gap-1.5 min-w-0 text-[12px] text-foreground">
                 <span className="text-muted-foreground">Filtered:</span>
                 {feedTab !== "For You" && (
                   <span className="font-semibold">{feedTab}</span>
                 )}
-                {selectedHashtag && (
+                {feedFilter !== "all" && (
                   <>
                     {feedTab !== "For You" && <span className="text-muted-foreground">·</span>}
+                    <span className="font-semibold capitalize">{feedFilter}</span>
+                  </>
+                )}
+                {selectedHashtag && (
+                  <>
+                    {(feedTab !== "For You" || feedFilter !== "all") && <span className="text-muted-foreground">·</span>}
                     <span className="font-semibold text-primary truncate">#{selectedHashtag}</span>
                   </>
                 )}
@@ -2276,6 +2274,7 @@ export default function ReelsFeedPage() {
                 onClick={() => {
                   setSelectedHashtag(null);
                   setFeedTab("For You");
+                  setFeedFilter("all");
                 }}
                 className="shrink-0 text-[11px] font-semibold text-primary active:opacity-70"
               >
@@ -2294,6 +2293,9 @@ export default function ReelsFeedPage() {
 
           {/* Scroll-to-top FAB (renders portal-ish via fixed positioning) */}
           <Suspense fallback={null}><ScrollToTopFab /></Suspense>
+
+          {/* Story Rings */}
+           <Suspense fallback={null}><FeedStoryRing /></Suspense>
 
            {/* Facebook-style quick-link shortcut bar removed — Live / Map /
                Marketplace / Groups / Events / ZIVO+ are navigation shortcuts
@@ -2331,17 +2333,8 @@ export default function ReelsFeedPage() {
             </div>
           )}
 
-          {hasGridError && items.length > 0 && (
-            <DegradedDataBanner
-              className="mx-3 mt-2 mb-1"
-              message="Showing cached posts. Refresh failed."
-              onRetry={() => void handlePullRefresh()}
-              trackingContext={reliabilityTrackingContext}
-            />
-          )}
-
           {/* Posts */}
-          {!authReady || isLoading ? (
+          {isLoading ? (
             <div className="space-y-2 pb-4" aria-label="Loading posts" aria-busy="true">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="bg-card border-b border-border/20">
@@ -2359,42 +2352,25 @@ export default function ReelsFeedPage() {
                 </div>
               ))}
             </div>
-          ) : hasGridError && items.length === 0 ? (
-            <LoadFailureCard
-              className="px-6 py-4"
-              title="Couldn&apos;t load posts"
-              description="Please try again. We will keep your current tab and filters."
-              onRetry={() => void handlePullRefresh()}
-              trackingContext={reliabilityTrackingContext}
-            />
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-72 text-center px-6 py-8">
-              <div className="h-16 w-16 rounded-2xl bg-ig-gradient/10 flex items-center justify-center mb-3 mx-auto">
-                <Camera className="h-8 w-8 text-ig-gradient" />
+            <div className="flex flex-col items-center justify-center h-60 text-center px-6">
+              <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-3 mx-auto">
+                <Camera className="h-8 w-8 text-muted-foreground" />
               </div>
-              <p className="text-base font-bold text-foreground mb-1">Quiet here for now</p>
-              <p className="text-sm text-muted-foreground mb-4 max-w-xs">Post something or jump into one of these spots — the community is active right now.</p>
-              <div className="flex flex-wrap gap-2 justify-center mb-3">
-                {userId && (
-                  <button type="button" onClick={() => { setCreateMode("photo"); setShowCreate(true); }} className="px-4 py-2 bg-ig-gradient text-white rounded-full text-xs font-bold shadow-sm hover:opacity-90 active:scale-95 transition-all">
-                    Create post
-                  </button>
-                )}
-                <button type="button" onClick={() => navigate("/audio-rooms")} className="px-4 py-2 bg-secondary text-foreground rounded-full text-xs font-bold hover:bg-muted active:scale-95 transition-all">Live rooms</button>
-                <button type="button" onClick={() => navigate("/ama")} className="px-4 py-2 bg-secondary text-foreground rounded-full text-xs font-bold hover:bg-muted active:scale-95 transition-all">AMA sessions</button>
-                <button type="button" onClick={() => navigate("/trending")} className="px-4 py-2 bg-secondary text-foreground rounded-full text-xs font-bold hover:bg-muted active:scale-95 transition-all">Trending</button>
-              </div>
+              <p className="text-base font-bold text-foreground mb-1">No posts yet</p>
+              <p className="text-sm text-muted-foreground mb-4">Be the first to share something amazing!</p>
+              {userId && (
+                <button type="button"
+                  onClick={() => setShowCreate(true)}
+                  className="px-6 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-primary/20"
+                >
+                  Create Post
+                </button>
+              )}
             </div>
           ) : (() => {
-            const hiddenFiltered = (hiddenPosts.hidden.size > 0 || snoozedAuthorIds.size > 0)
-              ? items.filter((i) => {
-                  const source = getFeedPreferenceSource(i);
-                  const snoozedKey = source && i.author_id ? getFeedAuthorSnoozeKey(source, i.author_id) : null;
-                  return (
-                    !hiddenPosts.isHidden(i.id, source || undefined) &&
-                    (!i.author_id || !snoozedKey || (!snoozedAuthorIds.has(snoozedKey) && !snoozedAuthorIds.has(i.author_id)))
-                  );
-                })
+            const hiddenFiltered = hiddenPosts.hidden.size > 0
+              ? items.filter(i => !hiddenPosts.isHidden(i.id))
               : items;
             const baseItems = selectedHashtag
               ? hiddenFiltered.filter(i => postHasHashtag(i.caption, selectedHashtag))
@@ -2404,7 +2380,10 @@ export default function ReelsFeedPage() {
               : feedTab === "Following"
               ? baseItems.filter(i => i.author_id && followingIds.has(i.author_id))
               : baseItems;
-            const filteredItems = tabItems;
+            const filteredItems = feedFilter === "all" ? tabItems
+              : feedFilter === "photos" ? tabItems.filter(i => i.media_type === "image" && i.media_urls.length > 0)
+              : feedFilter === "videos" ? tabItems.filter(i => i.media_type === "video")
+              : tabItems.filter(i => !i.media_urls.length || !i.media_urls[0]);
             return filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 min-h-48 py-6 px-6 text-center">
                 {selectedHashtag ? (
@@ -2414,14 +2393,14 @@ export default function ReelsFeedPage() {
                     </p>
                     <button type="button"
                       onClick={() => setSelectedHashtag(null)}
-                      className="rounded-full bg-ig-gradient text-white text-xs font-bold px-4 py-2 shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                      className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 active:scale-95 transition-transform"
                     >
                       Clear filter
                     </button>
                   </>
                 ) : feedTab === "Following" || feedTab === "Friends" ? (
                   <div className="w-full max-w-md">
-                    <div className="flex flex-col items-center gap-2 text-center mb-3">
+                    <div className="flex flex-col items-center gap-2 text-center mb-2">
                       <p className="text-sm text-foreground font-medium">
                         Nothing in {feedTab} yet
                       </p>
@@ -2430,11 +2409,12 @@ export default function ReelsFeedPage() {
                           ? "Follow creators to see their posts here."
                           : "Add friends or follow more people to fill this tab."}
                       </p>
-                      <div className="flex flex-wrap gap-1.5 justify-center mt-2">
-                        <button type="button" onClick={() => setFeedTab("For You")} className="rounded-full bg-ig-gradient text-white text-xs font-bold px-3.5 py-1.5 shadow-sm hover:opacity-90 active:scale-95 transition-all">Back to For You</button>
-                        <button type="button" onClick={() => navigate("/friend-requests")} className="rounded-full bg-secondary text-foreground text-xs font-bold px-3.5 py-1.5 hover:bg-muted active:scale-95 transition-all">Pending requests</button>
-                        <button type="button" onClick={() => navigate("/audio-rooms")} className="rounded-full bg-secondary text-foreground text-xs font-bold px-3.5 py-1.5 hover:bg-muted active:scale-95 transition-all">Live rooms</button>
-                      </div>
+                      <button type="button"
+                        onClick={() => setFeedTab("For You")}
+                        className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 active:scale-95 transition-transform"
+                      >
+                        Back to For You
+                      </button>
                     </div>
                     {sidebarDataReady && (
                       <Suspense fallback={null}>
@@ -2443,7 +2423,7 @@ export default function ReelsFeedPage() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground/70">No posts found</p>
+                  <p className="text-sm text-muted-foreground/70">No {feedFilter} posts found</p>
                 )}
               </div>
             ) : (
@@ -2469,10 +2449,9 @@ export default function ReelsFeedPage() {
                     </div>
                   ) : (
                     <FeedCard item={item} currentUserId={userId} onOpenFullscreen={() => {
-                      rememberReelForReelsTab(item.id);
                       if (item.media_type === 'video') {
-                        // Match the portaled viewer's video-only list exactly.
-                        const videoItems = items.filter(it => it.media_type === 'video');
+                        // Find the correct index in video-only list
+                        const videoItems = filteredItems.filter(it => it.media_type === 'video');
                         const videoIdx = videoItems.findIndex(v => v.id === item.id);
                         setReelsStartIndex(videoIdx >= 0 ? videoIdx : 0);
                       } else {
@@ -2665,7 +2644,7 @@ export default function ReelsFeedPage() {
                   </div>
                   <button type="button"
                     onClick={() => navigate("/explore")}
-                    className="mt-2 px-5 py-2 rounded-full bg-ig-gradient text-white text-[12px] font-bold shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                    className="mt-2 px-5 py-2 rounded-full bg-primary text-primary-foreground text-[12px] font-semibold active:scale-95 transition-transform"
                   >
                     Discover more
                   </button>
@@ -2727,23 +2706,23 @@ export default function ReelsFeedPage() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="zivo-reel-no-callout fixed inset-0 z-[1500] bg-black"
+                  className="fixed inset-0 z-[1500] bg-black"
                 >
                   {/* Snap-scroll container */}
-                  <div ref={reelsScrollRef} className="zivo-reel-no-callout h-full w-full overflow-y-scroll snap-y snap-mandatory">
+                  <div ref={reelsScrollRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory">
                     {items.filter((it) => it.media_type === 'video').map((item) => (
                       <ReelSlide
                         key={item.id}
                         item={item}
                         currentUserId={userId}
-                        onClose={closeReelsViewer}
+                        onClose={() => setReelsStartIndex(null)}
                       />
                     ))}
                   </div>
                   {/* Always-visible close button — desktop. */}
                   <button
                     type="button"
-                    onClick={closeReelsViewer}
+                    onClick={() => setReelsStartIndex(null)}
                     aria-label="Close reels viewer"
                     title="Close reels viewer"
                     className="hidden lg:flex fixed top-4 right-4 z-[1510] h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-xl ring-1 ring-border/50 backdrop-blur-md hover:bg-background transition-colors"
@@ -2809,7 +2788,6 @@ export default function ReelsFeedPage() {
                                   alt={post.author_name}
                                   className="h-full w-full object-cover"
                                   loading="lazy"
-                                  decoding="async"
                                 />
                               ) : (
                                 <div className="h-full w-full flex items-center justify-center text-xs font-semibold text-muted-foreground">
@@ -2852,12 +2830,12 @@ export default function ReelsFeedPage() {
 
         {/* Desktop RIGHT rail — hidden when chat panel is open to avoid overflow */}
         <aside className={cn(
-          "hidden xl:flex flex-col w-[280px] shrink-0 sticky top-[4.5rem] h-[calc(100vh-4.5rem)] overflow-y-auto py-4 px-3 gap-4 border-l border-border/20 bg-background/95",
+          "hidden xl:flex flex-col w-[280px] shrink-0 sticky top-[4.5rem] h-[calc(100vh-4.5rem)] overflow-y-auto py-4 px-3 gap-4 border-l border-border/20 bg-background/40 backdrop-blur-sm",
           chatOpen && "!hidden"
         )}>
 
           {/* Quick Access — service shortcuts */}
-          <div className="shrink-0">
+          <div>
             <h3 className="text-[11px] font-bold text-foreground/55 uppercase tracking-[0.08em] px-1 mb-2.5">Quick Access</h3>
             <div className="grid grid-cols-3 gap-1.5">
               {[
@@ -2898,7 +2876,7 @@ export default function ReelsFeedPage() {
 
           {/* Contacts */}
           {sidebarContacts.length > 0 && (
-            <div className="shrink-0">
+            <div>
               <div className="flex items-center justify-between mb-2 px-1">
                 <h3 className="text-sm font-semibold text-foreground">Contacts</h3>
                 <button type="button" onClick={() => navigate("/chat/contacts")} className="text-[11px] text-primary hover:underline">See all</button>
@@ -2913,7 +2891,7 @@ export default function ReelsFeedPage() {
                     <div className="relative shrink-0">
                       <div className="h-8 w-8 rounded-full overflow-hidden bg-muted border border-border/30">
                         {c.avatar ? (
-                          <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                          <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center text-[11px] font-bold text-muted-foreground bg-primary/10 text-primary">
                             {c.name[0]?.toUpperCase()}
@@ -2931,7 +2909,7 @@ export default function ReelsFeedPage() {
 
           {/* Trending */}
           {trendingTags.length > 0 && (
-            <div className="shrink-0">
+            <div>
               <div className="flex items-center gap-1.5 mb-2 px-1">
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <h3 className="text-sm font-semibold text-foreground">Trending</h3>
@@ -2965,7 +2943,7 @@ export default function ReelsFeedPage() {
 
           {/* ZIVO+ upgrade card */}
           {userId && (
-            <div className="shrink-0 rounded-2xl overflow-hidden border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-card to-primary/5 p-3">
+            <div className="rounded-2xl overflow-hidden border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-card to-primary/5 p-3">
               <div className="flex items-center gap-1.5 mb-1">
                 <Crown className="h-4 w-4 text-amber-500" />
                 <h3 className="text-sm font-semibold text-foreground">ZIVO+</h3>
@@ -2982,8 +2960,8 @@ export default function ReelsFeedPage() {
 
           {/* Birthdays */}
           <button type="button"
-            onClick={() => userId ? navigate("/friends") : goLogin("/friends")}
-            className="shrink-0 text-left rounded-2xl border border-rose-500/20 bg-gradient-to-br from-rose-500/10 via-card to-pink-500/5 p-3 hover:from-rose-500/15 hover:to-pink-500/10 active:scale-[0.99] transition-all group"
+            onClick={() => navigate("/friends")}
+            className="text-left rounded-2xl border border-rose-500/20 bg-gradient-to-br from-rose-500/10 via-card to-pink-500/5 p-3 hover:from-rose-500/15 hover:to-pink-500/10 active:scale-[0.99] transition-all group"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <span className="h-7 w-7 rounded-lg bg-rose-500/15 flex items-center justify-center">
@@ -3000,7 +2978,7 @@ export default function ReelsFeedPage() {
           {/* Upcoming Events */}
           <button type="button"
             onClick={() => navigate("/explore")}
-            className="shrink-0 text-left rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 via-card to-sky-500/5 p-3 hover:from-blue-500/15 hover:to-sky-500/10 active:scale-[0.99] transition-all group"
+            className="text-left rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 via-card to-sky-500/5 p-3 hover:from-blue-500/15 hover:to-sky-500/10 active:scale-[0.99] transition-all group"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <span className="h-7 w-7 rounded-lg bg-blue-500/15 flex items-center justify-center">
@@ -3037,31 +3015,18 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [muted, setMuted] = useFeedMute();
+  const [muted, setMuted] = useState(true);
   const [liked, setLiked] = useState(false);
   const [localLikes, setLocalLikes] = useState(item.likes_count);
   const [localComments, setLocalComments] = useState(item.comments_count);
-  const [canCommentAsFriend, setCanCommentAsFriend] = useState(true);
   const [showCaption, setShowCaption] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [holdSpeedActive, setHoldSpeedActive] = useState(false);
-  const [speedLocked, setSpeedLocked] = useState(false);
-  const [speedHud, setSpeedHud] = useState<{ label: string; detail: string } | null>(null);
-  const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
-  const [closeSwipeOffset, setCloseSwipeOffset] = useState(0);
   const interactionPostId = getFeedInteractionPostId(item);
   const likesTable = getFeedLikesTable(item);
-  const commentSetting = item.comment_control || "everyone";
-  const isOwner = Boolean(currentUserId && item.author_id === currentUserId);
-  const commentsLimitedToFriends = commentSetting === "friends" && !isOwner && !canCommentAsFriend;
-  const canSubmitComment = commentSetting !== "off" && !commentsLimitedToFriends;
-  const commentDisabledReason = commentSetting === "off"
-    ? "Comments are turned off for this post"
-    : commentsLimitedToFriends ? "Only friends can comment on this post" : undefined;
   const isSharedReel = Boolean(item.shared_from_post_id || item.shared_from_user_id);
   const followTargetSource = isSharedReel && item.shared_from_source ? item.shared_from_source : item.source;
   const followTargetUserId = followTargetSource === "user"
@@ -3078,39 +3043,10 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
       .then(({ data }) => { if (typeof data === "boolean") setIsFollowing(data); });
   }, [currentUserId, followTargetUserId]);
 
-  useEffect(() => {
-    if (
-      commentSetting !== "friends" ||
-      !currentUserId ||
-      !item.author_id ||
-      isOwner ||
-      item.source !== "user"
-    ) {
-      setCanCommentAsFriend(true);
-      return;
-    }
-
-    let alive = true;
-    (supabase as any)
-      .from("friendships")
-      .select("id")
-      .eq("status", "accepted")
-      .or(`and(user_id.eq.${currentUserId},friend_id.eq.${item.author_id}),and(user_id.eq.${item.author_id},friend_id.eq.${currentUserId})`)
-      .limit(1)
-      .then(({ data, error }: any) => {
-        if (!alive) return;
-        setCanCommentAsFriend(!error && Boolean(data?.length));
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [commentSetting, currentUserId, isOwner, item.author_id, item.source]);
-
   const handleReelFollow = async () => {
     if (!followTargetUserId || followLoading) return;
     if (!currentUserId) {
-      showGuestActionPrompt("Log in to follow creators", "/feed");
+      toast.error("Please sign in to follow");
       return;
     }
     if (followTargetUserId === currentUserId) return;
@@ -3120,14 +3056,10 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     }
     setFollowLoading(true);
     try {
-      const { error } = await (supabase as any).from("user_followers").upsert(
-        {
-          follower_id: currentUserId,
-          following_id: followTargetUserId,
-        },
-        { onConflict: "follower_id,following_id", ignoreDuplicates: true },
-      );
-      if (error) throw error;
+      await (supabase as any).from("user_followers").insert({
+        follower_id: currentUserId,
+        following_id: followTargetUserId,
+      });
       setIsFollowing(true);
       try {
         const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", currentUserId).single();
@@ -3135,9 +3067,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
           body: { user_id: followTargetUserId, notification_type: "new_follower", title: "New Follower 🔔", body: `${sp?.full_name || "Someone"} started following you`, data: { type: "new_follower", follower_id: currentUserId, avatar_url: sp?.avatar_url, action_url: `/user/${currentUserId}` } },
         });
       } catch {}
-    } catch {
-      toast.error("Failed to update follow");
-    } finally {
+    } catch { /* ignore */ } finally {
       setFollowLoading(false);
     }
   };
@@ -3156,19 +3086,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
 
   const [showComments, setShowComments] = useState(false);
   const mediaPerfLogged = useRef(false);
-  const longPressTimerRef = useRef<number | null>(null);
-  const singleTapTimerRef = useRef<number | null>(null);
-  const speedHudTimerRef = useRef<number | null>(null);
-  const doubleTapHeartTimerRef = useRef<number | null>(null);
-  const doubleTapLikeInFlightRef = useRef(false);
-  const lastTapRef = useRef<{ time: number; x: number; y: number; side: "left" | "right" } | null>(null);
-  const gestureRef = useRef({
-    pointerId: -1,
-    startX: 0,
-    startY: 0,
-    moved: false,
-    longPress: false,
-  });
 
   useEffect(() => {
     setLocalLikes(item.likes_count);
@@ -3212,7 +3129,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          rememberReelForReelsTab(item.id);
           videoRef.current?.play().catch(() => {});
           setIsPlaying(true);
           if (
@@ -3238,7 +3154,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     return () => observer.disconnect();
   }, [currentUserId, interactionPostId, item.id, item.source]);
 
-  const togglePlay = useCallback(() => {
+  const togglePlay = () => {
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
       videoRef.current.play().catch(() => {});
@@ -3247,244 +3163,11 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
       videoRef.current.pause();
       setIsPlaying(false);
     }
-  }, []);
-
-  const clearLongPressTimer = useCallback(() => {
-    if (longPressTimerRef.current) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  }, []);
-
-  const clearSingleTapTimer = useCallback(() => {
-    if (singleTapTimerRef.current) {
-      window.clearTimeout(singleTapTimerRef.current);
-      singleTapTimerRef.current = null;
-    }
-  }, []);
-
-  const showReelHud = useCallback((label: string, detail: string, duration = 1200) => {
-    setSpeedHud({ label, detail });
-    if (speedHudTimerRef.current) {
-      window.clearTimeout(speedHudTimerRef.current);
-    }
-    speedHudTimerRef.current = window.setTimeout(() => {
-      setSpeedHud(null);
-      speedHudTimerRef.current = null;
-    }, duration);
-  }, []);
-
-  const showDoubleTapLikeBurst = useCallback(() => {
-    setShowDoubleTapHeart(true);
-    if (doubleTapHeartTimerRef.current) {
-      window.clearTimeout(doubleTapHeartTimerRef.current);
-    }
-    doubleTapHeartTimerRef.current = window.setTimeout(() => {
-      setShowDoubleTapHeart(false);
-      doubleTapHeartTimerRef.current = null;
-    }, 650);
-  }, []);
-
-  const likeReelFromDoubleTap = useCallback(async () => {
-    showDoubleTapLikeBurst();
-    haptic(liked ? "light" : "medium");
-
-    if (!currentUserId) {
-      showGuestActionPrompt("Log in to like posts", "/feed");
-      return;
-    }
-
-    if (liked || doubleTapLikeInFlightRef.current) return;
-    doubleTapLikeInFlightRef.current = true;
-    setLiked(true);
-    setLocalLikes((prev) => prev + 1);
-
-    try {
-      const { error } = await (supabase as any)
-        .from(likesTable)
-        .insert({ post_id: interactionPostId, user_id: currentUserId });
-      if (error) throw error;
-
-      if (item.author_id && item.author_id !== currentUserId && shouldSendLikeNotification(item.id)) {
-        try {
-          const { data: sp } = await supabase.from("profiles").select("full_name").eq("user_id", currentUserId).single();
-          await supabase.functions.invoke("send-push-notification", {
-            body: { user_id: item.author_id, notification_type: "post_liked", title: "New Like ❤️", body: `${sp?.full_name || "Someone"} liked your post`, data: { type: "post_liked", post_id: item.id, liker_id: currentUserId, action_url: `/reels?post=${item.id}` } },
-          });
-        } catch {}
-      }
-
-      void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
-    } catch {
-      setLiked(false);
-      setLocalLikes((prev) => Math.max(0, prev - 1));
-      toast.error("Failed to update like");
-    } finally {
-      doubleTapLikeInFlightRef.current = false;
-    }
-  }, [currentUserId, haptic, interactionPostId, item.author_id, item.id, liked, likesTable, queryClient, showDoubleTapLikeBurst]);
-
-  const handleReelTap = useCallback((x: number, y: number) => {
-    const now = Date.now();
-    const side = x < window.innerWidth / 2 ? "left" : "right";
-    const previous = lastTapRef.current;
-    const isDoubleTap = previous
-      && previous.side === side
-      && now - previous.time < 320
-      && Math.hypot(x - previous.x, y - previous.y) < 96;
-
-    if (isDoubleTap) {
-      clearSingleTapTimer();
-      lastTapRef.current = null;
-      void likeReelFromDoubleTap();
-      return;
-    }
-
-    lastTapRef.current = { time: now, x, y, side };
-    clearSingleTapTimer();
-    singleTapTimerRef.current = window.setTimeout(() => {
-      togglePlay();
-      lastTapRef.current = null;
-      singleTapTimerRef.current = null;
-    }, 260);
-  }, [clearSingleTapTimer, likeReelFromDoubleTap, togglePlay]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.playbackRate = speedLocked || holdSpeedActive ? 2 : 1;
-  }, [holdSpeedActive, speedLocked]);
-
-  useEffect(() => () => {
-    clearLongPressTimer();
-    clearSingleTapTimer();
-    if (speedHudTimerRef.current) {
-      window.clearTimeout(speedHudTimerRef.current);
-    }
-    if (doubleTapHeartTimerRef.current) {
-      window.clearTimeout(doubleTapHeartTimerRef.current);
-    }
-  }, [clearLongPressTimer, clearSingleTapTimer]);
-
-  const handleGesturePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-
-    gestureRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      moved: false,
-      longPress: false,
-    };
-    setCloseSwipeOffset(0);
-
-    clearLongPressTimer();
-    longPressTimerRef.current = window.setTimeout(() => {
-      if (gestureRef.current.pointerId !== event.pointerId) return;
-      gestureRef.current.longPress = true;
-      setHoldSpeedActive(true);
-      videoRef.current?.play().catch(() => {});
-      setIsPlaying(true);
-      haptic("light");
-      showReelHud(
-        speedLocked ? "2x locked" : "2x",
-        speedLocked ? "Swipe up for 1x" : "Hold speed - drag down to lock",
-        1600
-      );
-    }, 240);
-  }, [clearLongPressTimer, haptic, showReelHud, speedLocked]);
-
-  const handleGesturePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const gesture = gestureRef.current;
-    if (gesture.pointerId !== event.pointerId) return;
-
-    const dx = event.clientX - gesture.startX;
-    const dy = event.clientY - gesture.startY;
-    const distance = Math.hypot(dx, dy);
-    if (distance > 10) {
-      gesture.moved = true;
-    }
-
-    if (!gesture.longPress) {
-      const isRightCloseSwipe = dx > 18 && Math.abs(dx) > Math.abs(dy) * 1.2;
-      if (distance > 14) clearLongPressTimer();
-      if (isRightCloseSwipe) {
-        event.preventDefault();
-        setCloseSwipeOffset(Math.min(dx, REEL_CLOSE_SWIPE_MAX_OFFSET));
-      } else if (closeSwipeOffset > 0) {
-        setCloseSwipeOffset(0);
-      }
-      return;
-    }
-
-    event.preventDefault();
-
-    if (dy > 58 && !speedLocked) {
-      setSpeedLocked(true);
-      setHoldSpeedActive(false);
-      haptic("medium");
-      showReelHud("2x locked", "Swipe up while holding for 1x", 1600);
-      return;
-    }
-
-    if (dy < -58 && (speedLocked || holdSpeedActive)) {
-      setSpeedLocked(false);
-      setHoldSpeedActive(false);
-      haptic("selection");
-      showReelHud("1x", "Normal speed", 1000);
-    }
-  }, [clearLongPressTimer, closeSwipeOffset, haptic, holdSpeedActive, showReelHud, speedLocked]);
-
-  const handleGesturePointerEnd = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const gesture = gestureRef.current;
-    if (gesture.pointerId !== event.pointerId) return;
-
-    const dx = event.clientX - gesture.startX;
-    const dy = event.clientY - gesture.startY;
-    const isCloseSwipe = dx >= REEL_CLOSE_SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * 1.2;
-
-    clearLongPressTimer();
-    gestureRef.current.pointerId = -1;
-
-    if (isCloseSwipe) {
-      clearSingleTapTimer();
-      setCloseSwipeOffset(0);
-      haptic("light");
-      onClose();
-      return;
-    }
-    if (closeSwipeOffset > 0) {
-      setCloseSwipeOffset(0);
-    }
-
-    if (gesture.longPress) {
-      clearSingleTapTimer();
-      if (!speedLocked) setHoldSpeedActive(false);
-      return;
-    }
-
-    if (!gesture.moved) {
-      handleReelTap(event.clientX, event.clientY);
-    }
-  }, [clearLongPressTimer, clearSingleTapTimer, closeSwipeOffset, handleReelTap, haptic, onClose, speedLocked]);
-
-  const handleGesturePointerCancel = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const gesture = gestureRef.current;
-    if (gesture.pointerId !== event.pointerId) return;
-
-    clearLongPressTimer();
-    clearSingleTapTimer();
-    gestureRef.current.pointerId = -1;
-    setCloseSwipeOffset(0);
-    if (gesture.longPress && !speedLocked) {
-      setHoldSpeedActive(false);
-    }
-  }, [clearLongPressTimer, clearSingleTapTimer, speedLocked]);
+  };
 
   const handleLike = async () => {
     if (!currentUserId) {
-      showGuestActionPrompt("Log in to like posts", "/feed");
+      toast.error("Please sign in to like posts");
       return;
     }
 
@@ -3532,12 +3215,18 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const shareText = encodeURIComponent(item.caption || `Check out this post by ${item.author_name}`);
   const shareEncodedUrl = encodeURIComponent(shareUrl);
 
-  const handleCopyLink = async () => {
+  const handleCopyLink = () => {
     try {
-      await copyText(shareUrl);
+      const ta = document.createElement("textarea");
+      ta.value = shareUrl;
+      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
       toast.success("Link copied!");
-      const recorded = await recordShareForFeedItem(item, "copy_link");
-      if (recorded) void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
+      recordShareForFeedItem(item, "copy_link");
     } catch {
       toast.info("Long-press URL bar to copy");
     }
@@ -3596,13 +3285,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   return (
     <div
       ref={containerRef}
-      className="zivo-reel-no-callout relative h-[100dvh] lg:h-full w-full snap-start snap-always flex-shrink-0"
-      onContextMenu={(event) => event.preventDefault()}
-      style={{
-        transform: closeSwipeOffset ? `translateX(${closeSwipeOffset}px)` : undefined,
-        opacity: closeSwipeOffset ? Math.max(0.82, 1 - closeSwipeOffset / 520) : undefined,
-        transition: closeSwipeOffset ? "none" : "transform 180ms ease-out, opacity 180ms ease-out",
-      }}
+      className="relative h-[100dvh] lg:h-full w-full snap-start snap-always flex-shrink-0"
     >
       {/* Video */}
       <video
@@ -3621,39 +3304,9 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
             source: item.source,
           });
         }}
+        onClick={togglePlay}
         className="h-full w-full object-cover bg-black"
       />
-
-      <div
-        aria-label="Reel playback gestures"
-        className="absolute inset-0 cursor-pointer touch-manipulation"
-        onPointerDown={handleGesturePointerDown}
-        onPointerMove={handleGesturePointerMove}
-        onPointerUp={handleGesturePointerEnd}
-        onPointerCancel={handleGesturePointerCancel}
-      />
-
-      {/* Speed HUD */}
-      <AnimatePresence>
-        {(speedHud || holdSpeedActive || speedLocked) && (
-          <motion.div
-            key={`${speedHud?.label ?? (speedLocked ? "2x locked" : "2x")}-${speedHud?.detail ?? ""}`}
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.16 }}
-            className="pointer-events-none absolute left-1/2 top-[18%] z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/55 px-4 py-2 text-white shadow-xl backdrop-blur-md"
-          >
-            {speedLocked ? <Lock className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
-            <span className="text-sm font-black tracking-wide">
-              {speedHud?.label ?? (speedLocked ? "2x locked" : "2x")}
-            </span>
-            <span className="text-[11px] font-medium text-white/75">
-              {speedHud?.detail ?? (speedLocked ? "Swipe up for 1x" : "Hold speed")}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Pause indicator */}
       <AnimatePresence>
@@ -3667,21 +3320,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
             <div className="h-20 w-20 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
               <Play className="h-10 w-10 text-white fill-white ml-1" />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Double-tap like feedback */}
-      <AnimatePresence>
-        {showDoubleTapHeart && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.45 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.35 }}
-            transition={{ duration: 0.22 }}
-            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
-          >
-            <Heart className="h-24 w-24 fill-red-500 text-red-500 drop-shadow-2xl" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -3721,9 +3359,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         {/* Comment */}
         <button type="button"
           onClick={() => {
-            if (commentSetting === "off") { toast.error("Comments are turned off for this post"); return; }
-            if (!currentUserId) { showGuestActionPrompt("Log in to comment", "/feed"); return; }
-            if (commentsLimitedToFriends) { toast.error("Only friends can comment on this post"); return; }
+            if (!currentUserId) { toast.error("Please sign in to comment"); return; }
             setShowComments(true);
           }}
           aria-label="Open comments"
@@ -3747,16 +3383,8 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         {/* Watch Party — video posts only */}
         {item.media_type === "video" && (
           <button type="button"
-            onClick={async () => {
-              try {
-                await copyText(shareUrl);
-              } catch {
-                toast.info("Long-press URL bar to copy");
-                return;
-              }
-              void recordShareForFeedItem(item, "copy_link").then((recorded) => {
-                if (recorded) void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
-              });
+            onClick={() => {
+              navigator.clipboard?.writeText(shareUrl).catch(() => {});
               toast.success("Watch Party link copied — send it to friends");
             }}
             aria-label="Copy watch party link"
@@ -3773,11 +3401,8 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
           onClick={async () => {
             const text = item.caption || `Check out this post by ${item.author_name}`;
             try {
-              const result = await shareContent({ title: "ZIVO", text, url: shareUrl });
-              if (result.cancelled) return;
-              if (result.shared) {
-                const recorded = await recordShareForFeedItem(item, "native");
-                if (recorded) void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
+              if (typeof navigator !== "undefined" && (navigator as any).share) {
+                await (navigator as any).share({ title: "ZIVO", text, url: shareUrl });
                 return;
               }
             } catch (e: any) {
@@ -3824,7 +3449,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
               >
                 <div className="h-11 w-11 rounded-full overflow-hidden border-2 border-white shrink-0">
                   {displayAvatar ? (
-                    <img src={displayAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                    <img src={displayAvatar} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="h-full w-full bg-white/20 flex items-center justify-center text-white text-sm font-bold">
                       {displayName[0]}
@@ -3840,16 +3465,16 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
                   aria-label={isFollowing ? "Unfollow creator" : "Follow creator"}
                   title={isFollowing ? "Unfollow creator" : "Follow creator"}
                   className={cn(
-                    "absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-5 w-5 rounded-full flex items-center justify-center shadow-lg ring-2 ring-background",
-                    isFollowing ? "bg-muted" : "bg-ig-gradient"
+                    "absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-5 w-5 rounded-full flex items-center justify-center shadow-lg",
+                    isFollowing ? "bg-muted" : "bg-primary"
                   )}
                 >
                   {followLoading ? (
-                    <Loader2 className={cn("h-2.5 w-2.5 animate-spin", isFollowing ? "text-primary-foreground" : "text-white")} />
+                    <Loader2 className="h-2.5 w-2.5 animate-spin text-primary-foreground" />
                   ) : isFollowing ? (
                     <UserCheck className="h-2.5 w-2.5 text-primary-foreground" />
                   ) : (
-                    <Plus className="h-3 w-3 text-white" strokeWidth={3} />
+                    <Plus className="h-3 w-3 text-primary-foreground" />
                   )}
                 </button>
               )}
@@ -3905,7 +3530,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
                 >
                   <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-white/40 shrink-0">
                     {displayAvatar ? (
-                      <img src={displayAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                      <img src={displayAvatar} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <div className="h-full w-full bg-white/20 flex items-center justify-center text-white text-sm font-bold">
                         {displayName[0]}
@@ -3925,10 +3550,10 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
                     aria-label={isFollowing ? "Unfollow creator" : "Follow creator"}
                     title={isFollowing ? "Unfollow creator" : "Follow creator"}
                     className={cn(
-                      "shrink-0 px-4 py-1 rounded-md text-xs font-bold transition-all hover:opacity-90",
+                      "shrink-0 px-4 py-1 rounded-md text-xs font-semibold transition-all",
                       isFollowing
                         ? "bg-white/20 text-white border border-white/30"
-                        : "bg-ig-gradient text-white shadow-sm"
+                        : "bg-emerald-500 text-white"
                     )}
                   >
                     {followLoading ? (
@@ -3991,8 +3616,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
             currentUserId={currentUserId}
             commentsCount={localComments}
             onCommentsCountChange={setLocalComments}
-            canComment={canSubmitComment}
-            disabledReason={commentDisabledReason}
             dark
           />
         </Suspense>
@@ -4012,9 +3635,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
               sharePostAuthorId={item.shared_from_user_id || item.author_id}
               sharePostAuthorName={item.shared_from_user_name || item.author_name}
               onClose={() => setShowShareSheet(false)}
-              onShareRecorded={() => {
-                void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
-              }}
               positioning="absolute"
               zIndex={80}
               onVisitProfile={() => {
@@ -4125,12 +3745,11 @@ function FeedPollCard() {
 const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen, autoPlayVideo, detailMode }: { item: FeedItem; currentUserId: string | null; onOpenFullscreen?: () => void; autoPlayVideo?: boolean; detailMode?: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const hiddenPosts = useHiddenPosts(currentUserId);
-  const sensitiveMediaPreference = useSensitiveMediaPreference(currentUserId);
+  const hiddenPosts = useHiddenPosts();
   const haptic = useHaptic();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [muted, setMuted] = useFeedMute();
+  const [muted, setMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentMedia, setCurrentMedia] = useState(0);
   const [showComments, setShowComments] = useState(false);
@@ -4140,12 +3759,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   const [showReportSheet, setShowReportSheet] = useState(false);
   const [reportStep, setReportStep] = useState<"categories" | "sub" | "submitted">("categories");
   const [reportCategory, setReportCategory] = useState("");
+  const [notificationsOn, setNotificationsOn] = useState(false);
   const [commentSetting, setCommentSetting] = useState<"everyone" | "friends" | "off">(item.comment_control || "everyone");
   const [showCommentSettings, setShowCommentSettings] = useState(false);
   const [localLikes, setLocalLikes] = useState(item.likes_count);
   const [localComments, setLocalComments] = useState(item.comments_count);
-  const [localShares, setLocalShares] = useState(item.shares_count);
-  const [canCommentAsFriend, setCanCommentAsFriend] = useState(true);
   // Real "Liked by [name]" social proof — loaded async per post. The previous
   // implementation seeded a name from a hardcoded ["Sarah K.", ...] mock, so
   // every post displayed a fake liker even when the actual liker was the
@@ -4155,7 +3773,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
-  const [doubleTapPoint, setDoubleTapPoint] = useState<{ x: number; y: number } | null>(null);
   const [showEditCaption, setShowEditCaption] = useState(false);
   const [editCaptionText, setEditCaptionText] = useState(item.caption || "");
   const [editSaving, setEditSaving] = useState(false);
@@ -4180,9 +3797,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   // suppress the trailing click so the post doesn't also get a plain Like.
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
-  const feedTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const feedHeartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const feedLikeInFlight = useRef(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -4210,8 +3824,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   const isSharedAuthorOwner = Boolean(currentUserId && sharedAuthorId === currentUserId);
   const interactionPostId = getFeedInteractionPostId(item);
   const likesTable = getFeedLikesTable(item);
-  const notificationKey = item.source === "poll" ? null : `${item.source}:${interactionPostId}`;
-  const [notificationsOn, setNotificationsOnPersisted] = useFeedPostNotificationState(currentUserId, notificationKey);
 
   useEffect(() => {
     setLocalLikes(item.likes_count);
@@ -4220,43 +3832,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   useEffect(() => {
     setLocalComments(item.comments_count);
   }, [item.comments_count]);
-
-  useEffect(() => {
-    setLocalShares(item.shares_count);
-  }, [item.shares_count]);
-
-  useEffect(() => {
-    setCommentSetting(item.comment_control || "everyone");
-  }, [item.comment_control]);
-
-  useEffect(() => {
-    if (
-      commentSetting !== "friends" ||
-      !currentUserId ||
-      !item.author_id ||
-      isOwner ||
-      item.source !== "user"
-    ) {
-      setCanCommentAsFriend(true);
-      return;
-    }
-
-    let alive = true;
-    (supabase as any)
-      .from("friendships")
-      .select("id")
-      .eq("status", "accepted")
-      .or(`and(user_id.eq.${currentUserId},friend_id.eq.${item.author_id}),and(user_id.eq.${item.author_id},friend_id.eq.${currentUserId})`)
-      .limit(1)
-      .then(({ data, error }: any) => {
-        if (!alive) return;
-        setCanCommentAsFriend(!error && Boolean(data?.length));
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [commentSetting, currentUserId, isOwner, item.author_id, item.source]);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -4286,26 +3861,18 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   useEffect(() => {
     if (!currentUserId || item.source === "poll") return;
     let alive = true;
-    Promise.all([
-      (supabase as any)
-        .from("post_bookmarks")
-        .select("id")
-        .eq("user_id", currentUserId)
-        .eq("post_id", interactionPostId)
-        .eq("source", item.source)
-        .maybeSingle(),
-      (supabase as any)
-        .from("bookmarks")
-        .select("id")
-        .eq("user_id", currentUserId)
-        .eq("item_type", "post")
-        .in("item_id", Array.from(new Set([item.id, interactionPostId])))
-        .limit(1),
-    ]).then(([modern, legacy]: any[]) => {
-        if (alive) setSaved(Boolean(modern.data || legacy.data?.length));
+    (supabase as any)
+      .from("post_bookmarks")
+      .select("id")
+      .eq("user_id", currentUserId)
+      .eq("post_id", interactionPostId)
+      .eq("source", item.source)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (alive && data) setSaved(true);
       });
     return () => { alive = false; };
-  }, [currentUserId, interactionPostId, item.id, item.source]);
+  }, [currentUserId, interactionPostId, item.source]);
 
   // Hydrate this user's existing emoji reaction for this post (post_reactions)
   useEffect(() => {
@@ -4363,20 +3930,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
   };
 
-  const clearPendingFeedVideoTap = () => {
-    if (feedTapTimer.current) {
-      clearTimeout(feedTapTimer.current);
-      feedTapTimer.current = null;
-    }
-    lastTapRef.current = 0;
-  };
-
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    clearPendingFeedVideoTap();
     if (!item.author_id || followLoading) return;
     if (!currentUserId) {
-      showGuestActionPrompt("Log in to follow creators", "/feed");
+      toast.error("Please sign in to follow");
       return;
     }
     if (isFollowingAuthor) {
@@ -4385,13 +3943,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
     setFollowLoading(true);
     try {
-      const { error } = await (supabase as any).from("user_followers").upsert(
-        {
-          follower_id: currentUserId,
-          following_id: item.author_id,
-        },
-        { onConflict: "follower_id,following_id", ignoreDuplicates: true },
-      );
+      const { error } = await (supabase as any).from("user_followers").insert({
+        follower_id: currentUserId,
+        following_id: item.author_id,
+      });
       if (error) throw error;
       setIsFollowingAuthor(true);
       await sendFollowNotification(item.author_id);
@@ -4404,10 +3959,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   const handleSharedAuthorFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    clearPendingFeedVideoTap();
     if (!sharedAuthorId || followLoading) return;
     if (!currentUserId) {
-      showGuestActionPrompt("Log in to follow creators", "/feed");
+      toast.error("Please sign in to follow");
       return;
     }
     if (sharedAuthorId === currentUserId) return;
@@ -4417,13 +3971,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
     setFollowLoading(true);
     try {
-      const { error } = await (supabase as any).from("user_followers").upsert(
-        {
-          follower_id: currentUserId,
-          following_id: sharedAuthorId,
-        },
-        { onConflict: "follower_id,following_id", ignoreDuplicates: true },
-      );
+      const { error } = await (supabase as any).from("user_followers").insert({
+        follower_id: currentUserId,
+        following_id: sharedAuthorId,
+      });
       if (error) throw error;
       setIsFollowingSharedAuthor(true);
       await sendFollowNotification(sharedAuthorId);
@@ -4557,9 +4108,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   }, []);
 
   const handleLike = async () => {
-    clearPendingFeedVideoTap();
     if (!currentUserId) {
-      showGuestActionPrompt("Log in to like posts", "/feed");
+      toast.error("Please sign in to like posts");
       return;
     }
 
@@ -4601,86 +4151,27 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
   };
 
-  const showFeedHeart = (event: React.MouseEvent<HTMLElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setDoubleTapPoint({
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    });
-    setShowDoubleTapHeart(true);
-    if (feedHeartTimer.current) clearTimeout(feedHeartTimer.current);
-    feedHeartTimer.current = setTimeout(() => {
-      setShowDoubleTapHeart(false);
-      setDoubleTapPoint(null);
-      feedHeartTimer.current = null;
-    }, 560);
-  };
-
-  const likeFeedOnceFromDoubleTap = async () => {
-    if (!currentUserId) {
-      showGuestActionPrompt("Log in to like posts", "/feed");
-      return;
-    }
-    if (liked || feedLikeInFlight.current) return;
-    feedLikeInFlight.current = true;
-    try {
-      await handleLike();
-    } finally {
-      feedLikeInFlight.current = false;
-    }
-  };
-
-  const handleFeedMediaDoubleTap = (event: React.MouseEvent<HTMLElement>) => {
+  // Double-tap to like
+  const handleDoubleTap = () => {
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
-      showFeedHeart(event);
-      void likeFeedOnceFromDoubleTap();
+      if (!liked) handleLike();
+      setShowDoubleTapHeart(true);
+      setTimeout(() => setShowDoubleTapHeart(false), 800);
     }
     lastTapRef.current = now;
   };
-
-  const handleFeedVideoTap = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      if (feedTapTimer.current) {
-        clearTimeout(feedTapTimer.current);
-        feedTapTimer.current = null;
-      }
-      lastTapRef.current = 0;
-      showFeedHeart(event);
-      void likeFeedOnceFromDoubleTap();
-      return;
-    }
-
-    lastTapRef.current = now;
-    if (feedTapTimer.current) clearTimeout(feedTapTimer.current);
-    feedTapTimer.current = setTimeout(() => {
-      if (!detailMode && onOpenFullscreen) {
-        onOpenFullscreen();
-      } else {
-        togglePlay();
-      }
-      feedTapTimer.current = null;
-    }, 250);
-  };
-
-  useEffect(() => () => {
-    if (feedTapTimer.current) clearTimeout(feedTapTimer.current);
-    if (feedHeartTimer.current) clearTimeout(feedHeartTimer.current);
-  }, []);
 
   // Emoji reactions — persisted to post_reactions (matches usePostReactions hook).
   // Emojis are constrained by the DB CHECK: ❤️ 😂 😮 😢 😡 🔥 (👏 is not allowed).
   const REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "🔥"];
   const handleReaction = async (emoji: string) => {
-    clearPendingFeedVideoTap();
     if (!POST_REACTIONS_ENABLED) {
       toast.error("Reactions are being upgraded");
       return;
     }
     if (!currentUserId) {
-      showGuestActionPrompt("Log in to react to posts", "/feed");
+      toast.error("Please sign in to react");
       return;
     }
     const previous = selectedReaction;
@@ -4712,15 +4203,12 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   };
 
   const handleShare = async () => {
-    clearPendingFeedVideoTap();
     haptic("selection");
     const text = item.caption || `Check out this post by ${item.author_name}`;
     try {
-      const result = await shareContent({ title: "ZIVO", text, url: shareUrl });
-      if (result.cancelled) return;
-      if (result.shared) {
-        const recorded = await recordShareForFeedItem(item, "native");
-        if (recorded) setLocalShares((prev) => prev + 1);
+      if (typeof navigator !== "undefined" && (navigator as any).share) {
+        await (navigator as any).share({ title: "ZIVO", text, url: shareUrl });
+        recordShareForFeedItem(item, "native");
         return;
       }
     } catch (e: any) {
@@ -4730,7 +4218,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   };
 
   const handleBuyNow = async () => {
-    clearPendingFeedVideoTap();
     const commerce = item.commerce_link;
     if (!commerce) return;
 
@@ -4786,13 +4273,18 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   ];
 
 
-  const handleCopyLink = async () => {
-    clearPendingFeedVideoTap();
+  const handleCopyLink = () => {
     try {
-      await copyText(shareUrl);
+      const ta = document.createElement("textarea");
+      ta.value = shareUrl;
+      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
       toast.success("Link copied!");
-      const recorded = await recordShareForFeedItem(item, "copy_link");
-      if (recorded) setLocalShares((prev) => prev + 1);
+      recordShareForFeedItem(item, "copy_link");
     } catch {
       toast.info("Long-press URL bar to copy");
     }
@@ -4801,9 +4293,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   const savingBookmark = useRef(false);
   const handleSave = async () => {
-    clearPendingFeedVideoTap();
     if (!currentUserId) {
-      showGuestActionPrompt("Log in to save posts", "/feed");
+      toast.error("Please sign in to bookmark posts");
       return;
     }
     if (item.source === "poll") {
@@ -4825,26 +4316,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     setSaved(newSaved);
     try {
       if (newSaved) {
-        const [modernBookmark, legacyBookmark] = await Promise.all([
-          (supabase as any).from("post_bookmarks").upsert(
-            {
-              user_id: currentUserId,
-              post_id: interactionPostId,
-              source: item.source,
-            },
-            { onConflict: "user_id,post_id,source", ignoreDuplicates: true },
-          ),
-          (supabase as any).from("bookmarks").upsert(
-            {
-              user_id: currentUserId,
-              item_id: item.id,
-              item_type: "post",
-              collection_name: "Reels",
-            },
-            { onConflict: "user_id,item_type,item_id", ignoreDuplicates: true },
-          ),
-        ]);
-        const error = modernBookmark.error || legacyBookmark.error;
+        const { error } = await (supabase as any).from("post_bookmarks").insert({
+          user_id: currentUserId,
+          post_id: interactionPostId,
+          source: item.source,
+        });
         if (error) {
           const msg = String(error.message || "").toLowerCase();
           // Already bookmarked is a no-op success — the local state already
@@ -4855,28 +4331,16 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             throw error;
           }
         } else {
-          toast.success("Saved to bookmarks", {
-            action: { label: "View", onClick: () => navigate("/saved") },
-          });
+          toast.success("Saved to bookmarks");
         }
       } else {
-        const [modernDelete, legacyDelete] = await Promise.all([
-          (supabase as any).from("post_bookmarks").delete()
-            .eq("user_id", currentUserId)
-            .eq("post_id", interactionPostId)
-            .eq("source", item.source),
-          (supabase as any).from("bookmarks").delete()
-            .eq("user_id", currentUserId)
-            .eq("item_type", "post")
-            .in("item_id", Array.from(new Set([item.id, interactionPostId]))),
-        ]);
-        const error = modernDelete.error || legacyDelete.error;
+        const { error } = await (supabase as any).from("post_bookmarks").delete()
+          .eq("user_id", currentUserId)
+          .eq("post_id", interactionPostId)
+          .eq("source", item.source);
         if (error) throw error;
         toast.success("Removed from bookmarks");
       }
-      void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
-      void queryClient.invalidateQueries({ queryKey: ["saved-posts"] });
-      void queryClient.invalidateQueries({ queryKey: ["saved-posts-count"] });
     } catch (e: any) {
       // Roll back optimistic toggle on real failure.
       setSaved(!newSaved);
@@ -4945,66 +4409,14 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
   };
 
-  const persistCommentSetting = async (nextSetting: "everyone" | "friends" | "off") => {
-    if (!currentUserId || !isOwner || item.source !== "user") {
-      setCommentSetting(nextSetting);
-      return;
-    }
-
-    const previousSetting = commentSetting;
-    setCommentSetting(nextSetting);
-    if (nextSetting === "off") setShowComments(false);
-
-    try {
-      const realId = stripFeedUserPrefix(item.id);
-      const { error: postError } = await (supabase as any)
-        .from("user_posts")
-        .update({ comments_enabled: nextSetting !== "off" })
-        .eq("id", realId)
-        .eq("user_id", currentUserId);
-      if (postError) throw postError;
-
-      if (nextSetting !== "off") {
-        const { data: existing, error: existingError } = await supabase
-          .from("profiles")
-          .select("id")
-          .or(`user_id.eq.${currentUserId},id.eq.${currentUserId}`)
-          .maybeSingle();
-        if (existingError) throw existingError;
-        if (existing?.id) {
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .update({ comment_control: nextSetting })
-            .eq("id", existing.id);
-          if (profileError) throw profileError;
-        }
-      }
-
-      void queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
-      toast.success(
-        nextSetting === "everyone" ? "Comments open for everyone" :
-        nextSetting === "friends" ? "Only friends can comment now" :
-        "Comments turned off"
-      );
-    } catch {
-      setCommentSetting(previousSetting);
-      toast.error("Couldn't update comment settings");
-    }
-  };
-
   const handleComment = () => {
-    clearPendingFeedVideoTap();
     if (commentSetting === "off") {
       toast.error("Comments are turned off for this post");
       return;
     }
     haptic("selection");
     if (!currentUserId) {
-      showGuestActionPrompt("Log in to comment", "/feed");
-      return;
-    }
-    if (commentSetting === "friends" && !isOwner && !canCommentAsFriend) {
-      toast.error("Only friends can comment on this post");
+      toast.error("Please sign in to comment");
       return;
     }
     if (showComments) {
@@ -5020,31 +4432,14 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   const mediaUrl = item.media_urls[currentMedia] || item.media_urls[0];
   const hasMedia = Boolean(mediaUrl);
-  const sensitiveMediaMatch = useMemo(
-    () => detectSensitiveContent(`${item.caption || ""}\n${item.shared_from_caption || ""}`, {
-      creatorMarked: Boolean(item.is_sensitive),
-      reportMarked: Boolean(item.sensitive_reason && item.sensitive_reason !== "creator_marked"),
-      reason: item.sensitive_reason,
-    }),
-    [item.caption, item.is_sensitive, item.sensitive_reason, item.shared_from_caption],
-  );
-  const shouldGateSensitiveMedia = hasMedia && sensitiveMediaPreference.blurSensitiveMedia && sensitiveMediaMatch.isSensitive;
-  const commentsLimitedToFriends = commentSetting === "friends" && !isOwner && !canCommentAsFriend;
-  const canSubmitComment = commentSetting !== "off" && !commentsLimitedToFriends;
-  const commentDisabledReason = commentSetting === "off"
-    ? "Comments are turned off for this post"
-    : commentsLimitedToFriends ? "Only friends can comment on this post" : undefined;
   const videoAspectClass = videoAspect
-    ? (videoAspect >= 1.2 ? "aspect-video" : videoAspect >= 0.95 ? "aspect-square" : "aspect-[4/5]")
+    ? (videoAspect >= 1.2 ? "aspect-video" : videoAspect >= 0.95 ? "aspect-square" : videoAspect >= 0.75 ? "aspect-[4/5]" : "aspect-[9/16]")
     : "aspect-[4/5]";
 
   const isSharedPost = Boolean(item.shared_from_post_id || item.shared_from_user_id);
 
   return (
-    <div
-      className={cn("bg-card", item.media_type === "video" && "zivo-reel-no-callout")}
-      onContextMenu={item.media_type === "video" ? (event) => event.preventDefault() : undefined}
-    >
+    <div className="bg-card">
       {isSharedPost ? (
         /* ── Facebook-style shared post layout ────────────────── */
         <>
@@ -5058,7 +4453,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               >
                 <div className="h-8 w-8 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
                   {item.author_avatar ? (
-                    <img src={item.author_avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                    <img src={item.author_avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-xs font-bold">
                       {item.author_name[0]}
@@ -5094,8 +4489,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   aria-label={isFollowingAuthor ? "Unfollow author" : "Follow author"}
                   title={isFollowingAuthor ? "Unfollow author" : "Follow author"}
                   className={cn(
-                    "text-[12px] font-bold px-3 py-1 rounded-md transition-all active:scale-95",
-                    isFollowingAuthor ? "text-muted-foreground" : "text-ig-gradient"
+                    "text-[12px] font-semibold px-3 py-1 rounded-md transition-all active:scale-95",
+                    isFollowingAuthor ? "text-muted-foreground" : "text-primary"
                   )}
                 >
                   {followLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isFollowingAuthor ? "Following" : "Follow"}
@@ -5140,7 +4535,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               >
                 <div className="h-9 w-9 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
                   {item.shared_from_user_avatar ? (
-                    <img src={item.shared_from_user_avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                    <img src={item.shared_from_user_avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-xs font-bold">
                       {(item.shared_from_user_name || (item.shared_from_source === "store" ? "S" : "?"))[0]}
@@ -5164,8 +4559,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   aria-label={isFollowingSharedAuthor ? "Unfollow author" : "Follow author"}
                   title={isFollowingSharedAuthor ? "Unfollow author" : "Follow author"}
                   className={cn(
-                    "text-[12px] font-bold px-2 py-1 rounded-md transition-all active:scale-95",
-                    isFollowingSharedAuthor ? "text-muted-foreground" : "text-ig-gradient"
+                    "text-[12px] font-semibold px-2 py-1 rounded-md transition-all active:scale-95",
+                    isFollowingSharedAuthor ? "text-muted-foreground" : "text-primary"
                   )}
                 >
                   {followLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isFollowingSharedAuthor ? "Following" : "Follow"}
@@ -5189,12 +4584,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               ref={containerRef}
               className={cn(
                 "relative overflow-hidden",
-                hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[500px] xl:max-h-[520px] w-full mx-auto bg-black rounded-xl", videoAspectClass, videoAspect && videoAspect < 1 && "max-w-[420px]") : "") : ""
+                hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[680px] xl:max-h-[760px] w-full mx-auto bg-black rounded-xl", videoAspectClass) : "") : ""
               )}
             >
               {hasMedia ? (
-                <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={sensitiveMediaMatch.label} className="h-full w-full">
-                {item.media_type === "video" ? (
+                item.media_type === "video" ? (
                   <>
                     <video
                       ref={videoRef}
@@ -5209,11 +4603,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                           setVideoAspect(v.videoWidth / v.videoHeight);
                         }
                       }}
-                      onClick={handleFeedVideoTap}
-                      className="h-full w-full object-contain cursor-pointer"
+                      onClick={() => onOpenFullscreen ? onOpenFullscreen() : togglePlay()}
+                      className="h-full w-full object-cover cursor-pointer"
                     />
                     {!isPlaying && (
-                      <button type="button" onClick={handleFeedVideoTap} aria-label="Play video" title="Play video" className="absolute inset-0 flex items-center justify-center bg-black/10">
+                      <button type="button" onClick={() => onOpenFullscreen ? onOpenFullscreen() : togglePlay()} aria-label="Play video" title="Play video" className="absolute inset-0 flex items-center justify-center bg-black/10">
                         <Play className="h-14 w-14 text-white/80 fill-white/80 drop-shadow-lg" />
                       </button>
                     )}
@@ -5226,33 +4620,33 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   </>
                 ) : item.media_urls.length === 1 ? (
                   <div className="relative w-full bg-black overflow-hidden flex items-center justify-center max-h-[80vh] lg:max-h-[700px]">
-                    <img src={mediaUrl} alt={item.caption || "Shared post"} className="block w-full h-auto max-h-[80vh] lg:max-h-[700px] object-contain cursor-pointer" loading="lazy" decoding="async" onClick={() => onOpenFullscreen?.()} />
+                    <img src={mediaUrl} alt={item.caption || "Shared post"} className="block w-full h-auto max-h-[80vh] lg:max-h-[700px] object-contain cursor-pointer" loading="lazy" onClick={() => onOpenFullscreen?.()} />
                   </div>
                 ) : item.media_urls.length === 2 ? (
                   <div className="grid grid-cols-2 gap-0.5 w-full aspect-square md:aspect-[2/1]">
                     {item.media_urls.map((url, i) => (
                       <div key={i} className="relative bg-black overflow-hidden">
-                        <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
+                        <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
                       </div>
                     ))}
                   </div>
                 ) : item.media_urls.length === 3 ? (
                   <div className="grid grid-cols-2 grid-rows-2 gap-0.5 w-full aspect-square md:aspect-[3/2]">
                     <div className="relative row-span-2 bg-black overflow-hidden">
-                      <img src={item.media_urls[0]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(0); onOpenFullscreen?.(); }} />
+                      <img src={item.media_urls[0]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(0); onOpenFullscreen?.(); }} />
                     </div>
                     <div className="relative bg-black overflow-hidden">
-                      <img src={item.media_urls[1]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(1); onOpenFullscreen?.(); }} />
+                      <img src={item.media_urls[1]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(1); onOpenFullscreen?.(); }} />
                     </div>
                     <div className="relative bg-black overflow-hidden">
-                      <img src={item.media_urls[2]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(2); onOpenFullscreen?.(); }} />
+                      <img src={item.media_urls[2]} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(2); onOpenFullscreen?.(); }} />
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-[3px] w-full aspect-square overflow-hidden rounded-lg">
                     {item.media_urls.slice(0, 4).map((url, i) => (
                       <div key={i} className="relative bg-muted overflow-hidden">
-                        <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
+                        <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
                         {i === 3 && item.media_urls.length > 4 && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer" onClick={() => { setCurrentMedia(3); onOpenFullscreen?.(); }}>
                             <span className="text-white text-2xl font-bold">+{item.media_urls.length - 4}</span>
@@ -5261,8 +4655,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       </div>
                     ))}
                   </div>
-                )}
-                </SensitiveMediaGate>
+                )
               ) : null}
             </div>
           </div>
@@ -5286,7 +4679,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               >
                 <div className="h-9 w-9 rounded-full overflow-hidden bg-muted border border-border/30 shrink-0">
                   {item.author_avatar ? (
-                    <img src={item.author_avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                    <img src={item.author_avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-xs font-bold">
                       {item.author_name[0]}
@@ -5329,10 +4722,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   aria-label={isFollowingAuthor ? "Unfollow author" : "Follow author"}
                   title={isFollowingAuthor ? "Unfollow author" : "Follow author"}
                   className={cn(
-                    "mr-1 text-[12px] font-bold px-3 py-1 rounded-full transition-all active:scale-95",
+                    "mr-1 text-[12px] font-semibold px-3 py-1 rounded-full transition-all active:scale-95",
                     isFollowingAuthor
                       ? "text-muted-foreground bg-muted/40"
-                      : "text-white bg-ig-gradient shadow-sm hover:opacity-90"
+                      : "text-primary bg-primary/10"
                   )}
                 >
                   {followLoading ? (
@@ -5360,7 +4753,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 </Suspense>
               </CollapsibleCaption>
               {/* Translation — only shown when caption has non-Latin characters */}
-              {hasNonAsciiText(item.caption) && (
+              {/[^ -]/.test(item.caption) && (
                 <div className="mt-1">
                   {translatedCaption ? (
                     <div className="bg-muted/40 rounded-lg px-3 py-2 border border-border/20">
@@ -5414,18 +4807,17 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
            {/* Media */}
           <div
             ref={containerRef}
-            onClick={item.media_type === "video" ? undefined : handleFeedMediaDoubleTap}
+            onClick={handleDoubleTap}
             onTouchStart={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchStart : undefined)}
             onTouchMove={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchMove : undefined)}
             onTouchEnd={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchEnd : undefined)}
             className={cn(
               "relative overflow-hidden",
-              hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[500px] xl:max-h-[520px] w-full mx-auto bg-black rounded-xl", videoAspectClass, videoAspect && videoAspect < 1 && "max-w-[420px]") : "") : ""
+              hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[680px] xl:max-h-[760px] w-full mx-auto bg-black rounded-xl", videoAspectClass) : "") : ""
             )}
           >
             {hasMedia ? (
-              <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={sensitiveMediaMatch.label} className="h-full w-full">
-              {item.media_type === "video" ? (
+              item.media_type === "video" ? (
                 <>
                   <video
                     ref={videoRef}
@@ -5440,11 +4832,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                         setVideoAspect(v.videoWidth / v.videoHeight);
                       }
                     }}
-                    onClick={handleFeedVideoTap}
-                    className="h-full w-full object-contain cursor-pointer"
+                    onClick={() => onOpenFullscreen ? onOpenFullscreen() : togglePlay()}
+                    className="h-full w-full object-cover cursor-pointer"
                   />
                   {!isPlaying && (
-                    <button type="button" onClick={handleFeedVideoTap} aria-label="Play video" title="Play video" className="absolute inset-0 flex items-center justify-center bg-black/10">
+                    <button type="button" onClick={() => onOpenFullscreen ? onOpenFullscreen() : togglePlay()} aria-label="Play video" title="Play video" className="absolute inset-0 flex items-center justify-center bg-black/10">
                       <Play className="h-14 w-14 text-white/80 fill-white/80 drop-shadow-lg" />
                     </button>
                   )}
@@ -5483,7 +4875,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                           alt={item.caption || "Post"}
                           className="w-full h-full object-cover"
                           loading="lazy"
-                          decoding="async"
                         />
                       </div>
                     ))}
@@ -5517,7 +4908,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     alt={item.caption || "Post"}
                     className="block w-full h-auto max-h-[80vh] lg:max-h-[700px] object-contain cursor-pointer"
                     loading="lazy"
-                    decoding="async"
                     onClick={() => onOpenFullscreen?.()}
                   />
                 </div>
@@ -5531,7 +4921,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                         alt=""
                         className="h-full w-full object-cover cursor-pointer"
                         loading="lazy"
-                        decoding="async"
                         onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }}
                       />
                     </div>
@@ -5546,19 +4935,17 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       alt=""
                       className="h-full w-full object-cover cursor-pointer"
                       loading="lazy"
-                      decoding="async"
                       onClick={() => { setCurrentMedia(0); onOpenFullscreen?.(); }}
                     />
                   </div>
                   <div className="relative bg-black overflow-hidden">
-	                    <img
-	                      src={item.media_urls[1]}
-	                      alt=""
-	                      className="h-full w-full object-cover cursor-pointer"
-	                      loading="lazy"
-	                      decoding="async"
-	                      onClick={() => { setCurrentMedia(1); onOpenFullscreen?.(); }}
-	                    />
+                    <img
+                      src={item.media_urls[1]}
+                      alt=""
+                      className="h-full w-full object-cover cursor-pointer"
+                      loading="lazy"
+                      onClick={() => { setCurrentMedia(1); onOpenFullscreen?.(); }}
+                    />
                   </div>
                   <div className="relative bg-black overflow-hidden">
                     <img
@@ -5566,7 +4953,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       alt=""
                       className="h-full w-full object-cover cursor-pointer"
                       loading="lazy"
-                      decoding="async"
                       onClick={() => { setCurrentMedia(2); onOpenFullscreen?.(); }}
                     />
                   </div>
@@ -5581,7 +4967,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                         alt=""
                         className="h-full w-full object-cover cursor-pointer"
                         loading="lazy"
-                        decoding="async"
                         onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }}
                       />
                       {i === 3 && item.media_urls.length > 4 && (
@@ -5595,25 +4980,20 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     </div>
                   ))}
                 </div>
-              )}
-              </SensitiveMediaGate>
+              )
             ) : null}
 
             {/* Double-tap heart animation */}
             <AnimatePresence>
               {showDoubleTapHeart && (
                 <motion.div
-                  initial={{ scale: 0.55, opacity: 0, y: 12 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 1.45, opacity: 0, y: -18 }}
-                  transition={{ duration: 0.24 }}
-                  className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-1/2"
-                  style={{
-                    left: doubleTapPoint?.x ?? "50%",
-                    top: doubleTapPoint?.y ?? "50%",
-                  }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 1.5, opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
                 >
-                  <Heart className="h-14 w-14 fill-red-500 text-red-500 drop-shadow-2xl" />
+                  <Heart className="h-20 w-20 text-white fill-white drop-shadow-2xl" />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -5765,13 +5145,13 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           {item.allow_sharing !== false && (
             <button type="button"
               onClick={handleShare}
-              aria-label={`Share post${formatCount(localShares) ? `, ${formatCount(localShares)} shares` : ""}`}
+              aria-label={`Share post${formatCount(item.shares_count) ? `, ${formatCount(item.shares_count)} shares` : ""}`}
               className="min-h-[44px] min-w-[44px] px-2 rounded-full flex items-center justify-center text-foreground gap-1 active:bg-muted/50"
              title="Action">
               <Send aria-hidden className="h-[22px] w-[22px]" />
-              {formatCount(localShares) && (
+              {formatCount(item.shares_count) && (
                 <span aria-hidden className="text-[12px] text-muted-foreground font-semibold whitespace-nowrap">
-                  {formatCount(localShares)}
+                  {formatCount(item.shares_count)}
                 </span>
               )}
             </button>
@@ -5805,7 +5185,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           </div>
           <button type="button"
             onClick={() => navigate("/admin/marketing/campaigns")}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-ig-gradient text-white text-[11px] font-bold shrink-0 shadow-sm hover:opacity-90 active:scale-95 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold shrink-0 active:scale-95 transition-transform"
           >
             <Zap className="h-3 w-3" />
             Boost
@@ -5817,7 +5197,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         <div className="px-3 pb-2">
           <button type="button"
             onClick={handleBuyNow}
-            className="w-full rounded-xl bg-ig-gradient text-white py-2.5 text-sm font-bold shadow-sm shadow-rose-500/25 hover:opacity-90 active:scale-[0.98] transition-all"
+            className="w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-semibold"
            title="Action">
             Buy Now
           </button>
@@ -5872,8 +5252,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             currentUserId={currentUserId}
             commentsCount={localComments}
             onCommentsCountChange={setLocalComments}
-            canComment={canSubmitComment}
-            disabledReason={commentDisabledReason}
           />
         </Suspense>
       )}
@@ -5900,9 +5278,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               sharePostAuthorId={item.shared_from_user_id || item.author_id}
               sharePostAuthorName={item.shared_from_user_name || item.author_name}
               onClose={() => setShowShareSheet(false)}
-              onShareRecorded={() => {
-                setLocalShares((prev) => prev + 1);
-              }}
               zIndex={70}
             />
           </Suspense>
@@ -5945,12 +5320,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     alt="QR code for this post"
                     className="w-[220px] h-[220px] block"
                     loading="eager"
-                    decoding="async"
                   />
                 </div>
                 <p className="text-[12px] text-muted-foreground text-center px-4">Scan with any camera to open this post</p>
                 <button type="button"
-                  onClick={() => { void handleCopyLink(); }}
+                  onClick={() => { navigator.clipboard.writeText(shareUrl).then(() => toast.success("Link copied")).catch(() => toast.error("Could not copy")); }}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-sm font-semibold text-foreground transition-colors active:scale-95"
                 >
                   <Link2 className="h-4 w-4" />
@@ -6033,31 +5407,14 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <span className="text-sm font-medium text-destructive">Report</span>
           </button>
           <button type="button"
-            onClick={async () => {
-              setShowPostMenu(false);
-              if (!currentUserId) {
-                showGuestActionPrompt("Log in to turn on post notifications", "/feed");
-                return;
-              }
-              if (!notificationKey) {
-                toast.info("Post notifications are available for photos and videos");
-                return;
-              }
-              const nextNotificationsOn = !notificationsOn;
-              const savedPreference = await setNotificationsOnPersisted(nextNotificationsOn);
-              if (!savedPreference) {
-                toast.error("Could not update notifications");
-                return;
-              }
-              toast.success(nextNotificationsOn ? "Notifications turned on for this post" : "Notifications turned off");
-            }}
+            onClick={() => { setNotificationsOn(!notificationsOn); setShowPostMenu(false); toast.success(notificationsOn ? "Notifications turned off" : "Notifications turned on for this post"); }}
             className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
           >
             {notificationsOn ? <BellOff className="h-5 w-5 text-foreground" /> : <Bell className="h-5 w-5 text-foreground" />}
             <span className="text-sm font-medium text-foreground">{notificationsOn ? "Turn off notifications" : "Turn on notifications"}</span>
           </button>
           <button type="button"
-            onClick={() => { setShowPostMenu(false); void handleCopyLink(); }}
+            onClick={() => { setShowPostMenu(false); handleCopyLink(); }}
             className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
           >
             <Link2 className="h-5 w-5 text-foreground" />
@@ -6066,7 +5423,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           <button type="button"
             onClick={() => {
               setShowPostMenu(false);
-              hiddenPosts.hide(item.id, getFeedPreferenceSource(item) || undefined);
+              hiddenPosts.hide(item.id);
               toast.success("We'll show fewer like this");
             }}
             className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
@@ -6089,11 +5446,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 <span className="text-sm font-medium text-foreground">Why am I seeing this?</span>
               </button>
               <button type="button"
-                onClick={() => {
-                  setShowPostMenu(false);
-                  hiddenPosts.hide(item.id, getFeedPreferenceSource(item) || undefined);
-                  toast.success("Ad hidden - you'll see fewer ads from this business");
-                }}
+                onClick={() => { setShowPostMenu(false); toast.success("Ad hidden — you'll see fewer ads from this business"); }}
                 className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
               >
                 <Ban className="h-5 w-5 text-foreground" />
@@ -6103,28 +5456,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           )}
           {!isOwner && item.author_name && (
             <button type="button"
-              onClick={async () => {
-                setShowPostMenu(false);
-                if (!currentUserId) {
-                  showGuestActionPrompt("Log in to personalize your feed", "/feed");
-                  return;
-                }
-                if (!item.author_id) {
-                  toast.error("Could not snooze this creator");
-                  return;
-                }
-                const authorSource = getFeedPreferenceSource(item);
-                if (!authorSource) {
-                  toast.info("Snooze is available for creators and stores");
-                  return;
-                }
-                const savedSnooze = await snoozeFeedAuthor(currentUserId, item.author_id, authorSource, FEED_SNOOZE_DAYS);
-                if (!savedSnooze) {
-                  toast.error("Could not update feed preference");
-                  return;
-                }
-                toast.success(`${item.author_name} snoozed for ${FEED_SNOOZE_DAYS} days`);
-              }}
+              onClick={() => { setShowPostMenu(false); toast.success(`${item.author_name} snoozed for 30 days`); }}
               className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
             >
               <BellOff className="h-5 w-5 text-foreground" />
@@ -6168,14 +5500,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
           {/* Embed post */}
           <button type="button"
-            onClick={async () => {
+            onClick={() => {
               setShowPostMenu(false);
               const embedCode = `<iframe src="https://hizivo.com/embed/${item.id.replace(/^u-/, "")}" width="400" height="500" frameborder="0" allowfullscreen></iframe>`;
               try {
-                await copyText(embedCode);
-                void recordShareForFeedItem(item, "other").then((recorded) => {
-                  if (recorded) setLocalShares((prev) => prev + 1);
-                });
+                navigator.clipboard.writeText(embedCode);
                 toast.success("Embed code copied to clipboard");
               } catch {
                 toast.info("Embed: " + embedCode.slice(0, 60) + "…");
@@ -6286,23 +5615,17 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 <button type="button"
                   key={sub.label}
                   onClick={async () => {
+                    // Step to the success screen first so the UI feels instant.
+                    // The DB write is best-effort — failures only toast,
+                    // they never strand the user on the sub screen.
+                    setReportStep("submitted");
                     if (!currentUserId) {
-                      showGuestActionPrompt("Log in to report posts", "/feed");
+                      toast.error("Please sign in to submit reports");
                       return;
                     }
-                    // Step to the success screen first so the UI feels instant.
-                    // The DB write is best-effort; failures only toast.
-                    setReportStep("submitted");
                     if (item.source === "poll") {
                       // post_reports.post_source CHECK only allows store/user
                       return;
-                    }
-                    const sensitiveReport = isSensitiveReportReason(reportCategory, sub.label);
-                    if (sensitiveReport) {
-                      const preferenceSource = getFeedPreferenceSource(item);
-                      if (preferenceSource) {
-                        await hiddenPosts.hide(item.id, preferenceSource);
-                      }
                     }
                     // Reason text is capped at 200 chars by the table CHECK constraint.
                     const reason = `${reportCategory}: ${sub.label}`.slice(0, 200);
@@ -6313,7 +5636,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                       reason,
                     });
                     if (error) toast.error("Couldn't submit report");
-                    else if (sensitiveReport) toast.success("We hid this post and sent it for safety review");
                   }}
                   className="flex items-center justify-between w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px] text-left"
                 >
@@ -6350,9 +5672,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         zIndex={220}
         title="Comment Settings"
       >
-        <p className="px-6 pb-4 text-xs text-muted-foreground">
-          Choose who can comment when comments are enabled. Turning comments off applies to this post.
-        </p>
+        <p className="px-6 pb-4 text-xs text-muted-foreground">Choose who can comment on this post.</p>
         <div className="px-2 pb-6 space-y-1">
           {([
             { value: "everyone" as const, icon: Globe, label: "Everyone", desc: "Anyone can comment on this post" },
@@ -6362,8 +5682,14 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <button type="button"
               key={opt.value}
               onClick={() => {
+                setCommentSetting(opt.value);
                 setShowCommentSettings(false);
-                void persistCommentSetting(opt.value);
+                if (opt.value === "off") setShowComments(false);
+                toast.success(
+                  opt.value === "everyone" ? "Comments open for everyone" :
+                  opt.value === "friends" ? "Only friends can comment now" :
+                  "Comments turned off"
+                );
               }}
               className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl min-h-[48px]"
             >
@@ -6478,3 +5804,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     prev.detailMode === next.detailMode
   );
 });
+
+
+

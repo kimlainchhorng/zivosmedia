@@ -2,6 +2,7 @@
  * FileBubble — generic file/document message bubble with thumbnail (if available),
  * filename, size, page count, and download / open actions.
  */
+import { useEffect } from "react";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import Download from "lucide-react/dist/esm/icons/download";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
@@ -10,6 +11,8 @@ import FileSpreadsheet from "lucide-react/dist/esm/icons/file-spreadsheet";
 import FileVideo from "lucide-react/dist/esm/icons/file-video";
 import FileAudio from "lucide-react/dist/esm/icons/file-audio";
 import File from "lucide-react/dist/esm/icons/file";
+import { useAuth } from "@/contexts/AuthContext";
+import { recordChatMediaCacheEntry, type ChatMediaCacheBucket } from "@/lib/chat/mediaCache";
 
 export interface FileBubbleData {
   url: string;
@@ -32,6 +35,13 @@ function iconFor(mime: string) {
   return File;
 }
 
+function cacheBucketFor(mime: string): ChatMediaCacheBucket {
+  if (mime.startsWith("image/")) return "photos";
+  if (mime.startsWith("video/")) return "videos";
+  if (mime.startsWith("audio/")) return "audio";
+  return "files";
+}
+
 function fmtBytes(n?: number) {
   if (!n) return "";
   const u = ["B", "KB", "MB", "GB"];
@@ -42,14 +52,36 @@ function fmtBytes(n?: number) {
 }
 
 export default function FileBubble({ file, mine }: { file: FileBubbleData; mine?: boolean }) {
+  const { user } = useAuth();
   const Icon = iconFor(file.mime_type);
   const isPdf = file.mime_type === "application/pdf";
   const isScan = file.source === "scan";
+  const cacheBucket = cacheBucketFor(file.mime_type);
   const subtitle = [
     isPdf ? "PDF" : file.mime_type.split("/")[1]?.toUpperCase(),
     file.page_count ? `${file.page_count} page${file.page_count > 1 ? "s" : ""}` : null,
     fmtBytes(file.size),
   ].filter(Boolean).join(" · ");
+
+  useEffect(() => {
+    recordChatMediaCacheEntry({
+      userId: user?.id,
+      url: file.url,
+      bucket: cacheBucket,
+      bytes: file.size,
+      storagePath: file.url,
+    });
+  }, [cacheBucket, file.size, file.url, user?.id]);
+
+  useEffect(() => {
+    if (!file.thumbnail_url) return;
+    recordChatMediaCacheEntry({
+      userId: user?.id,
+      url: file.thumbnail_url,
+      bucket: "photos",
+      storagePath: file.thumbnail_url,
+    });
+  }, [file.thumbnail_url, user?.id]);
 
   return (
     <div className={`max-w-[280px] rounded-2xl overflow-hidden border ${mine ? "border-primary/20 bg-primary/5" : "border-border/40 bg-muted/40"}`}>

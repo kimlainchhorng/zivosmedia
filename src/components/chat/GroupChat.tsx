@@ -83,7 +83,7 @@ import type { SocialCardPayload } from "./ChatSocialShareSheet";
 import { suggestStickersFor } from "@/lib/stickerSuggest";
 import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
 import { detectSensitiveContent, isGroupMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
-import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage } from "@/lib/chat/lockedMedia";
+import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 
 interface GroupChatProps {
   groupId: string;
@@ -107,6 +107,7 @@ type GroupFilePayload = {
   locked_preview_url?: string | null;
   locked_preview_image_url?: string | null;
   locked_price_coins?: number | null;
+  locked_items?: LockedMediaItem[];
   sensitive?: boolean;
   is_sensitive?: boolean;
   sensitive_reason?: string | null;
@@ -203,13 +204,39 @@ const dbFrom = (table: string): any => (supabase as any).from(table);
 const CHAT_MEDIA_BUCKET = "chat-media-files";
 const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
+const LOCKED_MEDIA_BUNDLE_LIMIT = 10;
+const MIXED_MEDIA_ACCEPT = "image/*,video/*,.gif";
 const MEDIA_MESSAGE_TEXT = {
   image: "Photo",
   video: "Video",
+  album: "Photo album",
 } as const;
+
+type ChatMediaKind = "image" | "video";
+
+type MediaAlbumSendItem = {
+  id: string;
+  type: ChatMediaKind;
+  url: string;
+  filename: string;
+  mime_type: string;
+  size: number;
+  source: "upload" | "upload-inline" | "local";
+  duration_ms?: number | null;
+};
 
 function formatUploadLimit(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))}MB`;
+}
+
+function getChatMediaKind(file: File): ChatMediaKind | null {
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("image/")) return "image";
+  return null;
+}
+
+function getUploadLimitForKind(kind: ChatMediaKind): number {
+  return kind === "image" ? IMAGE_UPLOAD_LIMIT_BYTES : VIDEO_UPLOAD_LIMIT_BYTES;
 }
 
 function randomMediaId(): string {
@@ -219,7 +246,7 @@ function randomMediaId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function extensionForChatMedia(file: File, kind: "image" | "video"): string {
+function extensionForChatMedia(file: File, kind: ChatMediaKind): string {
   const fromName = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (fromName && fromName.length <= 8) return fromName;
   if (file.type === "image/png") return "png";
@@ -310,6 +337,34 @@ function createLockedMediaPreviewBlob(file: File, isVideo: boolean): Promise<Blo
   return isVideo ? createVideoPreviewBlob(file) : createImagePreviewBlob(file);
 }
 
+async function getVideoDurationMs(file: File): Promise<number | null> {
+  if (!file.type.startsWith("video/")) return null;
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.src = url;
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("Video metadata timed out")), 7000);
+      video.onloadedmetadata = () => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+      video.onerror = () => {
+        window.clearTimeout(timeout);
+        reject(new Error("Could not load video metadata"));
+      };
+    });
+    return Number.isFinite(video.duration) && video.duration > 0
+      ? Math.round(video.duration * 1000)
+      : null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function formatTime(dateStr: string) {
   const d = new Date(dateStr);
   if (isToday(d)) return format(d, "h:mm a");
@@ -385,6 +440,21 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<OpenMediaDetail>).detail;
       if (!detail?.url) return;
+      if (detail.gallery?.length) {
+        void Promise.all(detail.gallery.map(async (item) => ({
+          ...item,
+          url: /^(https?:|blob:|data:)/.test(item.url)
+            ? item.url
+            : (await signedUrlFor(CHAT_MEDIA_BUCKET, item.url, "display")) || item.url,
+        }))).then((images) => {
+          setGalleryState({
+            open: true,
+            images,
+            index: Math.min(Math.max(detail.index ?? 0, 0), images.length - 1),
+          });
+        });
+        return;
+      }
       setGalleryState({ open: true, images: [{ id: detail.id || detail.url, url: detail.url, type: detail.type }], index: 0 });
     };
     window.addEventListener(OPEN_MEDIA_EVENT, handler as EventListener);
@@ -409,7 +479,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const [groupCall, setGroupCall] = useState<"audio" | "video" | null>(autoStartCall ?? null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
-  const [lockedMediaFile, setLockedMediaFile] = useState<File | null>(null);
+  const [lockedMediaFiles, setLockedMediaFiles] = useState<File[]>([]);
   const [unlockedGroupMediaIds, setUnlockedGroupMediaIds] = useState<Set<string>>(() => new Set());
   const [showStickerKeyboard, setShowStickerKeyboard] = useState(false);
   const [disappearingSec, setDisappearingSec] = useState<number | null>(null);
@@ -754,24 +824,37 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   };
 
   const handleLockedMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
-    if (!file) return;
-    const isVideo = file.type.startsWith("video");
-    const maxSize = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
-    if (file.size > maxSize) {
-      toast.error(`File must be under ${formatUploadLimit(maxSize)}`);
+    if (files.length === 0) return;
+    if (files.length > LOCKED_MEDIA_BUNDLE_LIMIT) {
+      toast.error(`Choose up to ${LOCKED_MEDIA_BUNDLE_LIMIT} photos or videos`);
       return;
     }
-    setLockedMediaFile(file);
+
+    const invalidFile = files.find((file) => {
+      const isImage = file.type.startsWith("image");
+      const isVideo = file.type.startsWith("video");
+      if (!isImage && !isVideo) return true;
+      const maxSize = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
+      return file.size > maxSize;
+    });
+    if (invalidFile) {
+      const isVideo = invalidFile.type.startsWith("video");
+      const limit = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
+      toast.error(`${invalidFile.name || "File"} must be an image or video under ${formatUploadLimit(limit)}`);
+      return;
+    }
+
+    setLockedMediaFiles(files);
     setShowLockedPricePicker(true);
   };
 
   const handleLockedMediaConfirm = async (priceCoins: number) => {
     setShowLockedPricePicker(false);
-    const file = lockedMediaFile;
-    setLockedMediaFile(null);
-    if (!file || !user?.id) return;
+    const files = lockedMediaFiles;
+    setLockedMediaFiles([]);
+    if (files.length === 0 || !user?.id) return;
 
     const finalPrice = Math.floor(Number(priceCoins) || 0);
     if (finalPrice <= 0) {
@@ -779,95 +862,153 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       return;
     }
 
-    const isVideo = file.type.startsWith("video");
     const clientSendId = randomMediaId();
     const optimisticId = `opt-locked-${clientSendId}`;
-    const localUrl = URL.createObjectURL(file);
-    let previewLocalUrl: string | null = null;
-    let originalPath: string | null = null;
-    let previewPath: string | null = null;
+    const isAlbum = files.length > 1;
+    const preparedItems: Array<{
+      id: string;
+      file: File;
+      kind: "image" | "video";
+      localUrl: string;
+      previewBlob: Blob;
+      previewLocalUrl: string;
+      originalPath?: string;
+      previewPath?: string;
+    }> = [];
+    const cleanupPaths: string[] = [];
     const caption = input.trim();
-    const label = `${isVideo ? "Locked Video" : "Locked Photo"} · ${formatStarsPrice(finalPrice)}`;
+    const firstIsVideo = files[0]?.type.startsWith("video") ?? false;
+    const messageType = isAlbum ? "locked_album" : firstIsVideo ? "locked_video" : "locked_image";
+    const label = `${isAlbum ? "Locked Bundle" : firstIsVideo ? "Locked Video" : "Locked Photo"} · ${formatStarsPrice(finalPrice)}`;
     const currentReply = replyTo;
+    const textSensitivity = detectSensitiveContent(caption);
+    const shouldMarkSensitiveMedia = markNextMediaSensitive || textSensitivity.isSensitive;
 
     setInput("");
     setReplyTo(null);
+    if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
     setUploadingImage(true);
 
     try {
-      const previewBlob = await createLockedMediaPreviewBlob(file, isVideo);
-      previewLocalUrl = URL.createObjectURL(previewBlob);
+      for (const file of files) {
+        const kind = file.type.startsWith("video") ? "video" : "image";
+        const previewBlob = await createLockedMediaPreviewBlob(file, kind === "video");
+        preparedItems.push({
+          id: randomMediaId(),
+          file,
+          kind,
+          localUrl: URL.createObjectURL(file),
+          previewBlob,
+          previewLocalUrl: URL.createObjectURL(previewBlob),
+        });
+      }
+
+      const optimisticLockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        original_path: item.localUrl,
+        preview_path: item.previewLocalUrl,
+        mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+        size: item.file.size,
+      }));
+      const sensitivePayload = shouldMarkSensitiveMedia ? {
+        sensitive: true,
+        is_sensitive: true,
+        sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+      } : {};
       const optimisticMsg: GroupMessage = {
         id: optimisticId,
         group_id: groupId,
         sender_id: user.id,
         message: caption || label,
-        image_url: isVideo ? null : localUrl,
-        video_url: isVideo ? localUrl : null,
+        image_url: !isAlbum && preparedItems[0]?.kind === "image" ? preparedItems[0].localUrl : null,
+        video_url: !isAlbum && preparedItems[0]?.kind === "video" ? preparedItems[0].localUrl : null,
         voice_url: null,
-        message_type: isVideo ? "locked_video" : "locked_image",
+        message_type: messageType,
         reply_to_id: currentReply?.id || null,
         locked_price_coins: finalPrice,
         file_payload: {
           client_send_id: clientSendId,
           source: "locked-media",
-          locked_preview_url: previewLocalUrl,
+          locked_preview_url: optimisticLockedItems[0]?.preview_path || null,
+          locked_preview_image_url: optimisticLockedItems[0]?.preview_path || null,
           locked_price_coins: finalPrice,
+          ...(isAlbum ? { locked_items: optimisticLockedItems } : {}),
+          ...sensitivePayload,
         },
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, optimisticMsg]);
       scrollToBottom();
 
-      const ext = extensionForChatMedia(file, isVideo ? "video" : "image");
-      originalPath = `${user.id}/locked/groups/${groupId}/${Date.now()}-${clientSendId}.${ext}`;
-      previewPath = `${user.id}/locked-previews/groups/${groupId}/${Date.now()}-${clientSendId}.jpg`;
+      for (let index = 0; index < preparedItems.length; index += 1) {
+        const item = preparedItems[index];
+        const ext = extensionForChatMedia(item.file, item.kind);
+        const pathSeed = `${Date.now()}-${clientSendId}-${index}-${item.id}`;
+        item.originalPath = `${user.id}/locked/groups/${groupId}/${pathSeed}.${ext}`;
+        item.previewPath = `${user.id}/locked-previews/groups/${groupId}/${pathSeed}.jpg`;
 
-      const { error: mediaError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(originalPath, file, {
-        contentType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
-        cacheControl: "3600",
-        upsert: false,
-      });
-      if (mediaError) throw mediaError;
+        const { error: mediaError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.originalPath, item.file, {
+          contentType: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (mediaError) throw mediaError;
+        cleanupPaths.push(item.originalPath);
 
-      const { error: previewError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(previewPath, previewBlob, {
-        contentType: "image/jpeg",
-        cacheControl: "3600",
-        upsert: false,
-      });
-      if (previewError) throw previewError;
+        const { error: previewError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.previewPath, item.previewBlob, {
+          contentType: "image/jpeg",
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (previewError) throw previewError;
+        cleanupPaths.push(item.previewPath);
+      }
+
+      const lockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        original_path: item.originalPath,
+        preview_path: item.previewPath,
+        mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+        size: item.file.size,
+      }));
+      const firstItem = lockedItems[0];
 
       const insertData: GroupMessageInsert = {
         group_id: groupId,
         sender_id: user.id,
         message: caption || label,
-        message_type: isVideo ? "locked_video" : "locked_image",
+        message_type: messageType,
         locked_price_coins: finalPrice,
         file_payload: {
           client_send_id: clientSendId,
           source: "locked-media",
-          locked_preview_url: previewPath,
-          locked_preview_image_url: previewPath,
+          locked_preview_url: firstItem?.preview_path || null,
+          locked_preview_image_url: firstItem?.preview_path || null,
           locked_price_coins: finalPrice,
+          ...(isAlbum ? { locked_items: lockedItems } : {}),
+          ...sensitivePayload,
         },
       };
-      if (isVideo) insertData.video_url = originalPath;
-      else insertData.image_url = originalPath;
+      if (!isAlbum && firstItem?.kind === "video" && firstItem.original_path) insertData.video_url = firstItem.original_path;
+      if (!isAlbum && firstItem?.kind === "image" && firstItem.original_path) insertData.image_url = firstItem.original_path;
       if (currentReply) insertData.reply_to_id = currentReply.id;
 
       const { error: insertError } = await dbFrom("group_messages").insert(insertData);
       if (insertError) throw insertError;
-      toast.success("Locked media sent");
+      toast.success(isAlbum ? "Locked media bundle sent" : "Locked media sent");
     } catch (error) {
       console.warn("[group/locked-media] upload/send failed", error);
-      const cleanup = [originalPath, previewPath].filter((path): path is string => !!path);
-      if (cleanup.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(cleanup).catch(() => {});
+      if (cleanupPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(cleanupPaths).catch(() => {});
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId));
       toast.error("Failed to send locked media");
     } finally {
       setUploadingImage(false);
-      setTimeout(() => URL.revokeObjectURL(localUrl), 30000);
-      if (previewLocalUrl) setTimeout(() => URL.revokeObjectURL(previewLocalUrl), 30000);
+      for (const item of preparedItems) {
+        setTimeout(() => URL.revokeObjectURL(item.localUrl), 30000);
+        setTimeout(() => URL.revokeObjectURL(item.previewLocalUrl), 30000);
+      }
     }
   };
 
@@ -1379,7 +1520,10 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     }));
     void runVoiceJob(clientSendId, !!job.publicUrl);
   }, [runVoiceJob]);
-  retryVoiceSendRef.current = retryVoiceSend;
+
+  useEffect(() => {
+    retryVoiceSendRef.current = retryVoiceSend;
+  }, [retryVoiceSend]);
 
   const discardVoiceSend = useCallback((clientSendId: string) => {
     const job = voiceJobsRef.current.get(clientSendId);
@@ -1444,33 +1588,30 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
 
 
   // Image upload — optimistic bubble, background upload + insert.
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-    if (file.size > IMAGE_UPLOAD_LIMIT_BYTES) {
-      toast.error(`Image must be under ${formatUploadLimit(IMAGE_UPLOAD_LIMIT_BYTES)}`);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-
+  const sendOptimisticMedia = (file: File, kind: ChatMediaKind) => {
+    if (!user?.id) return;
     const localUrl = URL.createObjectURL(file);
     const clientSendId = randomMediaId();
-    const optimisticId = `opt-img-${clientSendId}`;
+    const optimisticId = `opt-${kind === "image" ? "img" : "vid"}-${clientSendId}`;
+    const messageText = MEDIA_MESSAGE_TEXT[kind];
     const markSensitive = markNextMediaSensitive;
     if (markSensitive) setMarkNextMediaSensitive(false);
     const optimisticMsg: GroupMessage = {
       id: optimisticId,
       group_id: groupId,
       sender_id: user.id,
-      message: MEDIA_MESSAGE_TEXT.image,
-      image_url: localUrl,
-      video_url: null,
+      message: messageText,
+      image_url: kind === "image" ? localUrl : null,
+      video_url: kind === "video" ? localUrl : null,
       voice_url: null,
-      message_type: "image",
+      message_type: kind,
       reply_to_id: replyTo?.id || null,
       file_payload: {
         client_send_id: clientSendId,
-        duration_ms: undefined,
+        filename: file.name || messageText,
+        mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+        size: file.size,
+        source: "local",
         ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
       },
       created_at: new Date().toISOString(),
@@ -1482,148 +1623,303 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
 
     void (async () => {
       let path: string | null = null;
-      let dbImageUrl: string | null = null;
+      let dbMediaUrl: string | null = null;
       let filePayloadSource = "upload";
       try {
         try {
-          const ext = extensionForChatMedia(file, "image");
-          path = `${user.id}/images/${Date.now()}-${clientSendId}.${ext}`;
+          const ext = extensionForChatMedia(file, kind);
+          path = `${user.id}/${kind}s/${Date.now()}-${clientSendId}.${ext}`;
           const { error: upErr } = await supabase.storage
             .from(CHAT_MEDIA_BUCKET)
             .upload(path, file, {
-              contentType: file.type || "image/jpeg",
+              contentType: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
               upsert: false,
               cacheControl: "3600",
             });
           if (upErr) throw upErr;
-          // Sender sees a short-lived signed URL; DB row stores the storage path
-          // so receivers can re-sign on view (URLs would otherwise expire).
           const signedUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
-          dbImageUrl = path;
+          dbMediaUrl = path;
           if (signedUrl) {
             setMessages((prev) => prev.map((m) => m.id === optimisticId
-              ? { ...m, image_url: signedUrl }
+              ? { ...m, image_url: kind === "image" ? signedUrl : null, video_url: kind === "video" ? signedUrl : null }
               : m));
           }
         } catch (uploadErr) {
-          console.warn("[group/image] storage unavailable, using inline fallback", uploadErr);
+          console.warn(`[group/${kind}] storage unavailable, using inline fallback`, uploadErr);
           if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
           path = null;
-          dbImageUrl = await fileToInlineChatMediaUrl(file, "image");
+          dbMediaUrl = await fileToInlineChatMediaUrl(file, kind);
           filePayloadSource = "upload-inline";
           setMessages((prev) => prev.map((m) => m.id === optimisticId
-            ? { ...m, image_url: dbImageUrl }
+            ? { ...m, image_url: kind === "image" ? dbMediaUrl : null, video_url: kind === "video" ? dbMediaUrl : null }
             : m));
         }
-        if (!dbImageUrl) throw new Error("Could not prepare image");
+
+        if (!dbMediaUrl) throw new Error(`Could not prepare ${kind}`);
         const insertData: GroupMessageInsert = {
           group_id: groupId,
           sender_id: user.id,
-          message: MEDIA_MESSAGE_TEXT.image,
-          message_type: "image",
-          image_url: dbImageUrl,
+          message: messageText,
+          message_type: kind,
           file_payload: {
             client_send_id: clientSendId,
+            filename: file.name || messageText,
+            mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+            size: file.size,
             source: filePayloadSource,
             ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
           } as GroupMessageInsert["file_payload"],
         };
+        if (kind === "image") insertData.image_url = dbMediaUrl;
+        if (kind === "video") insertData.video_url = dbMediaUrl;
         if (currentReply) insertData.reply_to_id = currentReply.id;
         const { error: insErr } = await dbFrom("group_messages").insert(insertData);
         if (insErr) throw insErr;
       } catch (e) {
-        console.warn("[group/image] upload/send failed", e);
+        console.warn(`[group/${kind}] upload/send failed`, e);
         if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
         setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-        toast.error("Failed to send image");
+        toast.error(kind === "video" && file.size > 8 * 1024 * 1024
+          ? "Video storage is unavailable. Try a shorter clip for now."
+          : `Failed to send ${kind}`);
       } finally {
         setTimeout(() => URL.revokeObjectURL(localUrl), 30000);
       }
     })();
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-    if (file.size > VIDEO_UPLOAD_LIMIT_BYTES) {
-      toast.error(`Video must be under ${formatUploadLimit(VIDEO_UPLOAD_LIMIT_BYTES)}`);
-      if (videoInputRef.current) videoInputRef.current.value = "";
+  const sendOptimisticMediaAlbum = (files: File[]) => {
+    if (!user?.id) return;
+    const mediaFiles = files
+      .map((file) => ({ file, kind: getChatMediaKind(file) }))
+      .filter((item): item is { file: File; kind: ChatMediaKind } => item.kind !== null);
+    if (mediaFiles.length !== files.length) {
+      toast.error("Albums can include photos and videos only");
       return;
     }
-    const localUrl = URL.createObjectURL(file);
+    if (mediaFiles.length < 2) {
+      const mediaFile = mediaFiles[0];
+      if (!mediaFile) return;
+      sendOptimisticMedia(mediaFile.file, mediaFile.kind);
+      return;
+    }
+    if (mediaFiles.length > 10) {
+      toast.error("Albums can include up to 10 items");
+      return;
+    }
+
+    for (const { file, kind } of mediaFiles) {
+      const limit = getUploadLimitForKind(kind);
+      if (file.size > limit) {
+        toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
+        return;
+      }
+    }
+
     const clientSendId = randomMediaId();
-    const optimisticId = `opt-vid-${clientSendId}`;
+    const optimisticId = `opt-group-album-${clientSendId}`;
+    const caption = input.trim();
     const markSensitive = markNextMediaSensitive;
     if (markSensitive) setMarkNextMediaSensitive(false);
+    const localItems: MediaAlbumSendItem[] = mediaFiles.map(({ file, kind }) => ({
+      id: randomMediaId(),
+      type: kind,
+      url: URL.createObjectURL(file),
+      filename: file.name || MEDIA_MESSAGE_TEXT.album,
+      mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+      size: file.size,
+      source: "local",
+    }));
+    const durationPromises = mediaFiles.map(({ file, kind }) =>
+      kind === "video" ? getVideoDurationMs(file) : Promise.resolve(null),
+    );
+    const firstImage = localItems.find((item) => item.type === "image");
+    const firstVideo = localItems.find((item) => item.type === "video");
     const optimisticMsg: GroupMessage = {
-      id: optimisticId, group_id: groupId, sender_id: user.id,
-      message: MEDIA_MESSAGE_TEXT.video, image_url: null, video_url: localUrl, voice_url: null, message_type: "video",
+      id: optimisticId,
+      group_id: groupId,
+      sender_id: user.id,
+      message: caption || MEDIA_MESSAGE_TEXT.album,
+      image_url: firstImage?.url || null,
+      video_url: firstImage ? null : firstVideo?.url || null,
+      voice_url: null,
+      message_type: "media_album",
       reply_to_id: replyTo?.id || null,
       file_payload: {
         client_send_id: clientSendId,
+        item_count: localItems.length,
+        album_items: localItems,
+        source: "local",
         ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
       },
       created_at: new Date().toISOString(),
     };
+
     setMessages((prev) => [...prev, optimisticMsg]);
     scrollToBottom();
+    setInput("");
     const currentReply = replyTo;
     setReplyTo(null);
+
     void (async () => {
-      let path: string | null = null;
-      let dbVideoUrl: string | null = null;
-      let filePayloadSource = "upload";
+      const uploadedPaths: string[] = [];
+      const dbItems: MediaAlbumSendItem[] = [];
+      let displayItems: MediaAlbumSendItem[] = [...localItems];
+
+      void Promise.all(durationPromises).then((durationByIndex) => {
+        let changed = false;
+        displayItems = displayItems.map((item, index) => {
+          const durationMs = durationByIndex[index];
+          if (item.type !== "video" || !durationMs || item.duration_ms) return item;
+          changed = true;
+          return { ...item, duration_ms: durationMs };
+        });
+        if (!changed) return;
+        setMessages((prev) => prev.map((m) => m.id === optimisticId
+          ? {
+              ...m,
+              file_payload: {
+                ...((m.file_payload as Record<string, unknown> | null) || {}),
+                album_items: displayItems,
+              },
+            }
+          : m));
+      });
+
       try {
-        try {
-          const ext = extensionForChatMedia(file, "video");
-          path = `${user.id}/videos/${Date.now()}-${clientSendId}.${ext}`;
-          const { error: upErr } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(path, file, {
-            contentType: file.type || "video/mp4",
-            upsert: false,
-            cacheControl: "3600",
-          });
-          if (upErr) throw upErr;
-          const signedUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
-          dbVideoUrl = path;
-          if (signedUrl) {
-            setMessages((prev) => prev.map((m) => m.id === optimisticId ? { ...m, video_url: signedUrl } : m));
+        for (let index = 0; index < mediaFiles.length; index += 1) {
+          const { file, kind } = mediaFiles[index];
+          let dbMediaUrl: string | null = null;
+          let displayUrl: string | null = null;
+          let itemSource: MediaAlbumSendItem["source"] = "upload";
+          let path: string | null = null;
+
+          try {
+            const ext = extensionForChatMedia(file, kind);
+            path = `${user.id}/${kind}s/${Date.now()}-${clientSendId}-${index}.${ext}`;
+            const { error: upErr } = await supabase.storage
+              .from(CHAT_MEDIA_BUCKET)
+              .upload(path, file, {
+                contentType: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+                upsert: false,
+                cacheControl: "3600",
+              });
+            if (upErr) throw upErr;
+            uploadedPaths.push(path);
+            dbMediaUrl = path;
+            displayUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
+          } catch (uploadErr) {
+            console.warn("[group/media-album] storage unavailable, using inline fallback", uploadErr);
+            if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
+            dbMediaUrl = await fileToInlineChatMediaUrl(file, kind);
+            displayUrl = dbMediaUrl;
+            itemSource = "upload-inline";
           }
-        } catch (uploadErr) {
-          console.warn("[group/video] storage unavailable, using inline fallback", uploadErr);
-          if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
-          path = null;
-          dbVideoUrl = await fileToInlineChatMediaUrl(file, "video");
-          filePayloadSource = "upload-inline";
-          setMessages((prev) => prev.map((m) => m.id === optimisticId ? { ...m, video_url: dbVideoUrl } : m));
+
+          if (!dbMediaUrl) throw new Error(`Could not prepare album item ${index + 1}`);
+          const durationMs = await durationPromises[index];
+          const dbItem: MediaAlbumSendItem = {
+            id: displayItems[index].id,
+            type: kind,
+            url: dbMediaUrl,
+            filename: file.name || MEDIA_MESSAGE_TEXT.album,
+            mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+            size: file.size,
+            source: itemSource,
+            ...(durationMs ? { duration_ms: durationMs } : {}),
+          };
+          dbItems.push(dbItem);
+          displayItems[index] = { ...dbItem, url: displayUrl || dbMediaUrl };
+
+          const displayFirstImage = displayItems.find((item) => item.type === "image");
+          const displayFirstVideo = displayItems.find((item) => item.type === "video");
+          setMessages((prev) => prev.map((m) => m.id === optimisticId
+            ? {
+                ...m,
+                image_url: displayFirstImage?.url || null,
+                video_url: displayFirstImage ? null : displayFirstVideo?.url || null,
+                file_payload: {
+                  ...((m.file_payload as Record<string, unknown> | null) || {}),
+                  album_items: displayItems,
+                  source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
+                },
+              }
+            : m));
         }
-        if (!dbVideoUrl) throw new Error("Could not prepare video");
+
+        const firstDbImage = dbItems.find((item) => item.type === "image");
+        const firstDbVideo = dbItems.find((item) => item.type === "video");
         const insertData: GroupMessageInsert = {
           group_id: groupId,
           sender_id: user.id,
-          message: MEDIA_MESSAGE_TEXT.video,
-          message_type: "video",
-          video_url: dbVideoUrl,
+          message: caption || MEDIA_MESSAGE_TEXT.album,
+          message_type: "media_album",
+          image_url: firstDbImage?.url || undefined,
+          video_url: firstDbImage ? undefined : firstDbVideo?.url,
           file_payload: {
             client_send_id: clientSendId,
-            source: filePayloadSource,
+            item_count: dbItems.length,
+            album_items: dbItems,
+            source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
             ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
-          } as GroupMessageInsert["file_payload"],
+          },
         };
         if (currentReply) insertData.reply_to_id = currentReply.id;
         const { error: insErr } = await dbFrom("group_messages").insert(insertData);
         if (insErr) throw insErr;
       } catch (e) {
-        console.warn("[group/video] upload/send failed", e);
-        if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
+        console.warn("[group/media-album] upload/send failed", e);
+        if (uploadedPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(uploadedPaths).catch(() => {});
         setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-        toast.error(file.size > 8 * 1024 * 1024
-          ? "Video storage is unavailable. Try a shorter clip for now."
-          : "Failed to send video");
+        toast.error("Failed to send album");
+      } finally {
+        localItems.forEach((item) => {
+          if (item.url.startsWith("blob:")) URL.revokeObjectURL(item.url);
+        });
       }
-      finally { setTimeout(() => URL.revokeObjectURL(localUrl), 30000); }
     })();
-    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
+  const sendSingleSelectedMedia = (file: File | undefined, clearInput: () => void) => {
+    if (!file || !user?.id) return;
+    const kind = getChatMediaKind(file);
+    if (!kind) {
+      toast.error("Choose a photo or video");
+      clearInput();
+      return;
+    }
+    const limit = getUploadLimitForKind(kind);
+    if (file.size > limit) {
+      toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
+      clearInput();
+      return;
+    }
+    sendOptimisticMedia(file, kind);
+    clearInput();
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 1) {
+      sendOptimisticMediaAlbum(files);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    sendSingleSelectedMedia(files[0], () => {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    });
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 1) {
+      sendOptimisticMediaAlbum(files);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+    sendSingleSelectedMedia(files[0], () => {
+      if (videoInputRef.current) videoInputRef.current.value = "";
+    });
   };
 
   const handleStickerSend = useCallback(async (payload: StickerSendPayload, messageType?: string) => {
@@ -2080,7 +2376,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                   )}
 
                   {/* Reaction counts (only for non-voice messages, as VoiceMessageBubble has its own footer/reactions logic usually) */}
-                  {!isOptimistic && msg.message_type !== "voice" && (
+                  {!isOptimistic && msg.message_type !== "voice" && msg.message_type !== "media_album" && (
                     <div className="px-1">
                       <MessageReactionsBar messageId={msg.id} align={isMe ? "right" : "left"} />
                     </div>
@@ -2206,7 +2502,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               mode="stars"
               onClose={() => {
                 setShowLockedPricePicker(false);
-                setLockedMediaFile(null);
+                setLockedMediaFiles([]);
               }}
               onConfirm={handleLockedMediaConfirm}
             />
@@ -2440,6 +2736,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               onVideoSelect={() => videoInputRef.current?.click()}
               onLocationShare={handleLocationShare}
               onLockedImageSelect={() => lockedImageInputRef.current?.click()}
+              lockedMediaHint="Stars unlock"
               onSendGift={() => setShowGiftPanel(true)}
               onOpenWallet={() => setShowWalletSheet(true)}
               onScanDocument={() => setShowScanner(true)}
@@ -2460,9 +2757,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             />
           </div>
 
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} title="Choose image" aria-label="Choose image" />
-          <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} title="Choose video" aria-label="Choose video" />
-          <input ref={lockedImageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
+          <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
+          <input ref={videoInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose media" aria-label="Choose media" />
+          <input ref={lockedImageInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
           <ChatMediaUploader
             recipientId={groupId}
@@ -2670,6 +2967,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         onOpenInvites={() => {
           setShowInfo(false);
           setShowInvites(true);
+        }}
+        onOpenPinned={() => {
+          setShowInfo(false);
+          setShowGroupSearch(true);
+          setGroupSearchQ(pinnedPreview || "");
         }}
         onStartCall={(kind) => {
           setShowInfo(false);

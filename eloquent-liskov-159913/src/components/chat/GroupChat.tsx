@@ -9,6 +9,7 @@ import MediaGalleryLightbox from "./MediaGalleryLightbox";
 import GroupReadReceipts from "./GroupReadReceipts";
 import { OPEN_MEDIA_EVENT, type OpenMediaDetail } from "@/lib/chat/openMedia";
 import { signedUrlFor } from "@/lib/security/signedMedia";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
 import { fileToInlineChatMediaUrl } from "@/lib/chat/mediaInlineFallback";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import Send from "lucide-react/dist/esm/icons/send";
@@ -33,6 +34,7 @@ import Bell from "lucide-react/dist/esm/icons/bell";
 import Search from "lucide-react/dist/esm/icons/search";
 import LogOut from "lucide-react/dist/esm/icons/log-out";
 import Pin from "lucide-react/dist/esm/icons/pin";
+import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,10 +50,12 @@ import ZivoCardPicker from "./ZivoCardPicker";
 import { enqueue as outboxEnqueue, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
 import ChatAttachMenu from "./ChatAttachMenu";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { useChatFiles } from "@/hooks/useChatFiles";
 import { blobToDataUrl, shouldInlineVoiceBlob, uploadVoiceWithProgress, retryWithBackoff, UploadAbortedError, UploadHttpError } from "@/lib/voiceUpload";
 import { vlog, vwarn } from "@/lib/voiceDebug";
 import GroupMembersSheet from "./GroupMembersSheet";
 import GroupInviteSheet from "./GroupInviteSheet";
+import GroupInfoSheet from "./GroupInfoSheet";
 import MessageReactionsBar from "./MessageReactionsBar";
 import GroupCallLauncher from "./call/GroupCallLauncher";
 import { primeCallAudio } from "@/lib/callAudio";
@@ -66,9 +70,20 @@ const ContactPickerSheet = lazy(() => import("./ChatContactPicker"));
 const ChatSocialShare = lazy(() => import("./ChatSocialShareSheet"));
 const PollCreator = lazy(() => import("./ChatPollCreator"));
 const ChatMessageBubble = lazy(() => import("./ChatMessageBubble"));
+const ChatMediaUploader = lazy(() => import("./ChatMediaUploader").then(m => ({ default: m.ChatMediaUploader })));
+const FileBubble = lazy(() => import("./FileBubble"));
+const ChatPollBubble = lazy(() => import("./ChatPollBubble"));
+const ChatContactBubble = lazy(() => import("./ChatContactBubble"));
+const ChatSocialBubble = lazy(() => import("./ChatSocialBubble"));
 import type { StickerSendPayload } from "./StickerKeyboard";
+import type { FileBubbleData } from "./FileBubble";
+import type { PollDraft } from "./ChatPollCreator";
+import type { SharedContact } from "./ChatContactPicker";
+import type { SocialCardPayload } from "./ChatSocialShareSheet";
 import { suggestStickersFor } from "@/lib/stickerSuggest";
 import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
+import { detectSensitiveContent, isGroupMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
+import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 
 interface GroupChatProps {
   groupId: string;
@@ -77,6 +92,39 @@ interface GroupChatProps {
   onClose: () => void;
   autoStartCall?: "audio" | "video" | null;
 }
+
+type GroupFilePayload = {
+  duration_ms?: number;
+  client_send_id?: string;
+  source?: string;
+  storage?: string;
+  mime_type?: string;
+  size?: number;
+  url?: string;
+  filename?: string;
+  page_count?: number | null;
+  thumbnail_url?: string | null;
+  locked_preview_url?: string | null;
+  locked_preview_image_url?: string | null;
+  locked_price_coins?: number | null;
+  locked_items?: LockedMediaItem[];
+  sensitive?: boolean;
+  is_sensitive?: boolean;
+  sensitive_reason?: string | null;
+  poll_id?: string;
+  question?: string;
+  options?: { text: string }[];
+  is_anonymous?: boolean;
+  creator_name?: string;
+  user_id?: string | null;
+  full_name?: string;
+  username?: string | null;
+  avatar_url?: string | null;
+  platform?: string;
+  platform_label?: string;
+  handle?: string;
+  [key: string]: unknown;
+};
 
 interface GroupMessage {
   id: string;
@@ -89,7 +137,14 @@ interface GroupMessage {
   message_type: string;
   reply_to_id: string | null;
   created_at: string;
-  file_payload?: { duration_ms?: number; client_send_id?: string } | null;
+  hidden_at?: string | null;
+  hidden_by?: string | null;
+  hidden_reason?: string | null;
+  sensitive_report_count?: number;
+  is_pinned?: boolean;
+  locked_price_coins?: number | null;
+  expires_at?: string | null;
+  file_payload?: GroupFilePayload | null;
   _local_voice_url?: string;
   _upload_status?: "uploading" | "sent" | "failed";
   _upload_progress?: number;
@@ -104,10 +159,14 @@ interface Member {
   user_id: string;
   name: string;
   avatar: string | null;
+  role: GroupRole;
 }
+
+type GroupRole = "owner" | "admin" | "member";
 
 type GroupMemberRow = {
   user_id: string;
+  role?: GroupRole | null;
 };
 
 type ProfileRow = {
@@ -124,6 +183,10 @@ type GroupMessageInsertPayload = {
   new: GroupMessage;
 };
 
+type GroupMessageUpdatePayload = {
+  new: GroupMessage;
+};
+
 type GroupMessageInsert = {
   group_id: string;
   sender_id: string;
@@ -133,20 +196,47 @@ type GroupMessageInsert = {
   video_url?: string;
   voice_url?: string;
   reply_to_id?: string;
-  file_payload?: { duration_ms?: number; client_send_id?: string } | null;
+  locked_price_coins?: number | null;
+  file_payload?: GroupFilePayload | null;
 };
 
 const dbFrom = (table: string): any => (supabase as any).from(table);
 const CHAT_MEDIA_BUCKET = "chat-media-files";
 const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
+const LOCKED_MEDIA_BUNDLE_LIMIT = 10;
+const MIXED_MEDIA_ACCEPT = "image/*,video/*,.gif";
 const MEDIA_MESSAGE_TEXT = {
   image: "Photo",
   video: "Video",
+  album: "Photo album",
 } as const;
+
+type ChatMediaKind = "image" | "video";
+
+type MediaAlbumSendItem = {
+  id: string;
+  type: ChatMediaKind;
+  url: string;
+  filename: string;
+  mime_type: string;
+  size: number;
+  source: "upload" | "upload-inline" | "local";
+  duration_ms?: number | null;
+};
 
 function formatUploadLimit(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))}MB`;
+}
+
+function getChatMediaKind(file: File): ChatMediaKind | null {
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("image/")) return "image";
+  return null;
+}
+
+function getUploadLimitForKind(kind: ChatMediaKind): number {
+  return kind === "image" ? IMAGE_UPLOAD_LIMIT_BYTES : VIDEO_UPLOAD_LIMIT_BYTES;
 }
 
 function randomMediaId(): string {
@@ -156,7 +246,7 @@ function randomMediaId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function extensionForChatMedia(file: File, kind: "image" | "video"): string {
+function extensionForChatMedia(file: File, kind: ChatMediaKind): string {
   const fromName = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (fromName && fromName.length <= 8) return fromName;
   if (file.type === "image/png") return "png";
@@ -166,6 +256,113 @@ function extensionForChatMedia(file: File, kind: "image" | "video"): string {
   if (file.type === "video/quicktime") return "mov";
   if (file.type === "video/webm") return "webm";
   return kind === "video" ? "mp4" : "jpg";
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Could not render media preview"));
+    }, "image/jpeg", 0.72);
+  });
+}
+
+function drawBlurredPreview(source: CanvasImageSource, width: number, height: number): Promise<Blob> {
+  const canvas = document.createElement("canvas");
+  const maxSide = 360;
+  const ratio = Math.min(maxSide / Math.max(width, height), 1);
+  const targetWidth = Math.max(160, Math.round(width * ratio));
+  const targetHeight = Math.max(160, Math.round(height * ratio));
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return Promise.reject(new Error("Canvas unavailable"));
+  ctx.fillStyle = "#111827";
+  ctx.fillRect(0, 0, targetWidth, targetHeight);
+  ctx.filter = "blur(14px)";
+  ctx.drawImage(source, -18, -18, targetWidth + 36, targetHeight + 36);
+  ctx.filter = "none";
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillRect(0, 0, targetWidth, targetHeight);
+  return canvasToBlob(canvas);
+}
+
+async function createImagePreviewBlob(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.decoding = "async";
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Could not load image preview"));
+      img.src = url;
+    });
+    return await drawBlurredPreview(img, img.naturalWidth || 320, img.naturalHeight || 320);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function createVideoPreviewBlob(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement("video");
+    video.src = url;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("Video preview timed out")), 7000);
+      video.onloadeddata = () => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+      video.onerror = () => {
+        window.clearTimeout(timeout);
+        reject(new Error("Could not load video preview"));
+      };
+    });
+    try {
+      video.currentTime = Math.min(0.1, Math.max(0, (video.duration || 1) / 2));
+    } catch {
+      // Some browser codecs reject seeking before enough metadata is available.
+    }
+    return await drawBlurredPreview(video, video.videoWidth || 320, video.videoHeight || 568);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function createLockedMediaPreviewBlob(file: File, isVideo: boolean): Promise<Blob> {
+  return isVideo ? createVideoPreviewBlob(file) : createImagePreviewBlob(file);
+}
+
+async function getVideoDurationMs(file: File): Promise<number | null> {
+  if (!file.type.startsWith("video/")) return null;
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.src = url;
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("Video metadata timed out")), 7000);
+      video.onloadedmetadata = () => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+      video.onerror = () => {
+        window.clearTimeout(timeout);
+        reject(new Error("Could not load video metadata"));
+      };
+    });
+    return Number.isFinite(video.duration) && video.duration > 0
+      ? Math.round(video.duration * 1000)
+      : null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function formatTime(dateStr: string) {
@@ -234,11 +431,30 @@ function renderMessageWithMentions(
 export default function GroupChat({ groupId, groupName, groupAvatar, onClose, autoStartCall = null }: GroupChatProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [currentGroupName, setCurrentGroupName] = useState(groupName);
+  const [currentGroupAvatar, setCurrentGroupAvatar] = useState<string | null | undefined>(groupAvatar);
+  const currentGroupAvatarSrc = useSignedMedia(currentGroupAvatar, CHAT_MEDIA_BUCKET, "thumbnail");
+  const currentGroupAvatarPreviewSrc = useSignedMedia(currentGroupAvatar, CHAT_MEDIA_BUCKET, "display");
   const [galleryState, setGalleryState] = useState<{ open: boolean; images: { id: string; url: string; type: "image" | "video" }[]; index: number }>({ open: false, images: [], index: 0 });
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<OpenMediaDetail>).detail;
       if (!detail?.url) return;
+      if (detail.gallery?.length) {
+        void Promise.all(detail.gallery.map(async (item) => ({
+          ...item,
+          url: /^(https?:|blob:|data:)/.test(item.url)
+            ? item.url
+            : (await signedUrlFor(CHAT_MEDIA_BUCKET, item.url, "display")) || item.url,
+        }))).then((images) => {
+          setGalleryState({
+            open: true,
+            images,
+            index: Math.min(Math.max(detail.index ?? 0, 0), images.length - 1),
+          });
+        });
+        return;
+      }
       setGalleryState({ open: true, images: [{ id: detail.id || detail.url, url: detail.url, type: detail.type }], index: 0 });
     };
     window.addEventListener(OPEN_MEDIA_EVENT, handler as EventListener);
@@ -254,15 +470,20 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const filePickerTriggerRef = useRef<(() => void) | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showInvites, setShowInvites] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [membersRefreshKey, setMembersRefreshKey] = useState(0);
   const [groupCall, setGroupCall] = useState<"audio" | "video" | null>(autoStartCall ?? null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
-  const [lockedMediaFile, setLockedMediaFile] = useState<File | null>(null);
+  const [lockedMediaFiles, setLockedMediaFiles] = useState<File[]>([]);
+  const [unlockedGroupMediaIds, setUnlockedGroupMediaIds] = useState<Set<string>>(() => new Set());
   const [showStickerKeyboard, setShowStickerKeyboard] = useState(false);
   const [disappearingSec, setDisappearingSec] = useState<number | null>(null);
+  const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [showWalletSheet, setShowWalletSheet] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -280,11 +501,15 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     setMiniAppView(type as any);
     setShowMiniApps(true);
   }, []);
-  const handleNoopPin = useCallback(() => {}, []);
   const handleForwardCopy = useCallback((_id: string, m: string | null) => {
     navigator.clipboard?.writeText(m || "");
     toast.success("Copied to forward");
   }, []);
+  const handleToggleSensitiveMedia = useCallback(() => {
+    const next = !markNextMediaSensitive;
+    setMarkNextMediaSensitive(next);
+    toast.success(next ? "Next group media will be blurred as 18+" : "18+ media blur marker off");
+  }, [markNextMediaSensitive]);
   const [isMuted, setIsMuted] = useState(() => {
     try { return localStorage.getItem(`zivo:group-muted:${groupId}`) === "1"; } catch { return false; }
   });
@@ -299,6 +524,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   // Sticker auto-suggestions when input ends with a known emoji
   const stickerSuggestions = useMemo(() => suggestStickersFor(input), [input]);
   const voice = useVoiceRecorder();
+  const { uploadFile } = useChatFiles();
   const voiceUploadInFlightRef = useRef(false);
   const voiceJobsRef = useRef<Map<string, {
     controller: AbortController;
@@ -310,11 +536,21 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     storagePath?: string;
   }>>(new Map());
 
+  useEffect(() => {
+    setCurrentGroupName(groupName);
+    setCurrentGroupAvatar(groupAvatar);
+  }, [groupAvatar, groupName]);
+
   const isNearBottomRef = useRef(true);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [unreadWhileScrolled, setUnreadWhileScrolled] = useState(0);
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const [showZivoCardPicker, setShowZivoCardPicker] = useState(false);
+  const myGroupRole = useMemo(
+    () => members.find((member) => member.user_id === user?.id)?.role ?? "member",
+    [members, user?.id],
+  );
+  const canPinMessages = myGroupRole === "owner" || myGroupRole === "admin";
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -403,7 +639,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     if (!user?.id) return;
     const loadMembers = async () => {
       const { data } = await dbFrom("chat_group_members")
-        .select("user_id")
+        .select("user_id, role")
         .eq("group_id", groupId);
       const memberData = (data || []) as GroupMemberRow[];
 
@@ -414,17 +650,26 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           .select("user_id, full_name, avatar_url")
           .in("user_id", userIds);
 
-        setMembers(
-          ((profiles || []) as ProfileRow[]).map((p) => ({
-            user_id: p.user_id,
-            name: p.full_name || "User",
-            avatar: p.avatar_url || null,
-          }))
+        const profileById = new Map(
+          ((profiles || []) as ProfileRow[]).map((profile) => [profile.user_id, profile]),
         );
+        setMembers(
+          memberData.map((member) => {
+            const profile = profileById.get(member.user_id);
+            return {
+              user_id: member.user_id,
+              role: member.role || "member",
+              name: profile?.full_name || "User",
+              avatar: profile?.avatar_url || null,
+            };
+          }),
+        );
+      } else {
+        setMembers([]);
       }
     };
     loadMembers();
-  }, [groupId, user?.id]);
+  }, [groupId, membersRefreshKey, user?.id]);
 
   // Load messages
   useEffect(() => {
@@ -436,7 +681,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         .eq("group_id", groupId)
         .order("created_at", { ascending: true })
         .limit(100);
-      setMessages((data || []) as GroupMessage[]);
+      setMessages(((data || []) as GroupMessage[]).filter((msg) => !msg.hidden_at));
       setLoading(false);
       scrollToBottom();
     };
@@ -456,6 +701,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       },
       (payload) => {
         const msg = (payload as GroupMessageInsertPayload).new as GroupMessage;
+        if (msg.hidden_at) return;
         setMessages((prev) => {
           if (prev.some((m) => m.id === msg.id)) return prev;
           // Prefer exact match on client_send_id stored in file_payload
@@ -511,11 +757,62 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       }
     );
 
+    const unsubscribeUpdate = subscribeToPooledPostgresChanges(
+      {
+        poolKey: `group-chat:${groupId}`,
+        event: "UPDATE",
+        schema: "public",
+        table: "group_messages",
+        filter: `group_id=eq.${groupId}`,
+      },
+      (payload) => {
+        const msg = (payload as GroupMessageUpdatePayload).new as GroupMessage;
+        if (!msg?.id) return;
+        setMessages((prev) => {
+          if (msg.hidden_at) return prev.filter((existing) => existing.id !== msg.id);
+          return prev.map((existing) => (existing.id === msg.id ? { ...existing, ...msg } : existing));
+        });
+      }
+    );
+
     return () => {
       unsubscribeInsert();
       unsubscribeDelete();
+      unsubscribeUpdate();
     };
   }, [groupId, user?.id, scrollToBottom]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setUnlockedGroupMediaIds(new Set());
+      return;
+    }
+    const lockedIds = messages
+      .filter((msg) => isLockedMediaMessage(msg.message_type) && !msg.id.startsWith("opt-") && msg.sender_id !== user.id)
+      .map((msg) => msg.id);
+    if (lockedIds.length === 0) {
+      setUnlockedGroupMediaIds(new Set());
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const { data } = await dbFrom("media_unlocks")
+        .select("message_id")
+        .eq("message_table", "group_messages")
+        .eq("buyer_id", user.id)
+        .eq("status", "completed")
+        .in("message_id", lockedIds);
+      if (cancelled) return;
+      const next = new Set(((data || []) as Array<{ message_id: string }>).map((row) => row.message_id));
+      setUnlockedGroupMediaIds((prev) => {
+        if (prev.size === next.size && [...prev].every((id) => next.has(id))) return prev;
+        return next;
+      });
+    })();
+
+    return () => { cancelled = true; };
+  }, [messages, user?.id]);
 
   const getSenderName = (senderId: string) => {
     if (senderId === user?.id) return "You";
@@ -527,24 +824,217 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   };
 
   const handleLockedMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
-    if (!file) return;
-    const isVideo = file.type.startsWith("video");
-    const maxSize = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
-    if (file.size > maxSize) {
-      toast.error(`File must be under ${formatUploadLimit(maxSize)}`);
+    if (files.length === 0) return;
+    if (files.length > LOCKED_MEDIA_BUNDLE_LIMIT) {
+      toast.error(`Choose up to ${LOCKED_MEDIA_BUNDLE_LIMIT} photos or videos`);
       return;
     }
-    setLockedMediaFile(file);
+
+    const invalidFile = files.find((file) => {
+      const isImage = file.type.startsWith("image");
+      const isVideo = file.type.startsWith("video");
+      if (!isImage && !isVideo) return true;
+      const maxSize = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
+      return file.size > maxSize;
+    });
+    if (invalidFile) {
+      const isVideo = invalidFile.type.startsWith("video");
+      const limit = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
+      toast.error(`${invalidFile.name || "File"} must be an image or video under ${formatUploadLimit(limit)}`);
+      return;
+    }
+
+    setLockedMediaFiles(files);
     setShowLockedPricePicker(true);
   };
 
-  const handleLockedMediaConfirm = (_priceCents: number) => {
+  const handleLockedMediaConfirm = async (priceCoins: number) => {
     setShowLockedPricePicker(false);
-    setLockedMediaFile(null);
-    toast.message("Locked media in groups is coming soon");
+    const files = lockedMediaFiles;
+    setLockedMediaFiles([]);
+    if (files.length === 0 || !user?.id) return;
+
+    const finalPrice = Math.floor(Number(priceCoins) || 0);
+    if (finalPrice <= 0) {
+      toast.error("Choose a Stars price");
+      return;
+    }
+
+    const clientSendId = randomMediaId();
+    const optimisticId = `opt-locked-${clientSendId}`;
+    const isAlbum = files.length > 1;
+    const preparedItems: Array<{
+      id: string;
+      file: File;
+      kind: "image" | "video";
+      localUrl: string;
+      previewBlob: Blob;
+      previewLocalUrl: string;
+      originalPath?: string;
+      previewPath?: string;
+    }> = [];
+    const cleanupPaths: string[] = [];
+    const caption = input.trim();
+    const firstIsVideo = files[0]?.type.startsWith("video") ?? false;
+    const messageType = isAlbum ? "locked_album" : firstIsVideo ? "locked_video" : "locked_image";
+    const label = `${isAlbum ? "Locked Bundle" : firstIsVideo ? "Locked Video" : "Locked Photo"} · ${formatStarsPrice(finalPrice)}`;
+    const currentReply = replyTo;
+    const textSensitivity = detectSensitiveContent(caption);
+    const shouldMarkSensitiveMedia = markNextMediaSensitive || textSensitivity.isSensitive;
+
+    setInput("");
+    setReplyTo(null);
+    if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
+    setUploadingImage(true);
+
+    try {
+      for (const file of files) {
+        const kind = file.type.startsWith("video") ? "video" : "image";
+        const previewBlob = await createLockedMediaPreviewBlob(file, kind === "video");
+        preparedItems.push({
+          id: randomMediaId(),
+          file,
+          kind,
+          localUrl: URL.createObjectURL(file),
+          previewBlob,
+          previewLocalUrl: URL.createObjectURL(previewBlob),
+        });
+      }
+
+      const optimisticLockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        original_path: item.localUrl,
+        preview_path: item.previewLocalUrl,
+        mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+        size: item.file.size,
+      }));
+      const sensitivePayload = shouldMarkSensitiveMedia ? {
+        sensitive: true,
+        is_sensitive: true,
+        sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+      } : {};
+      const optimisticMsg: GroupMessage = {
+        id: optimisticId,
+        group_id: groupId,
+        sender_id: user.id,
+        message: caption || label,
+        image_url: !isAlbum && preparedItems[0]?.kind === "image" ? preparedItems[0].localUrl : null,
+        video_url: !isAlbum && preparedItems[0]?.kind === "video" ? preparedItems[0].localUrl : null,
+        voice_url: null,
+        message_type: messageType,
+        reply_to_id: currentReply?.id || null,
+        locked_price_coins: finalPrice,
+        file_payload: {
+          client_send_id: clientSendId,
+          source: "locked-media",
+          locked_preview_url: optimisticLockedItems[0]?.preview_path || null,
+          locked_preview_image_url: optimisticLockedItems[0]?.preview_path || null,
+          locked_price_coins: finalPrice,
+          ...(isAlbum ? { locked_items: optimisticLockedItems } : {}),
+          ...sensitivePayload,
+        },
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimisticMsg]);
+      scrollToBottom();
+
+      for (let index = 0; index < preparedItems.length; index += 1) {
+        const item = preparedItems[index];
+        const ext = extensionForChatMedia(item.file, item.kind);
+        const pathSeed = `${Date.now()}-${clientSendId}-${index}-${item.id}`;
+        item.originalPath = `${user.id}/locked/groups/${groupId}/${pathSeed}.${ext}`;
+        item.previewPath = `${user.id}/locked-previews/groups/${groupId}/${pathSeed}.jpg`;
+
+        const { error: mediaError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.originalPath, item.file, {
+          contentType: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (mediaError) throw mediaError;
+        cleanupPaths.push(item.originalPath);
+
+        const { error: previewError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.previewPath, item.previewBlob, {
+          contentType: "image/jpeg",
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (previewError) throw previewError;
+        cleanupPaths.push(item.previewPath);
+      }
+
+      const lockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        original_path: item.originalPath,
+        preview_path: item.previewPath,
+        mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
+        size: item.file.size,
+      }));
+      const firstItem = lockedItems[0];
+
+      const insertData: GroupMessageInsert = {
+        group_id: groupId,
+        sender_id: user.id,
+        message: caption || label,
+        message_type: messageType,
+        locked_price_coins: finalPrice,
+        file_payload: {
+          client_send_id: clientSendId,
+          source: "locked-media",
+          locked_preview_url: firstItem?.preview_path || null,
+          locked_preview_image_url: firstItem?.preview_path || null,
+          locked_price_coins: finalPrice,
+          ...(isAlbum ? { locked_items: lockedItems } : {}),
+          ...sensitivePayload,
+        },
+      };
+      if (!isAlbum && firstItem?.kind === "video" && firstItem.original_path) insertData.video_url = firstItem.original_path;
+      if (!isAlbum && firstItem?.kind === "image" && firstItem.original_path) insertData.image_url = firstItem.original_path;
+      if (currentReply) insertData.reply_to_id = currentReply.id;
+
+      const { error: insertError } = await dbFrom("group_messages").insert(insertData);
+      if (insertError) throw insertError;
+      toast.success(isAlbum ? "Locked media bundle sent" : "Locked media sent");
+    } catch (error) {
+      console.warn("[group/locked-media] upload/send failed", error);
+      if (cleanupPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(cleanupPaths).catch(() => {});
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId));
+      toast.error("Failed to send locked media");
+    } finally {
+      setUploadingImage(false);
+      for (const item of preparedItems) {
+        setTimeout(() => URL.revokeObjectURL(item.localUrl), 30000);
+        setTimeout(() => URL.revokeObjectURL(item.previewLocalUrl), 30000);
+      }
+    }
   };
+
+  const handleUnlockGroupMedia = useCallback(async (messageId: string) => {
+    if (!user?.id || messageId.startsWith("opt-")) return false;
+    try {
+      const { data, error } = await supabase.functions.invoke("chat-unlock-group-media", {
+        body: { message_id: messageId },
+      });
+      if (error) throw error;
+      if ((data as { unlocked?: boolean } | null)?.unlocked) {
+        setUnlockedGroupMediaIds((prev) => new Set(prev).add(messageId));
+        return true;
+      }
+      toast.error("Unlock did not complete");
+      return false;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unlock failed";
+      if (message.toLowerCase().includes("insufficient")) {
+        toast.error("Not enough Stars");
+      } else {
+        toast.error(message);
+      }
+      return false;
+    }
+  }, [user?.id]);
 
   const handleSend = useCallback(async (imageUrl?: string, voiceUrl?: string) => {
     const text = input.trim();
@@ -552,6 +1042,15 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     if (!user?.id || sending) return;
 
     const msgType = voiceUrl ? "voice" : imageUrl ? "image" : "text";
+    const textSensitivity = detectSensitiveContent(text);
+    const isMediaSend = msgType === "image";
+    const shouldMarkSensitiveMedia = isMediaSend && (markNextMediaSensitive || textSensitivity.isSensitive);
+    if (textSensitivity.isSensitive && !isMediaSend) {
+      toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
+      inputRef.current?.focus();
+      return;
+    }
+    if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
     setInput("");
     setReplyTo(null);
     setSending(true);
@@ -566,6 +1065,10 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       voice_url: voiceUrl || null,
       message_type: msgType,
       reply_to_id: replyTo?.id || null,
+      file_payload: shouldMarkSensitiveMedia ? {
+        sensitive: true,
+        sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+      } : null,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
@@ -582,6 +1085,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       if (imageUrl) insertData.image_url = imageUrl;
       if (voiceUrl) insertData.voice_url = voiceUrl;
       if (replyTo) insertData.reply_to_id = replyTo.id;
+      if (shouldMarkSensitiveMedia) {
+        insertData.file_payload = {
+          sensitive: true,
+          sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+        };
+      }
 
       // Fire-and-forget insert; realtime echo will replace the optimistic row.
       const { error } = await dbFrom("group_messages").insert(insertData);
@@ -603,9 +1112,150 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       toast.error(navigator.onLine ? "Failed to send — tap to retry" : "You're offline — tap to retry when back online");
     }
     setSending(false);
-  }, [groupId, input, replyTo, scrollToBottom, sending, user?.id]);
+  }, [groupId, input, markNextMediaSensitive, replyTo, scrollToBottom, sending, user?.id]);
 
   const failedSendsRef = useRef<Map<string, GroupMessageInsert>>(new Map());
+
+  const sendStructuredGroupMessage = useCallback(async ({
+    messageType,
+    message,
+    filePayload,
+    optimisticPrefix,
+  }: {
+    messageType: string;
+    message: string;
+    filePayload: GroupFilePayload;
+    optimisticPrefix: string;
+  }): Promise<boolean> => {
+    if (!user?.id) {
+      toast.error("Sign in to send");
+      return false;
+    }
+
+    const currentReply = replyTo;
+    const optimisticId = `opt-${optimisticPrefix}-${Date.now()}`;
+    const optimisticMsg: GroupMessage = {
+      id: optimisticId,
+      group_id: groupId,
+      sender_id: user.id,
+      message,
+      image_url: null,
+      video_url: null,
+      voice_url: null,
+      message_type: messageType,
+      reply_to_id: currentReply?.id || null,
+      file_payload: filePayload,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+    scrollToBottom();
+    setReplyTo(null);
+
+    const insertData: GroupMessageInsert = {
+      group_id: groupId,
+      sender_id: user.id,
+      message,
+      message_type: messageType,
+      file_payload: filePayload,
+    };
+    if (currentReply) insertData.reply_to_id = currentReply.id;
+
+    try {
+      const { error } = await dbFrom("group_messages").insert(insertData);
+      if (error) throw error;
+      return true;
+    } catch {
+      failedSendsRef.current.set(optimisticId, insertData);
+      outboxEnqueue({
+        id: optimisticId,
+        table: "group_messages",
+        chatKey: groupId,
+        payload: insertData as unknown as Record<string, unknown>,
+        optimistic: optimisticMsg as unknown as Record<string, unknown>,
+      });
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "failed" } : m)),
+      );
+      toast.error(navigator.onLine ? "Failed to send - tap to retry" : "You're offline - tap to retry when back online");
+      return false;
+    }
+  }, [groupId, replyTo, scrollToBottom, user?.id]);
+
+  const sendGroupFileMessage = useCallback(async (file: FileBubbleData): Promise<boolean> => {
+    return sendStructuredGroupMessage({
+      messageType: "file",
+      message: `${file.source === "scan" ? "Scan" : "File"}: ${file.filename}`,
+      filePayload: file as unknown as GroupFilePayload,
+      optimisticPrefix: "file",
+    });
+  }, [sendStructuredGroupMessage]);
+
+  const handleGroupPollSubmit = useCallback(async (poll: PollDraft) => {
+    if (!user?.id) {
+      toast.error("Couldn't create poll");
+      throw new Error("missing user");
+    }
+    const optionsPayload = poll.options.map((text) => ({ text }));
+    const { data: pollRow, error: pollError } = await dbFrom("chat_polls")
+      .insert({
+        creator_id: user.id,
+        chat_partner_id: groupId,
+        question: poll.question,
+        options: optionsPayload,
+        is_anonymous: poll.isAnonymous,
+        votes: {},
+      })
+      .select("id")
+      .maybeSingle();
+    if (pollError || !pollRow?.id) {
+      toast.error("Failed to create poll");
+      throw pollError ?? new Error("missing poll id");
+    }
+
+    const ok = await sendStructuredGroupMessage({
+      messageType: "poll",
+      message: `Poll: ${poll.question}`,
+      filePayload: {
+        poll_id: pollRow.id,
+        question: poll.question,
+        options: optionsPayload,
+        is_anonymous: !!poll.isAnonymous,
+        creator_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "You",
+      },
+      optimisticPrefix: "poll",
+    });
+    if (!ok) throw new Error("poll message failed");
+    toast.success("Poll sent");
+  }, [groupId, sendStructuredGroupMessage, user?.email, user?.id, user?.user_metadata?.full_name, user?.user_metadata?.name]);
+
+  const handleGroupContactShare = useCallback(async (contact: SharedContact) => {
+    const fallback = [
+      contact.displayName,
+      contact.username ? `@${contact.username}` : null,
+    ].filter(Boolean).join(" ");
+    const ok = await sendStructuredGroupMessage({
+      messageType: "contact",
+      message: fallback || "Contact",
+      filePayload: {
+        user_id: contact.userId,
+        full_name: contact.displayName,
+        username: contact.username ?? null,
+        avatar_url: contact.avatarUrl ?? null,
+      },
+      optimisticPrefix: "contact",
+    });
+    if (ok) toast.success("Contact shared");
+  }, [sendStructuredGroupMessage]);
+
+  const handleGroupSocialCardShare = useCallback(async (payload: SocialCardPayload) => {
+    const ok = await sendStructuredGroupMessage({
+      messageType: "social",
+      message: `${payload.platform_label}: ${payload.url}`,
+      filePayload: payload as unknown as GroupFilePayload,
+      optimisticPrefix: "social",
+    });
+    if (ok) toast.success("Profile shared");
+  }, [sendStructuredGroupMessage]);
 
   // Drop a ZIVO action card (flight / hotel / ride / eats / trip) into the
   // group chat. Reuses the same outbox + retry pipeline as a regular message.
@@ -870,7 +1520,10 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     }));
     void runVoiceJob(clientSendId, !!job.publicUrl);
   }, [runVoiceJob]);
-  retryVoiceSendRef.current = retryVoiceSend;
+
+  useEffect(() => {
+    retryVoiceSendRef.current = retryVoiceSend;
+  }, [retryVoiceSend]);
 
   const discardVoiceSend = useCallback((clientSendId: string) => {
     const job = voiceJobsRef.current.get(clientSendId);
@@ -935,29 +1588,32 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
 
 
   // Image upload — optimistic bubble, background upload + insert.
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-    if (file.size > IMAGE_UPLOAD_LIMIT_BYTES) {
-      toast.error(`Image must be under ${formatUploadLimit(IMAGE_UPLOAD_LIMIT_BYTES)}`);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-
+  const sendOptimisticMedia = (file: File, kind: ChatMediaKind) => {
+    if (!user?.id) return;
     const localUrl = URL.createObjectURL(file);
     const clientSendId = randomMediaId();
-    const optimisticId = `opt-img-${clientSendId}`;
+    const optimisticId = `opt-${kind === "image" ? "img" : "vid"}-${clientSendId}`;
+    const messageText = MEDIA_MESSAGE_TEXT[kind];
+    const markSensitive = markNextMediaSensitive;
+    if (markSensitive) setMarkNextMediaSensitive(false);
     const optimisticMsg: GroupMessage = {
       id: optimisticId,
       group_id: groupId,
       sender_id: user.id,
-      message: MEDIA_MESSAGE_TEXT.image,
-      image_url: localUrl,
-      video_url: null,
+      message: messageText,
+      image_url: kind === "image" ? localUrl : null,
+      video_url: kind === "video" ? localUrl : null,
       voice_url: null,
-      message_type: "image",
+      message_type: kind,
       reply_to_id: replyTo?.id || null,
-      file_payload: { client_send_id: clientSendId, duration_ms: undefined },
+      file_payload: {
+        client_send_id: clientSendId,
+        filename: file.name || messageText,
+        mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+        size: file.size,
+        source: "local",
+        ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+      },
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
@@ -967,139 +1623,292 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
 
     void (async () => {
       let path: string | null = null;
-      let dbImageUrl: string | null = null;
+      let dbMediaUrl: string | null = null;
       let filePayloadSource = "upload";
       try {
         try {
-          const ext = extensionForChatMedia(file, "image");
-          path = `${user.id}/images/${Date.now()}-${clientSendId}.${ext}`;
+          const ext = extensionForChatMedia(file, kind);
+          path = `${user.id}/${kind}s/${Date.now()}-${clientSendId}.${ext}`;
           const { error: upErr } = await supabase.storage
             .from(CHAT_MEDIA_BUCKET)
             .upload(path, file, {
-              contentType: file.type || "image/jpeg",
+              contentType: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
               upsert: false,
               cacheControl: "3600",
             });
           if (upErr) throw upErr;
-          // Sender sees a short-lived signed URL; DB row stores the storage path
-          // so receivers can re-sign on view (URLs would otherwise expire).
           const signedUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
-          dbImageUrl = path;
+          dbMediaUrl = path;
           if (signedUrl) {
             setMessages((prev) => prev.map((m) => m.id === optimisticId
-              ? { ...m, image_url: signedUrl }
+              ? { ...m, image_url: kind === "image" ? signedUrl : null, video_url: kind === "video" ? signedUrl : null }
               : m));
           }
         } catch (uploadErr) {
-          console.warn("[group/image] storage unavailable, using inline fallback", uploadErr);
+          console.warn(`[group/${kind}] storage unavailable, using inline fallback`, uploadErr);
           if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
           path = null;
-          dbImageUrl = await fileToInlineChatMediaUrl(file, "image");
+          dbMediaUrl = await fileToInlineChatMediaUrl(file, kind);
           filePayloadSource = "upload-inline";
           setMessages((prev) => prev.map((m) => m.id === optimisticId
-            ? { ...m, image_url: dbImageUrl }
+            ? { ...m, image_url: kind === "image" ? dbMediaUrl : null, video_url: kind === "video" ? dbMediaUrl : null }
             : m));
         }
-        if (!dbImageUrl) throw new Error("Could not prepare image");
+
+        if (!dbMediaUrl) throw new Error(`Could not prepare ${kind}`);
         const insertData: GroupMessageInsert = {
           group_id: groupId,
           sender_id: user.id,
-          message: MEDIA_MESSAGE_TEXT.image,
-          message_type: "image",
-          image_url: dbImageUrl,
-          file_payload: { client_send_id: clientSendId, source: filePayloadSource } as GroupMessageInsert["file_payload"],
+          message: messageText,
+          message_type: kind,
+          file_payload: {
+            client_send_id: clientSendId,
+            filename: file.name || messageText,
+            mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+            size: file.size,
+            source: filePayloadSource,
+            ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+          } as GroupMessageInsert["file_payload"],
         };
+        if (kind === "image") insertData.image_url = dbMediaUrl;
+        if (kind === "video") insertData.video_url = dbMediaUrl;
         if (currentReply) insertData.reply_to_id = currentReply.id;
         const { error: insErr } = await dbFrom("group_messages").insert(insertData);
         if (insErr) throw insErr;
       } catch (e) {
-        console.warn("[group/image] upload/send failed", e);
+        console.warn(`[group/${kind}] upload/send failed`, e);
         if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
         setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-        toast.error("Failed to send image");
+        toast.error(kind === "video" && file.size > 8 * 1024 * 1024
+          ? "Video storage is unavailable. Try a shorter clip for now."
+          : `Failed to send ${kind}`);
       } finally {
         setTimeout(() => URL.revokeObjectURL(localUrl), 30000);
       }
     })();
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-    if (file.size > VIDEO_UPLOAD_LIMIT_BYTES) {
-      toast.error(`Video must be under ${formatUploadLimit(VIDEO_UPLOAD_LIMIT_BYTES)}`);
-      if (videoInputRef.current) videoInputRef.current.value = "";
+  const sendOptimisticMediaAlbum = (files: File[]) => {
+    if (!user?.id) return;
+    const mediaFiles = files
+      .map((file) => ({ file, kind: getChatMediaKind(file) }))
+      .filter((item): item is { file: File; kind: ChatMediaKind } => item.kind !== null);
+    if (mediaFiles.length !== files.length) {
+      toast.error("Albums can include photos and videos only");
       return;
     }
-    const localUrl = URL.createObjectURL(file);
+    if (mediaFiles.length < 2) {
+      const mediaFile = mediaFiles[0];
+      if (!mediaFile) return;
+      sendOptimisticMedia(mediaFile.file, mediaFile.kind);
+      return;
+    }
+    if (mediaFiles.length > 10) {
+      toast.error("Albums can include up to 10 items");
+      return;
+    }
+
+    for (const { file, kind } of mediaFiles) {
+      const limit = getUploadLimitForKind(kind);
+      if (file.size > limit) {
+        toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
+        return;
+      }
+    }
+
     const clientSendId = randomMediaId();
-    const optimisticId = `opt-vid-${clientSendId}`;
+    const optimisticId = `opt-group-album-${clientSendId}`;
+    const caption = input.trim();
+    const markSensitive = markNextMediaSensitive;
+    if (markSensitive) setMarkNextMediaSensitive(false);
+    const localItems: MediaAlbumSendItem[] = mediaFiles.map(({ file, kind }) => ({
+      id: randomMediaId(),
+      type: kind,
+      url: URL.createObjectURL(file),
+      filename: file.name || MEDIA_MESSAGE_TEXT.album,
+      mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+      size: file.size,
+      source: "local",
+    }));
+    const firstImage = localItems.find((item) => item.type === "image");
+    const firstVideo = localItems.find((item) => item.type === "video");
     const optimisticMsg: GroupMessage = {
-      id: optimisticId, group_id: groupId, sender_id: user.id,
-      message: MEDIA_MESSAGE_TEXT.video, image_url: null, video_url: localUrl, voice_url: null, message_type: "video",
-      reply_to_id: replyTo?.id || null, file_payload: { client_send_id: clientSendId }, created_at: new Date().toISOString(),
+      id: optimisticId,
+      group_id: groupId,
+      sender_id: user.id,
+      message: caption || MEDIA_MESSAGE_TEXT.album,
+      image_url: firstImage?.url || null,
+      video_url: firstImage ? null : firstVideo?.url || null,
+      voice_url: null,
+      message_type: "media_album",
+      reply_to_id: replyTo?.id || null,
+      file_payload: {
+        client_send_id: clientSendId,
+        item_count: localItems.length,
+        album_items: localItems,
+        source: "local",
+        ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+      },
+      created_at: new Date().toISOString(),
     };
+
     setMessages((prev) => [...prev, optimisticMsg]);
     scrollToBottom();
+    setInput("");
     const currentReply = replyTo;
     setReplyTo(null);
+
     void (async () => {
-      let path: string | null = null;
-      let dbVideoUrl: string | null = null;
-      let filePayloadSource = "upload";
+      const uploadedPaths: string[] = [];
+      const dbItems: MediaAlbumSendItem[] = [];
+      const displayItems: MediaAlbumSendItem[] = [...localItems];
+
       try {
-        try {
-          const ext = extensionForChatMedia(file, "video");
-          path = `${user.id}/videos/${Date.now()}-${clientSendId}.${ext}`;
-          const { error: upErr } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(path, file, {
-            contentType: file.type || "video/mp4",
-            upsert: false,
-            cacheControl: "3600",
-          });
-          if (upErr) throw upErr;
-          const signedUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
-          dbVideoUrl = path;
-          if (signedUrl) {
-            setMessages((prev) => prev.map((m) => m.id === optimisticId ? { ...m, video_url: signedUrl } : m));
+        for (let index = 0; index < mediaFiles.length; index += 1) {
+          const { file, kind } = mediaFiles[index];
+          let dbMediaUrl: string | null = null;
+          let displayUrl: string | null = null;
+          let itemSource: MediaAlbumSendItem["source"] = "upload";
+          let path: string | null = null;
+
+          try {
+            const ext = extensionForChatMedia(file, kind);
+            path = `${user.id}/${kind}s/${Date.now()}-${clientSendId}-${index}.${ext}`;
+            const { error: upErr } = await supabase.storage
+              .from(CHAT_MEDIA_BUCKET)
+              .upload(path, file, {
+                contentType: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+                upsert: false,
+                cacheControl: "3600",
+              });
+            if (upErr) throw upErr;
+            uploadedPaths.push(path);
+            dbMediaUrl = path;
+            displayUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
+          } catch (uploadErr) {
+            console.warn("[group/media-album] storage unavailable, using inline fallback", uploadErr);
+            if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
+            dbMediaUrl = await fileToInlineChatMediaUrl(file, kind);
+            displayUrl = dbMediaUrl;
+            itemSource = "upload-inline";
           }
-        } catch (uploadErr) {
-          console.warn("[group/video] storage unavailable, using inline fallback", uploadErr);
-          if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
-          path = null;
-          dbVideoUrl = await fileToInlineChatMediaUrl(file, "video");
-          filePayloadSource = "upload-inline";
-          setMessages((prev) => prev.map((m) => m.id === optimisticId ? { ...m, video_url: dbVideoUrl } : m));
+
+          if (!dbMediaUrl) throw new Error(`Could not prepare album item ${index + 1}`);
+          const durationMs = kind === "video" ? await getVideoDurationMs(file) : null;
+          const dbItem: MediaAlbumSendItem = {
+            id: displayItems[index].id,
+            type: kind,
+            url: dbMediaUrl,
+            filename: file.name || MEDIA_MESSAGE_TEXT.album,
+            mime_type: file.type || (kind === "video" ? "video/mp4" : "image/jpeg"),
+            size: file.size,
+            source: itemSource,
+            ...(durationMs ? { duration_ms: durationMs } : {}),
+          };
+          dbItems.push(dbItem);
+          displayItems[index] = { ...dbItem, url: displayUrl || dbMediaUrl };
+
+          const displayFirstImage = displayItems.find((item) => item.type === "image");
+          const displayFirstVideo = displayItems.find((item) => item.type === "video");
+          setMessages((prev) => prev.map((m) => m.id === optimisticId
+            ? {
+                ...m,
+                image_url: displayFirstImage?.url || null,
+                video_url: displayFirstImage ? null : displayFirstVideo?.url || null,
+                file_payload: {
+                  ...((m.file_payload as Record<string, unknown> | null) || {}),
+                  album_items: displayItems,
+                  source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
+                },
+              }
+            : m));
         }
-        if (!dbVideoUrl) throw new Error("Could not prepare video");
+
+        const firstDbImage = dbItems.find((item) => item.type === "image");
+        const firstDbVideo = dbItems.find((item) => item.type === "video");
         const insertData: GroupMessageInsert = {
           group_id: groupId,
           sender_id: user.id,
-          message: MEDIA_MESSAGE_TEXT.video,
-          message_type: "video",
-          video_url: dbVideoUrl,
-          file_payload: { client_send_id: clientSendId, source: filePayloadSource } as GroupMessageInsert["file_payload"],
+          message: caption || MEDIA_MESSAGE_TEXT.album,
+          message_type: "media_album",
+          image_url: firstDbImage?.url || undefined,
+          video_url: firstDbImage ? undefined : firstDbVideo?.url,
+          file_payload: {
+            client_send_id: clientSendId,
+            item_count: dbItems.length,
+            album_items: dbItems,
+            source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
+            ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+          },
         };
         if (currentReply) insertData.reply_to_id = currentReply.id;
         const { error: insErr } = await dbFrom("group_messages").insert(insertData);
         if (insErr) throw insErr;
       } catch (e) {
-        console.warn("[group/video] upload/send failed", e);
-        if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
+        console.warn("[group/media-album] upload/send failed", e);
+        if (uploadedPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(uploadedPaths).catch(() => {});
         setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-        toast.error(file.size > 8 * 1024 * 1024
-          ? "Video storage is unavailable. Try a shorter clip for now."
-          : "Failed to send video");
+        toast.error("Failed to send album");
+      } finally {
+        localItems.forEach((item) => {
+          if (item.url.startsWith("blob:")) URL.revokeObjectURL(item.url);
+        });
       }
-      finally { setTimeout(() => URL.revokeObjectURL(localUrl), 30000); }
     })();
-    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
+  const sendSingleSelectedMedia = (file: File | undefined, clearInput: () => void) => {
+    if (!file || !user?.id) return;
+    const kind = getChatMediaKind(file);
+    if (!kind) {
+      toast.error("Choose a photo or video");
+      clearInput();
+      return;
+    }
+    const limit = getUploadLimitForKind(kind);
+    if (file.size > limit) {
+      toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
+      clearInput();
+      return;
+    }
+    sendOptimisticMedia(file, kind);
+    clearInput();
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 1) {
+      sendOptimisticMediaAlbum(files);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    sendSingleSelectedMedia(files[0], () => {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    });
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 1) {
+      sendOptimisticMediaAlbum(files);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+    sendSingleSelectedMedia(files[0], () => {
+      if (videoInputRef.current) videoInputRef.current.value = "";
+    });
   };
 
   const handleStickerSend = useCallback(async (payload: StickerSendPayload, messageType?: string) => {
     if (!user?.id || !payload.text?.trim()) return;
     const text = payload.text.trim();
     const msgType = messageType || (payload.messageType === "sticker" || payload.messageType === "gif" ? payload.messageType : "text");
+    const textSensitivity = detectSensitiveContent(text);
+    if (msgType === "text" && textSensitivity.isSensitive) {
+      toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
+      inputRef.current?.focus();
+      return;
+    }
     const optimisticId = `opt-sticker-${Date.now()}`;
     const optimisticMsg: GroupMessage = {
       id: optimisticId, group_id: groupId, sender_id: user.id,
@@ -1123,6 +1932,71 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       toast.success("Message deleted");
     } catch { toast.error("Failed to delete"); }
   }, [user?.id]);
+
+  const handleReportMessage = useCallback(async (msgId: string, reason: string) => {
+    if (!user?.id) {
+      toast.error("Sign in to report messages");
+      return;
+    }
+    if (msgId.startsWith("opt-")) return;
+
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg || msg.sender_id === user.id) return;
+
+    setMessages((prev) => prev.filter((m) => m.id !== msgId));
+
+    const blockSender = async () => {
+      await (supabase as any).from("user_safety_actions").upsert(
+        {
+          user_id: user.id,
+          target_user_id: msg.sender_id,
+          action: "block",
+        },
+        { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
+      );
+    };
+
+    try {
+      const { error } = await (supabase as any).from("group_message_reports").insert({
+        reporter_id: user.id,
+        group_id: msg.group_id,
+        message_id: msg.id,
+        sender_id: msg.sender_id,
+        reason,
+        description: (msg.message || "").slice(0, 500),
+      });
+      if (error) throw error;
+      await blockSender();
+      toast.success("We hid it, blocked this user, and sent it for safety review");
+    } catch (error) {
+      if (isGroupMessageSafetySchemaDriftError(error)) {
+        try {
+          await blockSender();
+          toast.warning("Message hidden here. Deploy the group chat safety migration to send it for review.");
+          return;
+        } catch {
+          // Fall through to the generic failure toast.
+        }
+      }
+      toast.error("Couldn't submit group message report");
+    }
+  }, [messages, user?.id]);
+
+  const handlePinMsg = useCallback(async (msgId: string, pinned: boolean) => {
+    if (!user?.id) return;
+    if (!canPinMessages) {
+      toast.error("Only group admins can pin messages");
+      return;
+    }
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, is_pinned: pinned } : m)));
+    const { error } = await dbFrom("group_messages").update({ is_pinned: pinned }).eq("id", msgId);
+    if (error) {
+      setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, is_pinned: !pinned } : m)));
+      toast.error(error.message || "Could not update pinned message");
+      return;
+    }
+    toast.success(pinned ? "Message pinned" : "Message unpinned");
+  }, [canPinMessages, user?.id]);
 
   const handleLocationShare = () => {
     if (!navigator.geolocation) { toast.error("Location not supported"); return; }
@@ -1161,20 +2035,25 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     onClose();
   };
 
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => !m.hidden_at),
+    [messages],
+  );
+
   const filteredMessages = groupSearchQ.trim()
-    ? messages.filter((m) => m.message?.toLowerCase().includes(groupSearchQ.toLowerCase()))
-    : messages;
+    ? visibleMessages.filter((m) => m.message?.toLowerCase().includes(groupSearchQ.toLowerCase()))
+    : visibleMessages;
 
   const pinnedPreview = useMemo(() => {
-    const candidate = [...messages]
+    const candidate = [...visibleMessages]
       .reverse()
-      .find((m) => !m.id.startsWith("opt-") && m.message_type === "text" && (m.message || "").trim().length > 0);
+      .find((m) => m.is_pinned && !m.id.startsWith("opt-") && (m.message || "").trim().length > 0);
     if (!candidate) return null;
     const text = candidate.message.trim();
     return text.length > 78 ? `${text.slice(0, 78)}...` : text;
-  }, [messages]);
+  }, [visibleMessages]);
 
-  const initials = (groupName || "G").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  const initials = (currentGroupName || "G").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
     <motion.div
@@ -1197,21 +2076,21 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           </button>
           <button
             type="button"
-            onClick={() => setShowAvatarPreview(true)}
-            aria-label={`View ${groupName} group photo`}
+            onClick={() => setShowInfo(true)}
+            aria-label={`Open ${currentGroupName} group info`}
             className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40"
           >
             <Avatar className="h-9 w-9 ring-1 ring-border/40 shadow-sm">
-              <AvatarImage src={groupAvatar || undefined} />
+              <AvatarImage src={currentGroupAvatarSrc || undefined} />
               <AvatarFallback className="text-[11px] font-bold bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-white">{initials}</AvatarFallback>
             </Avatar>
           </button>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground truncate">{groupName}</p>
+          <button type="button" onClick={() => setShowInfo(true)} className="min-w-0 flex-1 text-left" aria-label="Open group info">
+            <p className="text-sm font-bold text-foreground truncate">{currentGroupName}</p>
             <p className="text-[10px] text-muted-foreground">
               {members.length} members
             </p>
-          </div>
+          </button>
           <div className="flex items-center gap-0.5">
             <button type="button"
               onClick={() => { void primeCallAudio(); setGroupCall("video"); }}
@@ -1247,6 +2126,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => { setShowGroupSearch(true); setGroupSearchQ(""); }}>
                   <Search className="mr-2 h-4 w-4" /> Search in chat
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowInfo(true)}>
+                  <Users className="mr-2 h-4 w-4" /> Group info
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={toggleMute}>
                   {isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
@@ -1315,7 +2197,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <div className="flex items-center justify-center h-40">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : visibleMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-muted-foreground/50">
             <Users className="w-8 h-8 mb-2" />
             <p className="text-sm">Group created</p>
@@ -1328,7 +2210,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             const isMe = msg.sender_id === user?.id;
             const senderName = getSenderName(msg.sender_id);
             const senderAvatar = getSenderAvatar(msg.sender_id);
-            const repliedMsg = msg.reply_to_id ? messages.find((m) => m.id === msg.reply_to_id) : null;
+            const repliedMsg = msg.reply_to_id ? visibleMessages.find((m) => m.id === msg.reply_to_id) : null;
             const isOptimistic = msg.id.startsWith("opt-");
             const msgDate = new Date(msg.created_at).toDateString();
             const prevMsgDate = idx > 0 ? new Date(filteredMessages[idx - 1].created_at).toDateString() : null;
@@ -1367,6 +2249,55 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                         time={formatTime(msg.created_at)}
                       />
                     </div>
+                  ) : msg.message_type === "file" && msg.file_payload ? (
+                    <div className={`flex ${isMe ? "justify-end" : "justify-start"} ${msg.id.startsWith("opt-") ? "opacity-60" : ""}`}>
+                      <div className="flex flex-col gap-1">
+                        <Suspense fallback={null}>
+                          <FileBubble file={msg.file_payload as unknown as FileBubbleData} mine={isMe} />
+                        </Suspense>
+                        <span className={`text-[9px] mt-0.5 ${isMe ? "text-right text-muted-foreground/70" : "text-left text-muted-foreground/70"}`}>
+                          {formatTime(msg.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : msg.message_type === "poll" && msg.file_payload?.poll_id ? (
+                    <div className={`flex ${isMe ? "justify-end" : "justify-start"} ${msg.id.startsWith("opt-") ? "opacity-60" : ""}`}>
+                      <Suspense fallback={null}>
+                        <ChatPollBubble
+                          pollId={String(msg.file_payload.poll_id)}
+                          question={String(msg.file_payload.question || "")}
+                          options={(msg.file_payload.options as { text: string }[] | undefined) || []}
+                          isAnonymous={Boolean(msg.file_payload.is_anonymous)}
+                          creatorName={String(msg.file_payload.creator_name || senderName)}
+                        />
+                      </Suspense>
+                    </div>
+                  ) : msg.message_type === "contact" && msg.file_payload?.full_name ? (
+                    <div className={`${msg.id.startsWith("opt-") ? "opacity-60" : ""}`}>
+                      <Suspense fallback={null}>
+                        <ChatContactBubble
+                          userId={(msg.file_payload.user_id as string | null | undefined) ?? null}
+                          fullName={String(msg.file_payload.full_name)}
+                          username={(msg.file_payload.username as string | null | undefined) ?? null}
+                          avatarUrl={(msg.file_payload.avatar_url as string | null | undefined) ?? null}
+                          isMe={isMe}
+                          time={formatTime(msg.created_at)}
+                        />
+                      </Suspense>
+                    </div>
+                  ) : msg.message_type === "social" && msg.file_payload?.url && msg.file_payload?.platform ? (
+                    <div className={`${msg.id.startsWith("opt-") ? "opacity-60" : ""}`}>
+                      <Suspense fallback={null}>
+                        <ChatSocialBubble
+                          platform={String(msg.file_payload.platform)}
+                          platformLabel={String(msg.file_payload.platform_label || msg.file_payload.platform)}
+                          url={String(msg.file_payload.url)}
+                          handle={String(msg.file_payload.handle || "")}
+                          isMe={isMe}
+                          time={formatTime(msg.created_at)}
+                        />
+                      </Suspense>
+                    </div>
                   ) : msg.message_type === "voice" && msg.voice_url ? (
                     (() => {
                       const csid = msg.file_payload?.client_send_id;
@@ -1397,16 +2328,24 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                         message={msg.message}
                         time={formatTime(msg.created_at)}
                         isMe={isMe}
-                        imageUrl={msg.message_type === "image" ? msg.image_url : null}
-                        videoUrl={msg.message_type === "video" ? msg.video_url : null}
+                        imageUrl={msg.message_type === "image" || msg.message_type === "locked_image" ? msg.image_url : null}
+                        videoUrl={msg.message_type === "video" || msg.message_type === "locked_video" ? msg.video_url : null}
                         messageType={msg.message_type}
+                        isPinned={msg.is_pinned}
                         senderId={msg.sender_id}
                         senderName={senderName}
                         senderAvatar={senderAvatar}
                         createdAt={msg.created_at}
+                        filePayload={msg.file_payload}
+                        lockedPriceCoins={msg.locked_price_coins ?? (typeof msg.file_payload?.locked_price_coins === "number" ? msg.file_payload.locked_price_coins : null)}
+                        lockedPreviewUrl={getLockedMediaPreviewPath(msg.file_payload)}
+                        initiallyLocked={isLockedMediaMessage(msg.message_type) && !isMe && !unlockedGroupMediaIds.has(msg.id)}
+                        onUnlockLockedMedia={isLockedMediaMessage(msg.message_type) && !isMe ? handleUnlockGroupMedia : undefined}
+                        onLockedMediaUnlocked={(messageId) => setUnlockedGroupMediaIds((prev) => new Set(prev).add(messageId))}
                         onReply={(id, m, me) => setReplyTo({ id, message: m || "Media", senderName })}
                         onDelete={handleDeleteMsg}
-                        onPin={handleNoopPin} // Groups don't support pinning yet
+                        onReport={handleReportMessage}
+                        onPin={canPinMessages && !msg.id.startsWith("opt-") ? handlePinMsg : undefined}
                         onForward={handleForwardCopy}
                         onMiniAppAction={handleMiniAppAction}
                       />
@@ -1414,7 +2353,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                   )}
 
                   {/* Reaction counts (only for non-voice messages, as VoiceMessageBubble has its own footer/reactions logic usually) */}
-                  {!isOptimistic && msg.message_type !== "voice" && (
+                  {!isOptimistic && msg.message_type !== "voice" && msg.message_type !== "media_album" && (
                     <div className="px-1">
                       <MessageReactionsBar messageId={msg.id} align={isMe ? "right" : "left"} />
                     </div>
@@ -1537,7 +2476,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <Suspense fallback={null}>
             <LockedMediaPricePicker
               open={showLockedPricePicker}
-              onClose={() => setShowLockedPricePicker(false)}
+              mode="stars"
+              onClose={() => {
+                setShowLockedPricePicker(false);
+                setLockedMediaFiles([]);
+              }}
               onConfirm={handleLockedMediaConfirm}
             />
           </Suspense>
@@ -1551,7 +2494,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               open={showMiniApps}
               onClose={() => setShowMiniApps(false)}
               chatPartnerId={groupId}
-              chatPartnerName={groupName}
+              chatPartnerName={currentGroupName}
               initialView={miniAppView}
               onItemCreated={(text, type) => handleStickerSend({ text, messageType: "text" }, type)}
             />
@@ -1578,7 +2521,34 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       <AnimatePresence>
         {showScanner && (
           <Suspense fallback={null}>
-            <ChatDocumentScanner open={showScanner} onClose={() => setShowScanner(false)} onComplete={() => setShowScanner(false)} />
+            <ChatDocumentScanner
+              open={showScanner}
+              onClose={() => setShowScanner(false)}
+              onComplete={async (pdfBlob, meta) => {
+                const uploaded = await uploadFile(pdfBlob, {
+                  filename: meta.filename,
+                  mimeType: "application/pdf",
+                  conversationId: groupId,
+                  pageCount: meta.pageCount,
+                  source: "scan",
+                  thumbnail: meta.thumbnail,
+                });
+                if (!uploaded) {
+                  toast.error("Couldn't upload scan");
+                  return;
+                }
+                const ok = await sendGroupFileMessage({
+                  url: uploaded.url,
+                  filename: uploaded.filename,
+                  mime_type: uploaded.mime_type,
+                  size: uploaded.size,
+                  page_count: uploaded.page_count ?? meta.pageCount,
+                  thumbnail_url: uploaded.thumbnail_url,
+                  source: "scan",
+                });
+                if (ok) toast.success("Scan sent");
+              }}
+            />
           </Suspense>
         )}
       </AnimatePresence>
@@ -1586,7 +2556,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       <AnimatePresence>
         {showContactPicker && (
           <Suspense fallback={null}>
-            <ContactPickerSheet open={showContactPicker} onOpenChange={setShowContactPicker} onConfirm={() => setShowContactPicker(false)} />
+            <ContactPickerSheet
+              open={showContactPicker}
+              onOpenChange={setShowContactPicker}
+              onConfirm={handleGroupContactShare}
+            />
           </Suspense>
         )}
       </AnimatePresence>
@@ -1594,7 +2568,19 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       <AnimatePresence>
         {showSocialShare && (
           <Suspense fallback={null}>
-            <ChatSocialShare open={showSocialShare} onClose={() => setShowSocialShare(false)} onShareLink={() => setShowSocialShare(false)} />
+            <ChatSocialShare
+              open={showSocialShare}
+              onClose={() => setShowSocialShare(false)}
+              onShareLink={(url) => {
+                setInput((prev) => (prev.trim() ? `${prev.trim()} ${url}` : url));
+                setShowSocialShare(false);
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }}
+              onShareSocialCard={async (payload) => {
+                await handleGroupSocialCardShare(payload);
+                setShowSocialShare(false);
+              }}
+            />
           </Suspense>
         )}
       </AnimatePresence>
@@ -1605,9 +2591,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             <PollCreator
               open={showPollCreator}
               onClose={() => setShowPollCreator(false)}
-              onSubmit={(draft) => {
-                void handleStickerSend({ text: `📊 Poll: ${draft.question}`, messageType: "text" });
-              }}
+              onSubmit={handleGroupPollSubmit}
             />
           </Suspense>
         )}
@@ -1694,6 +2678,19 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             ))}
           </div>
         )}
+        {markNextMediaSensitive && (
+          <button
+            type="button"
+            onClick={() => setMarkNextMediaSensitive(false)}
+            className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-bold text-fuchsia-600"
+            aria-label="Turn off 18+ marker for next group media"
+            title="Turn off 18+ marker"
+          >
+            <ShieldAlert className="h-3.5 w-3.5" />
+            18+ blur on for next media
+            <X className="h-3 w-3" />
+          </button>
+        )}
         <div className="flex items-end gap-1.5">
           {/* Attach button with full attach menu */}
           <div className="relative shrink-0">
@@ -1719,7 +2716,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               onSendGift={() => setShowGiftPanel(true)}
               onOpenWallet={() => setShowWalletSheet(true)}
               onScanDocument={() => setShowScanner(true)}
-              onFileSelect={() => fileInputRef.current?.click()} // Reuse image for now or add file input
+              onFileSelect={() => filePickerTriggerRef.current?.()}
               onCreatePoll={() => setShowPollCreator(true)}
               onShareContact={() => setShowContactPicker(true)}
               onShareSocial={() => setShowSocialShare(true)}
@@ -1729,14 +2726,34 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 setDisappearingSec(next);
                 toast.success(next == null ? "Auto-delete: Off" : next === 24*60*60 ? "Auto-delete: 1 day" : next === 7*24*60*60 ? "Auto-delete: 7 days" : "Auto-delete: 30 days");
               }}
+              onToggleSensitiveMedia={handleToggleSensitiveMedia}
               disappearingEnabled={disappearingSec != null}
+              sensitiveMediaMarked={markNextMediaSensitive}
               disappearingLabel={disappearingSec == null ? "Off" : disappearingSec === 24*60*60 ? "1d" : disappearingSec === 7*24*60*60 ? "7d" : "30d"}
             />
           </div>
 
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} title="Choose image" aria-label="Choose image" />
-          <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} title="Choose video" aria-label="Choose video" />
-          <input ref={lockedImageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
+          <input ref={fileInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose media" aria-label="Choose media" />
+          <input ref={videoInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose media" aria-label="Choose media" />
+          <input ref={lockedImageInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
+
+          <ChatMediaUploader
+            recipientId={groupId}
+            onMediaSent={(opts) => {
+              if (!opts.fileUrl) return;
+              void sendGroupFileMessage({
+                url: opts.fileUrl,
+                filename: opts.fileName || "file",
+                mime_type: opts.fileType || "application/octet-stream",
+                size: opts.fileSize,
+                source: "upload",
+              });
+            }}
+            renderTrigger={(open) => {
+              filePickerTriggerRef.current = open;
+              return <></>;
+            }}
+          />
 
           {/* Text input */}
           <div className="flex-1 relative">
@@ -1890,8 +2907,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       {/* Avatar fullscreen preview */}
       <AvatarPreviewSheet
         open={showAvatarPreview}
-        src={groupAvatar}
-        name={groupName}
+        src={currentGroupAvatarPreviewSrc}
+        name={currentGroupName}
         initials={initials}
         onClose={() => setShowAvatarPreview(false)}
       />
@@ -1907,6 +2924,37 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         open={showInvites}
         onOpenChange={setShowInvites}
         groupId={groupId}
+      />
+      <GroupInfoSheet
+        open={showInfo}
+        onOpenChange={setShowInfo}
+        groupId={groupId}
+        groupName={currentGroupName}
+        groupAvatar={currentGroupAvatar}
+        membersCount={members.length}
+        messages={messages}
+        muted={isMuted}
+        onToggleMute={toggleMute}
+        onSearch={() => {
+          setShowInfo(false);
+          setShowGroupSearch(true);
+          setGroupSearchQ("");
+        }}
+        onOpenInvites={() => {
+          setShowInfo(false);
+          setShowInvites(true);
+        }}
+        onStartCall={(kind) => {
+          setShowInfo(false);
+          void primeCallAudio();
+          setGroupCall(kind);
+        }}
+        onGroupUpdated={(patch) => {
+          if (patch.name) setCurrentGroupName(patch.name);
+          if ("avatar" in patch) setCurrentGroupAvatar(patch.avatar);
+        }}
+        onMembersChanged={() => setMembersRefreshKey((value) => value + 1)}
+        onLeft={onClose}
       />
 
       {/* Leave group confirmation */}
@@ -1941,7 +2989,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <GroupCallLauncher
             roomName={`group-${groupId}`}
             callType={groupCall}
-            meetingLabel={groupName}
+            meetingLabel={currentGroupName}
             onEnded={() => setGroupCall(null)}
           />
         </div>

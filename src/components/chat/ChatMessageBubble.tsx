@@ -28,6 +28,7 @@ import Pause from "lucide-react/dist/esm/icons/pause";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import Lock from "lucide-react/dist/esm/icons/lock";
 import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
+import Eye from "lucide-react/dist/esm/icons/eye";
 import Pencil from "lucide-react/dist/esm/icons/pencil";
 import Languages from "lucide-react/dist/esm/icons/languages";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
@@ -46,7 +47,8 @@ import { assessChatMessageRisk, assessIncomingChatRisk } from "@/lib/security/ch
 import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
 import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
 import { detectSensitiveContent } from "@/lib/social/sensitiveContent";
-import { formatStarsPrice } from "@/lib/chat/lockedMedia";
+import { formatStarsPrice, getLockedMediaItems, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
+import { recordChatMediaCacheEntry, type ChatMediaCacheBucket } from "@/lib/chat/mediaCache";
 import { useAutoTranslateMessage } from "@/hooks/useAutoTranslateMessage";
 import {
   parseLegacyMusicShare,
@@ -69,7 +71,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const TransparentStickerVideo = lazy(() => import("./TransparentStickerVideo").then(m => ({ default: m.TransparentStickerVideo })));
 const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
 const REACTION_EMOJIS = ["❤️", "😂", "👍", "😮", "😢", "🔥", "🎉", "😍"];
-const AUTO_MEDIA_MESSAGES = new Set(["Photo", "Video"]);
+const AUTO_MEDIA_MESSAGES = new Set(["Photo", "Video", "Photo album", "Media album"]);
 const CHAT_MEDIA_FRAME_CLASS = "w-[292px] max-w-[76vw]";
 const CHAT_MEDIA_MAX_HEIGHT = "min(520px, 58vh)";
 
@@ -116,6 +118,160 @@ type ParsedGifMessage = {
   label?: string;
   url: string;
 };
+
+type MediaAlbumItem = {
+  id?: string;
+  type: "image" | "video";
+  url: string;
+  thumbnailUrl?: string | null;
+  filename?: string | null;
+  durationMs?: number | null;
+  size?: number | null;
+};
+
+type MediaAlbumReaction = {
+  emoji: string;
+  count: number;
+};
+
+type MediaAlbumData = {
+  items: MediaAlbumItem[];
+  viewCount?: number | null;
+  reaction?: MediaAlbumReaction | null;
+  caption?: string | null;
+};
+
+type RawMediaAlbumItem = {
+  id?: string;
+  type?: string | null;
+  kind?: string | null;
+  url?: string | null;
+  media_url?: string | null;
+  path?: string | null;
+  original_path?: string | null;
+  preview_url?: string | null;
+  thumbnail_url?: string | null;
+  thumbnailUrl?: string | null;
+  filename?: string | null;
+  file_name?: string | null;
+  mime_type?: string | null;
+  duration_ms?: number | string | null;
+  durationMs?: number | string | null;
+  duration_seconds?: number | string | null;
+  durationSeconds?: number | string | null;
+  duration?: number | string | null;
+  size?: number | string | null;
+  file_size?: number | string | null;
+  fileSize?: number | string | null;
+  file_size_bytes?: number | string | null;
+};
+
+type RawMediaAlbumPayload = {
+  album_items?: RawMediaAlbumItem[];
+  media_items?: RawMediaAlbumItem[];
+  items?: RawMediaAlbumItem[];
+  media_album?: RawMediaAlbumPayload;
+  view_count?: number | string | null;
+  views?: number | string | null;
+  reaction?: string | MediaAlbumReaction | null;
+  reactions?: MediaAlbumReaction[];
+  caption?: string | null;
+};
+
+function formatCompactCount(value?: number | null): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1).replace(/\.0$/, "")}K`;
+  return String(value);
+}
+
+function coerceAlbumCount(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function coerceAlbumDurationMs(item: RawMediaAlbumItem): number | null {
+  const rawMs = item.duration_ms ?? item.durationMs;
+  const rawSeconds = item.duration_seconds ?? item.durationSeconds ?? item.duration;
+  const ms = typeof rawMs === "string" ? Number(rawMs) : rawMs;
+  if (typeof ms === "number" && Number.isFinite(ms) && ms > 0) return Math.round(ms);
+  const seconds = typeof rawSeconds === "string" ? Number(rawSeconds) : rawSeconds;
+  if (typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0) return Math.round(seconds * 1000);
+  return null;
+}
+
+function coerceByteSize(value: unknown): number | null {
+  const bytes = typeof value === "string" ? Number(value) : value;
+  return typeof bytes === "number" && Number.isFinite(bytes) && bytes > 0 ? Math.round(bytes) : null;
+}
+
+function mediaTypeToCacheBucket(type: "image" | "video" | string | null | undefined): ChatMediaCacheBucket {
+  return type === "video" ? "videos" : "photos";
+}
+
+function formatAlbumDurationLabel(durationMs?: number | null): string | null {
+  if (typeof durationMs !== "number" || !Number.isFinite(durationMs) || durationMs <= 0) return null;
+  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function normalizeAlbumReaction(value: unknown): MediaAlbumReaction | null {
+  if (!value) return null;
+  if (typeof value === "string") return { emoji: value, count: 1 };
+  if (typeof value === "object") {
+    const reaction = value as Partial<MediaAlbumReaction>;
+    if (typeof reaction.emoji === "string" && reaction.emoji.trim()) {
+      const count = typeof reaction.count === "number" && reaction.count > 0 ? reaction.count : 1;
+      return { emoji: reaction.emoji, count };
+    }
+  }
+  return null;
+}
+
+function getMediaAlbumData(filePayload: unknown): MediaAlbumData {
+  const payload = filePayload as RawMediaAlbumPayload | null | undefined;
+  const albumPayload = payload?.media_album || payload;
+  const rawItems =
+    albumPayload?.album_items ||
+    albumPayload?.media_items ||
+    albumPayload?.items ||
+    [];
+
+  const items = rawItems
+    .map((item): MediaAlbumItem | null => {
+      const mediaUrl = item.url || item.media_url || item.path || item.original_path || item.preview_url || item.thumbnail_url;
+      if (!mediaUrl) return null;
+      const mediaKind = item.type || item.kind || item.mime_type || "";
+      const type = mediaKind.toLowerCase().includes("video") ? "video" : "image";
+      return {
+        id: item.id,
+        type,
+        url: mediaUrl,
+        thumbnailUrl: item.thumbnail_url || item.thumbnailUrl || item.preview_url || null,
+        filename: item.filename || item.file_name || null,
+        durationMs: coerceAlbumDurationMs(item),
+        size: coerceByteSize(item.size ?? item.file_size ?? item.fileSize ?? item.file_size_bytes),
+      };
+    })
+    .filter((item): item is MediaAlbumItem => Boolean(item));
+
+  return {
+    items,
+    viewCount: coerceAlbumCount(albumPayload?.view_count ?? albumPayload?.views),
+    reaction: normalizeAlbumReaction(albumPayload?.reaction || albumPayload?.reactions?.[0]),
+    caption: albumPayload?.caption || null,
+  };
+}
 
 const STICKER_LIBRARY = ILLUSTRATED_PACKS
   .flatMap((pack) => pack.stickers)
@@ -459,6 +615,316 @@ function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: st
   );
 }
 
+function LockedAlbumTile({
+  item,
+  locked,
+  messageId,
+  userId,
+}: {
+  item: LockedMediaItem;
+  locked: boolean;
+  messageId: string;
+  userId?: string;
+}) {
+  const path = locked
+    ? item.preview_path
+    : item.original_path || item.preview_path;
+  const url = useSignedMedia(path || null, "chat-media-files", "display");
+  const isVideo = item.kind === "video";
+
+  useEffect(() => {
+    if (!url) return;
+    recordChatMediaCacheEntry({
+      userId,
+      url,
+      bucket: mediaTypeToCacheBucket(item.kind),
+      bytes: item.size,
+      storagePath: path,
+      cacheKind: locked ? "locked-preview" : item.original_path ? "locked-original" : "locked-preview",
+    });
+  }, [item.kind, item.original_path, item.size, path, locked, url, userId]);
+
+  const open = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (locked || !url) return;
+    void import("@/lib/chat/openMedia").then((m) => m.openMedia({ url, type: isVideo ? "video" : "image", id: messageId }));
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={locked || !url}
+      className="relative h-full min-h-0 w-full overflow-hidden bg-muted disabled:cursor-default"
+      aria-label={locked ? "Locked media preview" : isVideo ? "Open video" : "Open photo"}
+    >
+      {url ? (
+        isVideo && !locked ? (
+          <video
+            src={`${url}#t=0.1`}
+            className="h-full w-full object-cover"
+            playsInline
+            preload="metadata"
+            muted
+            crossOrigin="anonymous"
+          />
+        ) : (
+          <img
+            src={url}
+            alt=""
+            className={`h-full w-full object-cover transition-transform duration-300 ${locked ? "scale-105 blur-xl" : ""}`}
+            loading="lazy"
+            decoding="async"
+          />
+        )
+      ) : (
+        <div className="h-full w-full animate-pulse bg-muted-foreground/10" />
+      )}
+      {isVideo && (
+        <div className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 p-1 text-white shadow-sm">
+          <Play className="h-3 w-3" fill="currentColor" />
+        </div>
+      )}
+    </button>
+  );
+}
+
+function LockedAlbumGrid({
+  items,
+  locked,
+  messageId,
+  userId,
+}: {
+  items: LockedMediaItem[];
+  locked: boolean;
+  messageId: string;
+  userId?: string;
+}) {
+  const visibleItems = items.slice(0, 10);
+  const columnCount = visibleItems.length <= 1 ? 1 : visibleItems.length <= 4 ? 2 : 3;
+  const rowCount = Math.ceil(visibleItems.length / columnCount);
+
+  return (
+    <div
+      data-testid="locked-album-grid"
+      className="grid h-[min(360px,58vh)] min-h-[220px] w-full gap-0.5 overflow-hidden"
+      style={{
+        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))`,
+      }}
+    >
+      {visibleItems.map((item, index) => (
+        <LockedAlbumTile
+          key={item.id || `${item.preview_path || item.original_path || "item"}-${index}`}
+          item={item}
+          locked={locked}
+          messageId={`${messageId}:${index}`}
+          userId={userId}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MediaAlbumTile({
+  item,
+  messageId,
+  gallery,
+  index,
+  userId,
+  overflowCount = 0,
+}: {
+  item: MediaAlbumItem;
+  messageId: string;
+  gallery: { id: string; url: string; type: "image" | "video" }[];
+  index: number;
+  userId?: string;
+  overflowCount?: number;
+}) {
+  const displayUrl = useSignedMedia(item.thumbnailUrl || item.url, "chat-media-files", "display");
+  const openUrl = useSignedMedia(item.url, "chat-media-files", "display");
+  const isVideo = item.type === "video";
+  const durationLabel = formatAlbumDurationLabel(item.durationMs);
+
+  useEffect(() => {
+    if (!displayUrl) return;
+    const trackedPath = item.thumbnailUrl || item.url;
+    recordChatMediaCacheEntry({
+      userId,
+      url: displayUrl,
+      bucket: mediaTypeToCacheBucket(item.type),
+      bytes: item.thumbnailUrl ? null : item.size,
+      storagePath: trackedPath,
+    });
+  }, [displayUrl, item.size, item.thumbnailUrl, item.type, item.url, userId]);
+
+  const open = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!openUrl) return;
+    void import("@/lib/chat/openMedia").then((m) => m.openMedia({
+      url: openUrl,
+      type: isVideo ? "video" : "image",
+      id: messageId,
+      gallery,
+      index,
+    }));
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={open}
+      data-testid="media-album-tile"
+      data-album-index={index}
+      className="group relative h-full min-h-0 w-full overflow-hidden bg-muted text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      aria-label={isVideo ? "Open album video" : "Open album photo"}
+    >
+      {displayUrl ? (
+        isVideo && !item.thumbnailUrl ? (
+          <video
+            src={`${displayUrl}#t=0.1`}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            playsInline
+            preload="metadata"
+            muted
+            crossOrigin="anonymous"
+          />
+        ) : (
+          <img
+            src={displayUrl}
+            alt={item.filename || ""}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            loading="lazy"
+            decoding="async"
+          />
+        )
+      ) : (
+        <div className="h-full w-full animate-pulse bg-muted-foreground/10" />
+      )}
+      {isVideo && durationLabel && (
+        <span className="absolute left-1.5 top-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white shadow">
+          {durationLabel}
+        </span>
+      )}
+      {isVideo && !durationLabel && (
+        <div className="absolute inset-0 grid place-items-center bg-black/10">
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white shadow-lg">
+            <Play className="h-4 w-4 translate-x-px" fill="currentColor" />
+          </div>
+        </div>
+      )}
+      {overflowCount > 0 && (
+        <div className="absolute inset-0 grid place-items-center bg-black/55 text-white">
+          <span className="text-xl font-black tracking-tight">+{overflowCount}</span>
+        </div>
+      )}
+    </button>
+  );
+}
+
+type MediaAlbumCellLayout = {
+  gridColumn?: string;
+  gridRow?: string;
+};
+
+function span(value: number) {
+  return `span ${value} / span ${value}`;
+}
+
+function getMediaAlbumLayout(count: number): {
+  columns: number;
+  rows: number;
+  cells: MediaAlbumCellLayout[];
+} {
+  if (count <= 1) {
+    return { columns: 1, rows: 1, cells: [{}] };
+  }
+
+  if (count === 2) {
+    return { columns: 2, rows: 1, cells: [{}, {}] };
+  }
+
+  if (count === 3) {
+    return {
+      columns: 2,
+      rows: 2,
+      cells: [
+        { gridRow: span(2) },
+        {},
+        {},
+      ],
+    };
+  }
+
+  if (count === 4) {
+    return { columns: 2, rows: 2, cells: [{}, {}, {}, {}] };
+  }
+
+  const rowSpansByCount: Record<number, number[]> = {
+    5: [2, 2, 2, 3, 3],
+    6: [2, 2, 2, 2, 2, 2],
+    7: [2, 2, 2, 3, 3, 6],
+    8: [2, 2, 2, 2, 2, 2, 3, 3],
+  };
+  const columns = 6;
+  const cells = (rowSpansByCount[count] || rowSpansByCount[8]).map((columnSpan) => ({
+    gridColumn: span(columnSpan),
+  }));
+
+  return {
+    columns,
+    rows: count <= 6 ? 2 : 3,
+    cells,
+  };
+}
+
+function MediaAlbumGrid({
+  items,
+  messageId,
+  userId,
+}: {
+  items: MediaAlbumItem[];
+  messageId: string;
+  userId?: string;
+}) {
+  const visibleItems = items.slice(0, 8);
+  const overflowCount = Math.max(0, items.length - visibleItems.length);
+  const layout = getMediaAlbumLayout(visibleItems.length);
+  const gallery = items.map((item, index) => ({
+    id: item.id || `${messageId}:${index}`,
+    url: item.url,
+    type: item.type,
+  }));
+
+  return (
+    <div
+      data-testid="media-album-grid"
+      className="grid aspect-[4/5] max-h-[min(440px,58vh)] min-h-[260px] w-full gap-0.5 overflow-hidden"
+      style={{
+        gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+      }}
+    >
+      {visibleItems.map((item, index) => (
+        <div
+          key={item.id || `${item.url}-${index}`}
+          className="min-h-0 min-w-0"
+          style={layout.cells[index]}
+        >
+          <MediaAlbumTile
+            item={item}
+            messageId={`${messageId}:${index}`}
+            gallery={gallery}
+            index={index}
+            userId={userId}
+            overflowCount={index === visibleItems.length - 1 ? overflowCount : 0}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const ChatMessageBubble = memo(function ChatMessageBubble({
   id, message, time, isMe, isRead, isDelivered, imageUrl, videoUrl, filePayload, isPinned, expiresAt, messageType, senderId, lockedPriceCents,
   lockedPriceCoins, lockedPreviewUrl, initiallyLocked, onUnlockLockedMedia, onLockedMediaUnlocked,
@@ -486,7 +952,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     () => isMe ? null : assessIncomingChatRisk(message || ""),
     [message, isMe],
   );
-  const isLockedMediaType = messageType === "locked_image" || messageType === "locked_video";
+  const isLockedMediaType = isLockedMediaMessage(messageType);
   const isLockedTextType = messageType === "locked_text";
   const isLockedType = isLockedMediaType || isLockedTextType;
   const defaultLockedState = initiallyLocked ?? (isLockedType && !isMe);
@@ -521,6 +987,15 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const unlockPrice = lockedPriceCents && lockedPriceCents > 0 ? lockedPriceCents : 99;
   const unlockPriceLabel = isStarsLocked ? formatStarsPrice(lockedPriceCoins) : `$${(unlockPrice / 100).toFixed(2)}`;
   const unlockButtonLabel = isStarsLocked ? `Unlock for ${unlockPriceLabel}` : `Unlock · ${unlockPriceLabel}`;
+  const filePayloadSizeBytes = coerceByteSize((filePayload as {
+    size?: unknown;
+    file_size?: unknown;
+    fileSize?: unknown;
+    file_size_bytes?: unknown;
+  } | null | undefined)?.size
+    ?? (filePayload as { file_size?: unknown } | null | undefined)?.file_size
+    ?? (filePayload as { fileSize?: unknown } | null | undefined)?.fileSize
+    ?? (filePayload as { file_size_bytes?: unknown } | null | undefined)?.file_size_bytes);
   const [reactions, setReactions] = useState<{ emoji: string; count: number; reactedByMe: boolean }[]>(initialReactions || []);
   const [openDown, setOpenDown] = useState(false);
   const [showStickerBurst, setShowStickerBurst] = useState(false);
@@ -536,6 +1011,17 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const lockedVideoPreviewUrl = messageType === "locked_video" ? lockedPreviewDisplayUrl : null;
   const imageFrameUrl = displayImageUrl || lockedImagePreviewUrl;
   const videoFrameUrl = displayVideoUrl || lockedVideoPreviewUrl;
+  const lockedAlbumItems = useMemo(() => getLockedMediaItems(filePayload as any), [filePayload]);
+  const isLockedAlbum = messageType === "locked_album" && lockedAlbumItems.length > 0;
+  const mediaAlbum = useMemo(() => getMediaAlbumData(filePayload), [filePayload]);
+  const isMediaAlbum = messageType === "media_album" && mediaAlbum.items.length > 0;
+  const mediaAlbumCaption = mediaAlbum.caption || (
+    message && !AUTO_MEDIA_MESSAGES.has(message.trim()) ? message.trim() : ""
+  );
+  const mediaAlbumReaction = reactions[0]
+    ? { emoji: reactions[0].emoji, count: reactions[0].count }
+    : mediaAlbum.reaction;
+  const mediaAlbumViewLabel = formatCompactCount(mediaAlbum.viewCount ?? null);
   const sensitiveMediaPreference = useSensitiveMediaPreference(user?.id);
   const filePayloadMeta = filePayload as {
     sensitive?: boolean;
@@ -549,14 +1035,38 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     }),
     [filePayloadMeta?.is_sensitive, filePayloadMeta?.sensitive, filePayloadMeta?.sensitive_reason, message],
   );
-  const shouldGateSensitiveMedia = Boolean(imageFrameUrl || videoFrameUrl)
+  const shouldGateSensitiveMedia = Boolean(imageFrameUrl || videoFrameUrl || isLockedAlbum || isMediaAlbum)
     && !isLocked
     && sensitiveMediaPreference.blurSensitiveMedia
     && chatSensitiveMediaMatch.isSensitive;
   const [isTinyImage, setIsTinyImage] = useState(false);
   const shouldHideAutoMediaMessage =
-    (Boolean(imageFrameUrl || videoFrameUrl) || messageType === "image" || messageType === "video") &&
+    (Boolean(imageFrameUrl || videoFrameUrl || isLockedAlbum || isMediaAlbum) || messageType === "image" || messageType === "video" || messageType === "locked_album" || messageType === "media_album") &&
     AUTO_MEDIA_MESSAGES.has((message || "").trim());
+
+  useEffect(() => {
+    if (!imageFrameUrl) return;
+    recordChatMediaCacheEntry({
+      userId: user?.id,
+      url: imageFrameUrl,
+      bucket: "photos",
+      bytes: filePayloadSizeBytes,
+      storagePath: displayImageUrl ? imageUrl : lockedPreviewUrl,
+      cacheKind: isLockedMediaType ? (displayImageUrl ? "locked-original" : "locked-preview") : "standard",
+    });
+  }, [displayImageUrl, filePayloadSizeBytes, imageFrameUrl, imageUrl, isLockedMediaType, lockedPreviewUrl, user?.id]);
+
+  useEffect(() => {
+    if (!videoFrameUrl) return;
+    recordChatMediaCacheEntry({
+      userId: user?.id,
+      url: videoFrameUrl,
+      bucket: displayVideoUrl ? "videos" : "photos",
+      bytes: displayVideoUrl ? filePayloadSizeBytes : null,
+      storagePath: displayVideoUrl ? videoUrl : lockedPreviewUrl,
+      cacheKind: isLockedMediaType ? (displayVideoUrl ? "locked-original" : "locked-preview") : "standard",
+    });
+  }, [displayVideoUrl, filePayloadSizeBytes, isLockedMediaType, lockedPreviewUrl, user?.id, videoFrameUrl, videoUrl]);
 
   const canEdit = isMe && !!createdAt && (Date.now() - new Date(createdAt).getTime() < 48 * 60 * 60 * 1000) && !!message?.trim() && !imageUrl && !videoUrl;
 
@@ -906,8 +1416,97 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           </button>
         )}
 
-        {/* Video — compact reel-style thumbnail (normal or locked) */}
-        {videoFrameUrl && (
+        {/* Paid media bundle: Telegram-style collage with one Stars unlock. */}
+        {isLockedAlbum && (
+          <div className={`${CHAT_MEDIA_FRAME_CLASS} mb-1 overflow-hidden rounded-2xl border border-border/10 bg-muted shadow-sm relative ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
+            <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
+              <LockedAlbumGrid items={lockedAlbumItems} locked={isLocked && !isMe} messageId={id} userId={user?.id} />
+              {isLocked && !isMe && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 rounded-2xl">
+                  <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-background/90 shadow-lg">
+                    <Lock className="h-6 w-6 text-foreground" />
+                  </div>
+                  <p className="mb-2 text-xs font-semibold text-white drop-shadow">Locked media bundle</p>
+                  <button
+                    type="button"
+                    disabled={unlockLoading}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnlockPayment();
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground shadow-lg transition-transform active:scale-95 disabled:opacity-70"
+                    aria-label={`Unlock locked media bundle for ${unlockPriceLabel}`}
+                  >
+                    {unlockLoading ? (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    ) : (
+                      <span className="text-[13px] leading-none">{"\u2b50"}</span>
+                    )}
+                    {unlockButtonLabel}
+                  </button>
+                </div>
+              )}
+              {isLockedType && isMe && (
+                <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5">
+                  <Lock className="h-3 w-3 text-white" />
+                  <span className="text-[10px] font-medium text-white">Locked · {unlockPriceLabel}</span>
+                </div>
+              )}
+              {!isLocked && (
+                <div className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                  {lockedAlbumItems.length} items
+                </div>
+              )}
+            </SensitiveMediaGate>
+          </div>
+        )}
+
+        {/* Media album: collage with caption, reaction chip, views, and timestamp. */}
+        {isMediaAlbum && (
+          <div className={`${CHAT_MEDIA_FRAME_CLASS} mb-1 overflow-hidden rounded-2xl border border-border/10 bg-card shadow-sm relative ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
+            <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
+              <MediaAlbumGrid items={mediaAlbum.items} messageId={id} userId={user?.id} />
+              <div className="bg-card/95 px-2.5 pb-2 pt-2">
+                {mediaAlbumCaption && (
+                  <p className="mb-2 whitespace-pre-wrap break-words text-[13.5px] leading-snug text-foreground">
+                    <SpoilerText text={mediaAlbumCaption} variant="bold" />
+                  </p>
+                )}
+                <div className="flex min-h-[22px] items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    {mediaAlbumReaction && mediaAlbumReaction.count > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void toggleReaction(mediaAlbumReaction.emoji);
+                        }}
+                        className="inline-flex h-7 items-center gap-1 rounded-full bg-primary/10 px-2 text-[12px] font-bold text-primary active:scale-95"
+                        aria-label={`React with ${mediaAlbumReaction.emoji}`}
+                      >
+                        <span>{mediaAlbumReaction.emoji}</span>
+                        <span>{mediaAlbumReaction.count}</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-medium text-muted-foreground/70">
+                    {mediaAlbumViewLabel && (
+                      <span className="inline-flex items-center gap-0.5">
+                        {mediaAlbumViewLabel}
+                        <Eye className="h-3 w-3" />
+                      </span>
+                    )}
+                    <span>{time}</span>
+                    {isMe && <ReadReceipt status={receiptStatus} className="h-3 w-3" />}
+                  </div>
+                </div>
+              </div>
+            </SensitiveMediaGate>
+          </div>
+        )}
+
+        {/* Video: compact reel-style thumbnail (normal or locked). */}
+        {!isMediaAlbum && videoFrameUrl && (
           <div
             onClick={(e) => {
               e.stopPropagation();
@@ -1001,7 +1600,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         )}
 
         {/* Image — normal or locked */}
-        {imageFrameUrl && !videoFrameUrl && (
+        {!isMediaAlbum && imageFrameUrl && !videoFrameUrl && (
           <div className={`${isTinyImage ? "w-28 max-w-[32vw]" : CHAT_MEDIA_FRAME_CLASS} rounded-2xl overflow-hidden mb-1 shadow-sm relative bg-muted border border-border/10 ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
             <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
             <img
@@ -1058,7 +1657,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         )}
 
         {/* Message body */}
-        {message && !shouldHideAutoMediaMessage && (() => {
+        {message && !isMediaAlbum && !shouldHideAutoMediaMessage && (() => {
           if (messageType === "poll" || messageType === "todo" || messageType === "split_bill" || messageType === "book_table" || messageType === "trip_idea") {
             return <MiniAppCard type={messageType} message={message} isMe={isMe} time={time} onAction={onMiniAppAction} />;
           }

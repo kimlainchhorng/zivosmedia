@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BellRing, Plus, Search, ShieldAlert, CheckCircle2, Trash2, Clock, Car, Mail, MessageSquare, Copy } from "lucide-react";
+import { BellRing, Plus, Search, ShieldAlert, CheckCircle2, Trash2, Clock, Car, Mail, MessageSquare, Copy, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props { storeId: string }
@@ -108,6 +108,31 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
       qc.invalidateQueries({ queryKey: ["ar-reminders", storeId] });
     },
     onError: (e: any) => toast.error(e.message),
+  });
+
+  // Trigger the ar-reminders-dispatch edge function for a single reminder.
+  // Sends a real email or SMS via the configured provider and flips the
+  // reminder's status to 'sent'. The cron does this automatically when due_at
+  // arrives; this is the manual override.
+  const sendNow = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke("ar-reminders-dispatch", {
+        body: { reminder_id: id },
+      });
+      if (error) throw error;
+      const result = (data ?? {}) as { sent?: number; failed?: number; skipped?: number };
+      if ((result.sent ?? 0) === 0) {
+        if ((result.skipped ?? 0) > 0) throw new Error("Skipped — no contact info on the reminder");
+        if ((result.failed ?? 0) > 0) throw new Error("Provider failed — check edge function logs");
+        throw new Error("Nothing dispatched (reminder may already be sent or not yet due)");
+      }
+      return result;
+    },
+    onSuccess: () => {
+      toast.success("Reminder sent");
+      qc.invalidateQueries({ queryKey: ["ar-reminders", storeId] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to send"),
   });
 
   const dismiss = useMutation({
@@ -269,6 +294,22 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
                         onClick={() => copyMessage(r)}>
                         <Copy className="w-3.5 h-3.5" />
                       </Button>
+                      {((r.channel === "email" && r.customer_email) || (r.channel === "sms" && r.customer_phone)) && (
+                        <Button
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          title={`Send a real ${r.channel === "email" ? "email" : "SMS"} now`}
+                          disabled={sendNow.isPending && sendNow.variables === r.id}
+                          onClick={() => sendNow.mutate(r.id)}
+                        >
+                          {sendNow.isPending && sendNow.variables === r.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Send className="w-3 h-3" />
+                          )}
+                          Send now
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" title="Mark as sent (no message)"
                         onClick={() => markSent.mutate(r.id)}>
                         <CheckCircle2 className="w-3 h-3" /> Sent

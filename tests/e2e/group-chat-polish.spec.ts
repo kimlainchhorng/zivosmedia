@@ -69,17 +69,20 @@ test.describe("group chat polish", () => {
 
       const lockedMediaInput = page.locator('input[aria-label="Choose locked media"]').first();
       if (await lockedMediaInput.count()) {
-        await lockedMediaInput.setInputFiles({
-          name: "locked-preview.png",
-          mimeType: "image/png",
-          buffer: Buffer.from(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
-            "base64",
-          ),
-        });
+        await expect(lockedMediaInput).toHaveAttribute("multiple", "");
+        const tinyPng = Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+          "base64",
+        );
+        await lockedMediaInput.setInputFiles([
+          { name: "locked-preview-1.png", mimeType: "image/png", buffer: tinyPng },
+          { name: "locked-preview-2.png", mimeType: "image/png", buffer: tinyPng },
+        ]);
         await expect(page.getByText(/Set Unlock Price/i)).toBeVisible();
         await expect(page.getByRole("button", { name: /⭐249|249/ }).first()).toBeVisible();
+        await expect(page.getByRole("button", { name: /444/ }).first()).toBeVisible();
         await expect(page.getByRole("button", { name: /Send Locked.*249/i }).first()).toBeVisible();
+        await expect(page.getByRole("button", { name: /1,999/ }).first()).toBeVisible();
       }
     }
 

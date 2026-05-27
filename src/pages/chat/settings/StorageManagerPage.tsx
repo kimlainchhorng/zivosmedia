@@ -15,6 +15,7 @@ import {
   FileText,
   HardDrive,
   Image,
+  Lock,
   Music2,
   RotateCcw,
   Trash2,
@@ -30,18 +31,46 @@ import {
   type ChatKeepMedia,
   useChatStoragePrefs,
 } from "@/hooks/useChatStoragePrefs";
+import {
+  CHAT_MEDIA_CACHE_EVENT,
+  clearChatMediaCache,
+  classifyChatMediaUrl,
+  getProtectedChatMediaCacheUrls,
+  getChatMediaCacheStats,
+  normalizeChatMediaCacheUrl,
+  pruneChatMediaCacheByKeepMedia,
+  type ChatMediaCacheBucket,
+  type ChatMediaCacheStats,
+} from "@/lib/chat/mediaCache";
 
-type CacheBucket = ChatStorageMediaKind | "other";
+type CacheBucket = ChatMediaCacheBucket;
 
-type CacheStats = Record<CacheBucket, { bytes: number; entries: number }>;
+type CacheStats = ChatMediaCacheStats;
 
-const EMPTY_STATS: CacheStats = {
-  photos: { bytes: 0, entries: 0 },
-  videos: { bytes: 0, entries: 0 },
-  files: { bytes: 0, entries: 0 },
-  audio: { bytes: 0, entries: 0 },
-  other: { bytes: 0, entries: 0 },
-};
+const ALL_CACHE_BUCKETS: CacheBucket[] = ["photos", "videos", "files", "audio", "other"];
+
+function emptyBucketStats() {
+  return {
+    bytes: 0,
+    entries: 0,
+    lockedPreviewBytes: 0,
+    lockedPreviewEntries: 0,
+    protectedBytes: 0,
+    protectedEntries: 0,
+  };
+}
+
+function createEmptyStats(): CacheStats {
+  return {
+    photos: emptyBucketStats(),
+    videos: emptyBucketStats(),
+    files: emptyBucketStats(),
+    audio: emptyBucketStats(),
+    other: emptyBucketStats(),
+  };
+}
+
+const EMPTY_STATS: CacheStats = createEmptyStats();
 
 const MEDIA_META: Record<CacheBucket, { label: string; icon: typeof Image; color: string }> = {
   photos: { label: "Photos", icon: Image, color: "bg-sky-500" },
@@ -101,22 +130,26 @@ function storageAreaBytes(storage: Storage | undefined) {
 }
 
 function classifyCacheUrl(url: string): CacheBucket {
-  const lower = url.toLowerCase();
-  if (/\.(png|jpe?g|webp|gif|avif|heic)(\?|$)/.test(lower) || lower.includes("image/")) return "photos";
-  if (/\.(mp4|mov|webm|m4v|m3u8)(\?|$)/.test(lower) || lower.includes("video/")) return "videos";
-  if (/\.(mp3|m4a|ogg|wav|aac|opus)(\?|$)/.test(lower) || lower.includes("audio/") || lower.includes("voice")) return "audio";
-  if (/\.(pdf|docx?|xlsx?|pptx?|csv|txt|zip|rar)(\?|$)/.test(lower) || lower.includes("application/")) return "files";
-  return "other";
+  return classifyChatMediaUrl(url);
+}
+
+function mergeCacheStats(...statsList: CacheStats[]): CacheStats {
+  const next = createEmptyStats();
+  statsList.forEach((stats) => {
+    ALL_CACHE_BUCKETS.forEach((bucket) => {
+      next[bucket].bytes += stats[bucket]?.bytes || 0;
+      next[bucket].entries += stats[bucket]?.entries || 0;
+      next[bucket].lockedPreviewBytes += stats[bucket]?.lockedPreviewBytes || 0;
+      next[bucket].lockedPreviewEntries += stats[bucket]?.lockedPreviewEntries || 0;
+      next[bucket].protectedBytes += stats[bucket]?.protectedBytes || 0;
+      next[bucket].protectedEntries += stats[bucket]?.protectedEntries || 0;
+    });
+  });
+  return next;
 }
 
 async function scanCacheStats(): Promise<CacheStats> {
-  const next: CacheStats = {
-    photos: { bytes: 0, entries: 0 },
-    videos: { bytes: 0, entries: 0 },
-    files: { bytes: 0, entries: 0 },
-    audio: { bytes: 0, entries: 0 },
-    other: { bytes: 0, entries: 0 },
-  };
+  const next = createEmptyStats();
 
   if (!("caches" in window)) return next;
   const names = await caches.keys();
@@ -137,7 +170,7 @@ async function scanCacheStats(): Promise<CacheStats> {
   return next;
 }
 
-async function clearCacheBuckets(selected: Set<CacheBucket>) {
+async function clearCacheBuckets(selected: Set<CacheBucket>, protectedUrls = new Set<string>()) {
   if (!("caches" in window)) return 0;
   let removed = 0;
   const names = await caches.keys();
@@ -146,6 +179,7 @@ async function clearCacheBuckets(selected: Set<CacheBucket>) {
     const requests = await cache.keys();
     await Promise.all(requests.map(async (request) => {
       if (!selected.has(classifyCacheUrl(request.url))) return;
+      if (protectedUrls.has(normalizeChatMediaCacheUrl(request.url))) return;
       const deleted = await cache.delete(request);
       if (deleted) removed += 1;
     }));
@@ -189,26 +223,37 @@ export default function StorageManagerPage() {
   const [selectedBuckets, setSelectedBuckets] = useState<Set<CacheBucket>>(() => new Set(["photos", "videos", "files", "audio"]));
   const [refreshing, setRefreshing] = useState(true);
   const [clearing, setClearing] = useState(false);
+  const [clearingLockedPreviews, setClearingLockedPreviews] = useState(false);
 
   const refreshStats = useCallback(async () => {
     setRefreshing(true);
     try {
+      pruneChatMediaCacheByKeepMedia(user?.id, prefs.keepMedia);
       const [estimate, cacheStats] = await Promise.all([
         navigator.storage?.estimate?.().catch(() => undefined),
         scanCacheStats().catch(() => EMPTY_STATS),
       ]);
+      const trackedChatStats = getChatMediaCacheStats(user?.id);
       setUsageBytes(typeof estimate?.usage === "number" ? estimate.usage : 0);
       setQuotaBytes(typeof estimate?.quota === "number" ? estimate.quota : null);
-      setStats(cacheStats);
+      setStats(mergeCacheStats(cacheStats, trackedChatStats));
       setLocalBytes(storageAreaBytes(window.localStorage));
       setSessionBytes(storageAreaBytes(window.sessionStorage));
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [prefs.keepMedia, user?.id]);
 
   useEffect(() => {
     void refreshStats();
+  }, [refreshStats]);
+
+  useEffect(() => {
+    const handleMediaCacheChange = () => {
+      void refreshStats();
+    };
+    window.addEventListener(CHAT_MEDIA_CACHE_EVENT, handleMediaCacheChange);
+    return () => window.removeEventListener(CHAT_MEDIA_CACHE_EVENT, handleMediaCacheChange);
   }, [refreshStats]);
 
   const cacheTotal = useMemo(
@@ -216,9 +261,21 @@ export default function StorageManagerPage() {
     [stats]
   );
   const effectiveUsageBytes = usageBytes && usageBytes > 0 ? usageBytes : cacheTotal + localBytes + sessionBytes;
-  const selectedTotal = useMemo(
-    () => Array.from(selectedBuckets).reduce((total, bucket) => total + stats[bucket].bytes, 0),
+  const selectedClearableTotal = useMemo(
+    () => Array.from(selectedBuckets).reduce((total, bucket) => total + Math.max(0, stats[bucket].bytes - stats[bucket].protectedBytes), 0),
     [selectedBuckets, stats]
+  );
+  const lockedCacheTotals = useMemo(
+    () => ALL_CACHE_BUCKETS.reduce(
+      (total, bucket) => ({
+        previewBytes: total.previewBytes + stats[bucket].lockedPreviewBytes,
+        previewEntries: total.previewEntries + stats[bucket].lockedPreviewEntries,
+        protectedBytes: total.protectedBytes + stats[bucket].protectedBytes,
+        protectedEntries: total.protectedEntries + stats[bucket].protectedEntries,
+      }),
+      { previewBytes: 0, previewEntries: 0, protectedBytes: 0, protectedEntries: 0 },
+    ),
+    [stats],
   );
   const quotaPercent = quotaBytes ? Math.min(100, Math.round((effectiveUsageBytes / quotaBytes) * 100)) : 0;
 
@@ -242,14 +299,32 @@ export default function StorageManagerPage() {
     }
     setClearing(true);
     try {
-      const removedEntries = await clearCacheBuckets(selectedBuckets);
+      const protectedUrls = getProtectedChatMediaCacheUrls(user?.id);
+      const [removedEntries, removedTrackedEntries] = await Promise.all([
+        clearCacheBuckets(selectedBuckets, protectedUrls),
+        clearChatMediaCache(user?.id, selectedBuckets),
+      ]);
       const removedKeys = selectedBuckets.has("other") ? clearTemporaryChatKeys() : 0;
       await refreshStats();
-      toast.success(`Cleared ${removedEntries + removedKeys} cached item${removedEntries + removedKeys === 1 ? "" : "s"}`);
+      const removedTotal = removedEntries + removedTrackedEntries + removedKeys;
+      toast.success(`Cleared ${removedTotal} cached item${removedTotal === 1 ? "" : "s"}`);
     } catch {
       toast.error("Could not clear cache");
     } finally {
       setClearing(false);
+    }
+  };
+
+  const clearLockedPreviews = async () => {
+    setClearingLockedPreviews(true);
+    try {
+      const removed = await clearChatMediaCache(user?.id, new Set(ALL_CACHE_BUCKETS), { lockedPreviewsOnly: true });
+      await refreshStats();
+      toast.success(`Cleared ${removed} locked preview${removed === 1 ? "" : "s"}`);
+    } catch {
+      toast.error("Could not clear locked previews");
+    } finally {
+      setClearingLockedPreviews(false);
     }
   };
 
@@ -328,7 +403,7 @@ export default function StorageManagerPage() {
                   <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${quotaPercent}%` }} />
                 </div>
                 <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-                  <span>{formatBytes(cacheTotal)} media cache</span>
+                  <span>{formatBytes(cacheTotal)} chat media cache</span>
                   <span>{quotaBytes ? `${quotaPercent}% of device quota` : "Quota unavailable"}</span>
                 </div>
               </div>
@@ -339,9 +414,10 @@ export default function StorageManagerPage() {
         <Section title="Clear cache">
           <div className="px-5 py-3">
             <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(MEDIA_META) as CacheBucket[]).map((bucket) => {
+              {ALL_CACHE_BUCKETS.map((bucket) => {
                 const Icon = MEDIA_META[bucket].icon;
                 const selected = selectedBuckets.has(bucket);
+                const protectedEntries = stats[bucket].protectedEntries;
                 return (
                   <button
                     key={bucket}
@@ -358,7 +434,8 @@ export default function StorageManagerPage() {
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold">{MEDIA_META[bucket].label}</span>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {formatBytes(stats[bucket].bytes)} · {stats[bucket].entries} item{stats[bucket].entries === 1 ? "" : "s"}
+                      {formatBytes(stats[bucket].bytes)} / {stats[bucket].entries} item{stats[bucket].entries === 1 ? "" : "s"}
+                      {protectedEntries > 0 ? ` / ${formatBytes(stats[bucket].protectedBytes)} protected` : ""}
                     </p>
                   </button>
                 );
@@ -367,7 +444,7 @@ export default function StorageManagerPage() {
             <div className="mt-3 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setSelectedBuckets(new Set(Object.keys(MEDIA_META) as CacheBucket[]))}
+                onClick={() => setSelectedBuckets(new Set(ALL_CACHE_BUCKETS))}
                 className="h-10 rounded-full border border-border px-4 text-sm font-semibold"
               >
                 Select all
@@ -379,7 +456,41 @@ export default function StorageManagerPage() {
                 className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-destructive px-4 text-sm font-bold text-destructive-foreground disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
-                {clearing ? "Clearing" : `Clear ${formatBytes(selectedTotal)}`}
+                {clearing ? "Clearing" : `Clear ${formatBytes(selectedClearableTotal)}`}
+              </button>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Locked media">
+          <div className="px-5 py-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-[8px] border border-border/60 bg-background p-3">
+                <Image className="mb-2 h-4 w-4 text-sky-500" />
+                <p className="text-xs font-semibold">Preview cache</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatBytes(lockedCacheTotals.previewBytes)} / {lockedCacheTotals.previewEntries} item{lockedCacheTotals.previewEntries === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="rounded-[8px] border border-border/60 bg-background p-3">
+                <Lock className="mb-2 h-4 w-4 text-emerald-500" />
+                <p className="text-xs font-semibold">Unlocked originals</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatBytes(lockedCacheTotals.protectedBytes)} / {lockedCacheTotals.protectedEntries} item{lockedCacheTotals.protectedEntries === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-3 rounded-[8px] border border-border/60 bg-background px-3 py-3">
+              <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                Unlocked originals stay protected from bulk clear.
+              </p>
+              <button
+                type="button"
+                onClick={clearLockedPreviews}
+                disabled={clearingLockedPreviews || lockedCacheTotals.previewEntries === 0}
+                className="h-9 rounded-full border border-border px-3 text-xs font-bold disabled:opacity-50"
+              >
+                {clearingLockedPreviews ? "Clearing" : "Clear previews"}
               </button>
             </div>
           </div>

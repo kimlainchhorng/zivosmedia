@@ -61,6 +61,7 @@ const COMPOSER_WORKFLOWS = [
 
 type ComposerWorkflow = (typeof COMPOSER_WORKFLOWS)[number]["mode"];
 
+
 const WORKFLOW_STYLES: Record<ComposerWorkflow, {
   accent: string;
   activeCard: string;
@@ -120,6 +121,7 @@ const WORKFLOW_PROMPTS: Record<ComposerWorkflow, string> = {
   shop: "Describe what you are selling or promoting...",
   live: "Tell people what your live is about...",
 };
+
 
 const FILTERS = [
   { name: "Original", className: "[filter:none]" },
@@ -256,6 +258,9 @@ export default function CreatePostModal({
   const [showFeelingPicker, setShowFeelingPicker] = useState(false);
   const [isPoll, setIsPoll] = useState(initialMode === "poll");
   const [pollOptions, setPollOptions] = useState(["", ""]);
+  // Shoppable: products selected to tag on this post.
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [taggedProductIds, setTaggedProductIds] = useState<string[]>([]);
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const [unlockPrice, setUnlockPrice] = useState<string>("");
   const [showUnlockInput, setShowUnlockInput] = useState(false);
@@ -631,6 +636,18 @@ export default function CreatePostModal({
         });
       }
 
+      // Persist shoppable product tags (separate from single commerce link).
+      if (taggedProductIds.length > 0 && insertedPost?.id) {
+        const rows = taggedProductIds.map((pid, i) => ({
+          post_id: insertedPost.id,
+          post_source: "user",
+          store_product_id: pid,
+          sort_order: i,
+        }));
+        const { error: tagErr } = await (supabase as any).from("post_products").insert(rows);
+        if (tagErr) console.warn("[CreatePost] product tag insert failed", tagErr);
+      }
+
       // Clear draft on successful post
       localStorage.removeItem(DRAFT_KEY);
 
@@ -800,6 +817,108 @@ export default function CreatePostModal({
               </span>
             ) : publishLabel}
           </button>
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-b border-border/20 bg-card">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {COMPOSER_WORKFLOWS.map((workflow) => {
+              const isActive = workflow.mode === workflowMode;
+              return (
+                <button
+                  type="button"
+                  key={workflow.mode}
+                  onClick={() => selectWorkflowMode(workflow.mode)}
+                  className={cn(
+                    "shrink-0 rounded-2xl border px-3 py-2 text-left transition-colors active:scale-[0.98]",
+                    isActive ? "border-primary bg-primary/10 text-primary" : "border-border/50 bg-muted/20 text-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <workflow.icon className="h-4 w-4" />
+                    <span className="text-[12px] font-bold">{workflow.label}</span>
+                  </span>
+                  <span className="block max-w-[112px] truncate text-[10px] font-medium text-muted-foreground">
+                    {workflow.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+            {workflowTips.map((tip) => (
+              <span key={tip} className="shrink-0 rounded-full bg-muted/50 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                {tip}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-b border-border/20 bg-card">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {COMPOSER_WORKFLOWS.map((workflow) => {
+              const isActive = workflow.mode === workflowMode;
+              return (
+                <button
+                  type="button"
+                  key={workflow.mode}
+                  onClick={() => selectWorkflowMode(workflow.mode)}
+                  className={cn(
+                    "shrink-0 rounded-2xl border px-3 py-2 text-left transition-colors active:scale-[0.98]",
+                    isActive ? "border-primary bg-primary/10 text-primary" : "border-border/50 bg-muted/20 text-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <workflow.icon className="h-4 w-4" />
+                    <span className="text-[12px] font-bold">{workflow.label}</span>
+                  </span>
+                  <span className="block max-w-[112px] truncate text-[10px] font-medium text-muted-foreground">
+                    {workflow.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+            {workflowTips.map((tip) => (
+              <span key={tip} className="shrink-0 rounded-full bg-muted/50 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                {tip}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-b border-border/20 bg-card">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {COMPOSER_WORKFLOWS.map((workflow) => {
+              const isActive = workflow.mode === workflowMode;
+              return (
+                <button
+                  type="button"
+                  key={workflow.mode}
+                  onClick={() => selectWorkflowMode(workflow.mode)}
+                  className={cn(
+                    "shrink-0 rounded-2xl border px-3 py-2 text-left transition-colors active:scale-[0.98]",
+                    isActive ? "border-primary bg-primary/10 text-primary" : "border-border/50 bg-muted/20 text-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <workflow.icon className="h-4 w-4" />
+                    <span className="text-[12px] font-bold">{workflow.label}</span>
+                  </span>
+                  <span className="block max-w-[112px] truncate text-[10px] font-medium text-muted-foreground">
+                    {workflow.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+            {workflowTips.map((tip) => (
+              <span key={tip} className="shrink-0 rounded-full bg-muted/50 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                {tip}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -1090,6 +1209,26 @@ export default function CreatePostModal({
             {taggedUsers.length > 0 ? `${taggedUsers.length} tagged` : "Tag"}
           </button>
           )}
+
+          {/* Tag products (shoppable) */}
+          <button type="button"
+            onClick={() => {
+              if (!commerceLinkDraft?.storeId) {
+                toast.info("Attach a store link first to tag products");
+                return;
+              }
+              setShowProductPicker(true);
+            }}
+            className={cn(
+              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px]",
+              taggedProductIds.length > 0
+                ? "bg-primary/10 text-primary border-primary/30"
+                : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/50",
+            )}
+          >
+            <ShoppingBag className="h-3.5 w-3.5" />
+            {taggedProductIds.length > 0 ? `${taggedProductIds.length} product${taggedProductIds.length === 1 ? "" : "s"}` : "Tag products"}
+          </button>
         </div>
 
         {/* Location search dropdown */}
@@ -1544,6 +1683,8 @@ export default function CreatePostModal({
           )}
         </AnimatePresence>
 
+
+
         {/* Add more media button */}
         {files.length > 0 && files.length < 10 && (
           <div className="px-4 pb-2">
@@ -1581,6 +1722,15 @@ export default function CreatePostModal({
           accept="video/*"
           className="hidden"
           onChange={handleFiles}
+        />
+
+        {/* Product picker for shoppable posts */}
+        <ProductPickerSheet
+          open={showProductPicker}
+          onOpenChange={setShowProductPicker}
+          storeId={commerceLinkDraft?.storeId ?? null}
+          selectedIds={taggedProductIds}
+          onChange={setTaggedProductIds}
         />
       </motion.div>
     </motion.div>

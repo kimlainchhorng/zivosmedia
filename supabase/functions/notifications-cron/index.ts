@@ -421,7 +421,7 @@ serve(async (req) => {
     const { data: rows, error } = await supabase
       .from("salon_reminders")
       .select("id, store_id, client_id, booking_id, reminder_type, channel_sms, channel_email, idempotency_key, scheduled_for, lead_minutes")
-      .in("reminder_type", ["booking_lead", "winback"])
+      .in("reminder_type", ["booking_lead", "winback", "review_request"])
       .eq("status", "pending")
       .lte("scheduled_for", due)
       .limit(200);
@@ -431,7 +431,7 @@ serve(async (req) => {
         let recipient = { user_id: null as string | null, phone: null as string | null, email: null as string | null, first_name: "there", full_name: "there" };
         let templateData: Record<string, unknown> = {};
         let smsBody = "";
-        let event: "booking_reminder_24h" | "winback_offer" = "booking_reminder_24h";
+        let event: "booking_reminder_24h" | "winback_offer" | "review_request" = "booking_reminder_24h";
 
         const { data: store } = await supabase
           .from("store_profiles")
@@ -489,7 +489,7 @@ serve(async (req) => {
             salon_phone: salonPhone,
             store_id: row.store_id,
           };
-          smsBody = `${salonName}: Your ${(b as any).service_name}${(b as any).stylist_name ? ` with ${(b as any).stylist_name}` : ""} is ${leadPhrase} (${startLocal}). Reply CANCEL to cancel${salonPhone ? ` or call ${salonPhone}` : ""}.`;
+          smsBody = `${salonName}: Your ${(b as any).service_name}${(b as any).stylist_name ? ` with ${(b as any).stylist_name}` : ""} is ${leadPhrase} (${startLocal}). Reply YES to confirm or CANCEL to cancel${salonPhone ? ` or call ${salonPhone}` : ""}.`;
           event = "booking_reminder_24h";
         } else if (row.reminder_type === "winback" && row.client_id) {
           const { data: c } = await supabase
@@ -522,6 +522,59 @@ serve(async (req) => {
           };
           smsBody = `${salonName}: We miss you, ${recipient.first_name}! It's been ${daysSince} days. Book at ${bookingUrl}`;
           event = "winback_offer";
+        } else if (row.reminder_type === "review_request" && row.booking_id) {
+          // Post-visit "how was your visit?" nudge. Deep-links to the
+          // existing /review/:bookingId form. Honors marketing opt-in via
+          // the shared sendSalonReminder's preference gate.
+          const { data: b } = await supabase
+            .from("salon_bookings")
+            .select("client_name, client_phone, client_email, service_name, stylist_name, client_id, status")
+            .eq("id", row.booking_id)
+            .maybeSingle();
+          if (!b) throw new Error("booking_not_found");
+          // Skip if the booking was reversed out of completed (e.g., owner
+          // changed their mind) — no review needed in that case.
+          if ((b as any).status !== "completed") {
+            await supabase.from("salon_reminders")
+              .update({ status: "cancelled", updated_at: new Date().toISOString() })
+              .eq("id", row.id);
+            continue;
+          }
+          // Skip if the customer already left a review for this booking.
+          const { data: existingReview } = await supabase
+            .from("salon_reviews")
+            .select("id")
+            .eq("booking_id", row.booking_id)
+            .maybeSingle();
+          if (existingReview) {
+            await supabase.from("salon_reminders")
+              .update({ status: "cancelled", updated_at: new Date().toISOString() })
+              .eq("id", row.id);
+            continue;
+          }
+          let userId: string | null = null;
+          if ((b as any).client_id) {
+            const { data: c } = await supabase.from("salon_clients").select("user_id").eq("id", (b as any).client_id).maybeSingle();
+            userId = (c as any)?.user_id ?? null;
+          }
+          recipient = {
+            user_id: userId,
+            phone: (b as any).client_phone ?? null,
+            email: (b as any).client_email ?? null,
+            first_name: firstNameOf((b as any).client_name ?? ""),
+            full_name: (b as any).client_name ?? "",
+          };
+          const reviewUrl = `${appUrl}/review/${row.booking_id}`;
+          templateData = {
+            client_first_name: recipient.first_name,
+            client_name: recipient.full_name,
+            service_name: (b as any).service_name,
+            stylist_name: (b as any).stylist_name,
+            salon_name: salonName,
+            review_url: reviewUrl,
+          };
+          smsBody = `${salonName}: Thanks for visiting, ${recipient.first_name}! How was your ${(b as any).service_name}? ${reviewUrl}`;
+          event = "review_request";
         } else {
           // Unknown shape — mark failed so we don't loop on it.
           await supabase.from("salon_reminders").update({ status: "failed", error: "invalid_row_shape", updated_at: new Date().toISOString() }).eq("id", row.id);

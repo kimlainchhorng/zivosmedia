@@ -3,13 +3,15 @@
  * Listens to Stripe payment_intent + charge events whose metadata.type starts
  * with "car_rental_" and updates car_rental_reservations.payment_status.
  *
- * Mirrors stripe-lodging-webhook: persists every event to
- * car_rental_stripe_webhook_events with UNIQUE(stripe_event_id) so Stripe
- * redeliveries are idempotently dropped.
+ * Persists every event to car_rental_stripe_webhook_events with
+ * UNIQUE(stripe_event_id) so Stripe redeliveries are idempotently dropped.
+ *
+ * No withSecurity wrapper — Stripe webhooks are authenticated by signature
+ * verification (STRIPE_WEBHOOK_SECRET), not JWT, and bot/CORS rules don't
+ * apply to provider-to-provider HTTPS traffic.
  */
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
-import { withSecurity } from "../_shared/withSecurity.ts";
 
 const CAR_RENTAL_TYPES = new Set([
   "car_rental_deposit",
@@ -18,7 +20,7 @@ const CAR_RENTAL_TYPES = new Set([
   "car_rental_deposit_refund",
 ]);
 
-Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
+Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("method not allowed", { status: 405 });
   }
@@ -51,9 +53,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
   const eventStamp = new Date().toISOString();
   const obj = event.data?.object || {};
 
-  // Only handle events whose metadata.type is a known car-rental type.
-  // (The same Stripe account fires events for lodging, salon, etc. — we
-  // ignore everything that's not ours, but still log it for debugging.)
   const metaType =
     obj?.metadata?.type
     || obj?.payment_intent?.metadata?.type
@@ -66,7 +65,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
     typeof obj.payment_intent === "string" ? obj.payment_intent :
     obj.payment_intent?.id || null;
 
-  // Resolve reservation_id from the PI (covers deposit + balance + refund).
   let resolvedReservationId: string | null = obj?.metadata?.reservation_id || null;
   if (!resolvedReservationId && piId) {
     const { data: depMatch } = await admin
@@ -85,7 +83,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
     }
   }
 
-  // Trim payload — Stripe sends a lot, we keep just enough to debug.
   const trimmedPayload = {
     id: event.id,
     type: event.type,
@@ -116,7 +113,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
     console.error("[stripe-car-rental-webhook] event log insert failed", insertErr);
   }
 
-  // Duplicate Stripe redelivery — drop quietly.
   if (!inserted) {
     return new Response(
       JSON.stringify({ received: true, dedup: true }),
@@ -125,7 +121,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
   }
   const logRowId = inserted.id;
 
-  // If this isn't a car-rental event, log it as skipped and stop here.
   if (!isCarRentalEvent) {
     await admin
       .from("car_rental_stripe_webhook_events")
@@ -176,7 +171,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
 
   try {
     switch (eventType) {
-      // Deposit pre-auth landed and is now held against the card.
       case "payment_intent.amount_capturable_updated": {
         const pi = event.data.object;
         await updateByDepositPI(pi.id, "authorized", {
@@ -190,9 +184,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
         processingStatus = "applied";
         break;
       }
-      // Immediate-capture mode: the full total was charged at booking.
-      // OR balance was successfully captured at pickup.
-      // OR a refund cleared (charge.refunded covers the refund branch).
       case "payment_intent.succeeded": {
         const pi = event.data.object;
         const piMetaType = pi?.metadata?.type;
@@ -202,16 +193,13 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
           : pi.payment_method?.id || null;
 
         if (piMetaType === "car_rental_balance") {
-          // Balance PI succeeded → reservation is fully paid.
           await updateByBalancePI(pi.id, "paid", {
-            amount_paid_cents: undefined as any, // calculated below via RPC fallback
             stripe_charge_id: typeof pi.latest_charge === "string"
               ? pi.latest_charge
               : pi.latest_charge?.id || null,
             last_payment_error: null,
           });
           if (resolvedReservationId) {
-            // Best-effort: sum deposit + balance into amount_paid_cents.
             const { data: cur } = await admin
               .from("car_rental_reservations")
               .select("deposit_paid_cents")
@@ -225,7 +213,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
               .eq("id", resolvedReservationId);
           }
         } else if (piMetaType === "car_rental_full") {
-          // Immediate-capture mode: full total charged at booking.
           await updateByDepositPI(pi.id, "paid", {
             status: "confirmed",
             amount_paid_cents: amountReceived,
@@ -236,8 +223,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
             last_payment_error: null,
           });
         } else if (piMetaType === "car_rental_deposit") {
-          // Manual-capture deposit that was eventually captured (rare —
-          // typical flow keeps it as a hold until return).
           await updateByDepositPI(pi.id, "captured", {
             stripe_charge_id: typeof pi.latest_charge === "string"
               ? pi.latest_charge
@@ -280,7 +265,6 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
         if (piMetaType === "car_rental_balance") {
           await updateByBalancePI(pi.id, "unpaid");
         } else {
-          // A deposit pre-auth was cancelled (e.g. by refund flow).
           await updateByDepositPI(pi.id, "refunded");
         }
         processingStatus = "applied";
@@ -339,4 +323,4 @@ Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
-}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+});

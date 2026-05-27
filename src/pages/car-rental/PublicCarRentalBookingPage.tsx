@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import CarRentalInlinePaymentForm from "@/components/car-rental/CarRentalInlinePaymentForm";
+import LoyaltyCard from "@/components/car-rental/LoyaltyCard";
+import { getLoyaltyTier, type LoyaltyTierInfo } from "@/lib/car-rental/loyalty";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,8 +34,11 @@ interface StoreInfo {
   name: string;
   slug: string;
   logo_url: string | null;
-  cover_image_url: string | null;
+  banner_url: string | null;
   description: string | null;
+  /** Optional locality fields parsed from `address` — store_profiles itself
+   * doesn't carry city/state columns. We surface them here as nullable so
+   * the JSX-LD + SEO meta can use them when available. */
   city: string | null;
   state: string | null;
   category: string | null;
@@ -160,6 +166,8 @@ export default function PublicCarRentalBookingPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submittedCode, setSubmittedCode] = useState<string | null>(null);
+  const [loyalty, setLoyalty] = useState<{ totalRentals: number; tier: LoyaltyTierInfo } | null>(null);
+  const { user: signedInUser } = useAuth();
   const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(null);
   const clientAttemptIdRef = useRef<string>(
     typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
@@ -173,16 +181,34 @@ export default function PublicCarRentalBookingPage() {
       // Resolve store
       const { data: storeRow, error: storeErr } = await supabase
         .from("store_profiles")
-        .select("id,name,slug,logo_url,cover_image_url,description,city,state,category")
+        .select("id,name,slug,logo_url,banner_url,description,address,category")
         .eq("slug", slug)
         .maybeSingle();
+      // store_profiles has `address` (free-form), not city/state. Try to
+      // parse "City, State" out of the trailing comma-separated chunks.
+      let parsedCity: string | null = null;
+      let parsedState: string | null = null;
+      if (storeRow && (storeRow as { address?: string | null }).address) {
+        const parts = String((storeRow as { address: string }).address)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        if (parts.length >= 2) {
+          parsedState = parts[parts.length - 1];
+          parsedCity = parts[parts.length - 2];
+        }
+      }
       if (cancelled) return;
       if (storeErr || !storeRow) {
         setError("Rental store not found.");
         setLoading(false);
         return;
       }
-      setStore(storeRow as unknown as StoreInfo);
+      setStore({
+        ...(storeRow as unknown as Omit<StoreInfo, "city" | "state">),
+        city: parsedCity,
+        state: parsedState,
+      });
 
       const [locsR, vehsR, addonsR, reviewsR, settingsR] = await Promise.all([
         supabase.from("car_rental_locations").select("*").eq("store_id", (storeRow as any).id).eq("is_active", true).order("is_default", { ascending: false }),
@@ -211,6 +237,31 @@ export default function PublicCarRentalBookingPage() {
     })();
     return () => { cancelled = true; };
   }, [slug]);
+
+  // Lifetime rental count → loyalty tier badge, shown only on the review step
+  // for signed-in users who have rented at least once anywhere on ZIVO.
+  // Anonymous + brand-new accounts skip this entirely (the gate happens at
+  // render time via `loyalty.totalRentals > 0`).
+  useEffect(() => {
+    if (!signedInUser) {
+      setLoyalty(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("car_rental_customers")
+        .select("total_rentals")
+        .eq("user_id", signedInUser.id);
+      if (cancelled) return;
+      const total = (data ?? []).reduce(
+        (sum: number, row: { total_rentals: number | null }) => sum + (Number(row.total_rentals) || 0),
+        0,
+      );
+      setLoyalty({ totalRentals: total, tier: getLoyaltyTier(total) });
+    })();
+    return () => { cancelled = true; };
+  }, [signedInUser]);
 
   // Compute "popular" vehicles — top 3 by completed-rental count over the last 90 days.
   useEffect(() => {
@@ -652,8 +703,8 @@ export default function PublicCarRentalBookingPage() {
           property="og:description"
           content={store.description || `Rent a car from ${store.name}. ${vehicles.length} vehicle${vehicles.length === 1 ? "" : "s"} ready to book online.`}
         />
-        {(store.cover_image_url || store.logo_url) && (
-          <meta property="og:image" content={store.cover_image_url || store.logo_url || ""} />
+        {(store.banner_url || store.logo_url) && (
+          <meta property="og:image" content={store.banner_url || store.logo_url || ""} />
         )}
         {/* Twitter card */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -662,8 +713,8 @@ export default function PublicCarRentalBookingPage() {
           name="twitter:description"
           content={store.description || `Rent a car from ${store.name}.`}
         />
-        {(store.cover_image_url || store.logo_url) && (
-          <meta name="twitter:image" content={store.cover_image_url || store.logo_url || ""} />
+        {(store.banner_url || store.logo_url) && (
+          <meta name="twitter:image" content={store.banner_url || store.logo_url || ""} />
         )}
         {/* JSON-LD LocalBusiness — only when in storefront mode for crawlers */}
         {mode === "storefront" && (
@@ -672,7 +723,7 @@ export default function PublicCarRentalBookingPage() {
             "@type": "AutoRental",
             name: store.name,
             description: store.description ?? undefined,
-            image: store.cover_image_url ?? store.logo_url ?? undefined,
+            image: store.banner_url ?? store.logo_url ?? undefined,
             address: ([store.city, store.state].filter(Boolean).length > 0) ? {
               "@type": "PostalAddress",
               addressLocality: store.city ?? undefined,
@@ -1051,6 +1102,10 @@ export default function PublicCarRentalBookingPage() {
           </Card>
         )}
 
+        {step === "review" && selectedVehicle && loyalty && loyalty.totalRentals > 0 && (
+          <LoyaltyCard total={loyalty.totalRentals} tier={loyalty.tier} variant="compact" />
+        )}
+
         {step === "review" && selectedVehicle && (
           <Card className="rounded-2xl border-border/60">
             <CardHeader>
@@ -1275,23 +1330,23 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
       {/* Hero */}
       <section className={cn(
         "relative px-4 py-10 sm:py-16 text-center border-b border-border",
-        store.cover_image_url ? "" : "bg-gradient-to-br from-primary/8 via-background to-background"
+        store.banner_url ? "" : "bg-gradient-to-br from-primary/8 via-background to-background"
       )}
-      style={store.cover_image_url ? { backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.45)), url(${store.cover_image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+      style={store.banner_url ? { backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.45)), url(${store.banner_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
       >
-        <div className={cn("mx-auto max-w-3xl", store.cover_image_url && "text-white")}>
-          <h1 className={cn("text-3xl sm:text-5xl font-bold leading-tight", store.cover_image_url ? "text-white" : "text-foreground")}>
+        <div className={cn("mx-auto max-w-3xl", store.banner_url && "text-white")}>
+          <h1 className={cn("text-3xl sm:text-5xl font-bold leading-tight", store.banner_url ? "text-white" : "text-foreground")}>
             {store.name}
           </h1>
           {store.description && (
-            <p className={cn("mt-3 text-base sm:text-lg max-w-2xl mx-auto", store.cover_image_url ? "text-white/90" : "text-muted-foreground")}>
+            <p className={cn("mt-3 text-base sm:text-lg max-w-2xl mx-auto", store.banner_url ? "text-white/90" : "text-muted-foreground")}>
               {store.description}
             </p>
           )}
           {avgRating !== null && (
             <div className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold">
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-              <span className={store.cover_image_url ? "text-white" : "text-foreground"}>
+              <span className={store.banner_url ? "text-white" : "text-foreground"}>
                 {avgRating.toFixed(1)} from {reviews.length} review{reviews.length === 1 ? "" : "s"}
               </span>
             </div>
@@ -1305,7 +1360,7 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
           {/* Trust signals — surface what's true about this store, not generic copy. */}
           <div className={cn(
             "mt-5 flex flex-wrap justify-center gap-3 text-[12px]",
-            store.cover_image_url ? "text-white/90" : "text-muted-foreground"
+            store.banner_url ? "text-white/90" : "text-muted-foreground"
           )}>
             <span className="inline-flex items-center gap-1.5">
               <Zap className="h-3.5 w-3.5" /> Instant online booking

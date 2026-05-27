@@ -22,6 +22,7 @@ export interface DealershipLead {
   customer_id: string | null;
   vehicle_id: string | null;
   assigned_to_user_id: string | null;
+  salesperson_name: string | null;
   display_name: string;
   email: string | null;
   phone: string | null;
