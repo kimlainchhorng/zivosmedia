@@ -92,6 +92,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
+import { copyText } from "@/lib/native/clipboard";
+import { shareContent } from "@/lib/native/share";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1007,7 +1009,6 @@ export default function ReelsFeedPage() {
         // Open dev console to see how many user_posts the RLS policies returned
         // — "I don't see other users' posts" usually means RLS filtered them.
         if (typeof window !== "undefined") {
-          // eslint-disable-next-line no-console
           console.info("[feed] user_posts →", { rows: userPosts?.length ?? 0, error: userPostsError ?? null });
         }
 
@@ -3181,16 +3182,9 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const shareText = encodeURIComponent(item.caption || `Check out this post by ${item.author_name}`);
   const shareEncodedUrl = encodeURIComponent(shareUrl);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     try {
-      const ta = document.createElement("textarea");
-      ta.value = shareUrl;
-      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      await copyText(shareUrl);
       toast.success("Link copied!");
       recordShareForFeedItem(item, "copy_link");
     } catch {
@@ -3400,8 +3394,13 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         {/* Watch Party — video posts only */}
         {item.media_type === "video" && (
           <button type="button"
-            onClick={() => {
-              navigator.clipboard?.writeText(shareUrl).catch(() => {});
+            onClick={async () => {
+              try {
+                await copyText(shareUrl);
+              } catch {
+                toast.info("Long-press URL bar to copy");
+                return;
+              }
               toast.success("Watch Party link copied — send it to friends");
             }}
             aria-label="Copy watch party link"
@@ -3418,8 +3417,9 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
           onClick={async () => {
             const text = item.caption || `Check out this post by ${item.author_name}`;
             try {
-              if (typeof navigator !== "undefined" && (navigator as any).share) {
-                await (navigator as any).share({ title: "ZIVO", text, url: shareUrl });
+              const result = await shareContent({ title: "ZIVO", text, url: shareUrl });
+              if (result.cancelled) return;
+              if (result.shared) {
                 return;
               }
             } catch (e: any) {
@@ -4289,8 +4289,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     haptic("selection");
     const text = item.caption || `Check out this post by ${item.author_name}`;
     try {
-      if (typeof navigator !== "undefined" && (navigator as any).share) {
-        await (navigator as any).share({ title: "ZIVO", text, url: shareUrl });
+      const result = await shareContent({ title: "ZIVO", text, url: shareUrl });
+      if (result.cancelled) return;
+      if (result.shared) {
         recordShareForFeedItem(item, "native");
         return;
       }
@@ -4356,16 +4357,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   ];
 
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     try {
-      const ta = document.createElement("textarea");
-      ta.value = shareUrl;
-      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      await copyText(shareUrl);
       toast.success("Link copied!");
       recordShareForFeedItem(item, "copy_link");
     } catch {
@@ -5449,7 +5443,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 </div>
                 <p className="text-[12px] text-muted-foreground text-center px-4">Scan with any camera to open this post</p>
                 <button type="button"
-                  onClick={() => { navigator.clipboard.writeText(shareUrl).then(() => toast.success("Link copied")).catch(() => toast.error("Could not copy")); }}
+                  onClick={() => {
+                    copyText(shareUrl)
+                      .then(() => toast.success("Link copied"))
+                      .catch(() => toast.error("Could not copy"));
+                  }}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-sm font-semibold text-foreground transition-colors active:scale-95"
                 >
                   <Link2 className="h-4 w-4" />
@@ -5625,11 +5623,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
           {/* Embed post */}
           <button type="button"
-            onClick={() => {
+            onClick={async () => {
               setShowPostMenu(false);
               const embedCode = `<iframe src="https://hizivo.com/embed/${item.id.replace(/^u-/, "")}" width="400" height="500" frameborder="0" allowfullscreen></iframe>`;
               try {
-                navigator.clipboard.writeText(embedCode);
+                await copyText(embedCode);
                 toast.success("Embed code copied to clipboard");
               } catch {
                 toast.info("Embed: " + embedCode.slice(0, 60) + "…");

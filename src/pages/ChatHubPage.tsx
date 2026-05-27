@@ -29,6 +29,7 @@ import UserPlus from "lucide-react/dist/esm/icons/user-plus";
 import Radar from "lucide-react/dist/esm/icons/radar";
 import Radio from "lucide-react/dist/esm/icons/radio";
 import Settings from "lucide-react/dist/esm/icons/settings";
+import AtSign from "lucide-react/dist/esm/icons/at-sign";
 import CheckSquare from "lucide-react/dist/esm/icons/check-square";
 import Square from "lucide-react/dist/esm/icons/square";
 
@@ -187,6 +188,13 @@ interface BulkSelectableChat {
   id: string;
   unread?: number;
   isGroup?: boolean;
+}
+
+interface ChatMenuProfile {
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  is_verified: boolean | null;
 }
 
 const categories: CategoryTab[] = [
@@ -461,6 +469,28 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: chatMenuProfile } = useQuery({
+    queryKey: ["chat-menu-profile", user?.id],
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, username, avatar_url, is_verified")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data || null) as ChatMenuProfile | null;
+    },
+  });
+  const chatMenuDisplayName =
+    chatMenuProfile?.full_name ||
+    String(user?.user_metadata?.full_name || user?.user_metadata?.name || "").trim() ||
+    user?.email?.split("@")[0] ||
+    "ZIVO";
+  const chatMenuUsername = chatMenuProfile?.username ? `@${chatMenuProfile.username}` : "Set username";
+  const chatMenuPhone = user?.phone || "";
+  const chatMenuAvatar = chatMenuProfile?.avatar_url || String(user?.user_metadata?.avatar_url || "");
+  const chatMenuInitial = chatMenuDisplayName.trim().slice(0, 1).toUpperCase() || "Z";
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; category: ChatCategory; isGroup?: boolean } | null>(null);
   const [swipedId, setSwipedId] = useState<string | null>(null);
   const [groupLastSeen, setGroupLastSeen] = useState<Record<string, string>>({});
@@ -1928,13 +1958,58 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         <Menu className="w-5 h-5 text-foreground" />
                       </label>
                       <div className="absolute left-0 top-full z-[2200] mt-2 hidden max-h-[75vh] w-[min(86vw,340px)] flex-col overflow-hidden rounded-3xl border border-border/20 bg-background shadow-2xl peer-checked:flex">
-                        <div className="flex items-center gap-3 border-b border-border/20 px-5 py-3">
-                          <label htmlFor="chat-hub-menu-toggle" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-muted/70 active:scale-95" aria-label="Close chat menu" title="Close">
-                            <X className="h-5 w-5" />
-                          </label>
-                          <div>
-                            <p className="text-lg font-bold text-ig-gradient">Chat</p>
-                            <p className="text-xs text-muted-foreground">Menu</p>
+                        <div className="border-b border-border/20 px-5 py-3">
+                          <div className="flex items-center justify-between">
+                            <label htmlFor="chat-hub-menu-toggle" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-muted/70 active:scale-95" aria-label="Close chat menu" title="Close">
+                              <X className="h-5 w-5" />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => navigate("/account/settings")}
+                              className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
+                              aria-label="Open account settings"
+                              title="Settings"
+                            >
+                              <Settings className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => navigate("/account/profile-edit")}
+                            className="mt-4 flex w-full items-center gap-3 rounded-2xl p-1 text-left active:scale-[0.99]"
+                          >
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-lg font-bold text-primary">
+                              {chatMenuAvatar ? (
+                                <img src={chatMenuAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                              ) : (
+                                <span>{chatMenuInitial}</span>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                <p className="truncate text-base font-bold text-foreground">{chatMenuDisplayName}</p>
+                                {chatMenuProfile?.is_verified && <VerifiedBadge className="h-4 w-4 shrink-0" interactive={false} />}
+                              </div>
+                              <p className="truncate text-xs text-muted-foreground">Edit profile</p>
+                            </div>
+                          </button>
+                          <div className="mt-3 grid gap-1.5">
+                            {chatMenuPhone && (
+                              <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2 text-sm">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuPhone}</span>
+                                <span className="text-xs text-muted-foreground">Phone</span>
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => navigate("/account/username")}
+                              className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2 text-left text-sm active:scale-[0.99]"
+                            >
+                              <AtSign className="h-4 w-4 text-muted-foreground" />
+                              <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuUsername}</span>
+                              <span className="text-xs text-muted-foreground">Username</span>
+                            </button>
                           </div>
                         </div>
                         <div className="flex-1 overflow-y-auto px-3 py-3">
@@ -3012,19 +3087,75 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               transition={{ type: "spring", damping: 28, stiffness: 340 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-3 border-b border-border/20 px-5 pt-safe pb-4">
+              <div className="border-b border-border/20 px-5 pt-safe pb-4">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setShowChatMenu(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
+                    aria-label="Close chat menu"
+                    title="Close"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowChatMenu(false);
+                      navigate("/account/settings");
+                    }}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
+                    aria-label="Open account settings"
+                    title="Settings"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </button>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setShowChatMenu(false)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
-                  aria-label="Close chat menu"
-                  title="Close"
+                  onClick={() => {
+                    setShowChatMenu(false);
+                    navigate("/account/profile-edit");
+                  }}
+                  className="mt-4 flex w-full items-center gap-3 rounded-2xl p-1 text-left active:scale-[0.99]"
                 >
-                  <X className="h-5 w-5" />
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xl font-bold text-primary">
+                    {chatMenuAvatar ? (
+                      <img src={chatMenuAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                    ) : (
+                      <span>{chatMenuInitial}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <p className="truncate text-lg font-bold text-foreground">{chatMenuDisplayName}</p>
+                      {chatMenuProfile?.is_verified && <VerifiedBadge className="h-4 w-4 shrink-0" interactive={false} />}
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">Edit profile</p>
+                  </div>
                 </button>
-                <div>
-                  <p className="text-lg font-bold text-ig-gradient">Chat</p>
-                  <p className="text-xs text-muted-foreground">Menu</p>
+
+                <div className="mt-3 grid gap-1.5">
+                  {chatMenuPhone && (
+                    <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuPhone}</span>
+                      <span className="text-xs text-muted-foreground">Phone</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowChatMenu(false);
+                      navigate("/account/username");
+                    }}
+                    className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2 text-left text-sm active:scale-[0.99]"
+                  >
+                    <AtSign className="h-4 w-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuUsername}</span>
+                    <span className="text-xs text-muted-foreground">Username</span>
+                  </button>
                 </div>
               </div>
 
