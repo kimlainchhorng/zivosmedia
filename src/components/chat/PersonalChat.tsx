@@ -4110,8 +4110,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   });
                 }
               }}
-              onOpenPickerReady={(open) => {
+              renderTrigger={(open) => {
                 filePickerTriggerRef.current = open;
+                return null;
               }}
             />
 

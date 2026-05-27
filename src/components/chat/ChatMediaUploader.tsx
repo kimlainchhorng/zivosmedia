@@ -1,7 +1,7 @@
 /**
  * ChatMediaUploader — Enhanced file/media sharing with documents, progress tracking
  */
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { signedUrlFor } from "@/lib/security/signedMedia";
@@ -28,7 +28,7 @@ interface ChatMediaUploaderProps {
     fileType?: string;
     fileSize?: number;
   }) => void;
-  onOpenPickerReady?: (openFilePicker: ((kind?: ChatMediaUploadPicker) => void) | null) => void;
+  renderTrigger?: (openFilePicker: (kind?: ChatMediaUploadPicker) => void) => ReactNode;
 }
 
 const FILE_LIMITS: Record<UploadCategory, number> = {
@@ -56,7 +56,7 @@ function getFileIcon(type: string) {
   return <FileText className="w-5 h-5 text-orange-500" />;
 }
 
-export function ChatMediaUploader({ recipientId, onMediaSent, onOpenPickerReady }: ChatMediaUploaderProps) {
+export function ChatMediaUploader({ recipientId, onMediaSent, renderTrigger }: ChatMediaUploaderProps) {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -72,11 +72,6 @@ export function ChatMediaUploader({ recipientId, onMediaSent, onOpenPickerReady 
       fileRef.current.click();
     }
   }, [uploading]);
-
-  useEffect(() => {
-    onOpenPickerReady?.(openFilePicker);
-    return () => onOpenPickerReady?.(null);
-  }, [onOpenPickerReady, openFilePicker]);
 
   const clearPreviewObjectUrl = useCallback(() => {
     if (!previewObjectUrlRef.current) return;
@@ -215,6 +210,9 @@ export function ChatMediaUploader({ recipientId, onMediaSent, onOpenPickerReady 
         className="hidden"
         onChange={handleFileSelect}
       />
+
+      {/* eslint-disable-next-line react-hooks/refs -- trigger calls the picker from user events, not during render */}
+      {renderTrigger?.(openFilePicker)}
 
       {/* Upload progress overlay */}
       <AnimatePresence>
