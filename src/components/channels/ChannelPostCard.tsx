@@ -242,7 +242,7 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
   // (no `url`). Voice notes use `{ type: "voice", url, duration_ms, ... }`.
   // Pull each out and render them with their own components; image/video
   // items go to the regular grid.
-  const allMedia: any[] = Array.isArray(post.media) ? post.media : [];
+  const allMedia: any[] = useMemo(() => (Array.isArray(post.media) ? post.media : []), [post.media]);
   const pollAttachment = useMemo(
     () => allMedia.find((m) => m && m.type === "poll" && m.poll_id) ?? null,
     [allMedia],

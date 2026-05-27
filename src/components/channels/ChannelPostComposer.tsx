@@ -43,6 +43,8 @@ interface MediaItem {
 
 type UploadKind = "photo" | "video" | "gif" | "file" | "music";
 
+const CHANNEL_VOICE_MAX_MS = 5 * 60 * 1000;
+
 function getUploadMediaType(file: File, kind: UploadKind): MediaItem["type"] | null {
   if (kind === "gif") return file.type === "image/gif" || /\.gif$/i.test(file.name) ? "gif" : null;
   if (kind === "music") return file.type.startsWith("audio/") ? "music" : null;
@@ -99,7 +101,6 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
   const voice = useVoiceRecorder();
   const [voicePanelOpen, setVoicePanelOpen] = useState(false);
   const [voiceUploading, setVoiceUploading] = useState(false);
-  const VOICE_MAX_MS = 5 * 60 * 1000; // 5 min cap
 
   const fmtElapsed = (ms: number) => {
     const s = Math.floor(ms / 1000);
@@ -109,7 +110,7 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
   // Auto-stop at the cap so a forgotten recorder can't run forever.
   useEffect(() => {
     if (!voice.isRecording) return;
-    if (voice.elapsedMs < VOICE_MAX_MS) return;
+    if (voice.elapsedMs < CHANNEL_VOICE_MAX_MS) return;
     void voice.stop();
   }, [voice]);
 
