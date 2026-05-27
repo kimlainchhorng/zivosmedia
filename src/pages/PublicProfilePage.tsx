@@ -39,11 +39,14 @@ import { resolveSharedOrigins, type SharedOriginInfo } from "@/lib/social/resolv
 import { toUserPostInteractionId } from "@/lib/social/postInteraction";
 import CreatorTiersSubscribe from "@/components/creator/CreatorTiersSubscribe";
 import TopSupporters from "@/components/creator/TopSupporters";
+import CreatorPPVStrip from "@/components/ppv/CreatorPPVStrip";
+import { useAdultGate } from "@/hooks/useAdultGate";
 import TipSheet from "@/components/social/TipSheet";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 
 const TopFans = lazy(() => import("@/components/social/TopFans"));
+const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
 
 /** Fullscreen post overlay with swipe-down-to-close from header. */
 function PublicPostOverlay({
@@ -65,7 +68,7 @@ function PublicPostOverlay({
       data-testid="public-post-overlay-body"
       className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-sm flex flex-col overflow-y-auto"
       style={{
-        paddingTop: "max(env(safe-area-inset-top, 0px), var(--zivo-safe-top-overlay, 60px))",
+        paddingTop: "max(var(--zivo-safe-top,0px), var(--zivo-safe-top-overlay, 60px))",
       }}
     >
       <SwipeGrabHandle
@@ -247,8 +250,10 @@ export default function PublicProfilePage() {
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set());
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [blockingUser, setBlockingUser] = useState(false);
-  // OF creator age gate — confirmed once per session
-  const [ofAgeConfirmed, setOfAgeConfirmed] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  // OF creator age gate — persistent via useAdultGate (DB + localStorage)
+  const adultGate = useAdultGate();
+  const ofAgeConfirmed = adultGate.isConfirmed;
 
   const backTarget = useMemo(() => {
     if (source === "monetization") return "/monetization";
@@ -677,7 +682,11 @@ export default function PublicProfilePage() {
 
   const handleReportProfile = () => {
     setShowProfileMenu(false);
-    navigate(`/feedback?type=profile&target=${encodeURIComponent(targetUserId || "")}`);
+    if (!user) {
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
+    setReportOpen(true);
   };
 
   const handleBlockProfile = async () => {
@@ -942,7 +951,7 @@ export default function PublicProfilePage() {
   const profileAvatar = resolvedProfile?.avatar_url || undefined;
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh} className="zivo-shell-mobile bg-background pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))]">
+    <PullToRefresh onRefresh={handlePullRefresh} className="zivo-shell-mobile bg-background pb-[calc(4.25rem+var(--zivo-safe-bottom,0px))]">
       <SEOHead
         title={`${profileName} – ${brand}`}
         description={profileBio}
@@ -965,7 +974,7 @@ export default function PublicProfilePage() {
           <button type="button" onClick={handleBack} aria-label="Back" className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-muted transition-colors">
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
-          <h1 className="text-base sm:text-lg font-bold text-foreground truncate flex-1">{resolvedProfile?.full_name || "Profile"}</h1>
+          <h1 className="text-base sm:text-lg font-bold text-ig-gradient truncate flex-1">{resolvedProfile?.full_name || "Profile"}</h1>
           <button type="button" onClick={handleShare} aria-label="Share profile" className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-muted transition-colors">
             <Share2 className="h-5 w-5 text-foreground" />
           </button>
@@ -1018,7 +1027,7 @@ export default function PublicProfilePage() {
                 <p className="text-sm text-muted-foreground">This profile belongs to an OF Creator and may contain adult content. You must be 18 or older to view it.</p>
                 <div className="flex gap-3 w-full mt-2">
                   <button onClick={() => navigate(-1)} className="flex-1 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">Go back</button>
-                  <button onClick={() => setOfAgeConfirmed(true)} className="flex-1 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors">I am 18+</button>
+                  <button onClick={() => void adultGate.confirm()} className="flex-1 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors">I am 18+</button>
                 </div>
               </div>
             </div>
@@ -1091,7 +1100,7 @@ export default function PublicProfilePage() {
               <div className="flex gap-2 mt-4.5 w-full max-w-sm px-2">
                 {!zivoOFMode && (
                   <motion.button whileTap={{ scale: 0.95 }} onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }} disabled={followMutation.isPending}
-                    className={`flex-1 h-10 sm:h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${isFollowing ? "bg-muted text-foreground border border-border" : "bg-primary text-primary-foreground"}`}>
+                    className={`flex-1 h-10 sm:h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${isFollowing ? "bg-muted text-foreground border border-border" : "bg-ig-gradient text-white hover:opacity-90 shadow-sm"}`}>
                     {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={`h-4 w-4 ${isFollowing ? "fill-primary text-primary" : ""}`} />}
                     {followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}
                   </motion.button>
@@ -1194,6 +1203,9 @@ export default function PublicProfilePage() {
                   isOwnProfile={isOwnProfile}
                 />
               )}
+
+              {/* PPV strip — locked content a creator has published */}
+              {targetUserId && <CreatorPPVStrip creatorUserId={targetUserId} />}
 
               {/* Content Tabs */}
               <div className="border-b border-border/30 max-w-3xl mx-auto">
@@ -1574,6 +1586,18 @@ export default function PublicProfilePage() {
           creatorName={resolvedProfile?.full_name || "Creator"}
           creatorAvatar={resolvedProfile?.avatar_url}
         />
+      )}
+
+      {targetUserId && reportOpen && (
+        <Suspense fallback={null}>
+          <ReportSheet
+            open={reportOpen}
+            onClose={() => setReportOpen(false)}
+            contentType="creator"
+            contentId={targetUserId}
+            reportedUserId={targetUserId}
+          />
+        </Suspense>
       )}
 
       <ZivoMobileNav />

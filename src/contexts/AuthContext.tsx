@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
+import type { ReactNode } from "react";
+import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { setupActivityTracking, clearSessionArtifacts } from "@/lib/security/sessionSecurity";
 import { getDeviceFingerprint } from "@/lib/security/deviceFingerprint";
@@ -371,9 +372,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return cleanup;
   }, [session, signOut]);
 
-  return (
-    <AuthContext.Provider value={{ user, session, isLoading, isAdmin, mfaPending, signUp, signIn, verifyMfa, signOut }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextType>(
+    () => ({ user, session, isLoading, isAdmin, mfaPending, signUp, signIn, verifyMfa, signOut }),
+    [user, session, isLoading, isAdmin, mfaPending, verifyMfa, signOut],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

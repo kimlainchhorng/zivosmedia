@@ -13,10 +13,20 @@ interface VerticalStat {
   count: number;
 }
 
+const KHR_PER_USD = 4062.5;
+
 function fmtUsd(cents: number) {
   if (cents >= 100_000_00) return `$${(cents / 100_000_00).toFixed(1)}M`;
   if (cents >= 1_000_00) return `$${(cents / 1_000_00).toFixed(1)}K`;
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+function ridePaymentToUsdCents(row: any): number {
+  const currency = String(row.payment_currency || (row.payment_status === "bakong_paid" ? "KHR" : "USD")).toUpperCase();
+  if (currency === "KHR") {
+    return Math.round((Number(row.bakong_amount_khr ?? row.payment_amount ?? 0) / KHR_PER_USD) * 100);
+  }
+  return Math.round(Number(row.payment_amount ?? 0) * 100);
 }
 
 function StatCard({ label, value, sub, icon: Icon, color }: {
@@ -43,10 +53,10 @@ export default function AdminFinanceSummaryPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ride_requests")
-        .select("payment_amount, status")
+        .select("payment_amount, payment_currency, payment_status, bakong_amount_khr, status")
         .in("status", ["completed", "finished"]);
       const rows = data ?? [];
-      const gmv = rows.reduce((s: number, r: any) => s + (Number(r.payment_amount) * 100 || 0), 0);
+      const gmv = rows.reduce((s: number, r: any) => s + ridePaymentToUsdCents(r), 0);
       return { gmv, count: rows.length };
     },
   });

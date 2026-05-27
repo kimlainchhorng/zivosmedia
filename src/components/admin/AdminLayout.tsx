@@ -1,7 +1,8 @@
 /**
  * Admin Layout - Responsive sidebar layout for admin dashboard
  */
-import { ReactNode, useState } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +18,7 @@ import {
   Compass, BedDouble, KeyRound, CreditCard, Sparkles, Layers, Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FeedIncidentCommandCenter } from "@/components/admin/FeedIncidentCommandCenter";
 import { cn } from "@/lib/utils";
 import {
   Collapsible,
@@ -89,6 +91,7 @@ const adminNavEntries: NavEntry[] = [
       { label: "Trip Heatmap", icon: Map, path: "/admin/operations/heatmap" },
       { label: "Driver Verification", icon: UserCheck, path: "/admin/drivers/verification" },
       { label: "Driver Moderation", icon: UserX, path: "/admin/drivers/moderation" },
+      { label: "Driver Payouts", icon: Wallet, path: "/admin/drivers/payouts" },
       { label: "Call Closures", icon: PhoneOff, path: "/admin/operations/call-closures" },
     ],
   },
@@ -160,6 +163,7 @@ const adminNavEntries: NavEntry[] = [
   {
     label: "Platform", icon: Server, children: [
       { label: "System Health", icon: Activity, path: "/admin/system-health" },
+      { label: "Feed Diagnostics", icon: Activity, path: "/admin/feed-diagnostics" },
       { label: "Remote Config", icon: Sliders, path: "/admin/remote-config" },
       { label: "Launch Dashboard", icon: Rocket, path: "/admin/launch" },
       { label: "App Store Assets", icon: Smartphone, path: "/admin/app-store-assets" },
@@ -233,7 +237,13 @@ export default function AdminLayout({ children, title, brandLabel }: AdminLayout
         >
           <div className="h-16 flex items-center justify-between px-5 border-b border-border shrink-0">
             <div className="flex items-center gap-2.5">
-              <img src={zivoLogo} alt="ZIVO" className="w-8 h-8 rounded-lg object-contain" />
+	              <img
+	                src={zivoLogo}
+	                alt="ZIVO"
+	                className="w-8 h-8 rounded-lg object-contain"
+	                loading="eager"
+	                decoding="async"
+	              />
               <span className="text-base font-bold text-foreground">{resolvedBrandLabel}</span>
             </div>
             <Button
@@ -328,7 +338,7 @@ export default function AdminLayout({ children, title, brandLabel }: AdminLayout
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="safe-area-top min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+          <header className="min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -340,6 +350,7 @@ export default function AdminLayout({ children, title, brandLabel }: AdminLayout
               </Button>
               <h1 className="text-lg font-bold text-foreground">{title}</h1>
             </div>
+            <FeedIncidentCommandCenter />
           </header>
 
           <main className="flex-1 p-4 sm:p-6">

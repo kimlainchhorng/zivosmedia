@@ -34,11 +34,16 @@ async function manualDispatch(adminClient: any, jobId: string, customerId: strin
     return null;
   }
 
-  // Find online available drivers
+  // Find online, NOT-busy drivers. The is_busy check matters because
+  // accept_offer RPC (used by IncomingOfferModal) flips is_busy=true but
+  // leaves driver_state='online_available'. Without this filter a driver
+  // mid-trip can still receive new offers they can't accept.
+  // `.not("is_busy", "is", true)` matches both false AND null.
   const { data: nearby } = await adminClient
     .from("drivers_status")
     .select("driver_id, lat, lng")
     .eq("is_online", true)
+    .not("is_busy", "is", true)
     .in("driver_state", ["online_available", "online"]);
 
   if (!nearby || nearby.length === 0) {
@@ -82,6 +87,7 @@ async function manualDispatch(adminClient: any, jobId: string, customerId: strin
       {
         job_id: jobId,
         driver_id: best.driver_id,
+        offer_status: "sent",
         status: "pending",
         expires_at: expiresAt,
       },

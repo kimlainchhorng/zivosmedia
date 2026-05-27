@@ -25,7 +25,7 @@ export default function EventsHubPage() {
     let cancelled = false;
     (async () => {
       const { data } = await (dbFrom("events") as { select: (s: string) => { eq: (k: string, v: string) => { gte: (k: string, v: string) => { order: (k: string, o: unknown) => { limit: (n: number) => Promise<{ data: EventData[] | null }> } } } } })
-        .select("id, title, description, starts_at, location, cover_url, capacity")
+        .select("id, title, description, starts_at, location, cover_url, capacity, going_count")
         .eq("visibility", "public")
         .gte("starts_at", new Date().toISOString())
         .order("starts_at", { ascending: true })

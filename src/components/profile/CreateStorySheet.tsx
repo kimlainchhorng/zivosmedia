@@ -25,7 +25,9 @@ import Music from "lucide-react/dist/esm/icons/music";
 import Play from "lucide-react/dist/esm/icons/play";
 import Pause from "lucide-react/dist/esm/icons/pause";
 import AlertCircle from "lucide-react/dist/esm/icons/alert-circle";
+import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
 import { invalidateAllStoryCaches } from "@/lib/storiesCache";
+import { detectSensitiveContent, isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 
 interface Props {
   open: boolean;
@@ -74,6 +76,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
   const [audioPreviewing, setAudioPreviewing] = useState(false);
   const [showMusicSheet, setShowMusicSheet] = useState(false);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [markSensitive, setMarkSensitive] = useState(false);
 
   // Upload state
   const [uploading, setUploading] = useState(false);
@@ -93,6 +96,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
         setText("");
         setBgIdx(0);
         setAudioTrack(null);
+        setMarkSensitive(false);
         setShowMusicSheet(false);
         setUploadPhase("idle");
         setProgress(0);
@@ -340,13 +344,30 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
       const { data: urlData } = supabase.storage.from("user-stories").getPublicUrl(path);
 
       setUploadPhase("saving");
-      const { error: insErr } = await supabase.from("stories" as any).insert({
+      const sensitivity = detectSensitiveContent(step === "compose-text" ? text : captionToSave, { creatorMarked: markSensitive });
+      const shouldMarkSensitive = sensitivity.isSensitive;
+      const basePayload = {
         user_id: user.id,
         media_url: urlData.publicUrl,
         media_type: mediaType,
         text_overlay: captionToSave,
         audio_url: audioTrack?.url || null,
-      });
+      };
+      const sensitivePayload = shouldMarkSensitive
+        ? {
+            ...basePayload,
+            is_sensitive: true,
+            sensitive_reason: sensitivity.reason || "creator_marked",
+          }
+        : basePayload;
+      let { error: insErr } = await supabase.from("stories" as any).insert(sensitivePayload);
+      if (insErr && shouldMarkSensitive && isStorySafetySchemaDriftError(insErr)) {
+        const fallback = await supabase.from("stories" as any).insert(basePayload);
+        insErr = fallback.error;
+        if (!insErr) {
+          toast.warning("Story shared. Deploy the story safety migration so 18+ blur is saved for viewers.");
+        }
+      }
       if (insErr) {
         // Roll back the just-uploaded object so storage doesn't leak.
         await supabase.storage.from("user-stories").remove([path]).catch(() => {});
@@ -364,7 +385,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
       setUploadPhase("idle");
       setUploadError(await getErrorMessage(err, "Failed to share story"));
     }
-  }, [user, step, text, pickedFile, caption, audioTrack, onClose, onPublished, queryClient]);
+  }, [user, step, text, pickedFile, caption, audioTrack, markSensitive, onClose, onPublished, queryClient]);
 
   const toggleAudioPreview = (track: Track) => {
     if (previewAudioRef.current && audioPreviewing && audioTrack?.id === track.id) {
@@ -395,6 +416,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
   if (!open) return null;
 
   const initials = profile?.full_name?.[0]?.toUpperCase() || "Y";
+  const composerSensitive = markSensitive || detectSensitiveContent(step === "compose-text" ? text : caption).isSensitive;
 
   const sheet = (
     <>
@@ -414,7 +436,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 30, stiffness: 340 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-md max-h-[92vh] overflow-hidden rounded-t-[28px] sm:rounded-3xl border border-border/60 bg-card text-card-foreground shadow-[0_-12px_60px_-12px_hsl(var(--foreground)/0.35)] flex flex-col pb-[env(safe-area-inset-bottom)]"
+          className="w-full max-w-md max-h-[92vh] overflow-hidden rounded-t-[28px] sm:rounded-3xl border border-border/60 bg-card text-card-foreground shadow-[0_-12px_60px_-12px_hsl(var(--foreground)/0.35)] flex flex-col pb-[var(--zivo-safe-bottom,0px)]"
         >
           {/* Drag handle (mobile only) */}
           <div className="sm:hidden flex justify-center pt-2.5 pb-1">
@@ -436,7 +458,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/15 flex items-center justify-center text-primary text-sm font-bold ring-2 ring-primary/20">
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+	                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : initials}
                 </div>
                 <div className="leading-tight">
@@ -467,7 +489,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
                   onClick={() => fileInputRef.current?.click()}
                   className="group w-full flex items-center gap-4 rounded-2xl border border-border/60 bg-background/60 p-4 text-left hover:bg-muted/40 hover:border-border active:scale-[0.985] transition-all"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                  <div className="w-12 h-12 rounded-2xl bg-ig-gradient text-white flex items-center justify-center shadow-lg shadow-rose-500/25">
                     <ImageIcon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -521,9 +543,9 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
               <div className="p-3 space-y-3">
                 <div className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden bg-black">
                   {pickedFile.type.startsWith("video/") ? (
-                    <video src={previewUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+	                    <video src={previewUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline preload="metadata" />
                   ) : (
-                    <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+	                    <img src={previewUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   )}
                   {caption && (
                     <div className="absolute bottom-4 left-4 right-4">
@@ -565,6 +587,19 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
                   <Music className="w-4 h-4 text-primary" />
                   <span className="font-medium">{audioTrack ? audioTrack.title : "Add music"}</span>
                   <span className="text-xs text-muted-foreground ml-auto">Optional</span>
+                </button>
+                <button type="button"
+                  onClick={() => setMarkSensitive((value) => !value)}
+                  className={cn(
+                    "w-full flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm transition",
+                    composerSensitive
+                      ? "border-destructive/40 bg-destructive/10 text-destructive"
+                      : "border-border/60 bg-muted/20 hover:bg-muted/40"
+                  )}
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  <span className="font-medium">{composerSensitive ? "18+ blur on" : "Mark 18+"}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">Sensitive</span>
                 </button>
               </div>
             )}
@@ -619,13 +654,26 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
                   <span className="font-medium">{audioTrack ? audioTrack.title : "Add music"}</span>
                   <span className="text-xs text-muted-foreground ml-auto">Optional</span>
                 </button>
+                <button type="button"
+                  onClick={() => setMarkSensitive((value) => !value)}
+                  className={cn(
+                    "w-full flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm transition",
+                    composerSensitive
+                      ? "border-destructive/40 bg-destructive/10 text-destructive"
+                      : "border-border/60 bg-muted/20 hover:bg-muted/40"
+                  )}
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  <span className="font-medium">{composerSensitive ? "18+ blur on" : "Mark 18+"}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">Sensitive</span>
+                </button>
               </div>
             )}
           </div>
 
           {/* Footer action */}
           {step !== "choose" && (
-            <div className="border-t border-border/40 p-3 pb-[max(env(safe-area-inset-bottom),12px)] space-y-2">
+            <div className="border-t border-border/40 p-3 pb-[max(var(--zivo-safe-bottom,0px),12px)] space-y-2">
               {/* Error banner */}
               {uploadError && (
                 <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3">
@@ -663,7 +711,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
               <button type="button"
                 onClick={publish}
                 disabled={uploading || (step === "compose-text" && !text.trim())}
-                className="w-full h-11 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full h-11 rounded-full bg-ig-gradient text-white font-bold text-sm shadow-md shadow-rose-500/25 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
               >
                 {uploading ? (
                   <>
@@ -756,7 +804,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
                   })}
                 </div>
                 {audioTrack && (
-                  <div className="border-t border-border/40 p-3 pb-[max(env(safe-area-inset-bottom),12px)]">
+                  <div className="border-t border-border/40 p-3 pb-[max(var(--zivo-safe-bottom,0px),12px)]">
                     <button type="button"
                       onClick={() => {
                         previewAudioRef.current?.pause();

@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10131a" />
+    <title>ZIVO Employees</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="assets/zivo-employees-icon-192.png" />
+    <link rel="apple-touch-icon" href="assets/zivo-employees-icon-180.png" />
+    <link rel="stylesheet" href="styles.css?v=upgrade-all-4" />
+  </head>
+  <body>
+    <section class="login-screen" id="login-screen" aria-labelledby="login-title">
+      <div class="login-card">
+        <img src="assets/zivo-employees-stacked.svg" alt="ZIVO Employees" />
+        <div>
+          <p class="eyebrow">Secure workspace</p>
+          <h1 id="login-title">Sign in</h1>
+        </div>
+        <form id="login-form" class="login-form">
+          <label>
+            Role
+            <select name="role">
+              <option value="manager">Manager</option>
+              <option value="employee">Employee</option>
+            </select>
+          </label>
+          <label>
+            PIN
+            <input name="pin" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter PIN" required />
+          </label>
+          <button class="primary-button wide" type="submit">Unlock</button>
+          <button class="secondary-button wide" type="button" id="demo-unlock">Use demo access</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <a class="brand" href="#dashboard" aria-label="ZIVO Employees home">
+          <img src="assets/zivo-employees-stacked.svg" alt="ZIVO Employees" />
+        </a>
+
+        <nav class="nav-list">
+          <button class="nav-item is-active" type="button" data-view-target="dashboard">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z" /></svg>
+            </span>
+            Dashboard
+          </button>
+          <button class="nav-item" type="button" data-view-target="employees">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5ZM8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11Zm8 2c-2 0-6 1.08-6 3.25V20h12v-3.75C22 14.08 18 13 16 13ZM8 13c-2.33 0-7 1.16-7 3.5V20h7v-3.75c0-.92.39-1.71 1.08-2.36A6.68 6.68 0 0 0 8 13Z" /></svg>
+            </span>
+            Employees
+          </button>
+          <button class="nav-item" type="button" data-view-target="schedule">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 2h2v3h6V2h2v3h3a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2L2 7a2 2 0 0 1 2-2h3V2Zm13 8H4v10h16V10ZM4 8h16V7H4v1Z" /></svg>
+            </span>
+            Schedule
+          </button>
+          <button class="nav-item" type="button" data-view-target="timeclock">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-15h-2v6l5 3 1-1.65-4-2.35V7Z" /></svg>
+            </span>
+            Time clock
+          </button>
+          <button class="nav-item" type="button" data-view-target="payroll">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 4v6h16V9H4Zm2 2h5v2H6v-2Zm11-1.5A2.5 2.5 0 1 0 17 14a2.5 2.5 0 0 0 0-5Z" /></svg>
+            </span>
+            Payroll
+          </button>
+          <button class="nav-item" type="button" data-view-target="requests">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 3h12l4 4v14H4V3Zm11 1.5V8h3.5L15 4.5ZM7 10h10v2H7v-2Zm0 4h10v2H7v-2Zm0 4h7v1H7v-1Z" /></svg>
+            </span>
+            Requests
+          </button>
+          <button class="nav-item" type="button" data-view-target="documents">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 4h7l2 2h7v14H4V4Zm2 4v10h12V8H6Zm2 2h8v2H8v-2Zm0 4h6v2H8v-2Z" /></svg>
+            </span>
+            Documents
+          </button>
+          <button class="nav-item" type="button" data-view-target="training">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 4h16v13H7l-3 3V4Zm2 2v9.17L6.17 15H18V6H6Zm3 3h6v2H9V9Zm0 4h4v2H9v-2Z" /></svg>
+            </span>
+            Training
+          </button>
+          <button class="nav-item" type="button" data-view-target="reports">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 19h14v2H5v-2Zm1-8h3v6H6v-6Zm5-6h3v12h-3V5Zm5 3h3v9h-3V8Z" /></svg>
+            </span>
+            Reports
+          </button>
+          <button class="nav-item" type="button" data-view-target="settings">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M19.4 13.5c.08-.49.1-.99.1-1.5s-.02-1.01-.1-1.5l2.1-1.64-2-3.46-2.48 1a7.8 7.8 0 0 0-2.6-1.5L14 2h-4l-.42 2.9a7.8 7.8 0 0 0-2.6 1.5l-2.48-1-2 3.46 2.1 1.64c-.08.49-.1.99-.1 1.5s.02 1.01.1 1.5l-2.1 1.64 2 3.46 2.48-1a7.8 7.8 0 0 0 2.6 1.5L10 22h4l.42-2.9a7.8 7.8 0 0 0 2.6-1.5l2.48 1 2-3.46-2.1-1.64ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" /></svg>
+            </span>
+            Settings
+          </button>
+        </nav>
+
+        <div class="sidebar-status">
+          <span class="status-dot"></span>
+          Staff workspace online
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Employee operations</p>
+            <h1 id="view-title">Dashboard</h1>
+          </div>
+          <div class="topbar-actions">
+            <div class="role-switch" role="group" aria-label="Workspace role">
+              <button class="is-selected" type="button" data-role-switch="manager">Manager</button>
+              <button type="button" data-role-switch="employee">Employee</button>
+            </div>
+            <label class="select-label account-select">
+              Account
+              <select id="active-employee-select"></select>
+            </label>
+            <label class="search-box">
+              <span class="sr-only">Search employees</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3a6.5 6.5 0 0 1 5.18 10.43l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" /></svg>
+              <input id="global-search" type="search" placeholder="Search team" autocomplete="off" />
+            </label>
+            <button class="icon-button" type="button" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10 8 8 0 0 1-10-10Z" /></svg>
+            </button>
+            <button class="icon-button has-badge" type="button" id="notification-toggle" title="Notifications" aria-label="Notifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.4 2.4 0 0 0 2.3-1.7H9.7A2.4 2.4 0 0 0 12 22Zm7-6v-5a7 7 0 0 0-5-6.7V3a2 2 0 1 0-4 0v1.3A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z" /></svg>
+              <span id="notification-count">0</span>
+            </button>
+            <button class="icon-button" type="button" id="lock-app" title="Lock app" aria-label="Lock app">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9h1a2 2 0 0 1 2 2v9H4v-9a2 2 0 0 1 2-2h1V7a5 5 0 1 1 10 0v2Zm-8 0h6V7a3 3 0 1 0-6 0v2Z" /></svg>
+            </button>
+            <button class="primary-button" type="button" id="open-add-employee">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
+              Add employee
+            </button>
+            <button class="secondary-button" type="button" id="export-data">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2ZM13 4h-2v7.2L8.4 8.6 7 10l5 5 5-5-1.4-1.4-2.6 2.6V4Z" /></svg>
+              Export
+            </button>
+          </div>
+        </header>
+
+        <section class="view is-active" id="dashboard-view" data-view="dashboard">
+          <div class="metrics-grid">
+            <article class="metric-panel">
+              <p>Active employees</p>
+              <strong id="metric-active">0</strong>
+              <span>Across operations, support, and growth</span>
+            </article>
+            <article class="metric-panel">
+              <p>On shift today</p>
+              <strong id="metric-shift">0</strong>
+              <span>Live schedule coverage</span>
+            </article>
+            <article class="metric-panel">
+              <p>Open requests</p>
+              <strong id="metric-requests">0</strong>
+              <span>Needs manager review</span>
+            </article>
+            <article class="metric-panel">
+              <p>Payroll ready</p>
+              <strong id="metric-payroll">0%</strong>
+              <span>For current pay cycle</span>
+            </article>
+          </div>
+
+          <div class="quick-grid">
+            <section class="panel compact-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Workspace</p>
+                  <h2 id="workspace-mode-title">Manager mode</h2>
+                </div>
+              </div>
+              <div class="quick-actions" id="quick-actions"></div>
+            </section>
+
+            <section class="panel compact-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Announcements</p>
+                  <h2>Team updates</h2>
+                </div>
+              </div>
+              <div class="announcement-list" id="announcement-list"></div>
+            </section>
+          </div>
+
+          <section class="panel dashboard-alert-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Action center</p>
+                <h2>Today needs attention</h2>
+              </div>
+              <span class="date-pill" id="alert-count-label">0 alerts</span>
+            </div>
+            <div class="alert-grid" id="manager-alerts"></div>
+          </section>
+
+          <div class="split-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Today</p>
+                  <h2>Shift command center</h2>
+                </div>
+                <span class="date-pill" id="today-label">Today</span>
+              </div>
+              <div class="timeline" id="dashboard-timeline"></div>
+            </section>
+
+            <section class="panel accent-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Attention</p>
+                  <h2>Manager queue</h2>
+                </div>
+              </div>
+              <div class="queue-list" id="manager-queue"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="employees-view" data-view="employees">
+          <div class="toolbar">
+            <div class="segmented" role="group" aria-label="Employee status filter">
+              <button class="is-selected" type="button" data-status-filter="all">All</button>
+              <button type="button" data-status-filter="Active">Active</button>
+              <button type="button" data-status-filter="On leave">On leave</button>
+              <button type="button" data-status-filter="Pending">Pending</button>
+              <button type="button" data-status-filter="Archived">Archived</button>
+            </div>
+            <label class="select-label">
+              Department
+              <select id="department-filter">
+                <option value="all">All departments</option>
+              </select>
+            </label>
+            <button class="secondary-button" type="button" id="clear-employee-filters">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v2H6V6Zm2 5h8v2H8v-2Zm2 5h4v2h-4v-2Z" /></svg>
+              Clear
+            </button>
+          </div>
+          <div class="employee-workspace">
+            <div class="employee-grid" id="employee-grid"></div>
+            <aside class="panel employee-detail" id="employee-detail"></aside>
+          </div>
+        </section>
+
+        <section class="view" id="schedule-view" data-view="schedule">
+          <div class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Weekly plan</p>
+                <h2>Schedule board</h2>
+              </div>
+              <div class="action-row">
+                <label class="select-label compact-select">
+                  Week
+                  <input id="schedule-week" type="week" />
+                </label>
+                <button class="secondary-button" type="button" id="open-shift-dialog">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
+                  Add shift
+                </button>
+                <button class="secondary-button" type="button" id="copy-week">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7V3h14v14h-4v4H3V7h4Zm2 0h8v8h2V5H9v2Zm-4 2v10h10V9H5Z" /></svg>
+                  Copy week
+                </button>
+                <button class="secondary-button" type="button" id="publish-schedule">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6l1.4 1.4L9 18.8 3.6 13.4 5 12Z" /></svg>
+                  Publish
+                </button>
+              </div>
+            </div>
+            <div class="published-banner" id="schedule-status"></div>
+            <div class="schedule-alerts" id="schedule-alerts"></div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <div class="schedule-board" id="schedule-board"></div>
+          </div>
+        </section>
+
+        <section class="view" id="timeclock-view" data-view="timeclock">
+          <div class="split-layout">
+            <section class="panel time-panel">
+              <p class="eyebrow">Time clock</p>
+              <h2 id="clock-time">--:--</h2>
+              <p class="muted">Track shifts, breaks, and approvals for ZIVO Employees.</p>
+              <div class="clock-summary" id="clock-summary"></div>
+              <button class="primary-button wide" type="button" id="clock-toggle">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7L8 5Z" /></svg>
+                Clock in
+              </button>
+              <button class="secondary-button wide" type="button" id="break-toggle">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z" /></svg>
+                Start break
+              </button>
+              <button class="secondary-button wide" type="button" id="open-missed-punch-dialog">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
+                Add missed punch
+              </button>
+              <div class="clock-status" id="clock-status">No active shift</div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Timesheet</p>
+                  <h2>Recent activity</h2>
+                </div>
+                <button class="secondary-button" type="button" id="approve-timesheets">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6l1.4 1.4L9 18.8 3.6 13.4 5 12Z" /></svg>
+                  Approve
+                </button>
+              </div>
+              <div class="activity-list" id="clock-activity"></div>
+              <div class="timesheet-detail" id="timesheet-detail"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="payroll-view" data-view="payroll">
+          <div class="payroll-layout">
+            <section class="panel payroll-summary">
+              <p class="eyebrow">Current cycle</p>
+              <h2 id="payroll-total">$0.00</h2>
+              <p class="muted">Projected gross payroll for this period.</p>
+              <label class="select-label stacked-label">
+                Pay period
+                <select id="payroll-period-filter">
+                  <option>Current cycle</option>
+                  <option>Next cycle</option>
+                  <option>Last cycle</option>
+                </select>
+              </label>
+              <div class="progress-row">
+                <span>Approval progress</span>
+                <strong id="payroll-progress-copy">0%</strong>
+              </div>
+              <div class="progress-bar" aria-hidden="true"><span id="payroll-progress-bar"></span></div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Review</p>
+                  <h2>Payroll checklist</h2>
+                </div>
+                <div class="action-row">
+                  <button class="secondary-button" type="button" id="approve-payroll">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6l1.4 1.4L9 18.8 3.6 13.4 5 12Z" /></svg>
+                    Approve all
+                  </button>
+                  <button class="secondary-button" type="button" id="export-payroll">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2ZM13 4h-2v7.2L8.4 8.6 7 10l5 5 5-5-1.4-1.4-2.6 2.6V4Z" /></svg>
+                    CSV
+                  </button>
+                </div>
+              </div>
+              <div class="checklist" id="payroll-checklist"></div>
+            </section>
+          </div>
+          <section class="panel payroll-table-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">People</p>
+                <h2>Payroll preview</h2>
+              </div>
+              <button class="secondary-button" type="button" id="print-payroll">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6h2a2 2 0 0 1 2 2v6h-4v4H6v-4H2v-6a2 2 0 0 1 2-2h2Zm2-4v4h8V5H8Zm0 10v4h8v-4H8Z" /></svg>
+                Print
+              </button>
+            </div>
+            <div class="table-wrap" id="payroll-table"></div>
+          </section>
+        </section>
+
+        <section class="view" id="requests-view" data-view="requests">
+          <div class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Inbox</p>
+                <h2>Employee requests</h2>
+              </div>
+              <div class="action-row">
+                <span class="date-pill" id="request-count-label">0 open</span>
+                <button class="secondary-button" type="button" id="open-request-dialog">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
+                  New
+                </button>
+              </div>
+            </div>
+            <div class="segmented request-filter" role="group" aria-label="Request filter">
+              <button class="is-selected" type="button" data-request-filter="all">All</button>
+              <button type="button" data-request-filter="Open">Open</button>
+              <button type="button" data-request-filter="Approved">Approved</button>
+              <button type="button" data-request-filter="Declined">Declined</button>
+            </div>
+            <div class="request-list" id="request-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="documents-view" data-view="documents">
+          <div class="document-grid">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Compliance</p>
+                  <h2>Documents</h2>
+                </div>
+                <div class="action-row">
+                  <label class="select-label compact-select">
+                    Category
+                    <select id="document-category-filter">
+                      <option value="all">All</option>
+                    </select>
+                  </label>
+                  <button class="secondary-button" type="button" id="open-document-dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
+                    Add
+                  </button>
+                </div>
+              </div>
+              <div class="document-list" id="document-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Readiness</p>
+                  <h2>Compliance summary</h2>
+                </div>
+              </div>
+              <div class="settings-list" id="document-summary">
+                <label class="switch-row">
+                  <span>Require manager approval for edits</span>
+                  <input type="checkbox" data-setting="managerApproval" />
+                </label>
+                <label class="switch-row">
+                  <span>Send payroll reminder emails</span>
+                  <input type="checkbox" data-setting="payrollReminders" />
+                </label>
+                <label class="switch-row">
+                  <span>Enable mobile clock-in</span>
+                  <input type="checkbox" data-setting="mobileClockIn" />
+                </label>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="training-view" data-view="training">
+          <div class="training-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Learning</p>
+                  <h2>Training center</h2>
+                </div>
+                <button class="secondary-button" type="button" id="open-training-dialog">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
+                  Add
+                </button>
+              </div>
+              <div class="training-grid" id="training-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Onboarding</p>
+                  <h2>New hire checklist</h2>
+                </div>
+              </div>
+              <div class="onboarding-list" id="onboarding-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="reports-view" data-view="reports">
+          <div class="report-grid" id="report-grid"></div>
+          <section class="panel payroll-table-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Performance</p>
+                <h2>Goals</h2>
+              </div>
+              <button class="secondary-button" type="button" id="open-goal-dialog">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
+                Add goal
+              </button>
+            </div>
+            <div class="goal-list" id="goal-list"></div>
+          </section>
+          <section class="panel payroll-table-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Departments</p>
+                <h2>Team report</h2>
+              </div>
+              <button class="secondary-button" type="button" id="export-report">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2ZM13 4h-2v7.2L8.4 8.6 7 10l5 5 5-5-1.4-1.4-2.6 2.6V4Z" /></svg>
+                CSV
+              </button>
+            </div>
+            <div class="table-wrap" id="department-report"></div>
+          </section>
+        </section>
+
+        <section class="view" id="settings-view" data-view="settings">
+          <div class="settings-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Workspace</p>
+                  <h2>Company settings</h2>
+                </div>
+                <button class="primary-button" type="button" id="save-company-settings">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3H5a2 2 0 0 0-2 2v14h18V7l-4-4ZM7 5h8v5H7V5Zm10 12H7v-5h10v5Z" /></svg>
+                  Save
+                </button>
+              </div>
+              <div class="form-grid settings-form">
+                <label>
+                  Company name
+                  <input id="company-name" data-setting="companyName" autocomplete="organization" />
+                </label>
+                <label>
+                  Timezone
+                  <select id="company-timezone" data-setting="timezone">
+                    <option>America/Chicago</option>
+                    <option>America/Los_Angeles</option>
+                    <option>America/New_York</option>
+                    <option>Asia/Phnom_Penh</option>
+                    <option>UTC</option>
+                  </select>
+                </label>
+                <label>
+                  Pay period
+                  <select id="pay-period" data-setting="payPeriod">
+                    <option>Weekly</option>
+                    <option>Biweekly</option>
+                    <option>Semimonthly</option>
+                    <option>Monthly</option>
+                  </select>
+                </label>
+                <label>
+                  Manager PIN
+                  <input id="manager-pin" data-setting="managerPin" inputmode="numeric" maxlength="8" />
+                </label>
+                <label>
+                  Employee PIN
+                  <input id="employee-pin" data-setting="employeePin" inputmode="numeric" maxlength="8" />
+                </label>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Local data</p>
+                  <h2>Import and backup</h2>
+                </div>
+                <span class="date-pill" id="local-record-count">0 records</span>
+              </div>
+              <div class="data-tools">
+                <label>
+                  Import employees CSV
+                  <textarea id="employee-csv" rows="7" spellcheck="false" placeholder="name,role,department,location,manager,nextShift,payRate,phone"></textarea>
+                </label>
+                <div class="action-row">
+                  <button class="secondary-button" type="button" id="download-template">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2ZM13 4h-2v7.2L8.4 8.6 7 10l5 5 5-5-1.4-1.4-2.6 2.6V4Z" /></svg>
+                    Template
+                  </button>
+                  <button class="secondary-button" type="button" id="import-employees">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4h2v8.2l2.6-2.6L17 11l-5 5-5-5 1.4-1.4 2.6 2.6V4ZM5 20h14v-2H5v2Z" /></svg>
+                    Import
+                  </button>
+                  <button class="secondary-button" type="button" id="export-all-data">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2ZM13 4h-2v7.2L8.4 8.6 7 10l5 5 5-5-1.4-1.4-2.6 2.6V4Z" /></svg>
+                    Backup
+                  </button>
+                </div>
+                <label>
+                  Restore JSON backup
+                  <textarea id="backup-json" rows="6" spellcheck="false" placeholder='{"employees":[...],"schedule":[...]}'></textarea>
+                </label>
+                <button class="secondary-button wide" type="button" id="restore-backup">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 7l5 5V9a5 5 0 1 1-4.9 6H5a7 7 0 1 0 7-10Z" /></svg>
+                  Restore backup
+                </button>
+                <p class="muted" id="import-result">Ready for CSV import.</p>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Device</p>
+                  <h2>Offline app</h2>
+                </div>
+                <span class="date-pill" id="connection-status">Online</span>
+              </div>
+              <div class="status-grid">
+                <span><strong id="offline-status">Checking</strong> Offline files</span>
+                <span><strong id="storage-status">Calculating</strong> Local storage</span>
+                <span><strong id="app-version">Local</strong> App mode</span>
+              </div>
+              <button class="secondary-button wide" type="button" id="reset-demo-data">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.32 4H3l4-4 4 4H8a5 5 0 1 0 4-2V5Z" /></svg>
+                Reset demo data
+              </button>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="employee-dialog" id="employee-dialog">
+      <form method="dialog" class="dialog-card" id="employee-form">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">New employee</p>
+            <h2>Add team member</h2>
+          </div>
+          <button class="icon-button" type="button" id="close-dialog" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label>
+            Full name
+            <input name="name" required placeholder="Sokha Chen" />
+          </label>
+          <label>
+            Role
+            <input name="role" required placeholder="Operations lead" />
+          </label>
+          <label>
+            Department
+            <select name="department">
+              <option>Operations</option>
+              <option>Support</option>
+              <option>Finance</option>
+              <option>Growth</option>
+              <option>Engineering</option>
+            </select>
+          </label>
+          <label>
+            Location
+            <input name="location" placeholder="Phnom Penh" />
+          </label>
+          <label>
+            Phone
+            <input name="phone" placeholder="+1 555 000 1000" />
+          </label>
+          <label>
+            Manager
+            <input name="manager" placeholder="Vireak" />
+          </label>
+          <label>
+            Next shift
+            <input name="nextShift" placeholder="Today, 9 AM - 5 PM" />
+          </label>
+          <label>
+            Pay rate
+            <input name="payRate" type="number" min="0" step="0.25" placeholder="22" />
+          </label>
+          <label>
+            Hire date
+            <input name="hireDate" type="date" />
+          </label>
+        </div>
+        <button class="primary-button wide" type="submit">Create profile</button>
+      </form>
+    </dialog>
+
+    <dialog class="employee-dialog" id="shift-dialog">
+      <form method="dialog" class="dialog-card" id="shift-form">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Schedule</p>
+            <h2>Add shift</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="shift-dialog" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label>
+            Day
+            <select name="day">
+              <option>Monday</option>
+              <option>Tuesday</option>
+              <option>Wednesday</option>
+              <option>Thursday</option>
+              <option>Friday</option>
+            </select>
+          </label>
+          <label>
+            Employee
+            <select name="employee" id="shift-employee-options"></select>
+          </label>
+          <label>
+            Start time
+            <input name="start" required placeholder="9 AM" />
+          </label>
+          <label>
+            End time
+            <input name="end" required placeholder="5 PM" />
+          </label>
+        </div>
+        <button class="primary-button wide" type="submit">Add to schedule</button>
+      </form>
+    </dialog>
+
+    <dialog class="employee-dialog" id="missed-punch-dialog">
+      <form method="dialog" class="dialog-card" id="missed-punch-form">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Timesheet</p>
+            <h2>Add missed punch</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="missed-punch-dialog" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label>
+            Employee
+            <select name="employeeId" id="punch-employee-options"></select>
+          </label>
+          <label>
+            Type
+            <select name="type">
+              <option>Clocked in</option>
+              <option>Clocked out</option>
+              <option>Break started</option>
+              <option>Break ended</option>
+              <option>Timesheet submitted</option>
+            </select>
+          </label>
+          <label>
+            Date
+            <input name="date" type="date" required />
+          </label>
+          <label>
+            Time
+            <input name="time" type="time" required />
+          </label>
+        </div>
+        <button class="primary-button wide" type="submit">Add punch</button>
+      </form>
+    </dialog>
+
+    <dialog class="employee-dialog" id="request-dialog">
+      <form method="dialog" class="dialog-card" id="request-form">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Request</p>
+            <h2>Create request</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="request-dialog" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label>
+            Employee
+            <select name="person" id="request-employee-options"></select>
+          </label>
+          <label>
+            Type
+            <select name="title">
+              <option>Leave request</option>
+              <option>Schedule swap</option>
+              <option>Equipment request</option>
+              <option>Payroll question</option>
+            </select>
+          </label>
+          <label class="form-span">
+            Details
+            <input name="detail" required placeholder="Add request details" />
+          </label>
+        </div>
+        <button class="primary-button wide" type="submit">Submit request</button>
+      </form>
+    </dialog>
+
+    <dialog class="employee-dialog" id="document-dialog">
+      <form method="dialog" class="dialog-card" id="document-form">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Document</p>
+            <h2>Add document</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="document-dialog" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label>
+            Title
+            <input name="title" required placeholder="Safety policy" />
+          </label>
+          <label>
+            Status
+            <select name="status">
+              <option>Draft</option>
+              <option>Needs review</option>
+              <option>Published</option>
+              <option>Complete</option>
+            </select>
+          </label>
+          <label>
+            Category
+            <select name="category">
+              <option>Policy</option>
+              <option>Payroll</option>
+              <option>Training</option>
+              <option>Legal</option>
+              <option>Operations</option>
+            </select>
+          </label>
+          <label>
+            Due date
+            <input name="dueDate" type="date" />
+          </label>
+          <label class="form-span">
+            File name
+            <input name="fileName" placeholder="handbook.pdf" />
+          </label>
+          <label class="form-span">
+            Local file
+            <input name="localFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt" />
+          </label>
+          <label class="form-span">
+            Notes
+            <input name="meta" required placeholder="Who needs to sign or review" />
+          </label>
+        </div>
+        <button class="primary-button wide" type="submit">Add document</button>
+      </form>
+    </dialog>
+
+    <dialog class="employee-dialog" id="training-dialog">
+      <form method="dialog" class="dialog-card" id="training-form">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Training</p>
+            <h2>Add module</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="training-dialog" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label>
+            Title
+            <input name="title" required placeholder="Customer safety basics" />
+          </label>
+          <label>
+            Assign to
+            <select name="assignedTo" id="training-employee-options"></select>
+          </label>
+          <label class="form-span">
+            Due date
+            <input name="due" required placeholder="May 30" />
+          </label>
+        </div>
+        <button class="primary-button wide" type="submit">Add module</button>
+      </form>
+    </dialog>
+
+    <dialog class="employee-dialog" id="goal-dialog">
+      <form method="dialog" class="dialog-card" id="goal-form">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Performance</p>
+            <h2>Add goal</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="goal-dialog" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label>
+            Employee
+            <select name="employeeId" id="goal-employee-options"></select>
+          </label>
+          <label>
+            Progress
+            <input name="progress" type="number" min="0" max="100" value="0" />
+          </label>
+          <label class="form-span">
+            Goal
+            <input name="title" required placeholder="Complete onboarding checklist" />
+          </label>
+        </div>
+        <button class="primary-button wide" type="submit">Add goal</button>
+      </form>
+    </dialog>
+
+    <aside class="notification-drawer" id="notification-drawer" aria-label="Notifications">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Inbox</p>
+          <h2>Notifications</h2>
+        </div>
+        <button class="icon-button" type="button" id="close-notifications" aria-label="Close notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+        </button>
+      </div>
+      <div class="notification-list" id="notification-list"></div>
+      <button class="secondary-button wide" type="button" id="mark-notifications-read">Mark all read</button>
+    </aside>
+
+    <aside class="profile-drawer" id="profile-drawer" aria-label="Employee profile">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Profile</p>
+          <h2 id="profile-drawer-title">Employee</h2>
+        </div>
+        <button class="icon-button" type="button" id="close-profile" aria-label="Close profile">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" /></svg>
+        </button>
+      </div>
+      <div id="profile-drawer-content"></div>
+    </aside>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js?v=upgrade-all-4"></script>
+  </body>
+</html>

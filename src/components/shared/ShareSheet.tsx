@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getPostShareUrl, getProfileShareUrl, getPublicOrigin } from "@/lib/getPublicOrigin";
 import SwipeableSheet from "@/components/social/SwipeableSheet";
 import { track } from "@/lib/analytics";
+import { copyText } from "@/lib/native/clipboard";
+import { shareContent } from "@/lib/native/share";
 
 interface ShareSheetProps {
   shareUrl: string;
@@ -32,6 +34,8 @@ interface ShareSheetProps {
   onVisitProfile?: () => void;
   /** Label for the visit profile button */
   visitProfileLabel?: string;
+  /** Called after the share-count RPC confirms a countable share. */
+  onShareRecorded?: (channel: ShareChannel) => void;
 }
 
 type ShareChannel =
@@ -82,6 +86,7 @@ export default function ShareSheet({
   sharePostAuthorName,
   onVisitProfile,
   visitProfileLabel,
+  onShareRecorded,
 }: ShareSheetProps) {
   // Best-effort: log + bump shares_count via the record_post_share RPC.
   // Errors are swallowed so a failed share-count update never blocks the UX.
@@ -96,7 +101,9 @@ export default function ShareSheet({
         // Surface as analytics only — never as a toast — to avoid
         // alarming the user when the share itself succeeded.
         track("share_count_failed", { post_id: sharePostId, channel, reason: error.message || "rpc_failed" });
+        return;
       }
+      onShareRecorded?.(channel);
     });
   };
   const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -135,22 +142,15 @@ export default function ShareSheet({
   const shareEncodedUrl = encodeURIComponent(effectiveShareUrl);
   const shareEncodedText = encodeURIComponent(shareText);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async (successMessage = "Link copied!", channel: ShareChannel = "copy_link") => {
     try {
-      const ta = document.createElement("textarea");
-      ta.value = effectiveShareUrl;
-      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      toast.success("Link copied!");
-      track("share_completed", { post_id: sharePostId, author_id: sharePostAuthorId, channel: "copy_link" });
-      recordShare("copy_link");
+      await copyText(effectiveShareUrl);
+      toast.success(successMessage);
+      track("share_completed", { post_id: sharePostId, author_id: sharePostAuthorId, channel });
+      recordShare(channel);
     } catch (e: any) {
       toast.info("Long-press URL bar to copy");
-      track("share_failed", { post_id: sharePostId, author_id: sharePostAuthorId, channel: "copy_link", reason: e?.message || "copy_failed" });
+      track("share_failed", { post_id: sharePostId, author_id: sharePostAuthorId, channel, reason: e?.message || "copy_failed" });
     }
     onClose();
   };
@@ -158,8 +158,7 @@ export default function ShareSheet({
   const handleOptionClick = (opt: { label?: string; url: string; copyMessage?: string }) => {
     const channel = (opt.label || "external").toLowerCase();
     if (opt.url === "__copy__") {
-      handleCopyLink();
-      if (opt.copyMessage) toast.success(opt.copyMessage);
+      void handleCopyLink(opt.copyMessage || "Link copied!", toChannel(opt.label));
       if (opt.label === "Facebook") {
         setTimeout(() => {
           import("@/lib/openExternalUrl").then(({ openExternalUrl }) =>
@@ -167,8 +166,6 @@ export default function ShareSheet({
           );
         }, 400);
       }
-      track("share_completed", { post_id: sharePostId, author_id: sharePostAuthorId, channel });
-      recordShare(toChannel(opt.label));
     } else {
       onClose();
       import("@/lib/openExternalUrl")
@@ -256,20 +253,13 @@ export default function ShareSheet({
         : `${getPublicOrigin()}/user/${sharePostAuthorId}`;
       const text = `Check out ${sharePostAuthorName || "this profile"} on ZIVO`;
       try {
-        if (navigator.share) {
-          await navigator.share({ title: text, text, url: profileUrl });
+        const result = await shareContent({ title: text, text, url: profileUrl, dialogTitle: "Share profile" });
+        if (result.shared || result.cancelled) {
           onClose();
           return;
         }
       } catch {}
-      const ta = document.createElement("textarea");
-      ta.value = profileUrl;
-      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      await copyText(profileUrl);
       toast.success("Profile link copied!");
       onClose();
     } catch (e: any) {
@@ -345,7 +335,7 @@ export default function ShareSheet({
               <span className="text-[11px] font-medium text-foreground">{opt.label}</span>
             </button>
           ))}
-          <button type="button" onClick={handleCopyLink} className="flex flex-col items-center gap-1.5 min-h-[44px]">
+          <button type="button" onClick={() => void handleCopyLink()} className="flex flex-col items-center gap-1.5 min-h-[44px]">
             <div className="h-11 w-11 rounded-full bg-muted/50 flex items-center justify-center">
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /></svg>
             </div>

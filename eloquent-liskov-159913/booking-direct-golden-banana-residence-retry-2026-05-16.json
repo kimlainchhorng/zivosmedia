@@ -1,0 +1,38 @@
+{
+  "run_at": "2026-05-17T01:16:51.277Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "STORE_IDS": 0,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort",
+      "guesthouse",
+      "hostel",
+      "villa",
+      "lodge",
+      "motel",
+      "inn",
+      "boutique"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "d68622ae-8bae-41b5-a463-3d917d6029c3",
+      "name": "Golden Banana Residence",
+      "status": "updated",
+      "photos": 56,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/golden-banana-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

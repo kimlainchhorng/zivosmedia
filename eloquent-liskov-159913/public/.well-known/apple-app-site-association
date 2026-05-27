@@ -1,0 +1,27 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "9KWY67J6LX.com.hizovo.app",
+        "paths": [
+          "/p/*",
+          "/u/*",
+          "/@*",
+          "/user/*",
+          "/dl/*",
+          "/reels/*",
+          "/shop/*",
+          "/grocery/shop/*",
+          "/marketplace",
+          "/flights/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "9KWY67J6LX.com.hizovo.app"
+    ]
+  }
+}

@@ -80,7 +80,8 @@ const settingsGroups: SettingsGroup[] = [
   {
     title: "Privacy & Notifications",
     items: [
-      { icon: Shield, label: "Privacy & Safety", description: "Blocks, mutes & visibility", href: "/account/privacy", color: "bg-rose-500/15", iconColor: "text-rose-500" },
+      { icon: Shield, label: "Privacy & Safety", description: "Blocks, mutes, 18+ blur", href: "/account/privacy", color: "bg-rose-500/15", iconColor: "text-rose-500" },
+      { icon: Eye, label: "Sensitive Media", description: "Blur 18+ pictures & videos", href: "/account/privacy#sensitive", color: "bg-fuchsia-500/15", iconColor: "text-fuchsia-500" },
       { icon: Database, label: "Data Rights", description: "GDPR/CCPA — access, delete, consents", href: "/account/data-rights", color: "bg-zinc-500/15", iconColor: "text-zinc-500" },
       { icon: Bell, label: "Inbox", description: "Past notifications & alerts", href: "/notifications", color: "bg-sky-500/15", iconColor: "text-sky-500" },
       { icon: Bell, label: "Notification Settings", description: "Preferences & channels", href: "/account/notifications", color: "bg-sky-500/15", iconColor: "text-sky-500" },

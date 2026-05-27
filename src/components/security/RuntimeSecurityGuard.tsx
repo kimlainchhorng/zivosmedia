@@ -62,7 +62,11 @@ export default function RuntimeSecurityGuard() {
     const onWindowError = (event: ErrorEvent) => {
       const msg = (event.message || "").toLowerCase();
 
-      if (msg.includes("resizeobserver loop limit exceeded")) {
+      if (
+        msg.includes("resizeobserver loop limit exceeded") ||
+        msg.includes("maximum update depth exceeded")
+      ) {
+        console.error("[RuntimeSecurityGuard] Window error:", event.error || event.message);
         return;
       }
 

@@ -100,7 +100,10 @@ vi.mock("@/hooks/usePostComments", () => ({
     submitting: false,
     addComment: vi.fn(),
     deleteComment: vi.fn(),
+    editComment: vi.fn(),
+    reportComment: vi.fn(),
     toggleReaction: vi.fn(),
+    togglePin: vi.fn(),
   }),
 }));
 
@@ -177,7 +180,7 @@ describe.each(NOTCHED_DEVICES)(
       // top of the panel never reaches the notch / status bar — no top padding
       // needed. The snap-point max-height still guards viewport overflow.
       const maxHeight = panel.getAttribute("data-max-height") || "";
-      expect(maxHeight).toContain("safe-area-inset-top");
+      expect(maxHeight).toMatch(/safe-area-inset-top|--zivo-safe-top/);
     });
 
     it("CommentsSheet: close button is labelled, inside padded panel, and Escape dismisses", () => {

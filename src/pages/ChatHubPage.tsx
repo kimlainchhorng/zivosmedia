@@ -16,6 +16,7 @@ import Car from "lucide-react/dist/esm/icons/car";
 import Search from "lucide-react/dist/esm/icons/search";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
+import Menu from "lucide-react/dist/esm/icons/menu";
 import PanelLeftClose from "lucide-react/dist/esm/icons/panel-left-close";
 import PanelLeftOpen from "lucide-react/dist/esm/icons/panel-left-open";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
@@ -74,19 +75,34 @@ import { format, isToday, isYesterday } from "date-fns";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import PullToRefresh from "@/components/shared/PullToRefresh";
+import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
 import SEOHead from "@/components/SEOHead";
 import { useCallback } from "react";
 import { assessChatMessageRisk, sanitizeOutgoingMessage } from "@/lib/security/chatContentSafety";
 import { validateExternalUrl } from "@/lib/urlSafety";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
+import { getChatRealtimePoolStats } from "@/services/chatRealtimePool";
+import {
+  buildChatHubActionsFolderMembership,
+  buildChatHubFolderTabs,
+  buildChatHubUnreadMaps,
+  filterChatHubRows,
+  sortChatHubRowsByPinAndDate,
+} from "./chat/chatHubSelectors";
+import { useChatHubSearchResults } from "./chat/useChatHubSearchResults";
+import { useChatHubRealtimeInvalidation } from "./chat/useChatHubRealtimeInvalidation";
+import { useMarkOpenPersonalChatRead } from "./chat/useMarkOpenPersonalChatRead";
+import { useLastOpenChatPersistence } from "./chat/useLastOpenChatPersistence";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
 
 // Lazy-load heavy sub-pages/components
 const GroupChat = lazy(() => import("@/components/chat/GroupChat"));
 const CreateGroupModal = lazy(() => import("@/components/chat/CreateGroupModal"));
 const StoreLiveChat = lazy(() => import("@/components/grocery/StoreLiveChat"));
 const PersonalChat = lazy(() => import("@/components/chat/PersonalChat"));
-const ChatStories = lazy(() => import("@/components/chat/ChatStories"));
+const TripChatSheet = lazy(() => import("@/components/rides/TripChatSheet"));
+const SupportTicketChatSheet = lazy(() => import("@/components/support/SupportTicketChatSheet"));
 const ZivoMobileNav = lazy(() => import("@/components/app/ZivoMobileNav"));
 
 // Lazy-load sticker packs config (300+ PNG imports)
@@ -97,8 +113,60 @@ const getIllustratedPacks = () => {
   return [];
 };
 
-type ChatCategory = "personal" | "shop" | "support" | "ride";
+export type ChatCategory = "personal" | "shop" | "support" | "ride";
 type BuiltInChatFolder = "all" | "unread" | "personal" | "groups" | "shop" | "support" | "ride";
+
+function ChatRowAvatar({
+  avatar,
+  name,
+  isGroup,
+  active,
+  embedded = false,
+  collapsedRail = false,
+  variant = "list",
+}: {
+  avatar?: string | null;
+  name: string;
+  isGroup: boolean;
+  active: ChatCategory;
+  embedded?: boolean;
+  collapsedRail?: boolean;
+  variant?: "list" | "archived";
+}) {
+  const groupAvatarSrc = useSignedMedia(isGroup ? avatar : null, "chat-media-files", "thumbnail");
+  const displayAvatar = isGroup ? groupAvatarSrc : avatar;
+  const initials = (name || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  return (
+    <div className={cn(
+      "flex items-center justify-center overflow-hidden",
+      variant === "archived"
+        ? "w-10 h-10 rounded-xl bg-muted ring-2 ring-border/20"
+        : [
+            "rounded-full",
+            embedded ? "h-[44px] w-[44px]" : "w-[52px] h-[52px]",
+            collapsedRail && "lg:w-11 lg:h-11",
+            isGroup ? "bg-primary/10" : "bg-muted",
+          ],
+    )}>
+      {displayAvatar ? (
+        <img src={displayAvatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+      ) : isGroup ? (
+        <Users className="w-5 h-5 text-primary" />
+      ) : active === "personal" ? (
+        <span className={cn("font-bold text-muted-foreground", variant === "archived" ? "text-sm" : "text-base")}>
+          {initials}
+        </span>
+      ) : active === "shop" ? (
+        <StoreIcon className="w-5 h-5 text-muted-foreground" />
+      ) : active === "support" ? (
+        <Headphones className="w-5 h-5 text-muted-foreground" />
+      ) : (
+        <Car className="w-5 h-5 text-muted-foreground" />
+      )}
+    </div>
+  );
+}
 
 interface CategoryTab {
   id: ChatCategory;
@@ -140,22 +208,59 @@ const builtInFolders: FolderTab[] = [
 
 const FOLDER_STORAGE_KEY = "zivo:chat-folder";
 const LAST_OPEN_CHAT_KEY = "zivo:last-open-chat";
+const CHAT_LAST_SEEN_KEY_PREFIX = "zivo:chat-last-seen";
 
 function BodyPortal({ children }: { children: ReactNode }) {
   if (typeof document === "undefined") return <>{children}</>;
   return createPortal(children, document.body);
 }
 
-type PersistedOpenChat =
-  | { kind: "personal"; id: string; name: string; avatar?: string | null; isVerified?: boolean }
-  | { kind: "group"; id: string; name: string; avatar?: string | null }
-  | { kind: "shop"; storeId: string; name: string; logo?: string | null };
+function getChatLastSeenStorageKey(userId: string, category: "group" | "ride" | "support") {
+  return `${CHAT_LAST_SEEN_KEY_PREFIX}:${userId}:${category}`;
+}
+
+function readChatLastSeenMap(userId: string | undefined, category: "group" | "ride" | "support"): Record<string, string> {
+  if (!userId) return {};
+  try {
+    const raw = localStorage.getItem(getChatLastSeenStorageKey(userId, category));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed as Record<string, string> : {};
+  } catch {
+    return {};
+  }
+}
+
+function buildLastSeenSignature(map: Record<string, string>) {
+  const entries = Object.entries(map);
+  if (entries.length === 0) return "";
+  entries.sort(([a], [b]) => a.localeCompare(b));
+  return entries.map(([chatId, seenAt]) => `${chatId}:${seenAt}`).join("|");
+}
+
+function getChatPreviewText(message: any, fallback = "") {
+  if (!message) return fallback;
+  const text = String(message.message || "").trim();
+  const messageType = message.message_type || "text";
+
+  if (messageType === "voice") return "Voice message";
+  if (messageType === "file") return "File";
+  if (messageType === "media_album") {
+    return text && text !== "Photo album" && text !== "Media album"
+      ? `Photo album: ${text}`
+      : "Photo album";
+  }
+  if (messageType === "image" || message.image_url) return text && text !== "Photo" ? text : "Photo";
+  if (messageType === "video" || message.video_url) return text && text !== "Video" ? text : "Video";
+  return text || fallback;
+}
 
 type OpenChatState = {
   recipientId?: string;
   recipientName?: string;
   recipientAvatar?: string | null;
   prefillInput?: string;
+  openGiftOnMount?: boolean;
   userId?: string;
   userName?: string;
   name?: string;
@@ -188,6 +293,7 @@ function normalizeOpenChatState(openChat?: OpenChatState | null) {
     name,
     avatar,
     prefillInput: openChat.prefillInput,
+    openGiftOnMount: openChat.openGiftOnMount,
   };
 }
 
@@ -289,6 +395,9 @@ const personalHubMenu = [
 ] as const;
 
 export default function ChatHubPage({ embedded = false }: { embedded?: boolean } = {}) {
+  const fallbackRefreshMs = 45_000;
+  const invalidateDebounceMs = 350;
+  const [syncMode, setSyncMode] = useState<"live" | "fallback">("fallback");
   const [folder, setFolderState] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(FOLDER_STORAGE_KEY);
@@ -323,8 +432,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   }, []);
   const [searchFilter, setSearchFilter] = useState<"chats" | "media" | "links" | "files">("chats");
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
-  // Telegram-style: collapse Stories strip on scroll-down, restore on scroll-up
-  const [storiesCollapsed, setStoriesCollapsed] = useState(false);
   // Pre-warm lazy chat chunks so first open is instant (no visible loading delay).
   // requestIdleCallback is unsupported in Safari — must guard via window.
   useEffect(() => {
@@ -342,43 +449,18 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     };
   }, []);
 
-  const lastScrollYRef = useRef(0);
-  useEffect(() => {
-    let rafId = 0;
-    let pending = false;
-    const tick = () => {
-      pending = false;
-      const y = window.scrollY || document.documentElement.scrollTop || 0;
-      const last = lastScrollYRef.current;
-      const delta = y - last;
-      if (y <= 4) {
-        setStoriesCollapsed(false);
-      } else if (delta > 6 && y > 20) {
-        setStoriesCollapsed(true);
-      } else if (delta < -4) {
-        setStoriesCollapsed(false);
-      }
-      lastScrollYRef.current = y;
-    };
-    const onScroll = () => {
-      if (pending) return;
-      pending = true;
-      rafId = requestAnimationFrame(tick);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, []);
   const [showArchived, setShowArchived] = useState(false);
+  const [showChatMenu, setShowChatMenu] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; category: ChatCategory } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; category: ChatCategory; isGroup?: boolean } | null>(null);
   const [swipedId, setSwipedId] = useState<string | null>(null);
+  const [groupLastSeen, setGroupLastSeen] = useState<Record<string, string>>({});
+  const [rideLastSeen, setRideLastSeen] = useState<Record<string, string>>({});
+  const [supportLastSeen, setSupportLastSeen] = useState<Record<string, string>>({});
   const [openShopChat, setOpenShopChat] = useState<{ storeId: string; name: string; logo?: string | null } | null>(null);
-  const [openPersonalChat, _setOpenPersonalChat] = useState<{ id: string; name: string; avatar?: string | null; isVerified?: boolean; prefillInput?: string } | null>(null);
+  const [openPersonalChat, _setOpenPersonalChat] = useState<{ id: string; name: string; avatar?: string | null; isVerified?: boolean; prefillInput?: string; openGiftOnMount?: boolean } | null>(null);
   // Wrap the raw setter so every call site automatically picks up a pending
   // forward prefill (set by ChannelPostCard.forwardToDm). Keeps the per-row
   // click handlers untouched.
@@ -396,10 +478,67 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     _setOpenPersonalChat(next);
   };
   const [openGroupChat, setOpenGroupChat] = useState<{ id: string; name: string; avatar?: string | null; autoStartCall?: "audio" | "video" | null } | null>(null);
+  const [openRideChat, setOpenRideChat] = useState<{ rideRequestId: string; counterpartName?: string } | null>(null);
+  const [openSupportChat, setOpenSupportChat] = useState<{ ticketId: string } | null>(null);
+  const [isInviteSharing, setIsInviteSharing] = useState(false);
   const [showGroupCallPicker, setShowGroupCallPicker] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const fallbackPollInterval = syncMode === "fallback" && user ? fallbackRefreshMs : false;
+  const groupLastSeenSignature = useMemo(() => buildLastSeenSignature(groupLastSeen), [groupLastSeen]);
+  const rideLastSeenSignature = useMemo(() => buildLastSeenSignature(rideLastSeen), [rideLastSeen]);
+  const supportLastSeenSignature = useMemo(() => buildLastSeenSignature(supportLastSeen), [supportLastSeen]);
+
+  useEffect(() => {
+    setGroupLastSeen(readChatLastSeenMap(user?.id, "group"));
+    setRideLastSeen(readChatLastSeenMap(user?.id, "ride"));
+    setSupportLastSeen(readChatLastSeenMap(user?.id, "support"));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      localStorage.setItem(getChatLastSeenStorageKey(user.id, "group"), JSON.stringify(groupLastSeen));
+    } catch {}
+  }, [groupLastSeen, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      localStorage.setItem(getChatLastSeenStorageKey(user.id, "ride"), JSON.stringify(rideLastSeen));
+    } catch {}
+  }, [rideLastSeen, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      localStorage.setItem(getChatLastSeenStorageKey(user.id, "support"), JSON.stringify(supportLastSeen));
+    } catch {}
+  }, [supportLastSeen, user?.id]);
+
+  const markOverlayChatSeen = useCallback((category: "ride" | "support", chatId: string) => {
+    const seenAt = new Date().toISOString();
+    const markSeen = (prev: Record<string, string>) => {
+      const previousSeenAt = prev[chatId] ? Date.parse(prev[chatId]) : 0;
+      if (previousSeenAt && Date.now() - previousSeenAt < 1_000) return prev;
+      return { ...prev, [chatId]: seenAt };
+    };
+    if (category === "ride") {
+      setRideLastSeen(markSeen);
+      return;
+    }
+    setSupportLastSeen(markSeen);
+  }, []);
+
+  const markGroupChatSeen = useCallback((groupId: string) => {
+    const seenAt = new Date().toISOString();
+    setGroupLastSeen((prev) => {
+      const previousSeenAt = prev[groupId] ? Date.parse(prev[groupId]) : 0;
+      if (previousSeenAt && Date.now() - previousSeenAt < 1_000) return prev;
+      return { ...prev, [groupId]: seenAt };
+    });
+  }, []);
 
   // The embedded chat slideout (rendered by FeedSidebar) has no action toolbar
   // of its own, so it dispatches `zivo-chat-new-group` to ask the hub to open
@@ -414,19 +553,78 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     if (!openPersonalChat) return;
     setOpenGroupChat(null);
     setOpenShopChat(null);
+    setOpenRideChat(null);
+    setOpenSupportChat(null);
   }, [openPersonalChat]);
 
   useEffect(() => {
     if (!openGroupChat) return;
     _setOpenPersonalChat(null);
     setOpenShopChat(null);
-  }, [openGroupChat]);
+    setOpenRideChat(null);
+    setOpenSupportChat(null);
+    markGroupChatSeen(openGroupChat.id);
+    queryClient.setQueryData<any[]>(["chat-hub-groups", user?.id, groupLastSeenSignature], (previous = []) =>
+      previous.map((chat: any) =>
+        chat.id === openGroupChat.id
+          ? { ...chat, unread: 0 }
+          : chat
+      )
+    );
+    // `groupLastSeenSignature` intentionally omitted: marking-seen writes a new
+    // timestamp into groupLastSeen, which would re-fire this effect and loop.
+  }, [markGroupChatSeen, openGroupChat, queryClient, user?.id]);
 
   useEffect(() => {
     if (!openShopChat) return;
     _setOpenPersonalChat(null);
     setOpenGroupChat(null);
+    setOpenRideChat(null);
+    setOpenSupportChat(null);
+    queryClient.setQueryData<any[]>(["chat-hub-shop", user?.id], (previous = []) =>
+      previous.map((chat: any) =>
+        chat.storeId === openShopChat.storeId
+          ? { ...chat, unread: 0 }
+          : chat
+      )
+    );
   }, [openShopChat]);
+
+  useEffect(() => {
+    if (!openRideChat) return;
+    _setOpenPersonalChat(null);
+    setOpenGroupChat(null);
+    setOpenShopChat(null);
+    setOpenSupportChat(null);
+    markOverlayChatSeen("ride", openRideChat.rideRequestId);
+    queryClient.setQueryData<any[]>(["chat-hub-ride", user?.id, rideLastSeenSignature], (previous = []) =>
+      previous.map((chat: any) =>
+        chat.rideRequestId === openRideChat.rideRequestId || chat.id === openRideChat.rideRequestId
+          ? { ...chat, unread: 0 }
+          : chat
+      )
+    );
+    // `rideLastSeenSignature` intentionally omitted: marking-seen writes a new
+    // timestamp into rideLastSeen, which would re-fire this effect and loop.
+  }, [markOverlayChatSeen, openRideChat, queryClient, user?.id]);
+
+  useEffect(() => {
+    if (!openSupportChat) return;
+    _setOpenPersonalChat(null);
+    setOpenGroupChat(null);
+    setOpenShopChat(null);
+    setOpenRideChat(null);
+    markOverlayChatSeen("support", openSupportChat.ticketId);
+    queryClient.setQueryData<any[]>(["chat-hub-support", user?.id, supportLastSeenSignature], (previous = []) =>
+      previous.map((chat: any) =>
+        chat.id === openSupportChat.ticketId
+          ? { ...chat, unread: 0 }
+          : chat
+      )
+    );
+    // `supportLastSeenSignature` intentionally omitted: marking-seen writes a
+    // new timestamp into supportLastSeen, which would re-fire this effect and loop.
+  }, [markOverlayChatSeen, openSupportChat, queryClient, user?.id]);
 
   // Share mode state
   const [sharePayload, setSharePayload] = useState<{ shareUrl: string; shareText: string } | null>(null);
@@ -435,9 +633,12 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   useEffect(() => {
     const unlockedMsgId = searchParams.get("unlocked");
     if (!unlockedMsgId || !user) return;
-    // Remove param from URL immediately
-    searchParams.delete("unlocked");
-    setSearchParams(searchParams, { replace: true });
+    // Remove param from URL immediately (build a fresh URLSearchParams so
+    // React Router detects the change — mutating the existing object can
+    // leave the underlying URL stale and reschedule this effect every render)
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("unlocked");
+    setSearchParams(nextParams, { replace: true });
     // Auto-verify the unlock with Stripe
     const verify = async () => {
       try {
@@ -457,6 +658,20 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     verify();
   }, [searchParams, user]);
 
+  // Handle premium gift checkout return: /chat?gift=success|canceled
+  useEffect(() => {
+    const giftStatus = searchParams.get("gift");
+    if (giftStatus !== "success" && giftStatus !== "canceled") return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("gift");
+    setSearchParams(nextParams, { replace: true });
+    if (giftStatus === "success") {
+      toast.success("Premium gift sent. It may take a moment to appear in chat.");
+    } else {
+      toast.info("Premium gift checkout was canceled.");
+    }
+  }, [searchParams, setSearchParams]);
+
   // Handle ?with=<userId> deep-link from push notification tap
   useEffect(() => {
     let withId = searchParams.get("with");
@@ -473,8 +688,11 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     }
 
     if (!withId || !user) return;
-    searchParams.delete("with");
-    setSearchParams(searchParams, { replace: true });
+    const openGiftOnMount = searchParams.get("gift") === "1";
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("with");
+    nextParams.delete("gift");
+    setSearchParams(nextParams, { replace: true });
     setActive("personal");
     // If a forward-from-channel stashed a prefill, consume it now so the
     // composer opens with the channel post text already typed.
@@ -498,37 +716,89 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         avatar: data?.avatar_url || null,
         isVerified: (data as any)?.is_verified === true,
         prefillInput,
+        openGiftOnMount,
       });
     })();
   }, [searchParams, user, setSearchParams]);
 
+  // Handle ?group=<groupId> deep-link from invite redemption or copied group links
+  useEffect(() => {
+    const groupId = searchParams.get("group");
+    if (!groupId || !user) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("group");
+    setSearchParams(nextParams, { replace: true });
+    setFolder("groups");
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("chat_groups")
+        .select("id, name, avatar_url")
+        .eq("id", groupId)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Could not open group");
+        return;
+      }
+      setOpenGroupChat({ id: data.id, name: data.name || "Group", avatar: data.avatar_url || null });
+    })();
+  }, [searchParams, setSearchParams, user]);
+
   // Handle deep-link from profile page chat button OR share-to-chat OR start call
   const [pendingCall, setPendingCall] = useState<"voice" | "video" | null>(null);
-  const hasRestoredLastChatRef = useRef(false);
+  const routeState = location.state as {
+    openChat?: OpenChatState;
+    startCall?: StartCallState;
+    shareUrl?: string;
+    shareText?: string;
+    shareMessage?: string;
+    splitRequest?: SplitRequestState;
+  } | null;
+  const normalizedRouteOpenChat = normalizeOpenChatState(routeState?.openChat);
+  const shouldSkipLastOpenRestore = Boolean(
+    searchParams.get("with") ||
+    searchParams.get("group") ||
+    searchParams.get("unlocked") ||
+    normalizedRouteOpenChat ||
+    routeState?.shareUrl ||
+    routeState?.shareMessage ||
+    routeState?.splitRequest
+  );
+
+  useLastOpenChatPersistence({
+    userId: user?.id,
+    lastOpenChatKey: LAST_OPEN_CHAT_KEY,
+    shouldSkipRestore: shouldSkipLastOpenRestore,
+    locationState: location.state,
+    searchParamsKey: searchParams.toString(),
+    openPersonalChat,
+    openGroupChat,
+    openShopChat,
+    openRideChat,
+    openSupportChat,
+    setActive,
+    setOpenPersonalChat,
+    setOpenGroupChat,
+    setOpenShopChat,
+    setOpenRideChat,
+    setOpenSupportChat,
+  });
+
   useEffect(() => {
-    const state = location.state as {
-      openChat?: OpenChatState;
-      startCall?: StartCallState;
-      shareUrl?: string;
-      shareText?: string;
-      shareMessage?: string;
-      splitRequest?: SplitRequestState;
-    } | null;
-    const normalizedOpenChat = normalizeOpenChatState(state?.openChat);
+    const normalizedOpenChat = normalizedRouteOpenChat;
 
     const splitAmount =
-      typeof state?.splitRequest?.amount === "number" && Number.isFinite(state.splitRequest.amount)
-        ? state.splitRequest.amount
+      typeof routeState?.splitRequest?.amount === "number" && Number.isFinite(routeState.splitRequest.amount)
+        ? routeState.splitRequest.amount
         : null;
     const splitRiders =
-      typeof state?.splitRequest?.riders === "number" && Number.isFinite(state.splitRequest.riders)
-        ? state.splitRequest.riders
+      typeof routeState?.splitRequest?.riders === "number" && Number.isFinite(routeState.splitRequest.riders)
+        ? routeState.splitRequest.riders
         : null;
     const splitPrefill = splitAmount !== null
       ? `Split ride fare: $${splitAmount.toFixed(2)}${splitRiders ? ` each (${splitRiders} riders)` : ""}`
       : "";
-    const sharedPrefill = (state?.shareMessage || "").trim() || splitPrefill;
-    const normalizedStartCall = normalizeStartCall(state?.startCall);
+    const sharedPrefill = (routeState?.shareMessage || "").trim() || splitPrefill;
+    const normalizedStartCall = normalizeStartCall(routeState?.startCall);
 
     if (normalizedOpenChat) {
       setOpenPersonalChat(normalizedOpenChat);
@@ -547,8 +817,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       window.history.replaceState({}, document.title);
     }
 
-    if (state?.shareUrl) {
-      setSharePayload({ shareUrl: state.shareUrl, shareText: state.shareText || "" });
+    if (routeState?.shareUrl) {
+      setSharePayload({ shareUrl: routeState.shareUrl, shareText: routeState.shareText || "" });
       setActive("personal");
       window.history.replaceState({}, document.title);
     }
@@ -557,114 +827,20 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       setActive("personal");
       setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false });
     }
-  }, [location.state, location.pathname, user?.id]);
+  }, [location.pathname, normalizedRouteOpenChat, routeState, user?.id]);
 
-  useEffect(() => {
-    if (hasRestoredLastChatRef.current || !user?.id) return;
-    hasRestoredLastChatRef.current = true;
+  useMarkOpenPersonalChatRead({
+    userId: user?.id,
+    recipientId: openPersonalChat?.id,
+    queryClient,
+  });
 
-    const routeState = location.state as {
-      openChat?: OpenChatState;
-      startCall?: StartCallState;
-      shareUrl?: string;
-      shareText?: string;
-      shareMessage?: string;
-      splitRequest?: SplitRequestState;
-    } | null;
-
-    if (
-      searchParams.get("with") ||
-      searchParams.get("unlocked") ||
-      normalizeOpenChatState(routeState?.openChat) ||
-      routeState?.shareUrl ||
-      routeState?.shareMessage ||
-      routeState?.splitRequest
-    ) return;
-
-    try {
-      const raw = localStorage.getItem(`${LAST_OPEN_CHAT_KEY}:${user.id}`);
-      if (!raw) return;
-      const persisted = JSON.parse(raw) as PersistedOpenChat;
-      if (persisted.kind === "personal") {
-        setActive("personal");
-        setOpenPersonalChat({ id: persisted.id, name: persisted.name, avatar: persisted.avatar || null, isVerified: persisted.isVerified === true });
-      } else if (persisted.kind === "group") {
-        setActive("personal");
-        setOpenGroupChat({ id: persisted.id, name: persisted.name, avatar: persisted.avatar || null });
-      } else if (persisted.kind === "shop") {
-        setActive("shop");
-        setOpenShopChat({ storeId: persisted.storeId, name: persisted.name, logo: persisted.logo || null });
-      }
-    } catch {}
-  }, [location.state, searchParams, user?.id]);
-
-  useEffect(() => {
-    if (!user?.id || !hasRestoredLastChatRef.current) return;
-    const storageKey = `${LAST_OPEN_CHAT_KEY}:${user.id}`;
-    try {
-      if (openPersonalChat) {
-        const payload: PersistedOpenChat = {
-          kind: "personal",
-          id: openPersonalChat.id,
-          name: openPersonalChat.name,
-          avatar: openPersonalChat.avatar || null,
-          isVerified: openPersonalChat.isVerified === true,
-        };
-        localStorage.setItem(storageKey, JSON.stringify(payload));
-        return;
-      }
-      if (openGroupChat) {
-        const payload: PersistedOpenChat = {
-          kind: "group",
-          id: openGroupChat.id,
-          name: openGroupChat.name,
-          avatar: openGroupChat.avatar || null,
-        };
-        localStorage.setItem(storageKey, JSON.stringify(payload));
-        return;
-      }
-      if (openShopChat) {
-        const payload: PersistedOpenChat = {
-          kind: "shop",
-          storeId: openShopChat.storeId,
-          name: openShopChat.name,
-          logo: openShopChat.logo || null,
-        };
-        localStorage.setItem(storageKey, JSON.stringify(payload));
-        return;
-      }
-      localStorage.removeItem(storageKey);
-    } catch {}
-  }, [openGroupChat, openPersonalChat, openShopChat, user?.id]);
-
-  useEffect(() => {
-    if (!user?.id || !openPersonalChat?.id) return;
-
-    const recipientId = openPersonalChat.id;
-
-    queryClient.setQueryData<any[]>(["chat-hub-personal", user.id], (previous = []) =>
-      previous.map((chat: any) =>
-        chat.id === recipientId
-          ? { ...chat, unread: 0, isRead: true }
-          : chat
-      )
-    );
-
-    void (async () => {
-      const { error } = await supabase
-        .from("direct_messages")
-        .update({ is_read: true })
-        .eq("receiver_id", user.id)
-        .eq("sender_id", recipientId)
-        .eq("is_read", false);
-
-      if (error) {
-        console.error("[ChatHub] Failed to mark conversation as read:", error);
-      }
-
-      await queryClient.invalidateQueries({ queryKey: ["chat-hub-personal", user.id] });
-    })();
-  }, [openPersonalChat?.id, queryClient, user?.id]);
+  useChatHubRealtimeInvalidation({
+    userId: user?.id,
+    queryClient,
+    invalidateDebounceMs,
+    setSyncMode,
+  });
 
   // Send shared content as a DM to selected contact
   const handleShareToContact = async (contactId: string, contactName: string, contactAvatar?: string | null) => {
@@ -702,9 +878,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   };
 
   // Fetch store chats for "shop" tab
-  const { data: shopChats = [] } = useQuery({
+  const { data: shopChats = [], isError: hasShopChatsError } = useQuery({
     queryKey: ["chat-hub-shop", user?.id],
-    enabled: !!user && active === "shop",
+    enabled: !!user,
+    refetchInterval: fallbackPollInterval,
     queryFn: async () => {
       const { data } = await supabase
         .from("store_chats")
@@ -714,64 +891,78 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       if (!data) return [];
 
-      const enriched = await Promise.all(
-        data.map(async (chat: any) => {
-          const { data: lastMsg } = await supabase
-            .from("store_chat_messages")
-            .select("content, created_at, is_read, sender_type")
-            .eq("chat_id", chat.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+      const chatIds = data.map((chat: any) => chat.id).filter(Boolean);
+      if (chatIds.length === 0) return [];
 
-          const { count } = await supabase
-            .from("store_chat_messages")
-            .select("*", { count: "exact", head: true })
-            .eq("chat_id", chat.id)
-            .eq("sender_type", "store")
-            .eq("is_read", false);
+      // Single query for both "latest message per chat" and "unread count per
+      // chat". The previous two queries hit the same table back-to-back; one
+      // pass + client-side aggregation removes the duplicate round-trip.
+      const { data: messageRows } = await supabase
+        .from("store_chat_messages")
+        .select("chat_id, content, created_at, is_read, sender_type")
+        .in("chat_id", chatIds)
+        .order("created_at", { ascending: false })
+        .limit(2500);
 
-          return {
-            id: chat.id,
-            storeId: chat.store_id,
-            storeSlug: chat.store_profiles?.slug,
-            name: chat.store_profiles?.name || "Store",
-            avatar: chat.store_profiles?.logo_url,
-            lastMessage: lastMsg?.content || "No messages yet",
-            lastTime: lastMsg?.created_at || chat.created_at,
-            unread: count || 0,
-          };
-        })
-      );
+      const latestByChat = new Map<string, { content: string; created_at: string }>();
+      const unreadByChat = new Map<string, number>();
+      for (const row of (messageRows || []) as any[]) {
+        if (!row?.chat_id) continue;
+        if (!latestByChat.has(row.chat_id)) {
+          latestByChat.set(row.chat_id, { content: row.content || "", created_at: row.created_at });
+        }
+        if (row.sender_type === "store" && row.is_read === false) {
+          unreadByChat.set(row.chat_id, (unreadByChat.get(row.chat_id) || 0) + 1);
+        }
+      }
+
+      const enriched = data.map((chat: any) => {
+        const lastMsg = latestByChat.get(chat.id);
+        return {
+          id: chat.id,
+          storeId: chat.store_id,
+          storeSlug: chat.store_profiles?.slug,
+          name: chat.store_profiles?.name || "Store",
+          avatar: chat.store_profiles?.logo_url,
+          lastMessage: lastMsg?.content || "No messages yet",
+          lastTime: lastMsg?.created_at || chat.created_at,
+          unread: unreadByChat.get(chat.id) || 0,
+        };
+      });
       return enriched;
     },
   });
 
   // Fetch ride chats via chat_messages with trip_id
-  const { data: rideChats = [] } = useQuery({
-    queryKey: ["chat-hub-ride", user?.id],
-    enabled: !!user && active === "ride",
+  const { data: rideChats = [], isError: hasRideChatsError } = useQuery({
+    queryKey: ["chat-hub-ride", user?.id, rideLastSeenSignature],
+    enabled: !!user,
+    refetchInterval: fallbackPollInterval,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("chat_messages")
-        .select("id, chat_id, order_id, trip_id, sender_id, sender_type, message, created_at, is_read")
-        .eq("sender_id", user!.id)
+      const { data } = await (supabase as any)
+        .from("trip_messages")
+        .select("id, ride_request_id, trip_id, sender_id, sender_role, content, created_at, moderation_status")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (!data || data.length === 0) return [];
 
       const grouped = new Map<string, any>();
       for (const msg of data as any[]) {
-        const key = msg.chat_id || msg.order_id || msg.id;
+        const key = msg.ride_request_id || msg.trip_id || msg.id;
+        const seenAt = rideLastSeen[key] ? new Date(rideLastSeen[key]).getTime() : 0;
         if (!grouped.has(key)) {
           grouped.set(key, {
             id: key,
+            rideRequestId: msg.ride_request_id || msg.trip_id || msg.id,
             name: `Ride #${key.slice(0, 6).toUpperCase()}`,
-            lastMessage: msg.message || "",
+            lastMessage: msg.content || "",
             lastTime: msg.created_at,
-            unread: (!msg.is_read && msg.sender_id !== user!.id) ? 1 : 0,
+            unread: 0,
           });
+        }
+        if (msg.sender_id && msg.sender_id !== user!.id && new Date(msg.created_at).getTime() > seenAt) {
+          grouped.get(key).unread += 1;
         }
       }
       return Array.from(grouped.values());
@@ -779,32 +970,92 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   });
 
   // Support chats from ai_conversations
-  const { data: supportChats = [] } = useQuery({
-    queryKey: ["chat-hub-support", user?.id],
-    enabled: !!user && active === "support",
+  const { data: supportChats = [], isError: hasSupportChatsError } = useQuery({
+    queryKey: ["chat-hub-support", user?.id, supportLastSeenSignature],
+    enabled: !!user,
+    refetchInterval: fallbackPollInterval,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("ai_conversations")
-        .select("id, question, answer, created_at")
+      const { data } = await (supabase as any)
+        .from("support_tickets")
+        .select("id, subject, status, ticket_number, created_at, updated_at, last_message_at")
         .eq("user_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(30);
 
       if (!data) return [];
-      return data.map((c: any) => ({
-        id: c.id,
-        name: "ZIVO Support",
-        lastMessage: c.answer || c.question || "Conversation",
-        lastTime: c.created_at,
-        unread: 0,
-      }));
+      const tickets = data as any[];
+      const ticketIds = tickets.map((t) => t.id).filter(Boolean);
+      if (ticketIds.length === 0) return [];
+
+      const seenIsos = ticketIds
+        .map((ticketId) => supportLastSeen[ticketId])
+        .filter((value): value is string => !!value)
+        .sort();
+      const oldestSeenIso = seenIsos[0] || null;
+
+      const [latestRepliesResult, unreadRepliesResult] = await Promise.all([
+        (supabase as any)
+          .from("ticket_replies")
+          .select("ticket_id, message, created_at, is_admin")
+          .in("ticket_id", ticketIds)
+          .order("created_at", { ascending: false })
+          .limit(1200),
+        oldestSeenIso
+          ? (supabase as any)
+              .from("ticket_replies")
+              .select("ticket_id, created_at, is_admin")
+              .in("ticket_id", ticketIds)
+              .eq("is_admin", true)
+              .gt("created_at", oldestSeenIso)
+              .order("created_at", { ascending: false })
+              .limit(2000)
+          : (supabase as any)
+              .from("ticket_replies")
+              .select("ticket_id, created_at, is_admin")
+              .in("ticket_id", ticketIds)
+              .eq("is_admin", true)
+              .order("created_at", { ascending: false })
+              .limit(2000),
+      ]);
+
+      const latestReplyByTicket = new Map<string, { message?: string; created_at?: string; is_admin?: boolean }>();
+      for (const reply of (latestRepliesResult.data || []) as any[]) {
+        if (!reply?.ticket_id || latestReplyByTicket.has(reply.ticket_id)) continue;
+        latestReplyByTicket.set(reply.ticket_id, reply);
+      }
+
+      const unreadCountByTicket = new Map<string, number>();
+      for (const reply of (unreadRepliesResult.data || []) as any[]) {
+        if (!reply?.ticket_id || !reply?.created_at) continue;
+        const seenAtIso = supportLastSeen[reply.ticket_id] || null;
+        if (seenAtIso && new Date(reply.created_at).getTime() <= new Date(seenAtIso).getTime()) continue;
+        unreadCountByTicket.set(reply.ticket_id, (unreadCountByTicket.get(reply.ticket_id) || 0) + 1);
+      }
+
+      const enriched = tickets.map((ticket: any) => {
+        const reply = latestReplyByTicket.get(ticket.id);
+        const unreadCount = unreadCountByTicket.get(ticket.id) || 0;
+
+        return {
+          id: ticket.id,
+          name: ticket.subject || `Support ${ticket.ticket_number || "ticket"}`,
+          status: ticket.status,
+          ticketNumber: ticket.ticket_number,
+          lastMessage: reply?.message || ticket.subject || "Support ticket",
+          lastTime: reply?.created_at || ticket.last_message_at || ticket.updated_at || ticket.created_at,
+          unread: unreadCount,
+        };
+      });
+      return enriched;
     },
   });
 
   // Fetch personal chats from direct_messages
-  const { data: personalChats = [] } = useQuery({
+  const { data: personalChats = [], isError: hasPersonalChatsError } = useQuery({
     queryKey: ["chat-hub-personal", user?.id],
-    enabled: !!user && active === "personal",
+    enabled: !!user,
+    refetchInterval: fallbackPollInterval,
     queryFn: async () => {
       const { data } = await supabase
         .from("direct_messages")
@@ -817,6 +1068,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       const grouped = new Map<string, { lastMsg: any; unread: number }>();
       for (const msg of data as any[]) {
+        if (msg.hidden_at) continue;
         const otherId = msg.sender_id === user!.id ? msg.receiver_id : msg.sender_id;
         if (!grouped.has(otherId)) {
           grouped.set(otherId, { lastMsg: msg, unread: 0 });
@@ -856,11 +1108,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           avatar: profile?.avatar_url || null,
           isVerified: profile?.is_verified === true,
           isBusiness,
-          lastMessage: entry.lastMsg.message_type === "voice"
-            ? "🎤 Voice message"
-            : entry.lastMsg.message_type === "file"
-            ? "📎 File"
-            : entry.lastMsg.message || (entry.lastMsg.image_url ? "📷 Image" : entry.lastMsg.video_url ? "🎥 Video" : ""),
+          lastMessage: getChatPreviewText(entry.lastMsg),
           lastTime: entry.lastMsg.created_at,
           unread: entry.unread,
           isOnline,
@@ -873,9 +1121,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   });
 
   // Fetch group chats
-  const { data: groupChats = [] } = useQuery({
-    queryKey: ["chat-hub-groups", user?.id],
-    enabled: !!user && active === "personal",
+  const { data: groupChats = [], isError: hasGroupChatsError } = useQuery({
+    queryKey: ["chat-hub-groups", user?.id, groupLastSeenSignature],
+    enabled: !!user,
+    refetchInterval: fallbackPollInterval,
     queryFn: async () => {
       const { data: memberships } = await (supabase as any)
         .from("chat_group_members")
@@ -892,42 +1141,73 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       if (!groups) return [];
 
-      const enriched = await Promise.all(
-        groups.map(async (g: any) => {
-          const { data: lastMsg } = await (supabase as any)
-            .from("group_messages")
-            .select("message, created_at, sender_id")
-            .eq("group_id", g.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+      const { data: groupMessages } = await (supabase as any)
+        .from("group_messages")
+        .select("*")
+        .in("group_id", groupIds)
+        .order("created_at", { ascending: false })
+        .limit(3000);
 
-          let lastSenderName: string | null = null;
-          if (lastMsg?.sender_id && lastMsg.sender_id !== user!.id) {
-            const { data: senderProf } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("user_id", lastMsg.sender_id)
-              .maybeSingle();
-            lastSenderName = (senderProf as any)?.full_name?.split(" ")[0] || null;
-          } else if (lastMsg?.sender_id === user!.id) {
-            lastSenderName = "You";
-          }
+      const latestByGroup = new Map<string, any>();
+      const unreadByGroup = new Map<string, number>();
 
-          return {
-            id: g.id,
-            name: g.name,
-            avatar: g.avatar_url,
-            lastMessage: lastMsg?.message_type === "voice"
-            ? "🎤 Voice message"
-            : lastMsg?.message || "Group created",
-            lastTime: lastMsg?.created_at || g.created_at,
-            unread: 0,
-            isGroup: true,
-            lastSenderName,
-          };
-        })
-      );
+      for (const msg of (groupMessages || []) as any[]) {
+        if (!msg?.group_id) continue;
+        if (msg.hidden_at) continue;
+        if (!latestByGroup.has(msg.group_id)) {
+          latestByGroup.set(msg.group_id, msg);
+        }
+
+        if (!msg.sender_id || msg.sender_id === user!.id) continue;
+        const seenAt = groupLastSeen[msg.group_id] ? new Date(groupLastSeen[msg.group_id]).getTime() : 0;
+        const createdAt = msg.created_at ? new Date(msg.created_at).getTime() : 0;
+        if (!seenAt || createdAt > seenAt) {
+          unreadByGroup.set(msg.group_id, (unreadByGroup.get(msg.group_id) || 0) + 1);
+        }
+      }
+
+      const latestSenderIds = Array.from(
+        new Set(
+          Array.from(latestByGroup.values())
+            .map((msg: any) => msg?.sender_id)
+            .filter((senderId: string | null) => !!senderId && senderId !== user!.id)
+        )
+      ) as string[];
+
+      const senderNameMap = new Map<string, string>();
+      if (latestSenderIds.length > 0) {
+        const { data: senderProfiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", latestSenderIds);
+
+        for (const profile of (senderProfiles || []) as any[]) {
+          const fullName = String(profile?.full_name || "").trim();
+          if (!profile?.user_id || !fullName) continue;
+          senderNameMap.set(profile.user_id, fullName.split(" ")[0]);
+        }
+      }
+
+      const enriched = groups.map((g: any) => {
+        const lastMsg = latestByGroup.get(g.id);
+        let lastSenderName: string | null = null;
+        if (lastMsg?.sender_id === user!.id) {
+          lastSenderName = "You";
+        } else if (lastMsg?.sender_id) {
+          lastSenderName = senderNameMap.get(lastMsg.sender_id) || null;
+        }
+
+        return {
+          id: g.id,
+          name: g.name,
+          avatar: g.avatar_url,
+          lastMessage: getChatPreviewText(lastMsg, "Group created"),
+          lastTime: lastMsg?.created_at || g.created_at,
+          unread: unreadByGroup.get(g.id) || 0,
+          isGroup: true,
+          lastSenderName,
+        };
+      });
       return enriched;
     },
   });
@@ -935,7 +1215,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   // User-defined folder tabs and conversation membership
   const { data: customFolders = [] } = useQuery({
     queryKey: ["chat-folders", user?.id],
-    enabled: !!user?.id && active === "personal",
+    enabled: !!user?.id,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("chat_folders")
@@ -950,7 +1230,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
   const { data: customFolderMembers = [] } = useQuery({
     queryKey: ["chat-folder-members", user?.id, customFolderIds.join(",")],
-    enabled: !!user?.id && customFolderIds.length > 0 && active === "personal",
+    enabled: !!user?.id && customFolderIds.length > 0,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("chat_folder_members")
@@ -969,6 +1249,34 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     return map;
   }, [customFolderMembers]);
 
+  const hasAnyChatData =
+    personalChats.length +
+      groupChats.length +
+      shopChats.length +
+      rideChats.length +
+      supportChats.length >
+    0;
+  const hasChatListRefreshError =
+    hasAnyChatData &&
+    (hasShopChatsError ||
+      hasRideChatsError ||
+      hasSupportChatsError ||
+      hasPersonalChatsError ||
+      hasGroupChatsError);
+
+  const retryChatHubLists = useCallback(() => {
+    if (!user?.id) return;
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["chat-hub-personal", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["chat-hub-groups", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["chat-hub-shop", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["chat-hub-ride", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["chat-hub-support", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["chat-folders", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["chat-folder-members", user.id] }),
+    ]);
+  }, [queryClient, user?.id]);
+
   const { isOFMode: zivoOFMode } = useZivoOFMode();
 
   // When OF mode is on, force folder out of hidden categories (groups, shop, support, ride, custom).
@@ -980,31 +1288,18 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zivoOFMode, folder]);
 
-  const folderTabs = useMemo<FolderTab[]>(() => {
-    const customTabs = customFolders.map((f) => ({
-      id: `custom:${f.id}`,
-      label: `${f.icon || "📁"} ${f.name}`,
-      category: "personal" as ChatCategory,
-    }));
-    // OF mode: only personal/unread/all — no Groups, Shop, Support, Ride, custom folders.
-    if (zivoOFMode) {
-      return builtInFolders.filter((f) => f.id === "all" || f.id === "unread" || f.id === "personal");
-    }
-    return [...builtInFolders, ...customTabs];
-  }, [customFolders, zivoOFMode]);
+  const folderTabs = useMemo(
+    () => buildChatHubFolderTabs({ builtInFolders, customFolders, zivoOFMode }),
+    [customFolders, zivoOFMode],
+  );
 
   // Row actions sheet state — declared before actionsFolderMembership useMemo
   const [actionsTarget, setActionsTarget] = useState<ChatRowActionsTarget | null>(null);
 
-  const actionsFolderMembership = useMemo(() => {
-    if (!actionsTarget) return new Set<string>();
-    const set = new Set<string>();
-    for (const folderDef of customFolders) {
-      const members = customFolderMemberMap.get(folderDef.id);
-      if (members?.has(actionsTarget.id)) set.add(folderDef.id);
-    }
-    return set;
-  }, [actionsTarget, customFolders, customFolderMemberMap]);
+  const actionsFolderMembership = useMemo(
+    () => buildChatHubActionsFolderMembership({ actionsTargetId: actionsTarget?.id || null, customFolders, customFolderMemberMap }),
+    [actionsTarget?.id, customFolders, customFolderMemberMap],
+  );
 
   const currentCategory = categories.find((c) => c.id === active)!;
   const { prefs, isPinned, isMuted, isArchived, isMarkedUnread, togglePin, toggleMute, toggleArchive, toggleMarkUnread, setMarkedUnread, setPrefs } = useChatPrefs(user?.id);
@@ -1027,23 +1322,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
   const [bulkFolderAction, setBulkFolderAction] = useState<"add" | "remove" | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-
-  // Saved Messages — Telegram's self-chat
-  const { data: savedMessagesPreview } = useQuery({
-    queryKey: ["chat-hub-saved", user?.id],
-    enabled: !!user && active === "personal",
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("direct_messages")
-        .select("message, created_at")
-        .eq("sender_id", user!.id)
-        .eq("receiver_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data as { message: string; created_at: string } | null;
-    },
-  });
 
   // Draft indicators — batch load all chat drafts so we can show "Draft: …" in previews
   const { data: chatDraftsRaw = [] } = useQuery({
@@ -1070,10 +1348,26 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const pendingRequests = useMemo(() => allIncomingRequests.filter((r) => r.status === "pending"), [allIncomingRequests]);
 
   // Compute unread counts per tab
-  const personalUnread = personalChats.reduce((sum: number, c: any) => sum + (c.unread || 0), 0);
-  const shopUnread = shopChats.reduce((sum: number, c: any) => sum + (c.unread || 0), 0);
-  const rideUnread = rideChats.reduce((sum: number, c: any) => sum + (c.unread || 0), 0);
-  const supportUnread = supportChats.reduce((sum: number, c: any) => sum + (c.unread || 0), 0);
+  const {
+    personalUnread,
+    shopUnread,
+    rideUnread,
+    supportUnread,
+    builtInFolderUnreadMap,
+    customFolderUnreadMap,
+    folderUnreadMap,
+  } = useMemo(
+    () => buildChatHubUnreadMaps({
+      personalChats: personalChats as any[],
+      groupChats: groupChats as any[],
+      shopChats: shopChats as any[],
+      supportChats: supportChats as any[],
+      rideChats: rideChats as any[],
+      customFolders,
+      customFolderMemberMap,
+    }),
+    [customFolders, customFolderMemberMap, groupChats, personalChats, rideChats, shopChats, supportChats],
+  );
   const unreadMap: Record<ChatCategory, number> = {
     personal: personalUnread,
     shop: shopUnread,
@@ -1082,7 +1376,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   };
 
   const mergedPersonalList = active === "personal"
-    ? [...personalChats, ...groupChats].sort((a: any, b: any) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime())
+    ? sortChatHubRowsByPinAndDate([...personalChats, ...groupChats] as any[], isPinned)
     : [];
 
   const rawChatList =
@@ -1092,128 +1386,27 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     mergedPersonalList;
 
   // Apply folder-level filtering on top of category data
-  const folderFiltered = (rawChatList as any[]).filter((c) => {
-    // OF mode: never show groups or business/system chats, regardless of folder.
-    if (zivoOFMode && ((c as any).isGroup || (c as any).isBusiness)) return false;
-    if (folder.startsWith("custom:")) {
-      const customFolderId = folder.slice("custom:".length);
-      const members = customFolderMemberMap.get(customFolderId);
-      return members?.has(c.id) === true;
-    }
-    if (folder === "unread") return (c.unread || 0) > 0 || isMarkedUnread(c.id);
-    if (folder === "personal") return !(c as any).isGroup;
-    if (folder === "groups") return !!(c as any).isGroup;
-    return true;
+  const { folderFiltered, archivedList, visibleList } = filterChatHubRows({
+    rows: rawChatList as any[],
+    folder,
+    zivoOFMode,
+    customFolderMemberMap,
+    isMarkedUnread,
+    isArchived,
   });
 
-  // Split archived vs visible
-  const archivedList = folderFiltered.filter((c: any) => isArchived(c.id));
-  const visibleList = folderFiltered.filter((c: any) => !isArchived(c.id));
-
-  // Per-folder unread badges (for the pill bar)
-  const builtInFolderUnreadMap: Record<BuiltInChatFolder, number> = {
-    all: personalUnread,
-    unread: personalUnread,
-    personal: personalChats.filter((c: any) => !c.isGroup).reduce((s: number, c: any) => s + (c.unread || 0), 0),
-    groups: groupChats.reduce((s: number, c: any) => s + (c.unread || 0), 0),
-    shop: shopUnread,
-    support: supportUnread,
-    ride: rideUnread,
-  };
-
-  const customFolderUnreadMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    const personalPool = [...personalChats, ...groupChats] as any[];
-    for (const folderDef of customFolders) {
-      const members = customFolderMemberMap.get(folderDef.id);
-      if (!members) {
-        map[`custom:${folderDef.id}`] = 0;
-        continue;
-      }
-      map[`custom:${folderDef.id}`] = personalPool
-        .filter((chat) => members.has(chat.id))
-        .reduce((sum, chat) => sum + (chat.unread || 0), 0);
-    }
-    return map;
-  }, [customFolders, customFolderMemberMap, groupChats, personalChats]);
-
-  const folderUnreadMap: Record<string, number> = {
-    ...builtInFolderUnreadMap,
-    ...customFolderUnreadMap,
-  };
-
-  // Pinned-first sort
-  const sortByPin = (list: any[]) =>
-    [...list].sort((a, b) => {
-      const pa = isPinned(a.id) ? 1 : 0;
-      const pb = isPinned(b.id) ? 1 : 0;
-      if (pa !== pb) return pb - pa;
-      return new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime();
-    });
-
-  const sortedVisible = sortByPin(visibleList);
+  const sortedVisible = sortChatHubRowsByPinAndDate(visibleList as any[], isPinned);
   const archivedUnread = archivedList.reduce((s: number, c: any) => s + (c.unread || 0), 0);
 
-  const normalizedSearch = search.trim().toLowerCase();
-  const filtered = normalizedSearch
-    ? sortedVisible.filter((c: any) => {
-        const preview = parseRichMessagePreview(c.lastMessage || "");
-        const searchable = `${String(c.name || "")} ${String(preview || "")}`.toLowerCase();
-        if (!searchable.includes(normalizedSearch)) return false;
-
-        const type = detectPreviewType(preview);
-        if (searchFilter === "media") return type.hasMedia;
-        if (searchFilter === "links") return type.hasLink;
-        if (searchFilter === "files") return type.hasFile;
-        return true;
-      })
-    : sortedVisible;
-
-  const [profileResults, setProfileResults] = useState<any[]>([]);
-  const [searchingProfiles, setSearchingProfiles] = useState(false);
-
-  useEffect(() => {
-    if (active !== "personal" || search.trim().length < 2) {
-      setProfileResults([]);
-      return;
-    }
-    let alive = true;
-    const timeout = setTimeout(async () => {
-      setSearchingProfiles(true);
-      try {
-        const term = `%${search.trim()}%`;
-        const { data } = await (supabase as any)
-          .from("profiles")
-          .select("user_id, full_name, avatar_url, email, is_verified")
-          .or(`full_name.ilike.${term},email.ilike.${term}`)
-          .neq("user_id", user!.id)
-          .eq("is_of_creator", false)
-          .limit(15);
-        if (alive && data) {
-          setProfileResults(
-            data.map((p: any) => ({
-              id: p.user_id,
-              name: p.full_name || p.email || "User",
-              avatar: p.avatar_url,
-              isVerified: p.is_verified === true,
-              lastMessage: "Tap to chat",
-              lastTime: new Date().toISOString(),
-              unread: 0,
-            }))
-          );
-        }
-      } catch { /* ignore */ }
-      finally { if (alive) setSearchingProfiles(false); }
-    }, 350);
-    return () => { alive = false; clearTimeout(timeout); };
-  }, [search, active, user]);
-
-  const displayList = active === "personal" && searchFilter === "chats" && search.trim().length >= 2
-    ? [
-        ...filtered,
-        ...profileResults.filter((profile) => !filtered.some((chat: any) => chat.id === profile.id)),
-      ]
-    : filtered;
+  const { searchingProfiles, filtered, displayList } = useChatHubSearchResults({
+    active,
+    search,
+    searchFilter,
+    sortedVisible: sortedVisible as any[],
+    userId: user?.id,
+    parseRichMessagePreview,
+    detectPreviewType,
+  });
 
   const bulkSelectableList = useMemo<BulkSelectableChat[]>(
     () => displayList as BulkSelectableChat[],
@@ -1226,8 +1419,27 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     return { count: selected.length, unread };
   }, [bulkSelectableList, selectedChatIds]);
 
-  const hasOverlayChatOpen = Boolean(openShopChat || openPersonalChat || openGroupChat);
+  const hasOverlayChatOpen = Boolean(openShopChat || openPersonalChat || openGroupChat || openRideChat || openSupportChat);
   const showListShell = !embedded || !hasOverlayChatOpen;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !user?.id) return;
+
+    const emitPoolStats = () => {
+      const stats = getChatRealtimePoolStats();
+      console.debug("[ChatHub][RealtimePool]", {
+        activeFolder: folder,
+        activeCategory: active,
+        hasOverlayChatOpen,
+        syncMode,
+        ...stats,
+      });
+    };
+
+    emitPoolStats();
+    const intervalId = window.setInterval(emitPoolStats, 10_000);
+    return () => window.clearInterval(intervalId);
+  }, [active, folder, hasOverlayChatOpen, syncMode, user?.id]);
 
   // Desktop only: when a chat is open we keep the conversation list pinned as
   // a left sidebar (Telegram / Discord pattern). The list width is exposed
@@ -1293,17 +1505,47 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     }
   }, [navigate]);
 
-  const handleDeleteChat = async (chatId: string, category: ChatCategory) => {
+  const handleDeleteChat = async (chatId: string, category: ChatCategory, isGroup = false) => {
     try {
-      if (category === "shop") {
+      if (category === "personal") {
+        if (isGroup) {
+          await (supabase as any)
+            .from("chat_group_members")
+            .delete()
+            .eq("group_id", chatId)
+            .eq("user_id", user!.id);
+          if (openGroupChat?.id === chatId) setOpenGroupChat(null);
+          queryClient.invalidateQueries({ queryKey: ["chat-hub-groups", user!.id] });
+        } else {
+          await supabase
+            .from("direct_messages")
+            .delete()
+            .or(`and(sender_id.eq.${user!.id},receiver_id.eq.${chatId}),and(sender_id.eq.${chatId},receiver_id.eq.${user!.id})`);
+          if (openPersonalChat?.id === chatId) setOpenPersonalChat(null);
+          queryClient.invalidateQueries({ queryKey: ["chat-hub-personal", user!.id] });
+        }
+
+        const nextPinned = { ...(prefs.pinned || {}) };
+        const nextMuted = { ...(prefs.muted || {}) };
+        const nextArchived = { ...(prefs.archived || {}) };
+        delete nextPinned[chatId];
+        delete nextMuted[chatId];
+        delete nextArchived[chatId];
+        setPrefs({ ...prefs, pinned: nextPinned, muted: nextMuted, archived: nextArchived });
+
+        await (supabase as any)
+          .from("chat_folder_members")
+          .delete()
+          .eq("conversation_id", chatId);
+      } else if (category === "shop") {
         await supabase.from("store_chat_messages").delete().eq("chat_id", chatId);
         await supabase.from("store_chats").delete().eq("id", chatId).eq("user_id", user!.id);
         queryClient.invalidateQueries({ queryKey: ["chat-hub-shop"] });
       } else if (category === "support") {
-        await supabase.from("ai_conversations").delete().eq("id", chatId).eq("user_id", user!.id);
+        await supabase.from("support_tickets").delete().eq("id", chatId).eq("user_id", user!.id);
         queryClient.invalidateQueries({ queryKey: ["chat-hub-support"] });
       } else if (category === "ride") {
-        await supabase.from("chat_messages").delete().eq("chat_id", chatId).eq("sender_id", user!.id);
+        await (supabase as any).from("trip_messages").delete().eq("ride_request_id", chatId).eq("sender_id", user!.id);
         queryClient.invalidateQueries({ queryKey: ["chat-hub-ride"] });
       }
       toast.success("Chat deleted");
@@ -1481,6 +1723,47 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     const personalIds = selectedMeta.filter((chat) => !chat.isGroup).map((chat) => chat.id);
     const groupIds = selectedMeta.filter((chat) => !!chat.isGroup).map((chat) => chat.id);
 
+    // --- OPTIMISTIC UI ---
+    // Snapshot caches + prefs, strip selected rows immediately so the chats
+    // disappear from the list before the network round-trip completes. On
+    // failure we restore the snapshot.
+    const personalKey = ["chat-hub-personal", user.id] as const;
+    const groupsKey   = ["chat-hub-groups",   user.id] as const;
+    const folderKey   = ["chat-folder-members", user.id] as const;
+    const selectedIdSet = new Set(selectedChatIds);
+    const snapshot = {
+      personal: queryClient.getQueryData(personalKey) as Array<{ id: string }> | undefined,
+      groups:   queryClient.getQueryData(groupsKey)   as Array<{ id: string }> | undefined,
+      folders:  queryClient.getQueryData(folderKey)   as Array<{ conversation_id: string }> | undefined,
+      prefs,
+    };
+    queryClient.setQueryData(personalKey, (old: Array<{ id: string }> | undefined) =>
+      (old ?? []).filter((c) => !selectedIdSet.has(c.id)),
+    );
+    queryClient.setQueryData(groupsKey, (old: Array<{ id: string }> | undefined) =>
+      (old ?? []).filter((c) => !selectedIdSet.has(c.id)),
+    );
+    queryClient.setQueryData(folderKey, (old: Array<{ conversation_id: string }> | undefined) =>
+      (old ?? []).filter((m) => !selectedIdSet.has(m.conversation_id)),
+    );
+    const nextPinned = { ...(prefs.pinned || {}) };
+    const nextMuted = { ...(prefs.muted || {}) };
+    const nextArchived = { ...(prefs.archived || {}) };
+    for (const id of selectedChatIds) {
+      delete nextPinned[id];
+      delete nextMuted[id];
+      delete nextArchived[id];
+    }
+    setPrefs({ ...prefs, pinned: nextPinned, muted: nextMuted, archived: nextArchived });
+
+    const personalCount = personalIds.length;
+    const leftGroups = groupIds.length;
+    const parts = [];
+    if (personalCount > 0) parts.push(`Deleted ${personalCount} personal chat${personalCount === 1 ? "" : "s"}`);
+    if (leftGroups > 0) parts.push(`left ${leftGroups} group chat${leftGroups === 1 ? "" : "s"}`);
+    toast.success(parts.length ? `${parts.join(" and ")}.` : "Selected chats removed.");
+    clearSelectionMode();
+
     try {
       await Promise.all(
         [
@@ -1506,29 +1789,16 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         ]
       );
 
-      // Remove deleted/left conversations from local pin/mute/archive maps.
-      const nextPinned = { ...(prefs.pinned || {}) };
-      const nextMuted = { ...(prefs.muted || {}) };
-      const nextArchived = { ...(prefs.archived || {}) };
-      for (const id of selectedChatIds) {
-        delete nextPinned[id];
-        delete nextMuted[id];
-        delete nextArchived[id];
-      }
-      setPrefs({ ...prefs, pinned: nextPinned, muted: nextMuted, archived: nextArchived });
-
-      const personalCount = personalIds.length;
-      const leftGroups = groupIds.length;
-      const parts = [];
-      if (personalCount > 0) parts.push(`Deleted ${personalCount} personal chat${personalCount === 1 ? "" : "s"}`);
-      if (leftGroups > 0) parts.push(`left ${leftGroups} group chat${leftGroups === 1 ? "" : "s"}`);
-      toast.success(parts.length ? `${parts.join(" and ")}.` : "Selected chats removed.");
-
-      await queryClient.invalidateQueries({ queryKey: ["chat-hub-personal", user.id] });
-      await queryClient.invalidateQueries({ queryKey: ["chat-hub-groups", user.id] });
-      await queryClient.invalidateQueries({ queryKey: ["chat-folder-members", user.id] });
-      clearSelectionMode();
+      // Background refresh to reconcile with server truth.
+      void queryClient.invalidateQueries({ queryKey: personalKey });
+      void queryClient.invalidateQueries({ queryKey: groupsKey });
+      void queryClient.invalidateQueries({ queryKey: folderKey });
     } catch {
+      // Rollback caches + prefs so the UI snaps back to pre-delete state.
+      if (snapshot.personal) queryClient.setQueryData(personalKey, snapshot.personal);
+      if (snapshot.groups)   queryClient.setQueryData(groupsKey,   snapshot.groups);
+      if (snapshot.folders)  queryClient.setQueryData(folderKey,   snapshot.folders);
+      setPrefs(snapshot.prefs);
       toast.error("Failed to delete selected chats");
     }
   }, [bulkSelectableList, clearSelectionMode, prefs, queryClient, selectedChatIds, setPrefs, user?.id]);
@@ -1617,17 +1887,17 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     "bg-background/95 backdrop-blur-2xl border-b border-border/15 shadow-[0_1px_0_rgba(15,23,42,0.03)]",
                     desktopTwoColumn
                       ? "pt-safe"
-                      : "zivo-sticky-mobile-header pt-safe zivo-pt-safe-sticky lg:top-[60px]"
+                      : "zivo-sticky-mobile-header lg:top-[60px]"
                   )
             )}
           >
             {!embedded ? (
               <div className={cn(
-                "px-5 pt-2 pb-3 flex items-center justify-between",
+                "px-5 py-2 flex items-center gap-3",
                 desktopTwoColumn && sidebarCollapsed && "lg:px-2 lg:flex-col lg:items-stretch lg:gap-1"
               )}>
                 <div className={cn(
-                  "flex items-center gap-3",
+                  "flex shrink-0 items-center gap-3",
                   desktopTwoColumn && sidebarCollapsed && "lg:flex-col lg:gap-1"
                 )}>
                   {selectionMode ? (
@@ -1640,14 +1910,76 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <X className="w-5 h-5 text-foreground" />
                     </button>
                   ) : (
-                    <button type="button"
-                      onClick={() => navigate('/')}
-                      className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
-                      aria-label="Back"
-                      title="Back"
-                    >
-                      <ArrowLeft className="w-5 h-5 text-foreground" />
-                    </button>
+                    <div className="relative">
+                      <input id="chat-hub-menu-toggle" type="checkbox" className="peer sr-only" />
+                      <label
+                        htmlFor="chat-hub-menu-toggle"
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                        aria-label="Chat menu"
+                        title="Chat menu"
+                      >
+                        <Menu className="w-5 h-5 text-foreground" />
+                      </label>
+                      <div className="absolute left-0 top-full z-[2200] mt-2 hidden max-h-[75vh] w-[min(86vw,340px)] flex-col overflow-hidden rounded-3xl border border-border/20 bg-background shadow-2xl peer-checked:flex">
+                        <div className="flex items-center gap-3 border-b border-border/20 px-5 py-3">
+                          <label htmlFor="chat-hub-menu-toggle" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-muted/70 active:scale-95" aria-label="Close chat menu" title="Close">
+                            <X className="h-5 w-5" />
+                          </label>
+                          <div>
+                            <p className="text-lg font-bold text-ig-gradient">Chat</p>
+                            <p className="text-xs text-muted-foreground">Menu</p>
+                          </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto px-3 py-3">
+                          {active === "personal" && !search && (
+                            <button type="button" onClick={() => setShowAddContact(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <SquarePen className="h-5 w-5 text-muted-foreground" />
+                              <span>New message</span>
+                            </button>
+                          )}
+                          {active === "personal" && user && !zivoOFMode && (
+                            <button type="button" onClick={() => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false })} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <Bookmark className="h-5 w-5 text-muted-foreground" />
+                              <span>Saved Messages</span>
+                            </button>
+                          )}
+                          {active === "personal" && !search && !zivoOFMode && (
+                            <button type="button" onClick={() => setSelectionMode(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <CheckSquare className="h-5 w-5 text-muted-foreground" />
+                              <span>Select chats</span>
+                            </button>
+                          )}
+                          {active === "personal" && !zivoOFMode && (
+                            <>
+                              <button type="button" onClick={() => void handleMarkAllPersonalRead()} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                <CheckCheck className="h-5 w-5 text-muted-foreground" />
+                                <span>Mark all as read</span>
+                              </button>
+                              <button type="button" onClick={() => navigate("/chat/contacts")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                <UserPlus className="h-5 w-5 text-muted-foreground" />
+                                <span>Contacts</span>
+                              </button>
+                              <button type="button" onClick={() => setShowCreateGroup(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                <Users className="h-5 w-5 text-muted-foreground" />
+                                <span>New group</span>
+                              </button>
+                              <div className="my-2 h-px bg-border/25" />
+                              {personalHubMenu.map((item) => (
+                                <button key={item.action} type="button" onClick={() => handlePersonalHubMenuAction(item.action)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                  <item.icon className="h-5 w-5 text-muted-foreground" />
+                                  <span>{item.label}</span>
+                                </button>
+                              ))}
+                            </>
+                          )}
+                          <div className="my-2 h-px bg-border/25" />
+                          <button type="button" onClick={() => navigate("/notifications")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                            <Bell className="h-5 w-5 text-muted-foreground" />
+                            <span>Notifications</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                   {/* Desktop-only collapse toggle. Visible only when the
                       conversation list is sitting next to an active chat,
@@ -1665,12 +1997,41 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     </button>
                   )}
                   <div className={cn(desktopTwoColumn && sidebarCollapsed && "lg:hidden")}>
-                    <h1 className="text-xl font-bold text-foreground">
+                    <h1 className="text-xl font-bold text-ig-gradient">
                       {selectionMode ? `${selectedChatIds.size} selected` : "Chat"}
                     </h1>
                   </div>
                 </div>
-                <div className={cn("flex items-center gap-1", collapsedRail && "lg:hidden")}>
+                <div className={cn("relative min-w-0 flex-1", collapsedRail && "lg:hidden")}>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search conversations..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-10 bg-muted/60 rounded-2xl py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground transition-all"
+                  />
+                  {search ? (
+                    <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Clear search" title="Clear search">
+                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  ) : (
+                    <span
+                      className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/50 text-[10px] font-mono text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                      title="Press / to focus search"
+                    >
+                      /
+                    </span>
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    "hidden shrink-0 items-center justify-end gap-1",
+                    "md:flex md:basis-auto md:overflow-visible md:pt-0",
+                    collapsedRail && "lg:hidden"
+                  )}
+                >
                   {active === "personal" && !selectionMode && !search && (
                     <button type="button"
                       onClick={() => setShowAddContact(true)}
@@ -1763,153 +2124,24 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       dialogLabel="Chat notifications"
                     />
                   )}
+                  {!selectionMode && (
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 rounded-full border text-[10px] font-semibold",
+                        syncMode === "live"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                          : "border-amber-500/30 bg-amber-500/10 text-amber-700"
+                      )}
+                      title={syncMode === "live" ? "Realtime connected" : "Realtime degraded, fallback refresh active"}
+                    >
+                      <span className={cn("w-1.5 h-1.5 rounded-full", syncMode === "live" ? "bg-emerald-500" : "bg-amber-500")} />
+                      <span className="hidden sm:inline">{syncMode === "live" ? "Live" : "Fallback"}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}
 
-            {!embedded && (
-              <motion.div
-                animate={{ height: storiesCollapsed ? 0 : "auto", opacity: storiesCollapsed ? 0 : 1 }}
-                transition={{ duration: 0.22, ease: "easeOut" }}
-                style={{ overflow: "hidden" }}
-                className={cn(collapsedRail && "lg:hidden")}
-              >
-                <Suspense fallback={null}><ChatStories /></Suspense>
-              </motion.div>
-            )}
-
-            <div className={cn("px-5 pb-3", embedded && "px-3 pb-2", collapsedRail && "lg:hidden")}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search conversations..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className={cn(
-                    "w-full pl-9 pr-10 bg-muted/60 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground transition-all",
-                    embedded ? "py-2 text-xs" : "py-2.5"
-                  )}
-                />
-                {search ? (
-                  <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Clear search" title="Clear search">
-                    <X className="w-3.5 h-3.5 text-muted-foreground" />
-                  </button>
-                ) : (
-                  <span
-                    className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/50 text-[10px] font-mono text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                    title="Press / to focus search"
-                  >
-                    /
-                  </span>
-                )}
-              </div>
-              {search.trim().length > 0 && (
-                <div className="flex gap-1.5 mt-2 overflow-x-auto scrollbar-hide">
-                  {(["chats", "media", "links", "files"] as const).map((f) => {
-                    const isActiveFilter = searchFilter === f;
-                    const enabled = true;
-                    return (
-                      <button type="button"
-                        key={f}
-                        onClick={() => enabled && setSearchFilter(f)}
-                        disabled={!enabled}
-                        className={cn(
-                          "px-3 py-1 text-[11px] font-semibold rounded-full whitespace-nowrap capitalize transition-all",
-                          isActiveFilter
-                            ? "bg-primary/15 text-primary"
-                            : enabled
-                              ? "bg-muted/60 text-muted-foreground hover:bg-muted"
-                              : "bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
-                        )}
-                      >
-                        {f}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Active Now strip — online contacts */}
-            {!embedded && !search && active === "personal" && onlineIds.size > 0 && !zivoOFMode && (
-              <div className="px-4 pb-2">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">Active Now</span>
-                </div>
-                <div className="flex gap-3 overflow-x-auto overscroll-x-contain no-scrollbar pb-1 pr-2">
-                  {(mergedPersonalList as any[]).filter((c) => !c.isGroup && onlineIds.has(c.id)).slice(0, 12).map((c) => (
-                    <button type="button"
-                      key={c.id}
-                      onClick={() => setOpenPersonalChat({ id: c.id, name: c.name, avatar: c.avatar, isVerified: c.isVerified === true })}
-                      className="flex flex-col items-center gap-1 w-[58px] shrink-0 rounded-xl outline-none active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-primary/30"
-                    >
-                      <div className="relative">
-                        <div className="w-12 h-12 rounded-full bg-muted overflow-hidden ring-2 ring-emerald-500/40">
-                          {c.avatar ? (
-                            <img src={c.avatar} alt={c.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-primary/10">
-                              <span className="text-sm font-bold text-primary">
-                                {(c.name || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-background" />
-                      </div>
-                      <span className="text-[9px] font-medium text-foreground truncate w-full text-center leading-tight">
-                        {c.name.split(" ")[0]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className={cn("flex px-5 gap-2 pb-3 pr-6 overflow-x-auto overscroll-x-contain scrollbar-hide", embedded && "px-3 gap-1.5 pb-2 pr-4", collapsedRail && "lg:hidden")}>
-              <button type="button"
-                onClick={() => navigate('/chat/folders')}
-                className={cn(
-                  "flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full bg-muted/40 text-muted-foreground hover:bg-muted whitespace-nowrap active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                  embedded && "px-2.5 py-1.5 text-[11px]"
-                )}
-                aria-label="Edit folders"
-              >
-                <Settings className="w-3 h-3" />
-                Edit
-              </button>
-              {folderTabs.map((f) => {
-                const isActiveFolder = folder === f.id;
-                const unread = folderUnreadMap[f.id] || 0;
-                return (
-                  <button type="button"
-                    key={f.id}
-                    onClick={() => setFolder(f.id)}
-                    aria-label={`Show ${f.label} chats`}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                      isActiveFolder
-                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                        : "bg-muted/60 text-muted-foreground hover:bg-muted",
-                      embedded && "px-3 py-1.5 text-[11px]"
-                    )}
-                  >
-                    <span>{f.label}</span>
-                    {unread > 0 && (
-                      <span className={cn(
-                        "min-w-[16px] h-[16px] px-1 text-[9px] font-bold rounded-full flex items-center justify-center",
-                        isActiveFolder ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
-                      )}>
-                        {unread > 99 ? "99+" : unread}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* Start a group call entry — shown only on the Groups folder */}
@@ -1959,6 +2191,15 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
             </div>
           )}
 
+          {hasChatListRefreshError && (
+            <DegradedDataBanner
+              className={cn("px-5 pt-3", embedded && "px-3 pt-2")}
+              message="Showing cached chats. Refresh failed."
+              onRetry={retryChatHubLists}
+              trackingContext="chat"
+            />
+          )}
+
           
 
           <div className={cn("flex-1 min-h-0", (embedded || desktopTwoColumn) ? "overflow-y-auto" : "") }>
@@ -1971,6 +2212,131 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 transition={{ duration: 0.12 }}
                 className={cn("px-4 pt-2", embedded && "px-2 pt-2 pb-2")}
               >
+                <div className={cn(search.trim().length > 0 && "pb-3", collapsedRail && "lg:hidden")}>
+                  {embedded && (
+                    <div className="relative pb-3">
+                      <Search className="absolute left-3 top-1/2 -translate-y-[calc(50%+0.375rem)] w-3.5 h-3.5 text-muted-foreground" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Search conversations..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-9 pr-10 bg-muted/60 rounded-2xl py-2 text-xs outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground transition-all"
+                      />
+                      {search ? (
+                        <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-[calc(50%+0.375rem)]" aria-label="Clear search" title="Clear search">
+                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
+                  {search.trim().length > 0 && (
+                    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+                      {(["chats", "media", "links", "files"] as const).map((f) => {
+                        const isActiveFilter = searchFilter === f;
+                        const enabled = true;
+                        return (
+                          <button type="button"
+                            key={f}
+                            onClick={() => enabled && setSearchFilter(f)}
+                            disabled={!enabled}
+                            className={cn(
+                              "px-3 py-1 text-[11px] font-semibold rounded-full whitespace-nowrap capitalize transition-all",
+                              isActiveFilter
+                                ? "bg-primary/15 text-primary"
+                                : enabled
+                                  ? "bg-muted/60 text-muted-foreground hover:bg-muted"
+                                  : "bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
+                            )}
+                          >
+                            {f}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Active Now strip — online contacts */}
+                {!embedded && !search && active === "personal" && onlineIds.size > 0 && !zivoOFMode && (
+                  <div className="pb-3">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">Active Now</span>
+                    </div>
+                    <div className="flex gap-3 overflow-x-auto overscroll-x-contain no-scrollbar pb-1 pr-2">
+                      {(mergedPersonalList as any[]).filter((c) => !c.isGroup && onlineIds.has(c.id)).slice(0, 12).map((c) => (
+                        <button type="button"
+                          key={c.id}
+                          onClick={() => setOpenPersonalChat({ id: c.id, name: c.name, avatar: c.avatar, isVerified: c.isVerified === true })}
+                          className="flex flex-col items-center gap-1 w-[58px] shrink-0 rounded-xl outline-none active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-primary/30"
+                        >
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-full bg-muted overflow-hidden ring-2 ring-emerald-500/40">
+                              {c.avatar ? (
+                                <img src={c.avatar} alt={c.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                                  <span className="text-sm font-bold text-primary">
+                                    {(c.name || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-background" />
+                          </div>
+                          <span className="text-[9px] font-medium text-foreground truncate w-full text-center leading-tight">
+                            {c.name.split(" ")[0]}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className={cn("flex gap-2 pb-3 pr-2 overflow-x-auto overscroll-x-contain scrollbar-hide", embedded && "gap-1.5 pb-2 pr-1", collapsedRail && "lg:hidden")}>
+                  <button type="button"
+                    onClick={() => navigate('/chat/folders')}
+                    className={cn(
+                      "flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full bg-muted/40 text-muted-foreground hover:bg-muted whitespace-nowrap active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                      embedded && "px-2.5 py-1.5 text-[11px]"
+                    )}
+                    aria-label="Edit folders"
+                  >
+                    <Settings className="w-3 h-3" />
+                    Edit
+                  </button>
+                  {folderTabs.map((f) => {
+                    const isActiveFolder = folder === f.id;
+                    const unread = folderUnreadMap[f.id] || 0;
+                    return (
+                      <button type="button"
+                        key={f.id}
+                        onClick={() => setFolder(f.id)}
+                        aria-label={`Show ${f.label} chats`}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                          isActiveFolder
+                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                            : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                          embedded && "px-3 py-1.5 text-[11px]"
+                        )}
+                      >
+                        <span>{f.label}</span>
+                        {unread > 0 && (
+                          <span className={cn(
+                            "min-w-[16px] h-[16px] px-1 text-[9px] font-bold rounded-full flex items-center justify-center",
+                            isActiveFolder ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                          )}>
+                            {unread > 99 ? "99+" : unread}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {searchingProfiles && active === "personal" && filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20">
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3" />
@@ -2002,20 +2368,24 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <div className={cn("grid gap-2.5 w-full max-w-[360px] mt-1", zivoOFMode ? "grid-cols-1" : "grid-cols-3")}>
                         <button type="button"
                           onClick={async () => {
+                            if (isInviteSharing) return;
+                            setIsInviteSharing(true);
                             const url = `${window.location.origin}/`;
                             const text = "Join me on ZIVO";
                             try {
                               if (navigator.share) await navigator.share({ title: "ZIVO", text, url });
                               else { await navigator.clipboard.writeText(url); toast.success("Link copied"); }
                             } catch {}
+                            finally { setIsInviteSharing(false); }
                           }}
+                          disabled={isInviteSharing}
                           aria-label="Invite friends to ZIVO"
-                          className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-card border border-border/40 shadow-sm active:scale-95 transition-transform"
+                          className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-card border border-border/40 shadow-sm active:scale-95 transition-transform disabled:opacity-50"
                         >
                           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
                             <Share2 className="w-4 h-4 text-primary" />
                           </div>
-                          <span className="text-[11px] font-semibold text-foreground leading-tight">Invite friends</span>
+                          <span className="text-[11px] font-semibold text-foreground leading-tight">{isInviteSharing ? "Sharing..." : "Invite friends"}</span>
                         </button>
                         {!zivoOFMode && (
                           <>
@@ -2101,39 +2471,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       </div>
                     )}
 
-                    {/* Saved Messages — Telegram-style self chat */}
-                    {!search && active === "personal" && user && !zivoOFMode && (
-                      <button type="button"
-                        onClick={() => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false })}
-                        aria-label="Open Saved Messages"
-                        className={cn(
-                          "w-full flex items-center gap-3 px-4 py-3 active:bg-muted/50 transition-colors",
-                          collapsedRail && "lg:px-2 lg:justify-center lg:gap-0"
-                        )}
-                        title="Saved Messages"
-                      >
-                        <div className={cn(
-                          "rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 shadow-sm w-[52px] h-[52px]",
-                          collapsedRail && "lg:w-11 lg:h-11"
-                        )}>
-                          <Bookmark className="w-5 h-5 text-white" />
-                        </div>
-                        <div className={cn("flex-1 min-w-0 text-left", collapsedRail && "lg:hidden")}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[15px] font-semibold text-foreground truncate">Saved Messages</span>
-                            {savedMessagesPreview?.created_at && (
-                              <span className="text-[11px] text-muted-foreground tabular-nums ml-2">{formatChatTime(savedMessagesPreview.created_at)}</span>
-                            )}
-                          </div>
-                          <p className="text-[13px] text-muted-foreground truncate leading-snug">
-                            {savedMessagesPreview?.message
-                              ? parseRichMessagePreview(savedMessagesPreview.message)
-                              : "Notes, links and reminders for yourself"}
-                          </p>
-                        </div>
-                      </button>
-                    )}
-
                     {/* Pinned section header */}
                     {!search && displayList.some((c: any) => isPinned(c.id)) && (
                       <div className={cn("flex items-center gap-1.5 px-2 pt-1 pb-0.5", collapsedRail && "lg:hidden")}>
@@ -2167,8 +2504,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           } else {
                             setOpenPersonalChat({ id: chat.id, name: chat.name, avatar: chat.avatar, isVerified: (chat as any).isVerified === true });
                           }
+                        } else if (active === "ride") {
+                          setOpenRideChat({ rideRequestId: chat.rideRequestId || chat.id, counterpartName: chat.name });
                         } else if (active === "support") {
-                          navigate(`/support`);
+                          setOpenSupportChat({ ticketId: chat.id });
                         }
                       };
 
@@ -2218,29 +2557,22 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                   key: "delete",
                                   label: "Delete",
                                   icon: <Trash2 className="w-4 h-4" />,
-                                  onPress: () => setDeleteConfirm({ id: chat.id, name: chat.name, category: active }),
+                                  onPress: () => setDeleteConfirm({ id: chat.id, name: chat.name, category: active, isGroup: !!chat.isGroup }),
                                   className: "bg-destructive text-destructive-foreground",
                                 },
                               ] : []}
                             >
                               <div
-                                role="button"
-                                tabIndex={0}
-                                aria-label={`Open chat with ${chat.name}`}
+                                data-testid={(chat as any).isGroup ? "group-conversation-row" : "conversation-row"}
                                 className={cn(
                                   "w-full flex items-center gap-3 text-left transition-all",
                                   embedded ? "px-3 py-2.5" : "px-4 py-3",
-                                  "cursor-pointer outline-none active:bg-muted/60 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/30",
+                                  "cursor-pointer active:bg-muted/60 active:scale-[0.99]",
                                   chat.unread > 0 && !muted && "bg-primary/[0.02]",
                                   collapsedRail && "lg:px-2 lg:py-1.5 lg:justify-center lg:gap-0"
                                 )}
                                 title={chat.name}
                                 onClick={openChat}
-                                onKeyDown={(event) => {
-                                  if (event.key !== "Enter" && event.key !== " ") return;
-                                  event.preventDefault();
-                                  openChat();
-                                }}
                               >
                                 <div className="relative flex-shrink-0">
                                   {selectionMode && isPersonalChat && (
@@ -2252,28 +2584,14 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                       )}
                                     </span>
                                   )}
-                                  <div className={cn(
-                                    "flex items-center justify-center overflow-hidden rounded-full",
-                                    embedded ? "h-[44px] w-[44px]" : "w-[52px] h-[52px]",
-                                    collapsedRail && "lg:w-11 lg:h-11",
-                                    (chat as any).isGroup ? "bg-primary/10" : "bg-muted"
-                                  )}>
-                                    {chat.avatar ? (
-                                      <img src={chat.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                                    ) : (chat as any).isGroup ? (
-                                      <Users className="w-5 h-5 text-primary" />
-                                    ) : active === "personal" ? (
-                                      <span className="text-base font-bold text-muted-foreground">
-                                        {(chat.name || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                                      </span>
-                                    ) : active === "shop" ? (
-                                      <StoreIcon className="w-5 h-5 text-muted-foreground" />
-                                    ) : active === "support" ? (
-                                      <Headphones className="w-5 h-5 text-muted-foreground" />
-                                    ) : (
-                                      <Car className="w-5 h-5 text-muted-foreground" />
-                                    )}
-                                  </div>
+                                  <ChatRowAvatar
+                                    avatar={chat.avatar}
+                                    name={chat.name}
+                                    isGroup={!!(chat as any).isGroup}
+                                    active={active}
+                                    embedded={embedded}
+                                    collapsedRail={collapsedRail}
+                                  />
                                   {liveOnline && (
                                     <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-[2.5px] border-background" />
                                   )}
@@ -2309,9 +2627,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                       )}>
                                         {formatChatTime(chat.lastTime)}
                                       </span>
-                                      {isPersonalChat && !chat.isGroup && !selectionMode && (
+                                      {!selectionMode && (
                                         <>
-                                          {zivoOFMode && (
+                                          {isPersonalChat && !chat.isGroup && zivoOFMode && (
                                             <button
                                               type="button"
                                               aria-label="Send a tip request"
@@ -2331,7 +2649,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                               <DollarSign className="w-3.5 h-3.5 text-[#00AEEF]" />
                                             </button>
                                           )}
-                                          {!zivoOFMode && (
+                                          {isPersonalChat && !chat.isGroup && !zivoOFMode && (
                                             <button
                                               type="button"
                                               aria-label="Voice call"
@@ -2355,6 +2673,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                               setActionsTarget({
                                                 id: chat.id,
                                                 name: chat.name,
+                                                isGroup: !!chat.isGroup,
                                                 isPinned: pinned,
                                                 isMuted: muted,
                                                 isArchived: isArchived(chat.id),
@@ -2493,17 +2812,13 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             }}
                             className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-card/60 border border-border/30 active:scale-[0.98] transition-all"
                           >
-                            <div className={cn(
-                              "w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden ring-2 ring-border/20"
-                            )}>
-                              {chat.avatar ? (
-                                <img src={chat.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="text-sm font-bold text-muted-foreground">
-                                  {(chat.name || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                                </span>
-                              )}
-                            </div>
+                            <ChatRowAvatar
+                              avatar={chat.avatar}
+                              name={chat.name}
+                              isGroup={!!(chat as any).isGroup}
+                              active={active}
+                              variant="archived"
+                            />
                             <div className="flex-1 text-left min-w-0">
                               <p className="text-sm font-semibold text-foreground truncate">{chat.name}</p>
                               <p className="text-[11px] text-muted-foreground truncate">{parseRichMessagePreview(chat.lastMessage || "")}</p>
@@ -2670,10 +2985,116 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
       <AddContactSheet open={showAddContact} onOpenChange={setShowAddContact} />
 
+      <AnimatePresence>
+        {showChatMenu && !selectionMode && (
+          <motion.div
+            className="fixed inset-0 z-[2200] bg-black/35 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowChatMenu(false)}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Chat menu"
+              className="absolute inset-y-0 left-0 flex w-[min(86vw,340px)] flex-col bg-background shadow-2xl"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 340 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 border-b border-border/20 px-5 pt-safe pb-4">
+                <button
+                  type="button"
+                  onClick={() => setShowChatMenu(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
+                  aria-label="Close chat menu"
+                  title="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                <div>
+                  <p className="text-lg font-bold text-ig-gradient">Chat</p>
+                  <p className="text-xs text-muted-foreground">Menu</p>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-3 py-3">
+                {[
+                  { label: "Home", icon: ArrowLeft, action: () => navigate("/") },
+                  ...(active === "personal" && !search ? [{ label: "New message", icon: SquarePen, action: () => setShowAddContact(true) }] : []),
+                  ...(active === "personal" && !search && !zivoOFMode ? [{ label: "Select chats", icon: CheckSquare, action: () => setSelectionMode(true) }] : []),
+                  ...(active === "personal" && !zivoOFMode ? [
+                    { label: "Mark all as read", icon: CheckCheck, action: () => void handleMarkAllPersonalRead() },
+                    { label: "Contacts", icon: UserPlus, action: () => navigate("/chat/contacts") },
+                    { label: "New group", icon: Users, action: () => setShowCreateGroup(true) },
+                  ] : []),
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setShowChatMenu(false);
+                      item.action();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                  >
+                    <item.icon className="h-5 w-5 text-muted-foreground" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+
+                {active === "personal" && !zivoOFMode && (
+                  <>
+                    <div className="my-2 h-px bg-border/25" />
+                    {personalHubMenu.map((item) => (
+                      <button
+                        key={item.action}
+                        type="button"
+                        onClick={() => {
+                          setShowChatMenu(false);
+                          handlePersonalHubMenuAction(item.action);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                      >
+                        <item.icon className="h-5 w-5 text-muted-foreground" />
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                <div className="my-2 h-px bg-border/25" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowChatMenu(false);
+                    navigate("/notifications");
+                  }}
+                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                >
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  <span>Notifications</span>
+                </button>
+                <div className="mx-3 mt-2 flex items-center gap-2 rounded-2xl border border-border/30 bg-muted/35 px-3 py-3 text-sm font-semibold">
+                  <span className={cn("h-2.5 w-2.5 rounded-full", syncMode === "live" ? "bg-emerald-500" : "bg-amber-500")} />
+                  <span>{syncMode === "live" ? "Live" : "Fallback"} sync</span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <ChatRowActionsSheet
         target={actionsTarget}
         customFolders={customFolders}
         folderMembership={actionsFolderMembership}
+        canManageFolders={active === "personal"}
+        canToggleReadState={active === "personal"}
+        canClearHistory={active === "personal"}
         onClose={() => setActionsTarget(null)}
         onTogglePin={() => actionsTarget && (togglePin(actionsTarget.id), toast.success(actionsTarget.isPinned ? "Unpinned" : "Pinned to top"))}
         onToggleMute={() => actionsTarget && (toggleMute(actionsTarget.id), toast.success(actionsTarget.isMuted ? "Unmuted" : "Muted"))}
@@ -2699,7 +3120,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           localClearChatBefore(actionsTarget.id);
           toast.success("History cleared on this device");
         }}
-        onDelete={() => actionsTarget && setDeleteConfirm({ id: actionsTarget.id, name: actionsTarget.name, category: "personal" })}
+        onDelete={() => actionsTarget && setDeleteConfirm({ id: actionsTarget.id, name: actionsTarget.name, category: active, isGroup: actionsTarget.isGroup === true })}
         onAddToFolder={(folderId) => { if (actionsTarget) void handleAddChatToFolder(folderId, actionsTarget.id); }}
         onRemoveFromFolder={(folderId) => { if (actionsTarget) void handleRemoveChatFromFolder(folderId, actionsTarget.id); }}
       />
@@ -2788,7 +3209,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     Cancel
                   </button>
                   <button type="button"
-                    onClick={() => handleDeleteChat(deleteConfirm.id, deleteConfirm.category)}
+                    onClick={() => handleDeleteChat(deleteConfirm.id, deleteConfirm.category, deleteConfirm.isGroup === true)}
                     className="flex-1 h-11 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold active:scale-[0.97] transition-transform"
                   >
                     Delete
@@ -2812,12 +3233,32 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           />
         </Suspense>
       )}
+      {openRideChat && (
+        <Suspense fallback={null}>
+          <TripChatSheet
+            open={true}
+            onOpenChange={(open) => { if (!open) setOpenRideChat(null); }}
+            rideRequestId={openRideChat.rideRequestId}
+            counterpartName={openRideChat.counterpartName}
+            senderRole="rider"
+          />
+        </Suspense>
+      )}
+      {openSupportChat && (
+        <Suspense fallback={null}>
+          <SupportTicketChatSheet
+            open={true}
+            onOpenChange={(open) => { if (!open) setOpenSupportChat(null); }}
+            ticketId={openSupportChat.ticketId}
+          />
+        </Suspense>
+      )}
       {/* Inline Personal Chat */}
       <AnimatePresence>
         {openPersonalChat && (
           <Suspense fallback={
             <div className="fixed inset-0 z-[1300] bg-background flex flex-col">
-              <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-2xl border-b border-border/10 px-2 py-2.5 flex items-center gap-3">
+              <div className="sticky top-0 z-10 safe-area-top bg-background/80 backdrop-blur-2xl border-b border-border/10 px-2 py-2.5 flex items-center gap-3">
                 <button type="button"
                   onClick={() => setOpenPersonalChat(null)}
                   className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-muted/50 active:scale-90 transition-transform"
@@ -2856,6 +3297,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 recipientAvatar={openPersonalChat.avatar}
                 recipientIsVerified={openPersonalChat.isVerified === true}
                 prefillInput={openPersonalChat.prefillInput}
+                openGiftOnMount={openPersonalChat.openGiftOnMount}
                 onClose={() => { setOpenPersonalChat(null); setPendingCall(null); queryClient.invalidateQueries({ queryKey: ["chat-hub-personal"] }); }}
                 autoStartCall={pendingCall}
                 onCallStarted={() => setPendingCall(null)}
@@ -2870,7 +3312,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         {openGroupChat && (
           <Suspense fallback={
             <div className="fixed inset-0 z-50 bg-background flex flex-col">
-              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border/30 px-2 py-2.5 flex items-center gap-3">
+              <div className="sticky top-0 z-10 safe-area-top bg-background/95 backdrop-blur-xl border-b border-border/30 px-2 py-2.5 flex items-center gap-3">
                 <button type="button"
                   onClick={() => setOpenGroupChat(null)}
                   className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-muted/50 active:scale-90 transition-transform"
@@ -2904,7 +3346,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 groupName={openGroupChat.name}
                 groupAvatar={openGroupChat.avatar}
                 autoStartCall={openGroupChat.autoStartCall ?? null}
-                onClose={() => setOpenGroupChat(null)}
+                onClose={() => {
+                  setOpenGroupChat(null);
+                  queryClient.invalidateQueries({ queryKey: ["chat-hub-groups"] });
+                }}
               />
             </ChatErrorBoundary>
           </Suspense>
@@ -3002,7 +3447,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           >
                             <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                               {g.avatar
-                                ? <img src={g.avatar} alt="" className="w-full h-full object-cover" />
+	                                ? <img src={g.avatar} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                 : <Users className="w-3.5 h-3.5 text-primary" />}
                             </span>
                             <span className="flex-1 truncate text-[13px]">{g.name}</span>
@@ -3113,11 +3558,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   }
 
   return (
-    // The CSS var --chat-sidebar-w is the single source of truth for the
-    // desktop two-column layout: the conversation-list shell reads it as its
-    // width, and the GroupChat / PersonalChat overlays read it as their
-    // left offset. PullToRefresh doesn't forward style, so we put it here.
-    <div style={desktopTwoColumn ? ({ ["--chat-sidebar-w" as never]: `${desktopSidebarWidth}px` } as React.CSSProperties) : undefined}>
+    <div>
       <PullToRefresh
         onRefresh={handlePullRefresh}
         enabled={!hasOverlayChatOpen}

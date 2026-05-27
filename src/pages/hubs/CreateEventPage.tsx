@@ -40,8 +40,23 @@ export default function CreateEventPage() {
         .select("id")
         .single();
       if (error || !data) throw error || new Error("Failed");
+      const eventId = data.id;
+
+      // Auto-RSVP the creator as 'going' so they show up in the attendee
+      // count and the going_count trigger increments immediately. Non-fatal:
+      // the event exists either way.
+      try {
+        await (dbFrom("event_rsvps") as { upsert: (p: unknown, o: unknown) => Promise<{ error: unknown }> })
+          .upsert(
+            { event_id: eventId, user_id: user.id, status: "going" },
+            { onConflict: "event_id,user_id" },
+          );
+      } catch {
+        /* non-fatal — creator can RSVP from the detail page */
+      }
+
       toast.success("Event created!");
-      navigate(`/events-hub`);
+      navigate(`/events-hub/${eventId}`);
     } catch {
       toast.error("Couldn't create event");
     }

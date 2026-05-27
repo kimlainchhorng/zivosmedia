@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { buildHotelsPath } from "@/lib/lodging/hotelRoutes";
 
 interface FlightToHotelBridgeProps {
   flightDestination?: string;
@@ -39,9 +40,19 @@ const FlightToHotelBridge = ({
 }: FlightToHotelBridgeProps) => {
   const navigate = useNavigate();
   const [selectedHotel, setSelectedHotel] = useState<string | null>(null);
+  const hotelPath = buildHotelsPath({
+    city: flightDestination,
+    checkIn: arrivalDate,
+    checkOut: departureDate,
+    adults: passengers,
+    bundle: true,
+  });
+  const nights = arrivalDate && departureDate
+    ? Math.max(1, Math.round((departureDate.getTime() - arrivalDate.getTime()) / 86400000))
+    : 1;
 
   const handleContinueToHotels = () => {
-    navigate("/hotels");
+    navigate(hotelPath);
   };
 
   return (
@@ -81,7 +92,7 @@ const FlightToHotelBridge = ({
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="w-4 h-4 text-primary" />
-            <span>4 nights</span>
+            <span>{nights} night{nights === 1 ? "" : "s"}</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Users className="w-4 h-4 text-primary" />

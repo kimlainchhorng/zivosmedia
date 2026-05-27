@@ -111,7 +111,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               // Also pin the foreground colour explicitly so typed text never
               // inherits a faint placeholder colour, and override the WebKit
               // autofill text-fill colour for browser-saved values.
-              "relative flex h-10 sm:h-11 w-full rounded-lg border text-sm font-medium transition-all duration-200",
+              "relative block h-10 sm:h-11 w-full rounded-lg border py-2 text-sm font-medium leading-5 transition-all duration-200",
               "bg-background text-foreground caret-foreground",
               "[-webkit-text-fill-color:hsl(var(--foreground))] [&:-webkit-autofill]:[-webkit-text-fill-color:hsl(var(--foreground))] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_hsl(var(--background))_inset]",
               "ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",

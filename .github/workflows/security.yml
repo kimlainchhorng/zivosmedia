@@ -8,8 +8,20 @@ name: Security
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
   schedule:
     # Mondays 09:00 UTC
     - cron: "0 9 * * 1"
@@ -28,14 +40,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version-file: ".nvmrc"
           cache: npm
 
       - name: Install dependencies
@@ -47,7 +59,10 @@ jobs:
       - name: Secret scan
         run: npm run security:check-secrets
 
+      - name: Supabase migration integrity
+        run: npm run supabase:migrations:check
+
       - name: TypeScript build
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
+          NODE_OPTIONS: "--max-old-space-size=8192"
         run: npm run build

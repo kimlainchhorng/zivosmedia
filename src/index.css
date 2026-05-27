@@ -217,7 +217,7 @@
 @layer utilities {
   .zivo-shell-mobile {
     min-height: 100dvh;
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(4.5rem + var(--zivo-safe-bottom, 0px));
     background: hsl(var(--background));
     color: hsl(var(--foreground));
   }
@@ -248,11 +248,11 @@
   }
 
   .zivo-pb-safe-inset {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: var(--zivo-safe-bottom, 0px);
   }
 
   .zivo-reels-bottom-spacer {
-    height: max(calc(env(safe-area-inset-bottom, 0px) + 6rem), 6rem);
+    height: max(calc(var(--zivo-safe-bottom, 0px) + 6rem), 6rem);
   }
 
   .zivo-reel-close-offset {
@@ -261,15 +261,15 @@
   }
 
   .zivo-reel-actions-offset {
-    bottom: max(calc(env(safe-area-inset-bottom, 0px) + 1.5rem), 2.5rem);
+    bottom: max(calc(var(--zivo-safe-bottom, 0px) + 1.5rem), 2.5rem);
   }
 
   .zivo-reel-product-offset {
-    bottom: max(calc(env(safe-area-inset-bottom, 0px) + 5.5rem), 7rem);
+    bottom: max(calc(var(--zivo-safe-bottom, 0px) + 5.5rem), 7rem);
   }
 
   .zivo-reel-caption-offset {
-    padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 1rem), 2rem);
+    padding-bottom: max(calc(var(--zivo-safe-bottom, 0px) + 1rem), 2rem);
   }
 
   .zivo-touch-no-callout {
@@ -279,29 +279,48 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  .zivo-reel-no-callout,
+  .zivo-reel-no-callout * {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  body.zivo-reels-active :where(*):not(input):not(textarea):not([contenteditable='true']) {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
   .zivo-live-topbar-safe {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+    padding-top: calc(var(--zivo-safe-top, 0px) + 8px);
   }
 
   .zivo-live-viewers-offset {
-    top: calc(env(safe-area-inset-top, 0px) + 80px);
+    top: calc(var(--zivo-safe-top, 0px) + 80px);
   }
 
   .zivo-live-actions-offset {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 160px);
+    bottom: calc(var(--zivo-safe-bottom, 0px) + 160px);
   }
 
   .zivo-live-chat-offset {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 60px);
+    bottom: calc(var(--zivo-safe-bottom, 0px) + 60px);
   }
 
   .zivo-live-input-offset {
-    bottom: env(safe-area-inset-bottom, 0px);
+    bottom: var(--zivo-safe-bottom, 0px);
   }
 
   .zivo-live-gift-panel {
     max-height: 55vh;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    padding-bottom: calc(var(--zivo-safe-bottom, 0px) + 8px);
   }
 
   .zivo-live-gifts-scroll-compact {
@@ -313,11 +332,11 @@
   }
 
   .zivo-live-fab-offset {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
+    bottom: calc(var(--zivo-safe-bottom, 0px) + 88px);
   }
 
   .zivo-pb-safe-action {
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    padding-bottom: max(0.75rem, var(--zivo-safe-bottom, 0px));
   }
 
   .zivo-profile-cover-height {
@@ -532,6 +551,14 @@
       --zivo-safe-top-sheet: var(--zivo-safe-top, 0px);
     }
   }
+
+  @media (max-width: 480px) {
+    @supports (-webkit-touch-callout: none) {
+      :root {
+        --zivo-safe-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+      }
+    }
+  }
 }
 
 @layer components {
@@ -586,14 +613,14 @@
   }
 
   .safe-area-bottom {
-    --_safe-bottom: env(safe-area-inset-bottom, 0px);
+    --_safe-bottom: var(--zivo-safe-bottom, env(safe-area-inset-bottom, 0px));
     padding-bottom: var(--_safe-bottom) !important;
   }
 
   @media (max-width: 480px) {
     @supports (-webkit-touch-callout: none) {
       .safe-area-bottom {
-        --_safe-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+        --_safe-bottom: var(--zivo-safe-bottom, max(env(safe-area-inset-bottom, 0px), 16px));
       }
     }
   }
@@ -706,7 +733,7 @@
 
   /* Bottom nav spacer — adds space for fixed bottom nav */
   .pb-nav {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(4rem + var(--zivo-safe-bottom, 0px));
   }
 
   /* Shared top offset for feed overlays/actions aligned to safe area */
@@ -1494,7 +1521,7 @@
    ============================================= */
 
 .vault-checkout {
-  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding-bottom: var(--zivo-safe-bottom, 16px);
 }
 
 .vault-glass {
@@ -2372,6 +2399,11 @@ body[data-story-open="true"] [data-zivo-mobile-nav] {
 
 /* Hide the mobile bottom nav while modal share sheets are open. */
 body[data-share-sheet-open="true"] [data-zivo-mobile-nav] {
+  display: none !important;
+}
+
+/* Hide the mobile bottom nav while Reels action/playback sheets are open. */
+body[data-reel-sheet-open="true"] [data-zivo-mobile-nav] {
   display: none !important;
 }
 

@@ -1,0 +1,30 @@
+{
+  "run_at": "2026-05-16T22:53:44.849Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": 1,
+    "FORCE": false,
+    "DRY_RUN": true,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "72937783-6257-4dc7-863a-9bac6e30b4f8",
+      "name": "Condo tel at star bay",
+      "status": "updated",
+      "photos": 6,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/condo-tel-at-star-bay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}

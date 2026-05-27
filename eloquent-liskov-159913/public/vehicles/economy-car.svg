@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="econBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D8DBDF"/>
+      <stop offset="100%" stop-color="#A8ABB0"/>
+    </linearGradient>
+    <radialGradient id="econShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.32)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+  </defs>
+  <!-- Drop shadow -->
+  <ellipse cx="100" cy="91" rx="80" ry="7" fill="url(#econShadow)"/>
+  <!-- Rear wheel -->
+  <circle cx="148" cy="76" r="13" fill="#2a2a3a"/>
+  <circle cx="148" cy="76" r="6" fill="#888898"/>
+  <circle cx="148" cy="76" r="2.5" fill="#2a2a3a"/>
+  <!-- Front wheel -->
+  <circle cx="55" cy="76" r="13" fill="#2a2a3a"/>
+  <circle cx="55" cy="76" r="6" fill="#888898"/>
+  <circle cx="55" cy="76" r="2.5" fill="#2a2a3a"/>
+  <!-- Car lower body (covers wheel tops) -->
+  <rect x="22" y="54" width="158" height="24" rx="9" fill="url(#econBody)"/>
+  <!-- Cabin / roof -->
+  <path d="M 62,54 L 78,23 L 136,23 L 150,54 Z" fill="#1a1a2e"/>
+  <!-- Roof highlight streak -->
+  <path d="M 82,24 L 134,24 L 134,26 L 82,26 Z" fill="rgba(255,255,255,0.08)"/>
+  <!-- Front window -->
+  <path d="M 69,53 L 83,25 L 110,25 L 110,53 Z" fill="rgba(178,205,230,0.55)"/>
+  <!-- Rear window -->
+  <path d="M 113,53 L 113,25 L 133,25 L 147,53 Z" fill="rgba(178,205,230,0.50)"/>
+  <!-- Window reflections -->
+  <path d="M 72,49 L 80,32 L 84,32 L 76,49 Z" fill="rgba(255,255,255,0.14)"/>
+  <!-- Door line -->
+  <line x1="110" y1="54" x2="110" y2="78" stroke="rgba(0,0,0,0.14)" stroke-width="1.5"/>
+  <!-- Headlight -->
+  <ellipse cx="27" cy="63" rx="4" ry="3" fill="rgba(255,248,200,0.90)"/>
+  <ellipse cx="27" cy="63" rx="2" ry="1.5" fill="rgba(255,255,220,1)"/>
+  <!-- Taillight -->
+  <rect x="171" y="60" width="5" height="8" rx="2" fill="rgba(200,50,50,0.85)"/>
+  <!-- Front bumper stripe -->
+  <rect x="22" y="72" width="10" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+</svg>

@@ -55,10 +55,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Store, Image, Package, Plus, Edit, Trash2, Loader2, Eye, Upload, Camera, MapPin, ExternalLink, Globe, Check, Percent, DollarSign, CalendarIcon, Tag, Gift, Video, ImagePlus, RefreshCw, Replace, CheckCircle2, XCircle, MinusCircle, AlertTriangle, Move, X, Ruler, MessageCircle, CreditCard, Banknote, QrCode, Building2, Smartphone, Wallet, Car, Heart, Clock, Send, Users, Shield, Bell, Info, Copy, GripVertical, Hotel, BedDouble, CalendarRange, KeyRound, PackagePlus, MessageSquareText, BarChart3, ListChecks, LayoutDashboard, BookOpen } from "lucide-react";
+import { ArrowLeft, Save, Store, Image, Package, Plus, Edit, Trash2, Loader2, Eye, Upload, Camera, MapPin, ExternalLink, Globe, Check, Percent, DollarSign, CalendarIcon, Tag, Gift, Video, ImagePlus, RefreshCw, Replace, CheckCircle2, XCircle, MinusCircle, AlertTriangle, Move, X, Ruler, MessageCircle, CreditCard, Banknote, QrCode, Building2, Smartphone, Wallet, Car, Heart, Clock, Send, Users, Shield, Bell, Info, Copy, GripVertical, Hotel, BedDouble, CalendarRange, KeyRound, PackagePlus, MessageSquareText, BarChart3, ListChecks, LayoutDashboard, BookOpen, Star, Inbox, Wrench } from "lucide-react";
 import StoreLiveChat from "@/components/grocery/StoreLiveChat";
 import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
-import { LODGING_TAB_IDS, resolveStoreTab, resolveStoreTabFromSearch } from "@/lib/admin/storeTabRouting";
+import { LODGING_TAB_IDS, isAutoRepairTab, isCafeTab, isCarRentalTab, isCarDealershipTab, resolveStoreTab, resolveStoreTabFromSearch } from "@/lib/admin/storeTabRouting";
 import { useLodgeRooms } from "@/hooks/lodging/useLodgeRooms";
 import { useLodgePropertyProfile } from "@/hooks/lodging/useLodgePropertyProfile";
 import { useLodgingPhase5Counts } from "@/hooks/lodging/useLodgingPhase5Counts";
@@ -68,6 +68,88 @@ import { cn } from "@/lib/utils";
 import { STORE_CATEGORY_OPTIONS } from "@/config/groceryStores";
 import StoreMapPicker from "@/components/admin/StoreMapPicker";
 import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import SalonComingSoonSection from "@/components/admin/store/salon/SalonComingSoonSection";
+import SalonPaymentUsSection from "@/components/admin/store/salon/SalonPaymentUsSection";
+import SalonServiceMenuSection from "@/components/admin/store/salon/SalonServiceMenuSection";
+import SalonStylistsSection from "@/components/admin/store/salon/SalonStylistsSection";
+import SalonClientsSection from "@/components/admin/store/salon/SalonClientsSection";
+import SalonBookingsSection from "@/components/admin/store/salon/SalonBookingsSection";
+import SalonDashboardSection from "@/components/admin/store/salon/SalonDashboardSection";
+import SalonServiceHistorySection from "@/components/admin/store/salon/SalonServiceHistorySection";
+import SalonCommissionsSection from "@/components/admin/store/salon/SalonCommissionsSection";
+import SalonWalkinsSection from "@/components/admin/store/salon/SalonWalkinsSection";
+import SalonReportsSection from "@/components/admin/store/salon/SalonReportsSection";
+import SalonExpensesSection from "@/components/admin/store/salon/SalonExpensesSection";
+import SalonWaitlistSection from "@/components/admin/store/salon/SalonWaitlistSection";
+import SalonIncomeSection from "@/components/admin/store/salon/SalonIncomeSection";
+import SalonStylistSchedulesSection from "@/components/admin/store/salon/SalonStylistSchedulesSection";
+import SalonPackagesSection from "@/components/admin/store/salon/SalonPackagesSection";
+import SalonRetailProductsSection from "@/components/admin/store/salon/SalonRetailProductsSection";
+import SalonLoyaltySection from "@/components/admin/store/salon/SalonLoyaltySection";
+import SalonReviewsSection from "@/components/admin/store/salon/SalonReviewsSection";
+import SalonTimeClockSection from "@/components/admin/store/salon/SalonTimeClockSection";
+import SalonGiftCardsSection from "@/components/admin/store/salon/SalonGiftCardsSection";
+import SalonRemindersSection from "@/components/admin/store/salon/SalonRemindersSection";
+import SalonCampaignsSection from "@/components/admin/store/salon/SalonCampaignsSection";
+import SalonMembershipsSection from "@/components/admin/store/salon/SalonMembershipsSection";
+import { SALON_TAB_META, SALON_TAB_IDS } from "@/components/admin/store/salon/salonTabConfig";
+import CarRentalComingSoonSection from "@/components/admin/store/car-rental/CarRentalComingSoonSection";
+import CarRentalDashboardSection from "@/components/admin/store/car-rental/CarRentalDashboardSection";
+import CarRentalReservationsSection from "@/components/admin/store/car-rental/CarRentalReservationsSection";
+import CarRentalFleetSection from "@/components/admin/store/car-rental/CarRentalFleetSection";
+import CarRentalLocationsSection from "@/components/admin/store/car-rental/CarRentalLocationsSection";
+import CarRentalAddonsSection from "@/components/admin/store/car-rental/CarRentalAddonsSection";
+import CarRentalCustomersSection from "@/components/admin/store/car-rental/CarRentalCustomersSection";
+import CarRentalCheckoutSection from "@/components/admin/store/car-rental/CarRentalCheckoutSection";
+import CarRentalReturnsSection from "@/components/admin/store/car-rental/CarRentalReturnsSection";
+import CarRentalMaintenanceSection from "@/components/admin/store/car-rental/CarRentalMaintenanceSection";
+import CarRentalIncomeSection from "@/components/admin/store/car-rental/CarRentalIncomeSection";
+import CarRentalExpensesSection from "@/components/admin/store/car-rental/CarRentalExpensesSection";
+import CarRentalReportsSection from "@/components/admin/store/car-rental/CarRentalReportsSection";
+import CarRentalReviewsSection from "@/components/admin/store/car-rental/CarRentalReviewsSection";
+import CarRentalPromotionsSection from "@/components/admin/store/car-rental/CarRentalPromotionsSection";
+import CarRentalRatesSection from "@/components/admin/store/car-rental/CarRentalRatesSection";
+import CarRentalCommandPalette from "@/components/admin/store/car-rental/CarRentalCommandPalette";
+import { CAR_RENTAL_TAB_META, CAR_RENTAL_TAB_IDS } from "@/components/admin/store/car-rental/carRentalTabConfig";
+import CarDealershipComingSoonSection from "@/components/admin/store/car-dealership/CarDealershipComingSoonSection";
+import CarDealershipDashboardSection from "@/components/admin/store/car-dealership/CarDealershipDashboardSection";
+import CarDealershipInventorySection from "@/components/admin/store/car-dealership/CarDealershipInventorySection";
+import CarDealershipLeadsSection from "@/components/admin/store/car-dealership/CarDealershipLeadsSection";
+import CarDealershipCustomersSection from "@/components/admin/store/car-dealership/CarDealershipCustomersSection";
+import CarDealershipTestDrivesSection from "@/components/admin/store/car-dealership/CarDealershipTestDrivesSection";
+import CarDealershipSalesSection from "@/components/admin/store/car-dealership/CarDealershipSalesSection";
+import CarDealershipFinancingSection from "@/components/admin/store/car-dealership/CarDealershipFinancingSection";
+import CarDealershipTradeInsSection from "@/components/admin/store/car-dealership/CarDealershipTradeInsSection";
+import CarDealershipReviewsSection from "@/components/admin/store/car-dealership/CarDealershipReviewsSection";
+import CarDealershipExpensesSection from "@/components/admin/store/car-dealership/CarDealershipExpensesSection";
+import CarDealershipIncomeSection from "@/components/admin/store/car-dealership/CarDealershipIncomeSection";
+import CarDealershipReportsSection from "@/components/admin/store/car-dealership/CarDealershipReportsSection";
+import CarDealershipPromotionsSection from "@/components/admin/store/car-dealership/CarDealershipPromotionsSection";
+import { CAR_DEALERSHIP_TAB_META, CAR_DEALERSHIP_TAB_IDS } from "@/components/admin/store/car-dealership/carDealershipTabConfig";
+import CafeComingSoonSection from "@/components/admin/store/cafe/CafeComingSoonSection";
+import CafeDashboardSection from "@/components/admin/store/cafe/CafeDashboardSection";
+import CafeMenuSection from "@/components/admin/store/cafe/CafeMenuSection";
+import CafeModifiersSection from "@/components/admin/store/cafe/CafeModifiersSection";
+import CafeOrdersSection from "@/components/admin/store/cafe/CafeOrdersSection";
+import CafeKdsSection from "@/components/admin/store/cafe/CafeKdsSection";
+import CafeTablesSection from "@/components/admin/store/cafe/CafeTablesSection";
+import CafePaymentSection from "@/components/admin/store/cafe/CafePaymentSection";
+import CafeCustomersSection from "@/components/admin/store/cafe/CafeCustomersSection";
+import CafeGiftCardsSection from "@/components/admin/store/cafe/CafeGiftCardsSection";
+import CafeIncomeSection from "@/components/admin/store/cafe/CafeIncomeSection";
+import CafeReportsSection from "@/components/admin/store/cafe/CafeReportsSection";
+import CafeExpensesSection from "@/components/admin/store/cafe/CafeExpensesSection";
+import CafeBaristasSection from "@/components/admin/store/cafe/CafeBaristasSection";
+import CafeTimeClockSection from "@/components/admin/store/cafe/CafeTimeClockSection";
+import CafeReviewsSection from "@/components/admin/store/cafe/CafeReviewsSection";
+import CafePromotionsSection from "@/components/admin/store/cafe/CafePromotionsSection";
+import CafeInventorySection from "@/components/admin/store/cafe/CafeInventorySection";
+import CafeRecipesSection from "@/components/admin/store/cafe/CafeRecipesSection";
+import CafeTipsSection from "@/components/admin/store/cafe/CafeTipsSection";
+import CafePurchasingSection from "@/components/admin/store/cafe/CafePurchasingSection";
+import CafeLoyaltySection from "@/components/admin/store/cafe/CafeLoyaltySection";
+import CafeShiftsSection from "@/components/admin/store/cafe/CafeShiftsSection";
+import { CAFE_TAB_META, CAFE_TAB_IDS } from "@/components/admin/store/cafe/cafeTabConfig";
 import { toast } from "sonner";
 
 const StorePaymentSection = React.lazy(() => import("@/components/admin/StorePaymentSection"));
@@ -107,6 +189,7 @@ const AutoRepairLoanersSection = React.lazy(() => import("@/components/admin/sto
 const AutoRepairPhotosSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairPhotosSection"));
 const AutoRepairBookingLinkSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairBookingLinkSection"));
 const AutoRepairLaborTimeSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairLaborTimeSection"));
+const AutoRepairCustomerNotesSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairCustomerNotesSection"));
 const FinanceIncomeSection = React.lazy(() => import("@/components/admin/store/autorepair/finance/FinanceIncomeSection"));
 const FinanceExpensesSection = React.lazy(() => import("@/components/admin/store/autorepair/finance/FinanceExpensesSection"));
 const FinancePaymentsSection = React.lazy(() => import("@/components/admin/store/autorepair/finance/FinancePaymentsSection"));
@@ -501,6 +584,8 @@ export default function AdminStoreEditPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "profile");
   const appliedLodgingDefaultTabRef = useRef(false);
+  const appliedAutoRepairDefaultTabRef = useRef(false);
+  const appliedCafeDefaultTabRef = useRef(false);
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -677,15 +762,33 @@ export default function AdminStoreEditPage() {
     if (!store) return;
     const normalizedStoreCategory = (store?.category || "").toLowerCase().trim();
     const isStoreLodging = isLikelyLodgingStore(store, normalizedStoreCategory);
-    const isStoreAutoRepair = normalizedStoreCategory === "auto-repair";
     const requestedTab = searchParams.get("tab");
-    const resolvedTab = resolveStoreTabFromSearch(searchParams, isStoreLodging, isStoreAutoRepair);
-    if (requestedTab !== resolvedTab && (requestedTab || isStoreLodging)) {
+    const requestedCategory = (searchParams.get("category") || "").toLowerCase().trim();
+    const isStoreAutoRepair =
+      normalizedStoreCategory === "auto-repair" ||
+      requestedCategory === "auto-repair" ||
+      isAutoRepairTab(requestedTab);
+    const isStoreSalon = normalizedStoreCategory === "salon" || requestedCategory === "salon";
+    const isStoreCafe = normalizedStoreCategory === "cafe" || requestedCategory === "cafe" || isCafeTab(requestedTab);
+    const isStoreCarRental = normalizedStoreCategory === "car-rental" || requestedCategory === "car-rental" || isCarRentalTab(requestedTab);
+    const isStoreCarDealership = normalizedStoreCategory === "car-dealership" || requestedCategory === "car-dealership" || isCarDealershipTab(requestedTab);
+    const resolvedTab = resolveStoreTabFromSearch(searchParams, isStoreLodging, isStoreAutoRepair, isStoreSalon, isStoreCafe, isStoreCarRental, isStoreCarDealership);
+    if (requestedTab !== resolvedTab && (requestedTab || isStoreLodging || isStoreAutoRepair || isStoreCafe || isStoreCarRental || isStoreCarDealership)) {
       handleTabChange(resolvedTab);
       return;
     }
     if (!appliedLodgingDefaultTabRef.current && isStoreLodging && activeTab === "profile" && !requestedTab) {
       appliedLodgingDefaultTabRef.current = true;
+      handleTabChange(resolvedTab);
+      return;
+    }
+    if (!appliedAutoRepairDefaultTabRef.current && isStoreAutoRepair && activeTab === "profile" && !requestedTab) {
+      appliedAutoRepairDefaultTabRef.current = true;
+      handleTabChange(resolvedTab);
+      return;
+    }
+    if (!appliedCafeDefaultTabRef.current && isStoreCafe && activeTab === "profile" && !requestedTab) {
+      appliedCafeDefaultTabRef.current = true;
       handleTabChange(resolvedTab);
     }
   }, [store, activeTab, searchParams, handleTabChange]);
@@ -2063,7 +2166,7 @@ export default function AdminStoreEditPage() {
       // Auto-save immediately
       const { error: saveErr } = await supabase
         .from("store_profiles")
-        .update({ [field]: publicUrl })
+        .update({ [field]: publicUrl } as any)
         .eq("id", storeId!);
       if (saveErr) throw saveErr;
       // Verify persistence
@@ -2085,8 +2188,13 @@ export default function AdminStoreEditPage() {
 
   const employeeTitles: Record<string, string> = { employees: "Employees", payroll: "Payroll", "employee-schedule": "Employee Schedule", "time-clock": "Time Clock", "employee-rules": "Employee Rules", attendance: "Attendance & Leave", training: "Training & Onboarding", documents: "Documents & Files" };
   const normalizedCategory = (form.category || "").toLowerCase().trim();
-  const isAutoRepair = normalizedCategory === "auto-repair";
+  const requestedCategory = (searchParams.get("category") || "").toLowerCase().trim();
+  const isAutoRepair = normalizedCategory === "auto-repair" || requestedCategory === "auto-repair" || isAutoRepairTab(activeTab);
   const isLodging = isLikelyLodgingStore(store, normalizedCategory);
+  const isCafe = normalizedCategory === "cafe" || requestedCategory === "cafe" || isCafeTab(activeTab);
+  const isCarRental = normalizedCategory === "car-rental" || requestedCategory === "car-rental" || isCarRentalTab(activeTab);
+  const isCarDealership = normalizedCategory === "car-dealership" || requestedCategory === "car-dealership" || isCarDealershipTab(activeTab);
+  const effectiveStoreCategory = isAutoRepair ? "auto-repair" : isCafe ? "cafe" : isCarRental ? "car-rental" : isCarDealership ? "car-dealership" : form.category;
   const autoRepairTitles: Record<string, string> = {
     "customer-bookings": "Customer Bookings",
     "ar-invoices": "Invoices & Estimates",
@@ -2110,6 +2218,17 @@ export default function AdminStoreEditPage() {
     "ar-parts-suppliers": "Parts Suppliers",
     "ar-dashboard": "Shop Dashboard",
     "ar-service-catalog": "Service Catalog",
+    "ar-labor-time": "Labor Time Tracking",
+    "ar-loaners": "Loaner Vehicles",
+    "ar-photos": "Work Photos",
+    "ar-customer-notes": "Customer Notes & Communication",
+    "ar-reviews": "Customer Reviews",
+    "ar-inbox": "Customer Inbox",
+    "ar-promos": "Promotions & Discounts",
+    "ar-campaigns": "Marketing Campaigns",
+    "ar-gift-cards": "Gift Cards",
+    "ar-booking-link": "Booking Link & QR Code",
+    "ar-qr": "QR Code",
   };
   const lodgingTitles: Record<string, string> = {
     "lodge-overview": "Hotel Overview",
@@ -2157,7 +2276,11 @@ export default function AdminStoreEditPage() {
   };
   const productsLabelTitle = isAutoRepair ? "Services" : isLodging ? "Rooms" : "Products";
   const paymentLabelTitle = form.category === "car-dealership" ? t("admin.store.booking_appointment") : isAutoRepair ? "Bookings" : isLodging ? "Payment & Payouts" : t("admin.store.payment");
-  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
+  const salonTitle = SALON_TAB_META[activeTab]?.title;
+  const cafeTitle = CAFE_TAB_META[activeTab]?.title;
+  const carRentalTitle = CAR_RENTAL_TAB_META[activeTab]?.title;
+  const carDealershipTitle = CAR_DEALERSHIP_TAB_META[activeTab]?.title;
+  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || salonTitle || cafeTitle || carRentalTitle || carDealershipTitle || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
   // IMPORTANT: Do NOT define a component inside render — it creates a new component
   // type on every render, which forces React to unmount + remount the entire subtree
   // (including the Add Product dialog inputs) on every keystroke. Use a render helper instead.
@@ -2172,7 +2295,7 @@ export default function AdminStoreEditPage() {
           storeId={storeId}
           storeName={store?.name}
           storeLogoUrl={store?.logo_url}
-          storeCategory={form.category}
+          storeCategory={effectiveStoreCategory}
           activeTab={activeTab}
           onTabChange={handleTabChange}
           lodgingSetupProgress={isLodging ? lodgingSetup : undefined}
@@ -2182,7 +2305,7 @@ export default function AdminStoreEditPage() {
         </StoreOwnerLayout>
       );
     },
-    [isAdmin, storeOwnerTitle, storeId, store?.name, store?.logo_url, form.category, activeTab, handleTabChange, lodgingSetup, products?.length],
+    [isAdmin, storeOwnerTitle, storeId, store?.name, store?.logo_url, effectiveStoreCategory, activeTab, handleTabChange, lodgingSetup, products?.length],
   );
 
   if (isLoading) {
@@ -2706,6 +2829,10 @@ export default function AdminStoreEditPage() {
         </Card>
         </>)}
 
+        {isCarRental && storeId && (
+          <CarRentalCommandPalette storeId={storeId} onJump={(id) => handleTabChange(id)} />
+        )}
+
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           {isAdmin && (
             <>
@@ -2736,13 +2863,24 @@ export default function AdminStoreEditPage() {
                   <TabsTrigger value="ar-estimates" className="gap-1 text-xs h-7"><Package className="h-3 w-3" /> Estimates</TabsTrigger>
                   <TabsTrigger value="ar-inspections" className="gap-1 text-xs h-7"><Shield className="h-3 w-3" /> Inspections</TabsTrigger>
                   <TabsTrigger value="ar-techs" className="gap-1 text-xs h-7"><Users className="h-3 w-3" /> Technicians</TabsTrigger>
+                  <TabsTrigger value="ar-labor-time" className="gap-1 text-xs h-7"><Clock className="h-3 w-3" /> Labor Time</TabsTrigger>
                   <TabsTrigger value="ar-tires" className="gap-1 text-xs h-7"><Package className="h-3 w-3" /> Tires</TabsTrigger>
                   <TabsTrigger value="ar-parts" className="gap-1 text-xs h-7"><Package className="h-3 w-3" /> Parts</TabsTrigger>
                   <TabsTrigger value="ar-parts-suppliers" className="gap-1 text-xs h-7"><Package className="h-3 w-3" /> Suppliers</TabsTrigger>
                   <TabsTrigger value="ar-fleet" className="gap-1 text-xs h-7"><Car className="h-3 w-3" /> Fleet</TabsTrigger>
+                  <TabsTrigger value="ar-loaners" className="gap-1 text-xs h-7"><KeyRound className="h-3 w-3" /> Loaners</TabsTrigger>
                   <TabsTrigger value="ar-warranty" className="gap-1 text-xs h-7"><Shield className="h-3 w-3" /> Warranty</TabsTrigger>
                   <TabsTrigger value="ar-reminders" className="gap-1 text-xs h-7"><Bell className="h-3 w-3" /> Reminders</TabsTrigger>
-                  <TabsTrigger value="ar-autocheck" className="gap-1 text-xs h-7"><Car className="h-3 w-3" /> VIN Check</TabsTrigger>
+                  <TabsTrigger value="ar-photos" className="gap-1 text-xs h-7"><Camera className="h-3 w-3" /> Photos</TabsTrigger>
+                  <TabsTrigger value="ar-autocheck" className="gap-1 text-xs h-7"><Wrench className="h-3 w-3" /> VIN Check</TabsTrigger>
+                  <TabsTrigger value="ar-customer-notes" className="gap-1 text-xs h-7"><MessageSquareText className="h-3 w-3" /> Notes</TabsTrigger>
+                  <TabsTrigger value="ar-inbox" className="gap-1 text-xs h-7"><Inbox className="h-3 w-3" /> Inbox</TabsTrigger>
+                  <TabsTrigger value="ar-reviews" className="gap-1 text-xs h-7"><Star className="h-3 w-3" /> Reviews</TabsTrigger>
+                  <TabsTrigger value="ar-promos" className="gap-1 text-xs h-7"><Tag className="h-3 w-3" /> Promos</TabsTrigger>
+                  <TabsTrigger value="ar-campaigns" className="gap-1 text-xs h-7"><Send className="h-3 w-3" /> Campaigns</TabsTrigger>
+                  <TabsTrigger value="ar-gift-cards" className="gap-1 text-xs h-7"><Gift className="h-3 w-3" /> Gift Cards</TabsTrigger>
+                  <TabsTrigger value="ar-booking-link" className="gap-1 text-xs h-7"><Globe className="h-3 w-3" /> Booking Link</TabsTrigger>
+                  <TabsTrigger value="ar-qr" className="gap-1 text-xs h-7"><QrCode className="h-3 w-3" /> QR Code</TabsTrigger>
                   <TabsTrigger value="ar-reports" className="gap-1 text-xs h-7"><BarChart3 className="h-3 w-3" /> Reports</TabsTrigger>
                   <TabsTrigger value="ar-fin-income" className="gap-1 text-xs h-7"><DollarSign className="h-3 w-3" /> Income</TabsTrigger>
                   <TabsTrigger value="ar-fin-expenses" className="gap-1 text-xs h-7"><DollarSign className="h-3 w-3" /> Expenses</TabsTrigger>
@@ -4047,6 +4185,8 @@ export default function AdminStoreEditPage() {
                   <AdminBookingsTab storeId={storeId!} />
                 </CardContent>
               </Card>
+            ) : form.category === "salon" ? (
+              <SalonPaymentUsSection storeId={storeId!} />
             ) : (
               <StorePaymentSection storeId={storeId!} market={form.market} />
             )}
@@ -4123,8 +4263,8 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-invoices"><div><AutoRepairInvoicesSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-autocheck"><div><AutoRepairAutoCheckSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-parts"><div><AutoRepairPartShopSection storeId={storeId!} /></div></TabsContent>
-              <TabsContent value="ar-inspections"><div><AutoRepairInspectionsSection storeId={storeId!} onCreateEstimate={(vehicleLabel) => { handleTabChange("ar-estimates"); toast.info(`Opening Estimates — create one for ${vehicleLabel || "this vehicle"}`); }} /></div></TabsContent>
-              <TabsContent value="ar-vehicles"><div><AutoRepairVehiclesSection storeId={storeId!} onNewEstimate={(v) => { handleTabChange("ar-estimates"); toast.info(`Create estimate for ${[v.year, v.make, v.model].filter(Boolean).join(" ")}`); }} onViewWorkOrders={(v) => { handleTabChange("ar-workorders"); toast.info(`Showing Work Orders — search "${[v.year, v.make, v.model].filter(Boolean).join(" ")}"`); }} /></div></TabsContent>
+              <TabsContent value="ar-inspections"><div><AutoRepairInspectionsSection storeId={storeId!} onCreateEstimate={(data) => { sessionStorage.setItem("ar_estimate_prefill", JSON.stringify(data)); handleTabChange("ar-estimates"); toast.success("Estimate prefilled from inspection"); }} /></div></TabsContent>
+              <TabsContent value="ar-vehicles"><div><AutoRepairVehiclesSection storeId={storeId!} onNewEstimate={(v) => { const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" "); sessionStorage.setItem("ar_estimate_prefill", JSON.stringify({ vehicle_label: vehicleLabel, customer_name: v.owner_name || "", customer_phone: v.owner_phone || "", customer_email: v.owner_email || "", notes: "", line_items: [] })); handleTabChange("ar-estimates"); toast.success(`Estimate prefilled for ${vehicleLabel}`); }} onViewWorkOrders={(v) => { const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" "); sessionStorage.setItem("ar_workorder_search", vehicleLabel); handleTabChange("ar-workorders"); toast.info(`Filtering Work Orders by "${vehicleLabel}"`); }} /></div></TabsContent>
               <TabsContent value="ar-estimates"><div><AutoRepairEstimatesSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-workorders"><div><AutoRepairWorkOrdersSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-labor-time"><div><AutoRepairLaborTimeSection storeId={storeId!} /></div></TabsContent>
@@ -4135,6 +4275,7 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-fleet"><div><AutoRepairFleetSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-loaners"><div><AutoRepairLoanersSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-photos"><div><AutoRepairPhotosSection storeId={storeId!} /></div></TabsContent>
+              <TabsContent value="ar-customer-notes"><div><AutoRepairCustomerNotesSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-reviews"><div><AutoRepairReviewsSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-inbox"><div><AutoRepairInboxSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-promos"><div><AutoRepairPromosSection storeId={storeId!} /></div></TabsContent>
@@ -4202,8 +4343,248 @@ export default function AdminStoreEditPage() {
           )}
 
           <TabsContent value="software" data-testid="store-tab-software">
-            <SoftwareDownloadsSection storeCategory={form.category} />
+            <SoftwareDownloadsSection storeCategory={effectiveStoreCategory} storeId={storeId} />
           </TabsContent>
+
+          {/* Cafe module — real sections where built, placeholder otherwise. */}
+          {CAFE_TAB_IDS.map((tabId) => {
+            const meta = CAFE_TAB_META[tabId];
+            const renderReal = () => {
+              switch (tabId) {
+                case "cafe-dashboard":
+                  return <CafeDashboardSection storeId={storeId!} storeSlug={form.slug} onJumpToTab={handleTabChange} />;
+                case "cafe-orders":
+                  return <CafeOrdersSection storeId={storeId!} />;
+                case "cafe-kds":
+                  return <CafeKdsSection storeId={storeId!} />;
+                case "cafe-tables":
+                  return <CafeTablesSection storeId={storeId!} storeSlug={form.slug} />;
+                case "cafe-menu":
+                  return <CafeMenuSection storeId={storeId!} />;
+                case "cafe-modifiers":
+                  return <CafeModifiersSection storeId={storeId!} />;
+                case "cafe-payment":
+                  return <CafePaymentSection storeId={storeId!} />;
+                case "cafe-customers":
+                  return <CafeCustomersSection storeId={storeId!} />;
+                case "cafe-gift-cards":
+                  return <CafeGiftCardsSection storeId={storeId!} />;
+                case "cafe-income":
+                  return <CafeIncomeSection storeId={storeId!} />;
+                case "cafe-reports":
+                  return <CafeReportsSection storeId={storeId!} />;
+                case "cafe-expenses":
+                  return <CafeExpensesSection storeId={storeId!} />;
+                case "cafe-baristas":
+                  return <CafeBaristasSection storeId={storeId!} />;
+                case "cafe-timeclock":
+                  return <CafeTimeClockSection storeId={storeId!} />;
+                case "cafe-reviews":
+                  return <CafeReviewsSection storeId={storeId!} />;
+                case "cafe-promotions":
+                  return <CafePromotionsSection storeId={storeId!} />;
+                case "cafe-inventory":
+                  return <CafeInventorySection storeId={storeId!} />;
+                case "cafe-recipes":
+                  return <CafeRecipesSection storeId={storeId!} />;
+                case "cafe-tips":
+                  return <CafeTipsSection storeId={storeId!} />;
+                case "cafe-purchasing":
+                  return <CafePurchasingSection storeId={storeId!} />;
+                case "cafe-loyalty":
+                  return <CafeLoyaltySection storeId={storeId!} />;
+                case "cafe-shifts":
+                  return <CafeShiftsSection storeId={storeId!} />;
+                default:
+                  return null;
+              }
+            };
+            const real = renderReal();
+            return (
+              <TabsContent key={tabId} value={tabId}>
+                {real ?? (
+                  <CafeComingSoonSection
+                    title={meta.title}
+                    description={meta.description}
+                    Icon={meta.Icon}
+                    bullets={meta.bullets}
+                  />
+                )}
+              </TabsContent>
+            );
+          })}
+
+          {/* Car Rental module — real sections where built, placeholder otherwise. */}
+          {CAR_RENTAL_TAB_IDS.map((tabId) => {
+            const meta = CAR_RENTAL_TAB_META[tabId];
+            const renderReal = () => {
+              switch (tabId) {
+                case "car-rental-dashboard":
+                  return <CarRentalDashboardSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "car-rental-reservations":
+                  return <CarRentalReservationsSection storeId={storeId!} />;
+                case "car-rental-fleet":
+                  return <CarRentalFleetSection storeId={storeId!} />;
+                case "car-rental-locations":
+                  return <CarRentalLocationsSection storeId={storeId!} />;
+                case "car-rental-addons":
+                  return <CarRentalAddonsSection storeId={storeId!} />;
+                case "car-rental-customers":
+                  return <CarRentalCustomersSection storeId={storeId!} />;
+                case "car-rental-checkout":
+                  return <CarRentalCheckoutSection storeId={storeId!} />;
+                case "car-rental-returns":
+                  return <CarRentalReturnsSection storeId={storeId!} />;
+                case "car-rental-maintenance":
+                  return <CarRentalMaintenanceSection storeId={storeId!} />;
+                case "car-rental-income":
+                  return <CarRentalIncomeSection storeId={storeId!} />;
+                case "car-rental-expenses":
+                  return <CarRentalExpensesSection storeId={storeId!} />;
+                case "car-rental-reports":
+                  return <CarRentalReportsSection storeId={storeId!} />;
+                case "car-rental-reviews":
+                  return <CarRentalReviewsSection storeId={storeId!} />;
+                case "car-rental-promotions":
+                  return <CarRentalPromotionsSection storeId={storeId!} />;
+                case "car-rental-rates":
+                  return <CarRentalRatesSection storeId={storeId!} />;
+                default:
+                  return null;
+              }
+            };
+            const real = renderReal();
+            return (
+              <TabsContent key={tabId} value={tabId}>
+                {real ?? (
+                  <CarRentalComingSoonSection
+                    title={meta.title}
+                    description={meta.description}
+                    Icon={meta.Icon}
+                    bullets={meta.bullets}
+                  />
+                )}
+              </TabsContent>
+            );
+          })}
+
+          {/* Car Dealership module — real sections where built, placeholder otherwise. */}
+          {CAR_DEALERSHIP_TAB_IDS.map((tabId) => {
+            const meta = CAR_DEALERSHIP_TAB_META[tabId];
+            const renderReal = () => {
+              switch (tabId) {
+                case "cd-dashboard":
+                  return <CarDealershipDashboardSection storeId={storeId!} storeSlug={store?.slug} onJumpToTab={handleTabChange} />;
+                case "cd-inventory":
+                  return <CarDealershipInventorySection storeId={storeId!} storeName={store?.name} />;
+                case "cd-leads":
+                  return <CarDealershipLeadsSection storeId={storeId!} />;
+                case "cd-test-drives":
+                  return <CarDealershipTestDrivesSection storeId={storeId!} />;
+                case "cd-sales":
+                  return <CarDealershipSalesSection storeId={storeId!} storeName={store?.name} storeSlug={store?.slug} />;
+                case "cd-customers":
+                  return <CarDealershipCustomersSection storeId={storeId!} />;
+                case "cd-financing":
+                  return <CarDealershipFinancingSection storeId={storeId!} />;
+                case "cd-trade-ins":
+                  return <CarDealershipTradeInsSection storeId={storeId!} />;
+                case "cd-reviews":
+                  return <CarDealershipReviewsSection storeId={storeId!} />;
+                case "cd-expenses":
+                  return <CarDealershipExpensesSection storeId={storeId!} />;
+                case "cd-income":
+                  return <CarDealershipIncomeSection storeId={storeId!} />;
+                case "cd-reports":
+                  return <CarDealershipReportsSection storeId={storeId!} />;
+                case "cd-promotions":
+                  return <CarDealershipPromotionsSection storeId={storeId!} />;
+                default:
+                  return null;
+              }
+            };
+            const real = renderReal();
+            return (
+              <TabsContent key={tabId} value={tabId}>
+                {real ?? (
+                  <CarDealershipComingSoonSection
+                    title={meta.title}
+                    description={meta.description}
+                    Icon={meta.Icon}
+                    bullets={meta.bullets}
+                  />
+                )}
+              </TabsContent>
+            );
+          })}
+
+          {/* Salon module — real sections where built, placeholder otherwise. */}
+          {SALON_TAB_IDS.map((tabId) => {
+            const meta = SALON_TAB_META[tabId];
+            const renderReal = () => {
+              switch (tabId) {
+                case "salon-services":
+                  return <SalonServiceMenuSection storeId={storeId!} />;
+                case "salon-stylists":
+                  return <SalonStylistsSection storeId={storeId!} />;
+                case "salon-clients":
+                  return <SalonClientsSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "salon-bookings":
+                  return <SalonBookingsSection storeId={storeId!} />;
+                case "salon-dashboard":
+                  return <SalonDashboardSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "salon-history":
+                  return <SalonServiceHistorySection storeId={storeId!} />;
+                case "salon-commissions":
+                  return <SalonCommissionsSection storeId={storeId!} />;
+                case "salon-walkins":
+                  return <SalonWalkinsSection storeId={storeId!} />;
+                case "salon-reports":
+                  return <SalonReportsSection storeId={storeId!} />;
+                case "salon-expenses":
+                  return <SalonExpensesSection storeId={storeId!} />;
+                case "salon-waitlist":
+                  return <SalonWaitlistSection storeId={storeId!} onJumpToTab={handleTabChange} />;
+                case "salon-income":
+                  return <SalonIncomeSection storeId={storeId!} />;
+                case "salon-schedules":
+                  return <SalonStylistSchedulesSection storeId={storeId!} />;
+                case "salon-packages":
+                  return <SalonPackagesSection storeId={storeId!} />;
+                case "salon-retail":
+                  return <SalonRetailProductsSection storeId={storeId!} />;
+                case "salon-loyalty":
+                  return <SalonLoyaltySection storeId={storeId!} />;
+                case "salon-reviews":
+                  return <SalonReviewsSection storeId={storeId!} />;
+                case "salon-timeclock":
+                  return <SalonTimeClockSection storeId={storeId!} />;
+                case "salon-gift-cards":
+                  return <SalonGiftCardsSection storeId={storeId!} />;
+                case "salon-reminders":
+                  return <SalonRemindersSection storeId={storeId!} />;
+                case "salon-campaigns":
+                  return <SalonCampaignsSection storeId={storeId!} />;
+                case "salon-memberships":
+                  return <SalonMembershipsSection storeId={storeId!} />;
+                default:
+                  return null;
+              }
+            };
+            const real = renderReal();
+            return (
+              <TabsContent key={tabId} value={tabId}>
+                {real ?? (
+                  <SalonComingSoonSection
+                    title={meta.title}
+                    description={meta.description}
+                    Icon={meta.Icon}
+                    bullets={meta.bullets}
+                  />
+                )}
+              </TabsContent>
+            );
+          })}
           </Suspense>
 
         </Tabs>

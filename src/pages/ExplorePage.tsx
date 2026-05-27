@@ -17,6 +17,8 @@ import SEOHead from "@/components/SEOHead";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
+import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
+import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 
 type Tab = "trending" | "users" | "hashtags";
 
@@ -28,6 +30,7 @@ export default function ExplorePage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("trending");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [isRetryingExplore, setIsRetryingExplore] = useState(false);
 
   useEffect(() => {
     const tag = searchParams.get("tag");
@@ -38,7 +41,7 @@ export default function ExplorePage() {
   }, [searchParams]);
 
   // Trending posts
-  const { data: trendingPosts = [], isLoading: loadingPosts } = useQuery({
+  const { data: trendingPosts = [], isLoading: loadingPosts, isError: hasTrendingError } = useQuery({
     queryKey: ["explore-trending"],
     queryFn: async () => {
       const { data } = await supabase
@@ -56,7 +59,7 @@ export default function ExplorePage() {
   });
 
   // User search
-  const { data: searchResults = [], isLoading: loadingUsers } = useQuery({
+  const { data: searchResults = [], isLoading: loadingUsers, isError: hasSearchError } = useQuery({
     queryKey: ["explore-users", search],
     queryFn: async () => {
       if (!search.trim()) return [];
@@ -73,7 +76,7 @@ export default function ExplorePage() {
   });
 
   // Suggested users for People tab
-  const { data: suggestedUsers = [], isLoading: loadingSuggested } = useQuery({
+  const { data: suggestedUsers = [], isLoading: loadingSuggested, isError: hasSuggestedError } = useQuery({
     queryKey: ["explore-suggested-users", user?.id],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -90,7 +93,7 @@ export default function ExplorePage() {
   });
 
   // Posts filtered by selected hashtag
-  const { data: taggedPosts = [], isLoading: loadingTagged } = useQuery({
+  const { data: taggedPosts = [], isLoading: loadingTagged, isError: hasTaggedError } = useQuery({
     queryKey: ["explore-tagged", selectedTag],
     queryFn: async () => {
       if (!selectedTag) return [];
@@ -111,7 +114,7 @@ export default function ExplorePage() {
   });
 
   // Hashtags — extracted from post captions via Supabase
-  const { data: trendingHashtags = [] } = useQuery({
+  const { data: trendingHashtags = [], isError: hasHashtagsError } = useQuery({
     queryKey: ["explore-hashtags"],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -148,6 +151,54 @@ export default function ExplorePage() {
     { id: "users", label: "People", icon: Users },
     { id: "hashtags", label: "Tags", icon: Hash },
   ];
+
+  const hasAnyExploreData =
+    trendingPosts.length > 0 ||
+    searchResults.length > 0 ||
+    suggestedUsers.length > 0 ||
+    taggedPosts.length > 0 ||
+    trendingHashtags.length > 0;
+  const hasExploreRefreshError =
+    hasTrendingError ||
+    hasSearchError ||
+    hasSuggestedError ||
+    hasTaggedError ||
+    hasHashtagsError;
+  const hasActiveViewError = search.length > 1
+    ? hasSearchError
+    : activeTab === "trending"
+      ? hasTrendingError
+      : activeTab === "users"
+        ? hasSuggestedError
+        : selectedTag
+          ? hasTaggedError
+          : hasHashtagsError;
+  const hasActiveViewData = search.length > 1
+    ? searchResults.length > 0
+    : activeTab === "trending"
+      ? trendingPosts.length > 0
+      : activeTab === "users"
+        ? suggestedUsers.length > 0
+        : selectedTag
+          ? taggedPosts.length > 0
+          : trendingHashtags.length > 0;
+  const shouldShowExploreRecovery = hasActiveViewError && !hasActiveViewData;
+
+  const retryExploreQueries = useCallback(async () => {
+    if (isRetryingExplore) return;
+    setIsRetryingExplore(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["explore-trending"] }),
+        queryClient.invalidateQueries({ queryKey: ["explore-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["explore-suggested-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["explore-tagged"] }),
+        queryClient.invalidateQueries({ queryKey: ["explore-hashtags"] }),
+      ]);
+    } finally {
+      setIsRetryingExplore(false);
+    }
+  }, [isRetryingExplore, queryClient]);
 
   return (
     <div className="zivo-shell-mobile bg-background pb-20">
@@ -201,14 +252,54 @@ export default function ExplorePage() {
       </div>
 
       <PullToRefresh onRefresh={async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["explore-trending"] }),
-          queryClient.invalidateQueries({ queryKey: ["explore-hashtags"] }),
-          queryClient.invalidateQueries({ queryKey: ["explore-suggested-users"] }),
-        ]);
+        await retryExploreQueries();
       }}>
+        {hasExploreRefreshError && hasAnyExploreData && (
+          <DegradedDataBanner
+            className="px-4 pt-4"
+            message="Showing cached explore results. Refresh failed."
+            onRetry={() => void retryExploreQueries()}
+            retryDisabled={isRetryingExplore}
+            retryLabel={isRetryingExplore ? "Retrying..." : "Retry"}
+            trackingContext="explore"
+          />
+        )}
+
+        {shouldShowExploreRecovery && (
+          <LoadFailureCard
+            className="px-4 py-6"
+            title="Explore refresh failed"
+            description="We could not load fresh explore data right now. Retry to reconnect and restore trending results."
+            onRetry={() => void retryExploreQueries()}
+            retryDisabled={isRetryingExplore}
+            retryLabel={isRetryingExplore ? "Retrying..." : "Retry"}
+            onSecondary={() => navigate("/")}
+            secondaryLabel="Go Home"
+            trackingContext="explore"
+          />
+        )}
+
+        {/* 18+ Discovery shortcut — surfaces OF creators that are filtered out
+            of the normal explore queries. Only shown when not actively searching. */}
+        {search.length <= 1 && !shouldShowExploreRecovery && (
+          <button
+            type="button"
+            onClick={() => navigate("/explore/18-plus")}
+            className="mx-4 mt-4 mb-1 w-[calc(100%-2rem)] flex items-center gap-3 p-3 rounded-2xl border border-rose-500/30 bg-gradient-to-r from-rose-500/10 to-pink-500/5 hover:from-rose-500/15 hover:to-pink-500/10 transition-colors text-left active:scale-[0.99]"
+          >
+            <div className="h-10 w-10 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
+              <span className="text-[12px] font-extrabold text-rose-500">18+</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-extrabold text-[13px]">Adult Creators</p>
+              <p className="text-[10px] text-muted-foreground">OF-style content · age-gated</p>
+            </div>
+            <span className="text-[10px] font-extrabold text-rose-500">Enter →</span>
+          </button>
+        )}
+
         {/* Search results */}
-        {search.length > 1 && (
+        {search.length > 1 && !shouldShowExploreRecovery && (
           <div className="p-4 space-y-2">
             {loadingUsers && <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />}
             {searchResults.map((u: any) => (
@@ -234,7 +325,7 @@ export default function ExplorePage() {
         )}
 
         {/* Trending grid */}
-        {!search && activeTab === "trending" && (
+        {!search && activeTab === "trending" && !shouldShowExploreRecovery && (
           <div className="grid grid-cols-3 gap-0.5 p-0.5">
             {loadingPosts && (
               <div className="col-span-3 flex justify-center py-12">
@@ -256,9 +347,9 @@ export default function ExplorePage() {
                 >
                   {url && (
                     post.media_type === "video" ? (
-                      <video src={`${url}#t=0.1`} muted className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                      <video src={`${url}#t=0.1`} muted preload="metadata" className="w-full h-full object-cover" />
+	                    ) : (
+	                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     )
                   )}
                   {!url && (
@@ -273,7 +364,7 @@ export default function ExplorePage() {
         )}
 
         {/* People tab */}
-        {!search && activeTab === "users" && (
+        {!search && activeTab === "users" && !shouldShowExploreRecovery && (
           <div className="p-4 space-y-2">
             <h3 className="text-sm font-semibold text-foreground mb-3">Suggested for you</h3>
             {loadingSuggested && <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />}
@@ -303,7 +394,7 @@ export default function ExplorePage() {
         )}
 
         {/* Hashtags tab */}
-        {!search && activeTab === "hashtags" && (
+        {!search && activeTab === "hashtags" && !shouldShowExploreRecovery && (
           <div className="p-4 space-y-2">
             {selectedTag && (
               <div className="mb-3">
@@ -318,7 +409,13 @@ export default function ExplorePage() {
                 </div>
                 {loadingTagged && <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />}
                 {!loadingTagged && taggedPosts.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No posts found for #{selectedTag}</p>
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="h-14 w-14 rounded-2xl bg-ig-gradient flex items-center justify-center mb-3 shadow-lg shadow-rose-500/20">
+                      <Search className="h-6 w-6 text-white" />
+                    </div>
+                    <p className="text-sm font-bold text-foreground">No posts found for #{selectedTag}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Try a different tag or check back later.</p>
+                  </div>
                 )}
                 {taggedPosts.length > 0 && (
                   <div className="grid grid-cols-3 gap-0.5 -mx-4">
@@ -332,8 +429,8 @@ export default function ExplorePage() {
                           onClick={() => navigate(`/reels/${post.id}`)}
                         >
                           {url && (post.media_type === "video"
-                            ? <video src={`${url}#t=0.1`} muted className="w-full h-full object-cover" />
-                            : <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+	                            ? <video src={`${url}#t=0.1`} muted preload="metadata" className="w-full h-full object-cover" />
+	                            : <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           )}
                           {!url && <div className="w-full h-full flex items-center justify-center"><Grid3X3 className="h-6 w-6 text-muted-foreground/30" /></div>}
                         </motion.button>

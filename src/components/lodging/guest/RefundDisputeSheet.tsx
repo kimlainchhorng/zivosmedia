@@ -14,13 +14,15 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   reservationId: string;
   maxAmountCents: number;
+  formatMoney?: (cents: number) => string;
 }
 
-export default function RefundDisputeSheet({ open, onOpenChange, reservationId, maxAmountCents }: Props) {
+export default function RefundDisputeSheet({ open, onOpenChange, reservationId, maxAmountCents, formatMoney }: Props) {
   const [reason, setReason] = useState("refund_amount");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState(Math.max(0, maxAmountCents / 100).toFixed(2));
   const submit = useSubmitLodgingRefundDispute(reservationId);
+  const money = formatMoney ?? ((cents: number) => `$${((cents || 0) / 100).toFixed(2)}`);
 
   const send = async () => {
     if (description.trim().length < 12) {
@@ -61,7 +63,7 @@ export default function RefundDisputeSheet({ open, onOpenChange, reservationId, 
           <div className="space-y-2">
             <label className="text-sm font-medium">Requested amount</label>
             <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
-            <p className="text-xs text-muted-foreground">Maximum review amount: ${(maxAmountCents / 100).toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Maximum review amount: {money(maxAmountCents)}</p>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Details</label>

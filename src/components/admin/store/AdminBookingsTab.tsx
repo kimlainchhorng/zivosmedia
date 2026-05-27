@@ -18,7 +18,7 @@ import {
   Search, MessageSquareText, CalendarClock, ExternalLink,
   CheckCircle2, XCircle, AlertCircle, TrendingUp, RefreshCw,
   ChevronDown, ChevronUp, Wrench, Star, BarChart3, Download,
-  Filter, SortAsc, SortDesc, Eye, Bell, Zap, Plus
+  Filter, SortAsc, SortDesc, Eye, Bell, Zap, Plus, Trash2
 } from "lucide-react";
 import { format, isToday, isThisWeek, isThisMonth, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
@@ -123,6 +123,18 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     toast.success("Bookings refreshed");
   };
 
+  const deleteBooking = async (id: string) => {
+    if (!window.confirm("Delete this booking? This cannot be undone.")) return;
+    const { error } = await supabase
+      .from("service_bookings")
+      .delete()
+      .eq("id", id);
+    if (error) { toast.error(error.message || "Failed to delete booking"); return; }
+    toast.success("Booking deleted");
+    if (expandedId === id) setExpandedId(null);
+    fetchBookings();
+  };
+
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase
       .from("service_bookings")
@@ -140,12 +152,46 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     setConvertingId(b.id);
     const woNumber = `WO-${Date.now().toString().slice(-6)}`;
     const vehicleLabel = [b.vehicle_year, b.vehicle_make, b.vehicle_model].filter(Boolean).join(" ") || "Unknown Vehicle";
+
+    let vehicleId: string | null = null;
+    if (b.customer_name && (b.vehicle_make || b.vehicle_model)) {
+      const { data: existing } = await supabase
+        .from("ar_customer_vehicles")
+        .select("id")
+        .eq("store_id", storeId)
+        .eq("owner_name", b.customer_name)
+        .ilike("make", b.vehicle_make || "%")
+        .ilike("model", b.vehicle_model || "%")
+        .maybeSingle();
+      if (existing?.id) {
+        vehicleId = existing.id;
+      } else {
+        const { data: created, error: vErr } = await supabase
+          .from("ar_customer_vehicles")
+          .insert({
+            store_id: storeId,
+            owner_name: b.customer_name,
+            owner_phone: b.customer_phone || null,
+            owner_email: b.customer_email || null,
+            year: b.vehicle_year ? parseInt(b.vehicle_year, 10) || null : null,
+            make: b.vehicle_make || "Unknown",
+            model: b.vehicle_model || "Unknown",
+          } as any)
+          .select("id")
+          .single();
+        if (!vErr && created?.id) vehicleId = created.id;
+      }
+    }
+
     const { data: wo, error: woErr } = await supabase
       .from("ar_work_orders")
       .insert({
         store_id: storeId,
         number: woNumber,
         customer_name: b.customer_name,
+        customer_phone: b.customer_phone || null,
+        customer_email: b.customer_email || null,
+        vehicle_id: vehicleId,
         vehicle_label: vehicleLabel,
         notes: [b.service_name, b.notes].filter(Boolean).join("\n"),
         status: "awaiting",
@@ -155,7 +201,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     if (woErr || !wo) { toast.error("Failed to create work order"); setConvertingId(null); return; }
     await supabase.from("service_bookings").update({ workorder_id: wo.id } as any).eq("id", b.id);
     setConvertingId(null);
-    toast.success(`Work Order ${woNumber} created from booking`);
+    toast.success(`Work Order ${woNumber} created${vehicleId ? " with linked vehicle" : ""}`);
     fetchBookings();
   };
 
@@ -829,6 +875,14 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                             className="gap-1.5"
                           >
                             <MessageSquareText className="h-3.5 w-3.5" /> Notes
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => deleteBooking(b.id)}
+                            className="gap-1.5 border-red-500/40 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
                           </Button>
                         </div>
 

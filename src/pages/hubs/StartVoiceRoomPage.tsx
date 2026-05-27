@@ -35,7 +35,7 @@ export default function StartVoiceRoomPage() {
         room_id: data.id, user_id: user.id, role: "host", is_muted: false,
       });
       toast.success("Room is live");
-      navigate("/voice-rooms");
+      navigate(`/voice-rooms/${data.id}`);
     } catch {
       toast.error("Couldn't start room");
     }
