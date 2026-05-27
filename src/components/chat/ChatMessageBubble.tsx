@@ -4,6 +4,7 @@
  * Design: Glassmorphic iMessage aesthetic with gradient bubbles, tail shapes, and depth effects
  */
 import { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense, type ComponentType, type SVGProps } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PanInfo } from "framer-motion";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
@@ -488,6 +489,31 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const isLockedType = isLockedMediaType || isLockedTextType;
   const defaultLockedState = initiallyLocked ?? (isLockedType && !isMe);
   const [isLocked, setIsLocked] = useState(defaultLockedState);
+
+  // For locked_text, the plaintext lives in direct_message_locked_payloads —
+  // RLS-gated on (sender OR an entry in direct_message_unlocks). Recipients
+  // who haven't paid get zero rows. The query runs only when this bubble
+  // will actually render the text (sender, or recipient post-unlock).
+  const needsLockedTextPayload = isLockedTextType && (isMe || !isLocked);
+  const { data: lockedTextPayload } = useQuery({
+    queryKey: ["dm-locked-payload", id],
+    queryFn: async (): Promise<string> => {
+      if (!id) return "";
+      const { data } = await (supabase as any)
+        .from("direct_message_locked_payloads")
+        .select("content")
+        .eq("message_id", id)
+        .maybeSingle();
+      return ((data as { content?: string } | null)?.content) ?? "";
+    },
+    enabled: needsLockedTextPayload && !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // For locked_text the `message` prop is "" (the plaintext lives in the
+  // side-table fetched above). Action handlers like copy / reply / translate
+  // should operate on the resolved payload, not the empty placeholder.
+  const displayMessage = isLockedTextType ? (lockedTextPayload ?? "") : message;
   const [unlockLoading, setUnlockLoading] = useState(false);
   const isStarsLocked = typeof lockedPriceCoins === "number" && lockedPriceCoins > 0;
   const unlockPrice = lockedPriceCents && lockedPriceCents > 0 ? lockedPriceCents : 99;
@@ -748,10 +774,10 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
 
   const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if ((!isMe && info.offset.x > 60) || (isMe && info.offset.x < -60)) {
-      onReply(id, message, isMe);
+      onReply(id, displayMessage, isMe);
       if (navigator.vibrate) navigator.vibrate(20);
     }
-  }, [id, message, isMe, onReply]);
+  }, [id, displayMessage, isMe, onReply]);
 
   const handleTap = useCallback(() => {
     if (didLongPress.current || hasMoved.current) return;
@@ -766,8 +792,8 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   }, [showActions, id, toggleReaction]);
 
   const handleCopy = () => {
-    if (message) {
-      navigator.clipboard.writeText(message);
+    if (displayMessage) {
+      navigator.clipboard.writeText(displayMessage);
       toast.success("Copied to clipboard");
     }
     setShowActions(false);
@@ -775,7 +801,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   };
 
   const handleForward = () => {
-    onForward?.(id, message);
+    onForward?.(id, displayMessage);
     setShowActions(false);
     setShowReactions(false);
   };
@@ -1100,11 +1126,16 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
             );
           }
 
+          // For locked_text bubbles we display the payload fetched separately
+          // (via lockedTextPayload above); for everything else the plaintext is
+          // in message itself. Recipients who haven't unlocked never reach this
+          // branch — they hit the paywall return below.
+          const effectiveMessage = isLockedTextType ? (lockedTextPayload ?? "") : message;
           const urlRegex = /(https?:\/\/[^\s]+)/gi;
-          const urls = message.match(urlRegex);
+          const urls = effectiveMessage.match(urlRegex);
           const hasLink = urls && urls.length > 0;
           const linkUrl = hasLink ? urls[0] : null;
-          const textWithoutUrl = hasLink ? message.replace(urlRegex, "").trim() : message;
+          const textWithoutUrl = hasLink ? effectiveMessage.replace(urlRegex, "").trim() : effectiveMessage;
 
           return (
             <div
@@ -1205,7 +1236,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
 
               {/* Rich link preview — suppressed when inbound scan flagged the link as blocked */}
               {linkUrl && !(incomingRisk?.hasBlocked) && (
-                <LinkPreviewCard url={linkUrl} isMe={isMe} hasText={!!textWithoutUrl} messageText={message} />
+                <LinkPreviewCard url={linkUrl} isMe={isMe} hasText={!!textWithoutUrl} messageText={effectiveMessage} />
               )}
 
               {/* Inline translation */}
@@ -1300,7 +1331,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                 <AnimatePresence mode="wait">
                   {!showDeleteSub ? (
                     <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }}>
-                      <MsgMenuItem icon={Reply} label="Reply" onClick={() => { onReply(id, message, isMe); setShowActions(false); setShowReactions(false); }} />
+                      <MsgMenuItem icon={Reply} label="Reply" onClick={() => { onReply(id, displayMessage, isMe); setShowActions(false); setShowReactions(false); }} />
                       {canEdit && onEdit && (
                         <MsgMenuItem icon={Pencil} label="Edit" onClick={handleEdit} />
                       )}

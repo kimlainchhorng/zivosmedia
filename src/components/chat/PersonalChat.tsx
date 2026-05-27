@@ -1980,14 +1980,28 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     setMessages((prev) => [...prev, optimisticMsg]);
     scrollToBottom(true);
     try {
-      const { error: insertErr } = await dbFrom("direct_messages")
+      // Locked plaintext lives in direct_message_locked_payloads (RLS-gated
+      // on direct_message_unlocks membership) — never in direct_messages.message,
+      // which the recipient can read unconditionally via base RLS.
+      const { data: inserted, error: insertErr } = await dbFrom("direct_messages")
         .insert({
           sender_id: user.id, receiver_id: recipientId,
-          message: text,
+          message: "",
           message_type: "locked_text",
           locked_price_cents: priceCents,
-        });
+        })
+        .select("id")
+        .single();
       if (insertErr) throw insertErr;
+
+      const { error: payloadErr } = await dbFrom("direct_message_locked_payloads")
+        .insert({ message_id: (inserted as { id: string }).id, content: text });
+      if (payloadErr) {
+        // Roll back the parent so the recipient doesn't see an empty locked
+        // bubble that unlock would reveal nothing for.
+        await dbFrom("direct_messages").delete().eq("id", (inserted as { id: string }).id);
+        throw payloadErr;
+      }
       void sendChatPush("locked_text" as any, `🔒 Paid DM · $${(priceCents / 100).toFixed(2)}`);
     } catch {
       toast.error("Failed to send paid DM");
