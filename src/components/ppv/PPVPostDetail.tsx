@@ -61,6 +61,23 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
 
   const isOwner = !!user && !!post && user.id === post.creator_id;
 
+  // Current user's wallet balance — shown next to the unlock button so they
+  // can see at a glance whether they can afford the price.
+  const { data: walletBalance } = useQuery({
+    queryKey: ["wallet-balance", user?.id],
+    queryFn: async (): Promise<number> => {
+      if (!user) return 0;
+      const { data } = await (supabase as any)
+        .from("user_wallets")
+        .select("available_cents")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return (data?.available_cents as number) ?? 0;
+    },
+    enabled: !!user,
+    staleTime: 30 * 1000,
+  });
+
   const { data: unlock } = useQuery({
     queryKey: ["ppv-unlock", postId, user?.id],
     queryFn: async () => {
@@ -100,27 +117,28 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
       if (!post) throw new Error("Post not loaded");
       if (user.id === post.creator_id) throw new Error("You're the creator — no need to unlock");
 
-      const { error } = await (supabase as any).from("ppv_unlocks").insert({
-        ppv_id: post.id,
-        unlocker_id: user.id,
-        creator_id: post.creator_id,
-        amount_cents_paid: post.price_cents,
-        currency: post.currency,
-        payment_provider: "wallet",
+      // Atomic wallet RPC: debits unlocker, credits creator, inserts unlock row,
+      // writes both ledger entries. Raises 'insufficient_funds' if balance too low.
+      const { error } = await (supabase as any).rpc("unlock_ppv_with_wallet", {
+        p_ppv_id: post.id,
       });
-      if (error) {
-        // 23505 = unique_violation → already unlocked. Treat as success.
-        if ((error as any)?.code === "23505") return;
-        throw error;
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Unlocked — enjoy!");
       qc.invalidateQueries({ queryKey: ["ppv-unlock", postId, user?.id] });
       qc.invalidateQueries({ queryKey: ["ppv-post", postId] });
       qc.invalidateQueries({ queryKey: ["ppv-posts"] });
+      qc.invalidateQueries({ queryKey: ["wallet-balance"] });
     },
-    onError: (err: any) => toast.error(err?.message ?? "Couldn't unlock"),
+    onError: (err: any) => {
+      const msg = String(err?.message ?? "");
+      if (msg.includes("insufficient_funds")) {
+        toast.error("Not enough wallet balance — top up and try again.");
+      } else {
+        toast.error(err?.message ?? "Couldn't unlock");
+      }
+    },
   });
 
   const mediaToRender = useMemo<{ path: string; url: string }[]>(() => {
@@ -269,30 +287,46 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
           </div>
 
           {/* Unlock CTA (visitors only) */}
-          {!isOwner && !unlock && (
-            <button
-              type="button"
-              onClick={() => unlockMut.mutate()}
-              disabled={unlockMut.isPending || !user}
-              className={cn(
-                "w-full h-14 rounded-2xl font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
-                user
-                  ? "bg-rose-500 text-white hover:bg-rose-600"
-                  : "bg-muted/50 text-muted-foreground cursor-not-allowed",
-              )}
-            >
-              {unlockMut.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Lock className="h-4 w-4" />
-              )}
-              {unlockMut.isPending
-                ? "Unlocking…"
-                : user
-                  ? `Unlock for $${(post.price_cents / 100).toFixed(2)}`
-                  : "Sign in to unlock"}
-            </button>
-          )}
+          {!isOwner && !unlock && (() => {
+            const balance = walletBalance ?? 0;
+            const canAfford = balance >= post.price_cents;
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[11px] px-1">
+                  <span className="text-muted-foreground">
+                    Wallet: <span className="font-bold text-foreground">${(balance / 100).toFixed(2)}</span>
+                  </span>
+                  {!canAfford && user && (
+                    <a href="/wallet" className="font-bold text-rose-500 hover:underline">Top up →</a>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => unlockMut.mutate()}
+                  disabled={unlockMut.isPending || !user || !canAfford}
+                  className={cn(
+                    "w-full h-14 rounded-2xl font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+                    user && canAfford
+                      ? "bg-rose-500 text-white hover:bg-rose-600"
+                      : "bg-muted/50 text-muted-foreground cursor-not-allowed",
+                  )}
+                >
+                  {unlockMut.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Lock className="h-4 w-4" />
+                  )}
+                  {unlockMut.isPending
+                    ? "Unlocking…"
+                    : !user
+                      ? "Sign in to unlock"
+                      : !canAfford
+                        ? `Need $${((post.price_cents - balance) / 100).toFixed(2)} more`
+                        : `Unlock for $${(post.price_cents / 100).toFixed(2)}`}
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
