@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { signedUrlFor } from "@/lib/security/signedMedia";
 import { Lock, Flame, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PPV_FREE_FOR_SUBS_UI_ENABLED } from "@/lib/ppv/featureFlags";
 
 interface PPVCard {
   id: string;
@@ -103,7 +104,7 @@ export default function CreatorPPVStrip({ creatorUserId, className }: Props) {
                   signed URL comes back empty and would otherwise leave the
                   card stuck on a pulsing skeleton. */}
               <PreviewThumb path={post.preview_path || null} />
-              {post.free_for_subscribers && (
+              {PPV_FREE_FOR_SUBS_UI_ENABLED && post.free_for_subscribers && (
                 <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-0.5 text-[8px] font-extrabold uppercase tracking-wide bg-amber-500 text-white rounded-full px-1.5 py-0.5">
                   Subs free
                 </span>

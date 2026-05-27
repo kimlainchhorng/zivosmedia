@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { signedUrlFor, signedUrlsFor } from "@/lib/security/signedMedia";
 import { cn } from "@/lib/utils";
+import { PPV_FREE_FOR_SUBS_UI_ENABLED } from "@/lib/ppv/featureFlags";
 
 const TipSheet = lazy(() => import("@/components/social/TipSheet"));
 
@@ -286,7 +287,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
       title: editTitle.trim(),
       description: editDesc.trim() || null,
       price_cents: priceCents,
-      free_for_subscribers: editFreeForSubs,
+      ...(PPV_FREE_FOR_SUBS_UI_ENABLED ? { free_for_subscribers: editFreeForSubs } : {}),
       scheduled_for: scheduledIso,
     });
     toast.success("PPV updated");
@@ -595,7 +596,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
           )}
 
           {/* Subscriber-tier badge — surfaces the bundled-benefit upfront */}
-          {!isOwner && !unlock && post.free_for_subscribers && (
+          {PPV_FREE_FOR_SUBS_UI_ENABLED && !isOwner && !unlock && post.free_for_subscribers && (
             <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-start gap-2.5">
               <Crown className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-400 leading-relaxed">
@@ -608,7 +609,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
 
           {/* Unlock CTA (visitors only) */}
           {!isOwner && !unlock && (() => {
-            const subFree = !!post.free_for_subscribers && !!isActiveSubscriber;
+            const subFree = PPV_FREE_FOR_SUBS_UI_ENABLED && !!post.free_for_subscribers && !!isActiveSubscriber;
             const balance = walletBalance ?? 0;
             const canAfford = subFree || balance >= post.price_cents;
             return (
@@ -653,7 +654,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                           ? `Need $${((post.price_cents - balance) / 100).toFixed(2)} more`
                           : `Unlock for $${(post.price_cents / 100).toFixed(2)}`}
                 </button>
-                {post.free_for_subscribers && !isActiveSubscriber && user && (
+                {PPV_FREE_FOR_SUBS_UI_ENABLED && post.free_for_subscribers && !isActiveSubscriber && user && (
                   <a
                     href={creator?.share_code ? `/u/${creator.share_code}` : "#"}
                     className="block w-full text-center text-[12px] font-bold text-amber-600 dark:text-amber-400 hover:underline py-1"
@@ -717,37 +718,39 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={() => setEditFreeForSubs((v) => !v)}
-                className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-colors text-left",
-                  editFreeForSubs
-                    ? "border-rose-500 bg-rose-500/8"
-                    : "border-border bg-background hover:border-rose-500/40"
-                )}
-              >
-                <Crown className="h-4 w-4 text-rose-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-extrabold text-[12px]">Free for subscribers</p>
-                  <p className="text-[10px] text-muted-foreground">Non-subs still pay below</p>
-                </div>
-                <div
+              {PPV_FREE_FOR_SUBS_UI_ENABLED && (
+                <button
+                  type="button"
+                  onClick={() => setEditFreeForSubs((v) => !v)}
                   className={cn(
-                    "w-9 h-5 rounded-full p-0.5 transition-colors shrink-0",
-                    editFreeForSubs ? "bg-rose-500" : "bg-muted-foreground/30"
+                    "w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-colors text-left",
+                    editFreeForSubs
+                      ? "border-rose-500 bg-rose-500/8"
+                      : "border-border bg-background hover:border-rose-500/40"
                   )}
                 >
-                  <motion.div
-                    animate={{ x: editFreeForSubs ? 14 : 0 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className="w-4 h-4 rounded-full bg-white shadow"
-                  />
-                </div>
-              </button>
+                  <Crown className="h-4 w-4 text-rose-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-extrabold text-[12px]">Free for subscribers</p>
+                    <p className="text-[10px] text-muted-foreground">Non-subs still pay below</p>
+                  </div>
+                  <div
+                    className={cn(
+                      "w-9 h-5 rounded-full p-0.5 transition-colors shrink-0",
+                      editFreeForSubs ? "bg-rose-500" : "bg-muted-foreground/30"
+                    )}
+                  >
+                    <motion.div
+                      animate={{ x: editFreeForSubs ? 14 : 0 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className="w-4 h-4 rounded-full bg-white shadow"
+                    />
+                  </div>
+                </button>
+              )}
 
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{editFreeForSubs ? "Non-subscriber price" : "Price (USD)"}</label>
+                <label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{PPV_FREE_FOR_SUBS_UI_ENABLED && editFreeForSubs ? "Non-subscriber price" : "Price (USD)"}</label>
                 <div className="mt-1 flex items-center h-11 rounded-xl border border-border bg-background overflow-hidden focus-within:border-rose-500/60">
                   <DollarSign className="h-4 w-4 text-muted-foreground ml-3" />
                   <input
