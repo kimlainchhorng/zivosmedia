@@ -4633,7 +4633,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     lastTapRef.current = now;
     if (feedTapTimer.current) clearTimeout(feedTapTimer.current);
     feedTapTimer.current = setTimeout(() => {
-      togglePlay();
+      if (!detailMode && onOpenFullscreen) {
+        onOpenFullscreen();
+      } else {
+        togglePlay();
+      }
       feedTapTimer.current = null;
     }, 250);
   };
