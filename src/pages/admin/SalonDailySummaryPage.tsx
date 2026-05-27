@@ -108,8 +108,11 @@ export default function SalonDailySummaryPage() {
       if (b.source === "walk_in") walkIns += 1;
       if (b.status === "completed") {
         completed += 1;
-        // Service revenue = base + add-ons (rolled up by the salon_booking_addons trigger).
-        const lineService = b.price_cents + (b.addons_total_cents ?? 0);
+        // price_cents is already base + add-ons inclusive (maintained by the
+        // tg_salon_booking_addons_sync_total trigger). addons_total_cents is
+        // the same sum carved out for reporting if we ever want to break it
+        // down separately on this card.
+        const lineService = b.price_cents;
         const lineRetail = retailByBooking.get(b.id) ?? 0;
         revenue += lineService;
         retail += lineRetail;

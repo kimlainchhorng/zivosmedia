@@ -50551,6 +50551,7 @@ export type Database = {
           created_by_user_id: string | null
           deposit_cents: number
           deposit_paid_at: string | null
+          addons_total_cents: number
           deposit_paid_cents: number
           duration_minutes: number
           end_at: string
@@ -50581,6 +50582,7 @@ export type Database = {
           client_phone?: string | null
           created_at?: string
           created_by_user_id?: string | null
+          addons_total_cents?: number
           deposit_cents?: number
           deposit_paid_at?: string | null
           deposit_paid_cents?: number
@@ -50613,6 +50615,7 @@ export type Database = {
           client_phone?: string | null
           created_at?: string
           created_by_user_id?: string | null
+          addons_total_cents?: number
           deposit_cents?: number
           deposit_paid_at?: string | null
           deposit_paid_cents?: number

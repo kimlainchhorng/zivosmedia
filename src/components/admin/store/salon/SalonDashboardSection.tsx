@@ -341,10 +341,103 @@ export default function SalonDashboardSection({ storeId, onJumpToTab }: SalonDas
         </Card>
       </div>
 
+      <RevenueSparklineCard storeId={storeId} />
+
       <ReferralBreakdownCard storeId={storeId} />
 
       <SalonActivityFeed storeId={storeId} onJumpToTab={onJumpToTab} />
     </div>
+  );
+}
+
+/** Daily completed-booking revenue over the last 14 days as a simple bar
+ * chart. Gives the owner an at-a-glance feel for weekly cycles and growth. */
+function RevenueSparklineCard({ storeId }: { storeId: string }) {
+  const [bars, setBars] = useState<Array<{ dayKey: string; label: string; revenue: number }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const start = new Date(today); start.setDate(start.getDate() - 13);
+      const { data } = await supabase
+        .from("salon_bookings")
+        .select("start_at, price_cents, tip_cents, tax_cents")
+        .eq("store_id", storeId)
+        .eq("status", "completed")
+        .gte("start_at", start.toISOString())
+        .lte("start_at", new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString())
+        .limit(2000);
+      if (cancelled) return;
+      const tally = new Map<string, number>();
+      for (const r of (data ?? []) as Array<{ start_at: string; price_cents: number; tip_cents: number; tax_cents: number }>) {
+        const d = new Date(r.start_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        tally.set(key, (tally.get(key) ?? 0) + r.price_cents + r.tip_cents + r.tax_cents);
+      }
+      const next: typeof bars = [];
+      for (let i = 0; i < 14; i++) {
+        const day = new Date(start); day.setDate(start.getDate() + i);
+        const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+        next.push({
+          dayKey: key,
+          label: day.toLocaleDateString(undefined, { weekday: "narrow" }) + " " + (day.getMonth() + 1) + "/" + day.getDate(),
+          revenue: tally.get(key) ?? 0,
+        });
+      }
+      setBars(next);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [storeId]);
+
+  const max = Math.max(1, ...bars.map((b) => b.revenue));
+  const total = bars.reduce((s, b) => s + b.revenue, 0);
+  const avg = bars.length ? total / bars.length : 0;
+  const todayKey = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
+  return (
+    <Card className="rounded-2xl border-border/60">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+        <CardTitle className="text-base">Revenue last 14 days</CardTitle>
+        <div className="text-right">
+          <p className="font-mono text-sm font-bold text-foreground">${(total / 100).toFixed(2)}</p>
+          <p className="text-[10px] text-muted-foreground">avg ${(avg / 100).toFixed(2)} / day</p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          </div>
+        ) : total === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+            No revenue in the last 14 days yet.
+          </p>
+        ) : (
+          <div className="flex h-24 items-end gap-1.5">
+            {bars.map((b) => {
+              const isToday = b.dayKey === todayKey;
+              const h = Math.max(2, Math.round((b.revenue / max) * 100));
+              return (
+                <div key={b.dayKey} className="flex flex-1 flex-col items-center gap-1" title={`${b.label} · $${(b.revenue / 100).toFixed(2)}`}>
+                  <div
+                    className={cn("w-full rounded-t", isToday ? "bg-primary" : "bg-primary/40")}
+                    style={{ height: `${h}%` }}
+                  />
+                  <span className="text-[9px] text-muted-foreground">{b.label.split(" ")[0]}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
