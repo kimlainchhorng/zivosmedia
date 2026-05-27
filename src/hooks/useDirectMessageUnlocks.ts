@@ -45,28 +45,28 @@ export function useDirectMessageUnlocks(partnerId: string | null | undefined) {
   );
 
   const unlockMut = useMutation({
-    mutationFn: async ({ messageId, creatorId, priceCents }: UnlockArgs) => {
+    mutationFn: async ({ messageId }: UnlockArgs) => {
       if (!user) throw new Error("Sign in to unlock");
-      const { error } = await (supabase as any).from("direct_message_unlocks").insert({
-        message_id: messageId,
-        unlocker_id: user.id,
-        creator_id: creatorId,
-        amount_cents_paid: priceCents,
-        currency: "usd",
-        payment_provider: "wallet",
+      // Atomic wallet RPC: debits unlocker, credits sender, inserts unlock row,
+      // writes both ledger entries. Raises 'insufficient_funds' if balance too low.
+      const { error } = await (supabase as any).rpc("unlock_dm_with_wallet", {
+        p_message_id: messageId,
       });
-      if (error) {
-        // 23505 = unique_violation → already unlocked, treat as success
-        if ((error as any)?.code === "23505") return { alreadyUnlocked: true };
-        throw error;
-      }
-      return { alreadyUnlocked: false };
+      if (error) throw error;
     },
-    onSuccess: (res) => {
-      if (!res.alreadyUnlocked) toast.success("Unlocked");
+    onSuccess: () => {
+      toast.success("Unlocked");
       qc.invalidateQueries({ queryKey: ["dm-unlocks", user?.id, partnerId] });
+      qc.invalidateQueries({ queryKey: ["wallet-balance"] });
     },
-    onError: (err: any) => toast.error(err?.message ?? "Couldn't unlock"),
+    onError: (err: any) => {
+      const msg = String(err?.message ?? "");
+      if (msg.includes("insufficient_funds")) {
+        toast.error("Not enough wallet balance — top up and try again.");
+      } else {
+        toast.error(err?.message ?? "Couldn't unlock");
+      }
+    },
   });
 
   const unlock = useCallback(
