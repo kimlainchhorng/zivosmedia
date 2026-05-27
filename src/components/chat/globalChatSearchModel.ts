@@ -19,6 +19,16 @@ export type GroupMessageHit = {
 
 export type MessageHit = DirectMessageHit | GroupMessageHit;
 
+export function mergeGlobalMessageHits(
+  directHits: DirectMessageHit[],
+  groupHits: GroupMessageHit[],
+  limit = 10,
+): MessageHit[] {
+  return [...directHits, ...groupHits]
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, limit);
+}
+
 export function buildGlobalMessageHitPath(hit: MessageHit, currentUserId: string) {
   if (hit.sourceType === "group") {
     return `/chat?group=${encodeURIComponent(hit.group_id)}&msg=${encodeURIComponent(hit.id)}`;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGlobalMessageHitPath, type MessageHit } from "./globalChatSearchModel";
+import { buildGlobalMessageHitPath, mergeGlobalMessageHits, type MessageHit } from "./globalChatSearchModel";
 
 describe("GlobalChatSearch routing", () => {
   it("routes DM message hits through /chat with partner and message params", () => {
@@ -34,5 +34,33 @@ describe("GlobalChatSearch routing", () => {
     };
 
     expect(buildGlobalMessageHitPath(hit, "me")).toBe("/chat?group=group-1&msg=group-message");
+  });
+
+  it("merges DM and group message hits by newest first", () => {
+    const hits = mergeGlobalMessageHits([
+      {
+        sourceType: "dm",
+        id: "older-dm",
+        sender_id: "me",
+        receiver_id: "peer",
+        message: "older direct",
+        created_at: "2026-05-27T10:00:00Z",
+      },
+    ], [
+      {
+        sourceType: "group",
+        id: "newer-group",
+        sender_id: "member",
+        group_id: "group-1",
+        group_name: "Team",
+        message: "newer group",
+        created_at: "2026-05-27T11:00:00Z",
+      },
+    ]);
+
+    expect(hits.map((hit) => `${hit.sourceType}:${hit.id}`)).toEqual([
+      "group:newer-group",
+      "dm:older-dm",
+    ]);
   });
 });

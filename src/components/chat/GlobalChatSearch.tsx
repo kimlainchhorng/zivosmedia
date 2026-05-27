@@ -22,7 +22,13 @@ import Megaphone from "lucide-react/dist/esm/icons/megaphone";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import UserBadge from "@/components/chat/UserBadge";
 import { cn } from "@/lib/utils";
-import { buildGlobalMessageHitPath, type DirectMessageHit, type GroupMessageHit, type MessageHit } from "./globalChatSearchModel";
+import {
+  buildGlobalMessageHitPath,
+  mergeGlobalMessageHits,
+  type DirectMessageHit,
+  type GroupMessageHit,
+  type MessageHit,
+} from "./globalChatSearchModel";
 
 type ProfileRow = {
   id: string;
@@ -159,9 +165,7 @@ export default function GlobalChatSearch({ open, onClose }: Props) {
       }
 
       if (cancelled) return;
-      setMessages([...directHits, ...groupHits]
-        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-        .slice(0, 10));
+      setMessages(mergeGlobalMessageHits(directHits, groupHits));
 
       // Resolve chat partners → matching profile rows
       const partnerIds: string[] = Array.from(
