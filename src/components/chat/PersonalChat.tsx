@@ -70,6 +70,9 @@ import { format, isToday, isYesterday } from "date-fns";
 import { primeCallAudio } from "@/lib/callAudio";
 import { classifyWebRTCFailure } from "@/hooks/useWebRTC";
 import ChatMessageBubble from "./ChatMessageBubble";
+import { ReelFeedProvider } from "./ReelFeed";
+import ChatFormatBar, { matchFormatHotkey } from "./ChatFormatBar";
+import { applyFormat, type RichFormat } from "@/lib/chat/richText";
 import ChatDateSeparator from "./ChatDateSeparator";
 import StickyDatePill from "./StickyDatePill";
 import AvatarPreviewSheet from "./AvatarPreviewSheet";
@@ -708,6 +711,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [showComposerHub, setShowComposerHub] = useState(false);
   const [composerHubAction, setComposerHubAction] = useState<ComposerActionId | null>(null);
   const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
+  const [markNextMediaViewOnce, setMarkNextMediaViewOnce] = useState(false);
   // Auto-delete (chat-wide disappearing). null = off, otherwise seconds. Cycles 1d→7d→30d→off.
   // Persisted per conversation in localStorage so it survives page reloads.
   const [disappearingSec, setDisappearingSec] = useState<number | null>(null);
@@ -885,6 +889,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [showZivoCardPicker, setShowZivoCardPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Whether the composer currently has a non-empty text selection (drives the format bar).
+  const [hasComposerSelection, setHasComposerSelection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const gifInputRef = useRef<HTMLInputElement>(null);
@@ -1628,6 +1634,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
         : `cs-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const shouldMarkViewOnce = markNextMediaViewOnce && Boolean(imageUrl || videoUrl);
     const mergedFilePayload = {
       ...(filePayload || {}),
       client_send_id: clientSendId,
@@ -1635,8 +1642,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         sensitive: true,
         sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
       } : {}),
+      ...(shouldMarkViewOnce ? { view_once: true } : {}),
     } as unknown as FileBubbleData;
     if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
+    if (shouldMarkViewOnce) setMarkNextMediaViewOnce(false);
     const optimisticMsg: Message = {
       id: optimisticId,
       sender_id: user.id,
@@ -2969,6 +2978,28 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     }
   }, [updateDraft, setTyping, user?.id, recipientId, slashQuery]);
 
+  // Wrap the current composer selection in a formatting marker, then restore
+  // focus + selection so the user can keep typing or chain formats.
+  const formatSelection = useCallback((fmt: RichFormat) => {
+    const el = inputRef.current;
+    if (!el) return;
+    const res = applyFormat(input, el.selectionStart ?? input.length, el.selectionEnd ?? input.length, fmt);
+    setInput(res.text);
+    updateDraft(res.text);
+    requestAnimationFrame(() => {
+      const node = inputRef.current;
+      if (!node) return;
+      node.focus();
+      node.setSelectionRange(res.selStart, res.selEnd);
+      setHasComposerSelection(res.selStart !== res.selEnd);
+    });
+  }, [input, updateDraft]);
+
+  const syncComposerSelection = useCallback(() => {
+    const el = inputRef.current;
+    setHasComposerSelection(!!el && (el.selectionStart ?? 0) !== (el.selectionEnd ?? 0));
+  }, []);
+
   // Slash-command catalog — wires existing sheet/handlers to a quick keyboard menu.
   // Disabled in self-chat where most of these don't apply.
   const slashCommands = useMemo(() => {
@@ -3233,6 +3264,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   }, []);
 
   const content = (
+    <ReelFeedProvider>
     <motion.div
       // Desktop chat hub pins a conversation-list sidebar on the left and
       // writes its width to --chat-sidebar-w. The full-page (non-inline) view
@@ -4076,6 +4108,19 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               <X className="h-3 w-3" />
             </button>
           )}
+          {markNextMediaViewOnce && (
+            <button
+              type="button"
+              onClick={() => setMarkNextMediaViewOnce(false)}
+              className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-[11px] font-bold text-orange-600"
+              aria-label="Turn off view-once marker for next media"
+              title="Turn off view-once marker"
+            >
+              <Flame className="h-3.5 w-3.5" />
+              View-once on for next photo/video
+              <X className="h-3 w-3" />
+            </button>
+          )}
           <div className="flex items-end gap-1.5">
             {/* Action buttons — attach + emoji picker; extra tools accessible via attach menu */}
             <div className="flex items-end gap-0.5 shrink-0">
@@ -4177,11 +4222,20 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   </div>
                 </>
               )}
+              {/* Selection formatting bar (bold/italic/strike/code/spoiler) */}
+              <ChatFormatBar
+                visible={hasComposerSelection && slashQuery == null}
+                onFormat={formatSelection}
+              />
               <input
                 ref={inputRef}
                 value={input}
                 onChange={handleInputChange}
+                onSelect={syncComposerSelection}
+                onBlur={() => setHasComposerSelection(false)}
                 onKeyDown={(e) => {
+                  const fmt = matchFormatHotkey(e);
+                  if (fmt) { e.preventDefault(); formatSelection(fmt); return; }
                   if (slashQuery != null && slashCandidates.length > 0) {
                     if (e.key === "ArrowDown") { e.preventDefault(); setSlashIndex((i) => (i + 1) % slashCandidates.length); return; }
                     if (e.key === "ArrowUp") { e.preventDefault(); setSlashIndex((i) => (i - 1 + slashCandidates.length) % slashCandidates.length); return; }
@@ -4254,6 +4308,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                           return next;
                         });
                       }}
+                      onToggleViewOnce={() => {
+                        setMarkNextMediaViewOnce((prev) => {
+                          const next = !prev;
+                          toast.success(next ? "Next photo or video can be viewed once" : "View-once marker off");
+                          return next;
+                        });
+                      }}
                       onLockedImageSelect={() => lockedImageInputRef.current?.click()}
                       onLockedTextSelect={handleLockedTextSelect}
                       onToggleDisappearing={cycleAutoDelete}
@@ -4274,6 +4335,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         "On"
                       }
                       sensitiveMediaMarked={markNextMediaSensitive}
+                      viewOnceMarked={markNextMediaViewOnce}
                     />
                   </Suspense>
                 )}
@@ -4756,6 +4818,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       </AlertDialog>
 
     </motion.div>
+    </ReelFeedProvider>
   );
 
   // Portal the fullscreen overlay to <body> so ancestor transforms (framer-motion,

@@ -1,10 +1,11 @@
-/**
- * ChatMessageBubble — iMessage 2026-style message bubble
+﻿/**
+ * ChatMessageBubble â€” iMessage 2026-style message bubble
  * Features: long-press actions (reply/delete/copy/forward/pin), swipe-to-reply, emoji reactions, image/video display
  * Design: Glassmorphic iMessage aesthetic with gradient bubbles, tail shapes, and depth effects
  */
 import { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense, type ComponentType, type SVGProps } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useReelFeed, ReelViewer } from "./ReelFeed";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PanInfo } from "framer-motion";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
@@ -18,12 +19,6 @@ import Bookmark from "lucide-react/dist/esm/icons/bookmark";
 import Timer from "lucide-react/dist/esm/icons/timer";
 import Play from "lucide-react/dist/esm/icons/play";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
-import X from "lucide-react/dist/esm/icons/x";
-import Volume2 from "lucide-react/dist/esm/icons/volume-2";
-import VolumeX from "lucide-react/dist/esm/icons/volume-x";
-import Heart from "lucide-react/dist/esm/icons/heart";
-import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
-import Share2 from "lucide-react/dist/esm/icons/share-2";
 import Pause from "lucide-react/dist/esm/icons/pause";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import Lock from "lucide-react/dist/esm/icons/lock";
@@ -63,14 +58,19 @@ import zivoLogoPng from "@/assets/zivo-logo.png";
 import { ILLUSTRATED_PACKS } from "@/config/illustratedStickers";
 import { getAnimatedStickerUrl } from "@/config/animatedStickerMap";
 import { getStickerMotionSpec } from "./stickerMotion";
-import SpoilerText from "./SpoilerText";
+import RichText from "./RichText";
+import ViewOnceBubble from "./ViewOnceBubble";
+import { viewOnceMediaState } from "@/lib/chat/viewOnce";
+import Plus from "lucide-react/dist/esm/icons/plus";
+import { pushRecentEmoji } from "@/config/emojiData";
 import { emitReactionAdded } from "./FloatingReactionsOverlay";
+const EmojiReactionPicker = lazy(() => import("./EmojiReactionPicker"));
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-// Lazy-load TransparentStickerVideo — heavy chroma-key/WebGL component
+// Lazy-load TransparentStickerVideo â€” heavy chroma-key/WebGL component
 const TransparentStickerVideo = lazy(() => import("./TransparentStickerVideo").then(m => ({ default: m.TransparentStickerVideo })));
 const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
-const REACTION_EMOJIS = ["❤️", "😂", "👍", "😮", "😢", "🔥", "🎉", "😍"];
+const REACTION_EMOJIS = ["â¤ï¸", "ðŸ˜‚", "ðŸ‘", "ðŸ˜®", "ðŸ˜¢", "ðŸ”¥", "ðŸŽ‰", "ðŸ˜"];
 const AUTO_MEDIA_MESSAGES = new Set(["Photo", "Video", "Photo album", "Media album"]);
 const CHAT_MEDIA_FRAME_CLASS = "w-[292px] max-w-[76vw]";
 const CHAT_MEDIA_MAX_HEIGHT = "min(520px, 58vh)";
@@ -390,13 +390,13 @@ interface ChatMessageBubbleProps {
   onLockedMediaUnlocked?: (id: string) => void;
   /** ISO timestamp of last edit, if any */
   editedAt?: string | null;
-  /** ISO timestamp of message creation — used to enforce 48h edit window */
+  /** ISO timestamp of message creation â€” used to enforce 48h edit window */
   createdAt?: string | null;
   /** Pre-loaded reactions from parent (avoids N+1 queries) */
   initialReactions?: { emoji: string; count: number; reactedByMe: boolean }[];
   onReply: (id: string, message: string, isMe: boolean) => void;
   onDelete: (id: string) => void;
-  /** Optional Telegram-style "Delete for me" — hides only on this device. */
+  /** Optional Telegram-style "Delete for me" â€” hides only on this device. */
   onDeleteForMe?: (id: string) => void;
   onForward?: (id: string, message: string) => void;
   onPin?: (id: string, pinned: boolean) => void;
@@ -425,8 +425,8 @@ function MiniAppCard({ type, message, isMe, time, onAction }: { type: string; me
   const isBook = type === "book_table";
   const isTrip = type === "trip_idea";
 
-  const title = message.replace(/📊 Poll: |📝 To-Do List: |💸 Split Bill: |🍽️ Table Booking: |✈️ Trip Idea: /, "");
-  const icon = isPoll ? "📊" : isTodo ? "📝" : isSplit ? "💸" : isBook ? "🍽️" : "✈️";
+  const title = message.replace(/ðŸ“Š Poll: |ðŸ“ To-Do List: |ðŸ’¸ Split Bill: |ðŸ½ï¸ Table Booking: |âœˆï¸ Trip Idea: /, "");
+  const icon = isPoll ? "ðŸ“Š" : isTodo ? "ðŸ“" : isSplit ? "ðŸ’¸" : isBook ? "ðŸ½ï¸" : "âœˆï¸";
   const label = isPoll ? "Poll" : isTodo ? "To-Do List" : isSplit ? "Split Bill" : isBook ? "Table Booking" : "Trip Idea";
   const buttonText = isPoll ? "View & Vote" : isTodo ? "Open List" : isSplit ? "Pay Split" : isBook ? "View Details" : "See Plan";
   const colorClass = isPoll ? "bg-blue-500" : isTodo ? "bg-emerald-500" : isSplit ? "bg-amber-500" : isBook ? "bg-orange-500" : "bg-indigo-500";
@@ -455,7 +455,7 @@ function MiniAppCard({ type, message, isMe, time, onAction }: { type: string; me
 
 function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: string }) {
   const lines = message.split("\n");
-  const titleLine = lines[0].replace("🎵 ", "").split(" — ");
+  const titleLine = lines[0].replace("ðŸŽµ ", "").split(" â€” ");
   const title = titleLine[0] || "Unknown Track";
   const artist = titleLine[1] || "";
   const metaLine = lines[1] || "";
@@ -467,7 +467,7 @@ function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: st
   const [resolvedPreviewUrl, setResolvedPreviewUrl] = useState(previewUrl);
   const [isPlaying, setIsPlaying] = useState(false);
   const [previewFailed, setPreviewFailed] = useState(false);
-  // Managed imperatively — never stored in JSX to avoid stuck error states
+  // Managed imperatively â€” never stored in JSX to avoid stuck error states
   // and the AbortError that audio.load() + immediate play() causes in browsers.
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -525,7 +525,7 @@ function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: st
         setIsPlaying(true);
         return;
       } catch {
-        // play() failed — fetch a fresh preview URL and prime the element.
+        // play() failed â€” fetch a fresh preview URL and prime the element.
         // We can't play() again here because the async lookup expires the
         // user-gesture context; let the user tap once more.
         const appleTrackId = extractAppleTrackId(listenUrl);
@@ -537,12 +537,12 @@ function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: st
           setResolvedPreviewUrl(fallbackPreview);
           setPreviewFailed(false);
           getAudio(fallbackPreview); // pre-create so next tap can play immediately
-          toast.info("Preview refreshed — tap play to listen");
+          toast.info("Preview refreshed â€” tap play to listen");
           return;
         }
 
         setPreviewFailed(true);
-        if (listenUrl) toast.info("Preview unavailable — tap again to open in app");
+        if (listenUrl) toast.info("Preview unavailable â€” tap again to open in app");
         else toast.error("Unable to play preview");
         return;
       }
@@ -941,8 +941,10 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const navigate = useNavigate();
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showDeleteSub, setShowDeleteSub] = useState(false);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const reelFeed = useReelFeed();
   const [reportPaidOpen, setReportPaidOpen] = useState(false);
   const messageRisk = useMemo(() => isMe ? { warnings: [] } : assessChatMessageRisk(message || ""), [message, isMe]);
   // Inbound auto-translate. Only fires for messages we received and only when
@@ -958,7 +960,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const defaultLockedState = initiallyLocked ?? (isLockedType && !isMe);
   const [isLocked, setIsLocked] = useState(defaultLockedState);
 
-  // For locked_text, the plaintext lives in direct_message_locked_payloads —
+  // For locked_text, the plaintext lives in direct_message_locked_payloads â€”
   // RLS-gated on (sender OR an entry in direct_message_unlocks). Recipients
   // who haven't paid get zero rows. The query runs only when this bubble
   // will actually render the text (sender, or recipient post-unlock).
@@ -986,7 +988,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const isStarsLocked = typeof lockedPriceCoins === "number" && lockedPriceCoins > 0;
   const unlockPrice = lockedPriceCents && lockedPriceCents > 0 ? lockedPriceCents : 99;
   const unlockPriceLabel = isStarsLocked ? formatStarsPrice(lockedPriceCoins) : `$${(unlockPrice / 100).toFixed(2)}`;
-  const unlockButtonLabel = isStarsLocked ? `Unlock for ${unlockPriceLabel}` : `Unlock · ${unlockPriceLabel}`;
+  const unlockButtonLabel = isStarsLocked ? `Unlock for ${unlockPriceLabel}` : `Unlock Â· ${unlockPriceLabel}`;
   const filePayloadSizeBytes = coerceByteSize((filePayload as {
     size?: unknown;
     file_size?: unknown;
@@ -1011,6 +1013,17 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const lockedVideoPreviewUrl = messageType === "locked_video" ? lockedPreviewDisplayUrl : null;
   const imageFrameUrl = displayImageUrl || lockedImagePreviewUrl;
   const videoFrameUrl = displayVideoUrl || lockedVideoPreviewUrl;
+  const viewOnceState = viewOnceMediaState({ image_url: imageUrl, video_url: videoUrl, file_payload: filePayload }, isMe);
+  const isViewOnceMedia = viewOnceState !== "none";
+
+  // Register this video into the shared Reels feed so the fullscreen viewer can
+  // auto-advance through every playable video in the conversation, in order.
+  const isReelVideo = messageType === "video" || messageType === "locked_video";
+  useEffect(() => {
+    if (!reelFeed || !isReelVideo || !displayVideoUrl) return;
+    reelFeed.register({ id, url: displayVideoUrl, order: createdAt || "" });
+    return () => reelFeed.unregister(id);
+  }, [reelFeed, isReelVideo, displayVideoUrl, id, createdAt]);
   const lockedAlbumItems = useMemo(() => getLockedMediaItems(filePayload as any), [filePayload]);
   const isLockedAlbum = messageType === "locked_album" && lockedAlbumItems.length > 0;
   const mediaAlbum = useMemo(() => getMediaAlbumData(filePayload), [filePayload]);
@@ -1149,7 +1162,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     checkUnlock();
   }, [id, isLockedType, isMe, onUnlockLockedMedia]);
 
-  // Unlock payment handler — uses in-app browser on native, redirect on web
+  // Unlock payment handler â€” uses in-app browser on native, redirect on web
   const handleUnlockPayment = useCallback(async () => {
     if (unlockLoading) return;
     setUnlockLoading(true);
@@ -1184,9 +1197,9 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
             });
             if (vData?.unlocked) {
               setIsLocked(false);
-              toast.success("Media unlocked! 🔓");
+              toast.success("Media unlocked! ðŸ”“");
             } else {
-              toast.info("Payment processing — media will unlock shortly");
+              toast.info("Payment processing â€” media will unlock shortly");
             }
           } catch {
             // Ignore transient verification errors after checkout close.
@@ -1199,7 +1212,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         });
         await Browser.open({ url: data.url });
       } else {
-        // Web: redirect in same tab — auto-verify happens on /chat?unlocked= redirect
+        // Web: redirect in same tab â€” auto-verify happens on /chat?unlocked= redirect
         window.location.href = data.url;
       }
     } catch {
@@ -1264,7 +1277,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     hasMoved.current = false;
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true;
-      // Check if bubble is in top half of viewport → open menu downward
+      // Check if bubble is in top half of viewport â†’ open menu downward
       if (bubbleRef.current) {
         const rect = bubbleRef.current.getBoundingClientRect();
         setOpenDown(rect.top < 320);
@@ -1294,10 +1307,10 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const handleTap = useCallback(() => {
     if (didLongPress.current || hasMoved.current) return;
     if (showActions) { setShowActions(false); setShowReactions(false); return; }
-    // Double-tap = ❤️ reaction (Telegram/Instagram style)
+    // Double-tap = â¤ï¸ reaction (Telegram/Instagram style)
     const now = Date.now();
     if (now - lastTapTime.current < 320 && !id.startsWith("opt-")) {
-      toggleReaction("❤️");
+      toggleReaction("â¤ï¸");
       if (navigator.vibrate) navigator.vibrate([10, 40, 10]);
     }
     lastTapTime.current = now;
@@ -1344,7 +1357,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
       onDragStartCapture={(e) => e.preventDefault()}
       style={{ WebkitTouchCallout: "none", WebkitTapHighlightColor: "transparent" }}
     >
-      {/* Paid-content report sheet — opens from the "Report paid content"
+      {/* Paid-content report sheet â€” opens from the "Report paid content"
           action on locked_* messages and writes to content_reports
           (different table from the legacy chat_message_reports used by
           regular text/media). */}
@@ -1399,7 +1412,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           </div>
         )}
 
-        {/* Forwarded-from header — Telegram parity. Shown when this message
+        {/* Forwarded-from header â€” Telegram parity. Shown when this message
             was created via a forward action (forwarded_from_user_id is set). */}
         {forwardedFromName && (
           <button
@@ -1449,7 +1462,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
               {isLockedType && isMe && (
                 <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5">
                   <Lock className="h-3 w-3 text-white" />
-                  <span className="text-[10px] font-medium text-white">Locked · {unlockPriceLabel}</span>
+                  <span className="text-[10px] font-medium text-white">Locked Â· {unlockPriceLabel}</span>
                 </div>
               )}
               {!isLocked && (
@@ -1469,7 +1482,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
               <div className="bg-card/95 px-2.5 pb-2 pt-2">
                 {mediaAlbumCaption && (
                   <p className="mb-2 whitespace-pre-wrap break-words text-[13.5px] leading-snug text-foreground">
-                    <SpoilerText text={mediaAlbumCaption} variant="bold" />
+                    <RichText text={mediaAlbumCaption} variant="bold" />
                   </p>
                 )}
                 <div className="flex min-h-[22px] items-center justify-between gap-2">
@@ -1505,12 +1518,21 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           </div>
         )}
 
+        {/* View-once media â€” gated single-view photo/video (1:1). */}
+        {!isMediaAlbum && isViewOnceMedia && (
+          <div className={`mb-1 ${isMe ? "ml-auto" : ""}`}>
+            <ViewOnceBubble messageId={id} state={viewOnceState as "sent" | "gate" | "opened"} isVideo={!!videoUrl} isMe={isMe} />
+          </div>
+        )}
+
         {/* Video: compact reel-style thumbnail (normal or locked). */}
-        {!isMediaAlbum && videoFrameUrl && (
+        {!isMediaAlbum && !isViewOnceMedia && videoFrameUrl && (
           <div
             onClick={(e) => {
               e.stopPropagation();
-              if (!didLongPress.current && !isLocked) setShowVideoPlayer(true);
+              if (didLongPress.current || isLocked) return;
+              if (reelFeed) reelFeed.open(id);
+              else setShowVideoPlayer(true);
             }}
             className={`${CHAT_MEDIA_FRAME_CLASS} overflow-hidden mb-1 relative cursor-pointer ${isMe ? "ml-auto" : ""}`}
           >
@@ -1591,7 +1613,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
               {isLockedType && isMe && (
                 <div className="absolute top-2 right-2 bg-black/50 rounded-full px-2 py-0.5 flex items-center gap-1">
                   <Lock className="h-3 w-3 text-white" />
-                 <span className="text-[10px] text-white font-medium">Locked · {unlockPriceLabel}</span>
+                 <span className="text-[10px] text-white font-medium">Locked Â· {unlockPriceLabel}</span>
                 </div>
               )}
               </SensitiveMediaGate>
@@ -1599,8 +1621,8 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           </div>
         )}
 
-        {/* Image — normal or locked */}
-        {!isMediaAlbum && imageFrameUrl && !videoFrameUrl && (
+        {/* Image â€” normal or locked */}
+        {!isMediaAlbum && !isViewOnceMedia && imageFrameUrl && !videoFrameUrl && (
           <div className={`${isTinyImage ? "w-28 max-w-[32vw]" : CHAT_MEDIA_FRAME_CLASS} rounded-2xl overflow-hidden mb-1 shadow-sm relative bg-muted border border-border/10 ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
             <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
             <img
@@ -1649,7 +1671,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
             {isLockedType && isMe && (
               <div className="absolute top-2 right-2 bg-black/50 rounded-full px-2 py-0.5 flex items-center gap-1">
                 <Lock className="h-3 w-3 text-white" />
-                <span className="text-[10px] text-white font-medium">Locked · {unlockPriceLabel}</span>
+                <span className="text-[10px] text-white font-medium">Locked Â· {unlockPriceLabel}</span>
               </div>
             )}
             </SensitiveMediaGate>
@@ -1662,7 +1684,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
             return <MiniAppCard type={messageType} message={message} isMe={isMe} time={time} onAction={onMiniAppAction} />;
           }
 
-          if (message.startsWith("🎵")) {
+          if (message.startsWith("ðŸŽµ")) {
             return <MusicCard message={message} isMe={isMe} time={time} />;
           }
 
@@ -1705,7 +1727,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                       </motion.div>
                     ) : (
                       <div className="h-full w-full rounded-2xl bg-muted/30 border border-border/20 grid place-items-center text-3xl">
-                        🙂
+                        ðŸ™‚
                       </div>
                     )}
                 </div>
@@ -1745,7 +1767,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           // For locked_text bubbles we display the payload fetched separately
           // (via lockedTextPayload above); for everything else the plaintext is
           // in message itself. Recipients who haven't unlocked never reach this
-          // branch — they hit the paywall return below.
+          // branch â€” they hit the paywall return below.
           const effectiveMessage = isLockedTextType ? (lockedTextPayload ?? "") : message;
           const urlRegex = /(https?:\/\/[^\s]+)/gi;
           const urls = effectiveMessage.match(urlRegex);
@@ -1773,7 +1795,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%)" }} />
               )}
 
-              {/* Locked text — recipient sees a paywall until they unlock */}
+              {/* Locked text â€” recipient sees a paywall until they unlock */}
               {isLockedTextType && isLocked && !isMe ? (
                 <div className="px-4 py-4 relative z-[1] flex flex-col items-start gap-2">
                   <div className="flex items-center gap-2 text-rose-500">
@@ -1796,7 +1818,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                     ) : (
                       <Lock className="h-3.5 w-3.5" />
                     )}
-                    {unlockLoading ? "Unlocking…" : `Unlock · ${unlockPriceLabel}`}
+                    {unlockLoading ? "Unlockingâ€¦" : `Unlock Â· ${unlockPriceLabel}`}
                   </button>
                 </div>
               ) : (
@@ -1805,16 +1827,16 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   {isLockedTextType && isMe && (
                     <div className="px-4 pt-3 -mb-1 relative z-[1]">
                       <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-rose-300 bg-rose-500/20 rounded-full px-2 py-0.5">
-                        <Lock className="h-2.5 w-2.5" /> Locked · {unlockPriceLabel}
+                        <Lock className="h-2.5 w-2.5" /> Locked Â· {unlockPriceLabel}
                       </span>
                     </div>
                   )}
-                  {/* Text portion — supports Telegram-style ||spoiler|| markers. */}
+                  {/* Text portion â€” supports Telegram-style ||spoiler|| markers. */}
                   {textWithoutUrl && (
                     <p className={`whitespace-pre-wrap break-words px-4 pt-3 pb-1 relative z-[1] ${
                       isMe ? "text-primary-foreground" : "text-foreground"
                     }`}>
-                      <SpoilerText text={textWithoutUrl} variant="bold" />
+                      <RichText text={textWithoutUrl} variant="bold" />
                     </p>
                   )}
                 </>
@@ -1825,13 +1847,13 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   needed. Uses a subdued style so the original stays primary. */}
               {!isMe && autoTranslate && autoTr.status === "loading" && (
                 <p className="px-4 pb-1 text-[10px] italic text-muted-foreground relative z-[1]">
-                  Translating…
+                  Translatingâ€¦
                 </p>
               )}
               {!isMe && autoTranslate && autoTr.status === "done" && autoTr.translated && (
                 <div className="px-4 pb-2 pt-1 relative z-[1]">
                   <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground/80 mb-0.5">
-                    Translated · {autoTr.targetLang}
+                    Translated Â· {autoTr.targetLang}
                   </p>
                   <p className="text-sm text-foreground/90 whitespace-pre-wrap break-words">
                     {autoTr.translated}
@@ -1841,7 +1863,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
 
               {!isMe && incomingRisk?.hasBlocked && (
                 <p className="px-4 pb-1 text-[10px] font-semibold text-red-600">
-                  Phishing/impersonation link blocked — do not click.
+                  Phishing/impersonation link blocked â€” do not click.
                 </p>
               )}
               {!isMe && !incomingRisk?.hasBlocked && (incomingRisk?.hasSuspicious || messageRisk.warnings.length > 0) && (
@@ -1850,7 +1872,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                 </p>
               )}
 
-              {/* Rich link preview — suppressed when inbound scan flagged the link as blocked */}
+              {/* Rich link preview â€” suppressed when inbound scan flagged the link as blocked */}
               {linkUrl && !(incomingRisk?.hasBlocked) && (
                 <LinkPreviewCard url={linkUrl} isMe={isMe} hasText={!!textWithoutUrl} messageText={effectiveMessage} />
               )}
@@ -1864,7 +1886,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                 }`}>
                   {translating ? (
                     <span className="flex items-center gap-1.5 opacity-70">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Translating…
+                      <Loader2 className="h-3 w-3 animate-spin" /> Translatingâ€¦
                     </span>
                   ) : translation ? (
                     <>
@@ -1877,7 +1899,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                 </div>
               )}
 
-              {/* Timestamp — iMessage style */}
+              {/* Timestamp â€” iMessage style */}
               <div className="flex items-center gap-1 justify-end px-4 pb-2 -mt-0.5 relative z-[1]">
                 {isDisappearing && <Timer className={`h-2.5 w-2.5 ${isMe ? "text-primary-foreground/40" : "text-muted-foreground/40"}`} />}
                 {editedAt && (
@@ -1934,6 +1956,17 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                       {emoji}
                     </motion.button>
                   ))}
+                  {/* Open the full "react with any emoji" picker */}
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.025 * REACTION_EMOJIS.length, type: "spring", stiffness: 500 }}
+                    onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(true); }}
+                    aria-label="More reactions"
+                    className="h-[36px] w-[36px] flex items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-all hover:scale-110 active:scale-90 duration-150"
+                  >
+                    <Plus className="h-[18px] w-[18px]" />
+                  </motion.button>
                 </motion.div>
               )}
 
@@ -2015,191 +2048,37 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         )}
       </AnimatePresence>
 
-      {/* Fullscreen Reel-style video player */}
+      {/* Fullscreen Reel-style video player (fallback when no shared ReelFeed) */}
       <AnimatePresence>
-        {showVideoPlayer && displayVideoUrl && (
-          <ReelVideoPlayer videoUrl={displayVideoUrl} onClose={() => setShowVideoPlayer(false)} />
+        {!reelFeed && showVideoPlayer && displayVideoUrl && (
+          <ReelViewer
+            videos={[{ id, url: displayVideoUrl, order: createdAt || "" }]}
+            startIndex={0}
+            onClose={() => setShowVideoPlayer(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Full "react with any emoji" picker */}
+      <AnimatePresence>
+        {showEmojiPicker && (
+          <Suspense fallback={null}>
+            <EmojiReactionPicker
+              onPick={(emoji) => {
+                toggleReaction(emoji);
+                pushRecentEmoji(emoji);
+                setShowEmojiPicker(false);
+                setShowActions(false);
+                setShowReactions(false);
+              }}
+              onClose={() => setShowEmojiPicker(false)}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
     </div>
   );
 });
-
-/** Reel-style fullscreen video player */
-function ReelVideoPlayer({ videoUrl, onClose }: { videoUrl: string; onClose: () => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [liked, setLiked] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const hideControlsAfterDelay = useCallback(() => {
-    if (controlsTimer.current) clearTimeout(controlsTimer.current);
-    setShowControls(true);
-    controlsTimer.current = setTimeout(() => setShowControls(false), 3000);
-  }, []);
-
-  useEffect(() => {
-    hideControlsAfterDelay();
-    return () => { if (controlsTimer.current) clearTimeout(controlsTimer.current); };
-  }, [hideControlsAfterDelay]);
-
-  const togglePlay = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    hideControlsAfterDelay();
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play();
-      setIsPlaying(true);
-    } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!videoRef.current) return;
-    videoRef.current.muted = !videoRef.current.muted;
-    setIsMuted(!isMuted);
-  };
-
-  const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    setProgress((videoRef.current.currentTime / (videoRef.current.duration || 1)) * 100);
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    if (!videoRef.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    videoRef.current.currentTime = pct * videoRef.current.duration;
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-[9999] bg-black flex flex-col"
-      onClick={togglePlay}
-    >
-      {/* Video */}
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        className="w-full h-full object-contain"
-        autoPlay
-        playsInline
-        loop
-        preload="auto"
-        onTimeUpdate={handleTimeUpdate}
-        onClick={(e) => e.stopPropagation()}
-      />
-
-      {/* Top bar */}
-      <motion.div
-        animate={{ opacity: showControls ? 1 : 0 }}
-        className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/60 to-transparent pt-[max(var(--zivo-safe-top,0px),12px)] px-4 pb-8"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-white text-[15px] font-bold">Reels</span>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.85 }}
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center"
-          >
-            <X className="w-5 h-5 text-white" />
-          </motion.button>
-        </div>
-      </motion.div>
-
-      {/* Center play/pause indicator */}
-      <AnimatePresence>
-        {!isPlaying && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 1.5, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-          >
-            <div className="w-20 h-20 rounded-full bg-black/40 flex items-center justify-center">
-              <Play className="w-10 h-10 text-white ml-1" fill="white" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Right-side action buttons (Reel-style) */}
-      <div className="absolute right-3 bottom-28 flex flex-col items-center gap-5 z-10">
-        <motion.button
-          whileTap={{ scale: 0.8 }}
-          onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center ${liked ? "bg-red-500/20" : "bg-white/10"}`}>
-            <Heart className={`w-6 h-6 ${liked ? "text-red-500 fill-red-500" : "text-white"}`} />
-          </div>
-          <span className="text-white text-[10px] font-semibold">Like</span>
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: 0.8 }}
-          onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <MessageCircle className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-white text-[10px] font-semibold">Reply</span>
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: 0.8 }}
-          onClick={(e) => { e.stopPropagation(); }}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <Share2 className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-white text-[10px] font-semibold">Share</span>
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: 0.8 }}
-          onClick={toggleMute}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            {isMuted ? <VolumeX className="w-6 h-6 text-white" /> : <Volume2 className="w-6 h-6 text-white" />}
-          </div>
-          <span className="text-white text-[10px] font-semibold">{isMuted ? "Unmute" : "Mute"}</span>
-        </motion.button>
-      </div>
-
-      {/* Bottom progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/50 to-transparent pb-[max(var(--zivo-safe-bottom,0px),8px)] px-4 pt-6">
-        <div
-          className="w-full h-1 rounded-full bg-white/20 cursor-pointer mb-3"
-          onClick={handleSeek}
-        >
-          <motion.div
-            className="h-full rounded-full bg-white"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
 
 function ActionBtn({ icon: Icon, label, onClick, destructive, active }: {
   icon: IconLike; label: string; onClick: () => void; destructive?: boolean; active?: boolean;
@@ -2238,7 +2117,7 @@ function MsgMenuItem({ icon: Icon, label, onClick, destructive, active, chevron 
   );
 }
 
-/* ── Link Preview Card ─────────────────────────────────────────── */
+/* â”€â”€ Link Preview Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 type SocialPlatformId = "facebook" | "onlyfans" | "instagram" | "x" | "tiktok" | "youtube" | "snapchat" | "telegram" | "linkedin";
 
 const SOCIAL_HOST_MAP: { match: RegExp; id: SocialPlatformId; label: string; color: string; textColor: string; brandImage?: string }[] = [
@@ -2281,7 +2160,7 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
         const u = new URL(url);
         const p = u.pathname + u.search;
 
-        // Detect known external social platforms — render as a colored chip card.
+        // Detect known external social platforms â€” render as a colored chip card.
         const social = detectSocialPlatform(u.hostname);
         if (social) {
           const handle = u.pathname.replace(/^\/+/, "").replace(/^@/, "").split(/[/?#]/)[0];
@@ -2305,7 +2184,7 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
           const resolvedSlug = soundSlugMatch?.[1] || slugifySoundName(legacyMusicShare?.title || "original-sound");
           const soundTitle = legacyMusicShare?.title || humanizeSoundSlug(resolvedSlug);
           const soundDescription = legacyMusicShare
-            ? [legacyMusicShare.artist, legacyMusicShare.genre, legacyMusicShare.duration].filter(Boolean).join(" · ")
+            ? [legacyMusicShare.artist, legacyMusicShare.genre, legacyMusicShare.duration].filter(Boolean).join(" Â· ")
             : "Tap to open sound on ZIVO";
 
           const knownTrack = findZivoTrackBySlug(resolvedSlug);
@@ -2495,7 +2374,7 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
         </div>
       )}
 
-      {/* If no media, show gradient placeholder — themed for known social platforms */}
+      {/* If no media, show gradient placeholder â€” themed for known social platforms */}
       {!hasMedia && (
         <div className={`h-14 flex items-center justify-center relative ${
           preview.socialPlatform ? preview.socialPlatform.color : (isMe ? "bg-primary-foreground/[0.06]" : "bg-foreground/[0.04]")
@@ -2547,13 +2426,13 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
           {!isInternalLink && (() => {
             const r = assessLinkSync(url);
             if (r.level === "blocked") {
-              return <p className="text-[10px] mt-1 font-semibold text-destructive flex items-center gap-1">⚠ Blocked — {r.warnings[0]}</p>;
+              return <p className="text-[10px] mt-1 font-semibold text-destructive flex items-center gap-1">âš  Blocked â€” {r.warnings[0]}</p>;
             }
             if (r.level === "suspicious") {
-              return <p className="text-[10px] mt-1 font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">⚠ Suspicious — {r.warnings[0]}</p>;
+              return <p className="text-[10px] mt-1 font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">âš  Suspicious â€” {r.warnings[0]}</p>;
             }
             if (r.level === "trusted") {
-              return <p className="text-[10px] mt-1 font-semibold text-primary flex items-center gap-1">✓ Verified partner</p>;
+              return <p className="text-[10px] mt-1 font-semibold text-primary flex items-center gap-1">âœ“ Verified partner</p>;
             }
             return <p className="text-[10px] mt-1 text-muted-foreground">External link</p>;
           })()}

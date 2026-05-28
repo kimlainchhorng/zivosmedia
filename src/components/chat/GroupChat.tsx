@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import MediaGalleryLightbox from "./MediaGalleryLightbox";
 import GroupReadReceipts from "./GroupReadReceipts";
+import { ReelFeedProvider } from "./ReelFeed";
 import { OPEN_MEDIA_EVENT, type OpenMediaDetail } from "@/lib/chat/openMedia";
 import { signedUrlFor } from "@/lib/security/signedMedia";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
@@ -91,6 +92,8 @@ import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
 import { detectSensitiveContent, isGroupMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 import { formatChatDateLabel } from "@/lib/chat/dateLabels";
+import ChatFormatBar, { matchFormatHotkey } from "./ChatFormatBar";
+import { applyFormat, type RichFormat } from "@/lib/chat/richText";
 import { DEFAULT_CHAT_WALLPAPER_CLASS } from "./chatPersonalizationStyles";
 import { getChatMessageHighlightClass } from "./chatMessageHighlight";
 import { getComposerDraftPartnerId, type ChatComposerSource, type ComposerActionId } from "./chatComposerHubModel";
@@ -585,6 +588,22 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     setInput(next);
     updateGroupDraft(next);
   }, [updateGroupDraft]);
+  // Whether the composer has a non-empty text selection (drives the format bar).
+  const [hasComposerSelection, setHasComposerSelection] = useState(false);
+  const formatSelection = useCallback((fmt: RichFormat) => {
+    const el = inputRef.current;
+    if (!el) return;
+    const res = applyFormat(input, el.selectionStart ?? input.length, el.selectionEnd ?? input.length, fmt);
+    setInput(res.text);
+    updateGroupDraft(res.text);
+    requestAnimationFrame(() => {
+      const node = inputRef.current;
+      if (!node) return;
+      node.focus();
+      node.setSelectionRange(res.selStart, res.selEnd);
+      setHasComposerSelection(res.selStart !== res.selEnd);
+    });
+  }, [input, updateGroupDraft]);
   const openComposerHub = useCallback((actionId: ComposerActionId | null = null) => {
     setComposerHubAction(actionId);
     setShowComposerHub(true);
@@ -2313,6 +2332,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const initials = (currentGroupName || "G").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
+    <ReelFeedProvider>
     <motion.div
       // On desktop the chat hub pins a conversation-list sidebar to the left
       // and writes its width into the --chat-sidebar-w CSS variable. We start
@@ -3048,9 +3068,15 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 </div>
               </>
             )}
+            {/* Selection formatting bar (bold/italic/strike/code/spoiler) */}
+            <ChatFormatBar
+              visible={hasComposerSelection && slashQuery == null && mentionQuery == null}
+              onFormat={formatSelection}
+            />
             <input
               ref={inputRef}
               value={input}
+              onBlur={() => setHasComposerSelection(false)}
               onChange={(e) => {
                 const v = e.target.value;
                 setInput(v);
@@ -3075,6 +3101,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               }}
               onSelect={(e) => {
                 const target = e.currentTarget;
+                setHasComposerSelection((target.selectionStart ?? 0) !== (target.selectionEnd ?? 0));
                 const caret = target.selectionStart ?? target.value.length;
                 const m = detectMention(target.value, caret);
                 if (m) {
@@ -3086,6 +3113,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 }
               }}
               onKeyDown={(e) => {
+                const fmt = matchFormatHotkey(e);
+                if (fmt) { e.preventDefault(); formatSelection(fmt); return; }
                 if (slashQuery != null && slashCandidates.length > 0) {
                   if (e.key === "ArrowDown") { e.preventDefault(); setSlashIndex((i) => (i + 1) % slashCandidates.length); return; }
                   if (e.key === "ArrowUp") { e.preventDefault(); setSlashIndex((i) => (i - 1 + slashCandidates.length) % slashCandidates.length); return; }
@@ -3331,5 +3360,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         onClose={() => setGalleryState({ open: false, images: [], index: 0 })}
       />
     </motion.div>
+    </ReelFeedProvider>
   );
 }
