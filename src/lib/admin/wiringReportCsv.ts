@@ -75,16 +75,11 @@ export function buildWiringReportCsv(report: WiringReport): string {
   return "\uFEFF" + [...metaLines, headers.join(","), ...rows].join("\r\n");
 }
 
-export function downloadWiringReportCsv(report: WiringReport): void {
+export async function downloadWiringReportCsv(report: WiringReport): Promise<void> {
   const csv = buildWiringReportCsv(report);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
   const ts = stamp(new Date(report.ran_at || report.generated_at || Date.now()));
-  a.href = url;
-  a.download = `lodging-wiring-report-${ts}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const name = `lodging-wiring-report-${ts}.csv`;
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, name, name);
 }

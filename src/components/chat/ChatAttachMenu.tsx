@@ -12,6 +12,7 @@ import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Timer from "lucide-react/dist/esm/icons/timer";
 import Lock from "lucide-react/dist/esm/icons/lock";
 import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
+import Flame from "lucide-react/dist/esm/icons/flame";
 import Gift from "lucide-react/dist/esm/icons/gift";
 import Coins from "lucide-react/dist/esm/icons/coins";
 import ScanLine from "lucide-react/dist/esm/icons/scan-line";
@@ -41,6 +42,7 @@ interface ChatAttachMenuProps {
   onLockedImageSelect?: () => void;
   onLockedTextSelect?: () => void;
   onToggleSensitiveMedia?: () => void;
+  onToggleViewOnce?: () => void;
   onSendGift?: () => void;
   onOpenWallet?: () => void;
   onScanDocument?: () => void;
@@ -51,6 +53,7 @@ interface ChatAttachMenuProps {
   onShareZivoCard?: () => void;
   disappearingEnabled: boolean;
   sensitiveMediaMarked?: boolean;
+  viewOnceMarked?: boolean;
   lockedMediaHint?: string;
   lockedMediaLabel?: string;
   /** Override label of the disappearing-messages menu item (e.g. "1d", "7d", "30d", "Off"). Defaults to "24h". */
@@ -63,6 +66,7 @@ const menuItems = [
   { id: "gif", label: "GIF", hint: "Animated image", icon: ImagePlay, color: "text-pink-500", bg: "bg-pink-500/10" },
   { id: "music", label: "Music", hint: "Audio file", icon: Music, color: "text-teal-500", bg: "bg-teal-500/10" },
   { id: "sensitive", label: "18+", hint: "Blur next media", icon: ShieldAlert, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
+  { id: "view-once", label: "View once", hint: "Burn after view", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" },
   { id: "file", label: "File", hint: "PDF and docs", icon: FileUp, color: "text-sky-500", bg: "bg-sky-500/10" },
   { id: "scan", label: "Scan", hint: "Quick document", icon: ScanLine, color: "text-cyan-500", bg: "bg-cyan-500/10", isNew: true },
   { id: "location", label: "Location", hint: "Share pin", icon: MapPin, color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -90,7 +94,7 @@ const PRIMARY_VISIBLE_COUNT = 10;
 
 export default function ChatAttachMenu({
   open, onClose, onImageSelect, onVideoSelect, onGifSelect, onMusicSelect, onLocationShare, onToggleDisappearing, onLockedImageSelect, onLockedTextSelect,
-  onToggleSensitiveMedia, onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, lockedMediaHint, lockedMediaLabel, disappearingLabel,
+  onToggleSensitiveMedia, onToggleViewOnce, onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, viewOnceMarked = false, lockedMediaHint, lockedMediaLabel, disappearingLabel,
 }: ChatAttachMenuProps) {
   const { isPlus, plan } = useZivoPlus();
   const { isOFMode: zivoOFMode } = useZivoOFMode();
@@ -103,7 +107,7 @@ export default function ChatAttachMenu({
         : it
     ));
   const visibleItems = zivoOFMode
-    ? configuredItems.filter((it) => ["image", "video", "gif", "sensitive", "locked", "locked-text", "money", "gift"].includes(it.id))
+    ? configuredItems.filter((it) => ["image", "video", "gif", "sensitive", "view-once", "locked", "locked-text", "money", "gift"].includes(it.id))
     : configuredItems;
   const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
@@ -179,6 +183,7 @@ export default function ChatAttachMenu({
     if (id === "social") return !onShareSocial;
     if (id === "scan") return !onScanDocument;
     if (id === "sensitive") return !onToggleSensitiveMedia;
+    if (id === "view-once") return !onToggleViewOnce;
     if (id === "zivo") return !onShareZivoCard;
     return false;
   };
@@ -240,6 +245,10 @@ export default function ChatAttachMenu({
       case "social": onShareSocial?.(); break;
       case "sensitive":
         onToggleSensitiveMedia?.();
+        trackItemUsage(id);
+        return;
+      case "view-once":
+        onToggleViewOnce?.();
         trackItemUsage(id);
         return;
       case "zivo": onShareZivoCard?.(); break;
@@ -355,6 +364,8 @@ export default function ChatAttachMenu({
                       item.id === "disappearing" && disappearingEnabled ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
                     } ${
                       item.id === "sensitive" && sensitiveMediaMarked ? "ring-2 ring-fuchsia-500 ring-offset-2 ring-offset-background" : ""
+                    } ${
+                      item.id === "view-once" && viewOnceMarked ? "ring-2 ring-orange-500 ring-offset-2 ring-offset-background" : ""
                     } ${isLockedGated ? "opacity-50" : ""} ${isUnavailable ? "opacity-60" : ""}`}>
                       <item.icon className={`w-[18px] h-[18px] sm:w-5 sm:h-5 ${item.color}`} />
                     </div>
@@ -372,6 +383,9 @@ export default function ChatAttachMenu({
                     )}
                     {item.id === "sensitive" && sensitiveMediaMarked && (
                       <span className="text-[8px] text-fuchsia-500 font-bold -mt-1">ON</span>
+                    )}
+                    {item.id === "view-once" && viewOnceMarked && (
+                      <span className="text-[8px] text-orange-500 font-bold -mt-1">ON</span>
                     )}
                     {isLockedGated && (
                       <span className="absolute -top-1 -right-1 text-[7px] font-bold px-1 py-0.5 rounded-full bg-amber-500 text-white">PRO</span>

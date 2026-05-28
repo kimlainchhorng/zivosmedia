@@ -22,6 +22,7 @@ export interface ReelVideo {
   url: string;
   /** Sort key (ISO timestamp). Ties broken by id. */
   order: string;
+  protected?: boolean;
 }
 
 interface ReelFeedApi {
@@ -102,9 +103,14 @@ export function ReelViewer({
   const [progress, setProgress] = useState(0);
   const [liked, setLiked] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [showResumeHint, setShowResumeHint] = useState(false);
   const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userPausedRef = useRef(false);
+  const lastProgressTimeRef = useRef(0);
+  const stallSamplesRef = useRef(0);
 
   const current = videos[index];
+  const isProtected = !!current?.protected;
 
   const hideControlsAfterDelay = useCallback(() => {
     if (controlsTimer.current) clearTimeout(controlsTimer.current);
@@ -123,9 +129,36 @@ export function ReelViewer({
   useEffect(() => {
     setProgress(0);
     setIsPlaying(true);
+    setShowResumeHint(false);
+    userPausedRef.current = false;
+    lastProgressTimeRef.current = 0;
+    stallSamplesRef.current = 0;
     setLiked(false);
     hideControlsAfterDelay();
   }, [index, hideControlsAfterDelay]);
+
+  // Some mobile/low-power contexts pause autoplayed video after mount or after
+  // tab/background transitions. Try to resume when the page is active again.
+  useEffect(() => {
+    const tryResume = () => {
+      const v = videoRef.current;
+      if (!v || document.visibilityState !== "visible" || !v.paused || userPausedRef.current) return;
+      void v.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    };
+
+    const onVisibilityChange = () => tryResume();
+    const onWindowFocus = () => tryResume();
+
+    // Initial pass after the element mounts/changes source.
+    const tid = setTimeout(tryResume, 60);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onWindowFocus);
+    return () => {
+      clearTimeout(tid);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onWindowFocus);
+    };
+  }, [index]);
 
   const goTo = useCallback(
     (next: number) => {
@@ -140,9 +173,10 @@ export function ReelViewer({
     const v = videoRef.current;
     if (!v) return;
     if (v.paused) {
-      v.play();
-      setIsPlaying(true);
+      userPausedRef.current = false;
+      void v.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     } else {
+      userPausedRef.current = true;
       v.pause();
       setIsPlaying(false);
     }
@@ -159,8 +193,44 @@ export function ReelViewer({
   const handleTimeUpdate = () => {
     const v = videoRef.current;
     if (!v) return;
+    lastProgressTimeRef.current = v.currentTime;
+    stallSamplesRef.current = 0;
+    if (showResumeHint) setShowResumeHint(false);
     setProgress((v.currentTime / (v.duration || 1)) * 100);
   };
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const v = videoRef.current;
+      if (!v || v.paused || v.ended || document.visibilityState !== "visible") return;
+      const now = v.currentTime;
+      const moved = now - lastProgressTimeRef.current;
+      if (moved < 0.01 && v.readyState >= 2) {
+        stallSamplesRef.current += 1;
+        if (stallSamplesRef.current >= 2) {
+          void v.play().catch(() => {
+            setIsPlaying(false);
+            setShowResumeHint(true);
+          });
+        }
+      } else {
+        stallSamplesRef.current = 0;
+      }
+      lastProgressTimeRef.current = now;
+    }, 700);
+    return () => window.clearInterval(id);
+  }, [index]);
+
+  const forceResumePlayback = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    userPausedRef.current = false;
+    setShowResumeHint(false);
+    void v.play().then(() => setIsPlaying(true)).catch(() => {
+      setIsPlaying(false);
+      setShowResumeHint(true);
+    });
+  }, []);
 
   const handleEnded = () => {
     if (index + 1 < videos.length) {
@@ -202,6 +272,8 @@ export function ReelViewer({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
       className="fixed inset-0 z-[9999] bg-black flex flex-col"
+      onContextMenu={(event) => event.preventDefault()}
+      onDragStart={(event) => event.preventDefault()}
       drag="y"
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={0.3}
@@ -218,7 +290,30 @@ export function ReelViewer({
         playsInline
         muted={isMuted}
         preload="auto"
+        controlsList={isProtected ? "nodownload noplaybackrate" : undefined}
+        disablePictureInPicture={isProtected}
+        onContextMenu={(event) => event.preventDefault()}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => {
+          setIsPlaying(false);
+          const v = videoRef.current;
+          if (!v) return;
+          // If pause wasn't requested by user interaction, try to recover.
+          if (!userPausedRef.current && document.visibilityState === "visible" && !v.ended) {
+            setTimeout(() => {
+              const cur = videoRef.current;
+              if (!cur || userPausedRef.current || cur.ended || document.visibilityState !== "visible") return;
+              void cur.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            }, 80);
+          }
+        }}
         onTimeUpdate={handleTimeUpdate}
+        onStalled={() => {
+          if (!userPausedRef.current) forceResumePlayback();
+        }}
+        onWaiting={() => {
+          if (!userPausedRef.current) forceResumePlayback();
+        }}
         onEnded={handleEnded}
         onClick={(e) => {
           e.stopPropagation();
@@ -237,6 +332,11 @@ export function ReelViewer({
             {videos.length > 1 && (
               <span className="text-white/70 text-[12px] font-semibold">
                 {index + 1}/{videos.length}
+              </span>
+            )}
+            {isProtected && (
+              <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-semibold text-white/80">
+                Protected
               </span>
             )}
           </div>
@@ -270,6 +370,21 @@ export function ReelViewer({
         )}
       </AnimatePresence>
 
+      {showResumeHint && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              forceResumePlayback();
+            }}
+            className="pointer-events-auto rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-5 py-2.5 backdrop-blur"
+          >
+            Tap to resume video
+          </button>
+        </div>
+      )}
+
       {/* Right-side action buttons (Reel-style) */}
       <div className="absolute right-3 bottom-28 flex flex-col items-center gap-5 z-10">
         <motion.button
@@ -302,18 +417,20 @@ export function ReelViewer({
           <span className="text-white text-[10px] font-semibold">Reply</span>
         </motion.button>
 
-        <motion.button
-          whileTap={{ scale: 0.8 }}
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <Share2 className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-white text-[10px] font-semibold">Share</span>
-        </motion.button>
+        {!isProtected && (
+          <motion.button
+            whileTap={{ scale: 0.8 }}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            className="flex flex-col items-center gap-1"
+          >
+            <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+              <Share2 className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-white text-[10px] font-semibold">Share</span>
+          </motion.button>
+        )}
 
         <motion.button whileTap={{ scale: 0.8 }} onClick={toggleMute} className="flex flex-col items-center gap-1">
           <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">

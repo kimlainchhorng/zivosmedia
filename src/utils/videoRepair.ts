@@ -80,6 +80,67 @@ export function probeVideoPlayable(file: File | Blob): Promise<boolean> {
   });
 }
 
+export type VideoUploadValidationResult =
+  | { ok: true }
+  | {
+    ok: false;
+    reason: "not_playable" | "missing_frames" | "zero_duration" | "no_motion";
+  };
+
+/**
+ * Validate that an uploaded file is a real playable video with visible frame progression.
+ * This guards against protected previews/static captures that look like videos but do not move.
+ */
+export async function validateVideoForChatUpload(file: File | Blob): Promise<VideoUploadValidationResult> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.preload = "auto";
+  video.muted = true;
+  video.playsInline = true;
+
+  try {
+    const metaOk = await new Promise<boolean>((resolve) => {
+      let done = false;
+      const finish = (ok: boolean) => {
+        if (done) return;
+        done = true;
+        clearTimeout(tid);
+        video.removeEventListener("loadedmetadata", onMeta);
+        video.removeEventListener("error", onErr);
+        resolve(ok);
+      };
+      const onMeta = () => finish(true);
+      const onErr = () => finish(false);
+      const tid = setTimeout(() => finish(false), 6000);
+      video.addEventListener("loadedmetadata", onMeta);
+      video.addEventListener("error", onErr);
+      video.src = url;
+      video.load();
+    });
+
+    if (!metaOk) return { ok: false, reason: "not_playable" };
+    if (!video.videoWidth || !video.videoHeight) return { ok: false, reason: "missing_frames" };
+    if (!Number.isFinite(video.duration) || video.duration <= 0.05) return { ok: false, reason: "zero_duration" };
+
+    const start = video.currentTime;
+    try {
+      await video.play();
+    } catch {
+      return { ok: false, reason: "not_playable" };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const moved = video.currentTime - start;
+    video.pause();
+
+    if (moved < 0.03) return { ok: false, reason: "no_motion" };
+    return { ok: true };
+  } finally {
+    video.removeAttribute("src");
+    video.load();
+    URL.revokeObjectURL(url);
+  }
+}
+
 /**
  * Repair a video blob so it plays in browsers while preserving audio when present.
  * Tries: 1) video copy + AAC audio normalization (fast), 2) full transcode (slower).

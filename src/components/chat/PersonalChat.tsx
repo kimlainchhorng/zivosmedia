@@ -45,6 +45,7 @@ import Smile from "lucide-react/dist/esm/icons/smile";
 import Palette from "lucide-react/dist/esm/icons/palette";
 import Zap from "lucide-react/dist/esm/icons/zap";
 import Shield from "lucide-react/dist/esm/icons/shield";
+import Lock from "lucide-react/dist/esm/icons/lock";
 import Video from "lucide-react/dist/esm/icons/video";
 import History from "lucide-react/dist/esm/icons/history";
 import Bookmark from "lucide-react/dist/esm/icons/bookmark";
@@ -105,6 +106,7 @@ import CallEventBubble from "./CallEventBubble";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import { formatChatDateLabel } from "@/lib/chat/dateLabels";
 import { getChatMessageHighlightClass } from "./chatMessageHighlight";
+import { repairVideoBlob, validateVideoForChatUpload } from "@/utils/videoRepair";
 
 // Lazy-loaded panels (only downloaded when user opens them)
 const CallScreen = lazy(() => import("./CallScreen"));
@@ -222,6 +224,14 @@ interface Message {
   _upload_status_code?: number;
   _upload_phase?: "preflight" | "upload" | "insert";
   _upload_body?: string;
+}
+
+function lockedPriceCoinsFromPayload(filePayload: FileBubbleData | null | undefined): number | null {
+  if (!filePayload || typeof filePayload !== "object") return null;
+  const value = (filePayload as { locked_price_coins?: unknown; price_coins?: unknown }).locked_price_coins
+    ?? (filePayload as { price_coins?: unknown }).price_coins;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : null;
 }
 
 interface CallEvent {
@@ -598,7 +608,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const navigate = useNavigate();
   const isSelfChat = !!user?.id && recipientId === user.id;
   const displayName = isSelfChat ? "Saved Messages" : recipientName;
-  const [galleryState, setGalleryState] = useState<{ open: boolean; images: { id: string; url: string; type: "image" | "video" }[]; index: number }>({ open: false, images: [], index: 0 });
+  const [galleryState, setGalleryState] = useState<{ open: boolean; images: { id: string; url: string; type: "image" | "video"; protected?: boolean }[]; index: number }>({ open: false, images: [], index: 0 });
   const isSavedContact = useMemo(
     () => contacts.some((contact) => contact.contact_user_id === recipientId && contact.added_via !== "chat_history"),
     [contacts, recipientId],
@@ -654,6 +664,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       if (detail.gallery?.length) {
         void Promise.all(detail.gallery.map(async (item) => ({
           ...item,
+          protected: item.protected ?? detail.protected,
           url: /^(https?:|blob:|data:)/.test(item.url)
             ? item.url
             : (await signedUrlFor(CHAT_MEDIA_BUCKET, item.url, "display")) || item.url,
@@ -666,7 +677,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         });
         return;
       }
-      setGalleryState({ open: true, images: [{ id: detail.id || detail.url, url: detail.url, type: detail.type }], index: 0 });
+      setGalleryState({ open: true, images: [{ id: detail.id || detail.url, url: detail.url, type: detail.type, protected: detail.protected }], index: 0 });
     };
     window.addEventListener(OPEN_MEDIA_EVENT, handler as EventListener);
     return () => window.removeEventListener(OPEN_MEDIA_EVENT, handler as EventListener);
@@ -711,6 +722,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [showComposerHub, setShowComposerHub] = useState(false);
   const [composerHubAction, setComposerHubAction] = useState<ComposerActionId | null>(null);
   const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
+  const [markNextMediaProtected, setMarkNextMediaProtected] = useState(false);
   const [markNextMediaViewOnce, setMarkNextMediaViewOnce] = useState(false);
   // Auto-delete (chat-wide disappearing). null = off, otherwise seconds. Cycles 1d→7d→30d→off.
   // Persisted per conversation in localStorage so it survives page reloads.
@@ -1602,6 +1614,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const textSensitivity = detectSensitiveContent(rawText);
     const isMediaSend = Boolean(imageUrl || videoUrl || filePayload) || ["image", "video", "file", "locked_image", "locked_video", "locked_album"].includes(msgType);
     const shouldMarkSensitiveMedia = isMediaSend && (markNextMediaSensitive || textSensitivity.isSensitive);
+    const shouldMarkProtectedMedia = isMediaSend && markNextMediaProtected;
     if (textSensitivity.isSensitive && !isMediaSend) {
       toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
       inputRef.current?.focus();
@@ -1642,9 +1655,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         sensitive: true,
         sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
       } : {}),
+      ...(shouldMarkProtectedMedia ? { protected: true, protected_media: true } : {}),
       ...(shouldMarkViewOnce ? { view_once: true } : {}),
     } as unknown as FileBubbleData;
     if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
+    if (shouldMarkProtectedMedia) setMarkNextMediaProtected(false);
     if (shouldMarkViewOnce) setMarkNextMediaViewOnce(false);
     const optimisticMsg: Message = {
       id: optimisticId,
@@ -2081,7 +2096,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const optimisticId = `opt-media-${clientSendId}`;
     const messageText = MEDIA_MESSAGE_TEXT[kind];
     const markSensitive = markNextMediaSensitive;
+    const markProtected = markNextMediaProtected;
     if (markSensitive) setMarkNextMediaSensitive(false);
+    if (markProtected) setMarkNextMediaProtected(false);
     const optimisticMsg: Message = {
       id: optimisticId,
       sender_id: user.id,
@@ -2103,6 +2120,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         size: file.size,
         source: "upload",
         ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+        ...(markProtected ? { protected: true, protected_media: true } : {}),
       } as unknown as FileBubbleData,
       expires_at: null,
       created_at: new Date().toISOString(),
@@ -2161,6 +2179,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             size: file.size,
             source: filePayloadSource,
             ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+            ...(markProtected ? { protected: true, protected_media: true } : {}),
           } as unknown as FileBubbleData,
         };
         if (kind === "image") insertData.image_url = dbMediaUrl;
@@ -2214,7 +2233,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const optimisticId = `opt-album-${clientSendId}`;
     const caption = input.trim();
     const markSensitive = markNextMediaSensitive;
+    const markProtected = markNextMediaProtected;
     if (markSensitive) setMarkNextMediaSensitive(false);
+    if (markProtected) setMarkNextMediaProtected(false);
     const localItems: MediaAlbumSendItem[] = mediaFiles.map(({ file, kind }) => ({
       id: randomMediaId(),
       type: kind,
@@ -2249,6 +2270,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         album_items: localItems,
         source: "local",
         ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+        ...(markProtected ? { protected: true, protected_media: true } : {}),
       } as unknown as FileBubbleData,
       expires_at: null,
       created_at: new Date().toISOString(),
@@ -2363,6 +2385,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             album_items: dbItems,
             source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
             ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+            ...(markProtected ? { protected: true, protected_media: true } : {}),
           } as unknown as FileBubbleData,
         };
         if (currentReply) insertData.reply_to_id = currentReply.id;
@@ -2382,21 +2405,60 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     })();
   };
 
-  const sendSingleSelectedMedia = (file: File | undefined, clearInput: () => void) => {
+  const sendSingleSelectedMedia = async (file: File | undefined, clearInput: () => void) => {
     if (!file || !user?.id) return;
-    const kind = getChatMediaKind(file);
+    let selected = file;
+    const kind = getChatMediaKind(selected);
     if (!kind) {
       toast.error("Choose a photo or video");
       clearInput();
       return;
     }
     const limit = getUploadLimitForKind(kind);
-    if (file.size > limit) {
+    if (selected.size > limit) {
       toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
       clearInput();
       return;
     }
-    sendOptimisticMedia(file, kind);
+
+    if (kind === "video") {
+      const validation = await validateVideoForChatUpload(selected);
+      if (!validation.ok) {
+        toast.error("This file is not a valid moving video. Unlock/download the original video first.");
+        clearInput();
+        return;
+      }
+    }
+
+    // Some captured Telegram WEBM files upload successfully but fail to decode
+    // in-app. Normalize WEBM to MP4 before sending to avoid broken play cards.
+    const isWebm =
+      kind === "video" &&
+      (selected.type.toLowerCase().includes("webm") || selected.name.toLowerCase().endsWith(".webm"));
+    if (isWebm) {
+      try {
+        toast.info("Converting video for compatibility...");
+        const repairedUrl = await repairVideoBlob(selected);
+        if (!repairedUrl) {
+          toast.error("Couldn't convert this video. Please try another file.");
+          clearInput();
+          return;
+        }
+        const repairedBlob = await fetch(repairedUrl).then((r) => r.blob());
+        URL.revokeObjectURL(repairedUrl);
+        const base = selected.name.replace(/\.[^.]+$/, "") || "video";
+        selected = new File([repairedBlob], `${base}-fixed.mp4`, {
+          type: "video/mp4",
+          lastModified: Date.now(),
+        });
+      } catch {
+        toast.error("Couldn't convert this video. Please try another file.");
+        clearInput();
+        return;
+      }
+    }
+
+    sendOptimisticMedia(selected, kind);
     clearInput();
   };
 
@@ -2409,7 +2471,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       return;
     }
     const file = files[0];
-    sendSingleSelectedMedia(file, () => {
+    void sendSingleSelectedMedia(file, () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     });
   };
@@ -2423,7 +2485,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       return;
     }
     const file = files[0];
-    sendSingleSelectedMedia(file, () => {
+    void sendSingleSelectedMedia(file, () => {
       if (videoInputRef.current) videoInputRef.current.value = "";
     });
   };
@@ -2441,7 +2503,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       if (gifInputRef.current) gifInputRef.current.value = "";
       return;
     }
-    sendSingleSelectedMedia(files[0], () => {
+    void sendSingleSelectedMedia(files[0], () => {
       if (gifInputRef.current) gifInputRef.current.value = "";
     });
   };
@@ -3596,7 +3658,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             sendOptimisticMediaAlbum(files);
             return;
           }
-          sendSingleSelectedMedia(files[0], () => {});
+          void sendSingleSelectedMedia(files[0], () => {});
         }}
         className={`relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 flex flex-col [-webkit-overflow-scrolling:touch] touch-pan-y [transform:translateZ(0)] [contain:layout_paint] ${getChatCanvasClass(chatStyle.wallpaper)}`}
         style={getWallpaperStyle(chatStyle.wallpaper)}
@@ -3918,6 +3980,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         filePayload={msg.file_payload}
                         senderId={msg.sender_id}
                         lockedPriceCents={msg.locked_price_cents}
+                        lockedPriceCoins={lockedPriceCoinsFromPayload(msg.file_payload)}
                         lockedPreviewUrl={getLockedMediaPreviewPath(msg.file_payload as unknown as Parameters<typeof getLockedMediaPreviewPath>[0])}
                         initiallyLocked={
                           isLockedDirectMessage(msg.message_type) && !isMe
@@ -4121,6 +4184,19 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               <X className="h-3 w-3" />
             </button>
           )}
+          {markNextMediaProtected && (
+            <button
+              type="button"
+              onClick={() => setMarkNextMediaProtected(false)}
+              className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-sky-500/25 bg-sky-500/10 px-3 py-1 text-[11px] font-bold text-sky-600"
+              aria-label="Turn off protected marker for next media"
+              title="Turn off protected marker"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Protected on for next media
+              <X className="h-3 w-3" />
+            </button>
+          )}
           <div className="flex items-end gap-1.5">
             {/* Action buttons — attach + emoji picker; extra tools accessible via attach menu */}
             <div className="flex items-end gap-0.5 shrink-0">
@@ -4173,12 +4249,15 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               recipientId={recipientId}
               onMediaSent={(opts) => {
                 const markSensitive = markNextMediaSensitive;
+                const markProtected = markNextMediaProtected;
                 if (markSensitive) setMarkNextMediaSensitive(false);
-                const sensitivePayload = markSensitive
-                  ? { sensitive: true, sensitive_reason: "sender_marked" }
-                  : {};
-                if (opts.imageUrl) handleSend({ imageUrl: opts.imageUrl, filePayload: sensitivePayload as unknown as FileBubbleData });
-                else if (opts.videoUrl) handleSend({ videoUrl: opts.videoUrl, filePayload: sensitivePayload as unknown as FileBubbleData });
+                if (markProtected) setMarkNextMediaProtected(false);
+                const privacyPayload = {
+                  ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+                  ...(markProtected ? { protected: true, protected_media: true } : {}),
+                };
+                if (opts.imageUrl) handleSend({ imageUrl: opts.imageUrl, filePayload: privacyPayload as unknown as FileBubbleData });
+                else if (opts.videoUrl) handleSend({ videoUrl: opts.videoUrl, filePayload: privacyPayload as unknown as FileBubbleData });
                 else if (opts.fileUrl) {
                   handleSend({
                     filePayload: {
@@ -4187,7 +4266,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       mime_type: opts.fileType || "application/octet-stream",
                       size: opts.fileSize,
                       source: "upload",
-                      ...sensitivePayload,
+                      ...privacyPayload,
                     },
                   });
                 }
@@ -4308,6 +4387,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                           return next;
                         });
                       }}
+                      onToggleProtectedMedia={() => {
+                        setMarkNextMediaProtected((prev) => {
+                          const next = !prev;
+                          toast.success(next ? "Next media cannot be saved or shared" : "Protected media marker off");
+                          return next;
+                        });
+                      }}
                       onToggleViewOnce={() => {
                         setMarkNextMediaViewOnce((prev) => {
                           const next = !prev;
@@ -4335,6 +4421,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         "On"
                       }
                       sensitiveMediaMarked={markNextMediaSensitive}
+                      protectedMediaMarked={markNextMediaProtected}
                       viewOnceMarked={markNextMediaViewOnce}
                     />
                   </Suspense>

@@ -46,17 +46,12 @@ export function buildICS(input: CalendarEventInput): string {
   return lines.join("\r\n");
 }
 
-export function downloadICS(input: CalendarEventInput, filename = "zivo-event.ics") {
+export async function downloadICS(input: CalendarEventInput, filename = "zivo-event.ics") {
   if (typeof window === "undefined") return;
   const blob = new Blob([buildICS(input)], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename.endsWith(".ics") ? filename : `${filename}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  const name = filename.endsWith(".ics") ? filename : `${filename}.ics`;
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, name, "Add to calendar");
 }
 
 function toDate(v: string | Date): Date {

@@ -212,19 +212,13 @@ END:VCALENDAR`;
   };
 
   // Export to ICS file (for Apple Calendar, Outlook, etc.)
-  const exportToICS = (flight: FlightData) => {
+  const exportToICS = async (flight: FlightData) => {
     try {
+      const { exportBlob } = await import("@/lib/native/exportFile");
       const icsContent = generateICS(flight);
       const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `flight-${flight.confirmationNumber}.ics`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('Calendar file downloaded!');
+      const shared = await exportBlob(blob, `flight-${flight.confirmationNumber}.ics`, 'Add to calendar');
+      if (!shared) toast.success('Calendar file downloaded!');
     } catch (error) {
       toast.error('Failed to export calendar');
     }
@@ -241,20 +235,14 @@ END:VCALENDAR`;
     }
   };
 
-  // Export to PDF (using print dialog)
-  const exportToPDF = (flight: FlightData) => {
+  // Export itinerary as a downloadable/shareable HTML document
+  const exportToPDF = async (flight: FlightData) => {
     try {
+      const { exportBlob } = await import("@/lib/native/exportFile");
       const htmlContent = generatePDFContent(flight);
       const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ZIVO-Itinerary-${flight.departure.code}-${flight.arrival.code}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('Itinerary downloaded!');
+      const shared = await exportBlob(blob, `ZIVO-Itinerary-${flight.departure.code}-${flight.arrival.code}.html`, 'Itinerary');
+      if (!shared) toast.success('Itinerary downloaded!');
     } catch (error) {
       toast.error('Failed to generate PDF');
     }

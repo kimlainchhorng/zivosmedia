@@ -588,12 +588,12 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
                         preload="metadata"
                         controlsList={protectContent ? "nodownload noplaybackrate noremoteplayback" : undefined}
                         disablePictureInPicture={protectContent}
-                        className="h-full w-full object-cover"
+                        className="pointer-events-none h-full w-full object-cover"
                         onContextMenu={blockSaveGestures}
                         onContextMenuCapture={blockSaveGestures}
                         onDragStartCapture={blockSaveGestures}
                       />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                      <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15">
                         <div className="h-9 w-9 rounded-full bg-black/60 backdrop-blur flex items-center justify-center">
                           <svg viewBox="0 0 24 24" className="h-4 w-4 fill-white ml-0.5"><path d="M8 5v14l11-7z" /></svg>
                         </div>

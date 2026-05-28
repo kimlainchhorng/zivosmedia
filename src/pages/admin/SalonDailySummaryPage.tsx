@@ -5,7 +5,7 @@
  * Pass ?print=1 to auto-trigger the print dialog (same pattern as the daily
  * schedule page).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Loader2, Printer, AlertCircle, X } from "lucide-react";
@@ -41,6 +41,12 @@ export default function SalonDailySummaryPage() {
   const [retailByBooking, setRetailByBooking] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = async () => {
+    const { printOrShareElement } = await import("@/lib/native/printDocument");
+    await printOrShareElement(summaryRef.current, `Daily-summary-${date}.pdf`, "Daily summary");
+  };
 
   useEffect(() => {
     if (!storeId || !date) return;
@@ -92,7 +98,7 @@ export default function SalonDailySummaryPage() {
 
   useEffect(() => {
     if (autoPrint && !loading) {
-      const t = setTimeout(() => window.print(), 400);
+      const t = setTimeout(() => { handlePrint(); }, 400);
       return () => clearTimeout(t);
     }
     return undefined;
@@ -186,12 +192,12 @@ export default function SalonDailySummaryPage() {
           }} className="gap-1.5">
             <X className="h-4 w-4" /> Close
           </Button>
-          <Button onClick={() => window.print()} size="sm" className="gap-1.5">
+          <Button onClick={handlePrint} size="sm" className="gap-1.5">
             <Printer className="h-4 w-4" /> Print
           </Button>
         </div>
 
-        <div className="summary-card rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div ref={summaryRef} className="summary-card rounded-2xl border border-border bg-card p-6 shadow-sm">
           <header className="border-b border-dashed border-border pb-4">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Daily summary</p>
             <h1 className="mt-0.5 text-2xl font-bold text-foreground">{storeName}</h1>

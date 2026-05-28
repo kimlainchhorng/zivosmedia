@@ -159,9 +159,7 @@ export default function LodgingGiftVouchersSection({ storeId }: { storeId: strin
   });
 
   const handlePrint = (v: GiftVoucher) => {
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(`<html><body style="font-family:serif;padding:40px;max-width:500px;margin:auto;border:2px solid #ccc;border-radius:8px">
+    const html = `<html><body style="font-family:serif;padding:40px;max-width:500px;margin:auto;border:2px solid #ccc;border-radius:8px">
       <h1 style="text-align:center;font-size:2em">🎁 Gift Voucher</h1>
       <hr/>
       <p style="font-size:2em;text-align:center;font-family:monospace;letter-spacing:4px;font-weight:bold">${v.code}</p>
@@ -171,8 +169,10 @@ export default function LodgingGiftVouchersSection({ storeId }: { storeId: strin
       ${v.expires_at ? `<p>Valid until: ${v.expires_at}</p>` : ""}
       <hr/>
       <p style="font-size:0.8em;color:#888;text-align:center">Redeemable at time of checkout. Not refundable.</p>
-    </body></html>`);
-    w.print();
+    </body></html>`;
+    import("@/lib/native/printDocument").then(({ printOrShareHtml }) =>
+      printOrShareHtml(html, `gift-voucher-${v.code}.pdf`, "Gift voucher"),
+    );
   };
 
   const all = query.data || [];

@@ -15,7 +15,7 @@ import {
   PhoneOff, Megaphone, Globe, BarChart2, Film, Flag, ShieldAlert, MessageCircle,
   ShieldCheck, Lock, UserCog, Sliders, Rocket, Smartphone, Monitor, CheckCircle,
   Package, RotateCcw, Zap, Eye, Radio, TrendingUp, Inbox, History as HistoryIcon, Ban,
-  Compass, BedDouble, KeyRound, CreditCard, Sparkles, Layers, Tag,
+  Compass, BedDouble, KeyRound, CreditCard, Sparkles, Layers, Tag, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedIncidentCommandCenter } from "@/components/admin/FeedIncidentCommandCenter";
@@ -163,6 +163,7 @@ const adminNavEntries: NavEntry[] = [
   {
     label: "Platform", icon: Server, children: [
       { label: "System Health", icon: Activity, path: "/admin/system-health" },
+      { label: "Telegram System", icon: Send, path: "/admin/telegram-system" },
       { label: "Feed Diagnostics", icon: Activity, path: "/admin/feed-diagnostics" },
       { label: "Remote Config", icon: Sliders, path: "/admin/remote-config" },
       { label: "Launch Dashboard", icon: Rocket, path: "/admin/launch" },

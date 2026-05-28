@@ -418,6 +418,7 @@ const AdminAndroidVerification = lazy(() => import("./pages/admin/AdminAndroidVe
 const AdminSupportDashboard = lazy(() => import("./pages/admin/AdminSupportDashboard"));
 const AdminUserAccounts = lazy(() => import("./pages/admin/AdminUserAccounts"));
 const AdminGodView = lazy(() => import("./pages/admin/AdminGodView"));
+const AdminTelegramSystemPage = lazy(() => import("./pages/admin/AdminTelegramSystemPage"));
 const AdBoostBidding = lazy(() => import("./pages/app/shop/AdBoostBidding"));
 const MerchantBoostEngine = lazy(() => import("./pages/app/shop/MerchantBoostEngine"));
 const AiCreativeSuite = lazy(() => import("./pages/app/shop/AiCreativeSuite"));
@@ -1729,6 +1730,7 @@ const App = () => (
                 <Route path="/shop-dashboard/wallet" element={<ProtectedRoute><MerchantWalletPage /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/tax-reports" element={<ProtectedRoute><MerchantTaxReportPage /></ProtectedRoute>} />
                 <Route path="/admin/god-view" element={<ProtectedRoute requireAdmin={true}><AdminGodView /></ProtectedRoute>} />
+                <Route path="/admin/telegram-system" element={<ProtectedRoute requireAdmin={true}><AdminTelegramSystemPage /></ProtectedRoute>} />
                 <Route path="/admin/chat-security" element={<ProtectedRoute requireAdmin={true}><AdminChatSecurityPage /></ProtectedRoute>} />
                 <Route path="/admin/security-sentinel" element={<ProtectedRoute requireAdmin={true}><AdminSecuritySentinelPage /></ProtectedRoute>} />
                 <Route path="/admin/auth-shield" element={<ProtectedRoute requireAdmin={true}><AdminAuthShieldPage /></ProtectedRoute>} />

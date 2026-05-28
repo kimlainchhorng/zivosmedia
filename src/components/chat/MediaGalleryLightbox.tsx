@@ -7,6 +7,7 @@ import X from "lucide-react/dist/esm/icons/x";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import Download from "lucide-react/dist/esm/icons/download";
+import Lock from "lucide-react/dist/esm/icons/lock";
 import Share2 from "lucide-react/dist/esm/icons/share-2";
 import Play from "lucide-react/dist/esm/icons/play";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ type GalleryItem = {
   url: string;
   type: "image" | "video";
   filename?: string;
+  protected?: boolean;
 };
 
 interface Props {
@@ -51,6 +53,7 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
   const goPrev = useCallback(() => setCurrentIndex((c) => Math.max(0, c - 1)), []);
   const goNext = useCallback(() => setCurrentIndex((c) => Math.min(images.length - 1, c + 1)), [images.length]);
   const typeLabel = current?.type === "video" ? "Video" : "Photo";
+  const isProtected = !!current?.protected;
   const downloadName = current ? getDownloadName(current, currentIndex) : "";
   const shareTitle = useMemo(
     () => `${typeLabel} ${currentIndex + 1} of ${images.length}`,
@@ -60,6 +63,10 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
   const handleDownload = useCallback((event?: React.MouseEvent) => {
     event?.stopPropagation();
     if (!current) return;
+    if (isProtected) {
+      toast.info("Protected media can't be saved");
+      return;
+    }
     const link = document.createElement("a");
     link.href = current.url;
     link.download = downloadName;
@@ -67,11 +74,15 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
     document.body.appendChild(link);
     link.click();
     link.remove();
-  }, [current, downloadName]);
+  }, [current, downloadName, isProtected]);
 
   const handleShare = useCallback(async (event?: React.MouseEvent) => {
     event?.stopPropagation();
     if (!current) return;
+    if (isProtected) {
+      toast.info("Protected media can't be shared");
+      return;
+    }
     try {
       if (navigator.share) {
         await navigator.share({ title: "ZIVO chat media", text: shareTitle, url: current.url });
@@ -82,7 +93,7 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
     } catch {
       toast.error("Couldn't share this media");
     }
-  }, [current, shareTitle]);
+  }, [current, isProtected, shareTitle]);
 
   useEffect(() => {
     if (!open) return;
@@ -92,12 +103,12 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
       if (event.key === "ArrowRight" && canNext) goNext();
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        handleDownload();
+        if (!isProtected) handleDownload();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [canNext, canPrev, goNext, goPrev, handleDownload, onClose, open]);
+  }, [canNext, canPrev, goNext, goPrev, handleDownload, isProtected, onClose, open]);
 
   if (!open || !current || images.length === 0) return null;
 
@@ -109,6 +120,8 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
+          onContextMenu={(event) => event.preventDefault()}
+          onDragStart={(event) => event.preventDefault()}
           className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/95"
           role="dialog"
           aria-modal="true"
@@ -119,27 +132,37 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
               <p className="text-sm font-semibold leading-tight">{typeLabel}</p>
               <p className="text-xs text-white/65">
                 {currentIndex + 1} of {images.length}
+                {isProtected ? " · Protected" : ""}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleShare}
-                className="h-10 w-10 rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-                aria-label="Share media"
-                title="Share"
-              >
-                <Share2 className="mx-auto h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="h-10 w-10 rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-                aria-label="Save media"
-                title="Save"
-              >
-                <Download className="mx-auto h-5 w-5" />
-              </button>
+              {isProtected ? (
+                <div className="inline-flex h-10 items-center gap-2 rounded-full bg-white/10 px-3 text-xs font-semibold text-white/85">
+                  <Lock className="h-4 w-4" />
+                  Protected
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="h-10 w-10 rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                    aria-label="Share media"
+                    title="Share"
+                  >
+                    <Share2 className="mx-auto h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    className="h-10 w-10 rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                    aria-label="Save media"
+                    title="Save"
+                  >
+                    <Download className="mx-auto h-5 w-5" />
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 onClick={onClose}
@@ -174,9 +197,19 @@ export default function MediaGalleryLightbox({ open, images, initialIndex = 0, o
                 className="max-h-full max-w-full rounded-lg object-contain"
                 loading="eager"
                 decoding="async"
+                draggable={false}
+                onContextMenu={(event) => event.preventDefault()}
               />
             ) : (
-              <video src={current.url} controls preload="metadata" className="max-h-full max-w-full rounded-lg object-contain" />
+              <video
+                src={current.url}
+                controls
+                controlsList={isProtected ? "nodownload noplaybackrate" : undefined}
+                disablePictureInPicture={isProtected}
+                preload="metadata"
+                className="max-h-full max-w-full rounded-lg object-contain"
+                onContextMenu={(event) => event.preventDefault()}
+              />
             )}
           </motion.div>
 

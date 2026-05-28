@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import Pin from "lucide-react/dist/esm/icons/pin";
 import BellOff from "lucide-react/dist/esm/icons/bell-off";
 import Bell from "lucide-react/dist/esm/icons/bell";
@@ -100,6 +100,9 @@ export default function ChatRowActionsSheet({
       >
         <SheetHeader className="text-left pr-10">
           <SheetTitle className="text-base truncate">{target.name}</SheetTitle>
+          <SheetDescription className="sr-only">
+            Chat actions for {target.name}. You can pin, mute, mark read or unread, archive, clear history, or delete this chat.
+          </SheetDescription>
         </SheetHeader>
 
         {canManageFolders && customFolders.length > 0 && (

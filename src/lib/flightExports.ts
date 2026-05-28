@@ -37,16 +37,10 @@ function objectsToCSV<T extends Record<string, unknown>>(data: T[], columns: str
 /**
  * Trigger download of CSV file
  */
-function downloadCSV(content: string, filename: string): void {
+async function downloadCSV(content: string, filename: string): Promise<void> {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, filename, filename);
 }
 
 /**
@@ -122,7 +116,7 @@ export async function exportBookingsCSV(filters: ExportFilters = {}): Promise<vo
 
   const csv = objectsToCSV(exportData, columns);
   const filename = `zivo-flight-bookings-${format(startDate, 'yyyyMMdd')}-${format(endDate, 'yyyyMMdd')}.csv`;
-  downloadCSV(csv, filename);
+  await downloadCSV(csv, filename);
 }
 
 /**
@@ -192,7 +186,7 @@ export async function exportRevenueReportCSV(filters: ExportFilters = {}): Promi
   const columns = ['date', 'bookings', 'base_fare', 'taxes_fees', 'zivo_markup', 'total_revenue'];
   const csv = objectsToCSV(exportData, columns);
   const filename = `zivo-flight-revenue-${format(startDate, 'yyyyMMdd')}-${format(endDate, 'yyyyMMdd')}.csv`;
-  downloadCSV(csv, filename);
+  await downloadCSV(csv, filename);
 }
 
 /**
@@ -239,5 +233,5 @@ export async function exportFailedTransactionsCSV(filters: ExportFilters = {}): 
   const columns = ['booking_reference', 'route', 'amount', 'currency', 'payment_status', 'ticketing_status', 'error', 'date'];
   const csv = objectsToCSV(exportData, columns);
   const filename = `zivo-flight-failures-${format(startDate, 'yyyyMMdd')}-${format(endDate, 'yyyyMMdd')}.csv`;
-  downloadCSV(csv, filename);
+  await downloadCSV(csv, filename);
 }

@@ -9,7 +9,8 @@ export interface OpenMediaDetail {
   url: string;
   type: "image" | "video";
   id?: string;
-  gallery?: { id: string; url: string; type: "image" | "video" }[];
+  protected?: boolean;
+  gallery?: { id: string; url: string; type: "image" | "video"; protected?: boolean }[];
   index?: number;
 }
 

@@ -6,7 +6,7 @@
  * Auth: relies on RLS — only the owner can list their store's tables, so
  * unauthenticated visits return empty.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Loader2 } from "lucide-react";
@@ -27,6 +27,12 @@ export default function CafeQrSheetPage() {
   const [tables, setTables] = useState<TableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = async () => {
+    const { printOrShareElement } = await import("@/lib/native/printDocument");
+    await printOrShareElement(sheetRef.current, "table-qr-sheet.pdf", "Table QR sheet");
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -53,7 +59,7 @@ export default function CafeQrSheetPage() {
   // to fetch — otherwise the print preview comes out empty.
   useEffect(() => {
     if (loading || error || tables.length === 0) return;
-    const t = setTimeout(() => { try { window.print(); } catch { /* noop */ } }, 1500);
+    const t = setTimeout(() => { handlePrint().catch(() => {}); }, 1500);
     return () => clearTimeout(t);
   }, [loading, error, tables.length]);
 
@@ -81,7 +87,7 @@ export default function CafeQrSheetPage() {
           html, body { background: white !important; }
         }
       `}</style>
-      <div className="max-w-4xl mx-auto">
+      <div ref={sheetRef} className="max-w-4xl mx-auto">
         <div className="text-center mb-4">
           <h1 className="text-2xl font-bold">{store.name}</h1>
           <p className="text-sm text-muted-foreground">Scan to order · {tables.length} table{tables.length === 1 ? "" : "s"}</p>
@@ -105,7 +111,7 @@ export default function CafeQrSheetPage() {
         </div>
 
         <div className="mt-6 text-center no-print">
-          <button onClick={() => window.print()} className="text-sm underline">Print again</button>
+          <button onClick={handlePrint} className="text-sm underline">Print again</button>
         </div>
       </div>
     </div>

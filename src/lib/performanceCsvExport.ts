@@ -14,16 +14,10 @@ const escapeCell = (v: unknown): string => {
 export const buildCsv = (rows: (string | number)[][]): string =>
   rows.map((r) => r.map(escapeCell).join(",")).join("\n");
 
-export const downloadCsv = (filename: string, csv: string) => {
+export const downloadCsv = async (filename: string, csv: string) => {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, filename, filename);
 };
 
 export interface PerformanceExportData {

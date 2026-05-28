@@ -2,7 +2,7 @@
  * Printable daily pickup & return sheet for the car-rental front desk.
  * Route: /admin/stores/:storeId/car-rental-daily-sheet?date=YYYY-MM-DD
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
@@ -49,6 +49,12 @@ export default function CarRentalDailySheetPage() {
   const [returns, setReturns] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const { format: formatMoney } = useStoreCurrency(storeId);
+  const mainRef = useRef<HTMLElement>(null);
+
+  const handlePrint = async () => {
+    const { printOrShareElement } = await import("@/lib/native/printDocument");
+    await printOrShareElement(mainRef.current, `daily-sheet-${date}.pdf`, "Daily sheet");
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -120,14 +126,14 @@ export default function CarRentalDailySheetPage() {
             <Button variant="outline" size="sm" onClick={() => addDay(-1)}>Prev</Button>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 rounded-md border border-input bg-background px-2 text-sm" />
             <Button variant="outline" size="sm" onClick={() => addDay(1)}>Next</Button>
-            <Button size="sm" onClick={() => window.print()}>
+            <Button size="sm" onClick={handlePrint}>
               <Printer className="mr-1 h-4 w-4" /> Print
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-6 print:px-0 print:py-0">
+      <main ref={mainRef} className="mx-auto max-w-4xl px-4 py-6 print:px-0 print:py-0">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Daily Pickup & Return Sheet</h1>

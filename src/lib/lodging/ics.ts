@@ -106,12 +106,9 @@ export function buildBookingIcs(input: IcsEventInput): string {
   ].join("\r\n");
 }
 
-export function downloadIcsFile(filename: string, ics: string) {
+export async function downloadIcsFile(filename: string, ics: string) {
   const blob = new Blob([ics], { type: "text/calendar" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename.endsWith(".ics") ? filename : `${filename}.ics`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const name = filename.endsWith(".ics") ? filename : `${filename}.ics`;
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, name, "Add to calendar");
 }

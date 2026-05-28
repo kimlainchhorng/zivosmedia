@@ -1,17 +1,19 @@
 /**
  * AdminGodView — Owner dashboard: full platform snapshot, Meta match rate, live health
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 import {
   DollarSign, TrendingUp, Activity, Server, CheckCircle, AlertTriangle,
   Eye, Zap, ShoppingBag, Users, BarChart3, Shield, Car, Plane, Package,
-  MessageSquare, CreditCard, Heart, RefreshCw,
+  MessageSquare, CreditCard, Heart, RefreshCw, Search,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { cn } from "@/lib/utils";
@@ -54,8 +56,41 @@ function MetricTile({ icon: Icon, value, label, color = "default" }: {
 }
 
 export default function AdminGodView() {
+  const navigate = useNavigate();
   const [window, setWindow] = useState<WindowKey>("today");
+  const [systemQuery, setSystemQuery] = useState("");
+  const [activeSystemGroup, setActiveSystemGroup] = useState("All");
   const { from, label } = getWindow(window);
+
+  const systemModules = [
+    { group: "Users", name: "All Users", path: "/admin/users", status: "online" as const },
+    { group: "Users", name: "User Accounts", path: "/admin/user-accounts", status: "online" as const },
+    { group: "Orders", name: "Shopping Orders", path: "/admin/shopping-orders", status: "online" as const },
+    { group: "Orders", name: "Refunds", path: "/admin/payments/refunds", status: "online" as const },
+    { group: "Travel", name: "Flight Orders", path: "/admin/flight-orders", status: "online" as const },
+    { group: "Travel", name: "Flight API Monitoring", path: "/admin/flight-api", status: "online" as const },
+    { group: "Stores", name: "All Stores", path: "/admin/stores", status: "online" as const },
+    { group: "Support", name: "Support Home", path: "/admin/support", status: "online" as const },
+    { group: "Security", name: "Security Overview", path: "/admin/security", status: "online" as const },
+    { group: "Security", name: "Chat Security", path: "/admin/chat-security", status: "online" as const },
+    { group: "Platform", name: "System Health", path: "/admin/system-health", status: "online" as const },
+    { group: "Platform", name: "Telegram System", path: "/admin/telegram-system", status: "online" as const },
+    { group: "Platform", name: "Feed Diagnostics", path: "/admin/feed-diagnostics", status: "online" as const },
+  ];
+
+  const systemGroups = useMemo(() => ["All", ...Array.from(new Set(systemModules.map((m) => m.group)))], []);
+  const filteredModules = useMemo(() => {
+    const q = systemQuery.trim().toLowerCase();
+    return systemModules.filter((m) => {
+      if (activeSystemGroup !== "All" && m.group !== activeSystemGroup) return false;
+      if (!q) return true;
+      return (
+        m.name.toLowerCase().includes(q) ||
+        m.group.toLowerCase().includes(q) ||
+        m.path.toLowerCase().includes(q)
+      );
+    });
+  }, [activeSystemGroup, systemQuery]);
 
   // Platform volume
   const { data: volumeData, refetch: refetchVolume, isFetching: volumeFetching } = useQuery({
@@ -413,6 +448,82 @@ export default function AdminGodView() {
             >
               View Live Health Monitor →
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Admin System Modules */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Activity className="h-4 w-4" /> Admin Systems
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-border p-2.5 text-center bg-muted/30">
+                <p className="text-lg font-black">{systemModules.length}</p>
+                <p className="text-[10px] text-muted-foreground">Modules</p>
+              </div>
+              <div className="rounded-xl border border-green-500/25 p-2.5 text-center bg-green-500/5">
+                <p className="text-lg font-black text-green-600">{systemModules.filter((m) => m.status === "online").length}</p>
+                <p className="text-[10px] text-muted-foreground">Online</p>
+              </div>
+              <div className="rounded-xl border border-border p-2.5 text-center bg-muted/30">
+                <p className="text-lg font-black">{systemGroups.length - 1}</p>
+                <p className="text-[10px] text-muted-foreground">Groups</p>
+              </div>
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={systemQuery}
+                onChange={(e) => setSystemQuery(e.target.value)}
+                placeholder="Search modules..."
+                className="pl-8 h-9"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-1">
+              {systemGroups.map((g) => (
+                <Button
+                  key={g}
+                  type="button"
+                  variant={activeSystemGroup === g ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-[11px] px-2.5"
+                  onClick={() => setActiveSystemGroup(g)}
+                >
+                  {g}
+                </Button>
+              ))}
+            </div>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {filteredModules.map((module) => (
+                <button
+                  key={module.path}
+                  type="button"
+                  onClick={() => navigate(module.path)}
+                  className="w-full text-left rounded-xl border border-border p-2.5 hover:bg-muted/40 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{module.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{module.group}</p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">
+                      ONLINE
+                    </Badge>
+                  </div>
+                </button>
+              ))}
+              {filteredModules.length === 0 && (
+                <div className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-xl">
+                  No modules found for this filter.
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

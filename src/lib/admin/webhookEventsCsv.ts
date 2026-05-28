@@ -59,15 +59,10 @@ export function buildWebhookEventsCsv(rows: WebhookEventRow[]): string {
   return "\uFEFF" + [...meta, headers.join(","), ...dataRows].join("\r\n");
 }
 
-export function downloadWebhookEventsCsv(rows: WebhookEventRow[]): void {
+export async function downloadWebhookEventsCsv(rows: WebhookEventRow[]): Promise<void> {
   const csv = buildWebhookEventsCsv(rows);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `lodging-webhook-events-${stamp(new Date())}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const name = `lodging-webhook-events-${stamp(new Date())}.csv`;
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, name, name);
 }

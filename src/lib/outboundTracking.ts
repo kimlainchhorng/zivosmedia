@@ -240,12 +240,8 @@ export function exportLogsToCSV(logs: ClickLogEntry[]): string {
 /**
  * Download CSV file
  */
-export function downloadCSV(csvContent: string, filename: string): void {
+export async function downloadCSV(csvContent: string, filename: string): Promise<void> {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, filename, filename);
 }

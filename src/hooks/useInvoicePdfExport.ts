@@ -238,20 +238,14 @@ export function useInvoicePdfExport() {
 </html>`;
   };
 
-  // Export to PDF (using print dialog)
-  const exportToPDF = (data: InvoicePdfData) => {
+  // Export invoice as a downloadable/shareable HTML document
+  const exportToPDF = async (data: InvoicePdfData) => {
     try {
+      const { exportBlob } = await import("@/lib/native/exportFile");
       const htmlContent = generateInvoiceHTML(data);
       const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ZIVO-Invoice-${data.invoice?.id?.slice(0, 8) || 'receipt'}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("Invoice downloaded!");
+      const shared = await exportBlob(blob, `ZIVO-Invoice-${data.invoice?.id?.slice(0, 8) || 'receipt'}.html`, 'Invoice');
+      if (!shared) toast.success("Invoice downloaded!");
     } catch (error) {
       console.error("Failed to generate PDF:", error);
       toast.error("Failed to generate PDF");

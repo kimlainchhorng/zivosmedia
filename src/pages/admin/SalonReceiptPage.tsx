@@ -5,7 +5,7 @@
  * a thank-you. "Print" button calls window.print(); @media print rules
  * strip the page chrome so a normal print outputs just the receipt.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Loader2, Printer, AlertCircle, X } from "lucide-react";
@@ -73,6 +73,12 @@ export default function SalonReceiptPage() {
   const [payments, setPayments] = useState<ReceiptPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = async () => {
+    const { printOrShareElement } = await import("@/lib/native/printDocument");
+    await printOrShareElement(receiptRef.current, `Receipt-${bookingId.slice(0, 8)}.pdf`, "Receipt");
+  };
 
   useEffect(() => {
     if (!bookingId) return;
@@ -174,7 +180,7 @@ export default function SalonReceiptPage() {
           }} className="gap-1.5">
             <X className="h-4 w-4" /> Close
           </Button>
-          <Button onClick={() => window.print()} size="sm" className="gap-1.5">
+          <Button onClick={handlePrint} size="sm" className="gap-1.5">
             <Printer className="h-4 w-4" /> Print
           </Button>
         </div>
@@ -193,7 +199,7 @@ export default function SalonReceiptPage() {
           </div>
         )}
 
-        <div className="receipt-card rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div ref={receiptRef} className="receipt-card rounded-2xl border border-border bg-card p-6 shadow-sm">
           <header className="border-b border-dashed border-border pb-4 text-center">
             <h1 className="text-xl font-bold text-foreground">{store.name}</h1>
             {store.address && <p className="mt-1 text-xs text-muted-foreground">{store.address}</p>}

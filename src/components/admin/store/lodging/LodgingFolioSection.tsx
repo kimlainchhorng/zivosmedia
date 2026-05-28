@@ -192,11 +192,10 @@ export default function LodgingFolioSection({ storeId }: { storeId: string }) {
       `PAID:  ${fmt(selected.paid_cents)}`,
       `BALANCE DUE: ${fmt(balance)}`,
     ].join("\n");
-    const w = window.open("", "_blank");
-    if (w) {
-      w.document.write(`<pre style="font-family:monospace;font-size:13px;padding:20px">${lines}</pre>`);
-      w.print();
-    }
+    const html = `<pre style="font-family:monospace;font-size:13px;padding:20px">${lines}</pre>`;
+    import("@/lib/native/printDocument").then(({ printOrShareHtml }) =>
+      printOrShareHtml(html, `folio-${selected.number}.pdf`, "Guest folio"),
+    );
   };
 
   return (

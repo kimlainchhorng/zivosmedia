@@ -101,15 +101,10 @@ export function buildReservationsCsv(rows: CsvReservation[]): string {
   return lines.join("\r\n");
 }
 
-export function downloadCsv(filename: string, content: string) {
+export async function downloadCsv(filename: string, content: string) {
   // Prefix BOM so Excel opens UTF-8 correctly.
   const blob = new Blob(["﻿" + content], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const name = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, name, name);
 }

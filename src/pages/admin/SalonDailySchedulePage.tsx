@@ -3,7 +3,7 @@
  * Owner-only (RLS protects). Grouped by stylist, sorted by start time.
  * Posts well at the front desk for the team to glance at.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Loader2, Printer, AlertCircle, X } from "lucide-react";
@@ -67,9 +67,16 @@ export default function SalonDailySchedulePage() {
     return () => { cancelled = true; };
   }, [storeId, date]);
 
+  const schedRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = async () => {
+    const { printOrShareElement } = await import("@/lib/native/printDocument");
+    await printOrShareElement(schedRef.current, `Schedule-${date}.pdf`, "Schedule");
+  };
+
   useEffect(() => {
     if (autoPrint && !loading && bookings.length >= 0) {
-      const t = setTimeout(() => window.print(), 400);
+      const t = setTimeout(() => { handlePrint(); }, 400);
       return () => clearTimeout(t);
     }
     return undefined;
@@ -136,12 +143,12 @@ export default function SalonDailySchedulePage() {
           }} className="gap-1.5">
             <X className="h-4 w-4" /> Close
           </Button>
-          <Button onClick={() => window.print()} size="sm" className="gap-1.5">
+          <Button onClick={handlePrint} size="sm" className="gap-1.5">
             <Printer className="h-4 w-4" /> Print
           </Button>
         </div>
 
-        <div className="sched-card rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div ref={schedRef} className="sched-card rounded-2xl border border-border bg-card p-6 shadow-sm">
           <header className="border-b border-dashed border-border pb-4">
             <h1 className="text-2xl font-bold text-foreground">{storeName}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{formatDay(date)}</p>

@@ -37,15 +37,10 @@ export function buildAuditCsv(rows: AuditRow[]): string {
   return "\uFEFF" + lines.join("\r\n");
 }
 
-export function downloadAuditCsv(reference: string, rows: AuditRow[]) {
+export async function downloadAuditCsv(reference: string, rows: AuditRow[]) {
   const csv = buildAuditCsv(rows);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `reservation-${reference}-history.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const name = `reservation-${reference}-history.csv`;
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, name, name);
 }

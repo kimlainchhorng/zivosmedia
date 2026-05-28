@@ -160,24 +160,15 @@ function generateItineraryHTML(data: ItineraryData): string {
 export default function DownloadItinerary({ booking }: { booking: ItineraryData }) {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     setIsGenerating(true);
 
     try {
+      const { exportBlob } = await import("@/lib/native/exportFile");
       const html = generateItineraryHTML(booking);
       const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-
-      // Download as HTML file (works on native + web)
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ZIVO-Itinerary-${booking.booking_reference}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      URL.revokeObjectURL(url);
-      toast.success('Itinerary opened — use Print > Save as PDF to download');
+      const shared = await exportBlob(blob, `ZIVO-Itinerary-${booking.booking_reference}.html`, 'Itinerary');
+      if (!shared) toast.success('Itinerary opened — use Print > Save as PDF to download');
     } catch {
       toast.error('Failed to generate itinerary');
     } finally {

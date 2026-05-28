@@ -39,20 +39,6 @@ export function useMyChannels() {
       .select("id, handle, name, avatar_url, subscriber_count")
       .in("id", ids);
 
-    const { data: posts } = await (supabase as any)
-      .from("channel_posts")
-      .select("channel_id, body, published_at")
-      .in("channel_id", ids)
-      .not("published_at", "is", null)
-      .order("published_at", { ascending: false });
-
-    const lastByChan = new Map<string, { body: string | null; at: string }>();
-    (posts ?? []).forEach((p: any) => {
-      if (!lastByChan.has(p.channel_id)) {
-        lastByChan.set(p.channel_id, { body: p.body, at: p.published_at });
-      }
-    });
-
     const roleByChan = new Map<string, string>();
     (subs ?? []).forEach((s: any) => roleByChan.set(s.channel_id, s.role));
 
@@ -63,8 +49,8 @@ export function useMyChannels() {
       avatar_url: c.avatar_url,
       subscriber_count: c.subscriber_count ?? 0,
       role: roleByChan.get(c.id) ?? "sub",
-      last_post_at: lastByChan.get(c.id)?.at ?? null,
-      last_post_preview: lastByChan.get(c.id)?.body ?? null,
+      last_post_at: null,
+      last_post_preview: null,
     })).sort((a, b) =>
       (b.last_post_at ?? "").localeCompare(a.last_post_at ?? "")
     );

@@ -56,6 +56,7 @@ function renderMenu(overrides: Partial<ComponentProps<typeof ChatAttachMenu>> = 
     onToggleDisappearing: vi.fn(),
     onLockedImageSelect: vi.fn(),
     onToggleSensitiveMedia: vi.fn(),
+    onToggleViewOnce: vi.fn(),
     onSendGift: vi.fn(),
     onOpenWallet: vi.fn(),
     onScanDocument: vi.fn(),
@@ -108,12 +109,13 @@ describe("ChatAttachMenu", () => {
     clickAction("GIF");
     clickAction("Music");
     clickAction("18+");
+    clickAction("View once");
     clickAction("File");
     clickAction("Scan");
     clickAction("Location");
     clickAction("Contact");
-    clickAction("Poll");
     clickAction(/show more actions/i);
+    clickAction("Poll");
     clickAction("Social");
     clickAction("ZIVO");
     clickAction("Gift");
@@ -126,6 +128,7 @@ describe("ChatAttachMenu", () => {
     expect(callbacks.onGifSelect).toHaveBeenCalledTimes(1);
     expect(callbacks.onMusicSelect).toHaveBeenCalledTimes(1);
     expect(callbacks.onToggleSensitiveMedia).toHaveBeenCalledTimes(1);
+    expect(callbacks.onToggleViewOnce).toHaveBeenCalledTimes(1);
     expect(callbacks.onFileSelect).toHaveBeenCalledTimes(1);
     expect(callbacks.onScanDocument).toHaveBeenCalledTimes(1);
     expect(callbacks.onLocationShare).toHaveBeenCalledTimes(1);

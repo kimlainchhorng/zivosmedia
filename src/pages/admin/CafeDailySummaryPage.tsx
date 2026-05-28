@@ -8,7 +8,7 @@
  *   • labor (clocked hours + wages)
  *   • expenses logged today
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
@@ -65,6 +65,12 @@ export default function CafeDailySummaryPage() {
   const [reservations, setReservations] = useState<ReservationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = async () => {
+    const { printOrShareElement } = await import("@/lib/native/printDocument");
+    await printOrShareElement(summaryRef.current, `cafe-summary-${date}.pdf`, "Daily summary");
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -286,13 +292,13 @@ export default function CafeDailySummaryPage() {
                 Next day <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
             </Button>
-            <Button size="sm" onClick={() => window.print()}>
+            <Button size="sm" onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-1" /> Print
             </Button>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 print:border-0 print:shadow-none print:rounded-none print:p-0 space-y-5">
+        <div ref={summaryRef} className="bg-card border border-border rounded-xl p-6 print:border-0 print:shadow-none print:rounded-none print:p-0 space-y-5">
           <div className="flex items-start gap-4">
             {store.logo_url ? (
               <img src={store.logo_url} alt="" className="h-14 w-14 rounded-lg object-cover" />

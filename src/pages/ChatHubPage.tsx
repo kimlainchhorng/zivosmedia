@@ -67,6 +67,7 @@ import { useTypingBus } from "@/hooks/useTypingBus";
 import { useLocalChatHide } from "@/hooks/useLocalChatHide";
 import { useContactRequests } from "@/hooks/useContactRequests";
 import { cn } from "@/lib/utils";
+import { stripRichText } from "@/lib/chat/richText";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { withRedirectParam } from "@/lib/authRedirect";
@@ -338,7 +339,7 @@ function parseStickerPreview(message: string): { src: string; alt: string } | nu
 }
 
 // Replace ||spoiler|| segments with block-character redaction for chat list previews.
-// (Inside an open conversation, the bubble uses <SpoilerText> for tap-to-reveal; here
+// (Inside an open conversation, the bubble renders tap-to-reveal spoilers; here
 // previews are plain text so we permanently redact.)
 function redactSpoilers(text: string): string {
   return text.replace(/\|\|([^|]+)\|\|/g, (_, inner: string) => "▒".repeat(Math.max(3, Math.min(inner.length, 12))));
@@ -366,7 +367,9 @@ function parseRichMessagePreview(message: string): string {
     }
   } catch {}
 
-  return redactSpoilers(message);
+  // Redact spoilers first (keeps them hidden in previews), then strip the
+  // remaining inline formatting markers so they don't show literally.
+  return stripRichText(redactSpoilers(message));
 }
 
 function getMessagePreviewIcon(message: string) {
@@ -1137,6 +1140,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       return otherIds.map((otherId) => {
         const entry = grouped.get(otherId)!;
         const profile = profileMap.get(otherId);
+        const isSelfChat = otherId === user!.id;
         const lastSeen = profile?.last_seen ? new Date(profile.last_seen) : null;
         const isOnline = lastSeen ? (Date.now() - lastSeen.getTime()) < 2 * 60 * 1000 : false;
         const isSentByMe = entry.lastMsg.sender_id === user!.id;
@@ -1147,17 +1151,18 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           role === "system" || role === "official" || role === "platform" || role === "support";
         return {
           id: otherId,
-          name: profile?.full_name || "User",
+          name: isSelfChat ? "Saved Messages" : (profile?.full_name || "User"),
           avatar: profile?.avatar_url || null,
           isVerified: profile?.is_verified === true,
           isBusiness,
           lastMessage: getChatPreviewText(entry.lastMsg),
           lastTime: entry.lastMsg.created_at,
           unread: entry.unread,
-          isOnline,
+          isOnline: isSelfChat ? false : isOnline,
           isSentByMe,
           isRead: entry.lastMsg.is_read,
           deliveredAt: entry.lastMsg.delivered_at,
+          isSelfChat,
         };
       });
     },
@@ -2571,7 +2576,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       const pinned = isPinned(chat.id);
                       const muted = isMuted(chat.id);
                       const isPersonalChat = active === "personal";
-                      const liveOnline = isPersonalChat && !chat.isGroup && onlineIds.has(chat.id);
+                      const isSelfChat = isPersonalChat && !chat.isGroup && chat.id === user?.id;
+                      const liveOnline = isPersonalChat && !chat.isGroup && !isSelfChat && onlineIds.has(chat.id);
                       const isTyping = isPersonalChat && !chat.isGroup && typingFrom.has(chat.id);
                       const openChat = () => {
                         if (selectionMode && active === "personal") {
@@ -2737,7 +2743,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                               <DollarSign className="w-3.5 h-3.5 text-[#00AEEF]" />
                                             </button>
                                           )}
-                                          {isPersonalChat && !chat.isGroup && !zivoOFMode && (
+                                          {isPersonalChat && !chat.isGroup && !isSelfChat && !zivoOFMode && (
                                             <button
                                               type="button"
                                               aria-label="Voice call"

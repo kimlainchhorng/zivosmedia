@@ -1120,9 +1120,10 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
       address: d.address, vehicle: d.vehicle, vin: d.vin, items: d.items as any, status: d.status,
       createdAt: d.createdAt,
     };
-    const { generateDocumentPdf, downloadPdf } = await import("@/lib/admin/invoicePdf");
+    const { generateDocumentPdf } = await import("@/lib/admin/invoicePdf");
+    const { exportBlob } = await import("@/lib/native/exportFile");
     const blob = generateDocumentPdf({ doc: pdfDoc, storeName: storeInfo.name, storeAddress: storeInfo.address, storePhone: storeInfo.phone });
-    downloadPdf(blob, `${d.type}-${d.number}.pdf`);
+    await exportBlob(blob, `${d.type}-${d.number}.pdf`, `${d.type} ${d.number}`);
   };
 
   const handleConvertEstimate = async (id: string) => {

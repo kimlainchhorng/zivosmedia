@@ -156,12 +156,9 @@ export default function AutoRepairInspectionsSection({ storeId, onCreateEstimate
     </table>
     ${i.summary ? `<div class="summary"><b>Summary / Recommendations:</b><br>${i.summary}</div>` : ""}
     </body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 400);
+    import("@/lib/native/printDocument").then(({ printOrShareHtml }) =>
+      printOrShareHtml(html, `inspection-${i.vehicle_label || "vehicle"}.pdf`, "Inspection"),
+    );
   };
 
   const copyShare = (token: string | null) => {

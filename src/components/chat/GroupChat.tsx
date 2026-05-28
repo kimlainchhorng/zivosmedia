@@ -36,6 +36,7 @@ import Search from "lucide-react/dist/esm/icons/search";
 import LogOut from "lucide-react/dist/esm/icons/log-out";
 import Pin from "lucide-react/dist/esm/icons/pin";
 import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
+import Lock from "lucide-react/dist/esm/icons/lock";
 import ImageIcon from "lucide-react/dist/esm/icons/image";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -94,6 +95,7 @@ import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type
 import { formatChatDateLabel } from "@/lib/chat/dateLabels";
 import ChatFormatBar, { matchFormatHotkey } from "./ChatFormatBar";
 import { applyFormat, type RichFormat } from "@/lib/chat/richText";
+import { repairVideoBlob, validateVideoForChatUpload } from "@/utils/videoRepair";
 import { DEFAULT_CHAT_WALLPAPER_CLASS } from "./chatPersonalizationStyles";
 import { getChatMessageHighlightClass } from "./chatMessageHighlight";
 import { getComposerDraftPartnerId, type ChatComposerSource, type ComposerActionId } from "./chatComposerHubModel";
@@ -475,7 +477,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const [currentGroupAvatar, setCurrentGroupAvatar] = useState<string | null | undefined>(groupAvatar);
   const currentGroupAvatarSrc = useSignedMedia(currentGroupAvatar, CHAT_MEDIA_BUCKET, "thumbnail");
   const currentGroupAvatarPreviewSrc = useSignedMedia(currentGroupAvatar, CHAT_MEDIA_BUCKET, "display");
-  const [galleryState, setGalleryState] = useState<{ open: boolean; images: { id: string; url: string; type: "image" | "video" }[]; index: number }>({ open: false, images: [], index: 0 });
+  const [galleryState, setGalleryState] = useState<{ open: boolean; images: { id: string; url: string; type: "image" | "video"; protected?: boolean }[]; index: number }>({ open: false, images: [], index: 0 });
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<OpenMediaDetail>).detail;
@@ -483,6 +485,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       if (detail.gallery?.length) {
         void Promise.all(detail.gallery.map(async (item) => ({
           ...item,
+          protected: item.protected ?? detail.protected,
           url: /^(https?:|blob:|data:)/.test(item.url)
             ? item.url
             : (await signedUrlFor(CHAT_MEDIA_BUCKET, item.url, "display")) || item.url,
@@ -495,7 +498,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         });
         return;
       }
-      setGalleryState({ open: true, images: [{ id: detail.id || detail.url, url: detail.url, type: detail.type }], index: 0 });
+      setGalleryState({ open: true, images: [{ id: detail.id || detail.url, url: detail.url, type: detail.type, protected: detail.protected }], index: 0 });
     };
     window.addEventListener(OPEN_MEDIA_EVENT, handler as EventListener);
     return () => window.removeEventListener(OPEN_MEDIA_EVENT, handler as EventListener);
@@ -529,6 +532,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const [showStickerKeyboard, setShowStickerKeyboard] = useState(false);
   const [disappearingSec, setDisappearingSec] = useState<number | null>(null);
   const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
+  const [markNextMediaProtected, setMarkNextMediaProtected] = useState(false);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [showWalletSheet, setShowWalletSheet] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -558,6 +562,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     setMarkNextMediaSensitive(next);
     toast.success(next ? "Next group media will be blurred as 18+" : "18+ media blur marker off");
   }, [markNextMediaSensitive]);
+  const handleToggleProtectedMedia = useCallback(() => {
+    const next = !markNextMediaProtected;
+    setMarkNextMediaProtected(next);
+    toast.success(next ? "Next group media cannot be saved or shared" : "Protected media marker off");
+  }, [markNextMediaProtected]);
   const [isMuted, setIsMuted] = useState(() => {
     try { return localStorage.getItem(`zivo:group-muted:${groupId}`) === "1"; } catch { return false; }
   });
@@ -1217,12 +1226,14 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     const textSensitivity = detectSensitiveContent(text);
     const isMediaSend = msgType === "image";
     const shouldMarkSensitiveMedia = isMediaSend && (markNextMediaSensitive || textSensitivity.isSensitive);
+    const shouldMarkProtectedMedia = isMediaSend && markNextMediaProtected;
     if (textSensitivity.isSensitive && !isMediaSend) {
       toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
       inputRef.current?.focus();
       return;
     }
     if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
+    if (shouldMarkProtectedMedia) setMarkNextMediaProtected(false);
     setInput("");
     clearGroupDraft();
     setReplyTo(null);
@@ -1238,9 +1249,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       voice_url: voiceUrl || null,
       message_type: msgType,
       reply_to_id: replyTo?.id || null,
-      file_payload: shouldMarkSensitiveMedia ? {
-        sensitive: true,
-        sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+      file_payload: (shouldMarkSensitiveMedia || shouldMarkProtectedMedia) ? {
+        ...(shouldMarkSensitiveMedia ? {
+          sensitive: true,
+          sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+        } : {}),
+        ...(shouldMarkProtectedMedia ? { protected: true, protected_media: true } : {}),
       } : null,
       _upload_status: "uploading",
       created_at: new Date().toISOString(),
@@ -1259,10 +1273,13 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       if (imageUrl) insertData.image_url = imageUrl;
       if (voiceUrl) insertData.voice_url = voiceUrl;
       if (replyTo) insertData.reply_to_id = replyTo.id;
-      if (shouldMarkSensitiveMedia) {
+      if (shouldMarkSensitiveMedia || shouldMarkProtectedMedia) {
         insertData.file_payload = {
-          sensitive: true,
-          sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+          ...(shouldMarkSensitiveMedia ? {
+            sensitive: true,
+            sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
+          } : {}),
+          ...(shouldMarkProtectedMedia ? { protected: true, protected_media: true } : {}),
         };
       }
 
@@ -1289,7 +1306,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       toast.error(navigator.onLine ? "Failed to send — tap to retry" : "You're offline — tap to retry when back online");
     }
     setSending(false);
-  }, [clearGroupDraft, groupId, input, markNextMediaSensitive, replyTo, scrollToBottom, sending, user?.id]);
+  }, [clearGroupDraft, groupId, input, markNextMediaProtected, markNextMediaSensitive, replyTo, scrollToBottom, sending, user?.id]);
 
   const failedSendsRef = useRef<Map<string, GroupMessageInsert>>(new Map());
 
@@ -1786,7 +1803,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     const optimisticId = `opt-${kind === "image" ? "img" : "vid"}-${clientSendId}`;
     const messageText = MEDIA_MESSAGE_TEXT[kind];
     const markSensitive = markNextMediaSensitive;
+    const markProtected = markNextMediaProtected;
     if (markSensitive) setMarkNextMediaSensitive(false);
+    if (markProtected) setMarkNextMediaProtected(false);
     const optimisticMsg: GroupMessage = {
       id: optimisticId,
       group_id: groupId,
@@ -1804,6 +1823,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         size: file.size,
         source: "local",
         ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+        ...(markProtected ? { protected: true, protected_media: true } : {}),
       },
       created_at: new Date().toISOString(),
     };
@@ -1859,6 +1879,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             size: file.size,
             source: filePayloadSource,
             ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+            ...(markProtected ? { protected: true, protected_media: true } : {}),
           } as GroupMessageInsert["file_payload"],
         };
         if (kind === "image") insertData.image_url = dbMediaUrl;
@@ -1911,7 +1932,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     const optimisticId = `opt-group-album-${clientSendId}`;
     const caption = input.trim();
     const markSensitive = markNextMediaSensitive;
+    const markProtected = markNextMediaProtected;
     if (markSensitive) setMarkNextMediaSensitive(false);
+    if (markProtected) setMarkNextMediaProtected(false);
     const localItems: MediaAlbumSendItem[] = mediaFiles.map(({ file, kind }) => ({
       id: randomMediaId(),
       type: kind,
@@ -1942,6 +1965,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         album_items: localItems,
         source: "local",
         ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+        ...(markProtected ? { protected: true, protected_media: true } : {}),
       },
       created_at: new Date().toISOString(),
     };
@@ -2053,6 +2077,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             album_items: dbItems,
             source: dbItems.some((item) => item.source === "upload-inline") ? "upload-inline" : "upload",
             ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+            ...(markProtected ? { protected: true, protected_media: true } : {}),
           },
         };
         if (currentReply) insertData.reply_to_id = currentReply.id;
@@ -2071,21 +2096,60 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     })();
   };
 
-  const sendSingleSelectedMedia = (file: File | undefined, clearInput: () => void) => {
+  const sendSingleSelectedMedia = async (file: File | undefined, clearInput: () => void) => {
     if (!file || !user?.id) return;
-    const kind = getChatMediaKind(file);
+    let selected = file;
+    const kind = getChatMediaKind(selected);
     if (!kind) {
       toast.error("Choose a photo or video");
       clearInput();
       return;
     }
     const limit = getUploadLimitForKind(kind);
-    if (file.size > limit) {
+    if (selected.size > limit) {
       toast.error(`${kind === "image" ? "Image" : "Video"} must be under ${formatUploadLimit(limit)}`);
       clearInput();
       return;
     }
-    sendOptimisticMedia(file, kind);
+
+    if (kind === "video") {
+      const validation = await validateVideoForChatUpload(selected);
+      if (!validation.ok) {
+        toast.error("This file is not a valid moving video. Unlock/download the original video first.");
+        clearInput();
+        return;
+      }
+    }
+
+    // Telegram-style WEBM captures may upload but fail playback in chat viewer.
+    // Convert WEBM to MP4 up front so posted videos are reliably playable.
+    const isWebm =
+      kind === "video" &&
+      (selected.type.toLowerCase().includes("webm") || selected.name.toLowerCase().endsWith(".webm"));
+    if (isWebm) {
+      try {
+        toast.info("Converting video for compatibility...");
+        const repairedUrl = await repairVideoBlob(selected);
+        if (!repairedUrl) {
+          toast.error("Couldn't convert this video. Please try another file.");
+          clearInput();
+          return;
+        }
+        const repairedBlob = await fetch(repairedUrl).then((r) => r.blob());
+        URL.revokeObjectURL(repairedUrl);
+        const base = selected.name.replace(/\.[^.]+$/, "") || "video";
+        selected = new File([repairedBlob], `${base}-fixed.mp4`, {
+          type: "video/mp4",
+          lastModified: Date.now(),
+        });
+      } catch {
+        toast.error("Couldn't convert this video. Please try another file.");
+        clearInput();
+        return;
+      }
+    }
+
+    sendOptimisticMedia(selected, kind);
     clearInput();
   };
 
@@ -2096,7 +2160,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-    sendSingleSelectedMedia(files[0], () => {
+    void sendSingleSelectedMedia(files[0], () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     });
   };
@@ -2108,7 +2172,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       if (videoInputRef.current) videoInputRef.current.value = "";
       return;
     }
-    sendSingleSelectedMedia(files[0], () => {
+    void sendSingleSelectedMedia(files[0], () => {
       if (videoInputRef.current) videoInputRef.current.value = "";
     });
   };
@@ -2126,7 +2190,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       if (gifInputRef.current) gifInputRef.current.value = "";
       return;
     }
-    sendSingleSelectedMedia(files[0], () => {
+    void sendSingleSelectedMedia(files[0], () => {
       if (gifInputRef.current) gifInputRef.current.value = "";
     });
   };
@@ -2975,6 +3039,19 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             <X className="h-3 w-3" />
           </button>
         )}
+        {markNextMediaProtected && (
+          <button
+            type="button"
+            onClick={() => setMarkNextMediaProtected(false)}
+            className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-sky-500/25 bg-sky-500/10 px-3 py-1 text-[11px] font-bold text-sky-600"
+            aria-label="Turn off protected marker for next group media"
+            title="Turn off protected marker"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            Protected on for next media
+            <X className="h-3 w-3" />
+          </button>
+        )}
         <div className="flex items-end gap-1.5">
           {/* Emoji button; attachments live inside the message field. */}
           <div className="relative shrink-0">
@@ -3003,7 +3080,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             onMediaSent={(opts) => {
               if (!opts.fileUrl) return;
               const markSensitive = markNextMediaSensitive;
+              const markProtected = markNextMediaProtected;
               if (markSensitive) setMarkNextMediaSensitive(false);
+              if (markProtected) setMarkNextMediaProtected(false);
               void sendGroupFileMessage({
                 url: opts.fileUrl,
                 filename: opts.fileName || "file",
@@ -3011,6 +3090,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 size: opts.fileSize,
                 source: "upload",
                 ...(markSensitive ? { sensitive: true, sensitive_reason: "sender_marked" } : {}),
+                ...(markProtected ? { protected: true, protected_media: true } : {}),
               });
             }}
             renderTrigger={(open) => {
@@ -3187,9 +3267,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                       toast.success(next == null ? "Auto-delete: Off" : next === 24*60*60 ? "Auto-delete: 1 day" : next === 7*24*60*60 ? "Auto-delete: 7 days" : "Auto-delete: 30 days");
                     }}
                     onToggleSensitiveMedia={handleToggleSensitiveMedia}
+                    onToggleProtectedMedia={handleToggleProtectedMedia}
                     onSchedule={() => toast("Scheduled send is DM-only for now")}
                     disappearingEnabled={disappearingSec != null}
                     sensitiveMediaMarked={markNextMediaSensitive}
+                    protectedMediaMarked={markNextMediaProtected}
                     disappearingLabel={disappearingSec == null ? "Off" : disappearingSec === 24*60*60 ? "1d" : disappearingSec === 7*24*60*60 ? "7d" : "30d"}
                   />
                 </Suspense>

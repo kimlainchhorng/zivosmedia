@@ -62,6 +62,8 @@ export interface ChatComposerHubProps {
   onOpenWallet?: () => void;
   onShareZivoCard?: () => void;
   onToggleSensitiveMedia?: () => void;
+  onToggleProtectedMedia?: () => void;
+  onToggleViewOnce?: () => void;
   onLockedImageSelect?: () => void;
   onLockedTextSelect?: () => void;
   onToggleDisappearing?: () => void;
@@ -70,6 +72,8 @@ export interface ChatComposerHubProps {
   disappearingEnabled?: boolean;
   disappearingLabel?: string;
   sensitiveMediaMarked?: boolean;
+  protectedMediaMarked?: boolean;
+  viewOnceMarked?: boolean;
   highlightedActionId?: ComposerActionId | null;
 }
 
@@ -79,6 +83,7 @@ const OF_MODE_ACTIONS = new Set<ComposerActionId>([
   "video",
   "gif",
   "sensitive",
+  "protected",
   "locked",
   "locked-text",
   "wallet",
@@ -123,6 +128,7 @@ const ACTION_COLORS: Record<ComposerActionId, string> = {
   gift: "text-amber-500 bg-amber-500/10 border-amber-500/20",
   wallet: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
   sensitive: "text-fuchsia-500 bg-fuchsia-500/10 border-fuchsia-500/20",
+  protected: "text-sky-500 bg-sky-500/10 border-sky-500/20",
   locked: "text-rose-500 bg-rose-500/10 border-rose-500/20",
   "locked-text": "text-rose-500 bg-rose-500/10 border-rose-500/20",
   disappearing: "text-amber-500 bg-amber-500/10 border-amber-500/20",
@@ -152,6 +158,8 @@ export default function ChatComposerHub({
   onOpenWallet,
   onShareZivoCard,
   onToggleSensitiveMedia,
+  onToggleProtectedMedia,
+  onToggleViewOnce,
   onLockedImageSelect,
   onLockedTextSelect,
   onToggleDisappearing,
@@ -160,6 +168,8 @@ export default function ChatComposerHub({
   disappearingEnabled = false,
   disappearingLabel,
   sensitiveMediaMarked = false,
+  protectedMediaMarked = false,
+  viewOnceMarked = false,
   highlightedActionId = null,
 }: ChatComposerHubProps) {
   const { isPlus, plan } = useZivoPlus();
@@ -183,6 +193,7 @@ export default function ChatComposerHub({
     gift: onSendGift,
     wallet: onOpenWallet,
     sensitive: onToggleSensitiveMedia,
+    protected: onToggleProtectedMedia,
     locked: onLockedImageSelect,
     "locked-text": onLockedTextSelect,
     disappearing: onToggleDisappearing,
@@ -197,6 +208,7 @@ export default function ChatComposerHub({
     disappearingEnabled,
     disappearingLabel,
     sensitiveMediaMarked,
+    protectedMediaMarked,
     enabledActionIds: Object.fromEntries(
       (Object.keys(callbacks) as ComposerActionId[]).map((id) => [id, Boolean(callbacks[id])]),
     ) as Partial<Record<ComposerActionId, boolean>>,
@@ -262,6 +274,7 @@ export default function ChatComposerHub({
                       const selected = highlightedActionId === action.id;
                       const active =
                         (action.id === "sensitive" && sensitiveMediaMarked) ||
+                        (action.id === "protected" && protectedMediaMarked) ||
                         (action.id === "disappearing" && disappearingEnabled);
 
                       return (

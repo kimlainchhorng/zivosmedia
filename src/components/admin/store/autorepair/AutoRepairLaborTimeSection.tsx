@@ -42,7 +42,7 @@ import Copy from "lucide-react/dist/esm/icons/copy";
 
 interface Props { storeId: string }
 
-import { LABOR_GUIDE, LABOR_GUIDE_CATEGORIES, DIFF_COLOR } from "@/lib/laborGuide";
+import { LABOR_GUIDE, LABOR_GUIDE_CATEGORIES, DIFF_COLOR, VEHICLE_CLASSES, adjustHours, type VehicleClass } from "@/lib/laborGuide";
 
 const GUIDE_CATEGORIES = LABOR_GUIDE_CATEGORIES.slice(1);
 const LABOR_TYPES = ["Diagnosis", "Repair", "Maintenance", "Inspection", "Electrical", "Bodywork", "Other"];
@@ -67,6 +67,7 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
   const [search, setSearch] = useState("");
   const [guideSearch, setGuideSearch] = useState("");
   const [guideCat, setGuideCat] = useState("All");
+  const [guideClass, setGuideClass] = useState<VehicleClass>("car");
   const [filterTech, setFilterTech] = useState("all");
   const [filterVehicle, setFilterVehicle] = useState("all");
   const [dlgOpen, setDlgOpen] = useState(false);
@@ -265,9 +266,11 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
   };
 
   const applyGuideEntry = (g: typeof LABOR_GUIDE[0]) => {
-    setForm(f => ({ ...f, labor_type: g.category, duration_minutes: String(Math.round(g.baseHours * 60)), notes: g.service + (g.notes ? `. Note: ${g.notes}` : "") }));
+    const hrs = adjustHours(g.baseHours, guideClass);
+    const classLabel = VEHICLE_CLASSES.find(c => c.id === guideClass)?.label ?? "";
+    setForm(f => ({ ...f, labor_type: g.category, duration_minutes: String(Math.round(hrs * 60)), notes: g.service + (g.notes ? `. Note: ${g.notes}` : "") }));
     setDlgOpen(true);
-    toast.info(`Loaded "${g.service}" — ${g.baseHours}h standard`);
+    toast.info(`Loaded "${g.service}" — ${hrs}h (${classLabel})`);
   };
 
   // ── Render ───────────────────────────────────────────────────────────
@@ -629,9 +632,13 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
               <SelectTrigger className="h-9 text-sm w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="All">All Categories</SelectItem>{GUIDE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
+            <Select value={guideClass} onValueChange={(v) => setGuideClass(v as VehicleClass)}>
+              <SelectTrigger className="h-9 text-sm w-full sm:w-[180px]"><Car className="h-3.5 w-3.5 mr-1.5 shrink-0" /><SelectValue /></SelectTrigger>
+              <SelectContent>{VEHICLE_CLASSES.map(c => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}</SelectContent>
+            </Select>
           </div>
 
-          <p className="text-[10px] text-muted-foreground">Standard flat-rate hours. Click <strong>Use</strong> to pre-fill a manual entry. Hours may vary by vehicle make, engine, and condition.</p>
+          <p className="text-[10px] text-muted-foreground">Hours are adjusted for the selected vehicle class. Click <strong>Use</strong> to pre-fill a manual entry. Actual hours vary by make, engine, and condition.</p>
 
           <div className="space-y-1">
             {filteredGuide.length === 0
@@ -652,7 +659,10 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
                           {g.notes && <p className="text-[10px] text-muted-foreground mt-0.5">{g.notes}</p>}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-sm font-bold text-foreground tabular-nums">{g.baseHours}h</span>
+                          <div className="text-right leading-tight">
+                            <span className="text-sm font-bold text-foreground tabular-nums">{adjustHours(g.baseHours, guideClass)}h</span>
+                            {guideClass !== "car" && <p className="text-[9px] text-muted-foreground tabular-nums">base {g.baseHours}h</p>}
+                          </div>
                           <Button size="sm" variant="outline" className="h-7 text-xs gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => applyGuideEntry(g)}>
                             <Copy className="h-3 w-3" /> Use
                           </Button>

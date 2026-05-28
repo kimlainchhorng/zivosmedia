@@ -20,6 +20,7 @@ export type ComposerActionId =
   | "gift"
   | "wallet"
   | "sensitive"
+  | "protected"
   | "locked"
   | "locked-text"
   | "disappearing"
@@ -65,6 +66,7 @@ export interface BuildComposerActionsOptions {
   disappearingEnabled?: boolean;
   disappearingLabel?: string;
   sensitiveMediaMarked?: boolean;
+  protectedMediaMarked?: boolean;
 }
 
 const ACTION_CATALOG: Array<Omit<ComposerAction, "enabled" | "disabledReason">> = [
@@ -83,6 +85,7 @@ const ACTION_CATALOG: Array<Omit<ComposerAction, "enabled" | "disabledReason">> 
   { id: "gift", label: "Gift", hint: "Send a gift", icon: "gift", section: "money" },
   { id: "wallet", label: "Wallet", hint: "Fast transfer", icon: "wallet", section: "money" },
   { id: "sensitive", label: "18+", hint: "Blur next media", icon: "sensitive", section: "privacy" },
+  { id: "protected", label: "Protected", hint: "No save/share", icon: "lock", section: "privacy" },
   { id: "locked", label: "Locked", hint: "Paid unlock", icon: "lock", section: "privacy" },
   { id: "locked-text", label: "Paid DM", hint: "Locked message", icon: "lock", section: "privacy" },
   { id: "disappearing", label: "Auto delete", hint: "Disappearing messages", icon: "timer", section: "privacy" },
@@ -118,6 +121,7 @@ export function buildComposerActions({
   disappearingEnabled = false,
   disappearingLabel,
   sensitiveMediaMarked = false,
+  protectedMediaMarked = false,
 }: BuildComposerActionsOptions): ComposerAction[] {
   return ACTION_CATALOG.map((action) => {
     let label = action.label;
@@ -152,6 +156,10 @@ export function buildComposerActions({
 
     if (action.id === "sensitive" && sensitiveMediaMarked) {
       hint = "Next media will be blurred";
+    }
+
+    if (action.id === "protected" && protectedMediaMarked) {
+      hint = "Next media blocks save/share";
     }
 
     return {
