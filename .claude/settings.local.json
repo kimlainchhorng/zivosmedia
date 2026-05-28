@@ -80,7 +80,8 @@
       "Bash(xargs grep -l \"car_rental\\\\|payment\")",
       "Bash(xargs basename -a)",
       "Bash(awk 'NR>=55 && NR<=75' /Users/kimlain/.claude/projects/-Users-kimlain-Documents-GitHub-myzivo/1b740521-1081-420b-b14f-ea531956524b/tool-results/mcp-Claude_Preview-preview_console_logs-1779844335152.txt)",
-      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "mcp__Claude_Preview__preview_start"
     ],
     "defaultMode": "bypassPermissions"
   }

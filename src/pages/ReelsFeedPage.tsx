@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { normalizeStorePostMediaUrl } from "@/utils/normalizeStorePostMediaUrl";
 import SEOHead from "@/components/SEOHead";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
@@ -119,6 +120,7 @@ const INITIAL_REELS_PAGE_SIZE = 18;
 const REELS_PAGE_INCREMENT = 12;
 const REELS_PAGE_MAX = 180;
 let reelsFirstMediaMetadataLogged = false;
+const hasNonAsciiText = (text: string) => Array.from(text).some((char) => char.charCodeAt(0) > 127);
 
 // ── Lazy components ──────────────────────────────────────────────────────────
 // All lazy() calls are grouped AFTER imports. Interleaving them with imports
@@ -4939,7 +4941,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 </Suspense>
               </CollapsibleCaption>
               {/* Translation — only shown when caption has non-Latin characters */}
-              {/[^\x00-\x7F]/.test(item.caption) && (
+              {hasNonAsciiText(item.caption) && (
                 <div className="mt-1">
                   {translatedCaption ? (
                     <div className="bg-muted/40 rounded-lg px-3 py-2 border border-border/20">
@@ -5990,6 +5992,4 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     prev.detailMode === next.detailMode
   );
 });
-
-
 
