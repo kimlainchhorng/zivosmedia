@@ -150,6 +150,7 @@ import { detectSensitiveContent, isChatMessageSafetySchemaDriftError } from "@/l
 
 const INITIAL_VISIBLE_TIMELINE_ITEMS = 25;
 const VISIBLE_TIMELINE_STEP = 30;
+const MISSED_CALL_BANNER_TTL_MS = 24 * 60 * 60 * 1000;
 const DM_BASE_COLUMNS = "id,sender_id,receiver_id,message,image_url,video_url,voice_url,message_type,delivered_at,reply_to_id,location_lat,location_lng,location_label,is_pinned,expires_at,created_at,is_read,locked_price_cents,edited_at,forwarded_from_user_id,file_payload,gift_payload";
 const DM_SAFETY_COLUMNS = `${DM_BASE_COLUMNS},hidden_at,hidden_by,hidden_reason,sensitive_report_count`;
 
@@ -336,6 +337,12 @@ function isMissedCallDismissed(call: CallEvent | undefined, marker: MissedCallDi
   if (call.id === marker.id) return true;
   if (!marker.createdAt) return false;
   return new Date(call.created_at).getTime() <= new Date(marker.createdAt).getTime();
+}
+
+function getTime(value: string | null | undefined) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
 }
 
 function formatUploadLimit(bytes: number): string {
@@ -628,9 +635,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     toast.error(result.error || "Couldn't add contact");
   }, [addContact, dismissContactBanner, recipientId, recipientName]);
 
-  const shouldShowContactActionBanner =
-    !isSelfChat && !contactsLoading && !isSavedContact && !contactBannerDismissed;
-
   // Notify global listener that this chat is open
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("chat-opened", { detail: { recipientId } }));
@@ -858,6 +862,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [chatStyle, setChatStyle] = useState({ wallpaper: "default", themeColor: "default", fontSize: "medium" });
   const [callEvents, setCallEvents] = useState<CallEvent[]>([]);
   const [dismissedMissedCallMarker, setDismissedMissedCallMarker] = useState<MissedCallDismissMarker | null>(null);
+  const shouldShowContactActionBanner =
+    !isSelfChat &&
+    !contactsLoading &&
+    !isSavedContact &&
+    !contactBannerDismissed &&
+    messages.length === 0 &&
+    callEvents.length === 0;
   const [activeEffect, setActiveEffect] = useState<EffectType>(null);
   // Manually-armed send effect; overrides detectMessageEffect for the next message
   const [pendingEffect, setPendingEffect] = useState<EffectType>(null);
@@ -2839,6 +2850,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   // Telegram-style "Delete for me" — hide from this device only, no server delete.
   const handleDeleteForMe = useCallback((id: string) => {
     hideMessage(id);
+    setMessages((prev) => prev.filter((m) => m.id !== id));
     toast.success("Removed from your chat");
   }, [hideMessage]);
 
@@ -3170,11 +3182,28 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const latestMissedCall = useMemo(() => {
     return [...callEvents]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .find((event) => ["missed", "no_answer", "declined"].includes(event.status));
-  }, [callEvents]);
+      .find((event) =>
+        ["missed", "no_answer", "declined"].includes(event.status) &&
+        event.caller_id === recipientId &&
+        event.callee_id === user?.id
+      );
+  }, [callEvents, recipientId, user?.id]);
+  const latestMissedCallTime = getTime(latestMissedCall?.created_at);
+  const latestTimelineActivityTime = useMemo(
+    () => timeline.reduce((latest, item) => Math.max(latest, getTime(item.created_at)), 0),
+    [timeline],
+  );
+  const missedCallIsFresh =
+    !!latestMissedCallTime &&
+    Date.now() - latestMissedCallTime <= MISSED_CALL_BANNER_TTL_MS;
+  const missedCallIsLatestActivity =
+    !!latestMissedCallTime &&
+    latestTimelineActivityTime <= latestMissedCallTime;
   const effectiveMissedCallDismissMarker = dismissedMissedCallMarker ?? storedMissedCallDismissMarker;
   const showMissedCallBanner =
     !!latestMissedCall &&
+    missedCallIsFresh &&
+    missedCallIsLatestActivity &&
     !isMissedCallDismissed(latestMissedCall, effectiveMissedCallDismissMarker) &&
     !activeCall &&
     !zivoOFMode;
@@ -3246,7 +3275,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               </Avatar>
             )}
           </button>
-          <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { if (!isSelfChat) setShowContactInfo(true); }}>
+          <button
+            type="button"
+            className="min-w-0 flex-1 cursor-pointer text-left disabled:cursor-default"
+            onClick={() => { if (!isSelfChat) setShowContactInfo(true); }}
+            disabled={isSelfChat}
+            aria-label={isSelfChat ? "Saved messages info" : `Open ${displayName}'s contact info`}
+          >
             <p className="text-[15px] font-semibold text-foreground truncate leading-tight inline-flex items-center gap-1">
               <span className="truncate">{displayName}</span>
               {!isSelfChat && isBlueVerified(recipientIsVerified) && <VerifiedBadge size={14} interactive={false} />}
@@ -3269,7 +3304,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 <span className="text-muted-foreground">Last seen {recipientLastSeen}</span>
               ) : "Tap here for info"}
             </p>
-          </div>
+          </button>
 
           {/* Action buttons */}
           <div className="flex items-center gap-0.5">
@@ -3725,6 +3760,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                             uploadStatusCode={msg._upload_status_code}
                             uploadPhase={msg._upload_phase}
                             uploadBody={msg._upload_body}
+                            messageId={!isOpt ? msg.id : undefined}
+                            initialReactions={!isOpt ? reactionsMap[msg.id] : undefined}
                             onReply={!isOpt ? () => handleReply(msg.id, "🎤 Voice message", isMe) : undefined}
                             onForward={!isOpt ? () => handleForward(msg.id, "🎤 Voice message") : undefined}
                             onPin={!isOpt ? () => handlePin(msg.id, !msg.is_pinned) : undefined}
@@ -3883,7 +3920,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     )}
 
                     {/* Aggregated emoji reactions chip row — pre-loaded to avoid N+1 queries */}
-                    {!msg.id.startsWith("opt-") && msg.message_type !== "media_album" && (
+                    {!msg.id.startsWith("opt-") && msg.message_type !== "voice" && msg.message_type !== "media_album" && (
                       <MessageReactionsBar
                         messageId={msg.id}
                         align={isMe ? "right" : "left"}
@@ -4516,6 +4553,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           <ChatGiftPanel
             open={showGiftPanel}
             onClose={() => setShowGiftPanel(false)}
+            onOpenWallet={() => {
+              setShowGiftPanel(false);
+              setShowWalletSheet(true);
+            }}
             recipientId={recipientId}
             recipientName={recipientName}
             recipientAvatar={recipientAvatar}

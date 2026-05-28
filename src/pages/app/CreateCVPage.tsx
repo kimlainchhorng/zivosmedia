@@ -2612,7 +2612,7 @@ const CreateCVPage = () => {
       </AnimatePresence>
 
       {/* Hidden A4 export container (210mm × 297mm with 12mm padding) */}
-      <div className="fixed left-[-10000px] top-0 pointer-events-none" aria-hidden="true">
+      <div className="zivo-safe-top-none fixed left-[-10000px] top-0 pointer-events-none" aria-hidden="true">
         <div
           ref={exportRef}
           id="cv-export-area"

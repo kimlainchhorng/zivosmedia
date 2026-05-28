@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, FileText, Hash, ImageIcon, Inbox, Info, Link as LinkIcon, Mic, Music, Play, Users } from "lucide-react";
+import { Bell, ChevronLeft, FileText, Hash, ImageIcon, Inbox, Info, Link as LinkIcon, Mic, Music, Play, Share2, Users } from "lucide-react";
 import { useChannel } from "@/hooks/useChannel";
 import { ChannelHeader } from "@/components/channels/ChannelHeader";
 import { ChannelInfoSheet } from "@/components/channels/ChannelInfoSheet";
@@ -217,13 +217,38 @@ export default function ChannelPage() {
         {filteredPosts.length === 0 && (() => {
           const emptyState = getChannelEmptyState(activeTab, canPost);
           const EmptyIcon = emptyState.icon;
+          const showSubscribedEmpty = activeTab === "posts" && isSubscribed && !canPost;
           return (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
-              <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 text-muted-foreground">
-                <EmptyIcon className="h-5 w-5" />
+            <div className={cn(
+              "rounded-2xl border bg-card p-8 text-center shadow-sm",
+              showSubscribedEmpty ? "border-primary/20" : "border-dashed border-border",
+            )}>
+              <div className={cn(
+                "mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full",
+                showSubscribedEmpty ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground",
+              )}>
+                {showSubscribedEmpty ? <Bell className="h-5 w-5" /> : <EmptyIcon className="h-5 w-5" />}
               </div>
-              <p className="text-sm font-semibold text-foreground">{emptyState.title}</p>
-              <p className="mt-1 text-[12px] text-muted-foreground">{emptyState.subtitle}</p>
+              <p className="text-sm font-semibold text-foreground">
+                {showSubscribedEmpty ? "You're subscribed" : emptyState.title}
+              </p>
+              <p className="mx-auto mt-1 max-w-[280px] text-[12px] leading-5 text-muted-foreground">
+                {showSubscribedEmpty
+                  ? `New posts from @${channel.handle} will appear here, and notifications are ${notificationsOn ? "on" : "muted"}.`
+                  : emptyState.subtitle}
+              </p>
+              {showSubscribedEmpty && (
+                <div className="mt-3 flex flex-wrap justify-center gap-2 text-[11px] font-semibold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                    <Bell className="h-3 w-3" />
+                    {notificationsOn ? "Alerts on" : "Alerts muted"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                    <Users className="h-3 w-3" />
+                    {channel.subscriber_count.toLocaleString()} subscriber{channel.subscriber_count === 1 ? "" : "s"}
+                  </span>
+                </div>
+              )}
               {activeTab === "posts" && (
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                   {canPost && (
@@ -232,7 +257,8 @@ export default function ChannelPage() {
                     </Button>
                   )}
                   <Button type="button" size="sm" variant="outline" onClick={shareChannel}>
-                    Share to a chat
+                    <Share2 className="mr-1.5 h-3.5 w-3.5" />
+                    Send channel
                   </Button>
                   <Button type="button" size="sm" variant="ghost" onClick={() => void copyChannelLink()}>
                     Copy link

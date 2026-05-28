@@ -4,7 +4,17 @@ import type { ComponentProps, ReactNode } from "react";
 import ChatContactInfo from "./ChatContactInfo";
 
 const mocks = vi.hoisted(() => ({
-  sharedMedia: [] as Array<{ id: string; image_url: string | null; video_url: string | null; message_type: string | null; created_at: string }>,
+  sharedMedia: [] as Array<{
+    id: string;
+    sender_id: string;
+    image_url: string | null;
+    video_url: string | null;
+    voice_url?: string | null;
+    message_type: string | null;
+    message?: string | null;
+    file_payload?: Record<string, unknown> | null;
+    created_at: string;
+  }>,
   navigate: vi.fn(),
 }));
 
@@ -69,6 +79,10 @@ vi.mock("@/hooks/useChatPrefs", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useSignedMedia", () => ({
+  useSignedMedia: (value: string | null | undefined) => value || null,
+}));
+
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mocks.navigate,
 }));
@@ -127,9 +141,13 @@ describe("ChatContactInfo", () => {
     const onOpenLinks = vi.fn();
     mocks.sharedMedia = [{
       id: "media-1",
+      sender_id: "peer",
       image_url: "peer/photo.jpg",
       video_url: null,
+      voice_url: null,
       message_type: "image",
+      message: null,
+      file_payload: null,
       created_at: "2026-05-27T10:00:00Z",
     }];
 
@@ -148,5 +166,25 @@ describe("ChatContactInfo", () => {
     expect(onOpenMusic).toHaveBeenCalledTimes(1);
     expect(onOpenFiles).toHaveBeenCalledTimes(1);
     expect(onOpenLinks).toHaveBeenCalledTimes(1);
+  });
+
+  it("connects top contact actions to chat workflows", () => {
+    const onStartCall = vi.fn();
+    const onOpenGift = vi.fn();
+    const onOpenSearch = vi.fn();
+
+    renderContactInfo({ onStartCall, onOpenGift, onOpenSearch });
+
+    fireEvent.click(screen.getByRole("button", { name: "Audio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Video" }));
+    fireEvent.click(screen.getByRole("button", { name: "Gift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+
+    expect(onStartCall).toHaveBeenNthCalledWith(1, "voice");
+    expect(onStartCall).toHaveBeenNthCalledWith(2, "video");
+    expect(onOpenGift).toHaveBeenCalledTimes(1);
+    expect(onOpenSearch).toHaveBeenCalledTimes(1);
+    expect(mocks.navigate).toHaveBeenCalledWith("/user/peer");
   });
 });

@@ -113,7 +113,6 @@ import { EngagementSkeleton } from "@/components/social/EngagementSkeleton";
 import SwipeableSheet from "@/components/social/SwipeableSheet";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
-import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 import { perfLog, perfMeasure, perfNow } from "@/lib/perfTrace";
 import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
 import type { FeedPreferenceSource } from "@/hooks/useHiddenPosts";
@@ -1710,7 +1709,7 @@ export default function ReelsFeedPage() {
             data-testid="feed-sticky-header"
             className="lg:hidden zivo-sticky-mobile-header"
           >
-            <div className="zivo-pt-safe-overlay">
+            <div className="zivo-pt-safe-sticky">
               <div
                 className={cn(
                   "overflow-hidden transition-all duration-300 ease-out",
@@ -2382,10 +2381,7 @@ export default function ReelsFeedPage() {
                   ) : (
                     <FeedCard item={item} currentUserId={userId} onOpenFullscreen={() => {
                       if (item.media_type === 'video') {
-                        // Find the correct index in video-only list
-                        const videoItems = filteredItems.filter(it => it.media_type === 'video');
-                        const videoIdx = videoItems.findIndex(v => v.id === item.id);
-                        setReelsStartIndex(videoIdx >= 0 ? videoIdx : 0);
+                        navigate(`/reels?post=${encodeURIComponent(getReelsSharePostId(item))}`);
                       } else {
                         setFullscreenIndex(idx);
                       }
@@ -2677,7 +2673,7 @@ export default function ReelsFeedPage() {
                     <>
                       <div
                         data-testid="post-detail-header"
-                        className="zivo-pt-safe-overlay touch-none shrink-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border/30 cursor-grab active:cursor-grabbing select-none"
+                        className="zivo-pt-safe-sticky touch-none shrink-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border/30 cursor-grab active:cursor-grabbing select-none"
                         onPointerDown={(e) => {
                           const target = e.target as HTMLElement | null;
                           // Don't start drag from interactive children (buttons, links)
@@ -2685,12 +2681,28 @@ export default function ReelsFeedPage() {
                           startDrag(e);
                         }}
                       >
-                        <SwipeGrabHandle
-                          onStartDrag={startDrag}
-                          onClose={() => setFullscreenIndex(null)}
-                          tone="dark"
-                          testId="post-detail-grab-handle"
-                        />
+                        <button
+                          type="button"
+                          data-testid="post-detail-grab-handle"
+                          data-swipe-grab="true"
+                          aria-label="Close post - drag down or press Enter or Escape"
+                          title="Drag down to close"
+                          className="mx-auto flex h-6 w-full max-w-[140px] cursor-grab items-center justify-center rounded-full active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/60"
+                          style={{ touchAction: "none" }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            startDrag(e);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " " || e.key === "Spacebar" || e.key === "Escape") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setFullscreenIndex(null);
+                            }
+                          }}
+                        >
+                          <span className="block h-1.5 w-12 rounded-full bg-foreground/40 shadow-[0_0_8px_hsl(var(--foreground)/0.15)]" />
+                        </button>
                         <div className="flex items-center gap-3 px-3 pb-2.5">
                           <button type="button"
                             onClick={() => setFullscreenIndex(null)}
@@ -3404,7 +3416,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
         <XIcon className="h-5 w-5 text-white" />
       </button>
 
-      <div className="absolute left-16 right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 flex justify-end gap-2">
+      <div className="absolute left-16 right-3 top-[calc(var(--zivo-safe-top-sticky)+0.75rem)] z-20 flex justify-end gap-2">
         <button
           type="button"
           onClick={cyclePlaybackRate}
@@ -5018,10 +5030,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             </div>
           )}
 
-           {/* Media */}
+          {/* Media */}
           <div
             ref={containerRef}
-            onClick={handleDoubleTap}
+            onClick={item.media_type === "video" && onOpenFullscreen ? onOpenFullscreen : handleDoubleTap}
             onTouchStart={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchStart : undefined)}
             onTouchMove={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchMove : undefined)}
             onTouchEnd={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchEnd : undefined)}
@@ -5360,11 +5372,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <button type="button"
               onClick={handleShare}
               aria-label={`Share post${formatCount(item.shares_count) ? `, ${formatCount(item.shares_count)} shares` : ""}`}
-              className="min-h-[44px] min-w-[44px] px-2 rounded-full flex items-center justify-center text-foreground gap-1 active:bg-muted/50"
-             title="Action">
-              <Send aria-hidden className="h-[22px] w-[22px]" />
+              className="min-h-[44px] min-w-[52px] px-2.5 rounded-full flex items-center justify-center text-foreground gap-1.5 active:bg-muted/50"
+             title="Share">
+              <Send aria-hidden className="h-[22px] w-[22px] shrink-0" />
               {formatCount(item.shares_count) && (
-                <span aria-hidden className="text-[12px] text-muted-foreground font-semibold whitespace-nowrap">
+                <span aria-hidden className="min-w-[1ch] text-[12px] leading-none text-muted-foreground font-semibold tabular-nums whitespace-nowrap">
                   {formatCount(item.shares_count)}
                 </span>
               )}
@@ -5492,7 +5504,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               sharePostAuthorId={item.shared_from_user_id || item.author_id}
               sharePostAuthorName={item.shared_from_user_name || item.author_name}
               onClose={() => setShowShareSheet(false)}
-              zIndex={70}
+              zIndex={1600}
             />
           </Suspense>
         )}
@@ -6018,6 +6030,3 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     prev.detailMode === next.detailMode
   );
 });
-
-
-

@@ -48,7 +48,7 @@ const SAFE_TOKENS = {
     "max(calc(env(safe-area-inset-top, 0px) + 1.25rem), 80px)",
   "--zivo-safe-top-sheet": "max(env(safe-area-inset-top, 0px), 44px)",
   "--zivo-safe-top-sticky":
-    "max(calc(env(safe-area-inset-top, 0px) + 0.125rem), 44px)",
+    "max(calc(env(safe-area-inset-top, 0px) + 0.125rem), 64px)",
 };
 
 const SHIPPED_SAFE_TOKENS = {
@@ -78,9 +78,8 @@ const TARGETS = [
       {
         name: "Feed sticky header",
         property: "paddingTop",
-        shipped: "zivo-pt-safe-overlay",
-        expression: SAFE_TOKENS["--zivo-safe-top-overlay"],
-        brokenIslandFloor: 80,
+        shipped: "zivo-pt-safe-sticky",
+        expression: SAFE_TOKENS["--zivo-safe-top-sticky"],
       },
       {
         name: "Search overlay header",
@@ -91,9 +90,14 @@ const TARGETS = [
       {
         name: "Post-detail viewer header",
         property: "paddingTop",
-        shipped: "zivo-pt-safe-overlay",
-        expression: SAFE_TOKENS["--zivo-safe-top-overlay"],
-        brokenIslandFloor: 80,
+        shipped: "zivo-pt-safe-sticky",
+        expression: SAFE_TOKENS["--zivo-safe-top-sticky"],
+      },
+      {
+        name: "ReelSlide action row (top)",
+        property: "top",
+        shipped: "top-[calc(var(--zivo-safe-top-sticky)+0.75rem)]",
+        expression: `calc(${SAFE_TOKENS["--zivo-safe-top-sticky"]} + 0.75rem)`,
       },
       {
         name: "ReelSlide close button (top)",

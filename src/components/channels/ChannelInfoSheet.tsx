@@ -174,16 +174,16 @@ export function ChannelInfoSheet({
                 </span>
               </button>
 
-              <div className="grid grid-cols-4 gap-2">
-                <QuickAction icon={Share2} label="Chat" onClick={onShareToChat} />
-                <QuickAction icon={Copy} label="Copy" onClick={() => void onCopyLink()} />
-                <QuickAction icon={ExternalLink} label="Share" onClick={() => void onExternalShare()} />
+              <div className="grid grid-cols-2 gap-2">
+                <QuickAction icon={Share2} label="Send to chat" onClick={onShareToChat} />
+                <QuickAction icon={Copy} label="Copy link" onClick={() => void onCopyLink()} />
+                <QuickAction icon={ExternalLink} label="Share outside ZIVO" onClick={() => void onExternalShare()} />
                 {canManage ? (
                   <QuickAction icon={Settings} label="Manage" onClick={onManage} />
                 ) : isSubscribed ? (
-                  <QuickAction icon={Users} label="Joined" disabled />
+                  <QuickAction icon={Users} label="Joined channel" disabled />
                 ) : (
-                  <QuickAction icon={Users} label="Join" onClick={() => void onSubscribe()} />
+                  <QuickAction icon={Users} label="Join channel" onClick={() => void onSubscribe()} />
                 )}
               </div>
 
@@ -236,6 +236,14 @@ export function ChannelInfoSheet({
                       })()}
                       <p className="text-sm font-semibold text-foreground">No {TAB_META[activeTab].label.toLowerCase()} yet</p>
                       <p className="mt-1 max-w-56 text-xs leading-5 text-muted-foreground">{TAB_META[activeTab].empty}</p>
+                      <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        <Button type="button" size="sm" variant="outline" onClick={onShareToChat}>
+                          Send channel
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => void onCopyLink()}>
+                          Copy link
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -284,9 +292,9 @@ function QuickAction({
   disabled?: boolean;
 }) {
   return (
-    <Button type="button" variant="outline" className="h-16 flex-col gap-1 rounded-xl px-2 text-xs" onClick={onClick} disabled={disabled}>
+    <Button type="button" variant="outline" className="h-14 justify-start gap-2 rounded-xl px-3 text-xs" onClick={onClick} disabled={disabled}>
       <Icon className="h-4 w-4" />
-      {label}
+      <span className="min-w-0 truncate">{label}</span>
     </Button>
   );
 }

@@ -682,7 +682,7 @@ export default function EatsLanding() {
           the system clock. Mirrors AppHome's strip. */}
       <div
         aria-hidden
-        className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl pointer-events-none [height:var(--zivo-safe-top,0px)]"
+        className="zivo-safe-top-none fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl pointer-events-none [height:var(--zivo-safe-top-sticky)]"
       />
 
       <AnimatePresence mode="wait">

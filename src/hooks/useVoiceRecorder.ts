@@ -2,6 +2,7 @@
  * useVoiceRecorder — Hold-to-record voice notes with waveform sampling
  */
 import { useCallback, useRef, useState } from "react";
+import { showMicrophoneBlockedToast } from "@/lib/mediaPermissions";
 import { toast } from "sonner";
 
 export interface VoiceRecording {
@@ -22,23 +23,32 @@ const voiceMimeCandidates = [
 
 const VOICE_AUDIO_BITS_PER_SECOND = 32_000;
 
+function canUseLocalhostTestMic() {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+}
+
+function createLocalhostTestAudioStream() {
+  const ctx = new AudioContext();
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const destination = ctx.createMediaStreamDestination();
+
+  oscillator.type = "sine";
+  oscillator.frequency.value = 440;
+  gain.gain.value = 0.015;
+  oscillator.connect(gain);
+  gain.connect(destination);
+  oscillator.start();
+
+  return { ctx, stream: destination.stream };
+}
+
 function getSupportedVoiceMimeType() {
   if (typeof MediaRecorder === "undefined") return null;
   const isTypeSupported = MediaRecorder.isTypeSupported?.bind(MediaRecorder);
   if (!isTypeSupported) return null;
   return voiceMimeCandidates.find((candidate) => isTypeSupported(candidate)) ?? null;
-}
-
-async function requestMicrophonePermission(): Promise<boolean> {
-  if (typeof navigator === "undefined" || !navigator.permissions?.query) {
-    return true; // Assume granted if we can't query
-  }
-  try {
-    const result = await navigator.permissions.query({ name: "microphone" as PermissionName });
-    return result?.state !== "denied";
-  } catch {
-    return true; // Assume granted if query fails
-  }
 }
 
 /** Number of most-recent amplitude samples to expose for live waveforms.
@@ -65,6 +75,8 @@ export function useVoiceRecorder() {
   const audioCtx = useRef<AudioContext | null>(null);
   const analyser = useRef<AnalyserNode | null>(null);
   const sampleTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const testAudioCtx = useRef<AudioContext | null>(null);
+  const testMicNoticeShown = useRef(false);
   const cancelled = useRef(false);
 
   const stopAll = useCallback(() => {
@@ -73,9 +85,11 @@ export function useVoiceRecorder() {
     if (sampleTimer.current) { clearInterval(sampleTimer.current); sampleTimer.current = null; }
     stream.current?.getTracks().forEach((t) => t.stop());
     audioCtx.current?.close().catch(() => {});
+    testAudioCtx.current?.close().catch(() => {});
     stream.current = null;
     audioCtx.current = null;
     analyser.current = null;
+    testAudioCtx.current = null;
     setLevels(new Array(LEVELS_BUFFER_SIZE).fill(0));
   }, []);
 
@@ -95,27 +109,19 @@ export function useVoiceRecorder() {
       }
 
       // Pre-check the Permissions API where supported. If permission is
-      // already denied, surface an actionable toast with a deep-link to
-      // Settings instead of triggering yet another silent prompt that the
-      // browser/OS has remembered as denied.
+      // already denied, surface the shared recovery toast instead of
+      // triggering another silent prompt that the browser/OS remembers.
       try {
         const perms = (navigator as any).permissions;
         if (perms && typeof perms.query === "function") {
           const status = await perms.query({ name: "microphone" as PermissionName }).catch(() => null);
           if (status && status.state === "denied") {
-            const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() === true;
-            const settingsHint = isCapacitor
-              ? "Open Settings → Privacy → Microphone → enable Zivo"
-              : "Click the lock icon in the address bar → Site settings → Allow Microphone";
-            // Note: deep-linking to native Settings would require the
-            // `capacitor-native-settings` plugin (not installed in this build).
-            // We surface a clear, actionable message instead so the user knows
-            // exactly where to go without us pulling in another native dep.
-            toast.error("Microphone access is blocked", {
-              description: settingsHint,
-              duration: 6000,
-            });
-            return;
+            if (canUseLocalhostTestMic()) {
+              // Continue into the localhost fallback below.
+            } else {
+              showMicrophoneBlockedToast();
+              return;
+            }
           }
         }
       } catch {
@@ -127,7 +133,33 @@ export function useVoiceRecorder() {
       cancelled.current = false;
       chunks.current = [];
       samples.current = [];
-      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      let s: MediaStream;
+      if (canUseLocalhostTestMic()) {
+        try {
+          s = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (e) {
+          const name = e instanceof DOMException ? e.name : "";
+          if (name !== "NotAllowedError" && name !== "PermissionDeniedError") throw e;
+          const testMic = createLocalhostTestAudioStream();
+          testAudioCtx.current = testMic.ctx;
+          s = testMic.stream;
+        }
+      } else {
+        try {
+          s = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (e) {
+          throw e;
+        }
+      }
+
+      if (canUseLocalhostTestMic() && testAudioCtx.current && !testMicNoticeShown.current) {
+        testMicNoticeShown.current = true;
+        toast.info("Testing with simulated audio", {
+          description: "Enable the real microphone in browser or macOS settings to test your actual voice.",
+        });
+      }
+
       if (import.meta.env.DEV) console.log("[useVoiceRecorder] Microphone access granted");
       stream.current = s;
 
@@ -186,7 +218,9 @@ export function useVoiceRecorder() {
       
       let message = "Could not start voice recording";
       if (name === "NotAllowedError" || name === "PermissionDeniedError" || code === "permission-denied") {
-        message = "Microphone permission denied. Go to Settings app → Privacy → Microphone and enable Zivo";
+        showMicrophoneBlockedToast({ title: "Microphone permission denied" });
+        stopAll();
+        return;
       } else if (name === "NotFoundError" || code === "no-microphone") {
         message = "No microphone found on this device";
       } else if (name === "NotReadableError" || code === "device-not-readable") {

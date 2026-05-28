@@ -1930,7 +1930,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     "bg-background/95 backdrop-blur-2xl border-b border-border/15 shadow-[0_1px_0_rgba(15,23,42,0.03)]",
                     desktopTwoColumn
                       ? "pt-safe"
-                      : "zivo-sticky-mobile-header lg:top-[60px]"
+                      : "zivo-sticky-mobile-header zivo-pt-safe-sticky lg:top-[60px]"
                   )
             )}
           >
@@ -3430,7 +3430,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
             <ChatErrorBoundary
               title="This chat hit an error"
               onReset={() => {
-                setOpenPersonalChat(null);
                 setPendingCall(null);
                 queryClient.invalidateQueries({ queryKey: ["chat-hub-personal"] });
               }}
@@ -3484,7 +3483,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           }>
             <ChatErrorBoundary
               title="This group chat hit an error"
-              onReset={() => setOpenGroupChat(null)}
+              onReset={() => {
+                queryClient.invalidateQueries({ queryKey: ["chat-hub-groups"] });
+              }}
             >
               <GroupChat
                 groupId={openGroupChat.id}

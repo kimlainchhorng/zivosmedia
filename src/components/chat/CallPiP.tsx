@@ -198,7 +198,7 @@ export default function CallPiP({
       }}
       onDragEnd={handleDragEnd}
       animate={controls}
-      className="fixed top-0 left-0 z-[70] shadow-2xl rounded-[22px] overflow-hidden border border-primary/20 bg-background/90 backdrop-blur-xl touch-none"
+      className="zivo-safe-top-none fixed top-0 left-0 z-[70] shadow-2xl rounded-[22px] overflow-hidden border border-primary/20 bg-background/90 backdrop-blur-xl touch-none"
       style={{ width: W, height: H }}
       initial={{ opacity: 0, scale: 0.5 }}
       transition={{ type: "spring", damping: 20 }}

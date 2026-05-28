@@ -59,7 +59,7 @@ const ZIVO_SAFE_TOKENS: Record<string, string> = {
   "--zivo-safe-top-overlay": "max(env(safe-area-inset-top, 0px), 60px)",
   "--zivo-safe-top-sheet": "max(env(safe-area-inset-top, 0px), 44px)",
   "--zivo-safe-top-sticky":
-    "max(calc(env(safe-area-inset-top, 0px) + 0.625rem), 48px)",
+    "max(calc(env(safe-area-inset-top, 0px) + 0.125rem), 64px)",
 };
 
 function substituteVars(expr: string): string {

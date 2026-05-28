@@ -709,9 +709,10 @@ const Profile = () => {
           aria-label="Profile quick navigation"
           data-testid="profile-sticky-header"
           style={{
-            height: "3rem",
+            height: "calc(var(--zivo-safe-top-sticky) + 3rem)",
+            paddingTop: "var(--zivo-safe-top-sticky)",
           }}
-          className="lg:hidden fixed top-0 inset-x-0 z-40 px-3 flex items-center gap-3"
+          className="lg:hidden fixed top-0 inset-x-0 z-40 px-3 flex items-start gap-3"
         >
           {/* Adaptive background: gradient scrim over cover, solid blurred bar after scroll */}
           <div

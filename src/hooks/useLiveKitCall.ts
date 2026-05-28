@@ -21,6 +21,7 @@ import {
   type LocalTrackPublication,
 } from "livekit-client";
 import { supabase } from "@/integrations/supabase/client";
+import { getMicrophoneRecoveryHint, showMicrophoneBlockedToast } from "@/lib/mediaPermissions";
 import { toast } from "sonner";
 
 export interface LKParticipant {
@@ -97,6 +98,9 @@ export function useLiveKitCall({
   const formatDevicePermissionMessage = useCallback((device: "microphone" | "camera" | "screen") => {
     if (device === "screen") {
       return "Screen sharing is blocked by browser or system permission. Allow screen sharing or Screen Recording permission for this browser, then try again.";
+    }
+    if (device === "microphone") {
+      return getMicrophoneRecoveryHint();
     }
     return `${device[0].toUpperCase()}${device.slice(1)} permission is blocked. Allow browser permission, then try again.`;
   }, []);
@@ -243,7 +247,7 @@ export function useLiveKitCall({
           } catch (mediaErr) {
             setMicEnabled(false);
             setMediaError(formatDevicePermissionMessage("microphone"));
-            toast.error("Microphone blocked. You joined muted.");
+            showMicrophoneBlockedToast({ title: "Microphone blocked. You joined muted." });
           }
         }
         if (callType === "video" && !startCamOff) {
@@ -333,7 +337,7 @@ export function useLiveKitCall({
     } catch (e) {
       setMicEnabled(false);
       setMediaError(formatDevicePermissionMessage("microphone"));
-      toast.error("Microphone permission is blocked.");
+      showMicrophoneBlockedToast({ title: "Microphone permission is blocked" });
     }
   }, [formatDevicePermissionMessage, micEnabled]);
 

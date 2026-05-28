@@ -56,7 +56,7 @@ export default function NavigationProgressBar() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-x-0 top-0 z-[9999] h-[2px]"
+      className="zivo-safe-top-none pointer-events-none fixed inset-x-0 top-0 z-[9999] h-[2px]"
       style={{ opacity: visible ? 1 : 0, transition: "opacity 220ms ease" }}
     >
       <div

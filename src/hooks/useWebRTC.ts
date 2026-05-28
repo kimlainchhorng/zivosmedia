@@ -3,6 +3,7 @@
  */
 import { useRef, useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getMicrophoneRecoveryHint } from "@/lib/mediaPermissions";
 
 function getIceServers(): RTCIceServer[] {
   const defaultServers: RTCIceServer[] = [
@@ -59,7 +60,9 @@ export function classifyWebRTCFailure(error: unknown, callType: "voice" | "video
     return {
       code: "permissions",
       title: "Permission required",
-      description: `Allow ${requestedDeviceLabel} access to answer calls.`,
+      description: callType === "voice"
+        ? getMicrophoneRecoveryHint()
+        : `Allow ${requestedDeviceLabel} access to answer calls. ${getMicrophoneRecoveryHint()}`,
     };
   }
 

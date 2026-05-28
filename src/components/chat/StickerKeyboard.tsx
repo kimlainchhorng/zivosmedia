@@ -3,7 +3,7 @@
  * Tabs: Stickers, GIFs, Avatar, Music, Store, Memes, Future
  */
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import Smile from "lucide-react/dist/esm/icons/smile";
 import ImageIcon from "lucide-react/dist/esm/icons/image";
 import UserRound from "lucide-react/dist/esm/icons/user-round";
@@ -674,6 +674,7 @@ function SupabaseStoreTab({ search }: { search: string }) {
 /* ═══════════════ Component ═══════════════ */
 
 export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickAction, onStartVoice, onOpenCamera }: StickerKeyboardProps) {
+  const dragControls = useDragControls();
   const [activeTab, setActiveTab] = useState<TabKey>("stickers");
   const [activePack, setActivePack] = useState(1000); // Default to first illustrated pack
   const [search, setSearch] = useState("");
@@ -982,15 +983,31 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="bg-background border-t border-border/30 rounded-t-3xl shadow-2xl max-h-[58vh] overflow-hidden flex flex-col"
+        drag="y"
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.45 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 90 || info.velocity.y > 650) onClose();
+        }}
+        className="bg-background border-t border-border/30 rounded-t-3xl shadow-2xl max-h-[42dvh] min-h-[300px] overflow-hidden flex flex-col"
       >
         {/* ── Compact header ── */}
-        <div className="sticky top-0 bg-background/95 backdrop-blur-xl border-b border-border/20 px-3 pt-2 pb-1.5 z-10 shrink-0 pt-safe">
-          <div className="w-12 h-1 rounded-full bg-muted mx-auto mb-2" />
+        <div className="sticky top-0 bg-background/95 backdrop-blur-xl border-b border-border/20 px-3 pt-1 pb-1.5 z-10 shrink-0">
+          <button
+            type="button"
+            className="mx-auto mb-2 flex h-7 w-24 touch-none items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60 active:bg-muted"
+            onPointerDown={(event) => dragControls.start(event)}
+            aria-label="Drag sticker drawer down to close"
+            title="Drag down to close"
+          >
+            <span className="h-1 w-12 rounded-full bg-muted-foreground/20" />
+          </button>
 
           {/* Tab row + Done */}
-          <div className="flex items-center gap-1">
-            <div className="flex-1 flex items-center gap-0.5 bg-muted/30 rounded-2xl p-0.5">
+          <div className="flex items-center gap-1.5">
+            <div className="flex-1 flex items-center gap-1 overflow-x-auto scrollbar-none bg-muted/30 rounded-2xl p-0.5">
               {([
                 { key: "stickers" as TabKey, label: "Stickers", icon: Smile },
                 { key: "gifs" as TabKey, label: "GIFs", icon: ImageIcon },
@@ -1004,7 +1021,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                   key={tab.key}
                   onClick={() => { setActiveTab(tab.key); setSearch(""); }}
                   className={cn(
-                    "flex-1 rounded-xl px-0.5 py-1.5 flex flex-col items-center gap-0 transition-all",
+                    "min-w-[66px] rounded-xl px-1.5 py-1.5 flex flex-col items-center gap-0 transition-all",
                     activeTab === tab.key
                       ? "bg-background text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -1019,7 +1036,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
               type="button"
               onClick={onClose}
               aria-label="Close stickers"
-              className="text-primary text-xs font-semibold px-2 py-1 rounded-lg hover:bg-primary/10 shrink-0"
+              className="text-primary text-sm font-bold px-3 py-2 rounded-xl hover:bg-primary/10 shrink-0"
             >
               Done
             </button>

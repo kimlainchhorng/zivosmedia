@@ -34,8 +34,8 @@ describe("Dynamic Island broken-inset fallback", () => {
     expect(px).toBeGreaterThanOrEqual(44);
   });
 
-  it("sticky in-page headers keep a 48px floor", () => {
+  it("sticky in-page headers keep a Dynamic Island floor", () => {
     const px = evaluateCssExpression("var(--zivo-safe-top-sticky)", BROKEN_ISLAND);
-    expect(px).toBeGreaterThanOrEqual(48);
+    expect(px).toBeGreaterThanOrEqual(64);
   });
 });

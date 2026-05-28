@@ -3,10 +3,11 @@
  * menu (reaction bar + Reply / Copy link / Forward / Pin / Resend / Delete).
  * Replaces the old bottom-drawer action sheet.
  */
-import { Suspense, lazy, useCallback, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { motion, type PanInfo } from "framer-motion";
 import { toast } from "sonner";
 import VoiceBubbleLongPressMenu from "./VoiceBubbleLongPressMenu";
+import MessageReactionsBar from "./MessageReactionsBar";
 import type { VoiceUploadPhase, VoiceUploadStatus } from "./VoiceMessagePlayer";
 
 const VoiceMessagePlayer = lazy(() => import("./VoiceMessagePlayer"));
@@ -40,6 +41,8 @@ interface Props {
   onDeleteForMe?: () => void;
   /** Tap an emoji — persists reaction. */
   onReact?: (emoji: string) => void;
+  messageId?: string;
+  initialReactions?: { emoji: string; count: number; reactedByMe: boolean }[];
 }
 
 export default function VoiceMessageBubble({
@@ -64,6 +67,8 @@ export default function VoiceMessageBubble({
   onDeleteForEveryone,
   onDeleteForMe,
   onReact,
+  messageId,
+  initialReactions,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -74,6 +79,14 @@ export default function VoiceMessageBubble({
 
   const isFailed = uploadStatus === "failed";
   const isUploading = uploadStatus === "uploading";
+
+  useEffect(() => {
+    const closeForRecording = () => {
+      setOpen(false);
+    };
+    window.addEventListener("zivo:chat-recording-start", closeForRecording);
+    return () => window.removeEventListener("zivo:chat-recording-start", closeForRecording);
+  }, []);
 
   const cancel = useCallback(() => {
     if (longPressTimer.current) {
@@ -127,11 +140,24 @@ export default function VoiceMessageBubble({
     onReact?.(emoji);
   }, [onReact]);
 
+  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (!onReply || fired.current || isFailed || isUploading) return;
+    const shouldReply = isMe ? info.offset.x < -60 : info.offset.x > 60;
+    if (!shouldReply) return;
+    onReply();
+    try { (navigator as unknown as { vibrate?: (n: number) => void }).vibrate?.(20); } catch { /* noop */ }
+  }, [isFailed, isMe, isUploading, onReply]);
+
   return (
     <div className={`flex ${isMe ? "justify-end" : "justify-start"} relative`}>
-      <div
+      <motion.div
         ref={wrapRef}
-        className={`chat-no-callout relative max-w-[80%] min-w-[220px] px-3 py-2.5 rounded-2xl shadow-sm ${
+        drag={onReply && !isFailed && !isUploading ? "x" : false}
+        dragConstraints={{ left: isMe ? -80 : 0, right: isMe ? 0 : 80 }}
+        dragElastic={0.15}
+        dragSnapToOrigin
+        onDragEnd={handleDragEnd}
+        className={`chat-no-callout group/voice relative max-w-[80%] min-w-[220px] select-none touch-pan-y px-3 py-2.5 rounded-2xl shadow-sm ${
           isMe ? "bg-gradient-to-br from-zinc-800 to-zinc-900 text-white rounded-br-md dark:from-zinc-100 dark:to-white dark:text-zinc-900" : "bg-muted text-foreground rounded-bl-md"
         }`}
         onContextMenu={onContextMenu}
@@ -169,6 +195,13 @@ export default function VoiceMessageBubble({
             {time}
           </span>
         </div>
+        {messageId && !isFailed && !isUploading && (
+          <MessageReactionsBar
+            messageId={messageId}
+            align={isMe ? "right" : "left"}
+            initialReactions={initialReactions}
+          />
+        )}
 
         <VoiceBubbleLongPressMenu
           open={open}
@@ -199,7 +232,7 @@ export default function VoiceMessageBubble({
               : (onDeleteForMe || onDiscard)
           }
         />
-      </div>
+      </motion.div>
     </div>
   );
 }

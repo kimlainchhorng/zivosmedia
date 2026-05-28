@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   enqueue: vi.fn(),
   invoke: vi.fn(),
   navigate: vi.fn(),
+  openWallet: vi.fn(),
   refreshCoinBalance: vi.fn(),
   sendGift: vi.fn(),
 }));
@@ -55,6 +56,14 @@ vi.mock("sonner", () => ({
   },
 }));
 
+vi.mock("@/lib/urlSafety", () => ({
+  isAllowedCheckoutUrl: () => true,
+}));
+
+vi.mock("@/lib/openExternalUrl", () => ({
+  openExternalUrl: vi.fn(),
+}));
+
 vi.mock("framer-motion", () => {
   const MotionDiv = ({
     animate,
@@ -73,11 +82,12 @@ vi.mock("framer-motion", () => {
   };
 });
 
-const renderGiftPanel = (onClose = vi.fn()) => {
+const renderGiftPanel = (onClose = vi.fn(), onOpenWallet?: () => void) => {
   render(
     <ChatGiftPanel
       open
       onClose={onClose}
+      onOpenWallet={onOpenWallet}
       recipientId="recipient-1"
       recipientName="Kongkea"
       recipientAvatar="https://example.com/kongkea.jpg"
@@ -92,6 +102,7 @@ describe("ChatGiftPanel", () => {
     mocks.enqueue.mockReset();
     mocks.invoke.mockReset();
     mocks.navigate.mockReset();
+    mocks.openWallet.mockReset();
     mocks.refreshCoinBalance.mockReset();
     mocks.refreshCoinBalance.mockResolvedValue(undefined);
     mocks.sendGift.mockReset();
@@ -106,27 +117,33 @@ describe("ChatGiftPanel", () => {
     expect(screen.getByText("Gift Premium")).toBeInTheDocument();
     expect(screen.getByText(/Give Kongkea access/i)).toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: /gift 3 months premium to kongkea by card/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /gift 6 months premium to kongkea by card/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /gift 1 year premium to kongkea by card/i })).toBeInTheDocument();
+    expect(screen.getByText("What they get")).toBeInTheDocument();
+    expect(screen.getByText(/Gift receipt appears in this chat/i)).toBeInTheDocument();
+    expect(screen.getByText("Choose duration")).toBeInTheDocument();
+    expect(screen.getByText("Choose payment")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /select 3 months premium gift plan/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /select 6 months premium gift plan/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /select 1 year premium gift plan/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /pay \$15\.99 by card/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /pay 1500 coins/i })).toBeInTheDocument();
     expect(screen.getByText("$11.99")).toBeInTheDocument();
-    expect(screen.getByText("$15.99")).toBeInTheDocument();
+    expect(screen.getAllByText("$15.99").length).toBeGreaterThan(0);
     expect(screen.getByText("$28.99")).toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: "2,500" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /all gifts/i })).toBeInTheDocument();
+    expect(screen.getByText("Pick a coin gift")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /browse gifts/i })).toBeInTheDocument();
   });
 
   it("opens premium coin confirmation without invoking the send function", () => {
     mocks.balance = 500;
-    renderGiftPanel();
+    renderGiftPanel(vi.fn(), mocks.openWallet);
 
-    fireEvent.click(screen.getByRole("button", { name: /gift 3 months premium to kongkea with 1000 coins/i }));
+    fireEvent.click(screen.getByRole("button", { name: /select 3 months premium gift plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pay 1000 coins/i }));
+    fireEvent.click(screen.getByRole("button", { name: /top up coins/i }));
 
-    const confirmation = screen.getByTestId("premium-coin-confirm");
-    expect(within(confirmation).getByText("Send Premium Gift")).toBeInTheDocument();
-    expect(within(confirmation).getByText("3 months for Kongkea")).toBeInTheDocument();
-    expect(within(confirmation).getByRole("button", { name: /top up/i })).toBeInTheDocument();
+    expect(mocks.openWallet).toHaveBeenCalled();
     expect(mocks.invoke).not.toHaveBeenCalled();
   });
 
@@ -135,10 +152,11 @@ describe("ChatGiftPanel", () => {
     mocks.invoke.mockResolvedValue({ data: { ok: true }, error: null });
     const onClose = renderGiftPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: /gift 6 months premium to kongkea with 1500 coins/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pay 1500 coins/i }));
+    fireEvent.click(screen.getByRole("button", { name: /review 6 months coin gift/i }));
     expect(mocks.invoke).not.toHaveBeenCalled();
 
-    const confirmation = screen.getByTestId("premium-coin-confirm");
+    const confirmation = screen.getByTestId("premium-gift-confirm");
     fireEvent.click(within(confirmation).getByRole("button", { name: /send gift/i }));
 
     await waitFor(() => {
@@ -154,10 +172,35 @@ describe("ChatGiftPanel", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("starts card checkout only after confirmation", async () => {
+    mocks.invoke.mockResolvedValue({ data: { url: "https://checkout.stripe.com/c/pay/test" }, error: null });
+    const onClose = renderGiftPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /select 3 months premium gift plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /review 3 months checkout/i }));
+    expect(mocks.invoke).not.toHaveBeenCalled();
+
+    const confirmation = screen.getByTestId("premium-gift-confirm");
+    expect(within(confirmation).getByText(/secure checkout/i)).toBeInTheDocument();
+    fireEvent.click(within(confirmation).getByRole("button", { name: /continue/i }));
+
+    await waitFor(() => {
+      expect(mocks.invoke).toHaveBeenCalledWith("create-zivo-plus-checkout", {
+        body: {
+          plan: "monthly",
+          gift_recipient_id: "recipient-1",
+          gift_recipient_name: "Kongkea",
+          gift_duration: "three-months",
+        },
+      });
+    });
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it("expands regular gifts and sends through the chat gift hook", async () => {
     renderGiftPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: /all gifts/i }));
+    fireEvent.click(screen.getByRole("button", { name: /browse gifts/i }));
     expect(screen.getAllByRole("button", { name: /popular/i }).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByText("Lucky Cat").closest("button")!);
@@ -169,5 +212,17 @@ describe("ChatGiftPanel", () => {
       expect.objectContaining({ name: "Lucky Cat", coins: 1 }),
       { combo: 1, note: undefined },
     );
+  });
+
+  it("routes short coin gift balance to wallet top-up", () => {
+    mocks.balance = 0;
+    renderGiftPanel(vi.fn(), mocks.openWallet);
+
+    fireEvent.click(screen.getByRole("button", { name: /browse gifts/i }));
+    fireEvent.click(screen.getByText("Lucky Cat").closest("button")!);
+    fireEvent.click(screen.getByRole("button", { name: /top up 1/i }));
+
+    expect(mocks.openWallet).toHaveBeenCalled();
+    expect(mocks.sendGift).not.toHaveBeenCalled();
   });
 });

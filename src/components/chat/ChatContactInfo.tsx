@@ -4,7 +4,7 @@
  * Enhanced with shared media thumbnails, mutual friends, favorites
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,15 +58,15 @@ import Archive from "lucide-react/dist/esm/icons/archive";
 import Mail from "lucide-react/dist/esm/icons/mail";
 import { useThreadSettings, buildThreadId } from "@/hooks/useThreadSettings";
 import { useChatPrefs } from "@/hooks/useChatPrefs";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  normalizeChatMediaMessages,
+  type ChatMediaGalleryItem,
+  type ChatMediaGalleryMessage,
+} from "./chatMediaGalleryModel";
 
-type SharedMediaRow = {
-  id: string;
-  image_url: string | null;
-  video_url: string | null;
-  message_type: string | null;
-  created_at: string;
-};
+const CHAT_MEDIA_BUCKET = "chat-media-files";
 
 type FollowingRow = {
   following_id: string;
@@ -187,20 +187,28 @@ export default function ChatContactInfo({
     .toUpperCase()
     .slice(0, 2);
 
-  // Fetch shared media preview (last 6 images/videos)
-  const { data: sharedMedia = [] } = useQuery({
+  // Fetch shared media preview from the same message shape used by the full gallery.
+  const { data: sharedMediaRows = [] } = useQuery({
     queryKey: ["chat-shared-media", user?.id, recipientId],
     enabled: !!user,
     queryFn: async () => {
       const { data } = await dbFrom("direct_messages")
-        .select("id, image_url, video_url, message_type, created_at")
+        .select("id, sender_id, image_url, video_url, voice_url, message_type, message, file_payload, created_at")
         .or(`and(sender_id.eq.${user!.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user!.id})`)
-        .or("message_type.eq.image,message_type.eq.video,message_type.eq.gif,image_url.not.is.null,video_url.not.is.null")
+        .or("image_url.not.is.null,video_url.not.is.null,message_type.eq.image,message_type.eq.video,message_type.eq.gif,message_type.eq.media_album,message_type.eq.locked_image,message_type.eq.locked_video,message_type.eq.locked_album")
         .order("created_at", { ascending: false })
-        .limit(6);
-      return ((data || []) as SharedMediaRow[]).filter((m) => m.image_url || m.video_url);
+        .limit(80);
+      return (data || []) as ChatMediaGalleryMessage[];
     },
   });
+
+  const sharedMediaItems = useMemo(
+    () => normalizeChatMediaMessages(sharedMediaRows, {
+      currentUserId: user?.id,
+      peerName: recipientName,
+    }).filter((item) => item.kind === "photos" || item.kind === "videos" || item.kind === "gif").slice(0, 6),
+    [recipientName, sharedMediaRows, user?.id],
+  );
 
   // Fetch mutual friends
   const { data: mutualFriends = [] } = useQuery({
@@ -515,30 +523,17 @@ export default function ChatContactInfo({
         <div className="h-[6px] bg-muted/30" />
 
         {/* Shared Media Preview */}
-        {sharedMedia.length > 0 && (
+        {sharedMediaItems.length > 0 && (
           <>
             <Section title="Shared Media">
               <div className="px-4 pb-3">
                 <div className="grid grid-cols-3 gap-1.5 rounded-xl overflow-hidden">
-                  {sharedMedia.slice(0, 6).map((media) => (
-                    <button type="button"
-                      key={media.id}
-                      onClick={onOpenMediaGallery}
-                      className="aspect-square bg-muted overflow-hidden relative group"
-                    >
-                      <img
-	                        src={media.image_url || media.video_url}
-	                        alt=""
-	                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-	                        loading="lazy"
-	                        decoding="async"
-	                      />
-                      {media.message_type === "video" && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                          <Video className="w-5 h-5 text-white drop-shadow" />
-                        </div>
-                      )}
-                    </button>
+                  {sharedMediaItems.map((item) => (
+                    <SharedMediaTile
+                      key={item.id}
+                      item={item}
+                      onOpen={onOpenMediaGallery}
+                    />
                   ))}
                 </div>
                 <button type="button"
@@ -840,6 +835,68 @@ const SOCIAL_META: Record<string, { icon: React.ComponentType<{ className?: stri
   linkedin:  { icon: BriefcaseBusiness, color: "bg-[#0A66C2]" },
   telegram:  { icon: Send,      color: "bg-[#229ED9]" },
 };
+
+function SharedMediaTile({
+  item,
+  onOpen,
+}: {
+  item: ChatMediaGalleryItem;
+  onOpen?: () => void;
+}) {
+  const isVideo = item.kind === "videos";
+  const resolvedUrl = useSignedMedia(item.url, CHAT_MEDIA_BUCKET, isVideo ? "display" : "thumbnail");
+  const [failed, setFailed] = useState(false);
+  const label = isVideo ? "Open shared video" : item.kind === "gif" ? "Open shared GIF" : "Open shared photo";
+  const showFallback = !resolvedUrl || failed;
+
+  useEffect(() => {
+    setFailed(false);
+  }, [resolvedUrl]);
+
+  return (
+    <button type="button"
+      onClick={onOpen}
+      className="group relative aspect-square overflow-hidden bg-muted"
+      aria-label={label}
+      title={label}
+    >
+      {showFallback ? (
+        <div className="flex h-full w-full items-center justify-center bg-muted">
+          {isVideo ? (
+            <Video className="h-6 w-6 text-muted-foreground/70" />
+          ) : (
+            <ImageIcon className="h-6 w-6 text-muted-foreground/70" />
+          )}
+        </div>
+      ) : isVideo ? (
+        <video
+          src={resolvedUrl}
+          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+          preload="metadata"
+          muted
+          playsInline
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <img
+          src={resolvedUrl}
+          alt=""
+          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      )}
+      {(isVideo || item.kind === "gif" || item.locked) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+          <span className="rounded-full bg-black/65 px-2 py-1 text-[10px] font-bold text-white">
+            {item.locked ? "Preview" : item.kind === "gif" ? "GIF" : "Video"}
+          </span>
+        </div>
+      )}
+    </button>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

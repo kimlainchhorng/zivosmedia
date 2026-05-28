@@ -195,7 +195,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
         )}
         style={{
           perspective: "1200px",
-          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingTop: "var(--zivo-safe-top-sticky)",
         }}
       >
         <motion.header

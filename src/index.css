@@ -536,8 +536,9 @@
     --zivo-safe-top-overlay: max(calc(var(--zivo-safe-top, 0px) + 1.25rem), 80px);
     /* Bottom-sheet headers (Comments, Share, post menu, etc.) */
     --zivo-safe-top-sheet: max(var(--zivo-safe-top, 0px), 44px);
-    /* Sticky sub-headers (feed, search) */
-    --zivo-safe-top-sticky: max(calc(var(--zivo-safe-top, 0px) + 0.125rem), 44px);
+    /* Sticky app headers (chat, profile, feed, search). Dynamic Island can
+       cover ~59px when WKWebView reports env() as 0, so keep a 64px floor. */
+    --zivo-safe-top-sticky: max(calc(var(--zivo-safe-top, 0px) + 0.125rem), 64px);
   }
 
   /* Desktop has no notch — drop the 48px mobile floor so the fixed NavBar
@@ -567,7 +568,7 @@
      with Tailwind padding utilities like py-3/pt-4 (which would otherwise override). */
   .safe-area-top {
     /* Use the shared sticky-header token so this utility always reserves a
-       safe minimum (≥ 48px) even when env(safe-area-inset-top) returns 0
+       safe minimum (≥ 64px) even when env(safe-area-inset-top) returns 0
        (Lovable mobile preview, some Capacitor / PWA WebView contexts).
        !important so Tailwind padding utilities (py-3, pt-4, p-3 …) declared
        on the same element cannot override the top padding. */
@@ -665,6 +666,25 @@
 
   .pt-safe {
     padding-top: var(--zivo-safe-top-sticky) !important;
+  }
+
+  /*
+    Last-resort mobile guard for older screens that still use plain
+    `sticky top-0` / `fixed top-0` headers. This keeps interactive top bars
+    out from under the Dynamic Island without requiring every page to remember
+    the safe-area utility. Add `.zivo-safe-top-none` to non-header sticky
+    elements such as table headings or decorative overlays.
+  */
+  @media (max-width: 1023px) {
+    :is(.sticky, .fixed).top-0:not(.zivo-safe-top-none):not(.zivo-safe-top-guard-off):not([class*="rounded"]):not([class*="pointer-events-none"]) {
+      padding-top: var(--zivo-safe-top-sticky) !important;
+    }
+
+    :is(.sticky, .fixed).top-0.safe-area-top,
+    :is(.sticky, .fixed).top-0.pt-safe,
+    :is(.sticky, .fixed).top-0.zivo-pt-safe-sticky {
+      padding-top: var(--zivo-safe-top-sticky) !important;
+    }
   }
 
   /* Mobile-native overscroll behavior */
