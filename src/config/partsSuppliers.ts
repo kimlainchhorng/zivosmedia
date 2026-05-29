@@ -62,6 +62,10 @@ export const PARTS_SUPPLIERS: PartsSupplier[] = [
     description: "Trade portal · login required",
     searchUrlTemplate: "https://www.autozonepro.com/azprolanding/searchPage?searchText={q}",
     loginFlow: "two-step",
+    // AutoZonePro blocks login inside an embedded browser (Akamai bot
+    // protection). Skip the iframe and go straight to the launch-in-new-tab
+    // flow with credential copy.
+    skipEmbed: true,
   },
   {
     id: "oreilly",
