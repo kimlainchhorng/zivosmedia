@@ -79,9 +79,29 @@ export async function recordInvoicePayment(opts: {
   return { newPaid, newStatus };
 }
 
-/** Generate the next sequential number for a doc type. */
+/**
+ * Provisional, client-side number for display while a draft is being edited.
+ * NOT authoritative — the real, guaranteed-unique number is assigned by
+ * assignDocNumber() at save time. Random suffix avoids two open drafts showing
+ * the same placeholder.
+ */
 export function nextDocNumber(type: DocType): string {
   return `${NUMBER_PREFIX[type]}${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+/**
+ * Allocate the authoritative, per-store sequential number for a NEW document
+ * via the ar_next_doc_number RPC (atomic counter + UNIQUE constraint at the DB).
+ * Falls back to a provisional number if the RPC is unavailable so saving never
+ * hard-fails on numbering alone.
+ */
+export async function assignDocNumber(storeId: string, type: DocType): Promise<string> {
+  const { data, error } = await supabase.rpc("ar_next_doc_number" as any, {
+    _store_id: storeId,
+    _doc_type: type,
+  });
+  if (error || !data) return nextDocNumber(type);
+  return data as string;
 }
 
 /** Create a public share link valid for N days. */

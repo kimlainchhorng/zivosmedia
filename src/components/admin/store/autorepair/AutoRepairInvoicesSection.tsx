@@ -24,7 +24,7 @@ import InvoiceListRow, { type RowDoc } from "./invoices/InvoiceListRow";
 import RecordInvoicePaymentDialog from "./invoices/RecordInvoicePaymentDialog";
 import SendDocumentSheet from "./invoices/SendDocumentSheet";
 import DeleteConfirmDialog from "./invoices/DeleteConfirmDialog";
-import { softDeleteDocument, updateDocument, nextDocNumber, type DocType } from "@/lib/admin/invoiceActions";
+import { softDeleteDocument, updateDocument, nextDocNumber, assignDocNumber, type DocType } from "@/lib/admin/invoiceActions";
 import type { PdfDoc } from "@/lib/admin/invoicePdf";
 import { computeDocTotals, normalizeTaxRate } from "@/lib/admin/taxCalc";
 
@@ -509,9 +509,11 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         toast.success(`${draft.type === "invoice" ? "Invoice" : "Estimate"} ${draft.number} updated`);
       } else {
         payload.created_by = user?.id;
+        // Assign the authoritative, guaranteed-unique sequential number at save.
+        payload.number = await assignDocNumber(storeId, draft.type);
         const { error } = await supabase.from(tableName as any).insert(payload);
         if (error) throw error;
-        toast.success(`${draft.type === "invoice" ? "Invoice" : "Estimate"} ${draft.number} saved`);
+        toast.success(`${draft.type === "invoice" ? "Invoice" : "Estimate"} ${payload.number} saved`);
       }
       await reloadAll();
     } catch (e: any) {
@@ -571,9 +573,10 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           .eq("id", estimateId);
         if (error) throw error;
       } else {
+        const estimateNumber = await assignDocNumber(storeId, "estimate");
         const { data, error } = await supabase
           .from("ar_estimates" as any)
-          .insert({ ...basePayload, number: draft.number, status: "approved", created_by: user?.id })
+          .insert({ ...basePayload, number: estimateNumber, status: "approved", created_by: user?.id })
           .select("id")
           .single();
         if (error) throw error;
@@ -581,7 +584,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
       }
 
       // 2. Create the invoice from this estimate.
-      const invoiceNumber = nextDocNumber("invoice");
+      const invoiceNumber = await assignDocNumber(storeId, "invoice");
       const { data: invRow, error: invErr } = await supabase
         .from("ar_invoices" as any)
         .insert({
@@ -1278,7 +1281,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     const est = findFullDoc(id);
     if (!est) return;
     try {
-      const number = nextDocNumber("invoice");
+      const number = await assignDocNumber(storeId, "invoice");
       const t = docTotals(est.items, est.taxRate);
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("ar_invoices" as any).insert({
