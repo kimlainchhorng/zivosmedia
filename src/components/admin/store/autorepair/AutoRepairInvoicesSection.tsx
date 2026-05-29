@@ -302,6 +302,16 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
 
   const subtotalByCat = (items: LineItem[], cat: LineCategory) => items.filter(i => i.category === cat).reduce((s, i) => s + lineAmount(i), 0);
 
+  // Apply the shop's default tax rate to the open document when it has none yet.
+  // Covers every entry path — new doc, resumed draft, editing an older invoice
+  // that predates tax, and the case where settings finish loading after the
+  // form opens. Runs once per open (deps don't change mid-edit), so it never
+  // clobbers a rate the user has typed.
+  useEffect(() => {
+    if (!creating || defaultTaxRate <= 0) return;
+    setDraft(d => (d.taxRate && d.taxRate > 0) ? d : { ...d, taxRate: defaultTaxRate });
+  }, [creating, defaultTaxRate]);
+
   // Autosave draft to localStorage (debounced) while creating
   useEffect(() => {
     if (!creating) return;
