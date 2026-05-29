@@ -66,9 +66,9 @@ Download ZIVO and run your whole day in one app.
 ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory. Some premium features and creator subscriptions may have a price.
 
 Support:  support@hizivo.com
-Website:  https://zivollc.com
-Privacy:  https://zivollc.com/privacy-policy
-Terms:    https://zivollc.com/terms-of-service
+Website:  https://www.zivollc.com
+Privacy:  https://www.zivollc.com/privacy-policy
+Terms:    https://www.zivollc.com/terms-of-service
 ```
 
 ## 4. What's New / Release Notes  (max 500 characters — UPDATE EVERY RELEASE)
@@ -96,14 +96,14 @@ In-app purchases: Yes (creator subscriptions, premium features)
 
 ```
 Email:    support@hizivo.com
-Website:  https://zivollc.com
+Website:  https://www.zivollc.com
 Phone:    (optional — leave blank if not used)
 ```
 
 ## 7. Privacy Policy URL
 
 ```
-https://zivollc.com/privacy-policy
+https://www.zivollc.com/privacy-policy
 ```
 
 ## 8. Account Deletion URL
@@ -111,7 +111,7 @@ https://zivollc.com/privacy-policy
 Use this in Play Console -> App content -> Data safety -> Account deletion.
 
 ```
-https://zivollc.com/account-deletion
+https://www.zivollc.com/account-deletion
 ```
 
 ## 9. Graphic Assets (sizes Google requires — replace files, do NOT change names)
