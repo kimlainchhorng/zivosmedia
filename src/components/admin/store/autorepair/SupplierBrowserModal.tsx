@@ -38,6 +38,7 @@ import Globe from "lucide-react/dist/esm/icons/globe";
 import LogIn from "lucide-react/dist/esm/icons/log-in";
 import PartsSupplierLogo from "./PartsSupplierLogo";
 import { type PartsSupplier, getSupplierSearchUrl } from "@/config/partsSuppliers";
+import { SUPABASE_URL } from "@/integrations/supabase/client";
 
 interface Props {
   storeId: string;
@@ -51,7 +52,6 @@ type SavedCreds = { email: string; password: string; updatedAt: string };
 type LoadState = "loading" | "ready" | "failed";
 type LaunchStep = "idle" | "tab_opened";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const PROXY_BASE = `${SUPABASE_URL}/functions/v1/supplier-proxy?u=`;
 const LOAD_TIMEOUT_MS = 8_000;
 

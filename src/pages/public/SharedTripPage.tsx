@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { Car, MapPin, Clock } from "lucide-react";
 
 export default function SharedTripPage() {
@@ -13,7 +13,7 @@ export default function SharedTripPage() {
   const fetchData = async () => {
     if (!token) return;
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-shared-trip?token=${encodeURIComponent(token)}`;
+      const url = `${SUPABASE_URL}/functions/v1/get-shared-trip?token=${encodeURIComponent(token)}`;
       const res = await fetch(url);
       const json = await res.json();
       if (!res.ok) {
@@ -34,7 +34,7 @@ export default function SharedTripPage() {
 
     let channel: any = null;
     (async () => {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-shared-trip?token=${encodeURIComponent(token)}`;
+      const url = `${SUPABASE_URL}/functions/v1/get-shared-trip?token=${encodeURIComponent(token)}`;
       const res = await fetch(url);
       const j = await res.json();
       if (j?.ride?.id) {

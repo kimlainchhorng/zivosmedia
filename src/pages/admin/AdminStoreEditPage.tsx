@@ -3953,6 +3953,21 @@ export default function AdminStoreEditPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Finalize Settings</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Save all updates from this tab, including Auto Repair workflow configuration.
+                  </p>
+                </div>
+                <Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending} className="gap-2 w-full sm:w-auto">
+                  <Save className="h-4 w-4" />
+                  {saveProfile.isPending ? "Saving..." : "Save All Settings"}
+                </Button>
+              </CardContent>
+            </Card>
             </div>
           </TabsContent>
 

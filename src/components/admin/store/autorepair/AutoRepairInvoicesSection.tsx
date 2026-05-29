@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FileText, Plus, DollarSign, Trash2, Receipt, ClipboardList, ArrowLeft, ScanSearch, Loader2, Check, CloudUpload, Wrench, Package, Stethoscope, Truck, KeyRound, Car, LogOut, Eye, ArrowRightLeft, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import AutoRepairDocPreviewDialog from "./AutoRepairDocPreviewDialog";
+import AddressAutocomplete from "@/components/shared/AddressAutocomplete";
 import PartPickerDialog, { type PickedPart } from "./PartPickerDialog";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
 import ServiceCatalogPickerDialog, { type ServiceCatalogPick } from "./ServiceCatalogPickerDialog";
@@ -48,7 +49,10 @@ type Doc = {
   lastName: string;
   phone: string;
   email: string;
-  address: string;
+  address: string;   // street line
+  city: string;
+  state: string;
+  zip: string;
   vin: string;
   year: string;
   make: string;
@@ -79,7 +83,7 @@ type Doc = {
 
 const emptyDraft = (): Doc => ({
   id: "", type: "estimate", number: "", customer: "",
-  firstName: "", lastName: "", phone: "", email: "", address: "",
+  firstName: "", lastName: "", phone: "", email: "", address: "", city: "", state: "", zip: "",
   vin: "", year: "", make: "", model: "", trim: "", engine: "", transmission: "",
   driveType: "", bodyClass: "", doors: "", fuel: "", plant: "",
   vehicle: "",
@@ -122,6 +126,26 @@ const lineAmount = (i: LineItem): number => Math.max(0, lineGross(i) - lineDisco
 // the shared taxCalc so estimates, invoices, preview, PDF, and the public view
 // all compute identical numbers.
 const docTotals = (items: LineItem[], taxRate: number = 0) => computeDocTotals(items, taxRate);
+
+// Split a one-line address (e.g. a Google formatted_address) into parts.
+// Best-effort, US/Canada-oriented: "123 Main St, Denham Springs, LA 70726, USA".
+function parseAddress(full: string): { address: string; city: string; state: string; zip: string } {
+  const parts = (full || "").split(",").map(s => s.trim()).filter(Boolean);
+  if (parts.length && /^(usa|us|united states|canada)$/i.test(parts[parts.length - 1])) parts.pop();
+  let city = "", state = "", zip = "";
+  const last = parts[parts.length - 1] || "";
+  const m = last.match(/^([A-Za-z]{2}|[A-Za-z .]+?)\s+(\d{5}(?:-\d{4})?|[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d)$/);
+  if (m) { state = m[1]; zip = m[2]; parts.pop(); }
+  else if (/^\d{5}(?:-\d{4})?$/.test(last)) { zip = last; parts.pop(); }
+  if (parts.length > 1) city = parts.pop() as string;
+  return { address: parts.join(", "), city, state, zip };
+}
+
+// Recombine the split fields into a single display/storage line.
+function combinedAddress(d: { address?: string; city?: string; state?: string; zip?: string }): string {
+  const stateZip = [d.state, d.zip].filter(Boolean).join(" ").trim();
+  return [d.address, d.city, stateZip].map(s => (s || "").trim()).filter(Boolean).join(", ");
+}
 
 interface Props { storeId: string }
 
@@ -197,7 +221,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           lastName: (row.customer_name || "").split(" ").slice(1).join(" ") || "",
           phone: row.customer_phone || "",
           email: row.customer_email || "",
-          address: row.customer_address || "",
+          ...parseAddress(row.customer_address || ""),
           vin: row.vin || "",
           year: row.vehicle_year || "",
           make: row.vehicle_make || "",
@@ -229,7 +253,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           lastName: (row.customer_name || "").split(" ").slice(1).join(" ") || "",
           phone: row.customer_phone || "",
           email: row.customer_email || "",
-          address: row.customer_address || "",
+          ...parseAddress(row.customer_address || ""),
           vin: row.vin || "",
           year: row.vehicle_year || "",
           make: row.vehicle_make || "",
@@ -276,7 +300,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         customer: p.customer_name ?? `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim(),
         phone: p.phone ?? "",
         email: p.email ?? "",
-        address: p.address ?? "",
+        ...parseAddress(p.address ?? ""),
         vin: p.vin ?? "",
         year: p.year ?? "",
         make: p.make ?? "",
@@ -474,7 +498,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         customer_name: customer,
         customer_phone: draft.phone || null,
         customer_email: draft.email || null,
-        customer_address: draft.address || null,
+        customer_address: combinedAddress(draft) || null,
         vehicle_label: draft.vehicle || null,
         vin: draft.vin || null,
         vehicle_year: draft.year || null,
@@ -546,7 +570,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         customer_name: customer,
         customer_phone: draft.phone || null,
         customer_email: draft.email || null,
-        customer_address: draft.address || null,
+        customer_address: combinedAddress(draft) || null,
         vehicle_label: draft.vehicle || null,
         vin: draft.vin || null,
         vehicle_year: draft.year || null,
@@ -752,7 +776,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
 
   if (creating) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-4xl mx-auto">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
@@ -770,7 +794,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                 {saveState === "saved" && (<><Check className="w-3 h-3 text-primary" /> Saved{lastSaved ? ` · ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}</>)}
                 {saveState === "idle" && (<><CloudUpload className="w-3 h-3" /> Autosave on</>)}
               </span>
-              <Button variant="outline" size="sm" onClick={() => setPreviewDoc({ ...draft, customer: `${draft.firstName} ${draft.lastName}`.trim() })} className="gap-1.5"><Eye className="w-3.5 h-3.5" /> Preview</Button>
+              <Button variant="outline" size="sm" onClick={() => setPreviewDoc({ ...draft, customer: `${draft.firstName} ${draft.lastName}`.trim(), address: combinedAddress(draft) })} className="gap-1.5"><Eye className="w-3.5 h-3.5" /> Preview</Button>
               <Button variant="outline" size="sm" onClick={saveDraftNow}>Save draft</Button>
               <Button variant="ghost" size="sm" onClick={discardDraft} className="text-destructive hover:text-destructive">Discard</Button>
               {draft.type === "estimate" && (
@@ -810,7 +834,27 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-muted-foreground">Address</label>
-                  <Input placeholder="Street, City, State" value={draft.address} onChange={e => setDraft({ ...draft, address: e.target.value })} />
+                  <AddressAutocomplete
+                    placeholder="Street address"
+                    value={draft.address || ""}
+                    onInputChange={(v) => setDraft(d => ({ ...d, address: v }))}
+                    onSelect={(place) => setDraft(d => ({ ...d, ...parseAddress(place.address) }))}
+                    onClear={() => setDraft(d => ({ ...d, address: "", city: "", state: "", zip: "" }))}
+                  />
+                </div>
+                <div className="sm:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="space-y-1.5 col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">City</label>
+                    <Input placeholder="City" value={draft.city || ""} onChange={e => setDraft({ ...draft, city: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">State</label>
+                    <Input placeholder="State" value={draft.state || ""} onChange={e => setDraft({ ...draft, state: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">ZIP code</label>
+                    <Input placeholder="ZIP" value={draft.zip || ""} onChange={e => setDraft({ ...draft, zip: e.target.value })} />
+                  </div>
                 </div>
               </div>
 
@@ -1177,8 +1221,20 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
 
             {(() => {
               const t = docTotals(draft.items, draft.taxRate);
+              const laborTotal = subtotalByCat(draft.items, "labor");
+              const partsTotal = subtotalByCat(draft.items, "part");
+              const diagTotal = subtotalByCat(draft.items, "diagnosis");
+              const catRow = (label: string, amount: number) => (
+                <div className="flex items-center justify-end gap-3 text-sm">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="w-28 text-right tabular-nums font-medium">${amount.toFixed(2)}</span>
+                </div>
+              );
               return (
                 <div className="pt-3 border-t border-border space-y-2">
+                  {laborTotal > 0 && catRow("Labor", laborTotal)}
+                  {partsTotal > 0 && catRow("Parts", partsTotal)}
+                  {diagTotal > 0 && catRow("Diagnosis", diagTotal)}
                   <div className="flex items-center justify-end gap-3 text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="w-28 text-right tabular-nums font-medium">${t.subtotal.toFixed(2)}</span>
@@ -1268,7 +1324,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     if (!d) return;
     const pdfDoc: PdfDoc = {
       type: d.type, number: d.number, customer: d.customer, phone: d.phone, email: d.email,
-      address: d.address, vehicle: d.vehicle, vin: d.vin, items: d.items as any, status: d.status,
+      address: combinedAddress(d), vehicle: d.vehicle, vin: d.vin, items: d.items as any, status: d.status,
       taxRate: d.taxRate, createdAt: d.createdAt, customerNotes: d.customerNotes,
     };
     const { generateDocumentPdf } = await import("@/lib/admin/invoicePdf");
@@ -1287,7 +1343,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
       const { error } = await supabase.from("ar_invoices" as any).insert({
         store_id: storeId, number, estimate_id: est.id,
         customer_name: est.customer, customer_phone: est.phone || null, customer_email: est.email || null,
-        customer_address: est.address || null, vehicle_label: est.vehicle || null, vin: est.vin || null,
+        customer_address: combinedAddress(est) || null, vehicle_label: est.vehicle || null, vin: est.vin || null,
         vehicle_year: est.year || null, vehicle_make: est.make || null, vehicle_model: est.model || null,
         items: est.items as any,
         subtotal_cents: Math.round(t.subtotal * 100),
@@ -1375,7 +1431,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                 <InvoiceListRow
                   key={r.id}
                   doc={r}
-                  onView={() => full && setPreviewDoc(full)}
+                  onView={() => full && setPreviewDoc({ ...full, address: combinedAddress(full) })}
                   onEdit={() => full && startEdit(full)}
                   onSend={() => setSendDoc({ id: r.id, type: r.type, number: r.number, customer: r.customer, email: full?.email, phone: full?.phone })}
                   onMarkPaid={r.type === "invoice" ? () => setPaymentDoc({ id: r.id, number: r.number, customer: r.customer, totalCents: r.totalCents, amountPaidCents: r.amountPaidCents }) : undefined}

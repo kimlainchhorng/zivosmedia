@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bot, X, Send, Sparkles, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -63,7 +63,7 @@ export default function AIChatbotWidget() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-support-chat`;
+      const url = `${SUPABASE_URL}/functions/v1/ai-support-chat`;
       const resp = await fetch(url, {
         method: "POST",
         headers: {

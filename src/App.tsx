@@ -1303,7 +1303,13 @@ function useDesktopViewport() {
 function DesktopNavBootstrap() {
   const isDesktop = useDesktopViewport();
   const location = useLocation();
-  if (location.pathname.startsWith("/desktop/auto-repair")) return null;
+  // Suppress the global app nav on focused/standalone surfaces: the desktop
+  // auto-repair workspace and public shared documents (/d/:token), which are
+  // customer-facing and must not be overlapped by the Feed/Reels/Chat bar.
+  if (
+    location.pathname.startsWith("/desktop/auto-repair") ||
+    location.pathname.startsWith("/d/")
+  ) return null;
   return isDesktop ? <Suspense fallback={null}><GlobalDesktopNav /></Suspense> : null;
 }
 

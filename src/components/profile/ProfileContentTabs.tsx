@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { getPublicOrigin, getProfileShareUrl } from "@/lib/getPublicOrigin";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { resolveSharedOrigins, type SharedOriginInfo } from "@/lib/social/resolveSharedOrigins";
@@ -5135,7 +5135,7 @@ function LiveBroadcast({
       const imageBase64 = c.toDataURL("image/jpeg", 0.85);
 
       const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-face-edit`,
+        `${SUPABASE_URL}/functions/v1/ai-face-edit`,
         {
           method: "POST",
           headers: {

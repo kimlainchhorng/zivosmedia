@@ -42,6 +42,7 @@ export function generateDocumentPdf(opts: {
   const pdf = new jsPDF({ unit: "pt", format: "letter" });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 40;
+  const fmt = (n: number) => `$${n.toFixed(2)}`;
 
   // Header — store info
   pdf.setFontSize(20);
@@ -66,8 +67,7 @@ export function generateDocumentPdf(opts: {
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(80);
   pdf.text(`#${doc.number}`, pageWidth - margin, 66, { align: "right" });
-  pdf.text(`Date: ${new Date(doc.createdAt).toLocaleDateString()}`, pageWidth - margin, 80, { align: "right" });
-  pdf.text(`Status: ${doc.status.toUpperCase()}`, pageWidth - margin, 94, { align: "right" });
+  pdf.text(`${new Date(doc.createdAt).toLocaleDateString()}`, pageWidth - margin, 80, { align: "right" });
 
   // Bill-to + Vehicle blocks
   y = 130;
@@ -94,27 +94,37 @@ export function generateDocumentPdf(opts: {
     pdf.text(wrapped, margin, y);
   }
 
-  // Line items table
-  const rows = doc.items.map((i) => {
-    const qtyOrHrs = i.category === "labor" ? `${i.hours ?? 0} hr` : `${i.qty}`;
-    return [
-      i.category.charAt(0).toUpperCase() + i.category.slice(1),
-      i.description || "—",
-      qtyOrHrs,
-      `$${(i.price ?? 0).toFixed(2)}`,
-      `$${lineAmount(i).toFixed(2)}`,
-    ];
-  });
+  // Line items — grouped by category to mirror the on-screen preview
+  // (Labor → Parts & Materials → Diagnosis & Inspection), with a Discount column.
+  const CATS: Array<{ key: string; label: string }> = [
+    { key: "labor", label: "Labor" },
+    { key: "part", label: "Parts & Materials" },
+    { key: "diagnosis", label: "Diagnosis & Inspection" },
+  ];
+  const body: any[] = [];
+  for (const { key, label } of CATS) {
+    const group = doc.items.filter((i) => i.category === key);
+    if (group.length === 0) continue;
+    body.push([{ content: label, colSpan: 5, styles: { fontStyle: "bold", fillColor: [250, 250, 250], textColor: [85, 85, 85], fontSize: 8 } }]);
+    for (const it of group) {
+      const qtyHrs = key === "labor" ? `${it.hours ?? 0} hr` : key === "part" ? `${it.qty ?? 0}` : "—";
+      const rate = key === "diagnosis" ? "—" : fmt(it.price ?? 0);
+      const dv = Math.max(0, it.discount ?? 0);
+      const discTxt = !dv ? "—" : (it.discountType ?? "pct") === "amt" ? fmt(dv) : `${dv}%`;
+      body.push([it.description || "—", qtyHrs, rate, discTxt, fmt(lineAmount(it))]);
+    }
+  }
 
   autoTable(pdf, {
-    startY: 220,
-    head: [["Type", "Description", "Qty/Hrs", "Rate", "Amount"]],
-    body: rows,
-    headStyles: { fillColor: [16, 185, 129], textColor: 255, fontStyle: "bold" },
+    startY: 210,
+    head: [["Description", "Qty/Hrs", "Rate", "Discount", "Amount"]],
+    body,
+    headStyles: { fillColor: [17, 17, 17], textColor: 255, fontStyle: "bold", fontSize: 8 },
     styles: { fontSize: 9, cellPadding: 6 },
     columnStyles: {
-      0: { cellWidth: 60 },
-      2: { halign: "right", cellWidth: 60 },
+      0: { cellWidth: "auto" },
+      1: { halign: "right", cellWidth: 60 },
+      2: { halign: "right", cellWidth: 70 },
       3: { halign: "right", cellWidth: 70 },
       4: { halign: "right", cellWidth: 80 },
     },
@@ -136,25 +146,45 @@ export function generateDocumentPdf(opts: {
     afterY += bold ? 18 : 14;
   };
 
-  row("Subtotal", `$${t.subtotal.toFixed(2)}`);
-  if (t.discount > 0) row("Discount", `-$${t.discount.toFixed(2)}`);
-  row(`Tax (${t.taxRate}%)`, `$${t.tax.toFixed(2)}`);
-  row("Total", `$${t.total.toFixed(2)}`, true, 12);
+  const laborTotal = doc.items.filter((i) => i.category === "labor").reduce((s, i) => s + lineAmount(i), 0);
+  const partsTotal = doc.items.filter((i) => i.category === "part").reduce((s, i) => s + lineAmount(i), 0);
+  const diagTotal = doc.items.filter((i) => i.category === "diagnosis").reduce((s, i) => s + lineAmount(i), 0);
 
+  if (laborTotal > 0) row("Labor", fmt(laborTotal));
+  if (partsTotal > 0) row("Parts", fmt(partsTotal));
+  if (diagTotal > 0) row("Diagnosis", fmt(diagTotal));
+  row("Subtotal", fmt(t.subtotal));
+  if (t.discount > 0) row("Discount", `−${fmt(t.discount)}`);
+  row(`Tax (${t.taxRate}%)`, fmt(t.tax));
+  row("Total", fmt(t.total), true, 12);
+
+  let notesY = afterY + 24;
   if (doc.customerNotes) {
     pdf.setFontSize(9);
-    pdf.setFont("helvetica", "normal");
+    pdf.setFont("helvetica", "bold");
     pdf.setTextColor(80);
-    pdf.text("Notes", margin, afterY + 30);
+    pdf.text("Notes", margin, notesY);
+    notesY += 14;
+    pdf.setFont("helvetica", "normal");
     const notes = pdf.splitTextToSize(doc.customerNotes, pageWidth - margin * 2);
-    pdf.text(notes, margin, afterY + 44);
+    pdf.text(notes, margin, notesY);
+    notesY += notes.length * 12 + 10;
   }
+
+  // Disclaimer note — mirrors the on-screen preview.
+  pdf.setFontSize(9);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(80);
+  const disclaimer = doc.type === "estimate"
+    ? "This is an estimate. Actual costs may vary based on inspection."
+    : "Thank you for your business. Payment is due upon receipt unless otherwise agreed.";
+  pdf.text(pdf.splitTextToSize(disclaimer, pageWidth - margin * 2), margin, notesY);
 
   // Footer
   pdf.setFontSize(8);
   pdf.setTextColor(160);
   pdf.text(
-    `Generated ${new Date().toLocaleString()}`,
+    `${storeName} · Generated by ZIVO Partner`,
     pageWidth / 2,
     pdf.internal.pageSize.getHeight() - 20,
     { align: "center" }

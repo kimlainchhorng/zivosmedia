@@ -3,10 +3,10 @@ import { useSearchParams , Link} from "react-router-dom";
 import { Loader2, MailCheck, MailX, AlertTriangle } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabaseUrl = SUPABASE_URL;
+const supabaseAnonKey = SUPABASE_PUBLISHABLE_KEY;
 
 type UnsubscribeState = "checking" | "ready" | "submitting" | "success" | "invalid" | "error";
 
