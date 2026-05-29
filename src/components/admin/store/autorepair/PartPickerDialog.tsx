@@ -104,6 +104,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) { setQ(""); setCat("All"); setAddedIds(new Set()); } onOpenChange(v); }}>
       <DialogContent className="max-w-3xl w-[95vw] max-h-[88vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-3 border-b shrink-0">
@@ -188,7 +189,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
               <p className="text-sm font-semibold">No parts in your catalog yet</p>
               <p className="text-xs text-muted-foreground mt-1 mb-4">Add inventory in the Parts tab, or look it up on a supplier.</p>
               {AUTOZONE && (
-                <Button size="sm" variant="outline" onClick={openAutoZone} className="gap-1.5">
+                <Button size="sm" variant="outline" onClick={() => openSupplier(AUTOZONE)} className="gap-1.5">
                   <ExternalLink className="w-3.5 h-3.5" /> Look up on AutoZone Pro
                 </Button>
               )}
@@ -270,7 +271,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
           </p>
           <div className="flex items-center gap-2">
             {AUTOZONE && (
-              <Button size="sm" variant="outline" onClick={openAutoZone} className="gap-1.5" title={q.trim() ? `Search "${q.trim()}" on AutoZone Pro` : "Open AutoZone Pro"}>
+              <Button size="sm" variant="outline" onClick={() => openSupplier(AUTOZONE)} className="gap-1.5" title={q.trim() ? `Search "${q.trim()}" on AutoZone Pro` : "Open AutoZone Pro"}>
                 <ExternalLink className="w-3.5 h-3.5" /> AutoZone Pro
               </Button>
             )}
@@ -279,5 +280,15 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* In-app embedded supplier browser (e.g. AutoZone Pro) — same as the Parts tab. */}
+    <SupplierBrowserModal
+      storeId={storeId}
+      supplier={supplierTarget}
+      query={q.trim()}
+      open={!!supplierTarget}
+      onOpenChange={(o) => { if (!o) setSupplierTarget(null); }}
+    />
+    </>
   );
 }
