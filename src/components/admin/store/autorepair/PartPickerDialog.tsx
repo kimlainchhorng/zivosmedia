@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { PARTS_SUPPLIERS, getPartsSupplier, getSupplierSearchUrl } from "@/config/partsSuppliers";
+import { PARTS_SUPPLIERS, getPartsSupplier, type PartsSupplier } from "@/config/partsSuppliers";
+import SupplierBrowserModal from "./SupplierBrowserModal";
 import Search from "lucide-react/dist/esm/icons/search";
 import Package from "lucide-react/dist/esm/icons/package";
 import Plus from "lucide-react/dist/esm/icons/plus";
@@ -47,6 +48,8 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  // When set, opens the in-app embedded supplier browser (same as the Parts tab).
+  const [supplierTarget, setSupplierTarget] = useState<PartsSupplier | null>(null);
 
   const { data: parts = [], isLoading } = useQuery({
     queryKey: ["ar-parts", storeId],
@@ -88,12 +91,10 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
     toast.success(`${p.name} added to invoice`);
   };
 
-  // Open AutoZone Pro pre-filled with the current search (falls back to the
-  // pro portal login when the search box is empty). Deep-link only — no API.
-  const openAutoZone = () => {
-    if (!AUTOZONE) return;
-    const url = (q.trim() && getSupplierSearchUrl(AUTOZONE, q.trim())) || AUTOZONE.portalUrl || `https://${AUTOZONE.domain}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+  // Open a supplier inside the app via the embedded browser (same experience as
+  // the Parts tab), pre-filled with the current search.
+  const openSupplier = (s: PartsSupplier | null | undefined) => {
+    if (s) setSupplierTarget(s);
   };
 
   const stockLabel = (stock: number) => {
@@ -164,10 +165,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
                     {QUICK_SUPPLIERS.map(s => (
                       <button type="button"
                         key={s.id}
-                        onClick={() => {
-                          const url = s.searchUrlTemplate!.replace("{q}", encodeURIComponent(q));
-                          window.open(url, "_blank", "noopener,noreferrer");
-                        }}
+                        onClick={() => openSupplier(s)}
                         className="flex items-center gap-2 text-left px-3 py-2.5 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
                       >
                         <div className="w-6 h-6 rounded bg-muted flex items-center justify-center shrink-0">
