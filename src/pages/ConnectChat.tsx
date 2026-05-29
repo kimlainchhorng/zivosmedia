@@ -4,10 +4,10 @@
  * ZIVO Chat sends the user here ("Continue with ZIVO") with:
  *   /connect/chat?return=<zivo-chat callback url>&state=<nonce>
  *
- * If the user has a live ZIVO session we redirect back to the (allow-listed)
- * return URL with the shared Supabase session in the URL *fragment* — never the
- * query — so tokens are not sent to or logged by any server:
- *   <return>#at=<access>&rt=<refresh>&state=<nonce>
+ * If the user has a live ZIVO session we mint a single-use login token and
+ * redirect back to the (allow-listed) return target with it:
+ *   web:    <https return>#ott=<token_hash>&state=<nonce>          (fragment)
+ *   native: zivochat://connect/zivo?ott=<token_hash>&state=<nonce> (custom scheme)
  *
  * If the user is not signed in, we route through ZIVO login and resume here.
  *
@@ -35,12 +35,24 @@ function allowedOrigins(): string[] {
   return [...STATIC_ALLOWED_ORIGINS, ...fromEnv, ...dev];
 }
 
-function validateReturn(returnUrl: string): URL | null {
+type ReturnTarget = { kind: "web"; url: URL } | { kind: "deeplink"; base: string };
+
+// Native ZIVO Chat deep links permitted to receive a handoff token.
+const ALLOWED_DEEPLINK_RETURNS = ["zivochat://connect/zivo"];
+
+function validateReturn(returnUrl: string): ReturnTarget | null {
+  // Native app custom-scheme deep link, e.g. zivochat://connect/zivo?redirect=…
+  for (const base of ALLOWED_DEEPLINK_RETURNS) {
+    if (returnUrl === base || returnUrl.startsWith(base + "?")) {
+      return { kind: "deeplink", base: returnUrl };
+    }
+  }
+  // Web origin must be on the allow-list.
   try {
     const u = new URL(returnUrl);
     const httpsOk = u.protocol === "https:" || (import.meta.env.DEV && u.protocol === "http:");
     if (!httpsOk) return null;
-    return allowedOrigins().includes(u.origin) ? u : null;
+    return allowedOrigins().includes(u.origin) ? { kind: "web", url: u } : null;
   } catch {
     return null;
   }
@@ -86,9 +98,18 @@ const ConnectChat = () => {
         return;
       }
 
-      const fragment = new URLSearchParams({ ott: tokenHash, state });
-      // Reconstruct the target without any caller-supplied fragment.
-      const dest = `${target.origin}${target.pathname}${target.search}#${fragment.toString()}`;
+      const qp = new URLSearchParams({ ott: tokenHash, state });
+      let dest: string;
+      if (target.kind === "deeplink") {
+        // Custom schemes don't reliably carry URL fragments through the OS
+        // open, so pass the single-use token as a query param instead.
+        const sep = target.base.includes("?") ? "&" : "?";
+        dest = `${target.base}${sep}${qp.toString()}`;
+      } else {
+        // Web: keep the token in the fragment (never sent to a server).
+        const u = target.url;
+        dest = `${u.origin}${u.pathname}${u.search}#${qp.toString()}`;
+      }
       window.location.replace(dest);
     })();
   }, [navigate, params]);
