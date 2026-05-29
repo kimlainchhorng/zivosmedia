@@ -116,6 +116,7 @@ import RequestHealthBadge from "@/components/dev/RequestHealthBadge";
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ConnectCallback = lazy(() => import("./pages/ConnectCallback"));
+const ConnectChat = lazy(() => import("./pages/ConnectChat"));
 const PublicDocumentView = lazy(() => import("./pages/PublicDocumentView"));
 const PairPage = lazy(() => lazyRetry(() => import("./pages/PairPage")));
 const EstimateApprovalPage = lazy(() => lazyRetry(() => import("./pages/EstimateApprovalPage")));
@@ -1396,6 +1397,7 @@ const App = () => (
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/unsubscribe" element={<Unsubscribe />} />
                             <Route path="/connect/callback" element={<ConnectCallback />} />
+                            <Route path="/connect/chat" element={<ConnectChat />} />
                             <Route path="/d/:token" element={<PublicDocumentView />} />
 
                 {/* App Dashboard */}
