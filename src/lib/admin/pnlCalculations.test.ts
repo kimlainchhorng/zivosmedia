@@ -14,6 +14,7 @@ import {
   safeDiv,
   fmtPct,
   fmtMoney,
+  collectedTaxCents,
   computeKpis,
   compareDelta,
   groupSeries,
@@ -85,6 +86,22 @@ describe("fmtMoney", () => {
   });
 });
 
+describe("collectedTaxCents", () => {
+  it("returns full tax when fully paid", () => {
+    expect(collectedTaxCents({ tax_cents: 1000, amount_paid_cents: 11000, total_cents: 11000 })).toBe(1000);
+  });
+  it("pro-rates tax on a partial payment", () => {
+    // $110 invoice, $10 tax, half paid -> $5 collected.
+    expect(collectedTaxCents({ tax_cents: 1000, amount_paid_cents: 5500, total_cents: 11000 })).toBe(500);
+  });
+  it("is zero when nothing is paid", () => {
+    expect(collectedTaxCents({ tax_cents: 1000, amount_paid_cents: 0, total_cents: 11000 })).toBe(0);
+  });
+  it("guards a zero-total invoice", () => {
+    expect(collectedTaxCents({ tax_cents: 0, amount_paid_cents: 0, total_cents: 0 })).toBe(0);
+  });
+});
+
 describe("computeKpis", () => {
   const payments: PaymentRow[] = [
     { amount_cents: 10000, paid_at: "2026-05-01T00:00:00Z", method: "card" },
@@ -108,10 +125,10 @@ describe("computeKpis", () => {
     expect(kpis.net).toBe(10000);
   });
 
-  it("only counts tax from invoices that have been paid", () => {
-    // Invoice i2 is paid (tax 1000), i1 is partial (tax 2000 excluded).
+  it("accrues tax on a cash basis, pro-rated by amount paid", () => {
+    // i1: partial — tax 2000 * 15000/20000 = 1500. i2: fully paid — tax 1000.
     const kpis = computeKpis(payments, expenses, invoices);
-    expect(kpis.taxes).toBe(1000);
+    expect(kpis.taxes).toBe(2500);
   });
 
   it("computes the outstanding invoiced amount", () => {

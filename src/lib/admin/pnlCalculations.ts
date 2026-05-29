@@ -27,6 +27,19 @@ export const fmtPct = (n: number, digits = 1) =>
 
 export const safeDiv = (n: number, d: number) => (d === 0 ? 0 : n / d);
 
+/**
+ * Sales tax actually COLLECTED on an invoice, cash basis: the invoice's
+ * tax_cents pro-rated by how much of the total has been paid. A $110 invoice
+ * with $10 tax that's half paid ($55) has collected $5 of tax — not $0 (the old
+ * behavior, which only counted tax once an invoice was fully paid).
+ */
+export function collectedTaxCents(i: { tax_cents?: number; amount_paid_cents?: number; total_cents?: number }): number {
+  const total = i.total_cents ?? 0;
+  if (total <= 0) return 0;
+  const paid = Math.min(Math.max(0, i.amount_paid_cents ?? 0), total);
+  return Math.round((i.tax_cents ?? 0) * paid / total);
+}
+
 // ─── KPIs ──────────────────────────────────────────────────
 export interface PnLKpis {
   revenue: number;        // paid revenue (cents)
@@ -45,7 +58,7 @@ export function computeKpis(payments: PaymentRow[], expenses: ExpenseRow[], invo
   const invoiced = invoices.reduce((s, i) => s + Math.max(0, (i.total_cents ?? 0) - (i.amount_paid_cents ?? 0)), 0);
   const cogs = expenses.filter((e) => isCogs(e.category)).reduce((s, e) => s + (e.amount_cents ?? 0), 0);
   const opex = expenses.filter((e) => !isCogs(e.category)).reduce((s, e) => s + (e.amount_cents ?? 0), 0);
-  const taxes = invoices.filter((i) => i.paid_at).reduce((s, i) => s + (i.tax_cents ?? 0), 0);
+  const taxes = invoices.reduce((s, i) => s + collectedTaxCents(i), 0);
   const grossProfit = revenue - cogs;
   const net = revenue - cogs - opex;
   return {

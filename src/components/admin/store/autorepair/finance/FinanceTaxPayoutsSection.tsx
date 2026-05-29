@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Building2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { collectedTaxCents } from "@/lib/admin/pnlCalculations";
 
 interface Props { storeId: string }
 const fmt = (cents: number) => `$${((cents ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -24,7 +25,7 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
     queryKey: ["ar-fin-tax-invoices", storeId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ar_invoices" as any).select("tax_cents,total_cents,status,created_at").eq("store_id", storeId);
+        .from("ar_invoices" as any).select("tax_cents,total_cents,amount_paid_cents,status,created_at").eq("store_id", storeId);
       if (error) throw error;
       return data as any[];
     },
@@ -73,7 +74,9 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
   });
 
   const stats = useMemo(() => {
-    const taxCollected = invoices.filter((i: any) => i.status === "paid").reduce((s, i: any) => s + (i.tax_cents ?? 0), 0);
+    // Cash basis: tax collected is each invoice's tax pro-rated by amount paid,
+    // so partial payments (deposits) accrue their share of tax too.
+    const taxCollected = invoices.reduce((s, i: any) => s + collectedTaxCents(i), 0);
     const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
     const ytdRevenue = invoices
       .filter((i: any) => i.status === "paid" && i.created_at >= yearStart)
@@ -96,7 +99,7 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="rounded-md border p-3">
-              <div className="text-xs text-muted-foreground">Sales tax collected (paid invoices)</div>
+              <div className="text-xs text-muted-foreground">Sales tax collected (cash basis)</div>
               <div className="text-xl font-semibold">{fmt(stats.taxCollected)}</div>
             </div>
             <div className="rounded-md border p-3">
