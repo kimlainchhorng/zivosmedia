@@ -4111,6 +4111,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ar_doc_counters: {
+        Row: {
+          doc_type: string
+          last_number: number
+          store_id: string
+        }
+        Insert: {
+          doc_type: string
+          last_number?: number
+          store_id: string
+        }
+        Update: {
+          doc_type?: string
+          last_number?: number
+          store_id?: string
+        }
+        Relationships: []
+      }
       ar_document_share_links: {
         Row: {
           created_at: string
@@ -4595,6 +4613,7 @@ export type Database = {
           store_id: string
           subtotal_cents: number
           tax_cents: number
+          tax_rate: number
           total_cents: number
           updated_at: string
           vehicle_label: string | null
@@ -4631,6 +4650,7 @@ export type Database = {
           store_id: string
           subtotal_cents?: number
           tax_cents?: number
+          tax_rate?: number
           total_cents?: number
           updated_at?: string
           vehicle_label?: string | null
@@ -4667,6 +4687,7 @@ export type Database = {
           store_id?: string
           subtotal_cents?: number
           tax_cents?: number
+          tax_rate?: number
           total_cents?: number
           updated_at?: string
           vehicle_label?: string | null
@@ -4950,43 +4971,67 @@ export type Database = {
           active: boolean
           brand: string | null
           category: string | null
+          condition: string
+          core_charge_cents: number
+          cost_cents: number
           created_at: string
+          fitment_notes: string | null
           id: string
           image_url: string | null
+          interchange_number: string | null
+          location_in_store: string | null
           name: string
+          oem_number: string | null
           price_cents: number
           sku: string
           stock: number
           store_id: string
           updated_at: string
+          warranty_months: number | null
         }
         Insert: {
           active?: boolean
           brand?: string | null
           category?: string | null
+          condition?: string
+          core_charge_cents?: number
+          cost_cents?: number
           created_at?: string
+          fitment_notes?: string | null
           id?: string
           image_url?: string | null
+          interchange_number?: string | null
+          location_in_store?: string | null
           name: string
+          oem_number?: string | null
           price_cents?: number
           sku: string
           stock?: number
           store_id: string
           updated_at?: string
+          warranty_months?: number | null
         }
         Update: {
           active?: boolean
           brand?: string | null
           category?: string | null
+          condition?: string
+          core_charge_cents?: number
+          cost_cents?: number
           created_at?: string
+          fitment_notes?: string | null
           id?: string
           image_url?: string | null
+          interchange_number?: string | null
+          location_in_store?: string | null
           name?: string
+          oem_number?: string | null
           price_cents?: number
           sku?: string
           stock?: number
           store_id?: string
           updated_at?: string
+          warranty_months?: number | null
         }
         Relationships: []
       }
@@ -75385,6 +75430,10 @@ export type Database = {
         Args: { p_adjustment_id: string; p_approve: boolean; p_notes?: string }
         Returns: Json
       }
+      ar_next_doc_number: {
+        Args: { _doc_type: string; _store_id: string }
+        Returns: string
+      }
       assign_batch_to_driver: {
         Args: { p_batch_id: string; p_driver_id: string }
         Returns: Json
@@ -75930,6 +75979,7 @@ export type Database = {
           token: string
         }[]
       }
+      create_car_rental_app_reservation: { Args: { p: Json }; Returns: Json }
       create_driver_on_signup:
         | {
             Args: {
@@ -76371,6 +76421,58 @@ export type Database = {
           input_schema: Json
           name: string
           url: string
+        }[]
+      }
+      get_car_rental_availability: {
+        Args: { p_store_id: string }
+        Returns: {
+          dropoff_at: string
+          pickup_at: string
+          status: string
+          vehicle_id: string
+        }[]
+      }
+      get_car_rental_reservation: {
+        Args: { p_code?: string; p_id?: string }
+        Returns: {
+          addons_total_cents: number
+          amount_paid_cents: number
+          base_total_cents: number
+          cancellation_reason: string
+          cancelled_at: string
+          confirmation_code: string
+          customer_email: string
+          customer_id: string
+          customer_name: string
+          customer_notes: string
+          customer_phone: string
+          daily_rate_cents: number
+          deposit_paid_cents: number
+          discount_cents: number
+          dropoff_at: string
+          dropoff_location_name: string
+          fees_cents: number
+          id: string
+          insurance_total_cents: number
+          payment_status: string
+          pickup_at: string
+          pickup_location_name: string
+          rental_days: number
+          security_deposit_cents: number
+          status: string
+          store_id: string
+          taxes_cents: number
+          total_cents: number
+          vehicle_category: string
+          vehicle_id: string
+          vehicle_label: string
+        }[]
+      }
+      get_car_rental_reservation_payment_status: {
+        Args: { p_reservation_id: string }
+        Returns: {
+          payment_status: string
+          status: string
         }[]
       }
       get_country_services: {

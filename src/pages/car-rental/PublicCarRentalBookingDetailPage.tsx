@@ -120,10 +120,10 @@ export default function PublicCarRentalBookingDetailPage() {
     setAddons([]);
     setVehicleFeatures([]);
     const normalized = c.trim().toUpperCase();
+    // Reads via a SECURITY DEFINER function (returns only the one matching
+    // reservation) so the table's sensitive columns aren't exposed to anon.
     const { data, error: err } = await supabase
-      .from("car_rental_reservations")
-      .select("*")
-      .eq("confirmation_code", normalized)
+      .rpc("get_car_rental_reservation", { p_code: normalized })
       .maybeSingle();
     if (err || !data) {
       setError("No reservation found with that confirmation code.");

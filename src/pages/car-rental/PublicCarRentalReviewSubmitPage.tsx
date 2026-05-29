@@ -55,10 +55,10 @@ export default function PublicCarRentalReviewSubmitPage() {
     (async () => {
       if (!reservationId) return;
       setLoading(true);
+      // SECURITY DEFINER function — sensitive columns are no longer anon-readable
+      // on the table directly.
       const { data, error: err } = await supabase
-        .from("car_rental_reservations")
-        .select("id, store_id, customer_id, vehicle_id, customer_name, vehicle_label, status, pickup_at, dropoff_at")
-        .eq("id", reservationId)
+        .rpc("get_car_rental_reservation", { p_id: reservationId })
         .maybeSingle();
       if (cancelled) return;
       if (err || !data) {

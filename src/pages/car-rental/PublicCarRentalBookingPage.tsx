@@ -268,18 +268,17 @@ export default function PublicCarRentalBookingPage() {
     if (!store) return;
     let cancelled = false;
     (async () => {
-      const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await supabase
-        .from("car_rental_reservations")
-        .select("vehicle_id, status")
-        .eq("store_id", store.id)
-        .in("status", ["returned", "picked_up"])
-        .gte("pickup_at", cutoff)
-        .limit(500);
+      const cutoffMs = Date.now() - 90 * 24 * 60 * 60 * 1000;
+      // Reservations are no longer anon-readable on the table (PII + Stripe
+      // leak). Availability windows (vehicle_id + dates + status only) come
+      // from a SECURITY DEFINER RPC; we filter/aggregate client-side.
+      const { data } = await supabase.rpc("get_car_rental_availability", { p_store_id: store.id });
       if (cancelled) return;
       const counts = new Map<string, number>();
-      for (const r of (data ?? []) as Array<{ vehicle_id: string | null }>) {
+      for (const r of (data ?? []) as Array<{ vehicle_id: string | null; pickup_at: string; status: string }>) {
         if (!r.vehicle_id) continue;
+        if (r.status !== "returned" && r.status !== "picked_up") continue;
+        if (new Date(r.pickup_at).getTime() < cutoffMs) continue;
         counts.set(r.vehicle_id, (counts.get(r.vehicle_id) ?? 0) + 1);
       }
       // Pick the top 3 with at least 2 rentals to avoid tagging a brand-new fleet.
@@ -299,14 +298,9 @@ export default function PublicCarRentalBookingPage() {
     let cancelled = false;
     (async () => {
       const now = new Date().toISOString();
+      const nowMs = Date.now();
       const [resR, blackR] = await Promise.all([
-        supabase
-          .from("car_rental_reservations")
-          .select("vehicle_id, pickup_at, dropoff_at, status")
-          .eq("store_id", store.id)
-          .in("status", ["picked_up", "confirmed"])
-          .lt("pickup_at", now)
-          .gt("dropoff_at", now),
+        supabase.rpc("get_car_rental_availability", { p_store_id: store.id }),
         supabase
           .from("car_rental_vehicle_blackouts")
           .select("vehicle_id, starts_at, ends_at")
@@ -316,8 +310,10 @@ export default function PublicCarRentalBookingPage() {
       ]);
       if (cancelled) return;
       const set = new Set<string>();
-      for (const r of (resR.data ?? []) as Array<{ vehicle_id: string | null }>) {
-        if (r.vehicle_id) set.add(r.vehicle_id);
+      for (const r of (resR.data ?? []) as Array<{ vehicle_id: string | null; pickup_at: string; dropoff_at: string; status: string }>) {
+        if (!r.vehicle_id) continue;
+        if (r.status !== "picked_up" && r.status !== "confirmed") continue;
+        if (new Date(r.pickup_at).getTime() < nowMs && new Date(r.dropoff_at).getTime() > nowMs) set.add(r.vehicle_id);
       }
       for (const b of (blackR.data ?? []) as Array<{ vehicle_id: string | null }>) {
         if (b.vehicle_id) set.add(b.vehicle_id);
@@ -334,27 +330,25 @@ export default function PublicCarRentalBookingPage() {
     if (vehicles.length === 0) return;
     let cancelled = false;
     (async () => {
-      const pickupAt = new Date(`${pickupDate}T${pickupTime}:00`).toISOString();
-      const dropoffAt = new Date(`${dropoffDate}T${dropoffTime}:00`).toISOString();
+      const pickupAtIso = new Date(`${pickupDate}T${pickupTime}:00`).toISOString();
+      const dropoffAtIso = new Date(`${dropoffDate}T${dropoffTime}:00`).toISOString();
+      const pickupMs = new Date(pickupAtIso).getTime();
+      const dropoffMs = new Date(dropoffAtIso).getTime();
       const [resR, blackR] = await Promise.all([
-        supabase
-          .from("car_rental_reservations")
-          .select("vehicle_id, pickup_at, dropoff_at, status")
-          .eq("store_id", store.id)
-          .in("status", ["pending", "confirmed", "picked_up"])
-          .lt("pickup_at", dropoffAt)
-          .gt("dropoff_at", pickupAt),
+        supabase.rpc("get_car_rental_availability", { p_store_id: store.id }),
         supabase
           .from("car_rental_vehicle_blackouts")
           .select("vehicle_id, starts_at, ends_at")
           .eq("store_id", store.id)
-          .lt("starts_at", dropoffAt)
-          .gt("ends_at", pickupAt),
+          .lt("starts_at", dropoffAtIso)
+          .gt("ends_at", pickupAtIso),
       ]);
       if (cancelled) return;
       const set = new Set<string>();
-      for (const r of (resR.data ?? []) as Array<{ vehicle_id: string | null }>) {
-        if (r.vehicle_id) set.add(r.vehicle_id);
+      for (const r of (resR.data ?? []) as Array<{ vehicle_id: string | null; pickup_at: string; dropoff_at: string; status: string }>) {
+        if (!r.vehicle_id) continue;
+        if (r.status !== "pending" && r.status !== "confirmed" && r.status !== "picked_up") continue;
+        if (new Date(r.pickup_at).getTime() < dropoffMs && new Date(r.dropoff_at).getTime() > pickupMs) set.add(r.vehicle_id);
       }
       for (const b of (blackR.data ?? []) as Array<{ vehicle_id: string | null }>) {
         if (b.vehicle_id) set.add(b.vehicle_id);
@@ -505,11 +499,13 @@ export default function PublicCarRentalBookingPage() {
       source: "app" as const,
       customer_notes: notes.trim() || null,
     };
+    // Direct anon INSERT + read-back is no longer permitted (the broad public
+    // policies were removed to stop a PII/Stripe leak). Create through a
+    // SECURITY DEFINER RPC that forces source='app'/status='pending' and
+    // returns { id, confirmation_code }. The no-overlap exclusion violation
+    // (23P01) still propagates so the conflict branch below fires.
     const { data, error: err } = await supabase
-      .from("car_rental_reservations")
-      .insert(payload as never)
-      .select("confirmation_code, id")
-      .single();
+      .rpc("create_car_rental_app_reservation", { p: payload });
     if (err) {
       console.error(err);
       if ((err as any).code === "23P01") {
@@ -600,9 +596,10 @@ export default function PublicCarRentalBookingPage() {
   };
 
   // When the customer is on the payment step (or has just submitted payment),
-  // subscribe to the reservation row and flip to "confirmed" as soon as the
-  // Stripe webhook updates payment_status. Falls back to a 2-second poll if
-  // Realtime is unavailable.
+  // poll the reservation's payment status — via a SECURITY DEFINER RPC, since
+  // the row is no longer anon-readable on the table (and a Realtime
+  // subscription would expose the full row, incl. Stripe ids) — and flip to
+  // "confirmed" once the Stripe webhook marks it authorized/captured/paid.
   useEffect(() => {
     if (!paymentSession) return;
     if (step !== "payment" && step !== "confirmed") return;
@@ -619,26 +616,9 @@ export default function PublicCarRentalBookingPage() {
       }
     };
 
-    const channel = supabase
-      .channel(`car_rental_reservation_${reservationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "car_rental_reservations",
-          filter: `id=eq.${reservationId}`,
-        },
-        (payload: any) => handleStatus(payload?.new?.payment_status, payload?.new?.status),
-      )
-      .subscribe();
-
-    // Polling fallback (handles the case where Realtime isn't subscribed yet)
     const poll = window.setInterval(async () => {
       const { data } = await supabase
-        .from("car_rental_reservations")
-        .select("payment_status, status")
-        .eq("id", reservationId)
+        .rpc("get_car_rental_reservation_payment_status", { p_reservation_id: reservationId })
         .maybeSingle();
       handleStatus((data as any)?.payment_status, (data as any)?.status);
     }, 2500);
@@ -646,7 +626,6 @@ export default function PublicCarRentalBookingPage() {
     return () => {
       cancelled = true;
       window.clearInterval(poll);
-      try { supabase.removeChannel(channel); } catch { /* noop */ }
     };
   }, [paymentSession, step]);
 

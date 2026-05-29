@@ -566,7 +566,7 @@ export default function AdminStoreEditPage() {
   const { storeId } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
   const { currentLanguage, changeLanguage, t } = useI18n();
   const { data: supportedLanguages } = useSupportedLanguages(true);
@@ -2323,6 +2323,19 @@ export default function AdminStoreEditPage() {
         <Button onClick={() => navigate(isAdmin ? "/admin/stores" : "/")} variant="outline">
           {isAdmin ? "Back to Stores" : "Back to Home"}
         </Button>
+      </div>
+    ));
+  }
+
+  // Access control: only the store's owner or a platform admin may open the editor.
+  // (RLS already blocks reading/writing data they don't own; this stops the page
+  // itself from rendering for everyone else.)
+  if (!isAdmin && (!user || (store as any).owner_id !== user.id)) {
+    return renderLayout("Access Denied", (
+      <div className="text-center py-20 space-y-4">
+        <p className="font-semibold">You don't have access to this store</p>
+        <p className="text-sm text-muted-foreground">Only the store owner or a platform admin can open this page.</p>
+        <Button onClick={() => navigate("/")} variant="outline">Back to Home</Button>
       </div>
     ));
   }

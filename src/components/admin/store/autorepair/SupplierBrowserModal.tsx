@@ -117,6 +117,10 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
   // Launcher mode state
   const [launchStep, setLaunchStep] = useState<LaunchStep>("idle");
 
+  // Set when the embedded portal appears to have blocked the in-app login
+  // (e.g. Akamai/Cloudflare bot wall). Drives a "log in via new tab" nudge.
+  const [loginBlocked, setLoginBlocked] = useState(false);
+
   // Search
   const [searchQ, setSearchQ] = useState(query ?? "");
 
@@ -146,6 +150,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     setEditCreds(!existing);
     setSearchQ(query ?? "");
     setLaunchStep("idle");
+    setLoginBlocked(false);
 
     if (isSkipEmbed) {
       setLoadState("failed");
@@ -213,6 +218,30 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, [iframeSrc, loadState, isSkipEmbed]);
 
+  // Bot-wall / error detection. Many supplier portals (Akamai/Cloudflare) let the
+  // page load but block the actual login, showing a generic error. We poll the
+  // embedded doc (same-origin blob, so readable) for those markers and nudge the
+  // user to finish login in a real browser tab where the portal trusts the session.
+  useEffect(() => {
+    if (isSkipEmbed || loadState !== "ready") return;
+    const MARKERS = [
+      "technical issues", "access denied", "pardon the interruption",
+      "unusual traffic", "unusual activity", "request unsuccessful",
+      "reference #", "verify you are a human", "are you a robot",
+      "couldn't complete your request", "could not complete your request",
+    ];
+    const check = () => {
+      try {
+        const doc = iframeRef.current?.contentDocument;
+        const text = (doc?.body?.innerText || "").toLowerCase();
+        if (text && MARKERS.some(m => text.includes(m))) setLoginBlocked(true);
+      } catch { /* cross-origin / not ready — ignore */ }
+    };
+    check();
+    const id = setInterval(check, 1500);
+    return () => clearInterval(id);
+  }, [loadState, isSkipEmbed, frameKey]);
+
   if (!supplier) return null;
 
   const consumerUrl = supplier.consumerDomain ? `https://${supplier.consumerDomain}` : null;
@@ -272,6 +301,18 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
   };
 
   const openNewTab = () => targetUrl && window.open(targetUrl, "_blank", "noopener,noreferrer");
+
+  // Open the real portal in a new tab and copy the username if we have one — used
+  // by the "blocked login" nudge so the user can finish signing in where it works.
+  const openNewTabWithUsername = async () => {
+    if (targetUrl) window.open(targetUrl, "_blank", "noopener,noreferrer");
+    if (email) {
+      await copyToClipboard(email, "email");
+      toast.success(`Opened ${displayName} in a new tab — username copied. Paste it to sign in.`);
+    } else {
+      toast.success(`Opened ${displayName} in a new tab.`);
+    }
+  };
 
   // ──────────────────────────────────────────────
   // CREDENTIAL LAUNCHER (skipEmbed or failed embed)
@@ -612,6 +653,27 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
                   <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs mt-1" onClick={() => setLoadState("failed")}>
                     Skip — show options
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Blocked-login nudge — the portal loaded but won't let us sign in in-frame */}
+            {loginBlocked && (
+              <div className="absolute top-0 inset-x-0 z-20 m-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50 shadow-lg px-4 py-3 flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Sign-in won't complete inside the app</p>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
+                    {displayName} blocks logging in through the in-app browser. Finish signing in a real browser tab{email ? " — your username will be copied automatically." : "."}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={openNewTabWithUsername}>
+                      <ExternalLink className="w-3.5 h-3.5" /> {email ? "Open in new tab & copy username" : `Open ${displayName} in new tab`}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40" onClick={() => setLoginBlocked(false)}>
+                      Dismiss
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
