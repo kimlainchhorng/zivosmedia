@@ -35,6 +35,21 @@ export interface PartsSupplier {
 }
 
 export const PARTS_SUPPLIERS: PartsSupplier[] = [
+  // -------- Aggregators — search/order across many suppliers at once --------
+  {
+    id: "partstech",
+    name: "PartsTech",
+    shortName: "PartsTech",
+    domain: "app.partstech.com",
+    portalUrl: "https://app.partstech.com/",
+    category: "Wholesale Distributor",
+    description: "Multi-supplier parts search & ordering · login required",
+    loginFlow: "single",
+    // PartsTech's app is an authenticated SPA that blocks iframe embedding —
+    // launch it in a new tab via the credential-launcher instead.
+    skipEmbed: true,
+  },
+
   // -------- Retail chains — Pro/B2B portals --------
   {
     id: "autozone",

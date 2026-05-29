@@ -43,6 +43,7 @@ const CATS = ["All","Brakes","Engine","Fluids","Electrical","Tires","HVAC","Susp
 // Top external suppliers with search URL templates (for "not in catalog" fallback)
 const QUICK_SUPPLIERS = PARTS_SUPPLIERS.filter(s => s.searchUrlTemplate).slice(0, 6);
 const AUTOZONE = getPartsSupplier("autozone");
+const PARTSTECH = getPartsSupplier("partstech");
 
 export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }: Props) {
   const [q, setQ] = useState("");
@@ -270,6 +271,11 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
               : `${filtered.length} part${filtered.length !== 1 ? "s" : ""} in catalog`}
           </p>
           <div className="flex items-center gap-2">
+            {PARTSTECH && (
+              <Button size="sm" variant="outline" onClick={() => openSupplier(PARTSTECH)} className="gap-1.5" title="Open PartsTech — search across all your suppliers">
+                <ExternalLink className="w-3.5 h-3.5" /> PartsTech
+              </Button>
+            )}
             {AUTOZONE && (
               <Button size="sm" variant="outline" onClick={() => openSupplier(AUTOZONE)} className="gap-1.5" title={q.trim() ? `Search "${q.trim()}" on AutoZone Pro` : "Open AutoZone Pro"}>
                 <ExternalLink className="w-3.5 h-3.5" /> AutoZone Pro
