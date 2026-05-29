@@ -35,7 +35,6 @@ import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
 import Search from "lucide-react/dist/esm/icons/search";
 import Globe from "lucide-react/dist/esm/icons/globe";
-import LogIn from "lucide-react/dist/esm/icons/log-in";
 import PartsSupplierLogo from "./PartsSupplierLogo";
 import { type PartsSupplier, getSupplierSearchUrl } from "@/config/partsSuppliers";
 import { SUPABASE_URL } from "@/integrations/supabase/client";
@@ -126,12 +125,16 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
 
   const isSkipEmbed = !!supplier?.skipEmbed;
 
+  const portalUrl = useMemo(() => {
+    if (!supplier) return null;
+    return supplier.portalUrl || (supplier.domain ? `https://${supplier.domain}` : null);
+  }, [supplier]);
+
   const targetUrl = useMemo(() => {
-    if (!supplier?.domain) return null;
-    return (searchQ && getSupplierSearchUrl(supplier, searchQ))
-      || supplier.portalUrl
-      || `https://${supplier.domain}`;
-  }, [supplier, searchQ]);
+    if (!supplier) return null;
+    const searchUrl = searchQ.trim() ? getSupplierSearchUrl(supplier, searchQ.trim()) : null;
+    return searchUrl || portalUrl;
+  }, [supplier, searchQ, portalUrl]);
 
   const proxiedUrl = useMemo(() =>
     targetUrl ? `${PROXY_BASE}${encodeURIComponent(targetUrl)}` : null,
@@ -208,7 +211,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [open, isSkipEmbed, email, password]);
+  }, [open, isSkipEmbed, email, password, navigateTo]);
 
   // Timeout for failed load
   useEffect(() => {
@@ -268,9 +271,16 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
   };
 
   const copyToClipboard = async (value: string, kind: "email" | "password") => {
-    if (!value) return;
-    try { await navigator.clipboard.writeText(value); setCopied(kind); setTimeout(() => setCopied(null), 2000); }
-    catch { toast.error("Could not copy"); }
+    if (!value) return false;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 2000);
+      return true;
+    } catch {
+      toast.error("Could not copy");
+      return false;
+    }
   };
 
   const sendAutofill = () => {
@@ -290,28 +300,64 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     }).catch(() => setLoadState("failed"));
   };
 
-  // Open tab AND copy username automatically
+  const signInUrl = portalUrl || targetUrl || "#";
+
+  const openWindow = (url: string) => {
+    try {
+      const opened = window.open(url, "_blank");
+      if (opened) {
+        opened.opener = null;
+        return true;
+      }
+    } catch {
+      // Fall through to same-tab navigation below.
+    }
+    return false;
+  };
+
+  const openInCurrentTab = (url: string) => {
+    if (url && url !== "#") window.location.assign(url);
+  };
+
+  // Copy username, then send blocked suppliers to a real sign-in page.
   const launchAndCopyUsername = async () => {
-    if (targetUrl) window.open(targetUrl, "_blank", "noopener,noreferrer");
+    const opened = isSkipEmbed ? false : openWindow(signInUrl);
     if (email) {
-      await copyToClipboard(email, "email");
-      toast.success(`Tab opened — username "${email}" copied! Paste it in the login field.`);
+      const didCopy = await copyToClipboard(email, "email");
+      toast.success(didCopy
+        ? "Sign-in page opened - username copied. Paste it in the login field."
+        : "Sign-in page opened. Use the copy button if the username did not copy."
+      );
+    } else {
+      toast.success("Sign-in page opened.");
     }
     setLaunchStep("tab_opened");
+    if (!opened) openInCurrentTab(signInUrl);
   };
 
   const openNewTab = () => targetUrl && window.open(targetUrl, "_blank", "noopener,noreferrer");
+  const openLoginTab = () => {
+    const url = portalUrl || targetUrl;
+    if (!url) return;
+    if (isSkipEmbed || !openWindow(url)) openInCurrentTab(url);
+  };
 
   // Open the real portal in a new tab and copy the username if we have one — used
   // by the "blocked login" nudge so the user can finish signing in where it works.
   const openNewTabWithUsername = async () => {
-    if (targetUrl) window.open(targetUrl, "_blank", "noopener,noreferrer");
+    const url = portalUrl || targetUrl;
+    if (!url) return;
+    const opened = isSkipEmbed ? false : openWindow(url);
     if (email) {
-      await copyToClipboard(email, "email");
-      toast.success(`Opened ${displayName} in a new tab — username copied. Paste it to sign in.`);
+      const didCopy = await copyToClipboard(email, "email");
+      toast.success(didCopy
+        ? `Opened ${displayName} sign-in - username copied. Paste it to sign in.`
+        : `Opened ${displayName} sign-in. Use the copy button if the username did not copy.`
+      );
     } else {
-      toast.success(`Opened ${displayName} in a new tab.`);
+      toast.success(`Opened ${displayName} sign-in.`);
     }
+    if (!opened) openInCurrentTab(url);
   };
 
   // ──────────────────────────────────────────────
@@ -337,7 +383,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
 
           <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
             <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
-            <p>Stored on this device only. Click <strong>Launch &amp; Log In</strong> to open {displayName} — your username will be copied automatically.</p>
+            <p>Stored on this device only. {displayName} blocks embedded sign-in, so open its secure login tab and use the copy buttons here.</p>
           </div>
 
           {supplier.loginFlow === "two-step" && (
@@ -364,7 +410,9 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
                 />
                 <Button
                   size="sm" variant="outline" className="h-9 w-9 p-0 shrink-0"
-                  onClick={() => { copyToClipboard(email, "email"); toast.success("Username copied!"); }}
+                  onClick={async () => {
+                    if (await copyToClipboard(email, "email")) toast.success("Username copied!");
+                  }}
                   disabled={!email}
                   title="Copy username"
                 >
@@ -398,7 +446,9 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
                   size="sm"
                   variant={launchStep === "tab_opened" ? "default" : "outline"}
                   className={`h-9 w-9 p-0 shrink-0 ${launchStep === "tab_opened" ? "animate-pulse" : ""}`}
-                  onClick={() => { copyToClipboard(password, "password"); toast.success("Password copied! Paste it in the portal."); }}
+                  onClick={async () => {
+                    if (await copyToClipboard(password, "password")) toast.success("Password copied! Paste it in the portal.");
+                  }}
                   disabled={!password}
                   title="Copy password"
                 >
@@ -438,20 +488,20 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
               className="w-full gap-2 text-sm h-12"
               onClick={launchAndCopyUsername}
             >
-              <LogIn className="w-4 h-4" />
-              {email ? `Launch ${displayName} & copy username` : `Open ${displayName} in new tab`}
+              <ExternalLink className="w-4 h-4" />
+              {email ? `Go to ${displayName} login & copy username` : `Go to ${displayName} login`}
             </Button>
           ) : (
             <div className="space-y-2">
               <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-700 px-4 py-3">
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">Tab opened — username copied!</p>
+                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">Sign-in page opened</p>
                   <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Paste it in {displayName}'s login field{supplier.loginFlow === "two-step" ? ", click Continue, then come back and copy your password." : ", then copy your password below."}</p>
                 </div>
               </div>
-              <Button size="sm" variant="outline" className="w-full gap-2 h-9 text-xs" onClick={openNewTab}>
-                <ExternalLink className="w-3.5 h-3.5" /> Open {displayName} again
+              <Button size="sm" variant="outline" className="w-full gap-2 h-9 text-xs" onClick={openLoginTab}>
+                <ExternalLink className="w-3.5 h-3.5" /> Go to {displayName} sign-in
               </Button>
             </div>
           )}
@@ -537,7 +587,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
               </>
             )}
 
-            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={openNewTab}>
+            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={isSkipEmbed ? openLoginTab : openNewTab}>
               <ExternalLink className="w-3.5 h-3.5" /> New tab
             </Button>
           </DialogTitle>
@@ -687,6 +737,10 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
                 className="absolute inset-0 w-full h-full bg-white border-none"
                 sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads"
                 referrerPolicy="no-referrer"
+                onLoad={() => {
+                  if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                  setLoadState("ready");
+                }}
                 onError={() => setLoadState("failed")}
               />
             )}

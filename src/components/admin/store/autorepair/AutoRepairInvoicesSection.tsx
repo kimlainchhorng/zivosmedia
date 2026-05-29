@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Plus, DollarSign, Trash2, Receipt, ClipboardList, ArrowLeft, ScanSearch, Loader2, Check, CloudUpload, Wrench, Package, Stethoscope, Truck, KeyRound, Car, LogOut, Eye, ArrowRightLeft, BookOpen } from "lucide-react";
+import { FileText, Plus, DollarSign, Trash2, Receipt, ClipboardList, ArrowLeft, ScanSearch, Loader2, Check, CloudUpload, Wrench, Package, Stethoscope, Truck, KeyRound, Car, LogOut, Eye, ArrowRightLeft, BookOpen, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import AutoRepairDocPreviewDialog from "./AutoRepairDocPreviewDialog";
 import AddressAutocomplete from "@/components/shared/AddressAutocomplete";
@@ -145,6 +145,59 @@ function parseAddress(full: string): { address: string; city: string; state: str
 function combinedAddress(d: { address?: string; city?: string; state?: string; zip?: string }): string {
   const stateZip = [d.state, d.zip].filter(Boolean).join(" ").trim();
   return [d.address, d.city, stateZip].map(s => (s || "").trim()).filter(Boolean).join(", ");
+}
+
+function parseSupplierPartText(text: string): PickedPart | null {
+  const raw = text.trim();
+  if (!raw) return null;
+
+  const lines = raw
+    .split(/\r?\n/)
+    .map(s => s.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const moneyMatches: Array<{ value: number; line: string }> = [];
+  for (const line of lines) {
+    const matches = line.matchAll(/(?:\$|USD\s*)\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.\d{2})|[0-9]+\.\d{2})/gi);
+    for (const match of matches) {
+      const value = Number(match[1].replace(/,/g, ""));
+      if (Number.isFinite(value) && value > 0) moneyMatches.push({ value, line });
+    }
+  }
+
+  const priceMatch =
+    moneyMatches.find(m => /unit|each|your price|price/i.test(m.line) && !/subtotal|total|tax|core|shipping/i.test(m.line)) ||
+    moneyMatches.find(m => !/subtotal|total|tax|core|shipping/i.test(m.line)) ||
+    moneyMatches[0];
+
+  const skuLine = lines.find(line => /(part|sku|item|mfr|manufacturer)\s*(?:#|number|no\.?)?/i.test(line));
+  const skuFromLabel = skuLine?.match(/(?:part|sku|item|mfr|manufacturer)\s*(?:#|number|no\.?)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9._\-]{2,})/i)?.[1];
+  const skuFallback = lines
+    .map(line => line.match(/\b[A-Z0-9]{2,}[-_][A-Z0-9._-]{2,}\b/i)?.[0])
+    .find(Boolean);
+  const sku = (skuFromLabel || skuFallback || "").replace(/[),.;:]$/, "");
+
+  const ignored = /^(add to cart|cart|qty|quantity|in stock|pickup|delivery|ship|save|compare|fitment|vehicle|part\s*#|sku\s*#|item\s*#|your price|price|subtotal|total|tax|core|change|manage)$/i;
+  const descriptionLine = lines.find(line =>
+    line.length > 2 &&
+    !ignored.test(line) &&
+    !line.includes("$") &&
+    !/(part|sku|item|mfr|manufacturer)\s*(?:#|number|no\.?)?\s*[:\-]?/i.test(line)
+  ) || lines.find(line => line.length > 2 && !line.includes("$")) || "";
+
+  if (!descriptionLine && !sku && !priceMatch) return null;
+
+  const qtyMatch = raw.match(/\b(?:qty|quantity)\s*[:x-]?\s*(\d{1,3})\b/i) || raw.match(/\b(\d{1,3})\s*x\s+\$?\d/i);
+  const qty = Math.max(1, Number(qtyMatch?.[1] || 1));
+  const description = [descriptionLine || "Supplier part", sku ? `SKU: ${sku}` : ""].filter(Boolean).join(" - ");
+
+  return {
+    description,
+    sku,
+    brand: "",
+    price: priceMatch?.value ?? 0,
+    qty,
+  };
 }
 
 interface Props { storeId: string }
@@ -648,6 +701,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const [showPartPicker, setShowPartPicker] = useState(false);
   const [showLaborGuide, setShowLaborGuide] = useState(false);
   const [showServicePicker, setShowServicePicker] = useState(false);
+  const [showSupplierPaste, setShowSupplierPaste] = useState(false);
+  const [supplierPasteText, setSupplierPasteText] = useState("");
+  const supplierPastePreview = useMemo(() => parseSupplierPartText(supplierPasteText), [supplierPasteText]);
 
   const addItem = (category: LineCategory = "labor") => setDraft(d => ({
     ...d,
@@ -678,6 +734,36 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         },
       ],
     }));
+  };
+
+  const pasteSupplierClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast.error("Clipboard is empty");
+        return;
+      }
+      setSupplierPasteText(text);
+      toast.success("Clipboard pasted");
+    } catch {
+      toast.error("Paste permission blocked - use Ctrl+V in the box");
+    }
+  };
+
+  const addFromSupplierPaste = () => {
+    const parsed = parseSupplierPartText(supplierPasteText);
+    if (!parsed || (!parsed.description.trim() && !parsed.sku.trim())) {
+      toast.error("Paste item text from AutoZonePro first");
+      return;
+    }
+    if (!parsed.price || parsed.price <= 0) {
+      toast.error("I could not find a price. Add the part manually or include the price in the pasted text.");
+      return;
+    }
+    addFromCatalog(parsed);
+    setSupplierPasteText("");
+    setShowSupplierPaste(false);
+    toast.success("Supplier part added to invoice");
   };
 
   // Add a labor line from the standard Labor Guide (prefills the shop's $/hr rate).
@@ -1047,15 +1133,59 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                           </>
                         )}
                         {cat === "part" && (
-                          <Button size="sm" variant="outline" onClick={() => setShowPartPicker(true)} className="h-8 gap-1 border-primary/50 text-primary hover:bg-primary/5">
-                            <BookOpen className="w-3.5 h-3.5" /> Pick from catalog
-                          </Button>
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => setShowSupplierPaste(s => !s)} className="h-8 gap-1 border-primary/50 text-primary hover:bg-primary/5">
+                              <ClipboardPaste className="w-3.5 h-3.5" /> Paste supplier item
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setShowPartPicker(true)} className="h-8 gap-1 border-primary/50 text-primary hover:bg-primary/5">
+                              <BookOpen className="w-3.5 h-3.5" /> Pick from catalog
+                            </Button>
+                          </>
                         )}
                         <Button size="sm" variant="outline" onClick={() => addItem(cat)} className="h-8 gap-1">
                           <Plus className="w-3.5 h-3.5" /> Add {cat === "part" ? "part" : cat === "labor" ? "labor" : "diagnosis"}
                         </Button>
                       </div>
                     </div>
+
+                    {cat === "part" && showSupplierPaste && (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold flex items-center gap-1.5">
+                              <ClipboardPaste className="w-3.5 h-3.5" /> Paste from AutoZonePro
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Copy the product/cart row in AutoZonePro, come back here, paste it, then add it to this invoice.
+                            </p>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowSupplierPaste(false)}>Close</Button>
+                        </div>
+                        <Textarea
+                          value={supplierPasteText}
+                          onChange={e => setSupplierPasteText(e.target.value)}
+                          placeholder={"Paste copied supplier text here, for example:\nDuralast Gold Brake Pads\nPart # DG1363\nYour Price $49.99\nQty 1"}
+                          className="min-h-[104px] text-sm"
+                        />
+                        {supplierPastePreview && (
+                          <div className="rounded-lg border bg-background/80 px-3 py-2 text-xs">
+                            <p className="font-semibold text-foreground truncate">{supplierPastePreview.description}</p>
+                            <p className="text-muted-foreground">
+                              {supplierPastePreview.sku ? `Part # ${supplierPastePreview.sku} · ` : ""}
+                              Qty {supplierPastePreview.qty} · ${supplierPastePreview.price.toFixed(2)}
+                            </p>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={pasteSupplierClipboard}>
+                            <ClipboardPaste className="w-3.5 h-3.5" /> Paste clipboard
+                          </Button>
+                          <Button size="sm" className="h-8 gap-1.5" onClick={addFromSupplierPaste} disabled={!supplierPasteText.trim()}>
+                            <Plus className="w-3.5 h-3.5" /> Add to invoice
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     {rows.length === 0 && (
                       <div className="text-center py-8 border border-dashed border-border rounded-lg space-y-2">
