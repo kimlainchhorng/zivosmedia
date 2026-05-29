@@ -471,6 +471,7 @@ const MorePage = lazy(() => import("./pages/MorePage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 const UsernameRedirectPage = lazy(() => import("./pages/UsernameRedirectPage"));
 const DeleteAccountPage = lazy(() => import("./pages/profile/DeleteAccountPage"));
+const AccountDeletionInfo = lazy(() => import("./pages/AccountDeletionInfo"));
 const ShareProfileRedirect = lazy(() => import("./pages/ShareProfileRedirect"));
 const DeepLinkLandingPage = lazy(() => import("./pages/DeepLinkLandingPage"));
 const StoryDeepLinkPage = lazy(() => import("./pages/StoryDeepLinkPage"));
@@ -2004,6 +2005,8 @@ const App = () => (
                 <Route path="/legal/terms" element={<TermsOfService />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+                <Route path="/account-deletion" element={<AccountDeletionInfo />} />
+                <Route path="/delete-account" element={<AccountDeletionInfo />} />
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/legal/refunds" element={<RefundPolicy />} />
                 <Route path="/partner-agreement" element={<PartnerAgreement />} />

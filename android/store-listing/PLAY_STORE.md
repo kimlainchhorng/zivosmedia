@@ -4,7 +4,7 @@
 
 Play Console → ZIVO → Grow → Store presence → Main store listing
 
-Package name: `com.myzivo.app`
+Package name: `com.hizovo.app`
 
 ---
 
@@ -66,9 +66,9 @@ Download ZIVO and run your whole day in one app.
 ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory. Some premium features and creator subscriptions may have a price.
 
 Support:  support@hizivo.com
-Website:  https://hizivo.com
-Privacy:  https://hizivo.com/privacy
-Terms:    https://hizivo.com/terms
+Website:  https://zivollc.com
+Privacy:  https://zivollc.com/privacy-policy
+Terms:    https://zivollc.com/terms-of-service
 ```
 
 ## 4. What's New / Release Notes  (max 500 characters — UPDATE EVERY RELEASE)
@@ -96,17 +96,25 @@ In-app purchases: Yes (creator subscriptions, premium features)
 
 ```
 Email:    support@hizivo.com
-Website:  https://hizivo.com
+Website:  https://zivollc.com
 Phone:    (optional — leave blank if not used)
 ```
 
 ## 7. Privacy Policy URL
 
 ```
-https://hizivo.com/privacy
+https://zivollc.com/privacy-policy
 ```
 
-## 8. Graphic Assets (sizes Google requires — replace files, do NOT change names)
+## 8. Account Deletion URL
+
+Use this in Play Console -> App content -> Data safety -> Account deletion.
+
+```
+https://zivollc.com/account-deletion
+```
+
+## 9. Graphic Assets (sizes Google requires — replace files, do NOT change names)
 
 ```
 Icon:               512 × 512 PNG (32-bit, no alpha background)
