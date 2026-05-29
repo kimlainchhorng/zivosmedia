@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ShieldAlert } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 
 // Origins permitted to receive a ZIVO session. Set the real ZIVO Chat
@@ -38,7 +39,7 @@ function allowedOrigins(): string[] {
 type ReturnTarget = { kind: "web"; url: URL } | { kind: "deeplink"; base: string };
 
 // Native ZIVO Chat deep links permitted to receive a handoff token.
-const ALLOWED_DEEPLINK_RETURNS = ["zivochat://connect/zivo"];
+const ALLOWED_DEEPLINK_RETURNS = ["com.zivo.chat://connect/zivo"];
 
 function validateReturn(returnUrl: string): ReturnTarget | null {
   // Native app custom-scheme deep link, e.g. zivochat://connect/zivo?redirect=…
@@ -99,18 +100,25 @@ const ConnectChat = () => {
       }
 
       const qp = new URLSearchParams({ ott: tokenHash, state });
-      let dest: string;
       if (target.kind === "deeplink") {
         // Custom schemes don't reliably carry URL fragments through the OS
         // open, so pass the single-use token as a query param instead.
         const sep = target.base.includes("?") ? "&" : "?";
-        dest = `${target.base}${sep}${qp.toString()}`;
+        const dest = `${target.base}${sep}${qp.toString()}`;
+        if (Capacitor.isNativePlatform()) {
+          // Inside the native ZIVO app → launch ZIVO Chat directly (app-to-app).
+          const { AppLauncher } = await import("@capacitor/app-launcher");
+          await AppLauncher.openUrl({ url: dest });
+        } else {
+          // In-app browser fallback: a top-level navigation to the custom
+          // scheme hands control back to the ZIVO Chat app.
+          window.location.replace(dest);
+        }
       } else {
         // Web: keep the token in the fragment (never sent to a server).
         const u = target.url;
-        dest = `${u.origin}${u.pathname}${u.search}#${qp.toString()}`;
+        window.location.replace(`${u.origin}${u.pathname}${u.search}#${qp.toString()}`);
       }
-      window.location.replace(dest);
     })();
   }, [navigate, params]);
 
