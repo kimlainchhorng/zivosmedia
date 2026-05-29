@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { PARTS_SUPPLIERS } from "@/config/partsSuppliers";
+import { PARTS_SUPPLIERS, getPartsSupplier, getSupplierSearchUrl } from "@/config/partsSuppliers";
 import Search from "lucide-react/dist/esm/icons/search";
 import Package from "lucide-react/dist/esm/icons/package";
 import Plus from "lucide-react/dist/esm/icons/plus";
@@ -41,6 +41,7 @@ const CATS = ["All","Brakes","Engine","Fluids","Electrical","Tires","HVAC","Susp
 
 // Top external suppliers with search URL templates (for "not in catalog" fallback)
 const QUICK_SUPPLIERS = PARTS_SUPPLIERS.filter(s => s.searchUrlTemplate).slice(0, 6);
+const AUTOZONE = getPartsSupplier("autozone");
 
 export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }: Props) {
   const [q, setQ] = useState("");
@@ -85,6 +86,14 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
     });
     setAddedIds(prev => new Set([...prev, p.id]));
     toast.success(`${p.name} added to invoice`);
+  };
+
+  // Open AutoZone Pro pre-filled with the current search (falls back to the
+  // pro portal login when the search box is empty). Deep-link only — no API.
+  const openAutoZone = () => {
+    if (!AUTOZONE) return;
+    const url = (q.trim() && getSupplierSearchUrl(AUTOZONE, q.trim())) || AUTOZONE.portalUrl || `https://${AUTOZONE.domain}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const stockLabel = (stock: number) => {
@@ -179,7 +188,12 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
             <div className="text-center py-12">
               <Package className="w-10 h-10 mx-auto text-muted-foreground/30 mb-2" />
               <p className="text-sm font-semibold">No parts in your catalog yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Go to the Parts tab to add your inventory first.</p>
+              <p className="text-xs text-muted-foreground mt-1 mb-4">Add inventory in the Parts tab, or look it up on a supplier.</p>
+              {AUTOZONE && (
+                <Button size="sm" variant="outline" onClick={openAutoZone} className="gap-1.5">
+                  <ExternalLink className="w-3.5 h-3.5" /> Look up on AutoZone Pro
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
@@ -256,7 +270,14 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
               ? <span className="text-primary font-semibold">{addedIds.size} part{addedIds.size > 1 ? "s" : ""} added to invoice</span>
               : `${filtered.length} part${filtered.length !== 1 ? "s" : ""} in catalog`}
           </p>
-          <Button size="sm" onClick={() => onOpenChange(false)}>Done</Button>
+          <div className="flex items-center gap-2">
+            {AUTOZONE && (
+              <Button size="sm" variant="outline" onClick={openAutoZone} className="gap-1.5" title={q.trim() ? `Search "${q.trim()}" on AutoZone Pro` : "Open AutoZone Pro"}>
+                <ExternalLink className="w-3.5 h-3.5" /> AutoZone Pro
+              </Button>
+            )}
+            <Button size="sm" onClick={() => onOpenChange(false)}>Done</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
