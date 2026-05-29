@@ -50,7 +50,7 @@ const ConnectChat = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const ranRef = useRef(false);
-  const [blocked, setBlocked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (ranRef.current) return;
@@ -62,7 +62,7 @@ const ConnectChat = () => {
       const target = validateReturn(returnUrl);
 
       if (!target || !state) {
-        setBlocked(true);
+        setError("This sign-in link isn't valid or not allowed.");
         return;
       }
 
@@ -76,11 +76,17 @@ const ConnectChat = () => {
         return;
       }
 
-      const fragment = new URLSearchParams({
-        at: session.access_token,
-        rt: session.refresh_token,
-        state,
-      });
+      // Mint a single-use login token server-side (service role). We never put
+      // the long-lived refresh token in a URL — only this short-lived,
+      // single-use OTP hash, which ZIVO Chat redeems via verifyOtp().
+      const { data: mint, error: mintErr } = await supabase.functions.invoke("mint-chat-handoff");
+      const tokenHash = (mint as { token_hash?: string } | null)?.token_hash;
+      if (mintErr || !tokenHash) {
+        setError("Couldn't start the secure handoff. Please try again.");
+        return;
+      }
+
+      const fragment = new URLSearchParams({ ott: tokenHash, state });
       // Reconstruct the target without any caller-supplied fragment.
       const dest = `${target.origin}${target.pathname}${target.search}#${fragment.toString()}`;
       window.location.replace(dest);
@@ -90,11 +96,11 @@ const ConnectChat = () => {
   return (
     <div className="min-h-[100dvh] w-full flex items-center justify-center bg-white dark:bg-black px-6">
       <div className="flex flex-col items-center gap-4 text-center max-w-xs">
-        {blocked ? (
+        {error ? (
           <>
             <ShieldAlert className="w-7 h-7 text-amber-500" />
             <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
-              This sign-in link isn't valid
+              {error}
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               For your security, ZIVO only connects to approved ZIVO apps. Please start again from ZIVO Chat.
