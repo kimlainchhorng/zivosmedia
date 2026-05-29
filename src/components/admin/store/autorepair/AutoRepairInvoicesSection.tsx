@@ -15,6 +15,9 @@ import { FileText, Plus, DollarSign, Trash2, Receipt, ClipboardList, ArrowLeft, 
 import { toast } from "sonner";
 import AutoRepairDocPreviewDialog from "./AutoRepairDocPreviewDialog";
 import PartPickerDialog, { type PickedPart } from "./PartPickerDialog";
+import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
+import ServiceCatalogPickerDialog, { type ServiceCatalogPick } from "./ServiceCatalogPickerDialog";
+import type { LaborGuideEntry } from "@/lib/laborGuide";
 import InvoiceKpiStrip from "./invoices/InvoiceKpiStrip";
 import InvoiceFilterBar, { type StatusFilter, type SortKey } from "./invoices/InvoiceFilterBar";
 import InvoiceListRow, { type RowDoc } from "./invoices/InvoiceListRow";
@@ -61,6 +64,8 @@ type Doc = {
   vehicle: string;
   items: LineItem[];
   taxRate: number; // flat sales-tax percentage applied to the post-discount subtotal
+  dueDate: string;   // invoices: payment due date (YYYY-MM-DD)
+  expiresAt: string; // estimates: valid-until / expiration date (YYYY-MM-DD)
   status: "draft" | "sent" | "paid" | "partially_paid" | "approved";
   createdAt: string;
   // Fleet billing (invoices only — estimates ignore these)
@@ -80,6 +85,7 @@ const emptyDraft = (): Doc => ({
   vehicle: "",
   items: [{ id: crypto.randomUUID(), category: "labor", description: "", qty: 1, price: 0, hours: 1, discount: 0 }],
   taxRate: 0,
+  dueDate: "", expiresAt: "",
   status: "draft", createdAt: new Date().toISOString(),
   fleetAccountId: null, poNumber: "",
   intakeMethod: "", customerNotes: "", diagnosisNotes: "",
@@ -200,6 +206,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           vehicle: row.vehicle_label || "",
           items: Array.isArray(row.items) ? row.items : [],
           taxRate: normalizeTaxRate(row.tax_rate),
+          dueDate: row.due_at ? String(row.due_at).slice(0, 10) : "",
+          expiresAt: "",
           status: (row.status === "paid" ? "paid" : row.status === "partially_paid" ? "partially_paid" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
           createdAt: row.created_at,
           fleetAccountId: row.fleet_account_id ?? null,
@@ -230,6 +238,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           vehicle: row.vehicle_label || "",
           items: Array.isArray(row.items) ? row.items : Array.isArray(row.line_items) ? row.line_items : [],
           taxRate: normalizeTaxRate(row.tax_rate),
+          dueDate: "",
+          expiresAt: row.expires_at ? String(row.expires_at).slice(0, 10) : "",
           status: (row.status === "approved" ? "approved" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
           createdAt: row.created_at,
           fleetAccountId: null,
@@ -367,6 +377,13 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   };
 
   const startEdit = (doc: Doc) => {
+    // Lock invoices once they've left the shop: editing a sent/paid invoice
+    // would break the customer's copy and finance reconciliation. The row menu's
+    // Duplicate action is the supported way to revise a locked invoice.
+    if (doc.type === "invoice" && (doc.status === "sent" || doc.status === "paid" || doc.status === "partially_paid")) {
+      toast.error(`This invoice is ${doc.status.replace("_", " ")} and can't be edited. Duplicate it to make changes.`);
+      return;
+    }
     skipNextSave.current = true;
     setEditingId(doc.id);
     setDraft(doc);
@@ -440,6 +457,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
 
   const save = async () => {
     if (!draft.firstName || !draft.lastName || !draft.vehicle) { toast.error("First name, last name, and vehicle are required"); return; }
+    if (!draft.items.some(i => lineAmount(i) > 0)) { toast.error("Add at least one line item with an amount greater than $0"); return; }
     const customer = `${draft.firstName} ${draft.lastName}`.trim();
     const t = docTotals(draft.items, draft.taxRate);
     const subtotalCents = Math.round(t.subtotal * 100);
@@ -478,6 +496,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
       if (draft.type === "invoice") {
         payload.fleet_account_id = draft.fleetAccountId || null;
         payload.po_number = draft.poNumber.trim() || null;
+        payload.due_at = draft.dueDate || null;       // payment due date (overdue KPI)
+      } else {
+        payload.expires_at = draft.expiresAt || null; // estimate valid-until (auto-expire cron)
       }
 
       // Only treat as update if we have a real DB uuid.
@@ -598,6 +619,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     setDraft(d => ({ ...d, items: d.items.map(i => i.id === id ? { ...i, ...patch } : i) }));
 
   const [showPartPicker, setShowPartPicker] = useState(false);
+  const [showLaborGuide, setShowLaborGuide] = useState(false);
+  const [showServicePicker, setShowServicePicker] = useState(false);
 
   const addItem = (category: LineCategory = "labor") => setDraft(d => ({
     ...d,
@@ -628,6 +651,35 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         },
       ],
     }));
+  };
+
+  // Add a labor line from the standard Labor Guide (prefills the shop's $/hr rate).
+  const addFromLaborGuide = (entry: LaborGuideEntry) => {
+    setDraft(d => ({
+      ...d,
+      items: [
+        ...d.items,
+        { id: crypto.randomUUID(), category: "labor" as LineCategory, description: entry.service, qty: 1, price: defaultLaborRate, hours: entry.baseHours, discount: 0 },
+      ],
+    }));
+    toast.success(`Added "${entry.service}" (${entry.baseHours}h)`);
+  };
+
+  // Expand a Price Book service into its labor + parts line items.
+  const addFromServiceCatalog = (lines: ServiceCatalogPick[]) => {
+    const mapped: LineItem[] = lines.map(l => {
+      const price = (l.unit_cents ?? 0) / 100;
+      if (l.kind === "labor") {
+        return { id: crypto.randomUUID(), category: "labor", description: l.name, qty: 1, price: price > 0 ? price : defaultLaborRate, hours: l.qty || 1, discount: 0 };
+      }
+      if (l.kind === "part") {
+        return { id: crypto.randomUUID(), category: "part", description: l.name, qty: l.qty || 1, price, discount: 0 };
+      }
+      return { id: crypto.randomUUID(), category: "diagnosis", description: l.name, qty: 1, price, discount: 0 };
+    });
+    if (mapped.length === 0) return;
+    setDraft(d => ({ ...d, items: [...d.items, ...mapped] }));
+    toast.success(`Added ${mapped.length} line${mapped.length === 1 ? "" : "s"} from Price Book`);
   };
 
   // ---- Hooks that must run on EVERY render (before any early return) ----
@@ -936,7 +988,17 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                       <span className="text-sm font-semibold capitalize">
                         {cat === "labor" ? "Labor services" : cat === "part" ? "Parts & materials" : "Diagnosis & inspection"}
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap justify-end">
+                        {cat === "labor" && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => setShowServicePicker(true)} className="h-8 gap-1 border-primary/50 text-primary hover:bg-primary/5">
+                              <BookOpen className="w-3.5 h-3.5" /> Price Book
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setShowLaborGuide(true)} className="h-8 gap-1 border-primary/50 text-primary hover:bg-primary/5">
+                              <BookOpen className="w-3.5 h-3.5" /> Labor guide
+                            </Button>
+                          </>
+                        )}
                         {cat === "part" && (
                           <Button size="sm" variant="outline" onClick={() => setShowPartPicker(true)} className="h-8 gap-1 border-primary/50 text-primary hover:bg-primary/5">
                             <BookOpen className="w-3.5 h-3.5" /> Pick from catalog
@@ -1095,6 +1157,21 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
               </div>
             </div>
 
+            <div className="flex items-center justify-between pt-3 border-t border-border gap-3 flex-wrap">
+              <label className="text-xs font-medium text-muted-foreground">
+                {draft.type === "invoice" ? "Payment due date" : "Estimate valid until"}
+              </label>
+              <Input
+                type="date"
+                className="h-9 w-44"
+                aria-label={draft.type === "invoice" ? "Payment due date" : "Estimate valid until"}
+                value={draft.type === "invoice" ? draft.dueDate : draft.expiresAt}
+                onChange={(e) => setDraft(d => d.type === "invoice"
+                  ? { ...d, dueDate: e.target.value }
+                  : { ...d, expiresAt: e.target.value })}
+              />
+            </div>
+
             {(() => {
               const t = docTotals(draft.items, draft.taxRate);
               return (
@@ -1149,6 +1226,17 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           onOpenChange={setShowPartPicker}
           storeId={storeId}
           onPick={addFromCatalog}
+        />
+        <LaborGuidePickerDialog
+          open={showLaborGuide}
+          onOpenChange={setShowLaborGuide}
+          onSelect={addFromLaborGuide}
+        />
+        <ServiceCatalogPickerDialog
+          open={showServicePicker}
+          onOpenChange={setShowServicePicker}
+          storeId={storeId}
+          onPick={(lines) => addFromServiceCatalog(lines)}
         />
       </div>
     );
