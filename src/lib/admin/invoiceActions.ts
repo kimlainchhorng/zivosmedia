@@ -68,18 +68,13 @@ export async function recordInvoicePayment(opts: {
     });
   if (payErr) throw payErr;
 
+  // The ar_recalc_invoice_payment DB trigger is the single source of truth for
+  // amount_paid_cents / status / paid_at (it sums all payment rows). We do NOT
+  // write those here — doing so would race the trigger and could drift if the
+  // passed-in alreadyPaidCents is stale. We just derive the new status for the
+  // toast message.
   const newPaid = opts.alreadyPaidCents + opts.amountCents;
   const newStatus = newPaid >= opts.totalCents ? "paid" : "partially_paid";
-
-  const { error: invErr } = await supabase
-    .from("ar_invoices" as any)
-    .update({
-      amount_paid_cents: newPaid,
-      status: newStatus,
-      paid_at: newStatus === "paid" ? new Date().toISOString() : null,
-    })
-    .eq("id", opts.invoiceId);
-  if (invErr) throw invErr;
 
   return { newPaid, newStatus };
 }

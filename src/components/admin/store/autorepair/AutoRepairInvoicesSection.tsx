@@ -23,6 +23,7 @@ import SendDocumentSheet from "./invoices/SendDocumentSheet";
 import DeleteConfirmDialog from "./invoices/DeleteConfirmDialog";
 import { softDeleteDocument, updateDocument, nextDocNumber, type DocType } from "@/lib/admin/invoiceActions";
 import type { PdfDoc } from "@/lib/admin/invoicePdf";
+import { computeDocTotals, normalizeTaxRate } from "@/lib/admin/taxCalc";
 
 type LineCategory = "labor" | "part" | "diagnosis";
 type LineItem = {
@@ -59,7 +60,8 @@ type Doc = {
   plant: string;
   vehicle: string;
   items: LineItem[];
-  status: "draft" | "sent" | "paid" | "approved";
+  taxRate: number; // flat sales-tax percentage applied to the post-discount subtotal
+  status: "draft" | "sent" | "paid" | "partially_paid" | "approved";
   createdAt: string;
   // Fleet billing (invoices only — estimates ignore these)
   fleetAccountId: string | null;
@@ -77,6 +79,7 @@ const emptyDraft = (): Doc => ({
   driveType: "", bodyClass: "", doors: "", fuel: "", plant: "",
   vehicle: "",
   items: [{ id: crypto.randomUUID(), category: "labor", description: "", qty: 1, price: 0, hours: 1, discount: 0 }],
+  taxRate: 0,
   status: "draft", createdAt: new Date().toISOString(),
   fleetAccountId: null, poNumber: "",
   intakeMethod: "", customerNotes: "", diagnosisNotes: "",
@@ -109,16 +112,10 @@ const lineDiscount = (i: LineItem): number => {
 // Net (post-discount) dollar amount for a single line item.
 const lineAmount = (i: LineItem): number => Math.max(0, lineGross(i) - lineDiscount(i));
 
-// Doc-level totals derived from items. Tax is currently always 0 (no UI field
-// yet); kept in the shape so callers can wire a tax rate later without
-// changing call sites.
-const docTotals = (items: LineItem[]) => {
-  const subtotal = items.reduce((s, i) => s + lineGross(i), 0);
-  const discount = items.reduce((s, i) => s + lineDiscount(i), 0);
-  const tax = 0;
-  const total = Math.max(0, subtotal - discount + tax);
-  return { subtotal, discount, tax, total };
-};
+// Doc-level totals derived from items + a flat tax rate (percent). Delegates to
+// the shared taxCalc so estimates, invoices, preview, PDF, and the public view
+// all compute identical numbers.
+const docTotals = (items: LineItem[], taxRate: number = 0) => computeDocTotals(items, taxRate);
 
 interface Props { storeId: string }
 
@@ -137,6 +134,10 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [previewDoc, setPreviewDoc] = useState<Doc | null>(null);
   const [storeInfo, setStoreInfo] = useState<{ name?: string; address?: string; phone?: string }>({});
+  // Shop-level defaults read from Auto Repair Settings (store_profiles.ar_settings).
+  // They prefill new estimates/invoices; each document can still override them.
+  const [defaultTaxRate, setDefaultTaxRate] = useState(0);
+  const [defaultLaborRate, setDefaultLaborRate] = useState(0);
 
   // List filters
   const [query, setQuery] = useState("");
@@ -153,10 +154,18 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     (async () => {
       const { data } = await supabase
         .from("store_profiles")
-        .select("name, address, phone")
+        .select("name, address, phone, ar_settings")
         .eq("id", storeId)
         .maybeSingle();
-      if (data) setStoreInfo({ name: data.name || undefined, address: data.address || undefined, phone: data.phone || undefined });
+      if (data) {
+        setStoreInfo({ name: data.name || undefined, address: data.address || undefined, phone: data.phone || undefined });
+        // Defaults come from the shop's Auto Repair Settings
+        // (store_profiles.ar_settings) — the single source of truth.
+        const arSettings = (data as any).ar_settings || {};
+        if (arSettings.tax_rate != null) setDefaultTaxRate(normalizeTaxRate(arSettings.tax_rate));
+        const labor = parseFloat(String(arSettings.labor_rate ?? "")) || 0;
+        if (labor > 0) setDefaultLaborRate(labor);
+      }
     })();
   }, [storeId]);
 
@@ -190,7 +199,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           trim: "", engine: "", transmission: "", driveType: "", bodyClass: "", doors: "", fuel: "", plant: "",
           vehicle: row.vehicle_label || "",
           items: Array.isArray(row.items) ? row.items : [],
-          status: (row.status === "paid" ? "paid" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
+          taxRate: normalizeTaxRate(row.tax_rate),
+          status: (row.status === "paid" ? "paid" : row.status === "partially_paid" ? "partially_paid" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
           createdAt: row.created_at,
           fleetAccountId: row.fleet_account_id ?? null,
           poNumber: row.po_number ?? "",
@@ -219,6 +229,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           trim: "", engine: "", transmission: "", driveType: "", bodyClass: "", doors: "", fuel: "", plant: "",
           vehicle: row.vehicle_label || "",
           items: Array.isArray(row.items) ? row.items : Array.isArray(row.line_items) ? row.line_items : [],
+          taxRate: normalizeTaxRate(row.tax_rate),
           status: (row.status === "approved" ? "approved" : row.status === "sent" ? "sent" : "draft") as Doc["status"],
           createdAt: row.created_at,
           fleetAccountId: null,
@@ -248,6 +259,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         id: crypto.randomUUID(),
         type: p.type === "estimate" ? "estimate" : "invoice",
         number: nextDocNumber(p.type === "estimate" ? "estimate" : "invoice"),
+        taxRate: defaultTaxRate,
+        items: [{ id: crypto.randomUUID(), category: "labor", description: "", qty: 1, price: defaultLaborRate, hours: 1, discount: 0 }],
         firstName: p.firstName ?? "",
         lastName: p.lastName ?? "",
         customer: p.customer_name ?? `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim(),
@@ -287,7 +300,6 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const saveTimer = useRef<number | null>(null);
   const skipNextSave = useRef(true);
 
-  const total = (items: LineItem[]) => items.reduce((s, i) => s + lineAmount(i), 0);
   const subtotalByCat = (items: LineItem[], cat: LineCategory) => items.filter(i => i.category === cat).reduce((s, i) => s + lineAmount(i), 0);
 
   // Autosave draft to localStorage (debounced) while creating
@@ -334,7 +346,11 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     } catch {}
     skipNextSave.current = true;
     setEditingId(null);
-    setDraft({ ...emptyDraft(), id: crypto.randomUUID(), type, number: nextDocNumber(type) });
+    setDraft({
+      ...emptyDraft(),
+      id: crypto.randomUUID(), type, number: nextDocNumber(type), taxRate: defaultTaxRate,
+      items: [{ id: crypto.randomUUID(), category: "labor", description: "", qty: 1, price: defaultLaborRate, hours: 1, discount: 0 }],
+    });
     setLastSaved(null);
     setSaveState("idle");
     setCreating(true);
@@ -415,7 +431,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const save = async () => {
     if (!draft.firstName || !draft.lastName || !draft.vehicle) { toast.error("First name, last name, and vehicle are required"); return; }
     const customer = `${draft.firstName} ${draft.lastName}`.trim();
-    const t = docTotals(draft.items);
+    const t = docTotals(draft.items, draft.taxRate);
     const subtotalCents = Math.round(t.subtotal * 100);
     const discountCents = Math.round(t.discount * 100);
     const taxCents = Math.round(t.tax * 100);
@@ -440,6 +456,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         subtotal_cents: subtotalCents,
         discount_cents: discountCents,
         tax_cents: taxCents,
+        tax_rate: t.taxRate,
         total_cents: totalCents,
         status: draft.status === "paid" ? "paid" : draft.status === "sent" ? "sent" : "draft",
         intake_method: draft.intakeMethod || null,
@@ -483,7 +500,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
       return;
     }
     const customer = `${draft.firstName} ${draft.lastName}`.trim();
-    const t = docTotals(draft.items);
+    const t = docTotals(draft.items, draft.taxRate);
     const subtotalCents = Math.round(t.subtotal * 100);
     const discountCents = Math.round(t.discount * 100);
     const taxCents = Math.round(t.tax * 100);
@@ -506,6 +523,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         subtotal_cents: subtotalCents,
         discount_cents: discountCents,
         tax_cents: taxCents,
+        tax_rate: t.taxRate,
         total_cents: totalCents,
         intake_method: draft.intakeMethod || null,
         customer_notes: draft.customerNotes.trim() || null,
@@ -576,7 +594,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     items: [
       ...d.items,
       category === "labor"
-        ? { id: crypto.randomUUID(), category, description: "", qty: 1, price: 0, hours: 1, discount: 0 }
+        ? { id: crypto.randomUUID(), category, description: "", qty: 1, price: defaultLaborRate, hours: 1, discount: 0 }
         : category === "part"
         ? { id: crypto.randomUUID(), category, description: "", qty: 1, price: 0, discount: 0 }
         : { id: crypto.randomUUID(), category, description: "", qty: 1, price: 0, discount: 0 },
@@ -1067,10 +1085,42 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <span className="text-2xl font-bold flex items-center"><DollarSign className="w-5 h-5" />{total(draft.items).toFixed(2)}</span>
-            </div>
+            {(() => {
+              const t = docTotals(draft.items, draft.taxRate);
+              return (
+                <div className="pt-3 border-t border-border space-y-2">
+                  <div className="flex items-center justify-end gap-3 text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="w-28 text-right tabular-nums font-medium">${t.subtotal.toFixed(2)}</span>
+                  </div>
+                  {t.discount > 0 && (
+                    <div className="flex items-center justify-end gap-3 text-sm">
+                      <span className="text-muted-foreground">Discount</span>
+                      <span className="w-28 text-right tabular-nums font-medium text-emerald-600">−${t.discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-end gap-3 text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      Tax
+                      <Input
+                        type="number" min={0} max={100} step={0.001} inputMode="decimal"
+                        aria-label="Tax rate percent"
+                        className="h-7 w-20 text-right tabular-nums"
+                        placeholder="0"
+                        value={draft.taxRate ? String(draft.taxRate) : ""}
+                        onChange={e => setDraft(d => ({ ...d, taxRate: normalizeTaxRate(e.target.value) }))}
+                      />
+                      <span className="text-muted-foreground">%</span>
+                    </span>
+                    <span className="w-28 text-right tabular-nums font-medium">${t.tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
+                    <span className="text-sm text-muted-foreground">Total</span>
+                    <span className="text-2xl font-bold flex items-center justify-end w-40"><DollarSign className="w-5 h-5" />{t.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="flex justify-end gap-2 pt-2 flex-wrap">
               <Button variant="outline" onClick={() => setCreating(false)}>Cancel</Button>
@@ -1118,7 +1168,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     const pdfDoc: PdfDoc = {
       type: d.type, number: d.number, customer: d.customer, phone: d.phone, email: d.email,
       address: d.address, vehicle: d.vehicle, vin: d.vin, items: d.items as any, status: d.status,
-      createdAt: d.createdAt,
+      taxRate: d.taxRate, createdAt: d.createdAt, customerNotes: d.customerNotes,
     };
     const { generateDocumentPdf } = await import("@/lib/admin/invoicePdf");
     const { exportBlob } = await import("@/lib/native/exportFile");
@@ -1131,7 +1181,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     if (!est) return;
     try {
       const number = nextDocNumber("invoice");
-      const t = docTotals(est.items);
+      const t = docTotals(est.items, est.taxRate);
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("ar_invoices" as any).insert({
         store_id: storeId, number, estimate_id: est.id,
@@ -1142,6 +1192,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         subtotal_cents: Math.round(t.subtotal * 100),
         discount_cents: Math.round(t.discount * 100),
         tax_cents: Math.round(t.tax * 100),
+        tax_rate: t.taxRate,
         total_cents: Math.round(t.total * 100),
         intake_method: est.intakeMethod || null,
         customer_notes: est.customerNotes?.trim() || null,

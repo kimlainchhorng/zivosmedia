@@ -4,6 +4,7 @@
  */
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { computeDocTotals, lineNet } from "./taxCalc";
 
 export type PdfDoc = {
   type: "invoice" | "estimate";
@@ -24,19 +25,12 @@ export type PdfDoc = {
     discountType?: "pct" | "amt";
   }>;
   status: string;
+  taxRate?: number; // flat sales-tax percentage
   createdAt: string;
   customerNotes?: string;
 };
 
-const lineAmount = (i: PdfDoc["items"][number]) => {
-  const gross =
-    i.category === "labor" ? (i.hours ?? 0) * (i.price ?? 0) :
-    i.category === "part" ? (i.qty ?? 0) * (i.price ?? 0) :
-    (i.price ?? 0);
-  const d = Math.max(0, i.discount ?? 0);
-  if ((i.discountType ?? "pct") === "amt") return Math.max(0, gross - d);
-  return gross * (1 - Math.min(100, d) / 100);
-};
+const lineAmount = (i: PdfDoc["items"][number]) => lineNet(i);
 
 export function generateDocumentPdf(opts: {
   doc: PdfDoc;
@@ -59,7 +53,7 @@ export function generateDocumentPdf(opts: {
   pdf.setTextColor(110);
   let y = 66;
   if (storeAddress) { pdf.text(storeAddress, margin, y); y += 12; }
-  if (storePhone) { pdf.text(storePhone, margin, y); y += 12; }
+  if (storePhone) { pdf.text(storePhone, margin, y); }
 
   // Doc title — top right
   pdf.setFontSize(22);
@@ -127,14 +121,25 @@ export function generateDocumentPdf(opts: {
     margin: { left: margin, right: margin },
   });
 
-  const total = doc.items.reduce((s, i) => s + lineAmount(i), 0);
-  // @ts-ignore — autoTable mutates internal state
-  const afterY = (pdf as any).lastAutoTable.finalY + 20;
+  const t = computeDocTotals(doc.items, doc.taxRate ?? 0);
+  // autoTable mutates internal state; lastAutoTable is untyped, hence the cast.
+  let afterY = (pdf as any).lastAutoTable.finalY + 20;
 
-  pdf.setFontSize(11);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Total", pageWidth - margin - 100, afterY);
-  pdf.text(`$${total.toFixed(2)}`, pageWidth - margin, afterY, { align: "right" });
+  const labelX = pageWidth - margin - 140;
+  const valX = pageWidth - margin;
+  const row = (label: string, value: string, bold = false, size = 10) => {
+    pdf.setFontSize(size);
+    pdf.setFont("helvetica", bold ? "bold" : "normal");
+    pdf.setTextColor(bold ? 0 : 80);
+    pdf.text(label, labelX, afterY);
+    pdf.text(value, valX, afterY, { align: "right" });
+    afterY += bold ? 18 : 14;
+  };
+
+  row("Subtotal", `$${t.subtotal.toFixed(2)}`);
+  if (t.discount > 0) row("Discount", `-$${t.discount.toFixed(2)}`);
+  row(`Tax (${t.taxRate}%)`, `$${t.tax.toFixed(2)}`);
+  row("Total", `$${t.total.toFixed(2)}`, true, 12);
 
   if (doc.customerNotes) {
     pdf.setFontSize(9);

@@ -77,6 +77,10 @@ export default function PublicDocumentView() {
   const d = data.doc;
   const items = Array.isArray(d.items) ? d.items : Array.isArray(d.line_items) ? d.line_items : [];
   const totalCents: number = d.total_cents ?? 0;
+  const taxCents: number = d.tax_cents ?? 0;
+  const discountCents: number = d.discount_cents ?? 0;
+  const subtotalCents: number = d.subtotal_cents ?? Math.max(0, totalCents - taxCents + discountCents);
+  const taxRate: number = d.tax_rate ?? 0;
 
   const lineAmount = (i: any) => {
     const gross =
@@ -100,6 +104,7 @@ export default function PublicDocumentView() {
       vin: d.vin || undefined,
       items,
       status: d.status || "sent",
+      taxRate,
       createdAt: d.created_at,
       customerNotes: d.notes || d.customer_notes,
     };
@@ -182,7 +187,21 @@ export default function PublicDocumentView() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <div className="w-full sm:w-64 space-y-1.5">
+              <div className="w-full sm:w-64 space-y-1.5 text-sm">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>${(subtotalCents / 100).toFixed(2)}</span>
+                </div>
+                {discountCents > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Discount</span>
+                    <span>−${(discountCents / 100).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Tax ({taxRate}%)</span>
+                  <span>${(taxCents / 100).toFixed(2)}</span>
+                </div>
                 <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
                   <span>Total</span>
                   <span>${(totalCents / 100).toFixed(2)}</span>

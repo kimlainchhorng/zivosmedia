@@ -10,6 +10,7 @@ import { Capacitor } from "@capacitor/core";
 import { generateDocumentPdf, type PdfDoc } from "@/lib/admin/invoicePdf";
 import { exportBlob } from "@/lib/native/exportFile";
 import { openSystemUrl } from "@/lib/openExternalUrl";
+import { computeDocTotals } from "@/lib/admin/taxCalc";
 
 type LineCategory = "labor" | "part" | "diagnosis";
 export type PreviewLineItem = {
@@ -41,6 +42,7 @@ export type PreviewDoc = {
   engine: string;
   driveType: string;
   items: PreviewLineItem[];
+  taxRate: number; // flat sales-tax percentage
   status: string;
   createdAt: string;
 };
@@ -69,7 +71,8 @@ interface Props {
 export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, storeName, storeAddress, storePhone }: Props) {
   if (!doc) return null;
 
-  const total = doc.items.reduce((s, i) => s + lineAmount(i), 0);
+  const totals = computeDocTotals(doc.items, doc.taxRate);
+  const total = totals.total;
   const labor = doc.items.filter(i => i.category === "labor").reduce((s, i) => s + lineAmount(i), 0);
   const parts = doc.items.filter(i => i.category === "part").reduce((s, i) => s + lineAmount(i), 0);
   const diag = doc.items.filter(i => i.category === "diagnosis").reduce((s, i) => s + lineAmount(i), 0);
@@ -152,6 +155,9 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
     ${labor > 0 ? `<tr><td>Labor</td><td class="r">${fmt(labor)}</td></tr>` : ""}
     ${parts > 0 ? `<tr><td>Parts</td><td class="r">${fmt(parts)}</td></tr>` : ""}
     ${diag > 0 ? `<tr><td>Diagnosis</td><td class="r">${fmt(diag)}</td></tr>` : ""}
+    <tr><td>Subtotal</td><td class="r">${fmt(totals.subtotal)}</td></tr>
+    ${totals.discount > 0 ? `<tr><td>Discount</td><td class="r">−${fmt(totals.discount)}</td></tr>` : ""}
+    <tr><td>Tax (${totals.taxRate}%)</td><td class="r">${fmt(totals.tax)}</td></tr>
     <tr class="grand"><td>Total</td><td class="r">${fmt(total)}</td></tr>
   </table></div>
   <div class="notes">${doc.type === "estimate" ? "This is an estimate. Actual costs may vary based on inspection." : "Thank you for your business. Payment is due upon receipt unless otherwise agreed."}</div>
@@ -199,6 +205,7 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
       discountType: i.discountType,
     })),
     status: doc.status,
+    taxRate: doc.taxRate,
     createdAt: doc.createdAt,
   });
 
@@ -217,6 +224,8 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
     const body = encodeURIComponent(
       `Hello ${doc.firstName || doc.customer || ""},\n\n` +
       `Please find your ${docTypeLabel.toLowerCase()} ${doc.number} for ${doc.vehicle || "your vehicle"}.\n\n` +
+      `Subtotal: ${fmt(totals.preTax)}\n` +
+      `Tax (${totals.taxRate}%): ${fmt(totals.tax)}\n` +
       `Total: ${fmt(total)}\n\n` +
       `Thank you,\n${storeName || "AB Complete Car Care"}`
     );
@@ -226,7 +235,7 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
   const handleSms = () => {
     if (!doc.phone) { toast.error("No customer phone on file"); return; }
     const body = encodeURIComponent(
-      `${storeName || "AB Complete Car Care"}: Your ${docTypeLabel.toLowerCase()} ${doc.number} for ${doc.vehicle || "your vehicle"} — Total ${fmt(total)}.`
+      `${storeName || "AB Complete Car Care"}: Your ${docTypeLabel.toLowerCase()} ${doc.number} for ${doc.vehicle || "your vehicle"} — Total ${fmt(total)} (incl. ${fmt(totals.tax)} tax).`
     );
     const tel = doc.phone.replace(/[^\d+]/g, "");
     openSystemUrl(`sms:${tel}?body=${body}`);
