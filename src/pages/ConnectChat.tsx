@@ -84,11 +84,22 @@ const ConnectChat = () => {
       const withTimeout = <T,>(p: Promise<T>, ms: number) =>
         Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))]);
 
+      // getSession can stall on a cold start while the auth client is still
+      // initialising (the WebView's first lock acquisition). Retry a few times
+      // with a short timeout each so a transient stall resolves on a later
+      // attempt instead of spinning forever on "Connecting your ZIVO account…".
       let hasSession = false;
-      try {
-        const { data } = await withTimeout(supabase.auth.getSession(), 8000);
-        hasSession = !!data?.session;
-      } catch {
+      let sessionResolved = false;
+      for (let attempt = 0; attempt < 3 && !sessionResolved; attempt++) {
+        try {
+          const { data } = await withTimeout(supabase.auth.getSession(), 6000);
+          hasSession = !!data?.session;
+          sessionResolved = true;
+        } catch {
+          if (attempt < 2) await new Promise((r) => setTimeout(r, 800));
+        }
+      }
+      if (!sessionResolved) {
         setError("Couldn't reach your ZIVO session. Please try again.");
         return;
       }
