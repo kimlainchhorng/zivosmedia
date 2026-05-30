@@ -2506,3 +2506,35 @@ html.underline-links a:not([class*="no-underline"]):not(button) {
   --mobile-offset: calc(var(--zivo-safe-top-sticky, 60px) + 56px) !important;
   top: calc(var(--zivo-safe-top-sticky, 60px) + 56px) !important;
 }
+
+/* ── Native app-like tap responsiveness ──────────────────────────────────
+   The viewport allows pinch-zoom (good for web a11y), but that makes iOS add
+   a ~300ms double-tap-zoom delay to every tap on interactive controls.
+   `touch-action: manipulation` opts them out so a single tap fires instantly. */
+@layer base {
+  a,
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="switch"],
+  [role="option"],
+  label,
+  select,
+  summary {
+    touch-action: manipulation;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ── Long-list render perf ────────────────────────────────────────────
+   Let the browser skip layout/paint for off-screen conversation rows —
+   cheap built-in virtualization for long chat lists. `auto` intrinsic
+   size self-corrects after first render; ignored where unsupported. */
+[data-testid="conversation-row"],
+[data-testid="group-conversation-row"] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
