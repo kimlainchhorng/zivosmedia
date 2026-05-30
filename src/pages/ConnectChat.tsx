@@ -79,10 +79,21 @@ const ConnectChat = () => {
         return;
       }
 
-      const { data } = await supabase.auth.getSession();
-      const session = data?.session;
+      // Hard timeouts so a hung auth/network call can't leave the user stuck on
+      // "Connecting your ZIVO account…".
+      const withTimeout = <T,>(p: Promise<T>, ms: number) =>
+        Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))]);
 
-      if (!session) {
+      let hasSession = false;
+      try {
+        const { data } = await withTimeout(supabase.auth.getSession(), 8000);
+        hasSession = !!data?.session;
+      } catch {
+        setError("Couldn't reach your ZIVO session. Please try again.");
+        return;
+      }
+
+      if (!hasSession) {
         // Not signed in on ZIVO yet — go log in, then resume this exact handoff.
         const resume = `/connect/chat?return=${encodeURIComponent(returnUrl)}&state=${encodeURIComponent(state)}`;
         navigate(`/login?redirect=${encodeURIComponent(resume)}`, { replace: true });
@@ -92,9 +103,19 @@ const ConnectChat = () => {
       // Mint a single-use login token server-side (service role). We never put
       // the long-lived refresh token in a URL — only this short-lived,
       // single-use OTP hash, which ZIVO Chat redeems via verifyOtp().
-      const { data: mint, error: mintErr } = await supabase.functions.invoke("mint-chat-handoff");
-      const tokenHash = (mint as { token_hash?: string } | null)?.token_hash;
-      if (mintErr || !tokenHash) {
+      let tokenHash: string | undefined;
+      try {
+        const { data: mint, error: mintErr } = await withTimeout(
+          supabase.functions.invoke("mint-chat-handoff"),
+          12000,
+        );
+        if (mintErr) throw mintErr;
+        tokenHash = (mint as { token_hash?: string } | null)?.token_hash;
+      } catch {
+        setError("Couldn't start the secure handoff. Please try again.");
+        return;
+      }
+      if (!tokenHash) {
         setError("Couldn't start the secure handoff. Please try again.");
         return;
       }
