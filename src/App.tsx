@@ -205,6 +205,9 @@ const SupportCenterPage = lazy(() => import("./pages/app/SupportCenterPage"));
 const RideTrackingPage = lazy(() => import("./pages/app/RideTrackingPage"));
 const TripStatusPage = lazy(() => import("./pages/TripStatusPage"));
 const RideHubPage = lazy(() => import("./pages/app/RideHubPage"));
+const BusBookingPage = lazy(() => import("./pages/app/BusBookingPage"));
+const BusOperatorConsole = lazy(() => import("./pages/app/BusOperatorConsole"));
+const BusTicketsPage = lazy(() => import("./pages/app/BusTicketsPage"));
 const EatsLanding = lazy(() => import("./pages/EatsLanding"));
 const EatsTrackingPage = lazy(() => import("./pages/EatsTrackingPage"));
 const ReservationPage = lazy(() => import("./pages/ReservationPage"));
@@ -1777,6 +1780,11 @@ const App = () => (
                 <Route path="/hotels" element={<RouteErrorBoundary section="HotelsLanding"><CambodiaOnlyGate><HotelsLandingPage /></CambodiaOnlyGate></RouteErrorBoundary>} />
                 <Route path="/hotels-list" element={<RouteErrorBoundary section="HotelsDirectory"><CambodiaOnlyGate><HotelsResortsDirectoryPage /></CambodiaOnlyGate></RouteErrorBoundary>} />
                 {/* /hotels and /hotels/in-:city removed */}
+
+                {/* Bus */}
+                <Route path="/bus" element={<RouteErrorBoundary section="Bus"><BusBookingPage /></RouteErrorBoundary>} />
+                <Route path="/bus/operator" element={<ProtectedRoute><RouteErrorBoundary section="Bus"><BusOperatorConsole /></RouteErrorBoundary></ProtectedRoute>} />
+                <Route path="/bus/tickets" element={<ProtectedRoute><RouteErrorBoundary section="Bus"><BusTicketsPage /></RouteErrorBoundary></ProtectedRoute>} />
 
                 {/* Car Rental */}
                 <Route path="/car-rental" element={<RouteErrorBoundary section="Cars"><CarRentalLanding /></RouteErrorBoundary>} />
