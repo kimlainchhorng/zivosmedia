@@ -130,88 +130,9 @@
     --spacing: 0.25rem;
   }
 
-  .dark {
-    /* =============================================
-       ZIVO DARK THEME — true black for OLED
-       ============================================= */
-
-    /* Base Colors */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 98%;
-
-    /* Primary — flips to white on dark */
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
-
-    /* Secondary — slightly lifted off background */
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 98%;
-
-    /* Muted */
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 64%;
-
-    /* Accent — IG action blue, dimmed */
-    --accent: 204 60% 14%;
-    --accent-foreground: 204 100% 60%;
-
-    /* Destructive */
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Borders & Inputs — IG-style hairline on near-black */
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 0 0% 100%;
-
-    /* Product Colors */
-    --flights: 217 91% 60%;
-    --flights-light: 217 91% 20%;
-
-    --hotels: 38 92% 55%;
-    --hotels-light: 38 50% 20%;
-
-    --cars: 263 70% 60%;
-    --cars-light: 263 50% 20%;
-
-    --rides: 142 71% 50%;
-    --rides-light: 142 40% 18%;
-
-    --eats: 0 84% 60%;
-    --eats-light: 0 50% 20%;
-
-    --more: 215 20% 55%;
-    --more-light: 215 20% 18%;
-
-    /* Shadows (darker) */
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-
-    /* Sidebar */
-    --sidebar: 0 0% 14%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 142 71% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 172 66% 50%;
-    --sidebar-accent-foreground: 178 84% 10%;
-    --sidebar-border: 0 0% 32%;
-    --sidebar-ring: 142 71% 45%;
-    --chart-1: 156 71% 66%;
-    --chart-2: 141 76% 73%;
-    --chart-3: 170 76% 64%;
-    --chart-4: 81 84% 67%;
-    --chart-5: 0 0% 45%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-  }
+  /* Dark theme intentionally removed — ZIVO ships a light-only Instagram-style
+     palette. Do not reintroduce a .dark block or dark: variants; the app is
+     forced to light and the theme toggle UI has been retired. */
 }
 
 @layer utilities {
@@ -2381,6 +2302,243 @@ html[lang="km"] textarea {
   box-shadow:
     0 -24px 56px hsl(210 28% 18% / 0.18),
     inset 0 1px 0 hsl(0 0% 100% / 0.92);
+}
+
+.zivo-social-sheet-panel.zivo-social-sheet-panel-dark {
+  background:
+    radial-gradient(circle at 18% 0%, hsl(166 84% 54% / 0.08), transparent 34%),
+    linear-gradient(180deg, hsl(220 18% 8% / 0.98), hsl(220 22% 4% / 0.96));
+  border-color: hsl(0 0% 100% / 0.14);
+  color: white;
+  box-shadow:
+    0 -24px 58px hsl(0 0% 0% / 0.44),
+    inset 0 1px 0 hsl(0 0% 100% / 0.12);
+}
+
+.zivo-social-sheet-panel-dark .zivo-social-header-glass {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.06));
+  border-color: hsl(0 0% 100% / 0.12);
+  box-shadow:
+    0 18px 42px hsl(0 0% 0% / 0.24),
+    inset 0 1px 0 hsl(0 0% 100% / 0.12);
+}
+
+.zivo-social-sheet-panel-dark .zivo-social-icon-button,
+.zivo-social-sheet-panel-dark .zivo-social-chip,
+.zivo-social-sheet-panel-dark .zivo-social-emoji-chip {
+  background: hsl(0 0% 100% / 0.1);
+  border-color: hsl(0 0% 100% / 0.14);
+  color: hsl(0 0% 100% / 0.78);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.1);
+}
+
+.zivo-social-sheet-panel-dark .zivo-social-comment-empty {
+  background:
+    radial-gradient(circle at 50% 12%, hsl(166 84% 54% / 0.11), transparent 42%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.09), hsl(0 0% 100% / 0.045));
+  border-color: hsl(0 0% 100% / 0.13);
+  box-shadow:
+    0 18px 38px hsl(0 0% 0% / 0.18),
+    inset 0 1px 0 hsl(0 0% 100% / 0.11);
+}
+
+.zivo-social-sheet-panel-dark .zivo-social-comment-empty .zivo-social-share-orb,
+.zivo-social-sheet-panel-dark .zivo-social-comment-empty > span {
+  background:
+    radial-gradient(circle at 36% 20%, hsl(0 0% 100% / 0.16), transparent 46%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.06));
+  border: 1px solid hsl(0 0% 100% / 0.13);
+  color: hsl(0 0% 100% / 0.88);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.12);
+}
+
+.zivo-social-sheet-panel-dark .zivo-social-comment-mode,
+.zivo-social-sheet-panel-dark .zivo-social-comment-input {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.055));
+  border-color: hsl(0 0% 100% / 0.14);
+  color: hsl(0 0% 100% / 0.9);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.11),
+    0 10px 24px hsl(0 0% 0% / 0.13);
+}
+
+.zivo-social-sheet-panel-dark .zivo-social-comment-input input::placeholder {
+  color: hsl(0 0% 100% / 0.46);
+}
+
+.zivo-social-sheet-panel-dark .zivo-social-comment-footer {
+  background:
+    linear-gradient(180deg, hsl(220 18% 6% / 0.86), hsl(220 22% 4% / 0.94));
+  border-top-color: hsl(0 0% 100% / 0.12);
+  box-shadow: 0 -16px 34px hsl(0 0% 0% / 0.3);
+}
+
+.zivo-social-sheet-panel.zivo-reel-actions-sheet {
+  background:
+    radial-gradient(circle at 22% 0%, hsl(189 94% 43% / 0.12), transparent 32%),
+    linear-gradient(180deg, hsl(220 18% 8% / 0.98), hsl(220 22% 4% / 0.97));
+}
+
+.zivo-reel-actions-sheet [class*="border-b"] {
+  border-color: hsl(0 0% 100% / 0.12);
+}
+
+.zivo-reel-actions-sheet .text-foreground,
+.zivo-reel-actions-sheet .text-muted-foreground {
+  color: hsl(0 0% 100% / 0.78);
+}
+
+.zivo-reel-actions-sheet h3,
+.zivo-reel-actions-sheet button span {
+  color: hsl(0 0% 100% / 0.9);
+}
+
+.zivo-reel-actions-sheet button {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.075), hsl(0 0% 100% / 0.035));
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  color: hsl(0 0% 100% / 0.88);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.08);
+}
+
+.zivo-reel-actions-sheet button:hover {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.06));
+  border-color: hsl(166 84% 54% / 0.24);
+  box-shadow:
+    0 12px 26px hsl(0 0% 0% / 0.2),
+    inset 0 1px 0 hsl(0 0% 100% / 0.12);
+}
+
+.zivo-reel-actions-sheet button svg:not(.text-destructive) {
+  color: hsl(0 0% 100% / 0.82);
+}
+
+.zivo-reel-actions-sheet .text-destructive {
+  color: hsl(0 84% 68%);
+}
+
+.zivo-social-sheet-panel.zivo-reel-share-sheet {
+  background:
+    radial-gradient(circle at 20% 0%, hsl(315 92% 58% / 0.1), transparent 31%),
+    radial-gradient(circle at 76% 4%, hsl(189 94% 43% / 0.1), transparent 30%),
+    linear-gradient(180deg, hsl(220 18% 8% / 0.98), hsl(220 22% 4% / 0.97));
+}
+
+.zivo-reel-share-sheet .zivo-social-header-glass,
+.zivo-reel-share-sheet .zivo-social-share-preview,
+.zivo-reel-share-sheet .zivo-social-share-tile {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.05));
+  border: 1px solid hsl(0 0% 100% / 0.13);
+  color: hsl(0 0% 100% / 0.9);
+  box-shadow:
+    0 12px 28px hsl(0 0% 0% / 0.16),
+    inset 0 1px 0 hsl(0 0% 100% / 0.1);
+}
+
+.zivo-reel-share-sheet .zivo-social-share-preview:hover,
+.zivo-reel-share-sheet .zivo-social-share-tile:hover {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.14), hsl(0 0% 100% / 0.07));
+  border-color: hsl(189 94% 43% / 0.22);
+}
+
+.zivo-reel-share-sheet .zivo-social-share-orb {
+  background:
+    radial-gradient(circle at 36% 20%, hsl(0 0% 100% / 0.16), transparent 46%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.06));
+  border: 1px solid hsl(0 0% 100% / 0.13);
+  color: hsl(0 0% 100% / 0.88);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.12);
+}
+
+.zivo-reel-share-sheet .text-foreground,
+.zivo-reel-share-sheet .text-muted-foreground {
+  color: hsl(0 0% 100% / 0.78);
+}
+
+.zivo-reel-share-sheet h3,
+.zivo-reel-share-sheet h3.text-foreground,
+.zivo-reel-share-sheet .text-primary {
+  color: hsl(0 0% 100% / 0.9);
+}
+
+.zivo-reel-share-sheet [class*="border-t"] {
+  border-color: hsl(0 0% 100% / 0.12);
+}
+
+.zivo-social-sheet-panel.zivo-reel-speed-sheet,
+.zivo-social-sheet-panel.zivo-reel-report-dialog {
+  background:
+    radial-gradient(circle at 24% 0%, hsl(189 94% 43% / 0.11), transparent 32%),
+    radial-gradient(circle at 78% 8%, hsl(315 92% 58% / 0.08), transparent 30%),
+    linear-gradient(180deg, hsl(220 18% 8% / 0.98), hsl(220 22% 4% / 0.97));
+}
+
+.zivo-reel-speed-sheet [class*="border-b"],
+.zivo-reel-report-dialog [class*="border-b"] {
+  border-color: hsl(0 0% 100% / 0.12);
+}
+
+.zivo-reel-speed-sheet .text-foreground,
+.zivo-reel-speed-sheet .text-muted-foreground,
+.zivo-reel-report-dialog .text-foreground,
+.zivo-reel-report-dialog .text-muted-foreground {
+  color: hsl(0 0% 100% / 0.78);
+}
+
+.zivo-reel-speed-sheet h3,
+.zivo-reel-speed-sheet h3.text-foreground,
+.zivo-reel-report-dialog h3,
+.zivo-reel-report-dialog h3.text-foreground {
+  color: hsl(0 0% 100% / 0.9);
+}
+
+.zivo-reel-speed-sheet .zivo-reel-speed-badge,
+.zivo-reel-report-dialog .zivo-social-icon-button {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.06));
+  border-color: hsl(0 0% 100% / 0.14);
+  color: hsl(0 0% 100% / 0.82);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.1);
+}
+
+.zivo-reel-report-dialog .zivo-social-icon-button {
+  display: flex;
+  min-height: 40px;
+  min-width: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+}
+
+.zivo-reel-speed-sheet .zivo-reel-speed-option:not(.zivo-reel-speed-option-active),
+.zivo-reel-speed-sheet .zivo-social-module-tile,
+.zivo-reel-report-dialog .zivo-reel-report-reason {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.09), hsl(0 0% 100% / 0.045));
+  border: 1px solid hsl(0 0% 100% / 0.12);
+  color: hsl(0 0% 100% / 0.86);
+  box-shadow:
+    0 10px 24px hsl(0 0% 0% / 0.13),
+    inset 0 1px 0 hsl(0 0% 100% / 0.1);
+}
+
+.zivo-reel-speed-sheet .zivo-reel-speed-option:not(.zivo-reel-speed-option-active):hover,
+.zivo-reel-report-dialog .zivo-reel-report-reason:hover {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.14), hsl(0 0% 100% / 0.07));
+  border-color: hsl(189 94% 43% / 0.22);
+}
+
+.zivo-reel-report-dialog .zivo-reel-report-reason-active {
+  background:
+    linear-gradient(180deg, hsl(0 84% 62% / 0.15), hsl(0 84% 62% / 0.07));
+  border-color: hsl(0 84% 68% / 0.35);
+  color: hsl(0 84% 72%);
 }
 
 .zivo-social-sheet-backdrop {

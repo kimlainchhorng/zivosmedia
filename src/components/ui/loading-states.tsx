@@ -98,9 +98,9 @@ interface ProgressLoaderProps {
 
 const progressColors = {
   primary: "bg-ig-gradient",
-  green: "bg-gradient-to-r from-emerald-500 to-green-400",
-  amber: "bg-gradient-to-r from-amber-500 to-orange-400",
-  sky: "bg-gradient-to-r from-sky-500 to-blue-400",
+  green: "bg-success",
+  amber: "bg-warning",
+  sky: "bg-primary",
 };
 
 export const ProgressLoader: React.FC<ProgressLoaderProps> = ({
@@ -350,11 +350,11 @@ export const StatusLoader: React.FC<StatusLoaderProps> = ({
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4"
+              className="w-14 h-14 rounded-2xl bg-success/10 flex items-center justify-center mb-4"
             >
-              <CheckCircle className="w-8 h-8 text-emerald-500" />
+              <CheckCircle className="w-8 h-8 text-success" />
             </motion.div>
-            <p className="font-medium text-emerald-500">{successMessage}</p>
+            <p className="font-medium text-success">{successMessage}</p>
           </motion.div>
         )}
         
@@ -366,10 +366,10 @@ export const StatusLoader: React.FC<StatusLoaderProps> = ({
             exit={{ opacity: 0, scale: 0.9 }}
             className="flex flex-col items-center"
           >
-            <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
-              <XCircle className="w-8 h-8 text-red-500" />
+            <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
+              <XCircle className="w-8 h-8 text-destructive" />
             </div>
-            <p className="font-medium text-red-500 mb-3">{errorMessage}</p>
+            <p className="font-medium text-destructive mb-3">{errorMessage}</p>
             {onRetry && (
               <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
                 <RefreshCcw className="w-4 h-4" />

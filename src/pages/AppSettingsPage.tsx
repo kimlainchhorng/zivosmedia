@@ -3,15 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  ArrowLeft, Settings, Sun, Moon, Monitor, Globe, Bell, BellOff, Eye,
+  ArrowLeft, Settings, Globe, Bell, BellOff, Eye,
   Lock, Palette, Type, Volume2, VolumeX, Smartphone, Shield, Trash2, LogOut,
   Briefcase, Tv, Activity, Rocket, Pill, Calendar, DollarSign, Tag, Heart,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 
 interface SettingToggle {
@@ -24,7 +22,6 @@ interface SettingToggle {
 
 export default function AppSettingsPage() {
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState("en");
   const [fontSize, setFontSize] = useState("medium");
   const [toggles, setToggles] = useState<SettingToggle[]>([
@@ -49,12 +46,6 @@ export default function AppSettingsPage() {
   const toggleSetting = (id: string) => {
     setToggles(prev => prev.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t));
   };
-
-  const themeOptions = [
-    { value: "light", label: "Light", icon: Sun },
-    { value: "dark", label: "Dark", icon: Moon },
-    { value: "system", label: "System", icon: Monitor },
-  ];
 
   const languages = [
     { value: "en", label: "English" },
@@ -84,18 +75,6 @@ export default function AppSettingsPage() {
             <Palette className="h-4 w-4" /> Appearance
           </h2>
           <Card className="p-4 space-y-4">
-            <div>
-              <p className="text-sm font-medium text-foreground mb-2">Theme</p>
-              <div className="flex gap-2">
-                {themeOptions.map((opt) => (
-                  <Button key={opt.value} variant={theme === opt.value ? "default" : "outline"} size="sm" className="flex-1 gap-1"
-                    onClick={() => setTheme(opt.value)}>
-                    <opt.icon className="h-3 w-3" /> {opt.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <Separator />
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">Font Size</p>

@@ -15,10 +15,10 @@ const serviceButtonVariants = cva(
   {
     variants: {
       service: {
-        flights: "bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-primary-foreground shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40",
-        hotels: "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-primary-foreground shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40",
-        cars: "bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-primary-foreground shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40",
-        primary: "bg-gradient-to-r from-primary to-cyan-600 hover:from-primary/90 hover:to-cyan-700 text-primary-foreground shadow-lg shadow-primary/25",
+        flights: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg",
+        hotels: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg",
+        cars: "bg-ig-gradient hover:opacity-90 text-primary-foreground shadow-lg",
+        primary: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25",
       },
       size: {
         default: "h-11 px-6",
