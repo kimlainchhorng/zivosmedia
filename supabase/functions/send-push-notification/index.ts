@@ -467,8 +467,8 @@ async function sendWebPush(
   token: string,
   payload: { title: string; body?: string; data?: Record<string, unknown> }
 ): Promise<{ success: boolean; error?: string }> {
-  console.log("[WebPush Legacy] Would send to:", token.substring(0, 30), payload.title);
-  return { success: true };
+  console.error("[WebPush Legacy] Not implemented — push NOT sent to:", token.substring(0, 30), payload.title);
+  return { success: false, error: "Legacy web push not implemented" };
 }
 
 // APNs implementation via FCM (Firebase handles APNs routing for Capacitor apps)
@@ -602,79 +602,171 @@ function base64ToBytes(base64: string): Uint8Array {
   return bytes;
 }
 
-// FCM v1 HTTP API implementation
+// ── FCM HTTP v1 (Android) ───────────────────────────────────────────────────
+// Google decommissioned the legacy `/fcm/send` + "Authorization: key=<server
+// key>" API. We now mint a short-lived OAuth2 access token from a Firebase
+// service account and POST to the v1 endpoint.
+//
+// Setup: set the `FCM_SERVICE_ACCOUNT_JSON` Supabase secret to the FULL service
+// account JSON (Firebase console → Project settings → Service accounts →
+// Generate new private key). No secret is hard-coded here.
+interface FcmServiceAccount {
+  client_email: string;
+  private_key: string;
+  project_id: string;
+}
+
+// Module-level token cache — reused across calls within a warm isolate so a
+// batch send mints the OAuth2 token once, not once per device.
+let cachedFcmToken: { token: string; expiresAt: number } | null = null;
+
+function parseFcmServiceAccount(): FcmServiceAccount | null {
+  const raw = Deno.env.get("FCM_SERVICE_ACCOUNT_JSON");
+  if (!raw) return null;
+  try {
+    const sa = JSON.parse(raw);
+    if (!sa?.client_email || !sa?.private_key || !sa?.project_id) return null;
+    return sa as FcmServiceAccount;
+  } catch {
+    return null;
+  }
+}
+
+async function importRsaPrivateKey(pem: string): Promise<CryptoKey> {
+  const clean = pem
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\\n/g, "")
+    .replace(/\s+/g, "");
+  const der = base64ToBytes(clean);
+  return crypto.subtle.importKey(
+    "pkcs8",
+    der.buffer.slice(der.byteOffset, der.byteOffset + der.byteLength) as ArrayBuffer,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+}
+
+async function getFcmAccessToken(sa: FcmServiceAccount): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  if (cachedFcmToken && cachedFcmToken.expiresAt - 60 > now) {
+    return cachedFcmToken.token;
+  }
+
+  const header = { alg: "RS256", typ: "JWT" };
+  const claims = {
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/firebase.messaging",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+  const signingInput = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(claims))}`;
+  const key = await importRsaPrivateKey(sa.private_key);
+  const signature = await crypto.subtle.sign(
+    { name: "RSASSA-PKCS1-v1_5" },
+    key,
+    new TextEncoder().encode(signingInput),
+  );
+  const assertion = `${signingInput}.${base64UrlEncodeBytes(new Uint8Array(signature))}`;
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`OAuth2 token exchange failed: ${res.status} ${await res.text()}`);
+  }
+  const json = await res.json();
+  cachedFcmToken = {
+    token: json.access_token,
+    expiresAt: now + (Number(json.expires_in) || 3600),
+  };
+  return cachedFcmToken.token;
+}
+
 async function sendFCM(
   token: string,
   payload: { title: string; body?: string; data?: Record<string, unknown>; image_url?: string }
 ): Promise<{ success: boolean; error?: string }> {
-  const fcmKey = Deno.env.get("FCM_SERVER_KEY");
-
-  if (!fcmKey) {
-    console.log("[FCM] Missing server key, skipping native push");
-    return { success: true };
+  const sa = parseFcmServiceAccount();
+  if (!sa) {
+    // Surface missing credentials as a real failure so push_notification_logs
+    // and alerting reflect reality (never report success when nothing was sent).
+    console.error("[FCM] Missing/invalid FCM_SERVICE_ACCOUNT_JSON — native push NOT sent");
+    return { success: false, error: "Missing FCM service account" };
   }
 
-  try {
-    // Convert data values to strings (FCM requires string values)
-    const stringData: Record<string, string> = {};
-    if (payload.data) {
-      for (const [key, value] of Object.entries(payload.data)) {
-        stringData[key] = String(value ?? "");
-      }
-    }
-    if (payload.image_url) {
-      stringData.image_url = payload.image_url;
-    }
+  // FCM v1 `data` values must all be strings.
+  const stringData: Record<string, string> = {};
+  if (payload.data) {
+    for (const [k, v] of Object.entries(payload.data)) stringData[k] = String(v ?? "");
+  }
+  if (payload.image_url) stringData.image_url = payload.image_url;
 
-    const notification: Record<string, unknown> = {
+  // Route to an Android notification channel when the caller hints one
+  // (createChannel on the client must register a matching channel id).
+  const channelId =
+    (payload.data?.android_channel_id as string) ||
+    (payload.data?.channel_id as string) ||
+    (payload.data?.category as string) ||
+    "default";
+
+  const message: Record<string, unknown> = {
+    token,
+    notification: {
       title: payload.title,
       body: payload.body || "",
-      sound: "default",
-      badge: "1",
-    };
-    if (payload.image_url) {
-      notification.image = payload.image_url;
-    }
-
-    const response = await fetch("https://fcm.googleapis.com/fcm/send", {
-      method: "POST",
-      headers: {
-        "Authorization": `key=${fcmKey}`,
-        "Content-Type": "application/json",
+      ...(payload.image_url ? { image: payload.image_url } : {}),
+    },
+    data: stringData,
+    android: {
+      priority: "HIGH",
+      notification: {
+        sound: "default",
+        channel_id: channelId,
+        ...(payload.image_url ? { image: payload.image_url } : {}),
       },
-      body: JSON.stringify({
-        to: token,
-        notification,
-        data: stringData,
-        priority: "high",
-        // iOS-specific: ensure notification appears when app is in background
-        content_available: true,
-        mutable_content: true,
-      }),
-    });
+    },
+  };
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[FCM] Send failed:", response.status, errorText);
-      return { success: false, error: `FCM ${response.status}: ${errorText}` };
+  try {
+    const accessToken = await getFcmAccessToken(sa);
+    const response = await fetch(
+      `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message }),
+      },
+    );
+
+    if (response.ok) {
+      console.log(`[FCM] Sent to token: ${token.substring(0, 20)}...`);
+      return { success: true };
     }
 
-    const result = await response.json();
-    
-    // Check for individual message failures
-    if (result.failure > 0 && result.results?.[0]?.error) {
-      const fcmError = result.results[0].error;
-      console.error("[FCM] Message error:", fcmError);
-      
-      // Token is no longer valid
-      if (fcmError === "NotRegistered" || fcmError === "InvalidRegistration") {
-        return { success: false, error: fcmError };
-      }
-      return { success: false, error: fcmError };
+    const errorText = await response.text();
+    console.error("[FCM] Send failed:", response.status, errorText);
+    // Detect stale tokens so the caller can deactivate them (v1 returns
+    // 404 / UNREGISTERED / NOT_FOUND for unregistered or invalid tokens).
+    let fcmCode = "";
+    try {
+      const parsed = JSON.parse(errorText);
+      fcmCode = parsed?.error?.details?.[0]?.errorCode || parsed?.error?.status || "";
+    } catch { /* non-JSON error body */ }
+    if (response.status === 404 || fcmCode === "UNREGISTERED" || fcmCode === "NOT_FOUND") {
+      return { success: false, error: "UNREGISTERED" };
     }
-
-    console.log(`[FCM] Sent to token: ${token.substring(0, 20)}...`);
-    return { success: true };
+    return { success: false, error: `FCM ${response.status}: ${errorText}` };
   } catch (error) {
     console.error("[FCM] Error:", error);
     return {
