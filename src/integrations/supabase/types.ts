@@ -4070,6 +4070,7 @@ export type Database = {
           owner_name: string
           owner_phone: string | null
           plate: string | null
+          plate_state: string | null
           store_id: string
           updated_at: string
           vin: string | null
@@ -4087,6 +4088,7 @@ export type Database = {
           owner_name: string
           owner_phone?: string | null
           plate?: string | null
+          plate_state?: string | null
           store_id: string
           updated_at?: string
           vin?: string | null
@@ -4104,6 +4106,7 @@ export type Database = {
           owner_name?: string
           owner_phone?: string | null
           plate?: string | null
+          plate_state?: string | null
           store_id?: string
           updated_at?: string
           vin?: string | null
@@ -4183,9 +4186,11 @@ export type Database = {
           id: string
           intake_method: string | null
           items: Json | null
+          license_plate: string | null
           line_items: Json
           notes: string | null
           number: string
+          plate_state: string | null
           sent_at: string | null
           share_token: string | null
           status: string
@@ -4222,9 +4227,11 @@ export type Database = {
           id?: string
           intake_method?: string | null
           items?: Json | null
+          license_plate?: string | null
           line_items?: Json
           notes?: string | null
           number: string
+          plate_state?: string | null
           sent_at?: string | null
           share_token?: string | null
           status?: string
@@ -4261,9 +4268,11 @@ export type Database = {
           id?: string
           intake_method?: string | null
           items?: Json | null
+          license_plate?: string | null
           line_items?: Json
           notes?: string | null
           number?: string
+          plate_state?: string | null
           sent_at?: string | null
           share_token?: string | null
           status?: string
@@ -4603,9 +4612,11 @@ export type Database = {
           id: string
           intake_method: string | null
           items: Json
+          license_plate: string | null
           notes: string | null
           number: string
           paid_at: string | null
+          plate_state: string | null
           po_number: string | null
           sent_at: string | null
           source_workorder_id: string | null
@@ -4640,9 +4651,11 @@ export type Database = {
           id?: string
           intake_method?: string | null
           items?: Json
+          license_plate?: string | null
           notes?: string | null
           number: string
           paid_at?: string | null
+          plate_state?: string | null
           po_number?: string | null
           sent_at?: string | null
           source_workorder_id?: string | null
@@ -4677,9 +4690,11 @@ export type Database = {
           id?: string
           intake_method?: string | null
           items?: Json
+          license_plate?: string | null
           notes?: string | null
           number?: string
           paid_at?: string | null
+          plate_state?: string | null
           po_number?: string | null
           sent_at?: string | null
           source_workorder_id?: string | null
@@ -8811,6 +8826,197 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      bus_bookings: {
+        Row: {
+          amount_cents: number
+          booking_ref: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          currency: string
+          customer_id: string | null
+          id: string
+          passenger_count: number
+          payment_status: string
+          seats: Json
+          status: string
+          store_id: string
+          stripe_payment_intent_id: string | null
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number
+          booking_ref?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          id?: string
+          passenger_count?: number
+          payment_status?: string
+          seats?: Json
+          status?: string
+          store_id: string
+          stripe_payment_intent_id?: string | null
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          booking_ref?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          id?: string
+          passenger_count?: number
+          payment_status?: string
+          seats?: Json
+          status?: string
+          store_id?: string
+          stripe_payment_intent_id?: string | null
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bus_bookings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bus_bookings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "bus_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bus_routes: {
+        Row: {
+          base_price_cents: number
+          created_at: string
+          currency: string
+          destination: string
+          distance_km: number | null
+          duration_mins: number | null
+          id: string
+          origin: string
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_price_cents?: number
+          created_at?: string
+          currency?: string
+          destination: string
+          distance_km?: number | null
+          duration_mins?: number | null
+          id?: string
+          origin: string
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_price_cents?: number
+          created_at?: string
+          currency?: string
+          destination?: string
+          distance_km?: number | null
+          duration_mins?: number | null
+          id?: string
+          origin?: string
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bus_routes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bus_trips: {
+        Row: {
+          amenities: Json
+          arrive_time: string | null
+          bus_type: string
+          created_at: string
+          currency: string
+          depart_date: string
+          depart_time: string
+          id: string
+          price_cents: number
+          route_id: string
+          seat_layout: string
+          status: string
+          store_id: string
+          total_seats: number
+          updated_at: string
+        }
+        Insert: {
+          amenities?: Json
+          arrive_time?: string | null
+          bus_type?: string
+          created_at?: string
+          currency?: string
+          depart_date: string
+          depart_time: string
+          id?: string
+          price_cents?: number
+          route_id: string
+          seat_layout?: string
+          status?: string
+          store_id: string
+          total_seats?: number
+          updated_at?: string
+        }
+        Update: {
+          amenities?: Json
+          arrive_time?: string | null
+          bus_type?: string
+          created_at?: string
+          currency?: string
+          depart_date?: string
+          depart_time?: string
+          id?: string
+          price_cents?: number
+          route_id?: string
+          seat_layout?: string
+          status?: string
+          store_id?: string
+          total_seats?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bus_trips_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "bus_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bus_trips_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       business_account_users: {
         Row: {
@@ -69511,6 +69717,48 @@ export type Database = {
           },
         ]
       }
+      vehicle_plate_registry: {
+        Row: {
+          created_at: string
+          id: string
+          plate: string
+          plate_normalized: string
+          plate_state: string
+          source_store_id: string | null
+          updated_at: string
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_year: number | null
+          vin: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plate: string
+          plate_normalized: string
+          plate_state?: string
+          source_store_id?: string | null
+          updated_at?: string
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: number | null
+          vin: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plate?: string
+          plate_normalized?: string
+          plate_state?: string
+          source_store_id?: string | null
+          updated_at?: string
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: number | null
+          vin?: string
+        }
+        Relationships: []
+      }
       vehicle_reservations: {
         Row: {
           business_account_id: string | null
@@ -75979,6 +76227,20 @@ export type Database = {
           token: string
         }[]
       }
+      create_bus_booking: {
+        Args: {
+          p_contact_name: string
+          p_contact_phone: string
+          p_seats: Json
+          p_trip_id: string
+        }
+        Returns: {
+          amount_cents: number
+          booking_id: string
+          booking_ref: string
+          currency: string
+        }[]
+      }
       create_car_rental_app_reservation: { Args: { p: Json }; Returns: Json }
       create_driver_on_signup:
         | {
@@ -76423,6 +76685,12 @@ export type Database = {
           url: string
         }[]
       }
+      get_bus_trip_seats: {
+        Args: { p_trip_id: string }
+        Returns: {
+          seat: string
+        }[]
+      }
       get_car_rental_availability: {
         Args: { p_store_id: string }
         Returns: {
@@ -76678,6 +76946,25 @@ export type Database = {
           affiliate_captured_at: string
           affiliate_code: string
           affiliate_partner_name: string
+        }[]
+      }
+      get_my_bus_bookings: {
+        Args: never
+        Returns: {
+          amount_cents: number
+          booking_id: string
+          booking_ref: string
+          created_at: string
+          currency: string
+          depart_date: string
+          depart_time: string
+          destination: string
+          operator: string
+          origin: string
+          passenger_count: number
+          payment_status: string
+          seats: Json
+          status: string
         }[]
       }
       get_my_phone_status: {
@@ -77304,6 +77591,17 @@ export type Database = {
           is_locked: boolean
         }[]
       }
+      lookup_plate_vin: {
+        Args: { p_plate: string; p_state?: string }
+        Returns: {
+          plate: string
+          plate_state: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_year: number
+          vin: string
+        }[]
+      }
       match_bot_workflow: {
         Args: { p_bot_id: string; p_text: string }
         Returns: {
@@ -77489,6 +77787,18 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: string
+      }
+      register_plate_vin: {
+        Args: {
+          p_make: string
+          p_model: string
+          p_plate: string
+          p_state: string
+          p_store_id: string
+          p_vin: string
+          p_year: number
+        }
+        Returns: undefined
       }
       register_trusted_device: {
         Args: {
@@ -77677,6 +77987,28 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      search_bus_trips: {
+        Args: { p_date?: string; p_from?: string; p_to?: string }
+        Returns: {
+          amenities: Json
+          arrive_time: string
+          bus_type: string
+          currency: string
+          depart_date: string
+          depart_time: string
+          destination: string
+          duration_mins: number
+          operator: string
+          origin: string
+          price_cents: number
+          rating: number
+          seat_layout: string
+          seats_left: number
+          store_id: string
+          total_seats: number
+          trip_id: string
+        }[]
       }
       seed_demand_zones: {
         Args: { p_center_lat: number; p_center_lng: number }
