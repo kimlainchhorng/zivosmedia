@@ -1,7 +1,7 @@
 /**
- * App Home Screen - 2026 Travel Super-App Layout
- * Premium scrollable design with saved places, quick estimate, popular services,
- * quick actions, service navigation, and personalized content.
+ * App Home Screen - 2026 Super-App Layout
+ * Premium scrollable design with quick estimates, social shortcuts, commerce,
+ * jobs, service navigation, and personalized content.
  * @module AppHome
  */
 import { useState, useEffect, useMemo, lazy, Suspense, useCallback } from "react";
@@ -21,6 +21,7 @@ import Car from "lucide-react/dist/esm/icons/car";
 import BedDouble from "lucide-react/dist/esm/icons/bed-double";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Package from "lucide-react/dist/esm/icons/package";
+import Bus from "lucide-react/dist/esm/icons/bus";
 import Star from "lucide-react/dist/esm/icons/star";
 import Heart from "lucide-react/dist/esm/icons/heart";
 import Home from "lucide-react/dist/esm/icons/home";
@@ -58,6 +59,9 @@ const SpendTrackerWidget = lazy(() => import("@/components/home/SpendTrackerWidg
 // Icons used below-fold (still small, but needed)
 import Utensils from "lucide-react/dist/esm/icons/utensils";
 import Hotel from "lucide-react/dist/esm/icons/hotel";
+import Film from "lucide-react/dist/esm/icons/film";
+import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
+import UserCircle from "lucide-react/dist/esm/icons/user-circle";
 import Gift from "lucide-react/dist/esm/icons/gift";
 import Users from "lucide-react/dist/esm/icons/users";
 import Share2 from "lucide-react/dist/esm/icons/share-2";
@@ -106,6 +110,8 @@ import PartnerBadge from "@/components/shared/PartnerBadge";
 import { useDestinationPrices } from "@/hooks/useDestinationPrices";
 import { getRestaurantPhoto } from "@/config/restaurantPhotos";
 import { formatDistanceToNow, format } from "date-fns";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { AD_SLOTS } from "@/config/adSlots";
 import { useDeviceIntegrityCheck } from "@/hooks/useDeviceIntegrityCheck";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { useLodgeRooms } from "@/hooks/lodging/useLodgeRooms";
@@ -114,6 +120,7 @@ import { useLodgeReservations } from "@/hooks/lodging/useLodgeReservations";
 import { useLodgingPhase5Counts } from "@/hooks/lodging/useLodgingPhase5Counts";
 import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
 import { buildHotelsPath } from "@/lib/lodging/hotelRoutes";
+import { getAppSurfaceSeo } from "@/lib/appSurfaceSeo";
 
 import tabFlightsBg from "@/assets/tab-flights-bg.jpg";
 import tabHotelsBg from "@/assets/tab-hotels-bg.jpg";
@@ -324,6 +331,73 @@ const QUICK_PICKS: QuickPick[] = [
   { icon: Car,             label: "Ride",       to: "/rides/hub",          iconColor: "text-emerald-500", iconBg: "bg-emerald-500/10" },
   { icon: Package,         label: "Delivery",   to: "/delivery",           iconColor: "text-sky-500",     iconBg: "bg-sky-500/10" },
 ];
+
+type GuestHomeShortcut = {
+  icon: LucideIcon;
+  label: string;
+  description: string;
+  to: string;
+  accent: string;
+};
+
+const GUEST_HOME_SHORTCUTS: GuestHomeShortcut[] = [
+  { icon: Home, label: "Feed", description: "Posts and updates", to: "/feed", accent: "text-sky-500 bg-sky-500/10" },
+  { icon: Film, label: "Reels", description: "Creator videos", to: "/reels", accent: "text-rose-500 bg-rose-500/10" },
+  { icon: MessageCircle, label: "Chat", description: "Messages", to: "/chat", accent: "text-emerald-500 bg-emerald-500/10" },
+  { icon: UserCircle, label: "Profile", description: "Your account", to: "/profile", accent: "text-violet-500 bg-violet-500/10" },
+];
+
+const GuestHomeEntry = ({ onNavigate }: { onNavigate: (to: string) => void }) => (
+  <section className="px-4 pb-4 pt-safe" data-testid="home-guest-entry" aria-label="ZIVO guest home">
+    <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-primary">ZIVO Home</p>
+          <h1 className="mt-1 text-2xl font-black leading-tight tracking-tight text-foreground">
+            Start with Feed, Reels, Chat, or your profile.
+          </h1>
+          <p className="mt-2 text-sm leading-5 text-muted-foreground">
+            Browse the public app now, then sign in when you want to save, follow, message, or book.
+          </p>
+        </div>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+          <Sparkles className="h-5 w-5" />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2" aria-label="Guest Home shortcuts">
+        {GUEST_HOME_SHORTCUTS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.to}
+              type="button"
+              onClick={() => onNavigate(item.to)}
+              className="flex min-h-[68px] items-center gap-2.5 rounded-2xl border border-border/60 bg-background px-3 text-left transition-colors active:scale-[0.98]"
+            >
+              <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", item.accent)}>
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black text-foreground">{item.label}</span>
+                <span className="block truncate text-[11px] font-medium text-muted-foreground">{item.description}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Button type="button" className="h-11 rounded-2xl font-black" onClick={() => onNavigate("/signup")}>
+          Sign up free
+        </Button>
+        <Button type="button" variant="outline" className="h-11 rounded-2xl font-bold" onClick={() => onNavigate("/login")}>
+          Log in
+        </Button>
+      </div>
+    </div>
+  </section>
+);
 
 type DailyMission = {
   icon: LucideIcon;
@@ -738,13 +812,21 @@ const AppHome = () => {
     return t("home.good_evening");
   };
 
-  const userName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "Traveler";
+  const userName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "Friend";
   const avatarUrl = profile?.avatar_url;
   const initials = (profile?.full_name || user?.email || "Z").charAt(0).toUpperCase();
+  const homeSeo = getAppSurfaceSeo("home");
 
   return (
     <div>
-    <SEOHead title="ZIVO – Your Travel Super-App" description="Book rides, flights, hotels, and grocery delivery — all in one app." />
+    <SEOHead
+      title="ZIVO - Travel, Social, Shop, Jobs & Creators"
+      description="Book trips, share reels, chat, shop local, follow creators, post jobs, and manage everyday life in one app."
+      canonical={homeSeo.canonical}
+      appLink={homeSeo.appLink}
+      structuredData={homeSeo.structuredData}
+      keywords={["ZIVO app", "travel booking", "social feed", "chat", "reels", "local shopping"]}
+    />
     <div className="relative min-h-[100dvh] bg-background font-sans text-foreground selection:bg-primary/30 overflow-x-hidden" role="main">
       {/* Safe-area top backdrop — Capacitor's `overlaysWebView: true` lets web
           content paint up to the very top of the screen for full-bleed cover
@@ -827,7 +909,9 @@ const AppHome = () => {
           ) : null}
 
           {/* ─── ALL SERVICES (moved to top) ─── */}
-          <div className={cn("pb-5", user ? "pt-1" : "pt-safe")}>
+          {!user && <GuestHomeEntry onNavigate={navigate} />}
+
+          <div className={cn("pb-5", user ? "pt-1" : "pt-0")}>
             <div className="flex items-center justify-between mb-3 px-5">
               <h2 className="text-base font-bold text-ig-gradient">{t("home.more_services")}</h2>
               <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
@@ -871,6 +955,7 @@ const AppHome = () => {
               {(([
                 { label: t("home.rental_cars"), image: zivoRentalCarIcon, icon: null, href: "/rent-car", badge: null },
                 { label: "Reserve", image: zivoReserveIcon, icon: null, href: "/rides/hub?tab=reserve", badge: null },
+                { label: t("home.bus"), image: null, icon: Bus, href: "/bus", badge: null },
                 { label: t("home.shopping"), image: zivoShoppingIcon, icon: null, href: "/grocery", badge: null },
                 { label: "Delivery", image: null, icon: Package, href: "/delivery", badge: null },
               ].filter(Boolean)) as Array<{ label: string; image: string | null; icon: typeof Package | null; href: string; badge: string | null }>).map((s) => {
@@ -1052,6 +1137,11 @@ const AppHome = () => {
           <Suspense fallback={null}>
             <SpendTrackerWidget />
           </Suspense>
+
+          {/* ─── SPONSORED (Google AdSense) — renders nothing until AD_SLOTS.homeFeed + publisher id are set ─── */}
+          <div className="px-5 pb-3">
+            <AdSenseUnit slot={AD_SLOTS.homeFeed} />
+          </div>
 
           {/* "What's New" widget removed — was a hardcoded marketing block
               (4 cards with fake "X NEW" badges and made-up feature lists).

@@ -17,7 +17,7 @@ interface IncomingMetaEvent {
   fbp?: string | null;
 }
 
-const META_GRAPH_VERSION = "v19.0";
+const META_GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
 
 function toNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : fallback;

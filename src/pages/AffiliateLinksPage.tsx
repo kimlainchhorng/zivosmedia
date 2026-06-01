@@ -37,7 +37,7 @@ function formatCount(n: number): string {
 }
 
 function publicLinkFor(slug: string): string {
-  if (typeof window === "undefined") return `https://hizivo.com/r/${slug}`;
+  if (typeof window === "undefined") return `https://zivollc.com/r/${slug}`;
   return `${window.location.origin}/r/${slug}`;
 }
 

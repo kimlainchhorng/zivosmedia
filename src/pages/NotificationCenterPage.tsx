@@ -18,6 +18,14 @@ import { useMutedThreads, MUTE_DURATIONS, formatMuteLabel, type MuteDurationId }
 import { useAllowMessageRequests } from "@/hooks/useAllowMessageRequests";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
+import {
+  deleteNotificationById,
+  deleteNotificationsById,
+  markAllNotificationsRead,
+  markNotificationRead,
+  markNotificationsRead,
+} from "@/lib/notifications/notificationManage";
 
 const ProfilePreviewSheet = lazy(() => import("@/components/profile/ProfilePreviewSheet"));
 
@@ -278,33 +286,68 @@ export default function NotificationCenterPage() {
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_all_read" } });
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    toast.success("All notifications marked as read");
+    const prev = notifications;
+    setNotifications(prevRows => prevRows.map(n => ({ ...n, isRead: true })));
+    try {
+      await markAllNotificationsRead();
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      setNotifications(prev);
+      console.warn("Could not mark all notifications read", error);
+      toast.error("Couldn't mark all notifications read");
+    }
   };
 
   const markRead = async (id: string) => {
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_id: id } });
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    const prev = notifications;
+    setNotifications(prevRows => prevRows.map(n => n.id === id ? { ...n, isRead: true } : n));
+    try {
+      await markNotificationRead(id);
+    } catch (error) {
+      setNotifications(prev);
+      console.warn("Could not mark notification read", error);
+      toast.error("Couldn't mark notification read");
+    }
   };
 
   const markReadMany = async (ids: string[]) => {
     if (!ids.length) return;
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_ids: ids } });
     const set = new Set(ids);
-    setNotifications(prev => prev.map(n => set.has(n.id) ? { ...n, isRead: true } : n));
+    const prev = notifications;
+    setNotifications(prevRows => prevRows.map(n => set.has(n.id) ? { ...n, isRead: true } : n));
+    try {
+      await markNotificationsRead(ids);
+    } catch (error) {
+      setNotifications(prev);
+      console.warn("Could not mark notifications read", error);
+      toast.error("Couldn't mark notifications read");
+    }
   };
 
   const deleteNotif = async (id: string) => {
-    await supabase.functions.invoke("notification-manage", { body: { action: "delete", notification_id: id } });
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    const prev = notifications;
+    setNotifications(prevRows => prevRows.filter(n => n.id !== id));
+    try {
+      await deleteNotificationById(id);
+    } catch (error) {
+      setNotifications(prev);
+      console.warn("Could not delete notification", error);
+      toast.error("Couldn't delete notification");
+    }
   };
 
   const deleteMany = async (ids: string[]) => {
     if (!ids.length) return;
-    await supabase.functions.invoke("notification-manage", { body: { action: "delete", notification_ids: ids } });
     const set = new Set(ids);
-    setNotifications(prev => prev.filter(n => !set.has(n.id)));
+    const prev = notifications;
+    setNotifications(prevRows => prevRows.filter(n => !set.has(n.id)));
+    try {
+      await deleteNotificationsById(ids);
+    } catch (error) {
+      setNotifications(prev);
+      console.warn("Could not delete notifications", error);
+      toast.error("Couldn't delete notifications");
+    }
   };
 
   const sendReply = async () => {
@@ -312,7 +355,7 @@ export default function NotificationCenterPage() {
     const text = replyText.trim();
     if (!text || replySending) return;
     setReplySending(true);
-    const { error } = await (supabase as any).from("direct_messages").insert({
+    const { error } = await sendDirectMessage({
       sender_id: user.id,
       receiver_id: replyOpenFor,
       message: text,

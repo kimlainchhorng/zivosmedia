@@ -11,6 +11,7 @@ import { withErrorHandling, HttpError } from "../_shared/errors.ts";
 import { parseBody, v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
 import { rateLimit } from "../_shared/rateLimiter.ts";
+import { isOtpCodeMatch } from "../_shared/otp.ts";
 import type { SecurityContext } from "../_shared/withSecurity.ts";
 
 const Body = v.object({
@@ -96,7 +97,7 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
     });
   }
 
-  if (otpRecord.code !== code) {
+  if (!(await isOtpCodeMatch(otpRecord.code, normalizedEmail, code))) {
     await supabase
       .from("otp_codes")
       .update({ attempts: otpRecord.attempts + 1 })

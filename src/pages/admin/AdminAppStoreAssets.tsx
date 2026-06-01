@@ -1,5 +1,5 @@
 /**
- * AdminAppStoreAssets — Generate App Store & Play Store metadata for submission
+ * AdminAppStoreAssets - Generate App Store & Play Store metadata for submission
  */
 import { useState } from "react";
 import { ArrowLeft, Apple, Smartphone, Copy, Check, Globe, Shield, FileText, Tags } from "lucide-react";
@@ -10,56 +10,49 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 const APP_META = {
-  name: "ZIVO — Travel, Shop & Explore",
-  subtitle: "Flights, Local Shops & Food Delivery",
-  bundleId: "com.myzivo.app",
-  packageName: "com.myzivo.app",
-  category: "Travel",
-  secondaryCategory: "Shopping",
+  name: "ZIVO - Travel, Social, Shop & Work",
+  subtitle: "Book, share, chat, shop, and earn",
+  bundleId: "com.hizovo.app",
+  packageName: "com.hizovo.app",
+  category: "Lifestyle",
+  secondaryCategory: "Travel",
   contentRating: "4+",
   website: "https://hizovo.com",
   supportEmail: "support@hizovo.com",
-  privacyUrl: "https://hizovo.com/privacy",
-  termsUrl: "https://hizovo.com/terms",
+  privacyUrl: "https://zivollc.com/legal/privacy",
+  termsUrl: "https://zivollc.com/legal/terms",
 };
 
-const IOS_DESCRIPTION = `ZIVO is your all-in-one travel and local commerce app. Search flights, discover nearby shops on an interactive map, order food delivery, and explore real local experiences — all in one place.
+const IOS_DESCRIPTION = `ZIVO is an all-in-one super app for travel, social discovery, shopping, work, and everyday communication.
 
-✈️ FLIGHTS
-Search and compare flights from hundreds of airlines. Get real-time prices and book with confidence through our licensed travel partners.
+TRAVEL
+Search flights, hotels, cars, rides, and food options from one account.
 
-🛒 LOCAL SHOPS & MAP
-Discover stores, markets, and food trucks near you on a live map. Browse products, chat with merchants, and buy directly from your phone.
+SOCIAL
+Share posts, watch reels, follow creators, chat, call, and stay connected.
 
-🎥 REELS & DISCOVERY
-Watch short videos from local businesses. See what's trending nearby, find hidden gems, and shop directly from Reels.
+SHOP
+Discover local businesses, browse products, manage orders, and message sellers.
 
-🚗 RIDES & DELIVERY
-Book rides, order food delivery, and get groceries delivered to your door.
+WORK
+Post jobs, apply for opportunities, and manage professional profiles.
 
-💳 SECURE PAYMENTS
-Pay with card or digital wallet. Every transaction is verified and secure.
+SECURITY
+Use verified login flows, push notifications, and account controls designed for modern mobile users.
 
-🏆 REWARDS
-Earn ZIVO Points on every purchase. Redeem for discounts and exclusive deals.
+Download ZIVO to book, share, shop, work, and connect in one place.`;
 
-ZIVO — Where Travel Meets Local.`;
+const ANDROID_DESCRIPTION = `ZIVO brings travel, social, shopping, jobs, creators, chat, and notifications together in one app.
 
-const ANDROID_DESCRIPTION = `ZIVO brings together flights, local shopping, food delivery, and social discovery in one powerful app.
+- Search flights, hotels, cars, rides, and food
+- Share posts and watch reels
+- Follow creators and discover local businesses
+- Shop products and manage orders
+- Post jobs and apply for work
+- Chat, call, and receive real-time notifications
+- Manage account security, privacy, and preferences
 
-★ Search & compare flights from hundreds of airlines
-★ Discover nearby shops, markets & food trucks on a live map
-★ Watch Reels from local businesses and shop directly
-★ Order food delivery and groceries
-★ Book rides with real-time tracking
-★ Earn rewards on every purchase
-★ Secure card & wallet payments
-★ Chat with merchants about your orders
-★ Multi-language support (English, Khmer, Chinese)
-
-Whether you're traveling abroad or exploring your own city, ZIVO connects you to the best local experiences.
-
-Download ZIVO — Travel, Shop & Explore.`;
+ZIVO is built for people who want one clean place to book, share, shop, work, and connect.`;
 
 const KEYWORDS = [
   "flights", "travel", "local shops", "food delivery", "grocery delivery",
@@ -200,7 +193,7 @@ export default function AdminAppStoreAssets() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Tags className="h-4 w-4 text-primary" />
-                Keywords (iOS — 100 char limit)
+                Keywords (iOS - 100 char limit)
               </CardTitle>
               <CopyButton text={KEYWORDS.join(",")} label="Keywords" />
             </div>

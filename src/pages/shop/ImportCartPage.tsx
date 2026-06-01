@@ -3,7 +3,7 @@
  * Creates an import_orders row with payment method (card/aba/cod).
  */
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Trash2, Minus, Plus, CreditCard, Banknote, Wallet, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +12,13 @@ import { useImportCart } from "@/hooks/useImportShop";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 type PayMethod = "card" | "aba" | "cash_on_delivery" | "wallet";
 
 export default function ImportCartPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { items, updateQty, removeItem, clear, subtotal_cents, shipping_cents } = useImportCart();
   const [contactName, setContactName] = useState("");
@@ -32,7 +34,7 @@ export default function ImportCartPage() {
   const placeOrder = async () => {
     if (!user) {
       toast.error("Please sign in first");
-      navigate("/auth");
+      navigate(withRedirectParam("/login", `${location.pathname}${location.search}${location.hash}`));
       return;
     }
     if (items.length === 0) return toast.error("Cart is empty");

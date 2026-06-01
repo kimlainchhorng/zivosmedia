@@ -91,7 +91,7 @@ export default function UsernameClaimSheet({
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            Your link: <span className="font-medium">hizivo.com/u/{value || "your_handle"}</span>
+            Your link: <span className="font-medium">zivollc.com/u/{value || "your_handle"}</span>
           </p>
 
           <Button

@@ -214,7 +214,7 @@ describe.each(NOTCHED_DEVICES)(
       const onClose = vi.fn();
       render(
         <ShareSheet
-          shareUrl="https://hizivo.com/r/abc"
+          shareUrl="https://zivollc.com/r/abc"
           shareText="Check this out"
           onClose={onClose}
         />,
@@ -234,7 +234,7 @@ describe.each(NOTCHED_DEVICES)(
       const onClose = vi.fn();
       render(
         <ShareSheet
-          shareUrl="https://hizivo.com/r/abc"
+          shareUrl="https://zivollc.com/r/abc"
           shareText="Check this out"
           onClose={onClose}
         />,

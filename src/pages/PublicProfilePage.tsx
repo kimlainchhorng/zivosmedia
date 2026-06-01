@@ -46,6 +46,8 @@ import TipSheet from "@/components/social/TipSheet";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
+import { removePostBookmark, savePostBookmark } from "@/lib/social/postBookmarkManage";
 
 const TopFans = lazy(() => import("@/components/social/TopFans"));
 const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
@@ -544,16 +546,15 @@ export default function PublicProfilePage() {
     mutationFn: async () => {
       if (!user || !targetUserId || user.id === targetUserId) throw new Error("Invalid");
       if (isFollowing) {
-        await (supabase as any).from("user_followers").delete().eq("follower_id", user.id).eq("following_id", targetUserId).throwOnError();
+        const { error } = await supabase.functions.invoke("follow-manage", {
+          body: { action: "unfollow", following_id: targetUserId },
+        });
+        if (error) throw error;
       } else {
-        await (supabase as any).from("user_followers").insert({ follower_id: user.id, following_id: targetUserId }).throwOnError();
-        // Notify the user they got a new follower
-        try {
-          const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).single();
-          await supabase.functions.invoke("send-push-notification", {
-            body: { user_id: targetUserId, notification_type: "new_follower", title: "New Follower 🔔", body: `${sp?.full_name || "Someone"} started following you`, data: { type: "new_follower", follower_id: user.id, avatar_url: sp?.avatar_url, action_url: `/user/${user.id}` } },
-          });
-        } catch {}
+        const { error } = await supabase.functions.invoke("follow-manage", {
+          body: { action: "follow", following_id: targetUserId },
+        });
+        if (error) throw error;
       }
     },
     onSuccess: () => {
@@ -569,43 +570,20 @@ export default function PublicProfilePage() {
     mutationFn: async (action: "add" | "cancel" | "accept" | "unfriend") => {
       if (!user || !targetUserId || user.id === targetUserId) throw new Error("Invalid");
       if (action === "add") {
-        if (!isFollowing) {
-          await (supabase as any)
-            .from("user_followers")
-            .upsert({ follower_id: user.id, following_id: targetUserId }, { onConflict: "follower_id,following_id", ignoreDuplicates: true })
-            .throwOnError();
-        }
-
-        const { error: friendshipInsertError } = await supabase
-          .from("friendships")
-          .insert({ user_id: user.id, friend_id: targetUserId, status: "pending" });
-
-        if (friendshipInsertError && friendshipInsertError.code !== "23505") {
-          throw friendshipInsertError;
-        }
-        try {
-          const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).single();
-          await supabase.functions.invoke("send-push-notification", {
-            body: { user_id: targetUserId, notification_type: "friend_request_received", title: `${sp?.full_name || "Someone"} · Following`, body: `${sp?.full_name || "Someone"} sent you a friend request`, data: { type: "friend_request", sender_id: user.id, avatar_url: sp?.avatar_url, action_url: `/user/${user.id}` } },
-          });
-        } catch {}
+        const { error } = await supabase.functions.invoke("friendship-manage", {
+          body: { action: "send", friend_id: targetUserId },
+        });
+        if (error) throw error;
       } else if (action === "cancel" || action === "unfriend") {
-        await supabase.from("friendships").delete().or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`).throwOnError();
+        const { error } = await supabase.functions.invoke("friendship-manage", {
+          body: { action, friend_id: targetUserId },
+        });
+        if (error) throw error;
       } else if (action === "accept") {
-        if (!isFollowing) {
-          await (supabase as any)
-            .from("user_followers")
-            .upsert({ follower_id: user.id, following_id: targetUserId }, { onConflict: "follower_id,following_id", ignoreDuplicates: true })
-            .throwOnError();
-        }
-        await supabase.from("friendships").update({ status: "accepted", accepted_at: new Date().toISOString() }).eq("user_id", targetUserId).eq("friend_id", user.id).throwOnError();
-        // Notify the requester
-        try {
-          const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).single();
-          await supabase.functions.invoke("send-push-notification", {
-            body: { user_id: targetUserId, notification_type: "friend_request_accepted", title: "Friend Request Accepted 🎉", body: `${sp?.full_name || "Someone"} accepted your friend request`, data: { type: "friend_accepted", sender_id: user.id, avatar_url: sp?.avatar_url, action_url: `/user/${user.id}` } },
-          });
-        } catch {}
+        const { error } = await supabase.functions.invoke("friendship-manage", {
+          body: { action: "accept", friend_id: targetUserId },
+        });
+        if (error) throw error;
       }
     },
     onSuccess: (_, action) => {
@@ -685,7 +663,7 @@ export default function PublicProfilePage() {
   const handleReportProfile = () => {
     setShowProfileMenu(false);
     if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      navigate(withRedirectParam("/login", window.location.pathname + window.location.search));
       return;
     }
     setReportOpen(true);
@@ -694,7 +672,7 @@ export default function PublicProfilePage() {
   const handleBlockProfile = async () => {
     if (!user) {
       toast.error("Sign in to block users");
-      navigate("/auth");
+      navigate(withRedirectParam("/login", window.location.pathname + window.location.search));
       return;
     }
     if (!targetUserId || targetUserId === user.id) {
@@ -807,6 +785,7 @@ export default function PublicProfilePage() {
     }
 
     const interactionId = toUserPostInteractionId(post.id);
+    const rawPostId = post.id.replace(/^u-/, "");
     const wasBookmarked = bookmarkedPosts.has(interactionId);
 
     setBookmarkedPosts((prev) => {
@@ -818,21 +797,21 @@ export default function PublicProfilePage() {
 
     try {
       if (wasBookmarked) {
-        const { error } = await (supabase as any)
-          .from("bookmarks")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("item_type", "post")
-          .eq("item_id", interactionId);
+        const { error } = await removePostBookmark({
+          post_id: rawPostId,
+          source: "user",
+          sync_legacy: true,
+          legacy_item_id: interactionId,
+        });
 
         if (error) throw error;
         toast.success("Removed from bookmarks");
       } else {
-        const { error } = await (supabase as any).from("bookmarks").insert({
-          user_id: user.id,
-          item_id: interactionId,
-          item_type: "post",
-          title: post.caption || `Post by ${resolvedProfile?.full_name || "User"}`,
+        const { error } = await savePostBookmark({
+          post_id: rawPostId,
+          source: "user",
+          sync_legacy: true,
+          legacy_item_id: interactionId,
           collection_name: "Posts",
         });
 
@@ -1136,7 +1115,7 @@ export default function PublicProfilePage() {
                     )}
                     <motion.button whileTap={{ scale: 0.96 }}
                       onClick={() => {
-                        if (!user) { toast.error("Sign in to tip"); navigate("/auth"); return; }
+                        if (!user) { toast.error("Sign in to tip"); navigate(withRedirectParam("/login", window.location.pathname + window.location.search)); return; }
                         setTipOpen(true);
                       }}
                       aria-label={`Send a tip to ${resolvedProfile?.full_name || "this creator"}`}

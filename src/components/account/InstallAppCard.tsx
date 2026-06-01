@@ -16,9 +16,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
+import { getAttributedStoreUrls } from "@/lib/deepLinks";
+import { trackMetaAppInstallClick } from "@/lib/metaAdsTracking";
 
-const APP_STORE_URL = "https://apps.apple.com/app/id6759480121";
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.zivollc.app";
 const DISMISS_KEY = "zivo_install_card_dismissed";
 
 type Platform = "ios" | "android" | "desktop";
@@ -51,6 +51,10 @@ export default function InstallAppCard() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [iosSheetOpen, setIosSheetOpen] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const storeUrls = useMemo(
+    () => getAttributedStoreUrls({ content: "install_card" }),
+    [],
+  );
 
   // Capture beforeinstallprompt for Chromium-based browsers (Android + Desktop)
   useEffect(() => {
@@ -88,9 +92,11 @@ export default function InstallAppCard() {
     }
     // Fallback: open Play Store on Android, generic store hub on desktop
     if (platform === "android") {
-      window.open(PLAY_STORE_URL, "_blank", "noopener,noreferrer");
+      trackMetaAppInstallClick({ platform: "android", surface: "install_card_primary", destinationUrl: storeUrls.android });
+      window.open(storeUrls.android, "_blank", "noopener,noreferrer");
     } else {
-      window.open(PLAY_STORE_URL, "_blank", "noopener,noreferrer");
+      trackMetaAppInstallClick({ platform: "android", surface: "install_card_primary", destinationUrl: storeUrls.android });
+      window.open(storeUrls.android, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -136,9 +142,10 @@ export default function InstallAppCard() {
               {/* Store badges */}
               <div className="flex flex-wrap gap-2 mt-3">
                 <a
-                  href={APP_STORE_URL}
+                  href={storeUrls.ios}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackMetaAppInstallClick({ platform: "ios", surface: "install_card_badge", destinationUrl: storeUrls.ios })}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity"
                 >
                   <Apple className="w-4 h-4" />
@@ -148,9 +155,10 @@ export default function InstallAppCard() {
                   </div>
                 </a>
                 <a
-                  href={PLAY_STORE_URL}
+                  href={storeUrls.android}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackMetaAppInstallClick({ platform: "android", surface: "install_card_badge", destinationUrl: storeUrls.android })}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity"
                 >
                   <PlayBadgeIcon className="w-4 h-4" />
@@ -209,9 +217,10 @@ export default function InstallAppCard() {
           <div className="mt-4 pt-4 border-t">
             <p className="text-xs text-muted-foreground mb-2">Prefer the native app?</p>
             <a
-              href={APP_STORE_URL}
+              href={storeUrls.ios}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackMetaAppInstallClick({ platform: "ios", surface: "install_card_ios_sheet", destinationUrl: storeUrls.ios })}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-foreground text-background"
             >
               <Apple className="w-4 h-4" />

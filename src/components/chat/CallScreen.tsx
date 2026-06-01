@@ -25,6 +25,7 @@ import { useScreenShare } from "@/hooks/useScreenShare";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { playOutgoingRingback } from "@/lib/callAudio";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
 import CallQualityBadge from "./CallQualityBadge";
 import CallReactions from "./CallReactions";
 import AudioVisualizer from "./AudioVisualizer";
@@ -288,7 +289,7 @@ export default function CallScreen({
         ? `Missed ${callLabel} call (declined)`
         : `Missed ${callLabel} call (no answer)`;
 
-      void dbFrom("direct_messages").insert({
+      void sendDirectMessage({
         sender_id: user.id,
         receiver_id: recipientId,
         message,
@@ -501,7 +502,7 @@ export default function CallScreen({
           duration_seconds: 0,
         });
 
-        await dbFrom("direct_messages").insert({
+        await sendDirectMessage({
           sender_id: user.id,
           receiver_id: recipientId,
           message: `${callType === "video" ? "Video" : "Voice"} call attempt (busy)`,

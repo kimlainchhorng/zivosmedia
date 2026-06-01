@@ -3,6 +3,8 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
+const META_GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
+
 Deno.serve(withSecurity("auto-post-facebook", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
 
@@ -83,7 +85,7 @@ Deno.serve(withSecurity("auto-post-facebook", async (req, ctx) => {
 
       let fbRes: Response;
       if (parsed.image_url) {
-        fbRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+        fbRes = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/${pageId}/photos`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ caption: parsed.message_text, url: parsed.image_url, access_token: pageToken }),
@@ -91,7 +93,7 @@ Deno.serve(withSecurity("auto-post-facebook", async (req, ctx) => {
       } else {
         const payload: Record<string, string> = { message: parsed.message_text, access_token: pageToken };
         if (parsed.link) payload.link = parsed.link;
-        fbRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
+        fbRes = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/${pageId}/feed`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

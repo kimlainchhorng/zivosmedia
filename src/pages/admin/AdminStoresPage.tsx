@@ -371,7 +371,7 @@ export default function AdminStoresPage() {
 
       // Send invite email with store login link
       const storeAccountId = getStoreAccountId(ownerDialog.storeId);
-      const loginUrl = `https://hizivo.com/partner-login?store_id=${storeAccountId}`;
+      const loginUrl = `https://zivollc.com/partner-login?store_id=${storeAccountId}`;
       try {
         await supabase.functions.invoke("send-transactional-email", {
           body: {
@@ -382,7 +382,7 @@ export default function AdminStoresPage() {
               storeName: ownerDialog.storeName,
               storeAccountId,
               loginUrl,
-              supportUrl: "https://hizivo.com/help",
+              supportUrl: "https://zivollc.com/help",
             },
           },
         });
@@ -403,7 +403,7 @@ export default function AdminStoresPage() {
 
   const handleCopyInviteLink = () => {
     if (!inviteDialog) return;
-    const link = `https://hizivo.com/partner-login?store_id=${inviteDialog.storeAccountId}`;
+    const link = `https://zivollc.com/partner-login?store_id=${inviteDialog.storeAccountId}`;
     navigator.clipboard.writeText(link);
     setInviteCopied(true);
     toast.success("Invite link copied!");
@@ -979,7 +979,7 @@ export default function AdminStoresPage() {
               <div className="flex gap-2">
                 <Input
                   readOnly
-                  value={inviteDialog ? `https://hizivo.com/partner-login?store_id=${inviteDialog.storeAccountId}` : ""}
+                  value={inviteDialog ? `https://zivollc.com/partner-login?store_id=${inviteDialog.storeAccountId}` : ""}
                   className="text-xs font-mono"
                 />
                 <Button size="sm" variant="outline" onClick={handleCopyInviteLink} className="shrink-0 gap-1.5">

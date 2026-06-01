@@ -57,6 +57,7 @@ import {
   isStorySafetySchemaDriftError,
 } from "@/lib/social/sensitiveContent";
 import { submitSafetyReport } from "@/lib/social/safetyReport";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
 
 export interface StoryItem {
   id: string;
@@ -532,7 +533,7 @@ export default function StoryViewer({
       if (ownerId === user.id) throw new Error("Cannot reply to your own story");
       const deepLink = `${getPublicOrigin()}/stories/${currentStory.id}`;
       const body = `💬 Replied to your story\n${text}\n${deepLink}`;
-      const { error } = await supabase.from("direct_messages").insert({
+      const { error } = await sendDirectMessage({
         sender_id: user.id,
         receiver_id: ownerId,
         message: body,

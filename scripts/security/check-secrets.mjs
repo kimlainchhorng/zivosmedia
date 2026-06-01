@@ -71,7 +71,7 @@ function isEnvFile(name) {
 }
 
 function isLocalEnvFile(name) {
-  return name === ".env.local" || (name.startsWith(".env.") && name.endsWith(".local"));
+  return name === ".env" || name === ".env.local" || (name.startsWith(".env.") && name.endsWith(".local"));
 }
 
 function walk(dir) {

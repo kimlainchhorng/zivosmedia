@@ -55,8 +55,8 @@ describe("native app release workflow", () => {
 
     expect(listing).toContain("Bundle ID: `com.hizovo.app`");
     expect(listing).toContain("Privacy URL:");
-    expect(listing).toContain("https://hizivo.com/legal/privacy");
-    expect(listing).toContain("https://hizivo.com/legal/terms");
+    expect(listing).toContain("https://zivollc.com/legal/privacy");
+    expect(listing).toContain("https://zivollc.com/legal/terms");
     expect(listing).toContain("What's New in This Version");
   });
 
@@ -81,9 +81,9 @@ describe("native app release workflow", () => {
     expect(listing).toContain("Package name: `com.hizovo.app`");
     expect(listing).toContain("Privacy Policy URL");
     expect(listing).toContain("Account Deletion URL");
-    expect(listing).toContain("https://hizivo.com/legal/privacy");
-    expect(listing).toContain("https://hizivo.com/legal/terms");
-    expect(listing).toContain("https://hizivo.com/delete-account");
+    expect(listing).toContain("https://zivollc.com/legal/privacy");
+    expect(listing).toContain("https://zivollc.com/legal/terms");
+    expect(listing).toContain("https://zivollc.com/delete-account");
     expect(listing).not.toContain("https://www.zivollc.com");
     expect(setup).toContain("android/local.properties");
     expect(setup).toContain("npm run android:build:debug");
@@ -271,6 +271,7 @@ describe("native app release workflow", () => {
     expect(nativeContract).toContain("capacitor-production-shell");
     expect(nativeContract).toContain("ios-store-privacy-entitlements");
     expect(nativeContract).toContain("android-store-build-readiness");
+    expect(nativeContract).toContain("web-pwa-native-identity");
     expect(nativeContract).toContain("native-permissions-deeplinks-push");
     expect(nativeContract).toContain("ota-update-safety");
     expect(nativeContract).toContain("native-store-release-assets");
@@ -297,5 +298,67 @@ describe("native app release workflow", () => {
     expect(coverage).toContain("native-mobile-release");
     expect(coverage).toContain("qa:native-app-contracts");
     expect(coverageCheck).toContain("native-mobile-release");
+  });
+
+  it("keeps web, PWA, SEO, and Play Integrity app identity aligned with the native app", () => {
+    const deepLinks = read("src/lib/deepLinks.ts");
+    const seo = read("src/components/SEOHead.tsx");
+    const vite = read("vite.config.ts");
+    const manifest = read("public/manifest.webmanifest");
+    const index = read("index.html");
+    const env = read(".env.example");
+    const website = read("website/WEBSITE.md");
+    const playIntegrity = read("supabase/functions/verify-play-integrity/index.ts");
+    const adminAssets = read("src/pages/admin/AdminAppStoreAssets.tsx");
+    const notifyAppUpdate = read("supabase/functions/notify-app-update/index.ts");
+    const driverDownload = read("src/components/partner/DriverAppDownloadSheet.tsx");
+    const installPage = read("src/pages/Install.tsx");
+    const installCard = read("src/components/account/InstallAppCard.tsx");
+    const downloadSection = read("src/components/home/DownloadAppSection.tsx");
+    const deepLinkLanding = read("src/pages/DeepLinkLandingPage.tsx");
+    const profileRedirect = read("src/pages/ShareProfileRedirect.tsx");
+    const customerAppStoreUrl = "https://apps.apple.com/us/app/zivos/id6759480121";
+
+    for (const source of [deepLinks, index, manifest, env, website, playIntegrity, adminAssets]) {
+      expect(source).toContain("com.hizovo.app");
+    }
+
+    expect(deepLinks).toContain('export const ANDROID_APP_PACKAGE = "com.hizovo.app"');
+    expect(deepLinks).toContain("buildStoreUrlWithAttribution");
+    expect(deepLinks).toContain("getInstallAttributionParams");
+    expect(deepLinks).toContain('url.searchParams.set("referrer"');
+    expect(deepLinks).toContain('url.searchParams.set("ct"');
+    expect(seo).toContain("ANDROID_APP_PACKAGE");
+    expect(seo).toContain("IOS_APP_STORE_ID");
+    expect(vite).toContain('id: "/?source=pwa"');
+    expect(vite).toContain("ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators");
+    expect(vite).toContain(customerAppStoreUrl);
+    expect(vite).toContain("https://play.google.com/store/apps/details?id=com.hizovo.app");
+    expect(deepLinks).toContain("https://apps.apple.com/us/app/zivos/id${IOS_APP_STORE_ID}");
+    expect(manifest).toContain('"id": "com.hizovo.app"');
+    expect(manifest).toContain(customerAppStoreUrl);
+    expect(manifest).toContain("https://play.google.com/store/apps/details?id=com.hizovo.app");
+    expect(index).toContain(customerAppStoreUrl);
+    expect(index).toContain('meta property="al:ios:app_store_id" content="6759480121"');
+    expect(index).toContain('meta property="al:android:package" content="com.hizovo.app"');
+    expect(index).toContain("https://play.google.com/store/apps/details?id=com.hizovo.app");
+    expect(index).toContain("ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators");
+    expect(website).toContain(customerAppStoreUrl);
+    expect(env).toContain(`VITE_IOS_APP_STORE_URL=${customerAppStoreUrl}`);
+    expect(env).toContain("VITE_ANDROID_PLAY_STORE_URL=https://play.google.com/store/apps/details?id=com.hizovo.app");
+    expect(notifyAppUpdate).toContain(customerAppStoreUrl);
+    expect(driverDownload).toContain("https://apps.apple.com/us/app/zivodrivers/id6759507131");
+    expect(playIntegrity).toContain('const PACKAGE_NAME = "com.hizovo.app"');
+    expect(adminAssets).toContain('bundleId: "com.hizovo.app"');
+    expect(adminAssets).toContain('packageName: "com.hizovo.app"');
+    expect(seo).not.toContain("com.zivo.app");
+
+    for (const source of [deepLinks, index, manifest, env, vite, notifyAppUpdate, driverDownload]) {
+      expect(source).not.toContain("apps.apple.com/us/app/zivo-customer");
+    }
+
+    for (const source of [installPage, installCard, downloadSection, deepLinkLanding, profileRedirect]) {
+      expect(source).toContain("getAttributedStoreUrls");
+    }
   });
 });

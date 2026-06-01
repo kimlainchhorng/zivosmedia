@@ -2,6 +2,8 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
+const META_GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
+
 const json = (data: unknown, status = 200, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(data), {
     status,
@@ -75,7 +77,7 @@ Deno.serve(withSecurity("boost-facebook-post", async (req, ctx) => {
     }
 
     const promotionRes = await fetch(
-      `https://graph.facebook.com/v21.0/${post_id}/promotions`,
+      `https://graph.facebook.com/${META_GRAPH_VERSION}/${post_id}/promotions`,
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },

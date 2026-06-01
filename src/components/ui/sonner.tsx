@@ -24,13 +24,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
           title: "group-[.toast]:text-[13px] group-[.toast]:text-white group-[.toast]:font-medium group-[.toast]:leading-tight",
           description: "group-[.toast]:text-[12px] group-[.toast]:text-white/70",
           actionButton:
-            "group-[.toast]:!bg-emerald-500 group-[.toast]:!text-zinc-950 group-[.toast]:!rounded-full group-[.toast]:!px-3 group-[.toast]:!py-1 group-[.toast]:!text-[11px] group-[.toast]:!font-semibold group-[.toast]:!h-auto hover:group-[.toast]:!bg-emerald-400",
+            "group-[.toast]:!bg-primary group-[.toast]:!text-primary-foreground group-[.toast]:!rounded-full group-[.toast]:!px-3 group-[.toast]:!py-1 group-[.toast]:!text-[11px] group-[.toast]:!font-semibold group-[.toast]:!h-auto hover:group-[.toast]:!bg-primary/90",
           cancelButton:
             "group-[.toast]:!bg-white/10 group-[.toast]:!text-white/80 group-[.toast]:!rounded-full group-[.toast]:!px-3 group-[.toast]:!py-1 group-[.toast]:!text-[11px] group-[.toast]:!h-auto",
-          success: "group-[.toaster]:!text-emerald-400",
-          error: "group-[.toaster]:!text-rose-400",
-          warning: "group-[.toaster]:!text-amber-400",
-          info: "group-[.toaster]:!text-sky-400",
+          success: "group-[.toaster]:!text-success",
+          error: "group-[.toaster]:!text-destructive",
+          warning: "group-[.toaster]:!text-warning",
+          info: "group-[.toaster]:!text-primary",
         },
       }}
       {...props}

@@ -46,24 +46,13 @@ import Save from "lucide-react/dist/esm/icons/save";
 interface Props { storeId: string }
 
 import { LABOR_GUIDE, LABOR_GUIDE_CATEGORIES, DIFF_COLOR, VEHICLE_CLASSES, adjustHours, type VehicleClass } from "@/lib/laborGuide";
+import { US_STATES } from "@/lib/admin/usStates";
 
 const GUIDE_CATEGORIES = LABOR_GUIDE_CATEGORIES.slice(1);
 const LABOR_TYPES = ["Diagnosis", "Repair", "Maintenance", "Inspection", "Electrical", "Bodywork", "Other"];
 const LABOR_TIME_TABS = new Set(["overview", "timer", "log", "vehicle", "techs", "guide"]);
 const LABOR_TIME_TAB_STORAGE_KEY = "zivo:auto-repair:labor-time-tab";
 const VEHICLE_YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() + 2 - 1980 }, (_, index) => String(new Date().getFullYear() + 1 - index));
-const US_STATES = [
-  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"],
-  ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"], ["FL", "Florida"], ["GA", "Georgia"],
-  ["HI", "Hawaii"], ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"], ["IA", "Iowa"],
-  ["KS", "Kansas"], ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"], ["MD", "Maryland"],
-  ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"], ["MO", "Missouri"],
-  ["MT", "Montana"], ["NE", "Nebraska"], ["NV", "Nevada"], ["NH", "New Hampshire"], ["NJ", "New Jersey"],
-  ["NM", "New Mexico"], ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"], ["OH", "Ohio"],
-  ["OK", "Oklahoma"], ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"], ["SC", "South Carolina"],
-  ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"], ["VT", "Vermont"],
-  ["VA", "Virginia"], ["WA", "Washington"], ["WV", "West Virginia"], ["WI", "Wisconsin"], ["WY", "Wyoming"],
-] as const;
 
 const fmt$ = (cents: number) =>
   `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

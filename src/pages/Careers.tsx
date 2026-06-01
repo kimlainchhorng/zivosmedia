@@ -30,7 +30,7 @@ const cultureValues = [
   {
     icon: Globe,
     title: "Global-First Mindset",
-    description: "We build for travelers worldwide, embracing diverse perspectives and markets.",
+    description: "We build for global members, creators, businesses, travelers, and local communities.",
   },
   {
     icon: Laptop,
@@ -75,17 +75,17 @@ const benefits = [
 const departments = [
   {
     name: "Engineering",
-    description: "Build the platform that powers millions of travel bookings.",
+    description: "Build the platform that powers travel, social, commerce, jobs, messaging, and creator tools.",
     roles: ["Full-Stack Engineers", "Backend Engineers", "Mobile Developers", "DevOps"],
   },
   {
     name: "Product",
-    description: "Define the future of travel search and booking experiences.",
+    description: "Define the future of unified consumer, creator, business, and travel experiences.",
     roles: ["Product Managers", "Product Designers", "UX Researchers"],
   },
   {
     name: "Design",
-    description: "Create beautiful, intuitive interfaces for global travelers.",
+    description: "Create beautiful, intuitive interfaces for people moving between social, shop, jobs, and travel workflows.",
     roles: ["UI/UX Designers", "Brand Designers", "Motion Designers"],
   },
   {
@@ -100,8 +100,8 @@ const Careers = () => {
     <div className="min-h-screen bg-background">
       <SEOHead
         title="Careers | ZIVO"
-        description="Join ZIVO and help build the future of travel. Remote-first, global-minded, innovation-driven."
-        canonical="https://hizivo.com/careers"
+        description="Join ZIVO and help build an all-in-one app for travel, social, creators, shops, jobs, chat, and calls. Remote-first, global-minded, innovation-driven."
+        canonical="https://zivollc.com/careers"
       />
       <Header />
 
@@ -114,11 +114,11 @@ const Careers = () => {
               Careers
             </Badge>
             <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
-              Build the Future of Travel
+              Build the Future of Everyday Apps
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Join a global team building the next generation of travel and 
-              mobility experiences.
+              Join a global team building the next generation of social, travel,
+              commerce, jobs, creator, and messaging experiences.
             </p>
           </motion.div>
 
@@ -128,9 +128,9 @@ const Careers = () => {
               <Sparkles className="w-10 h-10 text-primary mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                ZIVO connects how the world moves. We're building a unified platform 
-                for travel and mobility that makes booking flights, hotels, cars, rides, 
-                and more as simple as tapping a button.
+                ZIVO connects how people move, share, sell, hire, create, and communicate.
+                We're building a unified platform that keeps everyday workflows simple,
+                fast, and connected.
               </p>
             </CardContent>
           </Card>
@@ -226,8 +226,8 @@ const Careers = () => {
             <h2 className="text-2xl font-bold mb-8 text-center">Life at ZIVO</h2>
             <div className="grid sm:grid-cols-3 gap-6">
               {[
-                { name: "Priya S.", role: "Senior Engineer", quote: "The engineering challenges here are incredible — we process millions of travel searches daily. Plus, I get to work from Bali.", emoji: "👩‍💻", tenure: "2 years" },
-                { name: "Carlos M.", role: "Product Designer", quote: "I love that my designs impact travelers worldwide. The team genuinely cares about craft and user experience.", emoji: "🎨", tenure: "1.5 years" },
+                { name: "Priya S.", role: "Senior Engineer", quote: "The engineering challenges here are incredible because one app has to feel fast across social, travel, commerce, and chat.", emoji: "👩‍💻", tenure: "2 years" },
+                { name: "Carlos M.", role: "Product Designer", quote: "I love designing flows that help people discover creators, plan trips, shop, hire, and talk without losing context.", emoji: "🎨", tenure: "1.5 years" },
                 { name: "Emma L.", role: "Operations Lead", quote: "Moving fast while keeping partners happy is exciting. ZIVO gives me ownership that bigger companies never did.", emoji: "🚀", tenure: "1 year" },
               ].map(t => (
                 <Card key={t.name} className="border-border/50 hover:border-primary/20 hover:shadow-md transition-all duration-300">
@@ -368,7 +368,7 @@ const Careers = () => {
               <CardContent className="p-8 text-center">
                 <h2 className="text-2xl font-bold mb-4">Diversity & Inclusion</h2>
                 <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-                  ZIVO is committed to building a diverse team. We believe different perspectives lead to better products for travelers worldwide.
+                  ZIVO is committed to building a diverse team. We believe different perspectives lead to better products for people and businesses worldwide.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[

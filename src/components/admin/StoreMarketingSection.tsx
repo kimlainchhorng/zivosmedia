@@ -188,8 +188,8 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
   const slug = storeSlug || storeProfile?.slug || "";
   const name = storeName || storeProfile?.name || "Store";
   const isAutoRepair = storeCategory === "auto-repair";
-  const storeUrl = slug ? `https://hizivo.com/store/${slug}` : "";
-  const bookingUrl = slug ? `https://hizivo.com/book/${slug}` : "";
+  const storeUrl = slug ? `https://zivollc.com/store/${slug}` : "";
+  const bookingUrl = slug ? `https://zivollc.com/book/${slug}` : "";
 
   /* ───── Analytics computed from posts ───── */
   const analytics = useMemo(() => {

@@ -38,12 +38,6 @@ const ALLOWED_ORIGINS = new Set<string>([
   "https://app.zivollc.com",
   "https://preview.zivollc.com",
   "https://zivo-web.myzivo.workers.dev",
-  "https://hizivo.com",
-  "https://www.hizivo.com",
-  "https://app.hizivo.com",
-  "https://myzivo.com",
-  "https://www.myzivo.com",
-  "https://app.myzivo.com",
   // Supabase Studio (used by edge-function test runner)
   "https://supabase.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGINS"),
@@ -52,7 +46,6 @@ const ALLOWED_ORIGINS = new Set<string>([
 // Domains whose origin prefixes are allowed (e.g. branch previews).
 const ALLOWED_ORIGIN_SUFFIXES = [
   ".zivollc.com",
-  ".hizivo.com",
   ".myzivo.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];

@@ -109,7 +109,7 @@ const allFaqs = faqSections.flatMap(section => section.faqs);
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead title="FAQ – Frequently Asked Questions | ZIVO" description="Find answers to common questions about using ZIVO for travel search, flights, hotels, car rentals, and bookings." canonical="https://hizivo.com/faq" />
+      <SEOHead title="FAQ – Frequently Asked Questions | ZIVO" description="Find answers to common questions about using ZIVO for travel search, flights, hotels, car rentals, and bookings." canonical="https://zivollc.com/faq" />
       <FAQSchema faqs={allFaqs} pageType="general" />
       
       <NavBar />

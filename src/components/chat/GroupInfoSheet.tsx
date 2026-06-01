@@ -223,7 +223,7 @@ export default function GroupInfoSheet({
   onLeft,
 }: Props) {
   const { user } = useAuth();
-  const { members, isAdmin, loading, refresh, updateGroupMeta, leave } = useGroupAdmin(groupId);
+  const { members, isAdmin, loading, refresh, updateGroupMeta, leave, addMembers } = useGroupAdmin(groupId);
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
   const [tab, setTab] = useState<GroupInfoTab>("members");
   const [editingName, setEditingName] = useState(false);
@@ -436,21 +436,11 @@ export default function GroupInfoSheet({
   const handleAddMembers = async () => {
     if (selectedFriends.size === 0) return;
     setAddingMembers(true);
-    const rows = Array.from(selectedFriends).map((memberId) => ({
-      group_id: groupId,
-      user_id: memberId,
-      role: "member",
-    }));
-    const { error } = await (supabase as any).from("chat_group_members").insert(rows);
+    const ok = await addMembers(Array.from(selectedFriends));
     setAddingMembers(false);
-    if (error) {
-      toast.error(error.message || "Could not add members");
-      return;
-    }
-    toast.success(selectedFriends.size === 1 ? "Member added" : "Members added");
+    if (!ok) return;
     setSelectedFriends(new Set());
     setShowAddMembers(false);
-    await refresh();
     onMembersChanged();
   };
 

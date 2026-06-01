@@ -63,7 +63,7 @@ describe("hasEmbeddedCredentials", () => {
     expect(hasEmbeddedCredentials("https://admin@evil.com")).toBe(true);
   });
   it("does not flag clean URL", () => {
-    expect(hasEmbeddedCredentials("https://hizivo.com/login")).toBe(false);
+    expect(hasEmbeddedCredentials("https://zivollc.com/login")).toBe(false);
   });
 });
 
@@ -78,7 +78,7 @@ describe("isUrlShortener", () => {
     expect(isUrlShortener("https://tinyurl.com/abc")).toBe(true);
   });
   it("does not flag normal hosts", () => {
-    expect(isUrlShortener("https://hizivo.com/abc")).toBe(false);
+    expect(isUrlShortener("https://zivollc.com/abc")).toBe(false);
   });
   it("returns false on invalid URL", () => {
     expect(isUrlShortener("not-a-url")).toBe(false);
@@ -95,11 +95,11 @@ describe("isZivoTyposquat", () => {
   it("flags hizvo.com (1-char drop)", () => {
     expect(isZivoTyposquat("https://hizvo.com")).toBe(true);
   });
-  it("does NOT flag the real hizivo.com", () => {
-    expect(isZivoTyposquat("https://hizivo.com")).toBe(false);
+  it("does NOT flag the real zivollc.com", () => {
+    expect(isZivoTyposquat("https://zivollc.com")).toBe(false);
   });
   it("does NOT flag a subdomain of the real domain", () => {
-    expect(isZivoTyposquat("https://app.hizivo.com")).toBe(false);
+    expect(isZivoTyposquat("https://app.zivollc.com")).toBe(false);
   });
   it("does NOT flag wildly different domains", () => {
     expect(isZivoTyposquat("https://google.com")).toBe(false);

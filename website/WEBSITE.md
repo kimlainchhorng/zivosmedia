@@ -1,4 +1,4 @@
-# 🌐 WEBSITE CONTENT — hizivo.com (ZIVO)
+# 🌐 WEBSITE CONTENT — zivollc.com (ZIVO)
 
 **Edit only the text inside the boxes. These are the strings the marketing site & SEO use.**
 
@@ -12,7 +12,7 @@ When you change a value here, update the matching file:
 ## 1. Browser Tab Title  (max 60 characters — for SEO)
 
 ```
-ZIVO – Free Super-App: Travel, Social, Shop, Jobs & Creators
+ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators
 ```
 
 ## 2. Meta Description  (max 160 characters — for Google snippet)
@@ -54,12 +54,12 @@ Open Web App
 ## 8. Feature Grid (6 cards — title + 1-line description each)
 
 ```
-1. Travel        → Compare flights, hotels & car rentals from 500+ partners.
+1. Travel & Local → Compare flights, hotels & cars, then access rides and food.
 2. Social        → Share reels, follow creators, subscribe to your favorites.
 3. Shop          → Open an online shop in minutes — no monthly fees.
 4. Jobs          → Find work or hire talent. Unlimited posts.
 5. Chat & Call   → Free HD voice and video calls, channels, audio spaces.
-6. AI Planner    → Build a full trip itinerary in seconds.
+6. AI Planner    → Plan trips, creator launches, shops, and hiring tasks.
 ```
 
 ## 9. FAQ (matches schema.org/FAQPage in index.html)
@@ -75,7 +75,7 @@ Q3: Can businesses sell or hire on ZIVO?
 A3: Yes. Businesses can open an online shop, manage orders with a built-in POS, post jobs, and receive applications — all from one ZIVO account.
 
 Q4: Where can I download the ZIVO app?
-A4: ZIVO is available on iOS and Android, and works as a fast web app at hizivo.com.
+A4: ZIVO is available on iOS and Android, and works as a fast web app at zivollc.com.
 ```
 
 ## 10. Footer / Contact Block
@@ -85,8 +85,8 @@ Company:    ZIVO LLC
 Support:    support@hizivo.com
 Press:      info@hizivo.com
 Twitter/X:  @ZivoApp
-App Store:  https://apps.apple.com/app/id6759480121
-Play Store: https://play.google.com/store/apps/details?id=com.myzivo.app
+App Store:  https://apps.apple.com/us/app/zivos/id6759480121
+Play Store: https://play.google.com/store/apps/details?id=com.hizovo.app
 ```
 
 ## 11. Languages Supported (display order on site)
@@ -103,7 +103,7 @@ French (fr)
 ```
 Path:  /public/og-image.png
 Size:  1200 × 630 PNG
-Alt:   ZIVO – Compare Flights, Hotels & Car Rentals
+Alt:   ZIVO - Travel, Social, Shop, Jobs & Creators
 ```
 
 ---
@@ -113,4 +113,4 @@ Alt:   ZIVO – Compare Flights, Hotels & Car Rentals
 2. Mirror copy into `index.html` (SEO tags) and relevant pages in `src/pages/`
 3. `bun run build`
 4. Push to main → hosting (Lovable / Vercel / Netlify) deploys automatically
-5. Verify live at https://hizivo.com and re-share to refresh OG cache (use https://www.opengraph.xyz)
+5. Verify live at https://zivollc.com and re-share to refresh OG cache (use https://www.opengraph.xyz)

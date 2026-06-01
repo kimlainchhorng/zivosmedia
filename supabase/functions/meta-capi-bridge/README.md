@@ -14,6 +14,7 @@ Set these Supabase secrets before deploy:
 Optional:
 
 - `META_TEST_EVENT_CODE` (recommended for initial validation in Meta Events Manager)
+- `META_GRAPH_VERSION` (defaults to `v25.0`)
 
 ## Deploy
 

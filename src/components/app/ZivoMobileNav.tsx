@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
 import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 interface NavTab {
   id: string;
@@ -103,7 +104,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
   );
 
   const gated = (path: string) =>
-    user ? path : `/login?redirect=${encodeURIComponent(path)}`;
+    user ? path : withRedirectParam("/login", path);
 
   const tabs: NavTab[] = [
     { id: "home", labelKey: "nav.home", icon: Home, path: "/", badge: liveActivity.total, fillable: true },

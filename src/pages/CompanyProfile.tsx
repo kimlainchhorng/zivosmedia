@@ -33,26 +33,26 @@ const companyInfo = [
   { label: "Trading As", value: "ZIVO / Hizovo" },
   { label: "Founded", value: "2024" },
   { label: "Headquarters", value: "United States" },
-  { label: "Website", value: "hizivo.com" },
-  { label: "Industry", value: "Travel Technology / Mobility" },
+  { label: "Website", value: "zivollc.com" },
+  { label: "Industry", value: "Super-App / Travel / Social Commerce" },
 ];
 
 const businessModel = [
   {
     title: "Commission-Based Revenue",
-    description: "ZIVO earns commissions from partner bookings. Users pay partner prices with no added fees.",
+    description: "ZIVO earns from partner bookings, marketplace activity, memberships, and business tools while keeping core user access free.",
   },
   {
     title: "Affiliate Partnerships",
-    description: "Strategic partnerships with airlines, hotels, and car rental providers worldwide.",
+    description: "Strategic partnerships with airlines, hotels, car rentals, restaurants, sellers, employers, and creator businesses.",
   },
   {
     title: "No Direct Ticket Sales",
     description: "ZIVO facilitates bookings through licensed travel partners who handle fulfillment.",
   },
   {
-    title: "Mobility Expansion",
-    description: "Growing into local services including rides, food delivery, and logistics.",
+    title: "Super-App Expansion",
+    description: "Growing into social feed, reels, creator tools, shops, jobs, rides, food delivery, and logistics.",
   },
 ];
 
@@ -60,6 +60,9 @@ const services = [
   { name: "ZIVO Flights", icon: Plane, status: "Live" },
   { name: "ZIVO Hotels", icon: Hotel, status: "Live" },
   { name: "ZIVO Cars", icon: Car, status: "Live" },
+  { name: "ZIVO Feed", icon: Users, status: "Live" },
+  { name: "ZIVO Shops", icon: Package, status: "Launching" },
+  { name: "ZIVO Jobs", icon: Briefcase, status: "Launching" },
   { name: "ZIVO Rides", icon: MapPin, status: "Launching" },
   { name: "ZIVO Eats", icon: Utensils, status: "Launching" },
   { name: "ZIVO Move", icon: Package, status: "Roadmap" },
@@ -97,7 +100,7 @@ const CompanyProfile = () => {
       <SEOHead
         title="Company Profile | ZIVO"
         description="ZIVO LLC company profile - Travel & Mobility Ecosystem. Overview for banks, partners, investors, and press."
-        canonical="https://hizivo.com/company-profile"
+        canonical="https://zivollc.com/company-profile"
       />
       <Header />
 
@@ -138,10 +141,10 @@ const CompanyProfile = () => {
                     ))}
                   </div>
                   <p className="text-muted-foreground">
-                    ZIVO is a global travel search and comparison platform that helps travelers 
-                    find and compare flights, hotels, car rentals, and travel services from 
-                    trusted partners worldwide. Founded in 2024, ZIVO is building a unified 
-                    travel and mobility ecosystem powered by AI.
+                    ZIVO is a global super-app platform that brings travel booking, rides,
+                    food, social feed, reels, creator tools, shops, jobs, chat, and calls
+                    into one connected experience. Founded in 2024, ZIVO is building a
+                    unified everyday app ecosystem powered by AI.
                   </p>
                 </CardContent>
               </Card>
@@ -201,10 +204,10 @@ const CompanyProfile = () => {
                   <div className="flex items-start gap-3">
                     <TrendingUp className="w-5 h-5 text-primary mt-1" />
                     <div>
-                      <h4 className="font-semibold">Super-App for Travel & Mobility</h4>
+                      <h4 className="font-semibold">Super-App for Everyday Life</h4>
                       <p className="text-sm text-muted-foreground">
-                        Unified platform combining global travel (flights, hotels, cars) with 
-                        local mobility (rides, food, logistics).
+                        Unified platform combining travel, rides, food, social discovery,
+                        creator tools, shops, jobs, messaging, and local logistics.
                       </p>
                     </div>
                   </div>
@@ -362,7 +365,7 @@ const CompanyProfile = () => {
             <h3 className="text-xl font-bold text-center mb-6">Competitive Advantages</h3>
             <div className="grid sm:grid-cols-2 gap-3">
               {[
-                { advantage: "Unified Ecosystem", desc: "Single platform for flights, hotels, cars, rides, food, and logistics — unlike fragmented competitors", icon: Globe },
+                { advantage: "Unified Ecosystem", desc: "Single platform for travel, reels, creators, shops, jobs, chat, rides, food, and logistics", icon: Globe },
                 { advantage: "AI-First Architecture", desc: "Machine learning powers every search, recommendation, and pricing insight", icon: TrendingUp },
                 { advantage: "Zero-Fee Model", desc: "Users never pay extra fees — ZIVO earns from partner commissions only", icon: Target },
                 { advantage: "Global from Day One", desc: "Built for international scale with multi-currency and multi-language support", icon: Shield },

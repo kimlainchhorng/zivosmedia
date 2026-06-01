@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { sendDirectMessages } from "@/lib/chat/directMessageSend";
 
 export interface DirectMessage {
   id: string;
@@ -90,13 +91,13 @@ export function useMessageActions() {
       forwarded_from_message_id: msg.id,
     }));
     if (commentRows.length > 0) {
-      const { error: commentError } = await (supabase as any).from("direct_messages").insert(commentRows);
+      const { error: commentError } = await sendDirectMessages(commentRows);
       if (commentError) {
         toast.error("Could not send comment");
         return false;
       }
     }
-    const { error } = await (supabase as any).from("direct_messages").insert(forwardRows);
+    const { error } = await sendDirectMessages(forwardRows);
     if (error) {
       toast.error("Could not forward message");
       return false;

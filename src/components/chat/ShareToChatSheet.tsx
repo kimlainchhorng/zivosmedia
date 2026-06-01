@@ -16,6 +16,8 @@ import Send from "lucide-react/dist/esm/icons/send";
 import Check from "lucide-react/dist/esm/icons/check";
 import { toast } from "sonner";
 import { enqueue as outboxEnqueue } from "@/lib/chat/messageOutbox";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
+import { sendGroupMessage } from "@/lib/chat/groupMessageSend";
 import ZivoActionBubble, { type ZivoCardPayload } from "./ZivoActionBubble";
 
 export const SHARE_TO_CHAT_EVENT = "zivo:share-to-chat";
@@ -189,7 +191,9 @@ export default function ShareToChatSheet() {
         ? { sender_id: user.id, receiver_id: id, message: card.title, message_type: "zivo_card", file_payload: cardWithForwarder as unknown as Record<string, unknown> }
         : { sender_id: user.id, group_id: id, message: card.title, message_type: "zivo_card", file_payload: cardWithForwarder as unknown as Record<string, unknown> };
       try {
-        const { error } = await (dbFrom(table) as { insert: (p: unknown) => Promise<{ error: unknown }> }).insert(insertData);
+        const { error } = recipient.kind === "friend"
+          ? await sendDirectMessage(insertData as Parameters<typeof sendDirectMessage>[0])
+          : await sendGroupMessage(insertData as Parameters<typeof sendGroupMessage>[0]);
         if (error) throw error;
         successCount++;
       } catch {

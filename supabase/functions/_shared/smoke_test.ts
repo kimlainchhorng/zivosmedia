@@ -31,7 +31,7 @@ for (const fn of HARDENED_FUNCTIONS) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Origin": "https://hizivo.com",
+          "Origin": "https://zivollc.com",
           "Authorization": `Bearer ${Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")}`,
           "apikey": Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "",
         },

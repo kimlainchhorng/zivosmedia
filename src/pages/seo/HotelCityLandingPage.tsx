@@ -61,11 +61,11 @@ export default function HotelCityLandingPage() {
   // SEO metadata
   const title = `Hotels in ${city} ${dynamicYear} | Compare Best Rates | ZIVO`;
   const description = `Find the best hotel deals in ${city}. Compare prices from Hotelbeds, RateHawk and more. No booking fees. Secure payment with ZIVO.`;
-  const canonicalUrl = `https://hizivo.com/hotels/${citySlug}`;
+  const canonicalUrl = `https://zivollc.com/hotels/${citySlug}`;
 
   const breadcrumbItems = [
-    { name: "Home", url: "https://hizivo.com" },
-    { name: "Hotels", url: "https://hizivo.com/hotels" },
+    { name: "Home", url: "https://zivollc.com" },
+    { name: "Hotels", url: "https://zivollc.com/hotels" },
     { name: `Hotels in ${city}`, url: canonicalUrl },
   ];
 

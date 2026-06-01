@@ -118,7 +118,7 @@ INSERT INTO public.incident_templates (template_name, template_type, incident_se
  'We''re performing maintenance. Please try again shortly.',
  ARRAY[]::TEXT[]),
 ('Critical Outage - Email', 'email', 'critical', 'Urgent: ZIVO Service Disruption',
- 'Dear Customer,\n\nWe are experiencing a significant service disruption affecting {{affected_services}}.\n\nOur engineering team has been mobilized and is working on resolution.\n\nStatus updates: https://status.hizivo.com\n\nWe sincerely apologize for the inconvenience.\n\nThe ZIVO Team',
+ 'Dear Customer,\n\nWe are experiencing a significant service disruption affecting {{affected_services}}.\n\nOur engineering team has been mobilized and is working on resolution.\n\nStatus updates: https://status.zivollc.com\n\nWe sincerely apologize for the inconvenience.\n\nThe ZIVO Team',
  ARRAY['affected_services'])
 ON CONFLICT DO NOTHING;
 

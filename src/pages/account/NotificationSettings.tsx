@@ -66,6 +66,7 @@ import { NotificationChannelCard } from "@/components/account/NotificationChanne
 import { PhoneVerificationDialog } from "@/components/account/PhoneVerificationDialog";
 import InstallAppCard from "@/components/account/InstallAppCard";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type CategoryGroup = "account" | "social" | "commerce" | "live" | "wellness" | "creator";
 
@@ -251,6 +252,86 @@ export default function NotificationSettings() {
     return map;
   }, []);
 
+  const workflowTiles = useMemo(() => {
+    const pushStatus = !isSupported
+      ? "Unavailable"
+      : permission === "denied"
+        ? "Blocked"
+        : permission === "granted" && subscription
+          ? "Live"
+          : permission === "granted"
+            ? "Permission on"
+            : "Needs opt-in";
+
+    const pushTone = permission === "granted" && subscription
+      ? "text-success bg-success/10 border-success/20"
+      : permission === "denied"
+        ? "text-destructive bg-destructive/10 border-destructive/20"
+        : "text-amber-700 bg-amber-500/10 border-amber-500/20 dark:text-amber-300";
+
+    return [
+      {
+        id: "push",
+        label: "Push",
+        status: pushStatus,
+        description: isConfigured ? "Web, iOS, and Android tokens" : "VAPID setup needed",
+        icon: Smartphone,
+        tone: pushTone,
+      },
+      {
+        id: "email",
+        label: "Email",
+        status: prefs?.emailEnabled === false ? "Off" : "On",
+        description: prefs?.marketingEnabled ? "Resend receipts + offers" : "Resend receipts only",
+        icon: Mail,
+        tone: prefs?.emailEnabled === false
+          ? "text-muted-foreground bg-muted border-border"
+          : "text-success bg-success/10 border-success/20",
+      },
+      {
+        id: "sms",
+        label: "SMS",
+        status: prefs?.smsEnabled ? "On" : "Off",
+        description: prefs?.phoneVerified || profile?.phone_verified ? "Phone verified" : "Verification required",
+        icon: Phone,
+        tone: prefs?.smsEnabled
+          ? "text-success bg-success/10 border-success/20"
+          : "text-muted-foreground bg-muted border-border",
+      },
+      {
+        id: "security",
+        label: "SSO + OTP",
+        status: "Protected",
+        description: "Trusted devices and sessions",
+        icon: ShieldCheck,
+        tone: "text-sky-700 bg-sky-500/10 border-sky-500/20 dark:text-sky-300",
+      },
+      {
+        id: "quiet-hours",
+        label: "Quiet Hours",
+        status: quietHoursEnabled ? `${quietHoursStart}-${quietHoursEnd}` : "Off",
+        description: quietHoursEnabled ? "Push pauses overnight" : "Immediate delivery",
+        icon: Moon,
+        tone: quietHoursEnabled
+          ? "text-indigo-700 bg-indigo-500/10 border-indigo-500/20 dark:text-indigo-300"
+          : "text-muted-foreground bg-muted border-border",
+      },
+    ];
+  }, [
+    isConfigured,
+    isSupported,
+    permission,
+    prefs?.emailEnabled,
+    prefs?.marketingEnabled,
+    prefs?.phoneVerified,
+    prefs?.smsEnabled,
+    profile?.phone_verified,
+    quietHoursEnabled,
+    quietHoursEnd,
+    quietHoursStart,
+    subscription,
+  ]);
+
   const persistPreferences = (next: Record<string, boolean>) => {
     try {
       localStorage.setItem(PREFS_KEY, JSON.stringify(next));
@@ -386,10 +467,68 @@ export default function NotificationSettings() {
       </div>
 
       <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="bg-ig-gradient px-4 py-4 text-white">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">Workflow</p>
+                    <h2 className="mt-1 text-lg font-bold">Notification delivery</h2>
+                  </div>
+                  <Badge className="border-white/20 bg-white/15 text-white hover:bg-white/20">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Connected
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                {workflowTiles.map((tile) => {
+                  const Icon = tile.icon;
+                  return (
+                    <div key={tile.id} className="flex items-start gap-3 p-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <Icon className="h-5 w-5 text-foreground" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">{tile.label}</p>
+                          <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", tile.tone)}>
+                            {tile.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">{tile.description}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-2 border-t border-border px-4 py-3">
+                <Button variant="outline" size="sm" onClick={() => navigate("/push-devices")}>
+                  <Smartphone className="mr-2 h-4 w-4" />
+                  Devices
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate("/account/security")}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Security
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate("/account/sessions")}>
+                  <Activity className="mr-2 h-4 w-4" />
+                  Sessions
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Push Notifications Card */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.04 }}
         >
           <Card>
             <CardContent className="p-4">

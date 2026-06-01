@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ReactionEmoji } from "@/lib/social/reactions";
 import type { PostSource } from "@/hooks/usePostActions";
+import { setPostReaction } from "@/lib/social/postReactionManage";
 
 const POST_REACTIONS_ENABLED = import.meta.env.VITE_ENABLE_POST_REACTIONS === "true";
 
@@ -59,22 +60,8 @@ export function usePostReactions(userId: string | null) {
     });
 
     try {
-      if (next == null) {
-        await (supabase as any)
-          .from("post_reactions")
-          .delete()
-          .eq("user_id", userId)
-          .eq("post_id", postId)
-          .eq("source", source);
-      } else {
-        // Upsert: insert or update if there's a conflict on (user, post, source)
-        await (supabase as any)
-          .from("post_reactions")
-          .upsert(
-            { user_id: userId, post_id: postId, source, emoji: next },
-            { onConflict: "user_id,post_id,source" },
-          );
-      }
+      const { error } = await setPostReaction({ post_id: postId, source, emoji: next });
+      if (error) throw error;
     } catch {
       // Roll back
       setReactions((prev) => {

@@ -114,7 +114,7 @@ const ROWS: CheckRow[] = [
     label: "Copy link",
     description: "Writes a sample URL to the clipboard via navigator.clipboard.",
     run: async ({ mockPostId }) => {
-      const url = `https://hizivo.com/p/${mockPostId}`;
+      const url = `https://zivollc.com/p/${mockPostId}`;
       if (!navigator.clipboard) throw new Error("Clipboard API unavailable");
       await navigator.clipboard.writeText(url);
       return "Clipboard write OK";

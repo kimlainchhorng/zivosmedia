@@ -9,7 +9,7 @@
 import { serve, createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const STORE_URL = "https://apps.apple.com/us/app/zivo-customer/id6759480121";
+const STORE_URL = "https://apps.apple.com/us/app/zivos/id6759480121";
 const BATCH_SIZE = 500;
 
 serve(withSecurity("notify-app-update", async (req, ctx) => {

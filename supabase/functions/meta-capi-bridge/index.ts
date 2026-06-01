@@ -39,8 +39,9 @@ async function sendToMeta(
 ): Promise<{ ok: boolean; status: number; body: Rec }> {
   const payload: Rec = { data: events, access_token: accessToken };
   if (testCode) payload.test_event_code = testCode;
+  const graphVersion = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
 
-  const res = await fetch(`https://graph.facebook.com/v19.0/${pixelId}/events`, {
+  const res = await fetch(`https://graph.facebook.com/${graphVersion}/${pixelId}/events`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

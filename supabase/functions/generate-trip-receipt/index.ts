@@ -171,8 +171,8 @@ Deno.serve(withSecurity("generate-trip-receipt", async (req, ctx) => {
 
     // Footer
     page.drawLine({ start: { x: 40, y: 80 }, end: { x: 555, y: 80 }, thickness: 0.5, color: muted });
-    page.drawText("ZIVO is a travel marketplace operating at hizivo.com.", { x: 40, y: 64, size: 8, font, color: muted });
-    page.drawText("Support: support@hizivo.com  ·  hizivo.com/legal", { x: 40, y: 52, size: 8, font, color: muted });
+    page.drawText("ZIVO is a travel marketplace operating at zivollc.com.", { x: 40, y: 64, size: 8, font, color: muted });
+    page.drawText("Support: support@hizivo.com  ·  zivollc.com/legal", { x: 40, y: 52, size: 8, font, color: muted });
 
     const bytes = await pdf.save();
 

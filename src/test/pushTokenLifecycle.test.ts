@@ -21,6 +21,7 @@ describe("push token lifecycle guard", () => {
       "Notification.requestPermission()",
       "navigator.serviceWorker.ready",
       "pushManager.subscribe",
+      "urlBase64ToUint8Array(VAPID_PUBLIC_KEY)",
       "subscription.unsubscribe()",
     ]) {
       expect(webPushHook).toContain(browserGuard);
@@ -34,6 +35,7 @@ describe("push token lifecycle guard", () => {
     expect(nativePushHook).toContain("setTimeout(() => {");
     expect(nativePushHook).toContain('"register-push-token"');
     expect(nativePushHook).toContain("Authorization: `Bearer ${activeSession.access_token}`");
+    expect(nativePushHook).toContain("urlBase64ToUint8Array(vapidPublicKey)");
 
     for (const edgeFunction of [webRegister, webUnregister, nativeRegister]) {
       expect(edgeFunction).toContain("Missing authorization header");

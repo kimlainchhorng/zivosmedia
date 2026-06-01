@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { sendDirectMessages } from "@/lib/chat/directMessageSend";
 
 export interface BroadcastList {
   id: string;
@@ -80,7 +81,7 @@ export function useBroadcastLists() {
       message: text.trim(),
       message_type: "text",
     }));
-    const { error } = await (supabase as any).from("direct_messages").insert(rows);
+    const { error } = await sendDirectMessages(rows);
     if (error) { toast.error(error.message); return false; }
     toast.success(`Sent to ${ids.length} ${ids.length === 1 ? "person" : "people"}`);
     return true;

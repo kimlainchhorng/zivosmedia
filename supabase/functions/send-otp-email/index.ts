@@ -6,14 +6,17 @@
  * shape preserved: { success: true, message, expiresAt }.
  */
 import { serve, createClient } from "../_shared/deps.ts";
-import { Resend } from "npm:resend@2.0.0";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling, HttpError } from "../_shared/errors.ts";
 import { parseBody, v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
+import { generateOtpCode, hashOtpCode } from "../_shared/otp.ts";
 import type { SecurityContext } from "../_shared/withSecurity.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim();
+const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL")?.trim() || "info@hizivo.com";
+const resendFromName = Deno.env.get("RESEND_FROM_NAME")?.trim() || "ZIVO";
+const OTP_RESEND_COOLDOWN_SECONDS = 30;
 
 const Body = v.object({
   email: v.email,
@@ -33,7 +36,12 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new HttpError(500, "Server configuration error");
   }
+  if (!resendApiKey) {
+    throw new HttpError(500, "Email delivery is not configured");
+  }
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const now = Date.now();
 
   // Rate limiting: max 5 OTP requests per email per hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -49,7 +57,33 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
     });
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const { data: recentPendingOtp, error: recentPendingError } = await supabase
+    .from("otp_codes")
+    .select("created_at, expires_at")
+    .eq("email", email)
+    .is("verified_at", null)
+    .gt("expires_at", new Date(now).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (recentPendingError) {
+    console.error("Failed to inspect recent OTP request:", recentPendingError);
+  }
+
+  if (recentPendingOtp?.created_at) {
+    const createdAtMs = new Date(recentPendingOtp.created_at).getTime();
+    const elapsedSeconds = Math.floor((now - createdAtMs) / 1000);
+    if (elapsedSeconds < OTP_RESEND_COOLDOWN_SECONDS) {
+      throw new HttpError(429, "A verification code was sent recently. Please wait before requesting another.", {
+        code: "OTP_RESEND_COOLDOWN",
+        retryAfter: OTP_RESEND_COOLDOWN_SECONDS - elapsedSeconds,
+      });
+    }
+  }
+
+  const code = generateOtpCode();
+  const codeHash = await hashOtpCode(email, code);
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
   // Invalidate existing pending codes for this email
@@ -59,25 +93,37 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
     .eq("email", email)
     .is("verified_at", null);
 
-  const { error: insertError } = await supabase
+  const { data: insertedOtp, error: insertError } = await supabase
     .from("otp_codes")
     .insert({
       email,
       user_id: userId,
-      code,
+      code: codeHash,
       expires_at: expiresAt,
-    });
+    })
+    .select("id")
+    .single();
 
-  if (insertError) {
+  if (insertError || !insertedOtp?.id) {
     console.error("Failed to store OTP:", insertError);
     throw new HttpError(500, "Failed to generate verification code");
   }
 
-  const emailResponse = await resend.emails.send({
-    from: "ZIVO <info@hizivo.com>",
-    to: [email],
-    subject: "Your ZIVO verification code",
-    html: `
+  const idempotencyKey = `otp-email/${insertedOtp.id}`;
+
+  try {
+    const emailResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        from: `${resendFromName} <${resendFromEmail}>`,
+        to: [email],
+        subject: "Your ZIVO verification code",
+        html: `
       <!DOCTYPE html>
       <html>
       <head>
@@ -117,7 +163,7 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
                 </tr>
               </table>
               <p style="margin: 24px 0 0; font-size: 11px; color: #52525b; text-align: center;">
-                © ${new Date().getFullYear()} ZIVO Technologies Inc. All rights reserved.
+                &copy; ${new Date().getFullYear()} ZIVO LLC. All rights reserved.
               </p>
             </td>
           </tr>
@@ -125,12 +171,50 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
       </body>
       </html>
     `,
-  });
+      }),
+    });
+    const emailResult = await emailResponse.json().catch(() => null);
 
-  console.log("OTP email sent successfully");
+    if (!emailResponse.ok) {
+      await markOtpDeliveryFailed(supabase, insertedOtp.id);
+      console.error("Failed to send OTP email:", {
+        status: emailResponse.status,
+        result: emailResult,
+        idempotencyKey,
+      });
+      throw new HttpError(502, "Failed to send verification email");
+    }
+
+    console.log("OTP email sent successfully", {
+      resendId: typeof emailResult === "object" && emailResult && "id" in emailResult
+        ? (emailResult as { id?: string }).id
+        : undefined,
+      idempotencyKey,
+    });
+  } catch (error) {
+    if (!(error instanceof HttpError)) {
+      await markOtpDeliveryFailed(supabase, insertedOtp.id);
+      console.error("Failed to send OTP email:", error);
+    }
+    throw new HttpError(502, "Failed to send verification email");
+  }
 
   return ok(corsHeaders, { success: true, message: "Verification code sent", expiresAt });
 }, "send-otp-email");
+
+async function markOtpDeliveryFailed(
+  supabase: ReturnType<typeof createClient>,
+  otpId: string,
+) {
+  const { error } = await supabase
+    .from("otp_codes")
+    .update({ verified_at: new Date().toISOString() })
+    .eq("id", otpId);
+
+  if (error) {
+    console.error("Failed to invalidate undelivered OTP:", error);
+  }
+}
 
 serve(withSecurity("send-otp-email", handler, {
   strictCors: true,

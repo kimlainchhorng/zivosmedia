@@ -2,19 +2,9 @@
  * Global Error Reporting & Monitoring
  * Captures unhandled errors and rejections, logs them to Supabase for admin review.
  */
-// Lazy-import supabase to avoid pulling the vendor chunk into the critical path
-let _supabase: typeof import("@/integrations/supabase/client").supabase | null = null;
-async function getSupabase() {
-  if (!_supabase) {
-    const mod = await import("@/integrations/supabase/client");
-    _supabase = mod.supabase;
-  }
-  return _supabase;
-}
-
 async function logAnalyticsEvent(payload: Record<string, unknown>): Promise<void> {
-  const supabase = await getSupabase();
-  await supabase.functions.invoke("analytics-event-track", { body: payload });
+  const { invokeAnalyticsEvent } = await import("@/lib/analyticsIngestion");
+  await invokeAnalyticsEvent(payload as any);
 }
 
 interface ErrorReport {

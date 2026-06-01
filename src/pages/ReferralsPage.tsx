@@ -154,7 +154,7 @@ export default function ReferralsPage() {
   }, [links]);
 
   const getShareUrl = (code: string) =>
-    `${typeof window !== "undefined" ? window.location.origin : "https://hizivo.com"}/i/${code}`;
+    `${typeof window !== "undefined" ? window.location.origin : "https://zivollc.com"}/i/${code}`;
 
   const copy = async (text: string, label = "Link") => {
     try { await navigator.clipboard.writeText(text); toast.success(`${label} copied`); }

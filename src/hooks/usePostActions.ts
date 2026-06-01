@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isSensitiveReportReason } from "@/lib/social/sensitiveContent";
 import { submitSafetyReport } from "@/lib/social/safetyReport";
+import { removePostBookmark, savePostBookmark } from "@/lib/social/postBookmarkManage";
 
 export type PostSource = "store" | "user";
 
@@ -59,18 +60,17 @@ export function usePostActions(userId: string | null) {
 
     try {
       if (isBookmarked) {
-        const { error } = await (supabase as any)
-          .from("post_bookmarks")
-          .delete()
-          .eq("user_id", userId)
-          .eq("post_id", target.postId)
-          .eq("source", target.source);
+        const { error } = await removePostBookmark({
+          post_id: target.postId,
+          source: target.source,
+        });
         if (error) throw error;
         toast.success("Removed from saved");
       } else {
-        const { error } = await (supabase as any)
-          .from("post_bookmarks")
-          .insert({ user_id: userId, post_id: target.postId, source: target.source });
+        const { error } = await savePostBookmark({
+          post_id: target.postId,
+          source: target.source,
+        });
         if (error) {
           // Treat unique-key violations as already-saved success — the local
           // optimistic flip already reflects that.

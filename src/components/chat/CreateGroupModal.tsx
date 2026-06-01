@@ -19,6 +19,7 @@ import {
   GroupCreationErrorToast,
   type GroupErrorDetails,
 } from "./GroupCreationErrorToast";
+import { createGroup, updateGroup } from "@/lib/chat/groupManage";
 
 // Allowed enum values for chat_group_members.role (group_member_role).
 const ALLOWED_GROUP_ROLES = ["owner", "admin", "member"] as const;
@@ -55,18 +56,6 @@ type ProfileRow = {
   user_id: string;
   full_name: string | null;
   avatar_url: string | null;
-};
-
-type GroupRow = {
-  id: string;
-  name: string;
-  avatar_url?: string | null;
-};
-
-type GroupMemberInsert = {
-  group_id: string;
-  user_id: string;
-  role?: string;
 };
 
 const dbFrom = (table: string): any => (supabase as any).from(table);
@@ -289,14 +278,14 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
       }
       const uid = authData.user.id;
 
-      const { data, error: gErr } = await dbFrom("chat_groups")
-        .insert({ name: trimmedName, created_by: uid })
-        .select()
-        .single();
-      const group = data as GroupRow | null;
-      if (gErr || !group?.id) {
-        console.error("[CreateGroup] chat_groups insert failed", gErr);
-        throw gErr || new Error("Group row was not created");
+      const { data, error: createError } = await createGroup({
+        name: trimmedName,
+        member_ids: Array.from(selected),
+      });
+      const group = data?.group ?? null;
+      if (createError || !group?.id) {
+        console.error("[CreateGroup] chat-group-manage create failed", createError);
+        throw createError || new Error("Group row was not created");
       }
 
       let avatarPath: string | null = group.avatar_url ?? null;
@@ -308,45 +297,8 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
           .upload(path, avatarFile, { cacheControl: "3600", upsert: false, contentType: avatarFile.type });
         if (uploadErr) throw uploadErr;
         avatarPath = path;
-        const { error: updateErr } = await dbFrom("chat_groups")
-          .update({ avatar_url: avatarPath })
-          .eq("id", group.id);
+        const { error: updateErr } = await updateGroup({ group_id: group.id, avatar_url: avatarPath });
         if (updateErr) throw updateErr;
-      }
-
-      const creatorInsert: GroupMemberInsert = {
-        group_id: group.id,
-        user_id: uid,
-        role: creatorRole,
-      };
-      const { error: cErr } = await dbFrom("chat_group_members").insert(
-        creatorInsert
-      );
-      if (cErr && !/duplicate|unique/i.test(cErr.message || "")) {
-        console.error(
-          "[CreateGroup] creator member insert failed",
-          cErr,
-          creatorInsert
-        );
-        throw cErr;
-      }
-
-      const otherInserts = Array.from(selected)
-        .filter((u) => u !== uid)
-        .map((u) => ({ group_id: group.id, user_id: u }));
-
-      if (otherInserts.length) {
-        const { error: mErr } = await dbFrom("chat_group_members").insert(
-          otherInserts
-        );
-        if (mErr) {
-          console.error(
-            "[CreateGroup] other members insert failed",
-            mErr,
-            otherInserts
-          );
-          throw mErr;
-        }
       }
       return { groupId: group.id, groupName: group.name, avatarPath };
     };

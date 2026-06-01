@@ -5,6 +5,8 @@
 
 import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAnalyticsEvent } from '@/lib/analyticsIngestion';
+import { trackMetaFromAnalyticsEvent } from '@/lib/metaAdsTracking';
 
 // Analytics event types
 export type TrackingEventName =
@@ -124,6 +126,23 @@ const isNewUser = (): boolean => {
   }
 };
 
+const isLocalAnalyticsRuntime = (): boolean => {
+  if (import.meta.env.DEV) return true;
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+};
+
+const logTrackingFailure = (message: string, error: unknown): void => {
+  if (isLocalAnalyticsRuntime()) {
+    if (import.meta.env.DEV) {
+      console.debug(message, error);
+    }
+    return;
+  }
+
+  console.warn(message, error);
+};
+
 /**
  * Hook for tracking analytics events
  */
@@ -172,17 +191,31 @@ export function useEventTracking() {
         is_new_user: isNewUser(),
       };
 
+      trackMetaFromAnalyticsEvent({
+        eventName,
+        orderId: options.orderId,
+        value: options.value,
+        meta,
+        sessionId: sessionId.current,
+      });
+
       // Fire and forget - don't block UI
-      supabase.functions
-        .invoke('analytics-event-track', { body: eventPayload })
+      invokeAnalyticsEvent(eventPayload)
         .then(({ error }) => {
           if (error) {
-            console.error('[Tracking] Failed to track event:', error.message, error.code, error.details);
+            logTrackingFailure('[Tracking] Failed to track event:', {
+              message: error.message,
+              code: error.code,
+              details: error.details,
+            });
           }
+        })
+        .catch((error) => {
+          logTrackingFailure('[Tracking] Error tracking event:', error);
         });
 
     } catch (error) {
-      console.error('[Tracking] Error tracking event:', error);
+      logTrackingFailure('[Tracking] Error tracking event:', error);
     }
   }, [getUserId]);
 

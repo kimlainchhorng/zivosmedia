@@ -19,6 +19,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import AddCardForm from "@/components/wallet/AddCardForm";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 const PaymentMethodsPage = () => {
   const navigate = useNavigate();
@@ -87,7 +88,7 @@ const PaymentMethodsPage = () => {
             <p className="text-sm text-muted-foreground mb-6">
               Sign in to view and manage saved payment methods.
             </p>
-            <Button onClick={() => navigate("/login?redirect=/payment-methods")}>
+            <Button onClick={() => navigate(withRedirectParam("/login", "/payment-methods"))}>
               Sign in
             </Button>
           </div>

@@ -43,7 +43,7 @@ serve(withSecurity("connect-onboard", async (req, ctx) => {
       }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const origin = req.headers.get("origin") || "https://hizivo.com";
+    const origin = req.headers.get("origin") || "https://zivollc.com";
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Find existing connect account for this user

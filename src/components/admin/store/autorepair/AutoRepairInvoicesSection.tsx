@@ -28,6 +28,7 @@ import DeleteConfirmDialog from "./invoices/DeleteConfirmDialog";
 import { softDeleteDocument, updateDocument, nextDocNumber, assignDocNumber, type DocType } from "@/lib/admin/invoiceActions";
 import type { PdfDoc } from "@/lib/admin/invoicePdf";
 import { computeDocTotals, normalizeTaxRate } from "@/lib/admin/taxCalc";
+import { US_STATES } from "@/lib/admin/usStates";
 
 type LineCategory = "labor" | "part" | "diagnosis";
 type LineItem = {
@@ -54,6 +55,8 @@ type Doc = {
   state: string;
   zip: string;
   vin: string;
+  licensePlate: string;
+  plateState: string;
   year: string;
   make: string;
   model: string;
@@ -84,7 +87,7 @@ type Doc = {
 const emptyDraft = (): Doc => ({
   id: "", type: "estimate", number: "", customer: "",
   firstName: "", lastName: "", phone: "", email: "", address: "", city: "", state: "", zip: "",
-  vin: "", year: "", make: "", model: "", trim: "", engine: "", transmission: "",
+  vin: "", licensePlate: "", plateState: "", year: "", make: "", model: "", trim: "", engine: "", transmission: "",
   driveType: "", bodyClass: "", doors: "", fuel: "", plant: "",
   vehicle: "",
   items: [{ id: crypto.randomUUID(), category: "labor", description: "", qty: 1, price: 0, hours: 1, discount: 0 }],
@@ -212,7 +215,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null); // null = new doc
   const [draft, setDraft] = useState<Doc>(emptyDraft());
   const [fleetAccounts, setFleetAccounts] = useState<FleetAccount[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
   const [vinLoading, setVinLoading] = useState(false);
+  const [plateLoading, setPlateLoading] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [previewDoc, setPreviewDoc] = useState<Doc | null>(null);
@@ -276,6 +281,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           email: row.customer_email || "",
           ...parseAddress(row.customer_address || ""),
           vin: row.vin || "",
+          licensePlate: row.license_plate || "",
+          plateState: row.plate_state || "",
           year: row.vehicle_year || "",
           make: row.vehicle_make || "",
           model: row.vehicle_model || "",
@@ -308,6 +315,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           email: row.customer_email || "",
           ...parseAddress(row.customer_address || ""),
           vin: row.vin || "",
+          licensePlate: row.license_plate || "",
+          plateState: row.plate_state || "",
           year: row.vehicle_year || "",
           make: row.vehicle_make || "",
           model: row.vehicle_model || "",
@@ -355,6 +364,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         email: p.email ?? "",
         ...parseAddress(p.address ?? ""),
         vin: p.vin ?? "",
+        licensePlate: p.license_plate ?? p.licensePlate ?? "",
+        plateState: p.plate_state ?? p.plateState ?? "",
         year: p.year ?? "",
         make: p.make ?? "",
         model: p.model ?? "",
@@ -381,6 +392,18 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         .eq("store_id", storeId)
         .order("name", { ascending: true });
       if (!error && data) setFleetAccounts(data as unknown as FleetAccount[]);
+    })();
+  }, [storeId]);
+
+  // Load this store's saved customer vehicles so the License plate field can look
+  // up a known vehicle (VIN + year/make/model) by its plate.
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("ar_customer_vehicles" as any)
+        .select("id, owner_name, owner_phone, owner_email, year, make, model, vin, plate, plate_state")
+        .eq("store_id", storeId);
+      if (!error && data) setVehicles(data as any[]);
     })();
   }, [storeId]);
   const draftKey = useMemo(() => `autorepair:invoice-draft:${storeId}`, [storeId]);
@@ -521,6 +544,102 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     }
   };
 
+  // Look up a saved customer vehicle by its license plate and auto-fill the VIN +
+  // vehicle (and owner, when the customer fields are still blank). If the matched
+  // vehicle has a full 17-char VIN, decode it for the remaining spec fields.
+  const lookupPlate = async () => {
+    const normalize = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const cleanPlate = normalize(draft.licensePlate);
+    if (!cleanPlate) { toast.error("Enter a license plate first"); return; }
+
+    setPlateLoading(true);
+    try {
+      const candidates = vehicles.filter(v => normalize(String(v.plate ?? "")) === cleanPlate);
+      // When a state is chosen, scope to that state (or vehicles saved without a
+      // state); otherwise prefer a stateless record, then fall back to the first.
+      const match = draft.plateState
+        ? candidates.find(v => v.plate_state === draft.plateState) || candidates.find(v => !v.plate_state)
+        : (candidates.find(v => !v.plate_state) ?? candidates[0]);
+      if (!match) {
+        // Fall back to the platform-wide registry (vehicle identity only — no owner)
+        // so a plate another shop has serviced still resolves to its VIN here.
+        const { data: reg } = await (supabase as any).rpc("lookup_plate_vin", {
+          p_plate: draft.licensePlate,
+          p_state: draft.plateState || null,
+        });
+        const hit = Array.isArray(reg) ? reg[0] : reg;
+        if (hit?.vin) {
+          const regVin = String(hit.vin).toUpperCase();
+          setDraft(d => ({
+            ...d,
+            vin: regVin || d.vin,
+            plateState: d.plateState || (hit.plate_state ?? ""),
+            year: hit.vehicle_year != null ? String(hit.vehicle_year) : d.year,
+            make: hit.vehicle_make ?? d.make,
+            model: hit.vehicle_model ?? d.model,
+            vehicle: [hit.vehicle_year, hit.vehicle_make, hit.vehicle_model].filter(Boolean).join(" ") || d.vehicle,
+          }));
+          const decodable = regVin.replace(/[^A-HJ-NPR-Z0-9]/g, "");
+          if (decodable.length === 17) {
+            toast.success("Found in platform registry — filling details from the VIN");
+            await lookupVin(decodable);
+          } else {
+            toast.success("Found in platform registry");
+          }
+          return;
+        }
+        toast.info(
+          candidates.length
+            ? `Plate found, but not registered in ${draft.plateState}. Check the state or enter the VIN.`
+            : "No vehicle found for that plate yet. Enter the VIN to decode it instead."
+        );
+        return;
+      }
+
+      const ownerParts = String(match.owner_name ?? "").trim().split(/\s+/);
+      const matchVin = String(match.vin ?? "").trim().toUpperCase();
+      setDraft(d => ({
+        ...d,
+        vin: matchVin || d.vin,
+        plateState: d.plateState || (match.plate_state ?? ""),
+        year: match.year != null ? String(match.year) : d.year,
+        make: match.make ?? d.make,
+        model: match.model ?? d.model,
+        vehicle: [match.year, match.make, match.model].filter(Boolean).join(" ") || d.vehicle,
+        // Only fill the customer from the saved owner when the user hasn't typed one.
+        firstName: d.firstName || ownerParts[0] || "",
+        lastName: d.lastName || ownerParts.slice(1).join(" "),
+        phone: d.phone || (match.owner_phone ?? ""),
+        email: d.email || (match.owner_email ?? ""),
+      }));
+
+      const decodableVin = matchVin.replace(/[^A-HJ-NPR-Z0-9]/g, "");
+      if (decodableVin.length === 17) {
+        toast.success("Plate matched — filling full vehicle details from the VIN");
+        await lookupVin(decodableVin);
+      } else {
+        toast.success("Plate matched a saved vehicle");
+      }
+    } finally {
+      setPlateLoading(false);
+    }
+  };
+
+  // Contribute this vehicle's plate->VIN identity to the platform-wide registry so
+  // other shops can resolve the plate later. Best-effort: never blocks or surfaces.
+  const contributePlate = (plate: string, state: string, vin: string, year: string, make: string, model: string) => {
+    if (!plate.trim() || !vin.trim()) return;
+    (supabase as any).rpc("register_plate_vin", {
+      p_store_id: storeId,
+      p_plate: plate,
+      p_state: state || "",
+      p_vin: vin,
+      p_year: year ? parseInt(year, 10) : null,
+      p_make: make || "",
+      p_model: model || "",
+    }).then(() => {}, () => {});
+  };
+
   const saveDraftNow = () => {
     try {
       localStorage.setItem(draftKey, JSON.stringify(draft));
@@ -554,6 +673,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         customer_address: combinedAddress(draft) || null,
         vehicle_label: draft.vehicle || null,
         vin: draft.vin || null,
+        license_plate: draft.licensePlate || null,
+        plate_state: draft.plateState || null,
         vehicle_year: draft.year || null,
         vehicle_make: draft.make || null,
         vehicle_model: draft.model || null,
@@ -592,6 +713,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         if (error) throw error;
         toast.success(`${draft.type === "invoice" ? "Invoice" : "Estimate"} ${payload.number} saved`);
       }
+      contributePlate(draft.licensePlate, draft.plateState, draft.vin, draft.year, draft.make, draft.model);
       await reloadAll();
     } catch (e: any) {
       toast.error(`Could not save: ${e?.message || "unknown error"}`);
@@ -626,6 +748,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         customer_address: combinedAddress(draft) || null,
         vehicle_label: draft.vehicle || null,
         vin: draft.vin || null,
+        license_plate: draft.licensePlate || null,
+        plate_state: draft.plateState || null,
         vehicle_year: draft.year || null,
         vehicle_make: draft.make || null,
         vehicle_model: draft.model || null,
@@ -675,6 +799,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         .single();
       if (invErr) throw invErr;
 
+      contributePlate(draft.licensePlate, draft.plateState, draft.vin, draft.year, draft.make, draft.model);
       toast.success(`Converted to invoice ${invoiceNumber}`);
       clearDraft();
       await reloadAll();
@@ -1024,6 +1149,45 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                   >
                     {vinLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanSearch className="w-4 h-4" />}
                     Decode
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">License plate</label>
+                <div className="flex gap-2">
+                  <div className="flex min-w-0 flex-1 overflow-hidden rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                    <Select
+                      value={draft.plateState || "none"}
+                      onValueChange={v => setDraft({ ...draft, plateState: v === "none" ? "" : v })}
+                    >
+                      <SelectTrigger className="h-10 sm:h-11 w-24 shrink-0 rounded-none border-0 border-r bg-muted/30 px-3 text-sm shadow-none focus:ring-0">
+                        <SelectValue placeholder="State" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">State</SelectItem>
+                        {US_STATES.map(([code, name]) => (
+                          <SelectItem key={code} value={code}>{code} - {name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="ABC-1234"
+                      value={draft.licensePlate}
+                      onChange={e => setDraft({ ...draft, licensePlate: e.target.value.toUpperCase() })}
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); lookupPlate(); } }}
+                      className="h-10 sm:h-11 min-w-0 rounded-none border-0 font-mono uppercase shadow-none focus-visible:ring-0"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={lookupPlate}
+                    disabled={plateLoading || vinLoading || !draft.licensePlate.trim()}
+                    className="gap-1.5 shrink-0"
+                    title="Find a saved vehicle by plate and auto-fill the VIN"
+                  >
+                    {plateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanSearch className="w-4 h-4" />}
+                    Find
                   </Button>
                 </div>
               </div>
@@ -1474,6 +1638,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         store_id: storeId, number, estimate_id: est.id,
         customer_name: est.customer, customer_phone: est.phone || null, customer_email: est.email || null,
         customer_address: combinedAddress(est) || null, vehicle_label: est.vehicle || null, vin: est.vin || null,
+        license_plate: est.licensePlate || null,
+        plate_state: est.plateState || null,
         vehicle_year: est.year || null, vehicle_make: est.make || null, vehicle_model: est.model || null,
         items: est.items as any,
         subtotal_cents: Math.round(t.subtotal * 100),

@@ -100,7 +100,7 @@ const TrustStatement = () => {
       <SEOHead
         title="Trust Statement | ZIVO"
         description="ZIVO's public commitment to transparency, user-first pricing, partner fairness, and data protection."
-        canonical="https://hizivo.com/trust-statement"
+        canonical="https://zivollc.com/trust-statement"
       />
       <Header />
 

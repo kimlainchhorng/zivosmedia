@@ -22,7 +22,7 @@ export default function Partners() {
       <SEOHead 
         title="Partners | ZIVO"
         description="Partner with ZIVO to reach qualified travel shoppers. We send ready-to-book traffic to airlines, hotels, car rental companies, and travel services."
-        canonical="https://hizivo.com/partners"
+        canonical="https://zivollc.com/partners"
       />
       <Header />
       

@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { US_STATES } from "@/lib/admin/usStates";
 import Car from "lucide-react/dist/esm/icons/car";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Search from "lucide-react/dist/esm/icons/search";
@@ -46,6 +48,7 @@ type Vehicle = {
   model: string;
   vin?: string | null;
   plate?: string | null;
+  plate_state?: string | null;
   color?: string | null;
   mileage?: number | null;
   notes?: string | null;
@@ -54,7 +57,7 @@ type Vehicle = {
 
 const blankForm = {
   owner_name: "", owner_phone: "", owner_email: "",
-  year: "", make: "", model: "", vin: "", plate: "", color: "",
+  year: "", make: "", model: "", vin: "", plate: "", plate_state: "", color: "",
   mileage: "", notes: "",
 };
 
@@ -163,7 +166,8 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
         make: form.make.trim(),
         model: form.model.trim(),
         vin: form.vin.trim() || null,
-        plate: form.plate.trim() || null,
+        plate: form.plate.trim().toUpperCase() || null,
+        plate_state: form.plate_state || null,
         color: form.color.trim().toLowerCase() || null,
         mileage: form.mileage ? parseInt(form.mileage, 10) : 0,
         notes: form.notes.trim() || null,
@@ -174,6 +178,19 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
       } else {
         const { error } = await supabase.from("ar_customer_vehicles").insert(payload);
         if (error) throw error;
+      }
+      // Contribute the plate->VIN identity to the platform-wide registry (best-effort,
+      // vehicle identity only) so other shops can resolve this plate later.
+      if (payload.plate && payload.vin) {
+        (supabase as any).rpc("register_plate_vin", {
+          p_store_id: storeId,
+          p_plate: payload.plate,
+          p_state: payload.plate_state || "",
+          p_vin: payload.vin,
+          p_year: payload.year,
+          p_make: payload.make || "",
+          p_model: payload.model || "",
+        }).then(() => {}, () => {});
       }
     },
     onSuccess: () => {
@@ -207,6 +224,7 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
       model: v.model,
       vin: v.vin ?? "",
       plate: v.plate ?? "",
+      plate_state: v.plate_state ?? "",
       color: v.color ?? "",
       mileage: v.mileage ? String(v.mileage) : "",
       notes: v.notes ?? "",
@@ -368,7 +386,25 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">License plate</Label>
-                <Input placeholder="ABC-1234" value={form.plate} onChange={e => setForm({ ...form, plate: e.target.value.toUpperCase() })} />
+                <div className="flex min-w-0 overflow-hidden rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <Select value={form.plate_state || "none"} onValueChange={v => setForm({ ...form, plate_state: v === "none" ? "" : v })}>
+                    <SelectTrigger className="h-10 w-24 shrink-0 rounded-none border-0 border-r bg-muted/30 px-3 text-sm shadow-none focus:ring-0">
+                      <SelectValue placeholder="State" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">State</SelectItem>
+                      {US_STATES.map(([code, name]) => (
+                        <SelectItem key={code} value={code}>{code} - {name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="ABC-1234"
+                    value={form.plate}
+                    onChange={e => setForm({ ...form, plate: e.target.value.toUpperCase() })}
+                    className="h-10 min-w-0 rounded-none border-0 font-mono uppercase shadow-none focus-visible:ring-0"
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Mileage</Label>

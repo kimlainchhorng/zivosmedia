@@ -1,14 +1,16 @@
 import * as React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { MemoryRouter, useLocation } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import RidePaymentSection, { type CambodiaPaymentMethod } from "./RidePaymentSection";
 
+const mockAuth = vi.hoisted(() => ({
+  user: { id: "test-user", user_metadata: {} } as null | { id: string; user_metadata: Record<string, unknown> },
+  isLoading: false,
+}));
+
 vi.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({
-    user: { id: "test-user", user_metadata: {} },
-    isLoading: false,
-  }),
+  useAuth: () => mockAuth,
 }));
 
 vi.mock("@/components/rides/AbaPaymentModal", () => ({
@@ -38,6 +40,16 @@ vi.mock("@stripe/react-stripe-js", () => ({
 vi.mock("@/lib/stripe", () => ({
   getStripe: () => null,
 }));
+
+beforeEach(() => {
+  mockAuth.user = { id: "test-user", user_metadata: {} };
+  mockAuth.isLoading = false;
+});
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output aria-label="current path">{`${location.pathname}${location.search}`}</output>;
+}
 
 function CambodiaPaymentHarness({
   initialMethod = "cash",
@@ -92,5 +104,33 @@ describe("RidePaymentSection Cambodia methods", () => {
 
     expect(screen.queryByText(/Cash/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Card charged after ride/i)).toBeInTheDocument();
+  });
+});
+
+describe("RidePaymentSection guest auth handoff", () => {
+  it("sends Sign Up Free to signup while preserving the ride checkout path", () => {
+    mockAuth.user = null;
+
+    render(
+      <MemoryRouter initialEntries={["/rides/request?pickup=now"]}>
+        <RidePaymentSection
+          price={12}
+          vehicleName="ZIVO Ride"
+          isSubmitting={false}
+          onAuthorizeWithSavedCard={vi.fn()}
+          onAuthorizeWithNewCard={vi.fn()}
+          clientSecret={null}
+          onPaymentSuccess={vi.fn()}
+          paymentFailed={false}
+        />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Sign Up Free/i }));
+
+    expect(screen.getByLabelText("current path")).toHaveTextContent(
+      "/signup?redirect=%2Frides%2Frequest%3Fpickup%3Dnow",
+    );
   });
 });

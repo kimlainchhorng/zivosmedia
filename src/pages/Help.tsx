@@ -106,7 +106,7 @@ const companyLinks = [
 const faqs = [
   {
     q: "What is ZIVO?",
-    a: "ZIVO is a travel search and comparison platform. We help you find and compare flights, hotels, and car rentals from multiple travel partners in one place."
+    a: "ZIVO is an all-in-one app for travel, rides, food, social feed, reels, creators, shops, jobs, chat, and calls. Travel searches connect you with trusted partners for booking and fulfillment."
   },
   {
     q: "How do I book a flight/hotel/car?",
@@ -146,8 +146,8 @@ export default function Help() {
     <div className="min-h-screen bg-background">
       <SEOHead 
         title="Help Center – ZIVO"
-        description="Get help with flights, hotels, car rentals, and technical issues. Find answers to common questions about booking travel on ZIVO."
-        canonical="https://hizivo.com/help"
+        description="Get help with ZIVO account access, travel bookings, social feed, reels, shops, jobs, chat, calls, notifications, and technical issues."
+        canonical="https://zivollc.com/help"
       />
       <FAQStructuredData faqs={faqs.map(f => ({ question: f.q, answer: f.a }))} />
       <Header />
@@ -318,10 +318,10 @@ export default function Help() {
               <div>
                 <p className="font-semibold mb-2">Important Notice</p>
                 <p className="text-muted-foreground text-sm">
-                  ZIVO is a travel search and comparison platform. We help you find and compare options 
-                  from trusted travel partners. All bookings, payments, and fulfillment are handled by 
-                  our licensed travel partners. For booking changes, cancellations, or refunds, please 
-                  contact the travel partner directly using the information in your confirmation email.
+                  ZIVO is an all-in-one app with travel, social, shops, jobs, chat, and creator tools.
+                  Travel search results come from trusted travel partners. Travel bookings, payments,
+                  and fulfillment are handled by licensed partners. For booking changes, cancellations,
+                  or refunds, contact the travel partner directly using the information in your confirmation email.
                 </p>
               </div>
             </div>

@@ -63,7 +63,7 @@ export const template = {
     deliveryAddress: '123 Riverside, Phnom Penh',
     totalAmount: '$54.20',
     paymentMethod: 'Card',
-    trackUrl: 'https://hizivo.com/grocery/track/abc',
+    trackUrl: 'https://zivollc.com/grocery/track/abc',
   },
 } satisfies TemplateEntry<Props>
 

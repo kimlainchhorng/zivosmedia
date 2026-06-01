@@ -20,7 +20,7 @@ const buttonVariants = cva(
         eats: "gradient-eats text-primary-foreground glow-eats hover:opacity-90 active:scale-[0.98] font-bold",
         glass: "glass-card text-foreground hover:bg-white/10",
         hero: "bg-foreground text-background hover:bg-foreground/90 active:scale-[0.98] font-bold text-base",
-        ig: "bg-ig-gradient text-white hover:opacity-90 active:scale-[0.98] font-bold border-0 shadow-sm shadow-rose-500/20",
+        ig: "bg-ig-gradient text-white hover:opacity-90 active:scale-[0.98] font-bold border-0",
       },
       size: {
         default: "h-11 px-5 py-2",

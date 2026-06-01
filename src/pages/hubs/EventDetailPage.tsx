@@ -17,6 +17,7 @@ import {
   ArrowLeft, Calendar, MapPin, Users, Loader2, CheckCircle2, HelpCircle, XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 type EventRow = {
   id: string;
@@ -199,7 +200,7 @@ export default function EventDetailPage() {
             {!user && (
               <button
                 type="button"
-                onClick={() => navigate(`/login?redirect=/events-hub/${id}`)}
+                onClick={() => navigate(withRedirectParam("/login", `/events-hub/${id}`))}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
               >
                 Sign in to RSVP

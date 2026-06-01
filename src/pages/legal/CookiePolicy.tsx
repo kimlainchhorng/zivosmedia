@@ -12,7 +12,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { toast } from "sonner";
-import { COOKIE_CONSENT_STORAGE_KEY } from "@/hooks/useCookiePrefs";
+import {
+  COOKIE_CONSENT_STORAGE_KEY,
+  emitCookieConsentUpdated,
+} from "@/lib/privacy/cookieConsent";
 
 const COOKIE_CONSENT_DATE_STORAGE_KEY = "zivo_cookie_consent_date";
 
@@ -78,6 +81,7 @@ const CookiePolicy = () => {
     if (preferences.analytics || preferences.marketing) {
       window.__zivoLoadAnalytics?.();
     }
+    emitCookieConsentUpdated(preferences);
     toast.success("Cookie preferences saved");
   };
 
@@ -87,6 +91,7 @@ const CookiePolicy = () => {
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(allEnabled));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
     window.__zivoLoadAnalytics?.();
+    emitCookieConsentUpdated(allEnabled);
     toast.success("All cookies accepted");
   };
 
@@ -95,6 +100,7 @@ const CookiePolicy = () => {
     setPreferences(minimalCookies);
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(minimalCookies));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    emitCookieConsentUpdated(minimalCookies);
     toast.success("Optional cookies rejected");
   };
 
@@ -103,7 +109,7 @@ const CookiePolicy = () => {
       <SEOHead
         title="Cookie Policy - ZIVO | Travel Search Platform"
         description="Learn how ZIVO uses cookies and similar technologies. Manage your cookie preferences and opt-in/out of non-essential tracking."
-        canonical="https://hizivo.com/legal/cookies"
+        canonical="https://zivollc.com/legal/cookies"
       />
       
       <Header />

@@ -411,7 +411,7 @@ serve(withSecurity("twilio-webhook", async (req: Request, ctx) => {
           ?? await findWaiter(false, false);
 
         if (waiter) {
-          const bookingUrl = `${Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com"}/salon/${(booking as any).store_id}`;
+          const bookingUrl = `${Deno.env.get("PUBLIC_APP_URL") || "https://zivollc.com"}/salon/${(booking as any).store_id}`;
           const nudgeBody = `${storeName}: a slot just opened${waiter.requested_stylist_name ? ` with ${waiter.requested_stylist_name}` : ""}. Book here: ${bookingUrl}`;
           const nudge = await sendReplySms(waiter.client_phone, nudgeBody);
           if (nudge.sent) {

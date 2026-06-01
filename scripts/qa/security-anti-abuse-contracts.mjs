@@ -38,6 +38,12 @@ function requireNotMatch(id, text, pattern, relativePath) {
   }
 }
 
+function requireMatch(id, text, pattern, relativePath) {
+  if (!pattern.test(text)) {
+    failures.push(`${id}: ${relativePath} must match ${pattern}`);
+  }
+}
+
 function requireStrictRoute(id, route, expected) {
   const relativePath = `supabase/functions/${route}/index.ts`;
   const text = source(relativePath);
@@ -312,6 +318,498 @@ const contracts = [
         "TO service_role",
       ]) {
         requireContains(this.id, bookingGate, needle, bookingGatePath);
+      }
+    },
+  },
+  {
+    id: "legacy-friendship-server-ownership",
+    category: "social-safety",
+    check() {
+      const friendshipPath = "supabase/functions/friendship-manage/index.ts";
+      const friendshipGatePath = "supabase/migrations/20260601165245_friendships_server_gate.sql";
+      const notificationsPath = "src/pages/NotificationsPage.tsx";
+      const friendRequestsPath = "src/pages/FriendRequestsPage.tsx";
+      const publicProfilePath = "src/pages/PublicProfilePage.tsx";
+      const socialFeedPath = "src/pages/SocialFeedPage.tsx";
+      const publicUserProfilePath = "src/pages/user/PublicUserProfilePage.tsx";
+      const socialListModalPath = "src/components/profile/SocialListModal.tsx";
+      const friendshipFn = source(friendshipPath);
+      const friendshipGate = source(friendshipGatePath);
+      const notificationsPage = source(notificationsPath);
+      const friendRequestsPage = source(friendRequestsPath);
+      const publicProfilePage = source(publicProfilePath);
+      const socialFeedPage = source(socialFeedPath);
+      const publicUserProfilePage = source(publicUserProfilePath);
+      const socialListModal = source(socialListModalPath);
+
+      for (const needle of [
+        'withSecurity("friendship-manage"',
+        "strictCors: true",
+        'allowedMethods: ["POST"]',
+        'trackNetwork: "suspicious"',
+        "blockNetworkRiskAt: 80",
+        "auth.getUser(token)",
+        "cleanUuid",
+        "ensureFollowing",
+        "removeFollowing",
+        'from("friendships")',
+        'from("user_followers")',
+        "send-push-notification",
+        "friend_request_received",
+        "friend_request_accepted",
+      ]) {
+        requireContains(this.id, friendshipFn, needle, friendshipPath);
+      }
+      requireNotContains(this.id, friendshipFn, '"Access-Control-Allow-Origin": "*"', friendshipPath);
+
+      for (const policy of [
+        "friendships_block_direct_insert",
+        "friendships_block_direct_update",
+        "friendships_block_direct_delete",
+      ]) {
+        requireContains(this.id, friendshipGate, policy, friendshipGatePath);
+      }
+      requireContains(this.id, friendshipGate, "AS RESTRICTIVE", friendshipGatePath);
+      requireContains(this.id, friendshipGate, "trusted server-side ingestion", friendshipGatePath);
+
+      for (const [surface, relativePath] of [
+        [notificationsPage, notificationsPath],
+        [friendRequestsPage, friendRequestsPath],
+        [publicProfilePage, publicProfilePath],
+        [socialFeedPage, socialFeedPath],
+        [publicUserProfilePage, publicUserProfilePath],
+        [socialListModal, socialListModalPath],
+      ]) {
+        requireContains(this.id, surface, 'functions.invoke("friendship-manage"', relativePath);
+        requireNotMatch(this.id, surface, /from\(["']friendships["']\)[\s\S]{0,360}\.(insert|upsert|update|delete)/, relativePath);
+      }
+      requireNotContains(this.id, notificationsPage, 'functions.invoke("send-push-notification"', notificationsPath);
+    },
+  },
+  {
+    id: "notifications-server-ownership",
+    category: "notification-safety",
+    check() {
+      const functionPath = "supabase/functions/notification-manage/index.ts";
+      const helperPath = "src/lib/notifications/notificationManage.ts";
+      const gatePath = "supabase/migrations/20260601100000_notifications_server_gate.sql";
+      const notificationFn = source(functionPath);
+      const helper = source(helperPath);
+      const gate = source(gatePath);
+      const surfaces = [
+        ["src/hooks/useNotifications.ts", source("src/hooks/useNotifications.ts")],
+        ["src/pages/NotificationCenterPage.tsx", source("src/pages/NotificationCenterPage.tsx")],
+        ["src/pages/app/personal/PersonalNotificationsPage.tsx", source("src/pages/app/personal/PersonalNotificationsPage.tsx")],
+        ["src/components/rides/RideNotificationCenter.tsx", source("src/components/rides/RideNotificationCenter.tsx")],
+      ];
+
+      for (const needle of [
+        'withSecurity("notification-manage"',
+        "strictCors: true",
+        'allowedMethods: ["POST"]',
+        'trackNetwork: "suspicious"',
+        "blockNetworkRiskAt: 80",
+        "auth.getUser(token)",
+        "userOwnershipFilter(user.id)",
+        "user_id.eq",
+        "to_value.eq",
+        'from("notifications")',
+      ]) {
+        requireContains(this.id, notificationFn, needle, functionPath);
+      }
+      requireNotContains(this.id, notificationFn, '"Access-Control-Allow-Origin": "*"', functionPath);
+
+      for (const needle of [
+        'functions.invoke("notification-manage"',
+        'action: "mark_read"',
+        'action: "mark_all_read"',
+        'action: "delete"',
+        'action: "clear_in_app"',
+        'action: "snooze"',
+      ]) {
+        requireContains(this.id, helper, needle, helperPath);
+      }
+
+      for (const policy of ["notifications_block_direct_update", "notifications_block_direct_delete"]) {
+        requireContains(this.id, gate, policy, gatePath);
+      }
+      requireContains(this.id, gate, "AS RESTRICTIVE", gatePath);
+
+      for (const [relativePath, surface] of surfaces) {
+        requireContains(this.id, surface, "notificationManage", relativePath);
+        requireNotMatch(this.id, surface, /functions\.invoke\(["']notification-manage["']/, relativePath);
+        requireNotMatch(this.id, surface, /from\(["']notifications["']\)[\s\S]{0,260}\.(update|delete)/, relativePath);
+      }
+    },
+  },
+  {
+    id: "follow-graph-server-ownership",
+    category: "social-safety",
+    check() {
+      const followPath = "supabase/functions/follow-manage/index.ts";
+      const followFn = source(followPath);
+      const surfaces = [
+        ["src/pages/PublicProfilePage.tsx", source("src/pages/PublicProfilePage.tsx")],
+        ["src/pages/SocialFeedPage.tsx", source("src/pages/SocialFeedPage.tsx")],
+        ["src/pages/FeedPage.tsx", source("src/pages/FeedPage.tsx")],
+        ["src/pages/ReelsFeedPage.tsx", source("src/pages/ReelsFeedPage.tsx")],
+        ["src/pages/LiveStreamPage.tsx", source("src/pages/LiveStreamPage.tsx")],
+        ["src/components/profile/SocialListModal.tsx", source("src/components/profile/SocialListModal.tsx")],
+        ["src/components/social/FollowSuggestions.tsx", source("src/components/social/FollowSuggestions.tsx")],
+        ["src/components/social/SuggestedUsersCarousel.tsx", source("src/components/social/SuggestedUsersCarousel.tsx")],
+        ["src/components/social/FeaturedCreatorsRow.tsx", source("src/components/social/FeaturedCreatorsRow.tsx")],
+        ["src/components/social/TrendingCreators.tsx", source("src/components/social/TrendingCreators.tsx")],
+      ];
+
+      for (const needle of [
+        'withSecurity("follow-manage"',
+        "strictCors: true",
+        'allowedMethods: ["POST"]',
+        'trackNetwork: "suspicious"',
+        "blockNetworkRiskAt: 80",
+        "auth.getUser(token)",
+        "cleanUuid",
+        "removeFollower",
+        "notifyNewFollower",
+        'from("user_followers")',
+        "send-push-notification",
+        "new_follower",
+      ]) {
+        requireContains(this.id, followFn, needle, followPath);
+      }
+      requireNotContains(this.id, followFn, '"Access-Control-Allow-Origin": "*"', followPath);
+
+      for (const [relativePath, surface] of surfaces) {
+        requireContains(this.id, surface, 'functions.invoke("follow-manage"', relativePath);
+        requireNotMatch(this.id, surface, /from\(["']user_followers["'](?: as any)?\)[\s\S]{0,360}\.(insert|upsert|update|delete)/, relativePath);
+        requireNotContains(this.id, surface, 'notification_type: "new_follower"', relativePath);
+      }
+    },
+  },
+  {
+    id: "direct-message-send-server-ownership",
+    category: "chat-safety",
+    check() {
+      const chatSendPath = "supabase/functions/chat-message-send/index.ts";
+      const chatSendGatePath = "supabase/migrations/20260601172000_direct_messages_server_gate.sql";
+      const helperPath = "src/lib/chat/directMessageSend.ts";
+      const outboxPath = "src/lib/chat/messageOutbox.ts";
+      const chatSendFn = source(chatSendPath);
+      const chatSendGate = source(chatSendGatePath);
+      const helper = source(helperPath);
+      const outbox = source(outboxPath);
+      const surfaces = [
+        ["src/components/chat/PersonalChat.tsx", source("src/components/chat/PersonalChat.tsx")],
+        ["src/pages/ChatHubPage.tsx", source("src/pages/ChatHubPage.tsx")],
+        ["src/components/chat/CallScreen.tsx", source("src/components/chat/CallScreen.tsx")],
+        ["src/components/chat/ShareToChatSheet.tsx", source("src/components/chat/ShareToChatSheet.tsx")],
+        ["src/components/stories/StoryViewer.tsx", source("src/components/stories/StoryViewer.tsx")],
+        ["src/components/stories/StoryForwardSheet.tsx", source("src/components/stories/StoryForwardSheet.tsx")],
+        ["src/hooks/useBroadcastLists.ts", source("src/hooks/useBroadcastLists.ts")],
+        ["src/hooks/useMessageActions.ts", source("src/hooks/useMessageActions.ts")],
+        ["src/components/chat/GiftSendSheet.tsx", source("src/components/chat/GiftSendSheet.tsx")],
+        ["src/components/notifications/ChatBellPopover.tsx", source("src/components/notifications/ChatBellPopover.tsx")],
+        ["src/pages/NotificationCenterPage.tsx", source("src/pages/NotificationCenterPage.tsx")],
+      ];
+
+      for (const needle of [
+        'withSecurity("chat-message-send"',
+        "strictCors: true",
+        'allowedMethods: ["POST"]',
+        'trackNetwork: "suspicious"',
+        "blockNetworkRiskAt: 80",
+        "auth.getUser(token)",
+        "MESSAGE_TYPES",
+        "locked_payload_content",
+        "sender_id: senderId",
+        'from("direct_messages")',
+        'from("direct_message_locked_payloads")',
+      ]) {
+        requireContains(this.id, chatSendFn, needle, chatSendPath);
+      }
+      requireNotContains(this.id, chatSendFn, '"Access-Control-Allow-Origin": "*"', chatSendPath);
+
+      for (const needle of [
+        "direct_messages_block_direct_insert",
+        "direct_message_locked_payloads_block_direct_insert",
+        "AS RESTRICTIVE",
+        "CREATE OR REPLACE FUNCTION public.tg_notify_direct_message()",
+        "user_id = NEW.sender_id OR id = NEW.sender_id",
+      ]) {
+        requireContains(this.id, chatSendGate, needle, chatSendGatePath);
+      }
+
+      requireContains(this.id, helper, 'functions.invoke<FunctionSendResult>("chat-message-send"', helperPath);
+      requireContains(this.id, helper, "stripClientSender", helperPath);
+      requireContains(this.id, outbox, "sendDirectMessage", outboxPath);
+
+      for (const [relativePath, surface] of surfaces) {
+        requireMatch(this.id, surface, /sendDirectMessage|sendDirectMessages/, relativePath);
+        requireNotMatch(this.id, surface, /from\(["']direct_messages["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.insert/, relativePath);
+        requireNotMatch(this.id, surface, /dbFrom\(["']direct_messages["']\)\.insert/, relativePath);
+        requireNotMatch(this.id, surface, /supabase\.from\(["']direct_messages["']\)\.insert/, relativePath);
+        requireNotContains(this.id, surface, 'notification_type: "chat_message"', relativePath);
+        requireNotContains(this.id, surface, "sendChatPush", relativePath);
+      }
+    },
+  },
+  {
+    id: "group-message-send-server-membership",
+    category: "chat-safety",
+    check() {
+      const groupSendPath = "supabase/functions/group-message-send/index.ts";
+      const groupSendGatePath = "supabase/migrations/20260601173500_group_messages_server_gate.sql";
+      const helperPath = "src/lib/chat/groupMessageSend.ts";
+      const outboxPath = "src/lib/chat/messageOutbox.ts";
+      const groupSendFn = source(groupSendPath);
+      const groupSendGate = source(groupSendGatePath);
+      const helper = source(helperPath);
+      const outbox = source(outboxPath);
+      const surfaces = [
+        ["src/components/chat/GroupChat.tsx", source("src/components/chat/GroupChat.tsx")],
+        ["src/components/chat/ShareToChatSheet.tsx", source("src/components/chat/ShareToChatSheet.tsx")],
+      ];
+
+      for (const needle of [
+        'withSecurity("group-message-send"',
+        "strictCors: true",
+        'allowedMethods: ["POST"]',
+        'trackNetwork: "suspicious"',
+        "blockNetworkRiskAt: 80",
+        "auth.getUser(token)",
+        "MESSAGE_TYPES",
+        'from("chat_group_members")',
+        '.eq("group_id", groupId)',
+        '.eq("user_id", senderId)',
+        "sender_id: senderId",
+        'from("group_messages")',
+      ]) {
+        requireContains(this.id, groupSendFn, needle, groupSendPath);
+      }
+      requireNotContains(this.id, groupSendFn, '"Access-Control-Allow-Origin": "*"', groupSendPath);
+
+      for (const needle of [
+        "group_messages_block_direct_insert",
+        "AS RESTRICTIVE",
+        "CREATE OR REPLACE FUNCTION public.tg_notify_group_message()",
+        "user_id = NEW.sender_id OR id = NEW.sender_id",
+        "send-push-notification",
+        "group_message",
+      ]) {
+        requireContains(this.id, groupSendGate, needle, groupSendGatePath);
+      }
+
+      requireContains(this.id, helper, 'functions.invoke<FunctionSendResult>("group-message-send"', helperPath);
+      requireContains(this.id, helper, "stripClientSender", helperPath);
+      requireContains(this.id, outbox, "sendGroupMessage", outboxPath);
+
+      for (const [relativePath, surface] of surfaces) {
+        requireContains(this.id, surface, "sendGroupMessage", relativePath);
+        requireNotMatch(this.id, surface, /from\(["']group_messages["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.insert/, relativePath);
+        requireNotMatch(this.id, surface, /dbFrom\(["']group_messages["']\)\.insert/, relativePath);
+        requireNotMatch(this.id, surface, /supabase\.from\(["']group_messages["']\)\.insert/, relativePath);
+        requireNotContains(this.id, surface, 'notification_type: "group_message"', relativePath);
+        requireNotContains(this.id, surface, "sendGroupPush", relativePath);
+      }
+    },
+  },
+  {
+    id: "chat-group-lifecycle-server-roles",
+    category: "chat-safety",
+    check() {
+      const groupManagePath = "supabase/functions/chat-group-manage/index.ts";
+      const groupManageGatePath = "supabase/migrations/20260601175000_chat_groups_server_gate.sql";
+      const helperPath = "src/lib/chat/groupManage.ts";
+      const groupManageFn = source(groupManagePath);
+      const groupManageGate = source(groupManageGatePath);
+      const helper = source(helperPath);
+      const surfaces = [
+        ["src/hooks/useGroupAdmin.ts", source("src/hooks/useGroupAdmin.ts")],
+        ["src/components/chat/CreateGroupModal.tsx", source("src/components/chat/CreateGroupModal.tsx")],
+        ["src/components/chat/GroupInfoSheet.tsx", source("src/components/chat/GroupInfoSheet.tsx")],
+        ["src/components/chat/GroupChat.tsx", source("src/components/chat/GroupChat.tsx")],
+        ["src/pages/ChatHubPage.tsx", source("src/pages/ChatHubPage.tsx")],
+      ];
+
+      for (const needle of [
+        'withSecurity("chat-group-manage"',
+        "strictCors: true",
+        'allowedMethods: ["POST"]',
+        'trackNetwork: "suspicious"',
+        "blockNetworkRiskAt: 80",
+        "auth.getUser(token)",
+        '"create_group"',
+        '"set_member_role"',
+        '"create_invite"',
+        "requireAdmin",
+        "getMemberRole",
+        "countOwners",
+        'from("chat_groups")',
+        'from("chat_group_members")',
+        'from("chat_group_invites")',
+      ]) {
+        requireContains(this.id, groupManageFn, needle, groupManagePath);
+      }
+      requireNotContains(this.id, groupManageFn, '"Access-Control-Allow-Origin": "*"', groupManagePath);
+
+      for (const policy of [
+        "chat_groups_block_direct_insert",
+        "chat_groups_block_direct_update",
+        "chat_groups_block_direct_delete",
+        "chat_group_members_block_direct_insert",
+        "chat_group_members_block_direct_update",
+        "chat_group_members_block_direct_delete",
+        "chat_group_invites_block_direct_insert",
+        "chat_group_invites_block_direct_update",
+        "chat_group_invites_block_direct_delete",
+      ]) {
+        requireContains(this.id, groupManageGate, policy, groupManageGatePath);
+      }
+      requireContains(this.id, groupManageGate, "AS RESTRICTIVE", groupManageGatePath);
+      requireContains(this.id, groupManageGate, "trusted server-side", groupManageGatePath);
+
+      requireContains(this.id, helper, 'functions.invoke<GroupManageResult<T>>("chat-group-manage"', helperPath);
+      for (const helperName of [
+        "createGroup",
+        "updateGroup",
+        "addGroupMembers",
+        "removeGroupMember",
+        "leaveGroup",
+        "setGroupMemberRole",
+        "muteGroupMember",
+        "createGroupInvite",
+        "revokeGroupInvite",
+      ]) {
+        requireContains(this.id, helper, helperName, helperPath);
+      }
+
+      for (const [relativePath, surface] of surfaces) {
+        requireMatch(this.id, surface, /createGroup|updateGroup|addGroupMembers|removeGroupMember|leaveGroup|setGroupMemberRole|muteGroupMember|createGroupInvite|revokeGroupInvite/, relativePath);
+        requireNotMatch(this.id, surface, /from\(["']chat_groups["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/, relativePath);
+        requireNotMatch(this.id, surface, /dbFrom\(["']chat_groups["']\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/, relativePath);
+        requireNotMatch(this.id, surface, /from\(["']chat_group_members["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/, relativePath);
+        requireNotMatch(this.id, surface, /dbFrom\(["']chat_group_members["']\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/, relativePath);
+        requireNotMatch(this.id, surface, /from\(["']chat_group_invites["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/, relativePath);
+      }
+    },
+  },
+  {
+    id: "post-reactions-server-ownership",
+    category: "feed-safety",
+    check() {
+      const reactionManagePath = "supabase/functions/post-reaction-manage/index.ts";
+      const reactionGatePath = "supabase/migrations/20260601180500_post_reactions_server_gate.sql";
+      const helperPath = "src/lib/social/postReactionManage.ts";
+      const reactionManageFn = source(reactionManagePath);
+      const reactionGate = source(reactionGatePath);
+      const helper = source(helperPath);
+      const surfaces = [
+        ["src/hooks/usePostReactions.ts", source("src/hooks/usePostReactions.ts")],
+        ["src/pages/ReelsFeedPage.tsx", source("src/pages/ReelsFeedPage.tsx")],
+      ];
+
+      for (const needle of [
+        'withSecurity("post-reaction-manage"',
+        "strictCors: true",
+        'allowedMethods: ["POST"]',
+        'trackNetwork: "suspicious"',
+        "blockNetworkRiskAt: 80",
+        "auth.getUser(token)",
+        "REACTION_EMOJIS",
+        "cleanEmoji",
+        "ensurePostExists",
+        'source === "user" ? "user_posts" : "store_posts"',
+        'from("post_reactions")',
+        ".eq(\"user_id\", user.id)",
+        "onConflict: \"user_id,post_id,source\"",
+      ]) {
+        requireContains(this.id, reactionManageFn, needle, reactionManagePath);
+      }
+      requireNotContains(this.id, reactionManageFn, '"Access-Control-Allow-Origin": "*"', reactionManagePath);
+
+      for (const policy of [
+        "post_reactions_block_direct_insert",
+        "post_reactions_block_direct_update",
+        "post_reactions_block_direct_delete",
+      ]) {
+        requireContains(this.id, reactionGate, policy, reactionGatePath);
+      }
+      requireContains(this.id, reactionGate, "AS RESTRICTIVE", reactionGatePath);
+      requireContains(this.id, reactionGate, "trusted server-side", reactionGatePath);
+
+      requireContains(this.id, helper, 'functions.invoke<PostReactionManageResult>("post-reaction-manage"', helperPath);
+      requireContains(this.id, helper, "set_reaction", helperPath);
+      requireContains(this.id, helper, "clear_reaction", helperPath);
+
+      for (const [relativePath, surface] of surfaces) {
+        requireContains(this.id, surface, "setPostReaction", relativePath);
+        requireNotMatch(this.id, surface, /from\(["']post_reactions["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|upsert|update|delete)/, relativePath);
+      }
+    },
+  },
+  {
+    id: "post-bookmarks-server-ownership",
+    category: "feed-safety",
+    check() {
+      const bookmarkManagePath = "supabase/functions/post-bookmark-manage/index.ts";
+      const bookmarkGatePath = "supabase/migrations/20260601182000_post_bookmarks_server_gate.sql";
+      const helperPath = "src/lib/social/postBookmarkManage.ts";
+      const bookmarkManageFn = source(bookmarkManagePath);
+      const bookmarkGate = source(bookmarkGatePath);
+      const helper = source(helperPath);
+      const surfaces = [
+        ["src/hooks/usePostActions.ts", source("src/hooks/usePostActions.ts")],
+        ["src/pages/FeedPage.tsx", source("src/pages/FeedPage.tsx")],
+        ["src/pages/ReelsFeedPage.tsx", source("src/pages/ReelsFeedPage.tsx")],
+        ["src/pages/BookmarksPage.tsx", source("src/pages/BookmarksPage.tsx")],
+        ["src/pages/SavedPostsPage.tsx", source("src/pages/SavedPostsPage.tsx")],
+        ["src/pages/SocialFeedPage.tsx", source("src/pages/SocialFeedPage.tsx")],
+        ["src/components/profile/ProfileContentTabs.tsx", source("src/components/profile/ProfileContentTabs.tsx")],
+        ["src/pages/PublicProfilePage.tsx", source("src/pages/PublicProfilePage.tsx")],
+      ];
+
+      for (const needle of [
+        'withSecurity("post-bookmark-manage"',
+        "strictCors: true",
+        'allowedMethods: ["POST"]',
+        'trackNetwork: "suspicious"',
+        "blockNetworkRiskAt: 80",
+        "auth.getUser(token)",
+        "ensurePostExists",
+        "resolveBookmarkTarget",
+        "saveLegacyBookmark",
+        "deleteLegacyBookmark",
+        'source === "user" ? "user_posts" : "store_posts"',
+        'from("post_bookmarks")',
+        'from("bookmarks")',
+        "onConflict: \"user_id,post_id,source\"",
+        "onConflict: \"user_id,item_type,item_id\"",
+      ]) {
+        requireContains(this.id, bookmarkManageFn, needle, bookmarkManagePath);
+      }
+      requireNotContains(this.id, bookmarkManageFn, '"Access-Control-Allow-Origin": "*"', bookmarkManagePath);
+
+      for (const policy of [
+        "post_bookmarks_block_direct_insert",
+        "post_bookmarks_block_direct_update",
+        "post_bookmarks_block_direct_delete",
+        "bookmarks_block_direct_post_insert",
+        "bookmarks_block_direct_post_update",
+        "bookmarks_block_direct_post_delete",
+      ]) {
+        requireContains(this.id, bookmarkGate, policy, bookmarkGatePath);
+      }
+      requireContains(this.id, bookmarkGate, "AS RESTRICTIVE", bookmarkGatePath);
+      requireContains(this.id, bookmarkGate, "Non-post bookmarks keep existing user-owned RLS", bookmarkGatePath);
+
+      requireContains(this.id, helper, 'functions.invoke<PostBookmarkManageResult>("post-bookmark-manage"', helperPath);
+      requireContains(this.id, helper, "save_post", helperPath);
+      requireContains(this.id, helper, "unsave_post", helperPath);
+
+      for (const [relativePath, surface] of surfaces) {
+        requireMatch(this.id, surface, /savePostBookmark|removePostBookmark/, relativePath);
+        requireNotMatch(this.id, surface, /from\(["']post_bookmarks["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|upsert|update|delete)/, relativePath);
+        requireNotMatch(this.id, surface, /from\(["']bookmarks["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,420}\.(insert|upsert|update|delete)[\s\S]{0,240}item_type["']?\s*:\s*["']post["']/, relativePath);
       }
     },
   },

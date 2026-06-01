@@ -109,7 +109,7 @@ serve(withSecurity("ar-estimate-send", async (req, ctx) => {
   const storeName: string = store?.name || "Your shop";
   const storePhone: string = store?.phone || "";
 
-  const origin = req.headers.get("Origin") || Deno.env.get("AR_PUBLIC_APP_ORIGIN") || "https://hizivo.com";
+  const origin = req.headers.get("Origin") || Deno.env.get("AR_PUBLIC_APP_ORIGIN") || "https://zivollc.com";
   const url = `${origin}/estimate/${token}`;
 
   const customerFirstName = (est.customer_name ?? "").trim().split(" ")[0] || "there";

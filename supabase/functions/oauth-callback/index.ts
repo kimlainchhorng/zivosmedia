@@ -4,6 +4,7 @@ import { encryptToken } from "../_shared/tokenCrypto.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PREVIEW_FALLBACK = "https://id-preview--72f99340-9c9f-453a-acff-60e5a9b25774.lovable.app";
+const META_GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
 
 function htmlRedirect(url: string, message = "Connecting...") {
   return new Response(
@@ -35,7 +36,7 @@ function allowedReturnUrl(value: unknown) {
     Deno.env.get("APP_URL") || "",
     Deno.env.get("SITE_URL") || "",
     Deno.env.get("PUBLIC_SITE_URL") || "",
-    "https://hizivo.com",
+    "https://zivollc.com",
     "https://www.zivollc.com",
   ].filter(Boolean).map((origin) => new URL(origin).origin));
   if (typeof value !== "string" || !value) return `${PREVIEW_FALLBACK}/connect/callback`;
@@ -88,19 +89,19 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
       const redirectUri = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/oauth-callback`;
 
       const tokRes = await fetch(
-        `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`
+        `https://graph.facebook.com/${META_GRAPH_VERSION}/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`
       );
       const tok = await tokRes.json();
       if (!tok.access_token) throw new Error(tok.error?.message || "token exchange failed");
 
       const longRes = await fetch(
-        `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tok.access_token}`
+        `https://graph.facebook.com/${META_GRAPH_VERSION}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tok.access_token}`
       );
       const long = await longRes.json();
       const userToken = long.access_token || tok.access_token;
       const expiresIn = long.expires_in || tok.expires_in || 5184000;
 
-      const meRes = await fetch(`https://graph.facebook.com/v21.0/me?access_token=${userToken}`);
+      const meRes = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/me?access_token=${userToken}`);
       const me = await meRes.json();
 
       const encryptedUserToken = await encryptToken(userToken);
@@ -127,7 +128,7 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
       if (upErr) throw upErr;
 
       const pagesRes = await fetch(
-        `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,picture,instagram_business_account{id,username,profile_picture_url}&access_token=${userToken}`
+        `https://graph.facebook.com/${META_GRAPH_VERSION}/me/accounts?fields=id,name,access_token,picture,instagram_business_account{id,username,profile_picture_url}&access_token=${userToken}`
       );
       const pagesJson = await pagesRes.json();
       const pages = pagesJson.data || [];
@@ -160,7 +161,7 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
       }
 
       const adActsRes = await fetch(
-        `https://graph.facebook.com/v21.0/me/adaccounts?fields=id,account_id,name,currency,account_status&access_token=${userToken}`
+        `https://graph.facebook.com/${META_GRAPH_VERSION}/me/adaccounts?fields=id,account_id,name,currency,account_status&access_token=${userToken}`
       );
       const adActs = (await adActsRes.json()).data || [];
       for (const a of adActs) {

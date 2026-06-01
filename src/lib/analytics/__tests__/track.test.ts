@@ -3,19 +3,19 @@
  *
  * Verifies that every user-facing engagement action emits the correct
  * event_name + payload (post_id, surface, event_id) through the
- * analytics-event-track server gate, and that rapid duplicate calls are
+ * deployed analytics server gate, and that rapid duplicate calls are
  * deduped client-side.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Capture every analytics-event-track payload.
+// Capture every deployed analytics payload.
 const inserts: Array<{ event_name: string; meta: Record<string, unknown>; page: string | null }> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     functions: {
       invoke: (route: string, options: { body?: any }) => {
-        if (route === "analytics-event-track") inserts.push(options.body);
+        if (route === "ads-studio-track") inserts.push(options.body);
         return Promise.resolve({ data: { ok: true }, error: null });
       },
     },

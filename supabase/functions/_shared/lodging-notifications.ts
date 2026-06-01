@@ -87,7 +87,7 @@ export async function notifyLodgingBookingConfirmed(
       paidAmount,
       paymentMethod: paymentMethodLabel,
       hostPhone: store?.phone || null,
-      manageUrl: `${Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com"}/trips`,
+      manageUrl: `${Deno.env.get("PUBLIC_APP_URL") || "https://zivollc.com"}/trips`,
     },
     smsBody: `ZIVO: Your stay at ${store?.name || "the property"} is confirmed (ref ${r.number}). ${paidAmount ? `Paid ${paidAmount}.` : ""} Check-in ${ci ? ci.toLocaleDateString() : ""}.`,
   });

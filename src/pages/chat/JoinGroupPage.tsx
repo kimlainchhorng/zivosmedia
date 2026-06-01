@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useSmartBack } from "@/lib/smartBack";
 import { toast } from "sonner";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 const CHAT_MEDIA_BUCKET = "chat-media-files";
 
@@ -59,7 +60,7 @@ export default function JoinGroupPage() {
     if (!code) return;
     if (authLoading) return;
     if (!user) {
-      navigate(`/auth?redirect=/chat/join/${encodeURIComponent(code)}`, { replace: true });
+      navigate(withRedirectParam("/login", `/chat/join/${encodeURIComponent(code)}`), { replace: true });
       return;
     }
     (async () => {

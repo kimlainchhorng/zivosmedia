@@ -1,9 +1,34 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-// Creates a Meta Ads campaign + adset + creative + ad via Marketing API v21.
+// Creates a Meta Ads campaign + adset + creative + ad via Marketing API.
 // Admin-only.
-const META_API = "https://graph.facebook.com/v21.0";
+const META_GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
+const META_API = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
+const DEFAULT_LINK = "https://zivollc.com";
+
+function slugifyCampaignName(value: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "zivo-meta-campaign";
+}
+
+function buildTrackedLink(rawLink: unknown, campaignName: string): string {
+  const raw = typeof rawLink === "string" && rawLink.trim() ? rawLink.trim() : DEFAULT_LINK;
+  const url = new URL(raw);
+  if (url.protocol !== "https:") {
+    throw new Error("Meta campaign link must be an https URL");
+  }
+
+  url.searchParams.set("utm_source", "facebook");
+  url.searchParams.set("utm_medium", "paid_social");
+  url.searchParams.set("utm_campaign", slugifyCampaignName(campaignName));
+  url.searchParams.set("utm_content", "meta_admin");
+  return url.toString();
+}
 
 async function metaPost(path: string, token: string, body: Record<string, any>) {
   const form = new URLSearchParams();
@@ -47,9 +72,11 @@ Deno.serve(withSecurity("meta-ads-create-campaign", async (req, ctx) => {
       daily_budget_cents = 2000,
       headline = "ZIVO — Rides, Eats, Travel",
       body = "Book rides, order food, and explore deals on ZIVO.",
-      link = "https://hizivo.com",
+      link = "https://zivollc.com",
       image_url,
     } = await req.json().catch(() => ({}));
+
+    const trackedLink = buildTrackedLink(link, name);
 
     // 1) Campaign (PAUSED)
     const campaign = await metaPost(`/${adAccount}/campaigns`, accessToken, {
@@ -78,7 +105,7 @@ Deno.serve(withSecurity("meta-ads-create-campaign", async (req, ctx) => {
         page_id: pageId,
         link_data: {
           message: body,
-          link,
+          link: trackedLink,
           name: headline,
           ...(image_url ? { picture: image_url } : {}),
         },
@@ -100,10 +127,22 @@ Deno.serve(withSecurity("meta-ads-create-campaign", async (req, ctx) => {
       status: "paused",
       daily_budget_cents,
       created_by: user.id,
-      metadata: { campaign_id: campaign.id, adset_id: adSet.id, creative_id: creative.id, ad_id: ad.id, link, headline },
+      metadata: {
+        campaign_id: campaign.id,
+        adset_id: adSet.id,
+        creative_id: creative.id,
+        ad_id: ad.id,
+        link: trackedLink,
+        original_link: link,
+        headline,
+        utm_source: "facebook",
+        utm_medium: "paid_social",
+        utm_campaign: slugifyCampaignName(name),
+        utm_content: "meta_admin",
+      },
     } as any).select().single();
 
-    return new Response(JSON.stringify({ ok: true, campaign: row, meta: { campaign, adSet, creative, ad } }), {
+    return new Response(JSON.stringify({ ok: true, campaign: row, tracked_link: trackedLink, meta: { campaign, adSet, creative, ad } }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {

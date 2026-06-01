@@ -16,6 +16,7 @@ import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
 import Share2 from "lucide-react/dist/esm/icons/share-2";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import { useAuth } from "@/contexts/AuthContext";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 const STEPS = [
   { icon: Plane, label: "Flight", to: "/flights?bundle=1" },
@@ -28,7 +29,7 @@ export default function PlanTripBundle() {
   const { user } = useAuth();
   const shareTripBundle = () => {
     if (!user) {
-      navigate("/login?redirect=%2Fchat");
+      navigate(withRedirectParam("/login", "/chat"));
       return;
     }
     openShareToChat({

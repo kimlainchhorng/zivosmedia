@@ -9,6 +9,7 @@ import SwipeableSheet from "@/components/social/SwipeableSheet";
 import { track } from "@/lib/analytics";
 import { copyText } from "@/lib/native/clipboard";
 import { shareContent } from "@/lib/native/share";
+import { cn } from "@/lib/utils";
 
 interface ShareSheetProps {
   shareUrl: string;
@@ -36,6 +37,8 @@ interface ShareSheetProps {
   visitProfileLabel?: string;
   /** Called after the share-count RPC confirms a countable share. */
   onShareRecorded?: (channel: ShareChannel) => void;
+  /** Match the dark Reels overlay surface without changing Feed share sheets. */
+  reelsSurface?: boolean;
 }
 
 type ShareChannel =
@@ -87,6 +90,7 @@ export default function ShareSheet({
   onVisitProfile,
   visitProfileLabel,
   onShareRecorded,
+  reelsSurface = false,
 }: ShareSheetProps) {
   // Best-effort: log + bump shares_count via the record_post_share RPC.
   // Errors are swallowed so a failed share-count update never blocks the UX.
@@ -142,7 +146,7 @@ export default function ShareSheet({
     try {
       return new URL(effectiveShareUrl).host;
     } catch {
-      return "hizivo.com";
+      return "zivollc.com";
     }
   })();
 
@@ -312,6 +316,8 @@ export default function ShareSheet({
       positioning={positioning}
       safeAreaTop
       hideCloseButton
+      className={cn(reelsSurface && "zivo-social-sheet-panel-dark zivo-reel-share-sheet text-white")}
+      headerClassName={cn(reelsSurface && "zivo-reel-share-sheet-header")}
     >
 
         <div className="px-5 pt-2">

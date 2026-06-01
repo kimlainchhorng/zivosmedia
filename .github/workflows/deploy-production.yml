@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: production
-      url: https://myzivo.com
+      url: https://zivollc.com
 
     steps:
       - name: Checkout commit that passed CI

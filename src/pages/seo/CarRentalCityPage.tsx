@@ -129,7 +129,7 @@ export default function CarRentalCityPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/rent-car/${citySlug}`}
+        canonical={`https://zivollc.com/rent-car/${citySlug}`}
       />
       <BreadcrumbSchema items={breadcrumbs} />
       <Header />

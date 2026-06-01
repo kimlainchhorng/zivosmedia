@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
+import { sendDirectMessages } from "@/lib/chat/directMessageSend";
 
 interface Friend {
   id: string;
@@ -160,7 +161,7 @@ export default function StoryForwardSheet({
         message_type: "text",
       }));
 
-      const { error } = await (supabase as any).from("direct_messages").insert(rows);
+      const { error } = await sendDirectMessages(rows);
       if (error) throw error;
 
       track("story_share", {

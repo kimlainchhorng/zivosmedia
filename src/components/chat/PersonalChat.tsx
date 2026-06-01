@@ -81,6 +81,7 @@ import { emitReactionAdded } from "./FloatingReactionsOverlay";
 import ZivoActionBubble, { type ZivoCardPayload } from "./ZivoActionBubble";
 import ZivoCardPicker from "./ZivoCardPicker";
 import { beginSend as outboxBeginSend, enqueue as outboxEnqueue, finishSend as outboxFinishSend, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
 import FileBubble, { type FileBubbleData } from "./FileBubble";
 import ChatDeliveryStatus from "./ChatDeliveryStatus";
 import OutboxPendingBadge from "./OutboxPendingBadge";
@@ -289,6 +290,7 @@ type DirectMessageInsert = {
   expires_at?: string;
   self_destruct_seconds?: number;
   locked_price_cents?: number;
+  locked_payload_content?: string;
 };
 
 type RealtimeInsertPayload<T> = { new: T };
@@ -789,7 +791,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       const announcement = next == null
         ? `🔓 ${senderName} turned off disappearing messages`
         : `⏱️ ${senderName} set messages to disappear after ${label}`;
-      void dbFrom("direct_messages").insert({
+      void sendDirectMessage({
         sender_id: user.id,
         receiver_id: recipientId,
         message: announcement,
@@ -1133,72 +1135,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       onCallStarted?.();
     }
   }, [autoStartCall, loading, handleStartCall, onCallStarted]);
-
-  // Cache sender profile to avoid re-fetching on every message send
-  const senderProfileRef = useRef<{ name: string; avatar: string } | null>(null);
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      try {
-        const { data } = await dbFrom("profiles")
-          .select("full_name, avatar_url")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        const profile = data as ProfileRow | null;
-        senderProfileRef.current = {
-          name: profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "Someone",
-          avatar: profile?.avatar_url || "",
-        };
-      } catch { /* ignore */ }
-    })();
-  }, [user?.id, user?.email, user?.user_metadata?.full_name, user?.user_metadata?.name]);
-
-  const sendChatPush = useCallback(async (messageType: string, messageText: string) => {
-    if (!user?.id || !recipientId || recipientId === user.id) return;
-
-    const cached = senderProfileRef.current;
-    const senderName = cached?.name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Someone";
-    const senderAvatarUrl = cached?.avatar || "";
-
-    let preview: string;
-    if (messageType === "image") preview = "Sent you a photo 📷";
-    else if (messageType === "locked_image") preview = "Sent you a locked photo 🔒📷";
-    else if (messageType === "video") preview = "Sent you a video 🎥";
-    else if (messageType === "locked_video") preview = "Sent you a locked video 🔒🎥";
-    else if (messageType === "locked_album") preview = messageText.trim() || "Sent you a locked album 🔒";
-    else if (messageType === "voice") preview = "Sent you a voice message 🎤";
-    else if (messageType === "location") preview = "Shared a location 📍";
-    else if (messageType === "sticker") preview = "Sent you a sticker 🎭";
-    else if (messageType === "gif") preview = "Sent you a GIF";
-    else if (messageType === "media_album") preview = messageText.trim() || "Sent you a photo album";
-    else if (messageText.trim()) {
-      const trimmed = messageText.trim();
-      preview = trimmed.length > 140 ? `${trimmed.slice(0, 137)}...` : trimmed;
-    } else {
-      preview = "Sent you a message";
-    }
-
-    try {
-      await supabase.functions.invoke("send-push-notification", {
-        body: {
-          user_id: recipientId,
-          notification_type: "chat_message",
-          title: senderName,
-          body: preview,
-          data: {
-            type: "chat_message",
-            sender_id: user.id,
-            sender_name: senderName,
-            sender_avatar_url: senderAvatarUrl,
-            action_url: `/chat?with=${user.id}`,
-          },
-          image_url: senderAvatarUrl,
-        },
-      });
-    } catch (pushError) {
-      console.error("[Chat] Failed to send push notification:", pushError);
-    }
-  }, [recipientId, user]);
 
   // Scroll to bottom — or to the first unread when reopening a chat with new
   // messages. The first-unread anchor is captured once per chat-open so it
@@ -1725,14 +1661,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
       // Fire-and-forget insert; realtime INSERT echo will replace the optimistic row.
       // Skipping `.select().single()` cuts ~100-300ms of perceived send latency.
-      const { error } = await dbFrom("direct_messages")
-        .insert(insertData);
+      const { error } = await sendDirectMessage(insertData);
 
       if (error) throw error;
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "sent" } : m)),
       );
-      void sendChatPush(msgType, rawText || filePayload?.filename || text);
     } catch {
       // Keep the optimistic bubble and surface a tap-to-retry control instead
       // of dropping the message. Also persist to the durable outbox so the
@@ -1771,7 +1705,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "uploading" } : m)),
     );
     try {
-      const { error } = await dbFrom("direct_messages").insert(payload);
+      const { error } = await sendDirectMessage(payload);
       if (error) throw error;
       failedSendsRef.current.delete(optimisticId);
       outboxRemove(optimisticId);
@@ -1918,7 +1852,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       await retryWithBackoff(
         async (attempt) => {
           if (attempt > 0) vlog("insert:retry", { clientSendId, attempt });
-          const { error: insertError } = await dbFrom("direct_messages").insert(insertData);
+          const { error: insertError } = await sendDirectMessage(insertData);
           if (insertError) throw insertError;
         },
         { signal: controller.signal, attempts: 3, baseDelayMs: 600 },
@@ -1932,8 +1866,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         _upload_progress: 1,
         _upload_error: undefined,
       });
-      void sendChatPush("voice", "");
-
       // Cleanup: keep the local blob URL around briefly so any in-progress
       // playback doesn't tear; revoke after a delay.
       setTimeout(() => URL.revokeObjectURL(job.localUrl), 30000);
@@ -1982,7 +1914,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         }, 8000);
       }
     }
-  }, [user?.id, recipientId, sendChatPush]);
+  }, [user?.id, recipientId]);
 
   const retryVoiceSendRef = useRef<((clientSendId: string) => void) | null>(null);
   const retryVoiceSend = useCallback((clientSendId: string) => {
@@ -2187,9 +2119,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         if (kind === "image") insertData.image_url = dbMediaUrl;
         if (kind === "video") insertData.video_url = dbMediaUrl;
         if (currentReply) insertData.reply_to_id = currentReply.id;
-        const { error: insErr } = await dbFrom("direct_messages").insert(insertData);
+        const { error: insErr } = await sendDirectMessage(insertData);
         if (insErr) throw insErr;
-        void sendChatPush(kind, "");
       } catch (e) {
         console.warn("[media] upload/send failed", e);
         if (path) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove([path]).catch(() => {});
@@ -2391,9 +2322,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           } as unknown as FileBubbleData,
         };
         if (currentReply) insertData.reply_to_id = currentReply.id;
-        const { error: insErr } = await dbFrom("direct_messages").insert(insertData);
+        const { error: insErr } = await sendDirectMessage(insertData);
         if (insErr) throw insErr;
-        void sendChatPush("media_album", caption);
       } catch (e) {
         console.warn("[media-album] upload/send failed", e);
         if (uploadedPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(uploadedPaths).catch(() => {});
@@ -2573,26 +2503,15 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       // Locked plaintext lives in direct_message_locked_payloads (RLS-gated
       // on direct_message_unlocks membership) — never in direct_messages.message,
       // which the recipient can read unconditionally via base RLS.
-      const { data: inserted, error: insertErr } = await dbFrom("direct_messages")
-        .insert({
-          sender_id: user.id, receiver_id: recipientId,
-          message: "",
-          message_type: "locked_text",
-          locked_price_cents: priceCents,
-        })
-        .select("id")
-        .single();
+      const { error: insertErr } = await sendDirectMessage({
+        sender_id: user.id,
+        receiver_id: recipientId,
+        message: "",
+        message_type: "locked_text",
+        locked_price_cents: priceCents,
+        locked_payload_content: text,
+      });
       if (insertErr) throw insertErr;
-
-      const { error: payloadErr } = await dbFrom("direct_message_locked_payloads")
-        .insert({ message_id: (inserted as { id: string }).id, content: text });
-      if (payloadErr) {
-        // Roll back the parent so the recipient doesn't see an empty locked
-        // bubble that unlock would reveal nothing for.
-        await dbFrom("direct_messages").delete().eq("id", (inserted as { id: string }).id);
-        throw payloadErr;
-      }
-      void sendChatPush("locked_text" as any, `🔒 Paid DM · $${(priceCents / 100).toFixed(2)}`);
     } catch {
       toast.error("Failed to send paid DM");
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
@@ -2752,9 +2671,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         };
         if (currentReply) insertData.reply_to_id = currentReply.id;
 
-        const { error: albumInsertErr } = await dbFrom("direct_messages").insert(insertData);
+        const { error: albumInsertErr } = await sendDirectMessage(insertData);
         if (albumInsertErr) throw albumInsertErr;
-        void sendChatPush(messageType, caption || label);
         toast.success("Locked album sent");
         return;
       }
@@ -2789,17 +2707,16 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       setMessages((prev) => [...prev, optimisticMsg]);
       scrollToBottom(true);
 
-      const { error: insertErr } = await dbFrom("direct_messages")
-        .insert({
-          sender_id: user.id, receiver_id: recipientId,
-          message: text || singleLabel,
-          image_url: isVideo ? null : path,
-          video_url: isVideo ? path : null,
-          message_type: singleMessageType,
-          locked_price_cents: priceCents,
-        });
+      const { error: insertErr } = await sendDirectMessage({
+        sender_id: user.id,
+        receiver_id: recipientId,
+        message: text || singleLabel,
+        image_url: isVideo ? null : path,
+        video_url: isVideo ? path : null,
+        message_type: singleMessageType,
+        locked_price_cents: priceCents,
+      });
       if (insertErr) throw insertErr;
-      void sendChatPush(singleMessageType, text || singleLabel);
     } catch (error) {
       console.warn("[dm/locked-media] upload/send failed", error);
       if (cleanupPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(cleanupPaths).catch(() => {});
@@ -3121,16 +3038,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     scrollToBottom();
 
     try {
-      const { error } = await dbFrom("direct_messages")
-        .insert({
-          sender_id: user.id,
-          receiver_id: recipientId,
-          message: text,
-          message_type: msgType,
-        });
+      const { error } = await sendDirectMessage({
+        sender_id: user.id,
+        receiver_id: recipientId,
+        message: text,
+        message_type: msgType,
+      });
 
       if (error) throw error;
-      void sendChatPush(msgType, text);
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       toast.error("Failed to send item");
@@ -3138,7 +3053,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
     setShowStickerKeyboard(false);
     inputRef.current?.focus();
-  }, [recipientId, scrollToBottom, sendChatPush, sending, user?.id]);
+  }, [recipientId, scrollToBottom, sending, user?.id]);
 
   // Pinned messages
   const pinnedMessages = useMemo(() => messages.filter((m) => m.is_pinned), [messages]);
@@ -4783,7 +4698,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           }
           // Send a structured poll message — recipient renders ChatPollBubble
           // (interactive voting) instead of a dead plain-text announcement.
-          const { error: msgError } = await dbFrom("direct_messages").insert({
+          const { error: msgError } = await sendDirectMessage({
             sender_id: user.id,
             receiver_id: recipientId,
             message: `📊 ${poll.question}`, // Fallback for older clients that don't know "poll" type.
@@ -4830,7 +4745,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             `👤 ${contact.displayName}`,
             contact.username ? `@${contact.username}` : null,
           ].filter(Boolean).join(" ");
-          const { error } = await dbFrom("direct_messages").insert({
+          const { error } = await sendDirectMessage({
             sender_id: user.id,
             receiver_id: recipientId,
             message: fallback,
@@ -4866,7 +4781,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           // Send as a structured social card — recipient renders ChatSocialBubble
           // with brand colours + Open button instead of a raw URL line.
           const fallback = `${payload.platform_label}: ${payload.url}`;
-          const { error } = await dbFrom("direct_messages").insert({
+          const { error } = await sendDirectMessage({
             sender_id: user.id,
             receiver_id: recipientId,
             message: fallback,

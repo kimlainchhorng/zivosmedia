@@ -89,7 +89,7 @@ export default function HotelsResortsDirectoryPage() {
           name="description"
           content="Browse hotels, resorts and guesthouses on ZIVO. Tap any property to view rooms, amenities and contact details."
         />
-        <link rel="canonical" href="https://hizivo.com/hotels-list" />
+        <link rel="canonical" href="https://zivollc.com/hotels-list" />
       </Helmet>
 
       {/* Header */}

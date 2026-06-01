@@ -16,31 +16,31 @@ interface PremiumCardProps extends Omit<HTMLMotionProps<"div">, "children"> {
 const glowColors = {
   rides: "hover:shadow-[0_0_50px_-12px_hsl(var(--rides)/0.6)]",
   eats: "hover:shadow-[0_0_50px_-12px_hsl(var(--eats)/0.6)]",
-  sky: "hover:shadow-[0_0_50px_-12px_rgb(56,189,248,0.6)]",
-  amber: "hover:shadow-[0_0_50px_-12px_rgb(251,191,36,0.6)]",
-  primary: "hover:shadow-[0_0_50px_-12px_hsl(var(--primary)/0.6)]",
-  emerald: "hover:shadow-[0_0_50px_-12px_rgb(16,185,129,0.6)]",
-  violet: "hover:shadow-[0_0_50px_-12px_rgb(139,92,246,0.6)]",
+  sky: "hover:shadow-2xl hover:shadow-black/10",
+  amber: "hover:shadow-2xl hover:shadow-black/10",
+  primary: "hover:shadow-2xl hover:shadow-black/10",
+  emerald: "hover:shadow-2xl hover:shadow-black/10",
+  violet: "hover:shadow-2xl hover:shadow-black/10",
 };
 
 const borderColors = {
   rides: "hover:border-rides/50",
   eats: "hover:border-eats/50",
-  sky: "hover:border-sky-400/50",
-  amber: "hover:border-amber-400/50",
+  sky: "hover:border-primary/50",
+  amber: "hover:border-warning/50",
   primary: "hover:border-primary/50",
-  emerald: "hover:border-emerald-400/50",
-  violet: "hover:border-violet-400/50",
+  emerald: "hover:border-success/50",
+  violet: "hover:border-foreground/50",
 };
 
 const gradientBgs = {
   rides: "from-rides/10 via-rides/5 to-transparent",
   eats: "from-eats/10 via-eats/5 to-transparent",
-  sky: "from-sky-500/10 via-sky-500/5 to-transparent",
-  amber: "from-amber-500/10 via-amber-500/5 to-transparent",
+  sky: "from-muted via-muted to-transparent",
+  amber: "from-warning/10 via-warning/5 to-transparent",
   primary: "from-primary/10 via-primary/5 to-transparent",
-  emerald: "from-emerald-500/10 via-emerald-500/5 to-transparent",
-  violet: "from-violet-500/10 via-violet-500/5 to-transparent",
+  emerald: "from-success/10 via-success/5 to-transparent",
+  violet: "from-muted via-muted to-transparent",
 };
 
 const sizes = {
@@ -126,21 +126,21 @@ interface StatCardProps {
 const iconBgClasses = {
   rides: "text-rides bg-gradient-to-br from-rides/20 to-rides/5",
   eats: "text-eats bg-gradient-to-br from-eats/20 to-eats/5",
-  sky: "text-sky-400 bg-gradient-to-br from-sky-500/20 to-sky-500/5",
-  amber: "text-amber-400 bg-gradient-to-br from-amber-500/20 to-amber-500/5",
+  sky: "text-primary bg-gradient-to-br from-primary/20 to-primary/5",
+  amber: "text-warning bg-gradient-to-br from-warning/20 to-warning/5",
   primary: "text-primary bg-gradient-to-br from-primary/20 to-primary/5",
-  emerald: "text-emerald-400 bg-gradient-to-br from-emerald-500/20 to-emerald-500/5",
-  violet: "text-violet-400 bg-gradient-to-br from-violet-500/20 to-violet-500/5",
+  emerald: "text-success bg-gradient-to-br from-success/20 to-success/5",
+  violet: "text-ig-gradient bg-muted",
 };
 
 const valueGradients = {
-  rides: "from-rides to-green-400",
-  eats: "from-eats to-orange-400",
-  sky: "from-sky-400 to-blue-500",
-  amber: "from-amber-400 to-orange-500",
-  primary: "from-primary to-teal-400",
-  emerald: "from-emerald-400 to-green-500",
-  violet: "from-violet-400 to-purple-500",
+  rides: "from-rides to-rides",
+  eats: "from-eats to-eats",
+  sky: "from-primary to-primary",
+  amber: "from-warning to-warning",
+  primary: "from-primary to-primary",
+  emerald: "from-success to-success",
+  violet: "from-foreground to-foreground",
 };
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -174,9 +174,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         {trend && (
           <div className={cn(
             "flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full",
-            trend.positive 
-              ? "text-emerald-400 bg-emerald-500/10" 
-              : "text-red-400 bg-red-500/10"
+            trend.positive
+              ? "text-success bg-success/10"
+              : "text-destructive bg-destructive/10"
           )}>
             {trend.positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {trend.value}
@@ -209,7 +209,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         {trend && (
           <span className={cn(
             "absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full",
-            trend.positive ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10"
+            trend.positive ? "text-success bg-success/10" : "text-destructive bg-destructive/10"
           )}>
             {trend.positive ? "+" : ""}{trend.value}
           </span>
@@ -237,9 +237,9 @@ export const StatCard: React.FC<StatCardProps> = ({
             {trend && (
               <div className={cn(
                 "flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-xl",
-                trend.positive 
-                  ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" 
-                  : "text-red-400 bg-red-500/10 border border-red-500/20"
+                trend.positive
+                  ? "text-success bg-success/10 border border-success/20"
+                  : "text-destructive bg-destructive/10 border border-destructive/20"
               )}>
                 {trend.positive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                 {trend.value}
@@ -276,9 +276,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         {trend && (
           <span className={cn(
             "text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1",
-            trend.positive 
-              ? "text-emerald-400 bg-emerald-500/10" 
-              : "text-red-400 bg-red-500/10"
+            trend.positive
+              ? "text-success bg-success/10"
+              : "text-destructive bg-destructive/10"
           )}>
             {trend.positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {trend.value}
@@ -313,13 +313,13 @@ interface QuickActionProps {
 }
 
 const actionGradients = {
-  rides: "from-rides to-green-400",
-  eats: "from-eats to-orange-400",
-  sky: "from-sky-500 to-blue-500",
-  amber: "from-amber-500 to-orange-500",
-  primary: "from-primary to-teal-400",
-  emerald: "from-emerald-500 to-green-500",
-  violet: "from-violet-500 to-purple-500",
+  rides: "from-rides to-rides",
+  eats: "from-eats to-eats",
+  sky: "from-primary to-primary",
+  amber: "from-warning to-warning",
+  primary: "from-primary to-primary",
+  emerald: "from-success to-success",
+  violet: "from-primary to-primary",
 };
 
 export const QuickAction: React.FC<QuickActionProps> = ({
@@ -372,7 +372,7 @@ export const QuickAction: React.FC<QuickActionProps> = ({
         </div>
         
         {badge && (
-          <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-bold bg-gradient-to-r from-eats to-orange-500 text-primary-foreground rounded-full shadow-lg">
+          <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-bold bg-gradient-to-r from-eats to-eats text-primary-foreground rounded-full shadow-lg">
             {badge}
           </span>
         )}
@@ -431,7 +431,7 @@ export const QuickAction: React.FC<QuickActionProps> = ({
         )}
       </div>
       {badge && (
-        <span className="px-2.5 py-1 text-xs font-bold bg-gradient-to-r from-eats to-orange-500 text-primary-foreground rounded-full shadow-md">
+        <span className="px-2.5 py-1 text-xs font-bold bg-gradient-to-r from-eats to-eats text-primary-foreground rounded-full shadow-md">
           {badge}
         </span>
       )}
@@ -459,8 +459,8 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
   onClick,
 }) => {
   const badgeConfig = {
-    new: { icon: Sparkles, label: "New", gradient: "from-emerald-500 to-green-500" },
-    popular: { icon: Zap, label: "Popular", gradient: "from-amber-500 to-orange-500" },
+    new: { icon: Sparkles, label: "New", gradient: "from-success to-success" },
+    popular: { icon: Zap, label: "Popular", gradient: "from-warning to-warning" },
     premium: { icon: Crown, label: "Premium", gradient: "from-muted to-muted" },
   };
 

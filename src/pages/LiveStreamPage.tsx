@@ -164,18 +164,11 @@ function LiveWatcher({ stream, onLeave }: { stream: LiveStream; onLeave: () =>vo
    const wasFollowing = isFollowingHost;
    setIsFollowingHost(!wasFollowing); // optimistic
    try {
-     if (wasFollowing) {
-       const { error } = await (supabase as any)
-         .from("user_followers")
-         .delete()
-         .eq("follower_id", user.id)
-         .eq("following_id", stream.user_id);
-       if (error) throw error;
-     } else {
-       const { error } = await (supabase as any)
-         .from("user_followers")
-         .insert({ follower_id: user.id, following_id: stream.user_id });
-       if (error && !String(error.message).includes("duplicate")) throw error;
+     const { error } = await supabase.functions.invoke("follow-manage", {
+       body: { action: wasFollowing ? "unfollow" : "follow", following_id: stream.user_id },
+     });
+     if (error) throw error;
+     if (!wasFollowing) {
        toast.success(`Following ${stream.host_name}`);
      }
    } catch {

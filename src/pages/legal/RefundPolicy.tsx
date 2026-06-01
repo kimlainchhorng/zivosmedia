@@ -23,7 +23,7 @@ const RefundPolicy = () => {
       <SEOHead 
         title="Refund Policy – ZIVO Travel"
         description="Understand refund terms for hotels, car rentals processed by ZIVO, and flights handled by airline partners."
-        canonical="https://hizivo.com/legal/refunds"
+        canonical="https://zivollc.com/legal/refunds"
       />
       <NavBar />
       

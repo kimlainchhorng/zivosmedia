@@ -28,7 +28,7 @@ const AppleLogo = ({ className }: { className?: string }) => (
 );
 
 const APP_STORE_URL =
-  "https://apps.apple.com/us/app/zivo-customer/id6759480121";
+  "https://apps.apple.com/us/app/zivodrivers/id6759507131";
 const DRIVER_WEBSITE_URL = "https://zivodriver.com";
 
 const HIGHLIGHTS = [

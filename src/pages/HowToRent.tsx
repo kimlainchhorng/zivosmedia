@@ -16,6 +16,7 @@ import {
   CheckCircle, ArrowRight, Clock, Zap, Lock, Users, Phone
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 const steps = [
   {
@@ -94,7 +95,7 @@ export default function HowToRent() {
     if (user) {
       navigate("/renter/dashboard");
     } else {
-      navigate("/signup?redirect=/renter/dashboard");
+      navigate(withRedirectParam("/signup", "/renter/dashboard"));
     }
   };
 

@@ -9,6 +9,7 @@ import {
   Crown, Zap, Bell, Star, Shield, Headphones, Check, ArrowRight, Percent, Loader2, CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 import NavBar from "@/components/home/NavBar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
@@ -114,7 +115,7 @@ const ZivoPlus = () => {
 
   const handleJoin = async () => {
     if (!user) {
-      navigate("/login?redirect=/zivo-plus");
+      navigate(withRedirectParam("/login", "/zivo-plus"));
       return;
     }
     if (isActive) {

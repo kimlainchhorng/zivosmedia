@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   authGetUser: vi.fn(),
   from: vi.fn(),
   insert: vi.fn(),
+  functionsInvoke: vi.fn(),
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -13,6 +14,9 @@ vi.mock("@/integrations/supabase/client", () => ({
       getUser: mocks.authGetUser,
     },
     from: mocks.from,
+    functions: {
+      invoke: mocks.functionsInvoke,
+    },
   },
 }));
 
@@ -23,11 +27,27 @@ const directItem = (id: string, chatKey = "chat-1") => ({
   payload: {
     sender_id: "sender-1",
     receiver_id: chatKey,
-    content: "hello",
+    message: "hello",
   },
   optimistic: {
     id,
     content: "hello",
+    _upload_status: "failed",
+  },
+});
+
+const groupItem = (id: string, chatKey = "group-1") => ({
+  id,
+  table: "group_messages" as const,
+  chatKey,
+  payload: {
+    sender_id: "sender-1",
+    group_id: chatKey,
+    message: "hello group",
+  },
+  optimistic: {
+    id,
+    content: "hello group",
     _upload_status: "failed",
   },
 });
@@ -39,6 +59,7 @@ describe("messageOutbox", () => {
     mocks.authGetUser.mockResolvedValue({ data: { user: { id: "sender-1" } } });
     mocks.from.mockReturnValue({ insert: mocks.insert });
     mocks.insert.mockResolvedValue({ error: null });
+    mocks.functionsInvoke.mockResolvedValue({ data: { message: { id: "message-1" } }, error: null });
   });
 
   it("lists and removes scoped queued messages", () => {
@@ -84,8 +105,30 @@ describe("messageOutbox", () => {
     const result = await flush();
 
     expect(result).toEqual({ sent: 1, failed: 0 });
-    expect(mocks.from).toHaveBeenCalledWith("direct_messages");
-    expect(mocks.insert).toHaveBeenCalledWith(item.payload);
+    expect(mocks.functionsInvoke).toHaveBeenCalledWith("chat-message-send", {
+      body: {
+        receiver_id: item.payload.receiver_id,
+        message: item.payload.message,
+      },
+    });
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(list()).toHaveLength(0);
+  });
+
+  it("flushes group messages through the server-side membership gate", async () => {
+    const item = groupItem("opt-group-sent");
+    enqueue(item);
+
+    const result = await flush();
+
+    expect(result).toEqual({ sent: 1, failed: 0 });
+    expect(mocks.functionsInvoke).toHaveBeenCalledWith("group-message-send", {
+      body: {
+        group_id: item.payload.group_id,
+        message: item.payload.message,
+      },
+    });
+    expect(mocks.insert).not.toHaveBeenCalled();
     expect(list()).toHaveLength(0);
   });
 });

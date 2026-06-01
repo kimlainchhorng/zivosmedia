@@ -316,7 +316,7 @@ serve(withSecurity("create-flight-checkout", async (req, ctx) => {
     ];
 
     // Get the base URL for redirects
-    const origin_url = req.headers.get("origin") || "https://hizivo.com";
+    const origin_url = req.headers.get("origin") || "https://zivollc.com";
 
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({

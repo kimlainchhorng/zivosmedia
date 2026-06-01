@@ -11,7 +11,7 @@ const sections = [
   {
     icon: Mail,
     title: "2. Methods of Delivery",
-    content: "Electronic communications may be delivered via: (a) email to the address associated with your account; (b) push notifications on your mobile device; (c) in-app messages and notifications; (d) SMS/text messages to your registered phone number (standard rates may apply); (e) posting on your ZIVO account dashboard; (f) posting on our website at hizivo.com; or (g) through secure document portals. Communications sent electronically are deemed delivered when sent, posted, or made available, REGARDLESS of whether you have read them. You bear the risk of not reading communications."
+    content: "Electronic communications may be delivered via: (a) email to the address associated with your account; (b) push notifications on your mobile device; (c) in-app messages and notifications; (d) SMS/text messages to your registered phone number (standard rates may apply); (e) posting on your ZIVO account dashboard; (f) posting on our website at zivollc.com; or (g) through secure document portals. Communications sent electronically are deemed delivered when sent, posted, or made available, REGARDLESS of whether you have read them. You bear the risk of not reading communications."
   },
   {
     icon: Monitor,

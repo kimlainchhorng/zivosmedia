@@ -44,6 +44,7 @@ import {
 } from "@/components/loyalty";
 import { POINTS_COMPLIANCE, type ZivoTier } from "@/config/zivoPoints";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 export default function LoyaltyPage() {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ export default function LoyaltyPage() {
 
   // Redirect if not authenticated
   if (!authLoading && !user) {
-    return <Navigate to="/login?redirect=/account/loyalty" replace />;
+    return <Navigate to={withRedirectParam("/login", "/account/loyalty")} replace />;
   }
 
   const isLoading = authLoading || pointsLoading;
@@ -79,7 +80,7 @@ export default function LoyaltyPage() {
       <SEOHead
         title="ZIVO Points | Earn & Redeem Rewards"
         description="Track your ZIVO Points balance, view earning history, and redeem rewards."
-        canonical="https://hizivo.com/account/loyalty"
+        canonical="https://zivollc.com/account/loyalty"
       />
 
       {/* Sticky app header */}

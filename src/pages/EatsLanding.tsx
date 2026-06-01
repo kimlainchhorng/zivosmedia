@@ -44,6 +44,7 @@ import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { zivoRouteUrl } from "@/lib/maps/openInZivoMap";
+import { withRedirectParam } from "@/lib/authRedirect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -554,7 +555,7 @@ export default function EatsLanding() {
 
   // ─── Place Order ─────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
-    if (!user) { toast.error("Please sign in to place an order"); navigate("/login?redirect=/eats"); return; }
+    if (!user) { toast.error("Please sign in to place an order"); navigate(withRedirectParam("/login", "/eats")); return; }
     if (orderMode === "delivery" && !deliveryAddress.trim()) { toast.error("Please enter a delivery address"); return; }
     if (cart.length === 0) { toast.error("Your cart is empty"); return; }
     if (scheduleMode === "later") {

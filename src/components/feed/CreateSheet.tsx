@@ -39,6 +39,7 @@ import {
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 type StudioMode = "create" | "grow" | "manage";
 
@@ -150,7 +151,7 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
   const go = (path: string, requiresAuth?: boolean) => {
     onOpenChange(false);
     if (requiresAuth && !user) {
-      navigate(`/login?redirect=${encodeURIComponent(path)}`);
+      navigate(withRedirectParam("/login", path));
       return;
     }
     navigate(path);
@@ -373,7 +374,10 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
               </p>
               <button
                 type="button"
-                onClick={() => go(`/login?redirect=${encodeURIComponent(authRedirectPath || "/feed")}`, false)}
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate(withRedirectParam("/login", authRedirectPath || "/feed"));
+                }}
                 className="zivo-chat-chip-active mt-3 inline-flex h-10 items-center justify-center px-5 text-[13px] font-black active:opacity-80"
               >
                 Sign in

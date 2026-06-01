@@ -12,9 +12,9 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 export type ServiceType = "flights" | "hotels" | "cars";
 
 const serviceColors = {
-  flights: "text-sky-500",
-  hotels: "text-amber-500",
-  cars: "text-violet-500",
+  flights: "text-flights",
+  hotels: "text-hotels",
+  cars: "text-cars",
 };
 
 interface PriceDisplayProps {

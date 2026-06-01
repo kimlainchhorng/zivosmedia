@@ -27,6 +27,12 @@ function requireContains(id, text, needle, relativePath) {
   }
 }
 
+function requireNotContains(id, text, needle, relativePath) {
+  if (text.includes(needle)) {
+    failures.push(`${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`);
+  }
+}
+
 function requireMatch(id, text, pattern, relativePath) {
   if (!pattern.test(text)) {
     failures.push(`${id}: ${relativePath} missing pattern ${pattern}`);
@@ -57,10 +63,21 @@ const contracts = [
     category: "analytics",
     check() {
       const analyticsPath = "src/lib/analytics.ts";
+      const ingestionPath = "src/lib/analyticsIngestion.ts";
       const trackerPath = "supabase/functions/analytics-event-track/index.ts";
+      const adsTrackPath = "supabase/functions/ads-studio-track/index.ts";
       const analytics = source(analyticsPath);
+      const ingestion = source(ingestionPath);
+      const adsTrack = source(adsTrackPath);
       for (const needle of [
-        "analytics-event-track",
+        'ANALYTICS_EVENT_FUNCTION = "ads-studio-track"',
+        'LEGACY_ANALYTICS_EVENT_FUNCTION = "analytics-event-track"',
+        "supabase.functions.invoke(ANALYTICS_EVENT_FUNCTION",
+      ]) {
+        requireContains(this.id, ingestion, needle, ingestionPath);
+      }
+      for (const needle of [
+        "invokeAnalyticsEvent",
         "event_id",
         "zivo:analytics_queue",
         "MAX_QUEUE = 200",
@@ -80,6 +97,13 @@ const contracts = [
       ]) {
         requireContains(this.id, source(trackerPath), needle, trackerPath);
       }
+      for (const needle of [
+        "handleAnalyticsEvent",
+        'from("analytics_events")',
+        "MAX_META_JSON",
+      ]) {
+        requireContains(this.id, adsTrack, needle, adsTrackPath);
+      }
     },
   },
   {
@@ -95,6 +119,10 @@ const contracts = [
 
       for (const needle of [
         "captureGclidFromUrl",
+        "isMarketingConsentGranted",
+        "marketing_consent_required",
+        "missing_google_click_id",
+        'ad_user_data_consent: "GRANTED"',
         "zivo_gclid",
         'supabase.functions.invoke("google-ads-conversion"',
         "conversion_action_id",
@@ -112,6 +140,8 @@ const contracts = [
         "uploadClickConversions",
         "conversionAction",
         "partialFailure: true",
+        "ad_user_data_consent",
+        "adUserData",
         "conversion_events",
         'source: "google_ads"',
       ]) {
@@ -205,6 +235,100 @@ const contracts = [
       requireContains(this.id, conversionHandler, "meta", handlerPath);
       requireContains(this.id, metaAdmin, "Meta Ads", adminPath);
       requireContains(this.id, metaAdmin, "ad_campaigns", adminPath);
+    },
+  },
+  {
+    id: "meta-app-install-store-attribution",
+    category: "provider",
+    check() {
+      const deepLinksPath = "src/lib/deepLinks.ts";
+      const metaBrowserPath = "src/lib/metaAdsTracking.ts";
+      const installPagePath = "src/pages/Install.tsx";
+      const installCardPath = "src/components/account/InstallAppCard.tsx";
+      const downloadSectionPath = "src/components/home/DownloadAppSection.tsx";
+      const inAppInterstitialPath = "src/components/shared/InAppBrowserInterstitial.tsx";
+      const mobileBannerPath = "src/components/shared/MobileAppBanner.tsx";
+      const aboutPath = "src/pages/About.tsx";
+      const publicProfilePath = "src/pages/user/PublicUserProfilePage.tsx";
+      const deepLinkLandingPath = "src/pages/DeepLinkLandingPage.tsx";
+      const shareProfileRedirectPath = "src/pages/ShareProfileRedirect.tsx";
+      const docsPath = "docs/meta-facebook-ads-launch.md";
+      const htmlPath = "index.html";
+      const seoHeadPath = "src/components/SEOHead.tsx";
+      const envPath = ".env.example";
+      const vitePath = "vite.config.ts";
+      const deepLinks = source(deepLinksPath);
+      const metaBrowser = source(metaBrowserPath);
+      const installPage = source(installPagePath);
+      const installCard = source(installCardPath);
+      const downloadSection = source(downloadSectionPath);
+      const inAppInterstitial = source(inAppInterstitialPath);
+      const mobileBanner = source(mobileBannerPath);
+      const about = source(aboutPath);
+      const publicProfile = source(publicProfilePath);
+      const deepLinkLanding = source(deepLinkLandingPath);
+      const shareProfileRedirect = source(shareProfileRedirectPath);
+      const docs = source(docsPath);
+      const html = source(htmlPath);
+      const seoHead = source(seoHeadPath);
+      const env = source(envPath);
+      const vite = source(vitePath);
+
+      for (const needle of [
+        "buildStoreUrlWithAttribution",
+        "getInstallAttributionParams",
+        'utm_source") || (hasFacebookClick ? "facebook"',
+        'utm_medium") || (sourceIsFacebook ? "paid_social"',
+        'url.searchParams.set("referrer"',
+        'url.searchParams.set("ct"',
+      ]) {
+        requireContains(this.id, deepLinks, needle, deepLinksPath);
+      }
+
+      for (const needle of [
+        "trackMetaAppInstallClick",
+        "app_install_store_click",
+        "ZIVO App Install Click",
+        'content_category: "app_install"',
+        "meta_event_id",
+        'trackMetaPixelEvent("Lead"',
+        "getInstallAttributionParams",
+      ]) {
+        requireContains(this.id, metaBrowser, needle, metaBrowserPath);
+      }
+
+      for (const [relativePath, text] of [
+        [installPagePath, installPage],
+        [installCardPath, installCard],
+        [downloadSectionPath, downloadSection],
+        [inAppInterstitialPath, inAppInterstitial],
+        [mobileBannerPath, mobileBanner],
+        [aboutPath, about],
+        [publicProfilePath, publicProfile],
+        [deepLinkLandingPath, deepLinkLanding],
+        [shareProfileRedirectPath, shareProfileRedirect],
+      ]) {
+        requireContains(this.id, text, "getAttributedStoreUrls", relativePath);
+        requireContains(this.id, text, "trackMetaAppInstallClick", relativePath);
+      }
+
+      requireContains(this.id, html, 'meta name="facebook-domain-verification"', htmlPath);
+      requireContains(this.id, html, 'meta property="al:ios:app_store_id" content="6759480121"', htmlPath);
+      requireContains(this.id, html, 'meta property="al:android:package" content="com.hizovo.app"', htmlPath);
+      requireContains(this.id, seoHead, "VITE_META_APP_ID", seoHeadPath);
+      requireContains(this.id, seoHead, "setMeta('property', 'al:ios:url'", seoHeadPath);
+      requireNotContains(this.id, seoHead, "setMeta('name', 'al:ios:url'", seoHeadPath);
+      requireContains(this.id, env, "VITE_META_DOMAIN_VERIFICATION", envPath);
+      requireContains(this.id, env, "VITE_META_APP_ID", envPath);
+      requireContains(this.id, vite, "metaDomainVerificationPlugin", vitePath);
+      requireContains(this.id, vite, "loadEnv(mode", vitePath);
+      requireContains(this.id, docs, "https://zivollc.com/install?utm_source=facebook", docsPath);
+      requireContains(this.id, docs, "Google Play receives a `referrer` payload", docsPath);
+      requireContains(this.id, docs, "App Store links receive `ct`", docsPath);
+      requireContains(this.id, docs, "app_install_store_click", docsPath);
+      requireContains(this.id, docs, "Meta `Lead`", docsPath);
+      requireContains(this.id, docs, "Facebook Sharing Debugger shows App Links", docsPath);
+      requireContains(this.id, docs, "Meta Business Settings shows `zivollc.com` as verified", docsPath);
     },
   },
   {

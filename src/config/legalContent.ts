@@ -10,7 +10,7 @@ export const COMPANY_INFO = {
   email: "info@hizivo.com",
   supportEmail: "support@hizivo.com",
   billingEmail: "payment@hizivo.com",
-  website: "https://hizivo.com",
+  website: "https://zivollc.com",
   stateOfFormation: "Delaware",
   governingLaw: "State of Delaware",
   lastUpdated: "March 13, 2026",

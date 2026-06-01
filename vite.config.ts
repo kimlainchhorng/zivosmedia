@@ -1,12 +1,26 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import os from "os";
 import { rmSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import { createRequire } from "module";
 const _require = createRequire(import.meta.url);
 const pkg = _require("./package.json") as { version: string };
+
+const metaDomainVerificationPlugin = (mode: string) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const token = env.VITE_META_DOMAIN_VERIFICATION?.trim() || "";
+
+  return {
+    name: "zivo-meta-domain-verification-html",
+    enforce: "pre" as const,
+    transformIndexHtml(html: string) {
+      return html.replace(/__META_DOMAIN_VERIFICATION__/g, token);
+    },
+  };
+};
 
 const manualChunkGroups = {
   "vendor-react": ["react", "react-dom", "react-router-dom"],
@@ -79,8 +93,19 @@ const pwaPrecacheGlobIgnores = [
   "**/destinations/**",
 ];
 
+// Keep Vite's dep-optimizer cache OUTSIDE the project tree. When the repo lives
+// in a OneDrive-synced folder (e.g. ~/OneDrive/Documents), OneDrive locks files
+// in node_modules/.vite/deps while syncing, so the optimizer's atomic
+// `deps -> deps_temp` rename fails with `EPERM: operation not permitted` on
+// every re-optimize. That breaks lazy routes ("Failed to fetch dynamically
+// imported module") whenever a new dependency (e.g. a new lucide icon) is
+// pulled in. A per-user temp dir is never OneDrive-synced, so the rename
+// succeeds. CI/non-OneDrive machines are unaffected (temp is always writable).
+const VITE_CACHE_DIR = path.join(os.tmpdir(), "zivo-vite-cache");
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  cacheDir: VITE_CACHE_DIR,
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
   },
@@ -123,6 +148,7 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'production' ? false : 'hidden',
   },
   plugins: [
+    metaDomainVerificationPlugin(mode),
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
@@ -158,16 +184,16 @@ export default defineConfig(({ mode }) => ({
       },
       includeAssets: ["favicon.ico", "robots.txt", "pwa-icons/*.png"],
       manifest: {
-        name: "ZIVO",
+        name: "ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators",
         short_name: "ZIVO",
         theme_color: "#0D0D0F",
-        description: "One app for every journey. Flights, hotels, cars, rides, and food delivery - all in one place.",
+        description: "All-in-one free app: book flights, hotels and cars, order rides and food, share reels, follow creators, open a shop, post or apply for jobs, chat and call.",
         background_color: "#000000",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
         start_url: "/?source=pwa",
-        id: "com.zivo.app",
+        id: "/?source=pwa",
         icons: [
           {
             src: "/pwa-icons/icon-192x192.png",
@@ -194,7 +220,7 @@ export default defineConfig(({ mode }) => ({
             purpose: "maskable"
           }
         ],
-        categories: ["travel", "lifestyle", "shopping"],
+        categories: ["travel", "social", "lifestyle", "business", "shopping"],
         shortcuts: [
           {
             name: "Search Flights",
@@ -213,8 +239,33 @@ export default defineConfig(({ mode }) => ({
             short_name: "Cars",
             url: "/cars",
             icons: [{ src: "/pwa-icons/icon-192x192.png", sizes: "192x192" }]
+          },
+          {
+            name: "Reels",
+            short_name: "Reels",
+            url: "/reels",
+            icons: [{ src: "/pwa-icons/icon-192x192.png", sizes: "192x192" }]
+          },
+          {
+            name: "Jobs",
+            short_name: "Jobs",
+            url: "/jobs",
+            icons: [{ src: "/pwa-icons/icon-192x192.png", sizes: "192x192" }]
           }
-        ]
+        ],
+        related_applications: [
+          {
+            platform: "itunes",
+            url: "https://apps.apple.com/us/app/zivos/id6759480121",
+            id: "6759480121"
+          },
+          {
+            platform: "play",
+            url: "https://play.google.com/store/apps/details?id=com.hizovo.app",
+            id: "com.hizovo.app"
+          }
+        ],
+        prefer_related_applications: false
       },
       workbox: {
         globPatterns: pwaPrecacheGlobPatterns,

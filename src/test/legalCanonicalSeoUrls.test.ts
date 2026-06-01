@@ -12,25 +12,25 @@ describe("legal canonical SEO URLs", () => {
     const refunds = read("src/pages/Refunds.tsx");
     const cookies = read("src/pages/legal/CookiePolicy.tsx");
 
-    expect(terms).toContain('canonical="https://hizivo.com/legal/terms"');
-    expect(privacy).toContain('canonical="https://hizivo.com/legal/privacy"');
-    expect(refunds).toContain('canonical="https://hizivo.com/legal/refunds"');
-    expect(cookies).toContain('canonical="https://hizivo.com/legal/cookies"');
+    expect(terms).toContain('canonical="https://zivollc.com/legal/terms"');
+    expect(privacy).toContain('canonical="https://zivollc.com/legal/privacy"');
+    expect(refunds).toContain('canonical="https://zivollc.com/legal/refunds"');
+    expect(cookies).toContain('canonical="https://zivollc.com/legal/cookies"');
 
     for (const source of [terms, privacy, refunds, cookies]) {
-      expect(source).not.toContain("https://hizivo.com/terms");
-      expect(source).not.toContain("https://hizivo.com/privacy");
-      expect(source).not.toContain("https://hizivo.com/refunds");
-      expect(source).not.toContain("https://hizivo.com/cookies");
+      expect(source).not.toContain("https://zivollc.com/terms");
+      expect(source).not.toContain("https://zivollc.com/privacy");
+      expect(source).not.toContain("https://zivollc.com/refunds");
+      expect(source).not.toContain("https://zivollc.com/cookies");
     }
   });
 
-  it("keeps marketing share URLs on hizivo.com and legal links canonical", () => {
+  it("keeps marketing share URLs on zivollc.com and legal links canonical", () => {
     const storeMarketing = read("src/components/admin/StoreMarketingSection.tsx");
     const damagePolicy = read("src/pages/legal/DamagePolicy.tsx");
 
-    expect(storeMarketing).toContain("https://hizivo.com/store/");
-    expect(storeMarketing).toContain("https://hizivo.com/book/");
+    expect(storeMarketing).toContain("https://zivollc.com/store/");
+    expect(storeMarketing).toContain("https://zivollc.com/book/");
     expect(storeMarketing).not.toContain("https://www.zivollc.com");
     expect(damagePolicy).toContain('to="/legal/cancellation"');
     expect(damagePolicy).not.toContain('to="/cancellation-policy"');

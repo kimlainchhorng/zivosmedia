@@ -46,7 +46,7 @@ serve(withSecurity("notification-manage", async (req, ctx) => {
     const { error } = await admin
       .from("notifications")
       .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq("user_id", user.id)
+      .or(userOwnershipFilter(user.id))
       .eq("is_read", false);
     if (error) return fail(action, error, json);
     return json({ ok: true, action });
@@ -56,7 +56,7 @@ serve(withSecurity("notification-manage", async (req, ctx) => {
     const { error } = await admin
       .from("notifications")
       .delete()
-      .eq("user_id", user.id)
+      .or(userOwnershipFilter(user.id))
       .eq("channel", "in_app");
     if (error) return fail(action, error, json);
     return json({ ok: true, action });
@@ -69,7 +69,7 @@ serve(withSecurity("notification-manage", async (req, ctx) => {
     const { error } = await admin
       .from("notifications")
       .delete()
-      .eq("user_id", user.id)
+      .or(userOwnershipFilter(user.id))
       .in("id", ids);
     if (error) return fail(action, error, json);
     return json({ ok: true, action, count: ids.length });
@@ -81,7 +81,7 @@ serve(withSecurity("notification-manage", async (req, ctx) => {
     const { error } = await admin
       .from("notifications")
       .update({ snoozed_until: snoozedUntil })
-      .eq("user_id", user.id)
+      .or(userOwnershipFilter(user.id))
       .in("id", ids);
     if (error) return fail(action, error, json);
     return json({ ok: true, action, count: ids.length });
@@ -90,7 +90,7 @@ serve(withSecurity("notification-manage", async (req, ctx) => {
   const { error } = await admin
     .from("notifications")
     .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq("user_id", user.id)
+    .or(userOwnershipFilter(user.id))
     .in("id", ids);
   if (error) return fail(action, error, json);
   return json({ ok: true, action, count: ids.length });
@@ -111,6 +111,10 @@ function cleanDate(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const date = new Date(value.trim());
   return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+}
+
+function userOwnershipFilter(userId: string) {
+  return `user_id.eq.${userId},to_value.eq.${userId}`;
 }
 
 function fail(action: string, error: { message?: string }, json: (body: unknown, status?: number) => Response) {

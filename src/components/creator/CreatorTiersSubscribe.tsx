@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Crown, Check, Sparkles, Loader2, Gift, BadgeCheck, Settings2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { formatTierPrice, monthlyEquivalent, INTERVAL_LABEL, type BillingInterval } from "@/lib/tierFormat";
+import { withRedirectParam } from "@/lib/authRedirect";
 import SubscribeInAppSheet from "./SubscribeInAppSheet";
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
 export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnProfile }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [joining, setJoining] = useState<string | null>(null);
   const [pwywTier, setPwywTier] = useState<any | null>(null);
@@ -71,7 +73,7 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
   const handleSubscribe = async (tier: any) => {
     if (!user) {
       toast.error("Sign in to subscribe");
-      navigate("/auth");
+      navigate(withRedirectParam("/login", `${location.pathname}${location.search}${location.hash}`));
       return;
     }
     if (tier.is_custom_price) {

@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Car, Shield, MapPin, Sparkles, Package, Gift, Crown,
   Wine, ShoppingCart, Pill, Ship, FileCheck, ChevronRight,
-  Search, X, Heart, Tv, Briefcase, Store, Dumbbell, Mail, CheckCircle,
+  Search, X, Heart, Tv, Briefcase, Store, Dumbbell, Mail, CheckCircle, Bus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -85,6 +85,7 @@ const getServiceCategories = (t: (key: string) => string, isCambodia = false): S
       { label: t("services.flights"), href: "/flights", image: zivoFlightsIcon, badge: "Hot", badgeVariant: "promo", animClass: "animate-plane-fly" },
       { label: t("services.hotels"), href: "/hotels", image: zivoHotelsIcon, badge: "Book", badgeVariant: "promo", animClass: "animate-pkg-bounce" },
       { label: t("services.car_rental"), href: "/rent-car", image: zivoRentalCarIcon, badge: "Rent", badgeVariant: "promo", animClass: "animate-car-run" },
+      { label: t("services.bus"), href: "/bus", icon: Bus, badge: "New", badgeVariant: "new" },
       { label: t("services.insurance"), href: "/travel-insurance", icon: Shield, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
       { label: t("services.things_to_do"), href: "/explore", icon: MapPin, badge: "New", badgeVariant: "new" },
       { label: t("services.ai_planner"), href: "/ai-trip-planner", icon: Sparkles, badge: "AI", badgeVariant: "new" },

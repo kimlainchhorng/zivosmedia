@@ -15,6 +15,7 @@ import {
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
@@ -69,7 +70,7 @@ const MORE_ITEMS = [
   { label: "Trending", icon: TrendingUp, path: "/trending" },
   { label: "History", icon: Clock, path: "/history", authRequired: true },
   { label: "Settings", icon: Settings, path: "/settings", authRequired: true },
-];
+] as Array<{ label: string; icon: any; path: string; authRequired?: boolean }>;
 
 export default function FeedSidebar() {
   const navigate = useNavigate();
@@ -87,7 +88,7 @@ export default function FeedSidebar() {
   const [showChat, setShowChat] = useState(false);
   const goToItem = (path: string, authRequired?: boolean) => {
     if (authRequired && !user) {
-      navigate(`/login?redirect=${encodeURIComponent(path)}`);
+      navigate(withRedirectParam("/login", path));
       return;
     }
     navigate(path);
@@ -357,7 +358,7 @@ export default function FeedSidebar() {
         ))}
         {/* Chat button — opens slide panel */}
         <button type="button"
-          onClick={() => user ? setShowChat(true) : navigate(`/login?redirect=${encodeURIComponent("/chat")}`)}
+          onClick={() => user ? setShowChat(true) : navigate(withRedirectParam("/login", "/chat"))}
           className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
         >
           <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-primary">
@@ -401,7 +402,7 @@ export default function FeedSidebar() {
         {MORE_ITEMS.map((item) => (
           <button type="button"
             key={item.label}
-            onClick={() => navigate(item.path)}
+            onClick={() => goToItem(item.path, item.authRequired)}
             className="zivo-social-sheet-row flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground/80 transition-all active:scale-[0.99]"
           >
             <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-muted-foreground">

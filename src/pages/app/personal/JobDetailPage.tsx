@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useSmartBack } from "@/lib/smartBack";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -87,7 +88,7 @@ export default function JobDetailPage() {
 
   const handleApply = async () => {
     if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(`/personal/jobs/${id}`)}`);
+      navigate(withRedirectParam("/login", `/personal/jobs/${id}`));
       return;
     }
     if (!resumeFile && !cvId) {

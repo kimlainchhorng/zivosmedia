@@ -68,7 +68,7 @@ export default function SeasonalDealPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/deals/${slug}`}
+        canonical={`https://zivollc.com/deals/${slug}`}
       />
       
       <Header />

@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  COOKIE_CONSENT_STORAGE_KEY,
+  emitCookieConsentUpdated,
+} from "@/lib/privacy/cookieConsent";
 
 export interface CookiePrefs {
   necessary: true;
@@ -12,8 +16,6 @@ export interface CookiePrefs {
 type WindowWithAnalyticsLoader = Window & {
   __zivoLoadAnalytics?: () => void;
 };
-
-export const COOKIE_CONSENT_STORAGE_KEY = "zivo_cookie_consent";
 
 const defaults: CookiePrefs = {
   necessary: true,
@@ -57,6 +59,7 @@ export function useCookiePrefs() {
         if (next.analytics || next.marketing) {
           (window as WindowWithAnalyticsLoader).__zivoLoadAnalytics?.();
         }
+        emitCookieConsentUpdated(next);
       } catch {
         // ignore quota errors
       }
@@ -77,6 +80,7 @@ export function useCookiePrefs() {
       try {
         window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(next));
         (window as WindowWithAnalyticsLoader).__zivoLoadAnalytics?.();
+        emitCookieConsentUpdated(next);
       } catch {
         // ignore quota errors
       }
@@ -96,6 +100,7 @@ export function useCookiePrefs() {
       };
       try {
         window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(next));
+        emitCookieConsentUpdated(next);
       } catch {
         // ignore quota errors
       }

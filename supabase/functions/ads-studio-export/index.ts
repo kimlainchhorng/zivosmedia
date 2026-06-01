@@ -36,7 +36,7 @@ serve(withSecurity("ads-studio-export", async (req, ctx) => {
     if (!c || (c as any).restaurants?.owner_id !== u.user.id) return j({ error: "forbidden" }, 403, corsHeaders);
 
     const store = (c as any).restaurants;
-    const finalUrl = destination_url || `https://hizivo.com/store/${store.slug || store.id}`;
+    const finalUrl = destination_url || `https://zivollc.com/store/${store.slug || store.id}`;
     const trackBase = `${SUPABASE_URL}/functions/v1/ads-studio-track?c=${creative_id}&t=click`;
     const utm = (src: string) => {
       const u = `${finalUrl}${finalUrl.includes("?") ? "&" : "?"}utm_source=${src}&utm_medium=cpc&utm_campaign=zivo_ads_studio&utm_content=${creative_id}&zv_ad=${creative_id}&zv_src=${src}`;

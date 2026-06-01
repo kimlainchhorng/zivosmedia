@@ -34,6 +34,7 @@ describe("push notifications and notification-center workflow", () => {
     const deviceIntegrity = read("supabase/functions/check-device-integrity/index.ts");
     const cors = read("supabase/functions/_shared/cors.ts");
     const pushHook = read("src/hooks/usePushNotifications.ts");
+    const vapidKey = read("src/lib/push/vapidKey.ts");
 
     expect(nativeRegister).toContain("Missing authorization header");
     expect(nativeRegister).toContain("Invalid or expired token");
@@ -50,6 +51,15 @@ describe("push notifications and notification-center workflow", () => {
     expect(webUnregister).toContain(".eq(\"user_id\", user.id)");
 
     expect(cors).toContain("x-supabase-client-platform");
+    expect(pushHook).toContain("urlBase64ToUint8Array(vapidPublicKey)");
+    expect(vapidKey).toContain("window.atob");
+    expect(vapidKey).toContain("Uint8Array");
+    expect(pushHook).toContain("getSupabaseFunctionErrorDetails");
+    expect(pushHook).toContain("register-push-token failed");
+    expect(pushHook).toContain("Could not unregister token: auth session unavailable");
+    expect(pushHook).toContain("deactivate: true");
+    expect(pushHook).not.toContain('.from("device_tokens")');
+    expect(pushHook).not.toContain(".upsert(payload");
     for (const source of [webRegister, webUnregister, deviceIntegrity]) {
       expect(source).toContain("withSecurity(");
       expect(source).toContain("const cors");

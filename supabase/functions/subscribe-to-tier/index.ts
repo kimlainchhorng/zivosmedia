@@ -93,7 +93,7 @@ serve(withSecurity("subscribe-to-tier", async (req, ctx) => {
       const intervalCfg = INTERVAL_MAP[tier.billing_interval || "month"];
       const isOneTime = intervalCfg === null;
 
-      const origin = req.headers.get("origin") || "https://hizivo.com";
+      const origin = req.headers.get("origin") || "https://zivollc.com";
 
       // Build per-tier discount via Stripe coupon (creator-set launch discount)
       const discounts: Array<{ coupon: string }> = [];

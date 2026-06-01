@@ -18,7 +18,7 @@ function allowedReturnUrl(value: unknown) {
     Deno.env.get("APP_URL") || "",
     Deno.env.get("SITE_URL") || "",
     Deno.env.get("PUBLIC_SITE_URL") || "",
-    "https://hizivo.com",
+    "https://zivollc.com",
     "https://www.zivollc.com",
   ].filter(Boolean).map((origin) => new URL(origin).origin));
   if (typeof value !== "string" || !value) return `${PREVIEW_FALLBACK}/connect/callback`;

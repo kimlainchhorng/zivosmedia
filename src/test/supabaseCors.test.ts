@@ -6,9 +6,9 @@ describe("Supabase strict CORS origin allowlist", () => {
     expect(isOriginAllowed("http://192.168.1.72:8083")).toBe(true);
     expect(isOriginAllowed("http://localhost:8083")).toBe(true);
     expect(isOriginAllowed("http://127.0.0.1:8083")).toBe(true);
-    expect(isOriginAllowed("https://myzivo.com")).toBe(true);
-    expect(isOriginAllowed("https://www.myzivo.com")).toBe(true);
-    expect(isOriginAllowed("https://app.myzivo.com")).toBe(true);
+    expect(isOriginAllowed("https://zivollc.com")).toBe(true);
+    expect(isOriginAllowed("https://www.zivollc.com")).toBe(true);
+    expect(isOriginAllowed("https://app.zivollc.com")).toBe(true);
   });
 
   it("rejects unknown public origins and non-http protocols", () => {

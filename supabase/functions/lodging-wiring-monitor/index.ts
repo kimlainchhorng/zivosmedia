@@ -86,7 +86,7 @@ Deno.serve(withSecurity("lodging-wiring-monitor", async (req, ctx) => {
       else if (!before.pass && c.pass) recoveries.push(c);
     }
 
-    const dashboardLink = "https://hizivo.com/admin/lodging/wiring-check";
+    const dashboardLink = "https://zivollc.com/admin/lodging/wiring-check";
 
     const sendAlert = async (title: string, body: string, severity: string) => {
       try {

@@ -10,6 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { safeInternalPath } from "@/lib/urlSafety";
+import { urlBase64ToUint8Array } from "@/lib/push/vapidKey";
+import { getSupabaseFunctionErrorDetails } from "@/lib/supabaseFunctionError";
+import { getSupabaseFunctionAuthHeaders } from "@/lib/supabaseFunctionAuth";
 
 export interface NotificationData {
   title: string;
@@ -188,9 +191,23 @@ export const usePushNotifications = () => {
         setState(prev => ({ ...prev, permission: "granted" }));
 
         const registration = await navigator.serviceWorker.ready;
+        const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
+        if (!vapidPublicKey) {
+          console.error("[Push] Web push registration skipped: VAPID public key is not configured");
+          setState(prev => ({ ...prev, isRegistered: false, token: null }));
+          return false;
+        }
+
+        const authHeaders = await getSupabaseFunctionAuthHeaders(session);
+        if (!authHeaders) {
+          console.error("[Push] Web push registration skipped: auth session unavailable");
+          setState(prev => ({ ...prev, isRegistered: false, token: null }));
+          return false;
+        }
+
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY || undefined,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
 
         // Send subscription to server
@@ -204,10 +221,15 @@ export const usePushNotifications = () => {
                 auth: subJson.keys.auth,
               },
             },
+            headers: authHeaders,
           });
 
           if (error) {
-            console.error("[Push] Web push registration error:", error);
+            const details = await getSupabaseFunctionErrorDetails(error);
+            console.error("[Push] Web push registration error:", details.message || error);
+            await subscription.unsubscribe().catch(() => undefined);
+            setState(prev => ({ ...prev, isRegistered: false, token: null }));
+            return false;
           } else {
             setState(prev => ({ ...prev, isRegistered: true, token: subJson.endpoint }));
             if (import.meta.env.DEV) console.log("[Push] Web push subscription registered");
@@ -221,7 +243,7 @@ export const usePushNotifications = () => {
     }
 
     return false;
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     const handleRegisterRequest = () => {
@@ -260,18 +282,6 @@ export const usePushNotifications = () => {
         return;
       }
       
-      setState(prev => ({ ...prev, isRegistered: true, token }));
-
-      const now = new Date().toISOString();
-      const payload = {
-        user_id: user.id,
-        token,
-        platform,
-        is_active: true,
-        last_used_at: now,
-        updated_at: now,
-      } as const;
-
       const { error: registerError } = await supabase.functions.invoke("register-push-token", {
         body: {
           token,
@@ -284,25 +294,20 @@ export const usePushNotifications = () => {
       });
 
       if (registerError) {
-        console.error("[Push] register-push-token failed, falling back to direct upsert:", registerError);
+        const details = await getSupabaseFunctionErrorDetails(registerError);
+        const msg = `${details.message || registerError.message || ""}`.toLowerCase();
+        console.error("[Push] register-push-token failed:", details.message || registerError);
+        setState(prev => ({ ...prev, isRegistered: false, token: null }));
 
-        // Prefer typed Supabase upsert to avoid REST header/on_conflict edge cases.
-        const { error: upsertError } = await (supabase as any)
-          .from("device_tokens")
-          .upsert(payload, { onConflict: "user_id,token" });
-
-        if (upsertError) {
-          const msg = String(upsertError.message || "").toLowerCase();
-          console.error("[Push] Error saving token to server:", upsertError);
-          if ((msg.includes("jwt") || msg.includes("auth") || msg.includes("expired") || msg.includes("401")) && saveAttempt < 2) {
-            setTimeout(() => {
-              void saveToken(token, saveAttempt + 1);
-            }, 800);
-          }
-          return;
+        if ((msg.includes("jwt") || msg.includes("auth") || msg.includes("expired") || msg.includes("401")) && saveAttempt < 2) {
+          setTimeout(() => {
+            void saveToken(token, saveAttempt + 1);
+          }, 800);
         }
+        return;
       }
 
+      setState(prev => ({ ...prev, isRegistered: true, token }));
       delete tokenRetryAttemptsRef.current[token];
       pendingNativeTokenRef.current = null;
       if (import.meta.env.DEV) console.log(`[Push] ${platform} token registered successfully`);
@@ -662,17 +667,33 @@ export const usePushNotifications = () => {
     if (!user?.id || !state.token) return;
 
     try {
+      const { data: { session: storedSession } } = await supabase.auth.getSession();
+      const activeSession = session ?? storedSession;
+      if (!activeSession?.access_token) {
+        console.error("[Push] Could not unregister token: auth session unavailable");
+        return;
+      }
+
       // Mark token as inactive on server
-      await supabase.functions.invoke("register-push-token", {
-        body: { token: state.token, platform: Capacitor.getPlatform(), deactivate: true }
+      const { error } = await supabase.functions.invoke("register-push-token", {
+        body: { token: state.token, platform: Capacitor.getPlatform(), deactivate: true },
+        headers: {
+          Authorization: `Bearer ${activeSession.access_token}`,
+        },
       });
+
+      if (error) {
+        const details = await getSupabaseFunctionErrorDetails(error);
+        console.error("[Push] Error unregistering:", details.message || error);
+        return;
+      }
       
       setState(prev => ({ ...prev, isRegistered: false, token: null }));
       
     } catch (error) {
       console.error("[Push] Error unregistering:", error);
     }
-  }, [user?.id, state.token]);
+  }, [session, user?.id, state.token]);
 
   // Get delivered notifications
   const getDeliveredNotifications = useCallback(async () => {

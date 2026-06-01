@@ -21,10 +21,10 @@ export interface EmptyStateProps {
 }
 
 const toneGradient: Record<NonNullable<EmptyStateProps["tone"]>, string> = {
-  brand: "from-fuchsia-500/25 via-rose-400/15 to-amber-300/10",
+  brand: "from-muted via-muted to-muted",
   muted: "from-foreground/15 via-foreground/8 to-foreground/0",
-  success: "from-emerald-400/25 via-teal-400/15 to-sky-300/10",
-  warning: "from-amber-400/25 via-orange-400/15 to-rose-300/10",
+  success: "from-success/25 via-success/15 to-success/5",
+  warning: "from-warning/25 via-warning/15 to-warning/5",
 };
 
 /**

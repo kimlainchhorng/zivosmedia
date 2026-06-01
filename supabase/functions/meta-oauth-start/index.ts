@@ -3,6 +3,8 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
+const META_GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
+
 const META_SCOPES = [
   "pages_show_list",
   "pages_manage_metadata",
@@ -91,7 +93,7 @@ Deno.serve(withSecurity("meta-oauth-start", async (req, ctx) => {
     if (insertErr) throw insertErr;
 
     const redirectUri = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/oauth-callback`;
-    const url = new URL("https://www.facebook.com/v21.0/dialog/oauth");
+    const url = new URL(`https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth`);
     url.searchParams.set("client_id", appId);
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("state", state);

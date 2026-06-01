@@ -53,6 +53,7 @@ export default function CommentsSheet({
   const [isPostAuthor, setIsPostAuthor] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastReportedCountRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!currentUserId || !postId) { setIsPostAuthor(false); return; }
@@ -107,7 +108,13 @@ export default function CommentsSheet({
   const inputBg = dark ? "bg-white/10 text-white placeholder:text-white/40 border border-white/15" : "zivo-social-sheet-input text-foreground placeholder:text-muted-foreground";
 
   useEffect(() => {
-    if (open && !loading) onCommentsCountChange?.(totalComments);
+    if (!open) {
+      lastReportedCountRef.current = null;
+      return;
+    }
+    if (loading || lastReportedCountRef.current === totalComments) return;
+    lastReportedCountRef.current = totalComments;
+    onCommentsCountChange?.(totalComments);
   }, [open, loading, totalComments, onCommentsCountChange]);
 
   const visibleCommentCount = loading ? commentsCount : totalComments;
@@ -157,7 +164,7 @@ export default function CommentsSheet({
       maxHeightVh={compactSheet ? 62 : 72}
       zIndex={1600}
       safeAreaTop={false}
-      className={cn(!compactSheet && "h-[72dvh]", dark && "!bg-black/95 text-white")}
+      className={cn(!compactSheet && "h-[72dvh]", dark && "zivo-social-sheet-panel-dark text-white")}
       headerClassName={cn(
         "m-2 rounded-[1.25rem]",
         dark ? "border border-white/10 bg-white/[0.06]" : "zivo-social-header-glass border-transparent",
@@ -249,7 +256,7 @@ export default function CommentsSheet({
           {loading ? (
             <CommentRowsSkeleton rows={compactSheet ? Math.max(1, visibleCommentCount) : 4} />
           ) : comments.length === 0 ? (
-            <div className={cn("zivo-social-module mx-1 flex flex-col items-center rounded-[1.25rem] px-6 py-12 text-center", dark && "bg-white/5 border-white/10")}>
+            <div className={cn("zivo-social-module zivo-social-comment-empty mx-1 flex flex-col items-center rounded-[1.25rem] px-6 py-12 text-center", dark && "border-white/10")}>
               <span className={cn("mb-3 flex h-12 w-12 items-center justify-center rounded-2xl", dark ? "bg-white/10" : "zivo-social-share-orb")}>
                 <MessageCircle className={cn("h-5 w-5", dark ? "text-white" : "text-primary")} />
               </span>
@@ -332,7 +339,7 @@ export default function CommentsSheet({
             className="px-3 py-3"
             style={{ paddingBottom: "max(calc(var(--zivo-safe-bottom,0px) + 0.75rem), 0.75rem)" }}
           >
-            <div className={cn("mb-2 flex items-center justify-between gap-2 rounded-2xl px-3 py-2", dark ? "bg-white/[0.06] border border-white/10" : "zivo-social-share-preview")}>
+            <div className={cn("zivo-social-comment-mode mb-2 flex items-center justify-between gap-2 rounded-2xl px-3 py-2", dark ? "border border-white/10" : "zivo-social-share-preview")}>
               <span className={cn("flex min-w-0 items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em]", dark ? "text-white/65" : "text-primary")}>
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span className="truncate">{composerMode}</span>
@@ -342,7 +349,7 @@ export default function CommentsSheet({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className={cn("flex min-h-[44px] flex-1 items-center gap-2 rounded-full px-3", inputBg)}>
+              <div className={cn("zivo-social-comment-input flex min-h-[44px] flex-1 items-center gap-2 rounded-full px-3", inputBg)}>
                 <Smile className={cn("h-4 w-4 shrink-0", mutedText)} />
                 <input
                   ref={inputRef}

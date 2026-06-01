@@ -62,12 +62,12 @@ export default function CityLandingPage() {
   // SEO metadata
   const title = `${city} Travel Guide ${dynamicYear} | Flights & Hotels | ZIVO`;
   const description = `Book the best flights and hotels in ${city}. Compare prices from 500+ airlines and top hotel suppliers. Secure booking with ZIVO.`;
-  const canonicalUrl = `https://hizivo.com/city/${citySlug}`;
+  const canonicalUrl = `https://zivollc.com/city/${citySlug}`;
 
   // Breadcrumb items
   const breadcrumbItems = [
-    { name: "Home", url: "https://hizivo.com" },
-    { name: "Destinations", url: "https://hizivo.com/hotels" },
+    { name: "Home", url: "https://zivollc.com" },
+    { name: "Destinations", url: "https://zivollc.com/hotels" },
     { name: city, url: canonicalUrl },
   ];
 

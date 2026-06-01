@@ -106,7 +106,7 @@ export default function Deals() {
       <SEOHead
         title="Deals & Flash Sales – ZIVO"
         description="Discover limited-time travel deals on flights, hotels, and car rentals. Flash sales with up to 50% off."
-        canonical="https://hizivo.com/deals"
+        canonical="https://zivollc.com/deals"
       />
       <Header />
 

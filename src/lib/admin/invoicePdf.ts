@@ -15,6 +15,8 @@ export type PdfDoc = {
   address?: string;
   vehicle?: string;
   vin?: string;
+  licensePlate?: string;
+  plateState?: string;
   items: Array<{
     category: string;
     description: string;
@@ -85,8 +87,13 @@ export function generateDocumentPdf(opts: {
   pdf.setFontSize(9);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(80);
+  const plateText = doc.licensePlate
+    ? `Plate: ${doc.licensePlate}${doc.plateState ? ` (${doc.plateState})` : ""}`
+    : "";
+  let vy = y; // VEHICLE column advances independently of the BILL TO column
   if (doc.phone) { pdf.text(doc.phone, margin, y); }
-  if (doc.vin) { pdf.text(`VIN: ${doc.vin}`, pageWidth / 2, y); }
+  if (doc.vin) { pdf.text(`VIN: ${doc.vin}`, pageWidth / 2, vy); vy += 12; }
+  if (plateText) { pdf.text(plateText, pageWidth / 2, vy); vy += 12; }
   y += 12;
   if (doc.email) { pdf.text(doc.email, margin, y); y += 12; }
   if (doc.address) {

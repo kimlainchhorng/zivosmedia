@@ -122,7 +122,7 @@ export default function ExternalLinkWarning({ url, open, onOpenChange, onConfirm
           )}
 
           <div className="text-xs text-muted-foreground">
-            Tip: never enter your ZIVO password, OTP, or wallet PIN on a site that isn't <span className="font-semibold">hizivo.com</span>.
+            Tip: never enter your ZIVO password, OTP, or wallet PIN on a site that isn't <span className="font-semibold">zivollc.com</span>.
           </div>
         </div>
 

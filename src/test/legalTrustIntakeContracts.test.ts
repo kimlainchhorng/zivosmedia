@@ -92,7 +92,7 @@ describe("legal trust intake contracts", () => {
 
     expect(securityGate).toContain("trusted server-side ingestion");
     expect(securityGate).toContain("security-report-submit");
-    expect(vdpPage).toContain('canonical" href="https://hizivo.com/legal/vdp"');
+    expect(vdpPage).toContain('canonical" href="https://zivollc.com/legal/vdp"');
     expect(securityPolicy).toContain("security@hizivo.com");
     expect(securityPolicy).toContain("/legal/vdp");
   });

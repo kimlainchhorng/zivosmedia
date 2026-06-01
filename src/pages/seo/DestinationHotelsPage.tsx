@@ -130,7 +130,7 @@ export default function DestinationHotelsPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/hotels/${citySlug}`}
+        canonical={`https://zivollc.com/hotels/${citySlug}`}
       />
       <OrganizationSchema />
       <BreadcrumbSchema items={breadcrumbs} />

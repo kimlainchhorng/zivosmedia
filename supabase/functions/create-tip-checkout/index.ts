@@ -107,7 +107,7 @@ Deno.serve(withSecurity("create-tip-checkout", async (req, ctx) => {
       }
     }
 
-    const origin = req.headers.get("origin") || "https://hizivo.com";
+    const origin = req.headers.get("origin") || "https://zivollc.com";
 
     // Create Checkout Session for one-time tip
     const session = await stripe.checkout.sessions.create({

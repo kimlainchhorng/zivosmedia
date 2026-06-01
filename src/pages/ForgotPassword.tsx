@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
 import { checkRateLimit, formatLockout } from "@/lib/security/rateLimiter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,11 +24,11 @@ type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
 const ForgotPassword = () => {
   const [params] = useSearchParams();
   const initialEmail = params.get("email") || "";
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [sentEmail, setSentEmail] = useState("");
-  const loginHref = `/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`;
+  const loginHref = withRedirectParam("/login", redirect);
 
   const form = useForm<ForgotPasswordForm>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -57,8 +58,9 @@ const ForgotPassword = () => {
     }
 
     try {
+      const resetRedirectPath = withRedirectParam("/reset-password", redirect);
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/reset-password${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`,
+        redirectTo: `${window.location.origin}${resetRedirectPath}`,
       });
 
       if (error) throw error;
@@ -208,7 +210,7 @@ const ForgotPassword = () => {
               </div>
 
               <Link
-                to={`/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+                to={withRedirectParam("/signup", redirect)}
                 className="block text-center text-sm font-semibold text-rose-500 hover:text-rose-600"
               >
                 Create new account

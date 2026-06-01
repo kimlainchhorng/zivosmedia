@@ -110,6 +110,9 @@ import { useChatHubRealtimeInvalidation } from "./chat/useChatHubRealtimeInvalid
 import { useMarkOpenPersonalChatRead } from "./chat/useMarkOpenPersonalChatRead";
 import { useLastOpenChatPersistence } from "./chat/useLastOpenChatPersistence";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
+import { leaveGroup } from "@/lib/chat/groupManage";
+import { getAppSurfaceSeo } from "@/lib/appSurfaceSeo";
 
 // Lazy-load heavy sub-pages/components
 const GroupChat = lazy(() => import("@/components/chat/GroupChat"));
@@ -999,11 +1002,12 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         return;
       }
 
-      await supabase.from("direct_messages").insert({
+      const { error: sendError } = await sendDirectMessage({
         sender_id: user.id,
         receiver_id: contactId,
         message: shareMessage,
       });
+      if (sendError) throw sendError;
       toast.success(`Shared to ${contactName}`);
       setSharePayload(null);
       queryClient.invalidateQueries({ queryKey: ["chat-hub-personal"] });
@@ -2076,11 +2080,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     try {
       if (category === "personal") {
         if (isGroup) {
-          await (supabase as any)
-            .from("chat_group_members")
-            .delete()
-            .eq("group_id", chatId)
-            .eq("user_id", user!.id);
+          await leaveGroup({ group_id: chatId });
           if (openGroupChat?.id === chatId) setOpenGroupChat(null);
           queryClient.invalidateQueries({ queryKey: ["chat-hub-groups", user!.id] });
         } else {
@@ -2344,13 +2344,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               .or(`and(sender_id.eq.${user.id},receiver_id.eq.${chatId}),and(sender_id.eq.${chatId},receiver_id.eq.${user.id})`)
           ),
           ...(groupIds.length
-            ? [
-                (supabase as any)
-                  .from("chat_group_members")
-                  .delete()
-                  .eq("user_id", user.id)
-                  .in("group_id", groupIds),
-              ]
+            ? groupIds.map((groupId: string) => leaveGroup({ group_id: groupId }))
             : []),
           (supabase as any)
             .from("chat_folder_members")
@@ -5288,6 +5282,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     return <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">{shell}</div>;
   }
 
+  const chatSeo = getAppSurfaceSeo("chat");
+
   return (
     <div>
       <PullToRefresh
@@ -5296,9 +5292,12 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         className="zivo-shell-mobile bg-background overscroll-none"
       >
         <SEOHead
-          title="Messages – ZIVO | Chat with Friends & Businesses"
-          description="Send messages, share photos, video call, and chat with friends and businesses on ZIVO."
-          canonical="/chat"
+          title="ZIVO Chat - Messages, Calls & Business Inbox"
+          description="Message friends, share media, save notes, video call, and manage business conversations from one ZIVO inbox."
+          canonical={chatSeo.canonical}
+          appLink={chatSeo.appLink}
+          structuredData={chatSeo.structuredData}
+          keywords={["ZIVO chat", "business inbox", "video calls", "secure messaging"]}
           noIndex
         />
         {shell}

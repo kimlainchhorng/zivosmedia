@@ -14,6 +14,8 @@ import {
 import { toast } from "sonner";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { AD_SLOTS } from "@/config/adSlots";
 
 /* ─── Content generation based on slug keywords ─── */
 const TOPIC_CONTENT: Record<string, { sections: { heading: string; body: string }[]; tips: string[]; stats: string[] }> = {
@@ -214,6 +216,9 @@ export default function MonetizationArticleDetailPage() {
             </motion.div>
           ))}
         </div>
+
+        {/* Sponsored (Google AdSense) — in-content ad; renders nothing until AD_SLOTS.articleInline + publisher id are set */}
+        <AdSenseUnit slot={AD_SLOTS.articleInline} />
 
         {/* Pro Tips */}
         <div className="rounded-xl bg-primary/5 border border-primary/10 p-4 space-y-3">

@@ -18,6 +18,7 @@ describe("ads, monetization, and conversion tracking workflow", () => {
       "google-ads-click-conversion-upload",
       "provider-campaign-create-post-gates",
       "meta-server-side-conversion-bridge",
+      "meta-app-install-store-attribution",
       "ads-studio-attribution-and-roas",
       "creator-monetization-and-affiliate-tracking",
       "provider-scale-up-roadmap",
@@ -32,13 +33,18 @@ describe("ads, monetization, and conversion tracking workflow", () => {
 
   it("keeps browser analytics deduped, queued, and written to the shared analytics table", () => {
     const analytics = read("src/lib/analytics.ts");
+    const analyticsIngestion = read("src/lib/analyticsIngestion.ts");
     const eventTracking = read("src/hooks/useEventTracking.ts");
     const affiliateTracking = read("src/lib/affiliateTracking.ts");
     const errorReporting = read("src/lib/security/errorReporting.ts");
     const analyticsGate = read("supabase/migrations/20260601010000_analytics_events_server_gate.sql");
     const analyticsFn = read("supabase/functions/analytics-event-track/index.ts");
+    const adsStudioTrack = read("supabase/functions/ads-studio-track/index.ts");
 
-    expect(analytics).toContain('functions.invoke("analytics-event-track"');
+    expect(analyticsIngestion).toContain('ANALYTICS_EVENT_FUNCTION = "ads-studio-track"');
+    expect(analyticsIngestion).toContain('LEGACY_ANALYTICS_EVENT_FUNCTION = "analytics-event-track"');
+    expect(analyticsIngestion).toContain("supabase.functions.invoke(ANALYTICS_EVENT_FUNCTION");
+    expect(analytics).toContain("invokeAnalyticsEvent");
     expect(analytics).toContain("event_id");
     expect(analytics).toContain("zivo:analytics_queue");
     expect(analytics).toContain("MAX_QUEUE = 200");
@@ -47,10 +53,10 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     expect(analytics).toContain("dedupeMs");
     expect(analytics).toContain("__resetAnalyticsDedupe");
     expect(analytics).not.toMatch(/from\("analytics_events"\)[\s\S]{0,120}\.insert/);
-    expect(eventTracking).toContain("analytics-event-track");
+    expect(eventTracking).toContain("invokeAnalyticsEvent");
     expect(eventTracking).not.toMatch(/from\('analytics_events'\)[\s\S]{0,120}\.insert/);
-    expect(affiliateTracking).toContain('functions.invoke("analytics-event-track"');
-    expect(errorReporting).toContain("analytics-event-track");
+    expect(affiliateTracking).toContain("invokeAnalyticsEvent");
+    expect(errorReporting).toContain("@/lib/analyticsIngestion");
     expect(errorReporting).not.toMatch(/from\("analytics_events"\)[\s\S]{0,120}\.insert/);
     expect(analyticsGate).toContain('DROP POLICY IF EXISTS "Anyone can insert analytics events"');
     expect(analyticsGate).toContain('DROP POLICY IF EXISTS "analytics_insert_anon"');
@@ -61,6 +67,9 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     expect(analyticsFn).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(analyticsFn).toContain("MAX_META_JSON");
     expect(analyticsFn).toContain("strictCors: true");
+    expect(adsStudioTrack).toContain("handleAnalyticsEvent");
+    expect(adsStudioTrack).toContain('from("analytics_events")');
+    expect(adsStudioTrack).toContain("MAX_META_JSON");
   });
 
   it("keeps Google Ads click conversion upload connected from frontend to Edge Function to audit log", () => {
@@ -69,6 +78,10 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     const adminPage = read("src/pages/admin/AdminGoogleAdsPage.tsx");
 
     expect(client).toContain("captureGclidFromUrl");
+    expect(client).toContain("isMarketingConsentGranted");
+    expect(client).toContain("marketing_consent_required");
+    expect(client).toContain("missing_google_click_id");
+    expect(client).toContain('ad_user_data_consent: "GRANTED"');
     expect(client).toContain("zivo_gclid");
     expect(client).toContain('supabase.functions.invoke("google-ads-conversion"');
     expect(client).toContain("conversion_action_id");
@@ -83,6 +96,8 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     expect(edge).toContain("uploadClickConversions");
     expect(edge).toContain("conversionAction");
     expect(edge).toContain("partialFailure: true");
+    expect(edge).toContain("ad_user_data_consent");
+    expect(edge).toContain("adUserData");
     expect(edge).toContain("conversion_events");
     expect(edge).toContain('source: "google_ads"');
 
@@ -93,6 +108,7 @@ describe("ads, monetization, and conversion tracking workflow", () => {
   });
 
   it("keeps Meta server-side conversion events mapped to core revenue tables", () => {
+    const metaBrowser = read("src/lib/metaAdsTracking.ts");
     const capiBridge = read("supabase/functions/meta-capi-bridge/index.ts");
     const conversionBridge = read("supabase/functions/meta-conversion-bridge/index.ts");
     const conversionHandler = read("supabase/functions/meta-conversion-handler/index.ts");
@@ -121,6 +137,10 @@ describe("ads, monetization, and conversion tracking workflow", () => {
 
     expect(conversionBridge).toContain("Purchase");
     expect(conversionBridge).toContain("CompleteRegistration");
+    expect(metaBrowser).toContain("trackMetaPageView");
+    expect(metaBrowser).toContain("trackMetaCompleteRegistration");
+    expect(metaBrowser).toContain("trackMetaFromAnalyticsEvent");
+    expect(metaBrowser).toContain("isMarketingConsentGranted");
     expect(conversionHandler).toContain("meta");
     expect(conversionHandler).toContain('allowedMethods: ["POST"]');
     expect(metaAdmin).toContain("Meta Ads");
@@ -147,10 +167,83 @@ describe("ads, monetization, and conversion tracking workflow", () => {
 
     expect(googleFn).toContain('withSecurity("google-ads-create-campaign"');
     expect(metaFn).toContain('withSecurity("meta-ads-create-campaign"');
+    expect(metaFn).toContain("buildTrackedLink");
+    expect(metaFn).toContain('utm_source", "facebook"');
+    expect(metaFn).toContain('utm_medium", "paid_social"');
+    expect(metaFn).toContain("tracked_link");
     expect(googleAdmin).toContain('functions.invoke("google-ads-create-campaign"');
     expect(googleAdmin).toContain("server_publish_error");
     expect(googleAdmin).toContain('status: "pending"');
     expect(metaAdmin).toContain('functions.invoke("meta-ads-create-campaign"');
+    expect(metaAdmin).toContain("buildMetaTrackedUrl");
+    expect(metaAdmin).toContain("Tracked URL");
+  });
+
+  it("keeps Meta app install landing CTAs attributed through store clicks", () => {
+    const deepLinks = read("src/lib/deepLinks.ts");
+    const metaBrowser = read("src/lib/metaAdsTracking.ts");
+    const installPage = read("src/pages/Install.tsx");
+    const installCard = read("src/components/account/InstallAppCard.tsx");
+    const downloadSection = read("src/components/home/DownloadAppSection.tsx");
+    const inAppInterstitial = read("src/components/shared/InAppBrowserInterstitial.tsx");
+    const mobileBanner = read("src/components/shared/MobileAppBanner.tsx");
+    const aboutPage = read("src/pages/About.tsx");
+    const publicProfile = read("src/pages/user/PublicUserProfilePage.tsx");
+    const deepLinkLanding = read("src/pages/DeepLinkLandingPage.tsx");
+    const shareProfileRedirect = read("src/pages/ShareProfileRedirect.tsx");
+    const docs = read("docs/meta-facebook-ads-launch.md");
+    const html = read("index.html");
+    const seoHead = read("src/components/SEOHead.tsx");
+    const envExample = read(".env.example");
+    const viteConfig = read("vite.config.ts");
+
+    expect(deepLinks).toContain("buildStoreUrlWithAttribution");
+    expect(deepLinks).toContain("getInstallAttributionParams");
+    expect(deepLinks).toContain('utm_source") || (hasFacebookClick ? "facebook"');
+    expect(deepLinks).toContain('utm_medium") || (sourceIsFacebook ? "paid_social"');
+    expect(deepLinks).toContain('url.searchParams.set("referrer"');
+    expect(deepLinks).toContain('url.searchParams.set("ct"');
+
+    expect(metaBrowser).toContain("trackMetaAppInstallClick");
+    expect(metaBrowser).toContain("app_install_store_click");
+    expect(metaBrowser).toContain("ZIVO App Install Click");
+    expect(metaBrowser).toContain('content_category: "app_install"');
+    expect(metaBrowser).toContain("meta_event_id");
+    expect(metaBrowser).toContain('trackMetaPixelEvent("Lead"');
+    expect(metaBrowser).toContain("getInstallAttributionParams");
+
+    for (const source of [
+      installPage,
+      installCard,
+      downloadSection,
+      inAppInterstitial,
+      mobileBanner,
+      aboutPage,
+      publicProfile,
+      deepLinkLanding,
+      shareProfileRedirect,
+    ]) {
+      expect(source).toContain("getAttributedStoreUrls");
+      expect(source).toContain("trackMetaAppInstallClick");
+    }
+
+    expect(html).toContain('meta name="facebook-domain-verification"');
+    expect(html).toContain('meta property="al:ios:app_store_id" content="6759480121"');
+    expect(html).toContain('meta property="al:android:package" content="com.hizovo.app"');
+    expect(seoHead).toContain("VITE_META_APP_ID");
+    expect(seoHead).toContain("setMeta('property', 'al:ios:url'");
+    expect(seoHead).not.toContain("setMeta('name', 'al:ios:url'");
+    expect(envExample).toContain("VITE_META_DOMAIN_VERIFICATION");
+    expect(envExample).toContain("VITE_META_APP_ID");
+    expect(viteConfig).toContain("metaDomainVerificationPlugin");
+    expect(viteConfig).toContain("loadEnv(mode");
+    expect(docs).toContain("https://zivollc.com/install?utm_source=facebook");
+    expect(docs).toContain("Google Play receives a `referrer` payload");
+    expect(docs).toContain("App Store links receive `ct`");
+    expect(docs).toContain("app_install_store_click");
+    expect(docs).toContain("Meta `Lead`");
+    expect(docs).toContain("Facebook Sharing Debugger shows App Links");
+    expect(docs).toContain("Meta Business Settings shows `zivollc.com` as verified");
   });
 
   it("keeps admin ad feedback queues behind an authenticated admin Edge Function", () => {

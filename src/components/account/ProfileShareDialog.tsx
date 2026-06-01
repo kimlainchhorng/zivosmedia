@@ -139,7 +139,7 @@ export default function ProfileShareDialog({
           <div className="p-3 bg-white rounded-2xl border border-border/40 shadow-sm">
             <QRCodeSVG
               id="profile-share-qr"
-              value={url || "https://hizivo.com"}
+              value={url || "https://zivollc.com"}
               size={180}
               level="H"
               includeMargin={false}

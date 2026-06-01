@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { ANDROID_APP_PACKAGE, IOS_APP_STORE_ID } from '@/lib/deepLinks';
 
-const SITE_URL = 'https://hizivo.com';
+const SITE_URL = 'https://zivollc.com';
+const META_APP_ID = import.meta.env.VITE_META_APP_ID?.trim();
 
 interface SEOHeadProps {
   title: string;
@@ -10,6 +12,7 @@ interface SEOHeadProps {
   type?: 'website' | 'article' | 'product' | 'profile';
   noIndex?: boolean;
   ogImage?: string;
+  keywords?: string[] | string;
   /** Optional JSON-LD structured data object (or array of objects) */
   structuredData?: object | object[];
   /** Article published/modified date for article type */
@@ -26,6 +29,7 @@ export default function SEOHead({
   type = 'website',
   noIndex = false,
   ogImage = '/og-image.png',
+  keywords,
   structuredData,
   publishedTime,
   modifiedTime,
@@ -56,6 +60,14 @@ export default function SEOHead({
     document.title = title;
 
     setMeta('name', 'description', description);
+    setMeta('name', 'application-name', 'ZIVO');
+    setMeta('name', 'apple-mobile-web-app-title', 'ZIVO');
+    setMeta('name', 'theme-color', '#ffffff');
+    if (keywords) {
+      setMeta('name', 'keywords', Array.isArray(keywords) ? keywords.join(', ') : keywords);
+    } else {
+      removeMeta('name', 'keywords');
+    }
     setMeta('name', 'twitter:title', title);
     setMeta('name', 'twitter:description', description);
     setMeta('name', 'twitter:card', 'summary_large_image');
@@ -73,19 +85,29 @@ export default function SEOHead({
     setMeta('property', 'og:image:alt', title);
     setMeta('property', 'og:site_name', 'ZIVO');
     setMeta('property', 'og:locale', 'en_US');
-    setMeta('property', 'fb:app_id', '2304266847061310');
+    setMeta('property', 'al:web:url', canonicalUrl);
+    if (META_APP_ID) setMeta('property', 'fb:app_id', META_APP_ID);
 
     if (publishedTime) setMeta('property', 'article:published_time', publishedTime);
     if (modifiedTime) setMeta('property', 'article:modified_time', modifiedTime);
 
     // Apple/Android app deep link
     if (appLink) {
-      setMeta('name', 'al:ios:url', appLink);
-      setMeta('name', 'al:ios:app_store_id', '6759480121');
-      setMeta('name', 'al:ios:app_name', 'ZIVO');
-      setMeta('name', 'al:android:url', appLink);
-      setMeta('name', 'al:android:package', 'com.zivo.app');
-      setMeta('name', 'al:android:app_name', 'ZIVO');
+      setMeta('property', 'al:ios:url', appLink);
+      setMeta('property', 'al:ios:app_store_id', IOS_APP_STORE_ID);
+      setMeta('property', 'al:ios:app_name', 'ZIVO');
+      setMeta('property', 'al:android:url', appLink);
+      setMeta('property', 'al:android:package', ANDROID_APP_PACKAGE);
+      setMeta('property', 'al:android:app_name', 'ZIVO');
+      setMeta('name', 'apple-itunes-app', `app-id=${IOS_APP_STORE_ID}, app-argument=${appLink}`);
+    } else {
+      removeMeta('property', 'al:ios:url');
+      removeMeta('property', 'al:ios:app_store_id');
+      removeMeta('property', 'al:ios:app_name');
+      removeMeta('property', 'al:android:url');
+      removeMeta('property', 'al:android:package');
+      removeMeta('property', 'al:android:app_name');
+      removeMeta('name', 'apple-itunes-app');
     }
 
     // canonical link
@@ -120,7 +142,7 @@ export default function SEOHead({
       // here causes back-navigation to flash stale strings into <head>.
       document.getElementById(SCRIPT_ID)?.remove();
     };
-  }, [title, description, canonical, type, noIndex, ogImage, structuredData, publishedTime, modifiedTime, appLink, location.pathname]);
+  }, [title, description, canonical, type, noIndex, ogImage, keywords, structuredData, publishedTime, modifiedTime, appLink, location.pathname]);
 
   return null;
 }
@@ -134,4 +156,8 @@ function setMeta(attrType: 'name' | 'property', key: string, value: string) {
     document.head.appendChild(el);
   }
   el.setAttribute('content', value);
+}
+
+function removeMeta(attrType: 'name' | 'property', key: string) {
+  document.querySelector(`meta[${attrType}="${key}"]`)?.remove();
 }

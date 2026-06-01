@@ -88,7 +88,7 @@ const footer = {
 function EmployeeInviteEmail({
   email = 'employee@example.com',
   role = 'support',
-  loginUrl = 'https://hizivo.com/auth',
+  loginUrl = 'https://zivollc.com/login?redirect=%2Fpersonal-dashboard',
 }: EmployeeInviteProps) {
   return (
     <Html>
@@ -116,7 +116,7 @@ function EmployeeInviteEmail({
             This invitation was sent by ZIVO Admin. If you didn't expect this, you can ignore this email.
           </Text>
           <Text style={footer}>
-            © {new Date().getFullYear()} ZIVO · hizivo.com
+            © {new Date().getFullYear()} ZIVO · zivollc.com
           </Text>
         </Container>
       </Body>
@@ -131,6 +131,6 @@ export const template: TemplateEntry<EmployeeInviteProps> = {
   previewData: {
     email: 'newemployee@example.com',
     role: 'moderator',
-    loginUrl: 'https://hizivo.com/auth',
+    loginUrl: 'https://zivollc.com/login?redirect=%2Fpersonal-dashboard',
   },
 }

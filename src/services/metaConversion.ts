@@ -1,23 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getMetaBrowserIds,
+  trackMetaPixelEvent,
+} from "@/lib/metaAdsTracking";
+import { isMarketingConsentGranted } from "@/lib/privacy/cookieConsent";
 
 type MetaEventName = "Purchase" | "CompleteRegistration" | "InitiateCheckout";
-
-/** Read Meta browser cookies for high match quality */
-function getMetaCookies(): { fbc: string | null; fbp: string | null } {
-  try {
-    const cookies = document.cookie.split(";").reduce((acc, c) => {
-      const [k, v] = c.trim().split("=");
-      if (k) acc[k] = v || "";
-      return acc;
-    }, {} as Record<string, string>);
-    return {
-      fbc: cookies["_fbc"] || null,
-      fbp: cookies["_fbp"] || null,
-    };
-  } catch {
-    return { fbc: null, fbp: null };
-  }
-}
 
 interface MetaEventPayload {
   eventName: MetaEventName;
@@ -32,7 +20,15 @@ interface MetaEventPayload {
 }
 
 export async function sendMetaConversionEvent(input: MetaEventPayload): Promise<void> {
-  const { fbc, fbp } = getMetaCookies();
+  if (!isMarketingConsentGranted()) return;
+
+  const { fbc, fbp } = getMetaBrowserIds();
+  trackMetaPixelEvent(input.eventName, {
+    value: input.value ?? 0,
+    currency: input.currency ?? "USD",
+    ...(input.payload ?? {}),
+  }, { eventId: input.eventId });
+
   try {
     await supabase.functions.invoke("meta-conversion-handler", {
       body: {

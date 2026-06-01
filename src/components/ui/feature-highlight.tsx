@@ -38,43 +38,43 @@ const colorClasses = {
     icon: "text-primary",
     bg: "bg-primary/10",
     bullet: "bg-primary",
-    gradient: "from-primary to-teal-400",
+    gradient: "from-primary to-primary",
     glow: "shadow-primary/30",
   },
   emerald: {
-    icon: "text-emerald-500",
-    bg: "bg-emerald-500/10",
-    bullet: "bg-emerald-500",
-    gradient: "from-emerald-500 to-green-400",
-    glow: "shadow-emerald-500/30",
+    icon: "text-success",
+    bg: "bg-success/10",
+    bullet: "bg-success",
+    gradient: "from-success to-success",
+    glow: "shadow-success/30",
   },
   amber: {
-    icon: "text-amber-500",
-    bg: "bg-amber-500/10",
-    bullet: "bg-amber-500",
-    gradient: "from-amber-500 to-orange-400",
-    glow: "shadow-amber-500/30",
+    icon: "text-warning",
+    bg: "bg-warning/10",
+    bullet: "bg-warning",
+    gradient: "from-warning to-warning",
+    glow: "shadow-warning/30",
   },
   sky: {
-    icon: "text-sky-500",
-    bg: "bg-sky-500/10",
-    bullet: "bg-sky-500",
+    icon: "text-primary",
+    bg: "bg-primary/10",
+    bullet: "bg-primary",
     gradient: "from-muted to-muted",
-    glow: "shadow-sky-500/30",
+    glow: "shadow-primary/30",
   },
   eats: {
     icon: "text-eats",
     bg: "bg-eats/10",
     bullet: "bg-eats",
-    gradient: "from-eats to-orange-400",
+    gradient: "from-eats to-eats",
     glow: "shadow-eats/30",
   },
   violet: {
-    icon: "text-violet-500",
-    bg: "bg-violet-500/10",
-    bullet: "bg-violet-500",
+    icon: "text-ig-gradient",
+    bg: "bg-muted",
+    bullet: "bg-ig-gradient",
     gradient: "from-muted to-muted",
-    glow: "shadow-violet-500/30",
+    glow: "shadow-primary/30",
   },
 };
 
@@ -212,24 +212,24 @@ const variantClasses = {
     iconBg: "bg-muted",
   },
   success: {
-    border: "border-emerald-500/30",
-    bg: "bg-emerald-500/10",
-    iconBg: "bg-emerald-500/20",
+    border: "border-success/30",
+    bg: "bg-success/10",
+    iconBg: "bg-success/20",
   },
   warning: {
-    border: "border-amber-500/30",
-    bg: "bg-amber-500/10",
-    iconBg: "bg-amber-500/20",
+    border: "border-warning/30",
+    bg: "bg-warning/10",
+    iconBg: "bg-warning/20",
   },
   info: {
-    border: "border-sky-500/30",
-    bg: "bg-sky-500/10",
-    iconBg: "bg-sky-500/20",
+    border: "border-primary/30",
+    bg: "bg-primary/10",
+    iconBg: "bg-primary/20",
   },
   premium: {
-    border: "border-amber-500/30",
-    bg: "bg-gradient-to-r from-amber-500/10 to-orange-500/10",
-    iconBg: "bg-gradient-to-br from-amber-500 to-orange-500",
+    border: "border-border/50",
+    bg: "bg-muted",
+    iconBg: "bg-ig-gradient",
   },
 };
 
@@ -302,38 +302,38 @@ interface FeatureSpotlightProps {
 
 const spotlightVariants = {
   default: {
-    gradient: "from-primary/20 via-primary/10 to-teal-500/20",
-    accent: "from-primary to-teal-400",
+    gradient: "from-muted to-muted",
+    accent: "from-primary to-primary",
     icon: Sparkles,
     glow: "shadow-primary/20",
     badge: null,
   },
   premium: {
-    gradient: "from-amber-500/20 via-amber-500/10 to-orange-500/20",
-    accent: "from-amber-500 to-orange-500",
+    gradient: "from-muted to-muted",
+    accent: "bg-ig-gradient",
     icon: Crown,
-    glow: "shadow-amber-500/20",
+    glow: "shadow-primary/20",
     badge: "Premium",
   },
   new: {
     gradient: "from-muted to-muted",
-    accent: "from-violet-500 to-purple-500",
+    accent: "bg-ig-gradient",
     icon: Rocket,
-    glow: "shadow-violet-500/20",
+    glow: "shadow-primary/20",
     badge: "New",
   },
   trending: {
     gradient: "from-muted to-muted",
-    accent: "from-rose-500 to-pink-500",
+    accent: "from-destructive to-destructive",
     icon: TrendingUp,
-    glow: "shadow-rose-500/20",
+    glow: "shadow-destructive/20",
     badge: "Trending",
   },
   special: {
-    gradient: "from-emerald-500/20 via-emerald-500/10 to-teal-500/20",
-    accent: "from-emerald-500 to-teal-500",
+    gradient: "from-muted to-muted",
+    accent: "from-success to-success",
     icon: Gift,
-    glow: "shadow-emerald-500/20",
+    glow: "shadow-success/20",
     badge: "Limited",
   },
 };
@@ -511,27 +511,27 @@ export const UrgencyBanner: React.FC<UrgencyBannerProps> = ({
 
   const variantConfig = {
     warning: {
-      gradient: "from-amber-500/15 to-orange-500/15",
-      border: "border-amber-500/30",
-      text: "text-amber-600 dark:text-amber-400",
+      gradient: "from-warning/15 to-warning/15",
+      border: "border-warning/30",
+      text: "text-warning",
       icon: Clock,
     },
     info: {
-      gradient: "from-primary/15 to-teal-500/15",
+      gradient: "from-primary/15 to-primary/15",
       border: "border-primary/30",
       text: "text-primary",
       icon: Sparkles,
     },
     success: {
-      gradient: "from-emerald-500/15 to-green-500/15",
-      border: "border-emerald-500/30",
-      text: "text-emerald-600 dark:text-emerald-400",
+      gradient: "from-success/15 to-success/15",
+      border: "border-success/30",
+      text: "text-success",
       icon: Check,
     },
     limited: {
       gradient: "from-muted to-muted",
-      border: "border-red-500/30",
-      text: "text-red-500",
+      border: "border-destructive/30",
+      text: "text-destructive",
       icon: Zap,
     },
   };
@@ -639,7 +639,7 @@ export const SocialProof: React.FC<SocialProofProps> = ({
                   key={i}
                   className={cn(
                     "w-4 h-4",
-                    i < Math.floor(rating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
+                    i < Math.floor(rating) ? "fill-warning text-warning" : "text-muted-foreground/30"
                   )}
                 />
               ))}
@@ -673,7 +673,7 @@ export const SocialProof: React.FC<SocialProofProps> = ({
         ))}
       </div>
       <div className="flex items-center gap-2 text-sm">
-        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+        <Star className="w-4 h-4 fill-warning text-warning" />
         <span className="font-bold">{rating.toFixed(1)}</span>
         <span className="text-muted-foreground">({reviewCount.toLocaleString()})</span>
       </div>

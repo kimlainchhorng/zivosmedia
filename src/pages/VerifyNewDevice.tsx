@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Shield, ArrowLeft, Home, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { getSupabaseFunctionErrorDetails } from "@/lib/supabaseFunctionError";
+import { getSafeRedirectTarget } from "@/lib/authRedirect";
 
 const CODE_LENGTH = 6;
 
@@ -34,7 +36,7 @@ const VerifyNewDevice = () => {
     return sessionStorage.getItem("zivo_device_otp_userid") || undefined;
   });
 
-  const [redirectTo] = useState<string>(navRedirectTo || "/");
+  const [redirectTo] = useState<string>(() => getSafeRedirectTarget(navRedirectTo));
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [isVerifying, setIsVerifying] = useState(false);
@@ -155,9 +157,15 @@ const VerifyNewDevice = () => {
     if (!email || !userId || countdown > 0) return;
     setIsResending(true);
     try {
-      await supabase.functions.invoke("send-otp-email", {
+      const { error } = await supabase.functions.invoke("send-otp-email", {
         body: { email, userId },
       });
+      if (error) {
+        const details = await getSupabaseFunctionErrorDetails(error);
+        if (details.retryAfter) setCountdown(details.retryAfter);
+        toast.error(details.message || "Failed to resend code.");
+        return;
+      }
       toast.success("New verification code sent!");
       setCountdown(60);
     } catch {

@@ -703,25 +703,25 @@ export default function HotelsLandingPage() {
       <Helmet>
         <title>Hotels & Resorts — Find Your Stay | ZIVO</title>
         <meta name="description" content="Discover hotels, resorts and guesthouses. Browse properties in Phnom Penh, Siem Reap, Sihanoukville and more. Book direct on ZIVO." />
-        <link rel="canonical" href="https://hizivo.com/hotels" />
+        <link rel="canonical" href="https://zivollc.com/hotels" />
         <meta property="og:title" content="Hotels & Resorts — Find Your Stay | ZIVO" />
         <meta property="og:description" content="Discover hotels, resorts and guesthouses. Browse properties and book direct on ZIVO." />
-        <meta property="og:image" content="https://hizivo.com/og-hotels.jpg" />
-        <meta property="og:url" content="https://hizivo.com/hotels" />
+        <meta property="og:image" content="https://zivollc.com/og-hotels.jpg" />
+        <meta property="og:url" content="https://zivollc.com/hotels" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Hotels & Resorts — Find Your Stay | ZIVO" />
         <meta name="twitter:description" content="Discover hotels, resorts and guesthouses. Book direct on ZIVO." />
-        <meta name="twitter:image" content="https://hizivo.com/og-hotels.jpg" />
+        <meta name="twitter:image" content="https://zivollc.com/og-hotels.jpg" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebPage",
           "name": "Hotels & Resorts — ZIVO",
-          "url": "https://hizivo.com/hotels",
+          "url": "https://zivollc.com/hotels",
           "description": "Search and book hotels, resorts and guesthouses on ZIVO.",
           "potentialAction": {
             "@type": "SearchAction",
-            "target": "https://hizivo.com/hotels-list?city={city}",
+            "target": "https://zivollc.com/hotels-list?city={city}",
             "query-input": "required name=city"
           }
         })}</script>

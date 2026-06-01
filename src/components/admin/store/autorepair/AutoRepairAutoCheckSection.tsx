@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { US_STATES } from "@/lib/admin/usStates";
 import { supabase } from "@/integrations/supabase/client";
 import Search from "lucide-react/dist/esm/icons/search";
 import Car from "lucide-react/dist/esm/icons/car";
@@ -47,11 +49,13 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
   const qc = useQueryClient();
   const [vin, setVin] = useState("");
   const [loading, setLoading] = useState(false);
+  const [plateLookup, setPlateLookup] = useState({ plate: "", state: "" });
+  const [plateLoading, setPlateLoading] = useState(false);
   const [result, setResult] = useState<VinResult | null>(null);
   const [recalls, setRecalls] = useState<Recall[]>([]);
   const [recallLoading, setRecallLoading] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [saveForm, setSaveForm] = useState({ owner_name: "", owner_phone: "", owner_email: "", plate: "", mileage: "", notes: "" });
+  const [saveForm, setSaveForm] = useState({ owner_name: "", owner_phone: "", owner_email: "", plate: "", plate_state: "", mileage: "", notes: "" });
   const [saving, setSaving] = useState(false);
   // If a vehicle with this VIN already exists for the store, the dialog flips
   // to update-mode: form is prefilled from the existing row, the Save button
@@ -123,9 +127,10 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
     }
   };
 
-  const decode = async () => {
-    const v = vin.trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
+  const decode = async (override?: string) => {
+    const v = (override ?? vin).trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
     if (v.length !== 17) { toast.error("VIN must be 17 characters (no I, O, Q)"); return; }
+    setVin(v);
     setLoading(true);
     setRecalls([]);
     try {
@@ -158,6 +163,31 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
     } finally { setLoading(false); }
   };
 
+  // Resolve a VIN from a license plate via the platform-wide registry, then decode it.
+  const lookupByPlate = async () => {
+    const p = plateLookup.plate.trim();
+    if (!p) { toast.error("Enter a license plate"); return; }
+    setPlateLoading(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("lookup_plate_vin", {
+        p_plate: p,
+        p_state: plateLookup.state || null,
+      });
+      if (error) throw error;
+      const hit = Array.isArray(data) ? data[0] : data;
+      if (hit?.vin) {
+        toast.success("Plate found in registry — decoding VIN");
+        await decode(hit.vin);
+      } else {
+        toast.info("No vehicle found for that plate in the platform registry yet.");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Plate lookup failed");
+    } finally {
+      setPlateLoading(false);
+    }
+  };
+
   const deleteHistory = async (id: string) => {
     await supabase.from("ar_vin_lookups").delete().eq("id", id);
     qc.invalidateQueries({ queryKey: ["ar-vin-lookups", storeId] });
@@ -171,12 +201,13 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
     if (!result) return;
     setForceCreateNew(false);
     setExistingMatch(null);
-    setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: "", mileage: "", notes: "" });
+    // Carry over any plate/state used in the plate lookup so saving is one step.
+    setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: plateLookup.plate.trim().toUpperCase(), plate_state: plateLookup.state, mileage: "", notes: "" });
     setSaveOpen(true);
     if (!result.vin) return;
     const { data, error } = await supabase
       .from("ar_customer_vehicles")
-      .select("id, owner_name, owner_phone, owner_email, plate, mileage, notes")
+      .select("id, owner_name, owner_phone, owner_email, plate, plate_state, mileage, notes")
       .eq("store_id", storeId)
       .eq("vin", result.vin)
       .maybeSingle();
@@ -188,6 +219,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
         owner_phone: (data as any).owner_phone ?? "",
         owner_email: (data as any).owner_email ?? "",
         plate: data.plate ?? "",
+        plate_state: (data as any).plate_state ?? "",
         mileage: data.mileage != null ? String(data.mileage) : "",
         notes: data.notes ?? "",
       });
@@ -208,7 +240,8 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
         model: result.model ?? "Unknown",
         year: result.year ? parseInt(result.year, 10) : null,
         vin: result.vin,
-        plate: saveForm.plate.trim() || null,
+        plate: saveForm.plate.trim().toUpperCase() || null,
+        plate_state: saveForm.plate_state || null,
         mileage: saveForm.mileage ? parseInt(saveForm.mileage, 10) : null,
         notes: saveForm.notes.trim() || null,
       };
@@ -223,10 +256,22 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
         const { error } = await supabase.from("ar_customer_vehicles").insert(payload);
         if (error) throw error;
       }
+      // Contribute to the platform-wide plate->VIN registry (identity only, best-effort).
+      if (payload.plate && payload.vin) {
+        (supabase as any).rpc("register_plate_vin", {
+          p_store_id: storeId,
+          p_plate: payload.plate,
+          p_state: payload.plate_state || "",
+          p_vin: payload.vin,
+          p_year: payload.year,
+          p_make: payload.make || "",
+          p_model: payload.model || "",
+        }).then(() => {}, () => {});
+      }
       qc.invalidateQueries({ queryKey: ["ar-customer-vehicles", storeId] });
       toast.success(updateExisting ? "Vehicle updated" : "Vehicle saved to garage");
       setSaveOpen(false);
-      setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: "", mileage: "", notes: "" });
+      setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: "", plate_state: "", mileage: "", notes: "" });
       setExistingMatch(null);
       setForceCreateNew(false);
     } catch (e: any) {
@@ -294,11 +339,43 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
             <Input placeholder="Enter 17-character VIN" value={vin}
               onChange={e => setVin(e.target.value.toUpperCase())} maxLength={17}
               className="font-mono uppercase" onKeyDown={e => e.key === "Enter" && decode()} />
-            <Button onClick={decode} disabled={loading} className="gap-1.5">
+            <Button onClick={() => decode()} disabled={loading} className="gap-1.5">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />} Decode
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">Powered by NHTSA · Decodes Year, Make, Model, Engine, Drive, Transmission & more.</p>
+
+          <div className="flex items-center gap-2 pt-1">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">or find by plate</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex min-w-0 flex-1 overflow-hidden rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <Select value={plateLookup.state || "none"} onValueChange={v => setPlateLookup(s => ({ ...s, state: v === "none" ? "" : v }))}>
+                <SelectTrigger className="h-10 w-24 shrink-0 rounded-none border-0 border-r bg-muted/30 px-3 text-sm shadow-none focus:ring-0">
+                  <SelectValue placeholder="State" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">State</SelectItem>
+                  {US_STATES.map(([code, name]) => (
+                    <SelectItem key={code} value={code}>{code} - {name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="ABC-1234"
+                value={plateLookup.plate}
+                onChange={e => setPlateLookup(s => ({ ...s, plate: e.target.value.toUpperCase() }))}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); lookupByPlate(); } }}
+                className="h-10 min-w-0 rounded-none border-0 font-mono uppercase shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <Button variant="outline" onClick={lookupByPlate} disabled={plateLoading || loading || !plateLookup.plate.trim()} className="gap-1.5 shrink-0">
+              {plateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />} Find
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Resolves a VIN from any plate already recorded across the ZIVO platform, then decodes it.</p>
         </CardContent>
       </Card>
 
@@ -437,7 +514,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
                 This VIN is already in your garage as <strong>{existingMatch.owner_name || "an unnamed owner"}</strong>.
                 Saving will update that record. Changes won't create a duplicate.
               </p>
-              <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => { setForceCreateNew(true); setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: "", mileage: "", notes: "" }); }}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => { setForceCreateNew(true); setSaveForm({ owner_name: "", owner_phone: "", owner_email: "", plate: "", plate_state: "", mileage: "", notes: "" }); }}>
                 Create new record anyway
               </Button>
             </div>
@@ -463,8 +540,22 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">License plate</Label>
-                <Input placeholder="ABC-1234" value={saveForm.plate}
-                  onChange={e => setSaveForm(f => ({ ...f, plate: e.target.value.toUpperCase() }))} />
+                <div className="flex min-w-0 overflow-hidden rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <Select value={saveForm.plate_state || "none"} onValueChange={v => setSaveForm(f => ({ ...f, plate_state: v === "none" ? "" : v }))}>
+                    <SelectTrigger className="h-10 w-[68px] shrink-0 rounded-none border-0 border-r bg-muted/30 px-2 text-xs shadow-none focus:ring-0">
+                      <SelectValue placeholder="ST" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">State</SelectItem>
+                      {US_STATES.map(([code, name]) => (
+                        <SelectItem key={code} value={code}>{code} - {name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input placeholder="ABC-1234" value={saveForm.plate}
+                    onChange={e => setSaveForm(f => ({ ...f, plate: e.target.value.toUpperCase() }))}
+                    className="h-10 min-w-0 rounded-none border-0 font-mono uppercase shadow-none focus-visible:ring-0" />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Mileage</Label>

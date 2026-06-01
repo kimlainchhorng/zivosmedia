@@ -9,7 +9,7 @@
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +27,7 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import Clock3 from "lucide-react/dist/esm/icons/clock-3";
 import BadgeCheck from "lucide-react/dist/esm/icons/badge-check";
 import Target from "lucide-react/dist/esm/icons/target";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 interface TrendingCreator {
   id: string;
@@ -48,6 +49,7 @@ function initialsOf(name: string | null | undefined): string {
 export default function TrendingCreators() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [optimisticallyFollowed, setOptimisticallyFollowed] = useState<Set<string>>(new Set());
 
@@ -121,15 +123,15 @@ export default function TrendingCreators() {
 
   const handleFollow = async (targetId: string, targetName: string | null) => {
     if (!user) {
-      navigate("/auth");
+      navigate(withRedirectParam("/login", `${location.pathname}${location.search}${location.hash}`));
       return;
     }
     setOptimisticallyFollowed((prev) => new Set(prev).add(targetId));
     try {
-      await (supabase as any)
-        .from("user_followers")
-        .insert({ follower_id: user.id, following_id: targetId })
-        .throwOnError();
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "follow", following_id: targetId },
+      });
+      if (error) throw error;
       toast.success(`Following ${targetName?.split(/\s+/)[0] ?? "creator"}`);
       queryClient.invalidateQueries({ queryKey: ["follow-suggestions", user.id] });
       queryClient.invalidateQueries({ queryKey: ["mutual-follows"] });

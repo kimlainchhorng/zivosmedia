@@ -78,9 +78,9 @@ Download ZIVO and start your day in one app.
 ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers remain the merchants of record for their inventory. Some premium features and creator subscriptions may have a price.
 
 Support: support@hizivo.com
-Website: https://hizivo.com
-Privacy: https://hizivo.com/legal/privacy
-Terms: https://hizivo.com/legal/terms
+Website: https://zivollc.com
+Privacy: https://zivollc.com/legal/privacy
+Terms: https://zivollc.com/legal/terms
 ```
 
 ## 6. What's New in This Version  (max 4000 characters — UPDATE EVERY RELEASE)
@@ -97,9 +97,9 @@ Thanks for using ZIVO! Email support@hizivo.com with any feedback.
 ## 7. Support / Marketing URLs
 
 ```
-Support URL:    https://hizivo.com/support
-Marketing URL:  https://hizivo.com
-Privacy URL:    https://hizivo.com/legal/privacy
+Support URL:    https://zivollc.com/support
+Marketing URL:  https://zivollc.com
+Privacy URL:    https://zivollc.com/legal/privacy
 ```
 
 ## 8. Category

@@ -11,7 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Cookie, X, Settings, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { COOKIE_CONSENT_STORAGE_KEY } from "@/hooks/useCookiePrefs";
+import {
+  COOKIE_CONSENT_STORAGE_KEY,
+  emitCookieConsentUpdated,
+} from "@/lib/privacy/cookieConsent";
 
 const COOKIE_CONSENT_DATE_STORAGE_KEY = "zivo_cookie_consent_date";
 
@@ -67,6 +70,7 @@ const CookieConsent = () => {
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(allAccepted));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
     window.__zivoLoadAnalytics?.();
+    emitCookieConsentUpdated(allAccepted);
     setIsVisible(false);
   };
 
@@ -74,6 +78,7 @@ const CookieConsent = () => {
     const essentialOnly = { essential: true, functional: false, analytics: false, marketing: false };
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(essentialOnly));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    emitCookieConsentUpdated(essentialOnly);
     setIsVisible(false);
   };
 
@@ -83,6 +88,7 @@ const CookieConsent = () => {
     if (preferences.analytics || preferences.marketing) {
       window.__zivoLoadAnalytics?.();
     }
+    emitCookieConsentUpdated(preferences);
     setIsVisible(false);
   };
 

@@ -93,6 +93,7 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -111,6 +112,9 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
 import { formatCount } from "@/lib/social/formatCount";
 import { shouldSendLikeNotification } from "@/lib/social/likeNotificationGuard";
+import { removePostBookmark, savePostBookmark } from "@/lib/social/postBookmarkManage";
+import { setPostReaction } from "@/lib/social/postReactionManage";
+import type { ReactionEmoji } from "@/lib/social/reactions";
 import { EngagementSkeleton } from "@/components/social/EngagementSkeleton";
 import SwipeableSheet from "@/components/social/SwipeableSheet";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
@@ -118,6 +122,7 @@ import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { perfLog, perfMeasure, perfNow } from "@/lib/perfTrace";
 import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
 import type { FeedPreferenceSource } from "@/hooks/useHiddenPosts";
+import { getAppSurfaceSeo } from "@/lib/appSurfaceSeo";
 
 type FeedWorkflowAction = "story" | "reel" | "shop" | "photo" | "jobs" | "live";
 const FEED_CREATOR_WORKFLOWS: ReadonlyArray<{
@@ -1689,12 +1694,17 @@ export default function ReelsFeedPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const surfaceSeo = getAppSurfaceSeo(isFeedRoute ? "feed" : "reels");
+
   return (
     <>
       <SEOHead
-        title={isFeedRoute ? "ZIVO Feed – Social Posts, Reels & Creator Updates" : "ZIVO Reels – Trending Short Videos & Creator Posts"}
-        description={isFeedRoute ? "Catch up on posts, reels, creators, stories, and community updates on ZIVO." : "Discover trending reels, follow your favorite creators, support them with tips, and shop products straight from videos on ZIVO."}
-        canonical={isFeedRoute ? "/feed" : "/reels"}
+        title={isFeedRoute ? "ZIVO Feed - Posts, Reels, Stories & Creator Updates" : "ZIVO Reels - Trending Short Videos & Creator Shops"}
+        description={isFeedRoute ? "Catch up on posts, reels, stories, creators, shops, jobs, and community updates on ZIVO." : "Discover trending reels, follow creators, send support, and shop products straight from videos on ZIVO."}
+        canonical={surfaceSeo.canonical}
+        appLink={surfaceSeo.appLink}
+        structuredData={surfaceSeo.structuredData}
+        keywords={isFeedRoute ? ["ZIVO feed", "social posts", "creator updates", "stories"] : ["ZIVO reels", "short videos", "creator shops", "social video"]}
       />
       {/* Desktop NavBar */}
       <div className="hidden lg:block relative z-[1200]">
@@ -1855,7 +1865,7 @@ export default function ReelsFeedPage() {
                     )}
                   </div>
                   <button type="button"
-                    onClick={() => userId ? setShowCreate(true) : navigate("/auth")}
+                    onClick={() => userId ? setShowCreate(true) : navigate(withRedirectParam("/login", `${location.pathname}${location.search}${location.hash}`))}
                     className="zivo-social-icon-button shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-foreground active:scale-95 transition"
                     aria-label="Create post"
                     title="Create post"
@@ -2962,7 +2972,7 @@ export default function ReelsFeedPage() {
             </span>
           </button>
 
-          <p className="text-[10px] text-muted-foreground/60 mt-auto px-1 pt-2">© ZIVO LLC · hizivo.com</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-auto px-1 pt-2">© ZIVO LLC · zivollc.com</p>
         </aside>
 
       </div>
@@ -3032,17 +3042,11 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     }
     setFollowLoading(true);
     try {
-      await (supabase as any).from("user_followers").insert({
-        follower_id: currentUserId,
-        following_id: followTargetUserId,
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "follow", following_id: followTargetUserId },
       });
+      if (error) throw error;
       setIsFollowing(true);
-      try {
-        const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", currentUserId).single();
-        await supabase.functions.invoke("send-push-notification", {
-          body: { user_id: followTargetUserId, notification_type: "new_follower", title: "New Follower 🔔", body: `${sp?.full_name || "Someone"} started following you`, data: { type: "new_follower", follower_id: currentUserId, avatar_url: sp?.avatar_url, action_url: `/user/${currentUserId}` } },
-        });
-      } catch {}
     } catch { /* ignore */ } finally {
       setFollowLoading(false);
     }
@@ -3052,8 +3056,10 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     if (!currentUserId || !followTargetUserId) return;
     setFollowLoading(true);
     try {
-      await (supabase as any).from("user_followers").delete()
-        .eq("follower_id", currentUserId).eq("following_id", followTargetUserId);
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "unfollow", following_id: followTargetUserId },
+      });
+      if (error) throw error;
       setIsFollowing(false);
     } catch { /* ignore */ } finally {
       setFollowLoading(false);
@@ -3295,18 +3301,22 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     setSaved(nextSaved);
     try {
       if (nextSaved) {
-        const { error } = await (supabase as any).from("post_bookmarks").insert({
-          user_id: currentUserId,
+        const { error } = await savePostBookmark({
           post_id: interactionPostId,
           source: item.source,
+          sync_legacy: true,
+          legacy_item_id: item.source === "user" ? `u-${interactionPostId}` : interactionPostId,
+          collection_name: "Reels",
         });
         if (error && !String(error.message || "").toLowerCase().includes("duplicate")) throw error;
         toast.success("Saved reel");
       } else {
-        const { error } = await (supabase as any).from("post_bookmarks").delete()
-          .eq("user_id", currentUserId)
-          .eq("post_id", interactionPostId)
-          .eq("source", item.source);
+        const { error } = await removePostBookmark({
+          post_id: interactionPostId,
+          source: item.source,
+          sync_legacy: true,
+          legacy_item_id: item.source === "user" ? `u-${interactionPostId}` : interactionPostId,
+        });
         if (error) throw error;
         toast.success("Removed from saved");
       }
@@ -4160,28 +4170,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
       .then(({ data }: any) => { if (typeof data === "boolean") setIsFollowingSharedAuthor(data); });
   }, [currentUserId, sharedAuthorId, isSharedAuthorOwner]);
 
-  const sendFollowNotification = async (targetUserId: string) => {
-    try {
-      const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", currentUserId).single();
-      await supabase.functions.invoke("send-push-notification", {
-        body: {
-          user_id: targetUserId,
-          notification_type: "new_follower",
-          title: "New Follower 🔔",
-          body: `${sp?.full_name || "Someone"} started following you`,
-          data: {
-            type: "new_follower",
-            follower_id: currentUserId,
-            avatar_url: sp?.avatar_url,
-            action_url: `/user/${currentUserId}`,
-          },
-        },
-      });
-    } catch {
-      // ignore notification failures
-    }
-  };
-
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!item.author_id || followLoading) return;
@@ -4195,13 +4183,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
     setFollowLoading(true);
     try {
-      const { error } = await (supabase as any).from("user_followers").insert({
-        follower_id: currentUserId,
-        following_id: item.author_id,
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "follow", following_id: item.author_id },
       });
       if (error) throw error;
       setIsFollowingAuthor(true);
-      await sendFollowNotification(item.author_id);
     } catch {
       toast.error("Failed to update follow");
     } finally {
@@ -4223,13 +4209,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     }
     setFollowLoading(true);
     try {
-      const { error } = await (supabase as any).from("user_followers").insert({
-        follower_id: currentUserId,
-        following_id: sharedAuthorId,
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "follow", following_id: sharedAuthorId },
       });
       if (error) throw error;
       setIsFollowingSharedAuthor(true);
-      await sendFollowNotification(sharedAuthorId);
     } catch {
       toast.error("Failed to update follow");
     } finally {
@@ -4241,8 +4225,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     if (!currentUserId || !item.author_id) return;
     setFollowLoading(true);
     try {
-      await supabase.from("user_followers" as any).delete()
-        .eq("follower_id", currentUserId).eq("following_id", item.author_id);
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "unfollow", following_id: item.author_id },
+      });
+      if (error) throw error;
       setIsFollowingAuthor(false);
     } catch { /* ignore */ } finally {
       setFollowLoading(false);
@@ -4253,8 +4239,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     if (!currentUserId || !sharedAuthorId) return;
     setFollowLoading(true);
     try {
-      await supabase.from("user_followers" as any).delete()
-        .eq("follower_id", currentUserId).eq("following_id", sharedAuthorId);
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "unfollow", following_id: sharedAuthorId },
+      });
+      if (error) throw error;
       setIsFollowingSharedAuthor(false);
     } catch { /* ignore */ } finally {
       setFollowLoading(false);
@@ -4426,28 +4414,21 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
       toast.error("Please sign in to react");
       return;
     }
+    if (item.source === "poll") {
+      toast.error("Poll reactions are coming soon");
+      return;
+    }
     const previous = selectedReaction;
     const next = previous === emoji ? null : emoji;
     setSelectedReaction(next);
     setShowReactionPicker(false);
     try {
-      if (next == null) {
-        const { error } = await (supabase as any)
-          .from("post_reactions")
-          .delete()
-          .eq("user_id", currentUserId)
-          .eq("post_id", interactionPostId)
-          .eq("source", item.source);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any)
-          .from("post_reactions")
-          .upsert(
-            { user_id: currentUserId, post_id: interactionPostId, source: item.source, emoji: next },
-            { onConflict: "user_id,post_id,source" },
-          );
-        if (error) throw error;
-      }
+      const { error } = await setPostReaction({
+        post_id: interactionPostId,
+        source: item.source,
+        emoji: next as ReactionEmoji | null,
+      });
+      if (error) throw error;
     } catch {
       setSelectedReaction(previous);
       toast.error("Couldn't save reaction");
@@ -4568,10 +4549,12 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     setSaved(newSaved);
     try {
       if (newSaved) {
-        const { error } = await (supabase as any).from("post_bookmarks").insert({
-          user_id: currentUserId,
+        const { error } = await savePostBookmark({
           post_id: interactionPostId,
           source: item.source,
+          sync_legacy: true,
+          legacy_item_id: item.source === "user" ? `u-${interactionPostId}` : interactionPostId,
+          collection_name: "Reels",
         });
         if (error) {
           const msg = String(error.message || "").toLowerCase();
@@ -4586,10 +4569,12 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           toast.success("Saved to bookmarks");
         }
       } else {
-        const { error } = await (supabase as any).from("post_bookmarks").delete()
-          .eq("user_id", currentUserId)
-          .eq("post_id", interactionPostId)
-          .eq("source", item.source);
+        const { error } = await removePostBookmark({
+          post_id: interactionPostId,
+          source: item.source,
+          sync_legacy: true,
+          legacy_item_id: item.source === "user" ? `u-${interactionPostId}` : interactionPostId,
+        });
         if (error) throw error;
         toast.success("Removed from bookmarks");
       }
@@ -5766,7 +5751,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           <button type="button"
             onClick={() => {
               setShowPostMenu(false);
-              const embedCode = `<iframe src="https://hizivo.com/embed/${item.id.replace(/^u-/, "")}" width="400" height="500" frameborder="0" allowfullscreen></iframe>`;
+              const embedCode = `<iframe src="https://zivollc.com/embed/${item.id.replace(/^u-/, "")}" width="400" height="500" frameborder="0" allowfullscreen></iframe>`;
               try {
                 navigator.clipboard.writeText(embedCode);
                 toast.success("Embed code copied to clipboard");

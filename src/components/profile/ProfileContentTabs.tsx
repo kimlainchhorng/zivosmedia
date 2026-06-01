@@ -34,6 +34,8 @@ import { track } from "@/lib/analytics";
 import { useHiddenPosts } from "@/hooks/useHiddenPosts";
 import { copyText } from "@/lib/native/clipboard";
 import { submitSafetyReport } from "@/lib/social/safetyReport";
+import { withRedirectParam } from "@/lib/authRedirect";
+import { removePostBookmark, savePostBookmark } from "@/lib/social/postBookmarkManage";
 
 /**
  * Fullscreen post viewer wrapper with drag-down-to-close.
@@ -628,7 +630,7 @@ export default function ProfileContentTabs({
   const openCreatePost = useCallback((type: "photo" | "reel" | null = null) => {
     if (!user?.id) {
       toast.info("Sign in to create a post");
-      navigate("/login?redirect=/profile");
+      navigate(withRedirectParam("/login", "/profile"));
       return;
     }
     setComposerType(type);
@@ -637,7 +639,7 @@ export default function ProfileContentTabs({
   const openLiveBroadcast = useCallback(() => {
     if (!user?.id) {
       toast.info("Sign in to go live");
-      navigate("/login?redirect=/profile");
+      navigate(withRedirectParam("/login", "/profile"));
       return;
     }
     setShowLive(true);
@@ -1117,6 +1119,7 @@ export default function ProfileContentTabs({
     }
 
     const interactionId = toUserPostInteractionId(item.id);
+    const rawPostId = item.id.replace(/^u-/, "");
     const wasBookmarked = bookmarkedPosts.has(interactionId);
 
     setBookmarkedPosts((prev) => {
@@ -1128,21 +1131,23 @@ export default function ProfileContentTabs({
 
     try {
       if (wasBookmarked) {
-        const { error } = await (supabase as any)
-          .from("bookmarks")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("item_type", "post")
-          .eq("item_id", interactionId);
+        const { error } = await removePostBookmark({
+          post_id: rawPostId,
+          source: "user",
+          sync_legacy: true,
+          legacy_item_id: interactionId,
+        });
 
         if (error) throw error;
         track("post_unbookmarked", { post_id: item.id, author_id: profileOwnerId, surface: "profile_feed" });
         toast.success("Removed from bookmarks");
       } else {
-        const { error } = await (supabase as any).from("bookmarks").insert({
-          user_id: user.id,
-          item_id: interactionId,
-          item_type: "post",
+        const { error } = await savePostBookmark({
+          post_id: rawPostId,
+          source: "user",
+          sync_legacy: true,
+          legacy_item_id: interactionId,
+          collection_name: "Posts",
         });
 
         const dupKey = (error as any)?.code === "23505";

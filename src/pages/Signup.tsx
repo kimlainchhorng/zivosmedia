@@ -12,11 +12,14 @@ import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { LegalPreviewLink } from "@/components/legal/LegalPreviewSheet";
 import { analyzePassword, checkPasswordBreach } from "@/lib/security/passwordStrength";
+import { trackGoogleAdsSignupConversion } from "@/lib/googleAdsConversion";
+import { trackMetaCompleteRegistration } from "@/lib/metaAdsTracking";
+import { getSafeRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
 
 const Signup = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const { signUp, user, isLoading: authLoading } = useAuth();
 
   const [firstName, setFirstName] = useState("");
@@ -71,7 +74,7 @@ const Signup = () => {
     // bot can't tell its trip was detected. No real account gets created.
     if (companyWebsite.trim() !== "") {
       toast.success("Account created! Check your email for a 6-digit code.");
-      navigate("/login");
+      navigate(withRedirectParam("/login", redirect));
       return;
     }
 
@@ -139,7 +142,10 @@ const Signup = () => {
     }
 
     toast.success("Account created! Check your email for a 6-digit code.");
-    navigate(`/verify-otp?mode=signup&email=${encodeURIComponent(email.trim())}${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ""}`);
+    trackGoogleAdsSignupConversion();
+    const metaSignupEventId = `signup:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+    trackMetaCompleteRegistration(metaSignupEventId);
+    navigate(withRedirectParam(`/verify-otp?mode=signup&email=${encodeURIComponent(email.trim())}`, redirect));
     return;
   };
 
@@ -158,7 +164,7 @@ const Signup = () => {
               Click the link to activate your account, then come back to sign in.
             </p>
             <Link
-              to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+              to={withRedirectParam("/login", redirect)}
               className="block mt-6 w-full h-11 rounded-lg text-sm font-semibold text-white bg-ig-gradient hover:opacity-95 transition flex items-center justify-center shadow-md shadow-rose-500/20"
             >
               Go to Sign In
@@ -366,7 +372,7 @@ const Signup = () => {
           <p className="text-sm text-zinc-700 dark:text-zinc-300">
             Have an account?{" "}
             <Link
-              to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+              to={withRedirectParam("/login", redirect)}
               className="inline-flex min-h-[40px] items-center font-semibold text-rose-500 hover:text-rose-600"
             >
               Log in

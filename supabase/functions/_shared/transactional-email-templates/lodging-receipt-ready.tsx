@@ -14,7 +14,7 @@ const Email = ({ guestName = 'Guest', propertyName = 'Your stay', reservationNum
   </Container></Body></Html>
 )
 
-export const template = { component: Email, subject: (p: Props) => `Your ZIVO lodging receipt${p.reservationNumber ? ` — ${p.reservationNumber}` : ''}`, displayName: 'Lodging receipt ready', previewData: { guestName: 'Alex', propertyName: 'ZIVO Suites', reservationNumber: 'L-2048', downloadUrl: 'https://hizivo.com/receipt', generatedAt: 'Apr 23, 2026', expiresAt: 'Apr 30, 2026' } } satisfies TemplateEntry<Props>
+export const template = { component: Email, subject: (p: Props) => `Your ZIVO lodging receipt${p.reservationNumber ? ` — ${p.reservationNumber}` : ''}`, displayName: 'Lodging receipt ready', previewData: { guestName: 'Alex', propertyName: 'ZIVO Suites', reservationNumber: 'L-2048', downloadUrl: 'https://zivollc.com/receipt', generatedAt: 'Apr 23, 2026', expiresAt: 'Apr 30, 2026' } } satisfies TemplateEntry<Props>
 const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
 const container = { maxWidth: '560px', margin: '0 auto', padding: '28px 22px' }
 const badge = { color: '#16a34a', fontWeight: 700, fontSize: '13px', marginBottom: '16px' }

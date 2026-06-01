@@ -518,7 +518,7 @@ const contracts = [
 
       requireContains(this.id, app, 'path="/delete-account"', appPath);
       requireContains(this.id, app, 'path="/account-deletion"', appPath);
-      requireContains(this.id, deletion, 'canonical="https://hizivo.com/delete-account"', deletionPath);
+      requireContains(this.id, deletion, 'canonical="https://zivollc.com/delete-account"', deletionPath);
       requireContains(this.id, deletion, 'to="/legal/privacy"', deletionPath);
       requireContains(this.id, deletion, 'to="/legal/data-retention"', deletionPath);
       requireContains(this.id, deletion, "privacy@hizivo.com?subject=Delete%20my%20ZIVO%20account", deletionPath);
@@ -771,13 +771,13 @@ const contracts = [
       const combined = [terms, privacy, refunds, cookies, damage, storeMarketing].join("\n");
       const test = source(testPath);
 
-      requireContains(this.id, terms, 'canonical="https://hizivo.com/legal/terms"', termsPath);
-      requireContains(this.id, privacy, 'canonical="https://hizivo.com/legal/privacy"', privacyPath);
-      requireContains(this.id, refunds, 'canonical="https://hizivo.com/legal/refunds"', refundsPath);
-      requireContains(this.id, cookies, 'canonical="https://hizivo.com/legal/cookies"', cookiesPath);
+      requireContains(this.id, terms, 'canonical="https://zivollc.com/legal/terms"', termsPath);
+      requireContains(this.id, privacy, 'canonical="https://zivollc.com/legal/privacy"', privacyPath);
+      requireContains(this.id, refunds, 'canonical="https://zivollc.com/legal/refunds"', refundsPath);
+      requireContains(this.id, cookies, 'canonical="https://zivollc.com/legal/cookies"', cookiesPath);
       requireContains(this.id, damage, 'to="/legal/cancellation"', damagePath);
-      requireContains(this.id, storeMarketing, "https://hizivo.com/store/", storeMarketingPath);
-      requireContains(this.id, storeMarketing, "https://hizivo.com/book/", storeMarketingPath);
+      requireContains(this.id, storeMarketing, "https://zivollc.com/store/", storeMarketingPath);
+      requireContains(this.id, storeMarketing, "https://zivollc.com/book/", storeMarketingPath);
 
       for (const legacyPattern of [
         /canonical="https:\/\/hizivo\.com\/terms"/,
@@ -818,7 +818,7 @@ const contracts = [
         failures.push(`${this.id}: ${controlsPath} directly inserts privacy records into feedback_submissions`);
       }
 
-      requireContains(this.id, submit, 'withSecurity(\n    "privacy-request-submit"', submitPath);
+      requireMatch(this.id, submit, /withSecurity\(\s*"privacy-request-submit"/, submitPath);
       requireContains(this.id, submit, "requireUser(req)", submitPath);
       requireContains(this.id, submit, "requireUserNotBlocked(userId)", submitPath);
       requireContains(this.id, submit, "getServiceRoleClient()", submitPath);
@@ -860,7 +860,7 @@ const contracts = [
       requireContains(this.id, help, 'source: "personal_help"', helpPath);
       requireNotMatch(this.id, help, /from\("feedback_submissions"\)[\s\S]{0,160}\.insert/, helpPath);
 
-      requireContains(this.id, refund, 'withSecurity(\n    "refund-request-submit"', refundPath);
+      requireMatch(this.id, refund, /withSecurity\(\s*"refund-request-submit"/, refundPath);
       requireContains(this.id, refund, "requireUser(req)", refundPath);
       requireContains(this.id, refund, "requireUserNotBlocked(userId)", refundPath);
       requireContains(this.id, refund, "getServiceRoleClient()", refundPath);
@@ -875,7 +875,7 @@ const contracts = [
       requireContains(this.id, refund, 'rateLimit: "payment"', refundPath);
       requireContains(this.id, refund, "blockNetworkRiskAt: 90", refundPath);
 
-      requireContains(this.id, support, 'withSecurity(\n    "support-ticket-submit"', supportPath);
+      requireMatch(this.id, support, /withSecurity\(\s*"support-ticket-submit"/, supportPath);
       requireContains(this.id, support, "requireUser(req)", supportPath);
       requireContains(this.id, support, "requireUserNotBlocked(userId)", supportPath);
       requireContains(this.id, support, "getServiceRoleClient()", supportPath);
@@ -1001,29 +1001,41 @@ const contracts = [
       const consentPath = "src/components/common/CookieConsent.tsx";
       const cookiePolicyPath = "src/pages/legal/CookiePolicy.tsx";
       const settingsPath = "src/pages/account/AccountSettingsPage.tsx";
+      const helperPath = "src/lib/privacy/cookieConsent.ts";
+      const vitePath = "vite.config.ts";
       const testPath = "src/test/adsMarketingConsentRuntime.test.ts";
       const html = source(htmlPath);
       const prefs = source(prefsPath);
       const consent = source(consentPath);
       const cookiePolicy = source(cookiePolicyPath);
       const settings = source(settingsPath);
+      const helper = source(helperPath);
+      const vite = source(vitePath);
       const test = source(testPath);
 
       requireContains(this.id, html, "function readCookiePrefs()", htmlPath);
       requireContains(this.id, html, "var analyticsAllowed=prefs.analytics===true", htmlPath);
       requireContains(this.id, html, "var marketingAllowed=prefs.marketing===true", htmlPath);
-      requireContains(this.id, html, "if(analyticsAllowed)", htmlPath);
-      requireContains(this.id, html, "if(marketingAllowed)", htmlPath);
+      requireContains(this.id, html, "if(analyticsAllowed&&!analyticsLoaded)", htmlPath);
+      requireContains(this.id, html, "if(marketingAllowed&&!marketingLoaded)", htmlPath);
+      requireContains(this.id, html, "gtagLoaded", htmlPath);
       requireContains(this.id, html, "gtag('config','G-VVH8W5PW3E'", htmlPath);
       requireContains(this.id, html, "gtag('config','AW-18077605056')", htmlPath);
       requireContains(this.id, html, "https://connect.facebook.net/en_US/fbevents.js", htmlPath);
       requireContains(this.id, html, "https://analytics.tiktok.com/i18n/pixel/events.js", htmlPath);
+      requireContains(this.id, html, 'meta name="facebook-domain-verification"', htmlPath);
+      requireContains(this.id, vite, "metaDomainVerificationPlugin", vitePath);
+      requireContains(this.id, vite, "loadEnv(mode", vitePath);
 
-      requireContains(this.id, prefs, 'COOKIE_CONSENT_STORAGE_KEY = "zivo_cookie_consent"', prefsPath);
+      requireContains(this.id, helper, 'COOKIE_CONSENT_STORAGE_KEY = "zivo_cookie_consent"', helperPath);
+      requireContains(this.id, helper, "COOKIE_CONSENT_UPDATED_EVENT", helperPath);
+      requireContains(this.id, prefs, "COOKIE_CONSENT_STORAGE_KEY", prefsPath);
       requireContains(this.id, prefs, "if (next.analytics || next.marketing)", prefsPath);
       requireContains(this.id, consent, "COOKIE_CONSENT_STORAGE_KEY", consentPath);
+      requireContains(this.id, consent, "emitCookieConsentUpdated", consentPath);
       requireContains(this.id, consent, "if (preferences.analytics || preferences.marketing)", consentPath);
       requireContains(this.id, cookiePolicy, "COOKIE_CONSENT_STORAGE_KEY", cookiePolicyPath);
+      requireContains(this.id, cookiePolicy, "emitCookieConsentUpdated", cookiePolicyPath);
       requireContains(this.id, cookiePolicy, "if (preferences.analytics || preferences.marketing)", cookiePolicyPath);
       requireContains(this.id, settings, '"zivo_cookie_consent"', settingsPath);
       requireNotMatch(this.id, consent, /"zivo-cookie-consent"/, consentPath);
@@ -1358,7 +1370,7 @@ const contracts = [
       requireContains(this.id, privacyControls, 'kind: "dsar_request"', privacyControlsPath);
       requireContains(this.id, privacyControls, 'kind: "consent_change"', privacyControlsPath);
       requireContains(this.id, accountSecurity, 'functions.invoke("privacy-request-submit"', accountSecurityPath);
-      requireContains(this.id, privacySubmit, 'withSecurity(\n    "privacy-request-submit"', privacySubmitPath);
+      requireMatch(this.id, privacySubmit, /withSecurity\(\s*"privacy-request-submit"/, privacySubmitPath);
       requireContains(this.id, privacySubmit, 'category: "dsar_request"', privacySubmitPath);
       requireContains(this.id, privacySubmit, 'category: "consent_change"', privacySubmitPath);
       requireContains(this.id, privacyGate, "trusted server-side ingestion", privacyGatePath);

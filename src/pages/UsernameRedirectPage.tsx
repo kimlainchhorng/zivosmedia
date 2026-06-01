@@ -12,6 +12,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import UserX from "lucide-react/dist/esm/icons/user-x";
 import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
+import { ANDROID_APP_PACKAGE } from "@/lib/deepLinks";
 
 function isMobileBrowser(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -45,7 +46,7 @@ export default function UsernameRedirectPage() {
     const openAppThenFallback = (targetUserId: string) => {
       const webPath = `/user/${targetUserId}`;
       if (isMobileBrowser() && !isNativeWebView()) {
-        const nativeUrl = `com.myzivo.app://user/${encodeURIComponent(targetUserId)}`;
+        const nativeUrl = `${ANDROID_APP_PACKAGE}://user/${encodeURIComponent(targetUserId)}`;
         timers.push(window.setTimeout(() => {
           window.location.assign(nativeUrl);
         }, 120));

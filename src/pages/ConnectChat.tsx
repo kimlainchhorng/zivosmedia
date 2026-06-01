@@ -20,10 +20,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 // Origins permitted to receive a ZIVO session. Set the real ZIVO Chat
 // production origin here or via VITE_CHAT_ORIGINS (comma-separated).
-const STATIC_ALLOWED_ORIGINS = ["https://chat.hizivo.com"];
+const STATIC_ALLOWED_ORIGINS = ["https://chat.zivollc.com"];
 
 function allowedOrigins(): string[] {
   const fromEnv = (import.meta.env.VITE_CHAT_ORIGINS || "")
@@ -107,7 +108,7 @@ const ConnectChat = () => {
       if (!hasSession) {
         // Not signed in on ZIVO yet — go log in, then resume this exact handoff.
         const resume = `/connect/chat?return=${encodeURIComponent(returnUrl)}&state=${encodeURIComponent(state)}`;
-        navigate(`/login?redirect=${encodeURIComponent(resume)}`, { replace: true });
+        navigate(withRedirectParam("/login", resume), { replace: true });
         return;
       }
 

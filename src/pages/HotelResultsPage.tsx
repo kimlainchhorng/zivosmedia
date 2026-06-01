@@ -12,6 +12,8 @@ import { differenceInDays, format, parseISO } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { AD_SLOTS } from "@/config/adSlots";
 import HotelFiltersComponent from "@/components/hotels/HotelFilters";
 import type { HotelFilters } from "@/components/hotels/HotelFilters";
 import { Button } from "@/components/ui/button";
@@ -379,6 +381,8 @@ export default function HotelResultsPage() {
                     {hotelCards.map((hotel, index) => (
                       <React.Fragment key={hotel.id}>
                         <HotelResultCard hotel={hotel} onViewDeal={handleViewDeal} />
+                        {/* In-feed ad after the 3rd result — renders nothing until AD_SLOTS.searchResults + publisher id are set */}
+                        {index === 2 && <AdSenseUnit slot={AD_SLOTS.searchResults} />}
                       </React.Fragment>
                     ))}
                   </div>

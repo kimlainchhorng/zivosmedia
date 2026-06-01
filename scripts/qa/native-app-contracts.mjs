@@ -124,8 +124,8 @@ const contracts = [
       }
       requireContains(this.id, listing, "Bundle ID: `com.hizovo.app`", listingPath);
       requireContains(this.id, listing, "Privacy URL:", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/legal/privacy", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/legal/terms", listingPath);
+      requireContains(this.id, listing, "https://zivollc.com/legal/privacy", listingPath);
+      requireContains(this.id, listing, "https://zivollc.com/legal/terms", listingPath);
       requireContains(this.id, listing, "What's New in This Version", listingPath);
     },
   },
@@ -163,12 +163,113 @@ const contracts = [
       requireContains(this.id, listing, "Package name: `com.hizovo.app`", listingPath);
       requireContains(this.id, listing, "Privacy Policy URL", listingPath);
       requireContains(this.id, listing, "Account Deletion URL", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/legal/privacy", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/legal/terms", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/delete-account", listingPath);
+      requireContains(this.id, listing, "https://zivollc.com/legal/privacy", listingPath);
+      requireContains(this.id, listing, "https://zivollc.com/legal/terms", listingPath);
+      requireContains(this.id, listing, "https://zivollc.com/delete-account", listingPath);
       requireNotContains(this.id, listing, "https://www.zivollc.com", listingPath);
       requireContains(this.id, setup, "android/local.properties", setupPath);
       requireContains(this.id, setup, "npm run android:build:debug", setupPath);
+    },
+  },
+  {
+    id: "web-pwa-native-identity",
+    category: "web",
+    check() {
+      const deepLinksPath = "src/lib/deepLinks.ts";
+      const seoPath = "src/components/SEOHead.tsx";
+      const vitePath = "vite.config.ts";
+      const manifestPath = "public/manifest.webmanifest";
+      const indexPath = "index.html";
+      const envPath = ".env.example";
+      const websitePath = "website/WEBSITE.md";
+      const playIntegrityPath = "supabase/functions/verify-play-integrity/index.ts";
+      const adminAssetsPath = "src/pages/admin/AdminAppStoreAssets.tsx";
+      const notifyAppUpdatePath = "supabase/functions/notify-app-update/index.ts";
+      const driverDownloadPath = "src/components/partner/DriverAppDownloadSheet.tsx";
+      const installPagePath = "src/pages/Install.tsx";
+      const installCardPath = "src/components/account/InstallAppCard.tsx";
+      const downloadSectionPath = "src/components/home/DownloadAppSection.tsx";
+      const deepLinkLandingPath = "src/pages/DeepLinkLandingPage.tsx";
+      const profileRedirectPath = "src/pages/ShareProfileRedirect.tsx";
+      const customerAppStoreUrl = "https://apps.apple.com/us/app/zivos/id6759480121";
+      const deepLinks = source(deepLinksPath);
+      const seo = source(seoPath);
+      const vite = source(vitePath);
+      const manifest = source(manifestPath);
+      const index = source(indexPath);
+      const env = source(envPath);
+      const website = source(websitePath);
+      const playIntegrity = source(playIntegrityPath);
+      const adminAssets = source(adminAssetsPath);
+      const notifyAppUpdate = source(notifyAppUpdatePath);
+      const driverDownload = source(driverDownloadPath);
+      const installPage = source(installPagePath);
+      const installCard = source(installCardPath);
+      const downloadSection = source(downloadSectionPath);
+      const deepLinkLanding = source(deepLinkLandingPath);
+      const profileRedirect = source(profileRedirectPath);
+
+      for (const [relativePath, text] of [
+        [deepLinksPath, deepLinks],
+        [indexPath, index],
+        [manifestPath, manifest],
+        [envPath, env],
+        [websitePath, website],
+        [playIntegrityPath, playIntegrity],
+        [adminAssetsPath, adminAssets],
+      ]) {
+        requireContains(this.id, text, "com.hizovo.app", relativePath);
+      }
+
+      requireContains(this.id, deepLinks, 'export const ANDROID_APP_PACKAGE = "com.hizovo.app"', deepLinksPath);
+      requireContains(this.id, deepLinks, "buildStoreUrlWithAttribution", deepLinksPath);
+      requireContains(this.id, deepLinks, "getInstallAttributionParams", deepLinksPath);
+      requireContains(this.id, deepLinks, 'url.searchParams.set("referrer"', deepLinksPath);
+      requireContains(this.id, deepLinks, 'url.searchParams.set("ct"', deepLinksPath);
+      requireContains(this.id, seo, "ANDROID_APP_PACKAGE", seoPath);
+      requireContains(this.id, seo, "IOS_APP_STORE_ID", seoPath);
+      requireContains(this.id, vite, 'id: "/?source=pwa"', vitePath);
+      requireContains(this.id, vite, "ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators", vitePath);
+      requireContains(this.id, vite, customerAppStoreUrl, vitePath);
+      requireContains(this.id, vite, "https://play.google.com/store/apps/details?id=com.hizovo.app", vitePath);
+      requireContains(this.id, deepLinks, "https://apps.apple.com/us/app/zivos/id${IOS_APP_STORE_ID}", deepLinksPath);
+      requireContains(this.id, manifest, '"id": "com.hizovo.app"', manifestPath);
+      requireContains(this.id, manifest, customerAppStoreUrl, manifestPath);
+      requireContains(this.id, manifest, "https://play.google.com/store/apps/details?id=com.hizovo.app", manifestPath);
+      requireContains(this.id, index, customerAppStoreUrl, indexPath);
+      requireContains(this.id, index, 'meta property="al:ios:app_store_id" content="6759480121"', indexPath);
+      requireContains(this.id, index, 'meta property="al:android:package" content="com.hizovo.app"', indexPath);
+      requireContains(this.id, index, "https://play.google.com/store/apps/details?id=com.hizovo.app", indexPath);
+      requireContains(this.id, index, "ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators", indexPath);
+      requireContains(this.id, website, customerAppStoreUrl, websitePath);
+      requireContains(this.id, env, `VITE_IOS_APP_STORE_URL=${customerAppStoreUrl}`, envPath);
+      requireContains(this.id, env, "VITE_ANDROID_PLAY_STORE_URL=https://play.google.com/store/apps/details?id=com.hizovo.app", envPath);
+      requireContains(this.id, notifyAppUpdate, customerAppStoreUrl, notifyAppUpdatePath);
+      requireContains(this.id, driverDownload, "https://apps.apple.com/us/app/zivodrivers/id6759507131", driverDownloadPath);
+      requireContains(this.id, playIntegrity, 'const PACKAGE_NAME = "com.hizovo.app"', playIntegrityPath);
+      requireContains(this.id, adminAssets, 'bundleId: "com.hizovo.app"', adminAssetsPath);
+      requireContains(this.id, adminAssets, 'packageName: "com.hizovo.app"', adminAssetsPath);
+      requireNotContains(this.id, seo, "com.zivo.app", seoPath);
+      for (const [relativePath, text] of [
+        [deepLinksPath, deepLinks],
+        [indexPath, index],
+        [manifestPath, manifest],
+        [envPath, env],
+        [vitePath, vite],
+        [notifyAppUpdatePath, notifyAppUpdate],
+        [driverDownloadPath, driverDownload],
+      ]) {
+        requireNotContains(this.id, text, "apps.apple.com/us/app/zivo-customer", relativePath);
+      }
+      for (const [relativePath, text] of [
+        [installPagePath, installPage],
+        [installCardPath, installCard],
+        [downloadSectionPath, downloadSection],
+        [deepLinkLandingPath, deepLinkLanding],
+        [profileRedirectPath, profileRedirect],
+      ]) {
+        requireContains(this.id, text, "getAttributedStoreUrls", relativePath);
+      }
     },
   },
   {

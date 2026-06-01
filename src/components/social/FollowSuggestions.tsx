@@ -44,15 +44,15 @@ export default function FollowSuggestions() {
 
   const followUser = async (targetId: string) => {
     if (!user) return;
-    await (supabase as any).from("user_followers").insert({ follower_id: user.id, following_id: targetId });
+    const { error } = await supabase.functions.invoke("follow-manage", {
+      body: { action: "follow", following_id: targetId },
+    });
+    if (error) {
+      toast.error("Failed to follow");
+      return;
+    }
     toast.success("Following!");
     setDismissed((p) => [...p, targetId]);
-    try {
-      const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).single();
-      await supabase.functions.invoke("send-push-notification", {
-        body: { user_id: targetId, notification_type: "new_follower", title: "New Follower 🔔", body: `${sp?.full_name || "Someone"} started following you`, data: { type: "new_follower", follower_id: user.id, avatar_url: sp?.avatar_url, action_url: `/user/${user.id}` } },
-      });
-    } catch {}
   };
 
   const visible = suggestions.filter((s: any) => !dismissed.includes(s.id));

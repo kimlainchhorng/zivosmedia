@@ -117,7 +117,7 @@ export default function Feedback() {
 
   return (
     <>
-      <SEOHead title="Feedback | ZIVO" description="Share your feedback to help us improve ZIVO." canonical="https://hizivo.com/feedback" />
+      <SEOHead title="Feedback | ZIVO" description="Share your feedback to help us improve ZIVO." canonical="https://zivollc.com/feedback" />
 
       <Header />
 
@@ -425,7 +425,7 @@ export default function Feedback() {
             <CardContent className="p-6 text-center">
               <h3 className="font-bold text-lg mb-2">Join the ZIVO Community</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Your voice shapes the future of travel. Every piece of feedback makes ZIVO better for millions of travelers.
+                Your voice shapes the future of ZIVO. Every piece of feedback improves the app for members, creators, businesses, and travelers.
               </p>
               <div className="flex justify-center gap-6">
                 {[

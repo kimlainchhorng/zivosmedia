@@ -1,62 +1,62 @@
 # ZIVO
 
-> ZIVO is a free all-in-one super-app combining travel booking (flights, hotels, car rentals), rides and food delivery, social feed and short-form video (reels), creator subscriptions and live streaming, online shop and POS, jobs board for hiring and applying, plus chat with voice and video calls — one account for everything. Available on iOS, Android, and the web at hizivo.com.
+> ZIVO is a free all-in-one super-app combining travel booking (flights, hotels, car rentals), rides and food delivery, social feed and short-form video (reels), creator subscriptions and live streaming, online shop and POS, jobs board for hiring and applying, plus chat with voice and video calls — one account for everything. Available on iOS, Android, and the web at zivollc.com.
 
 ZIVO is operated by ZIVO LLC and is a booking agent (not the merchant of record) for airline tickets. Core features are free; some premium features and creator subscriptions are paid. Languages supported: English, Khmer, Arabic, French. ZIVO partners with 500+ travel providers including Booking.com, Expedia, Hotels.com, Hertz, Enterprise, and Avis, and offers direct NDC pricing from 300+ airlines.
 
 ## Core services
 
-- [Flights](https://hizivo.com/flights): Compare flights from 500+ airlines worldwide. No booking fees.
-- [Hotels](https://hizivo.com/hotels): Compare hotel prices from 500+ trusted partners.
-- [Car rental](https://hizivo.com/rent-car): Compare rental car prices from Hertz, Enterprise, Avis and more.
-- [Rides](https://hizivo.com/rides): Book rides on demand.
-- [Eats](https://hizivo.com/eats): Order food delivery from local restaurants.
-- [Grocery](https://hizivo.com/grocery): Order groceries for delivery.
-- [Travel insurance](https://hizivo.com/travel-insurance): Coverage for trips booked on ZIVO.
+- [Flights](https://zivollc.com/flights): Compare flights from 500+ airlines worldwide. No booking fees.
+- [Hotels](https://zivollc.com/hotels): Compare hotel prices from 500+ trusted partners.
+- [Car rental](https://zivollc.com/rent-car): Compare rental car prices from Hertz, Enterprise, Avis and more.
+- [Rides](https://zivollc.com/rides): Book rides on demand.
+- [Eats](https://zivollc.com/eats): Order food delivery from local restaurants.
+- [Grocery](https://zivollc.com/grocery): Order groceries for delivery.
+- [Travel insurance](https://zivollc.com/travel-insurance): Coverage for trips booked on ZIVO.
 
 ## Social & creators
 
-- [Feed](https://hizivo.com/feed): Personalized social feed of posts and updates.
-- [Reels](https://hizivo.com/reels): Short-form video reels from creators worldwide.
-- [Creators](https://hizivo.com/creators): Discover creators and subscribe to fan content.
-- [Channels](https://hizivo.com/channels): Themed channels across topics.
-- [Communities](https://hizivo.com/communities): Group discussions and shared interests.
-- [Trending](https://hizivo.com/trending): Currently trending posts, topics, and creators.
-- [Explore](https://hizivo.com/explore): Discovery hub for content, places, and people.
-- [Leaderboard](https://hizivo.com/leaderboard): Top creators and contributors.
+- [Feed](https://zivollc.com/feed): Personalized social feed of posts and updates.
+- [Reels](https://zivollc.com/reels): Short-form video reels from creators worldwide.
+- [Creators](https://zivollc.com/creators): Discover creators and subscribe to fan content.
+- [Channels](https://zivollc.com/channels): Themed channels across topics.
+- [Communities](https://zivollc.com/communities): Group discussions and shared interests.
+- [Trending](https://zivollc.com/trending): Currently trending posts, topics, and creators.
+- [Explore](https://zivollc.com/explore): Discovery hub for content, places, and people.
+- [Leaderboard](https://zivollc.com/leaderboard): Top creators and contributors.
 
 ## Commerce & business
 
-- [Shop](https://hizivo.com/shop): Online marketplace for stores selling on ZIVO.
-- [Jobs](https://hizivo.com/jobs): Job board for posting roles and applying.
-- [Business](https://hizivo.com/business): Tools for merchants — POS, online shop, jobs.
-- [Partners](https://hizivo.com/partners): Travel and commerce partner program.
-- [API partners](https://hizivo.com/api-partners): Integration partners and APIs.
-- [Affiliate program](https://hizivo.com/affiliate-disclosure): Affiliate disclosures and program info.
+- [Shop](https://zivollc.com/shop): Online marketplace for stores selling on ZIVO.
+- [Jobs](https://zivollc.com/jobs): Job board for posting roles and applying.
+- [Business](https://zivollc.com/business): Tools for merchants — POS, online shop, jobs.
+- [Partners](https://zivollc.com/partners): Travel and commerce partner program.
+- [API partners](https://zivollc.com/api-partners): Integration partners and APIs.
+- [Affiliate program](https://zivollc.com/affiliate-disclosure): Affiliate disclosures and program info.
 
 ## About ZIVO
 
-- [About](https://hizivo.com/about): Company background and mission.
-- [How it works](https://hizivo.com/how-it-works): How ZIVO works for travelers, creators, and merchants.
-- [FAQ](https://hizivo.com/faq): Frequently asked questions.
-- [Help](https://hizivo.com/help): Help center.
-- [Contact](https://hizivo.com/contact): Contact ZIVO support — support@hizivo.com / info@hizivo.com.
-- [Careers](https://hizivo.com/careers): Job openings at ZIVO.
-- [Press](https://hizivo.com/press): Press kit and media contacts.
-- [Vision](https://hizivo.com/vision): ZIVO's product vision and roadmap context.
-- [Trust statement](https://hizivo.com/trust-statement): Trust, safety, and reliability commitments.
+- [About](https://zivollc.com/about): Company background and mission.
+- [How it works](https://zivollc.com/how-it-works): How ZIVO works for travelers, creators, and merchants.
+- [FAQ](https://zivollc.com/faq): Frequently asked questions.
+- [Help](https://zivollc.com/help): Help center.
+- [Contact](https://zivollc.com/contact): Contact ZIVO support — support@hizivo.com / info@hizivo.com.
+- [Careers](https://zivollc.com/careers): Job openings at ZIVO.
+- [Press](https://zivollc.com/press): Press kit and media contacts.
+- [Vision](https://zivollc.com/vision): ZIVO's product vision and roadmap context.
+- [Trust statement](https://zivollc.com/trust-statement): Trust, safety, and reliability commitments.
 
 ## Travel guides
 
-- [Cheap flights guide](https://hizivo.com/guides/cheap-flights): Tips for finding low fares.
-- [Best time to book](https://hizivo.com/guides/best-time-to-book): When to book flights for best prices.
-- [Deals](https://hizivo.com/deals): Current travel and shopping deals.
+- [Cheap flights guide](https://zivollc.com/guides/cheap-flights): Tips for finding low fares.
+- [Best time to book](https://zivollc.com/guides/best-time-to-book): When to book flights for best prices.
+- [Deals](https://zivollc.com/deals): Current travel and shopping deals.
 
 ## Optional / legal
 
-- [Terms](https://hizivo.com/terms): Terms of service.
-- [Privacy](https://hizivo.com/privacy): Privacy policy.
-- [Cookies](https://hizivo.com/cookies): Cookie policy.
-- [Affiliate disclosure](https://hizivo.com/affiliate-disclosure): How ZIVO earns from partners.
-- [Accessibility](https://hizivo.com/legal/accessibility): Accessibility statement.
-- [Seller of travel](https://hizivo.com/legal/seller-of-travel): US seller-of-travel registrations and disclosures.
+- [Terms](https://zivollc.com/terms): Terms of service.
+- [Privacy](https://zivollc.com/privacy): Privacy policy.
+- [Cookies](https://zivollc.com/cookies): Cookie policy.
+- [Affiliate disclosure](https://zivollc.com/affiliate-disclosure): How ZIVO earns from partners.
+- [Accessibility](https://zivollc.com/legal/accessibility): Accessibility statement.
+- [Seller of travel](https://zivollc.com/legal/seller-of-travel): US seller-of-travel registrations and disclosures.

@@ -8,7 +8,7 @@
  *  - Queue is flushed on module load, on `online` events, and lazily after
  *    every successful insert (up to 25 queued events at a time).
  */
-import { supabase } from "@/integrations/supabase/client";
+import { invokeAnalyticsEvent, type AnalyticsEventPayload } from "@/lib/analyticsIngestion";
 
 export type AnalyticsProps = Record<string, unknown>;
 
@@ -73,7 +73,7 @@ async function writeAnalyticsEvent(payload: {
   meta?: AnalyticsProps;
   created_at?: string;
 }) {
-  return supabase.functions.invoke("analytics-event-track", { body: payload });
+  return invokeAnalyticsEvent(payload as AnalyticsEventPayload);
 }
 
 let flushing = false;

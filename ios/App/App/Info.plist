@@ -26,7 +26,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.myzivo.app</string>
+			<string>com.hizovo.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.myzivo.app</string>

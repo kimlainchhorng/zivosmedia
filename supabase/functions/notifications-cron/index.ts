@@ -437,7 +437,7 @@ serve(withSecurity("notifications-cron", async (req, ctx) => {
           .maybeSingle();
         const salonName = (store as any)?.name ?? "your salon";
         const salonPhone = (store as any)?.phone ?? null;
-        const appUrl = Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com";
+        const appUrl = Deno.env.get("PUBLIC_APP_URL") || "https://zivollc.com";
         const bookingUrl = (store as any)?.slug ? `${appUrl}/salon/${(store as any).slug}` : appUrl;
 
         if (row.reminder_type === "booking_lead" && row.booking_id) {
@@ -640,7 +640,7 @@ serve(withSecurity("notifications-cron", async (req, ctx) => {
         store = { name: (sp as any)?.name ?? "your salon", slug: (sp as any)?.slug ?? null };
         stores.set(c.store_id, store);
       }
-      const appUrl = Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com";
+      const appUrl = Deno.env.get("PUBLIC_APP_URL") || "https://zivollc.com";
       const bookingUrl = store.slug ? `${appUrl}/salon/${store.slug}` : appUrl;
       const discount = (settings as any)?.birthday_discount_percent ?? 0;
 

@@ -2,16 +2,18 @@
  * PWA Install Page
  * Guides users through installing ZIVO on their device
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { motion } from "framer-motion";
 import { 
   Download, Smartphone, Share, Plus, Check, 
   Plane, Car, Utensils, BedDouble, ChevronRight,
-  Zap, Wifi, Bell
+  Zap, Wifi, Bell, Apple
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getAttributedStoreUrls } from "@/lib/deepLinks";
+import { trackMetaAppInstallClick } from "@/lib/metaAdsTracking";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -23,6 +25,10 @@ const Install = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const storeUrls = useMemo(
+    () => getAttributedStoreUrls({ content: "install_page" }),
+    [],
+  );
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -135,6 +141,30 @@ const Install = () => {
 
       {/* Install Section */}
       <div className="px-6 pb-12">
+        {!isInstalled && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            <a
+              href={storeUrls.ios}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackMetaAppInstallClick({ platform: "ios", surface: "install_page", destinationUrl: storeUrls.ios })}
+              className="h-12 rounded-2xl bg-foreground text-background font-bold text-sm inline-flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <Apple className="w-4 h-4" />
+              App Store
+            </a>
+            <a
+              href={storeUrls.android}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackMetaAppInstallClick({ platform: "android", surface: "install_page", destinationUrl: storeUrls.android })}
+              className="h-12 rounded-2xl bg-foreground text-background font-bold text-sm inline-flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <Smartphone className="w-4 h-4" />
+              Google Play
+            </a>
+          </div>
+        )}
         {isInstalled ? (
           <motion.div
             initial={{ opacity: 0 }}

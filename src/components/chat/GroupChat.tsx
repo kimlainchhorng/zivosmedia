@@ -51,6 +51,8 @@ import AvatarPreviewSheet from "./AvatarPreviewSheet";
 import ZivoActionBubble, { type ZivoCardPayload } from "./ZivoActionBubble";
 import ZivoCardPicker from "./ZivoCardPicker";
 import { beginSend as outboxBeginSend, enqueue as outboxEnqueue, finishSend as outboxFinishSend, remove as outboxRemove, list as outboxList, subscribe as outboxSubscribe } from "@/lib/chat/messageOutbox";
+import { sendGroupMessage } from "@/lib/chat/groupMessageSend";
+import { leaveGroup } from "@/lib/chat/groupManage";
 import ChatDeliveryStatus from "./ChatDeliveryStatus";
 import OutboxPendingBadge from "./OutboxPendingBadge";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
@@ -1178,7 +1180,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       if (!isAlbum && firstItem?.kind === "image" && firstItem.original_path) insertData.image_url = firstItem.original_path;
       if (currentReply) insertData.reply_to_id = currentReply.id;
 
-      const { error: insertError } = await dbFrom("group_messages").insert(insertData);
+      const { error: insertError } = await sendGroupMessage(insertData);
       if (insertError) throw insertError;
       toast.success(isAlbum ? "Locked media bundle sent" : "Locked media sent");
     } catch (error) {
@@ -1286,7 +1288,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       }
 
       // Fire-and-forget insert; realtime echo will replace the optimistic row.
-      const { error } = await dbFrom("group_messages").insert(insertData);
+      const { error } = await sendGroupMessage(insertData);
       if (error) throw error;
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "sent" } : m)),
@@ -1358,7 +1360,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     if (currentReply) insertData.reply_to_id = currentReply.id;
 
     try {
-      const { error } = await dbFrom("group_messages").insert(insertData);
+      const { error } = await sendGroupMessage(insertData);
       if (error) throw error;
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "sent" } : m)),
@@ -1487,7 +1489,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     };
     if (replyTo) insertData.reply_to_id = replyTo.id;
     try {
-      const { error } = await dbFrom("group_messages").insert(insertData);
+      const { error } = await sendGroupMessage(insertData);
       if (error) throw error;
     } catch {
       failedSendsRef.current.set(optimisticId, insertData);
@@ -1518,7 +1520,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "uploading" } : m)),
     );
     try {
-      const { error } = await dbFrom("group_messages").insert(payload);
+      const { error } = await sendGroupMessage(payload);
       if (error) throw error;
       failedSendsRef.current.delete(optimisticId);
       outboxRemove(optimisticId);
@@ -1655,7 +1657,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       await retryWithBackoff(
         async (attempt) => {
           if (attempt > 0) vlog("insert:retry", { clientSendId, attempt });
-          const { error: insertError } = await dbFrom("group_messages").insert(insertData);
+          const { error: insertError } = await sendGroupMessage(insertData);
           if (insertError) throw insertError;
         },
         { signal: controller.signal, attempts: 4, baseDelayMs: 600 },
@@ -1887,7 +1889,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         if (kind === "image") insertData.image_url = dbMediaUrl;
         if (kind === "video") insertData.video_url = dbMediaUrl;
         if (currentReply) insertData.reply_to_id = currentReply.id;
-        const { error: insErr } = await dbFrom("group_messages").insert(insertData);
+        const { error: insErr } = await sendGroupMessage(insertData);
         if (insErr) throw insErr;
       } catch (e) {
         console.warn(`[group/${kind}] upload/send failed`, e);
@@ -2083,7 +2085,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           },
         };
         if (currentReply) insertData.reply_to_id = currentReply.id;
-        const { error: insErr } = await dbFrom("group_messages").insert(insertData);
+        const { error: insErr } = await sendGroupMessage(insertData);
         if (insErr) throw insErr;
       } catch (e) {
         console.warn("[group/media-album] upload/send failed", e);
@@ -2216,7 +2218,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     setMessages((prev) => [...prev, optimisticMsg]);
     scrollToBottom();
     try {
-      const { error } = await dbFrom("group_messages").insert({ group_id: groupId, sender_id: user.id, message: text, message_type: msgType });
+      const { error } = await sendGroupMessage({ group_id: groupId, sender_id: user.id, message: text, message_type: msgType });
       if (error) throw error;
     } catch { setMessages((prev) => prev.filter((m) => m.id !== optimisticId)); toast.error("Failed to send"); }
     setShowStickerKeyboard(false);
@@ -2304,7 +2306,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         setMessages((prev) => [...prev, optimisticMsg]);
         scrollToBottom();
         try {
-          const { error } = await dbFrom("group_messages").insert({ group_id: groupId, sender_id: user.id, message: msg, message_type: "text" });
+          const { error } = await sendGroupMessage({ group_id: groupId, sender_id: user.id, message: msg, message_type: "text" });
           if (error) throw error;
         } catch { setMessages((prev) => prev.filter((m) => m.id !== optimisticId)); toast.error("Failed to share location"); }
       },
@@ -2359,7 +2361,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
 
   const handleLeaveGroup = async () => {
     if (!user?.id) return;
-    const { error } = await dbFrom("chat_group_members").delete().eq("group_id", groupId).eq("user_id", user.id);
+    const { error } = await leaveGroup({ group_id: groupId });
     if (error) { toast.error("Could not leave group"); return; }
     toast.success("You left the group");
     onClose();

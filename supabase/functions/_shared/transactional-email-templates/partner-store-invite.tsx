@@ -95,8 +95,8 @@ const cta = {
 function PartnerStoreInviteEmail({
   storeName = 'My Store',
   storeAccountId = 'CBD0013F47A',
-  loginUrl = 'https://hizivo.com/partner-login',
-  supportUrl = 'https://hizivo.com/help',
+  loginUrl = 'https://zivollc.com/partner-login',
+  supportUrl = 'https://zivollc.com/help',
 }: PartnerStoreInviteProps) {
   return (
     <Html>
@@ -148,7 +148,7 @@ export const template = {
   previewData: {
     storeName: 'Mommy Seafood ម៉ាមី ស៊ីហ៊្វូត',
     storeAccountId: 'CBD0013F47A',
-    loginUrl: 'https://hizivo.com/partner-login',
-    supportUrl: 'https://hizivo.com/help',
+    loginUrl: 'https://zivollc.com/partner-login',
+    supportUrl: 'https://zivollc.com/help',
   },
 } satisfies TemplateEntry<PartnerStoreInviteProps>

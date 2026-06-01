@@ -19,7 +19,7 @@ const PARTNER_TYPES = [
   {
     icon: Plane,
     title: "Airlines",
-    description: "List your flights on ZIVO and reach millions of travelers worldwide",
+    description: "List routes and offers on ZIVO for travelers planning trips worldwide",
     gradient: "from-muted to-muted",
     glow: "shadow-sky-500/25",
     stat: "500+ Airlines",
@@ -27,7 +27,7 @@ const PARTNER_TYPES = [
   {
     icon: Hotel,
     title: "Hotels",
-    description: "Showcase your properties to travelers booking complete trips",
+    description: "Showcase properties to members booking complete trips",
     gradient: "from-amber-500 to-orange-500",
     glow: "shadow-amber-500/25",
     stat: "2M+ Properties",
@@ -35,7 +35,7 @@ const PARTNER_TYPES = [
   {
     icon: Car,
     title: "Car Rentals",
-    description: "Connect with travelers seeking ground transportation solutions",
+    description: "Connect with members seeking ground transportation solutions",
     gradient: "from-muted to-muted",
     glow: "shadow-violet-500/25",
     stat: "150+ Countries",
@@ -51,7 +51,7 @@ const PARTNER_TYPES = [
   {
     icon: UtensilsCrossed,
     title: "Restaurants",
-    description: "Serve hungry travelers and locals through ZIVO Eats ordering",
+    description: "Serve hungry members and locals through ZIVO Eats ordering",
     gradient: "from-muted to-muted",
     glow: "shadow-rose-500/25",
     stat: "10K+ Restaurants",
@@ -59,7 +59,7 @@ const PARTNER_TYPES = [
   {
     icon: Store,
     title: "Stores",
-    description: "Sell products to travelers and locals through ZIVO marketplace",
+    description: "Sell products to members, locals, creators, and communities through ZIVO marketplace",
     gradient: "from-muted to-muted",
     glow: "shadow-indigo-500/25",
     stat: "5K+ Stores",
@@ -91,7 +91,7 @@ const PARTNER_TYPES = [
 ];
 
 const BENEFITS = [
-  { icon: Users, title: "Millions of Users", description: "Access our rapidly growing base of active travelers", number: "2M+" },
+  { icon: Users, title: "Millions of Users", description: "Access a growing base of members across travel, social, shopping, jobs, and local services", number: "2M+" },
   { icon: DollarSign, title: "Competitive Commission", description: "Transparent and flexible revenue sharing models", number: "15%" },
   { icon: BarChart3, title: "Real-Time Analytics", description: "Track performance, conversions, and optimize your ROI", number: "24/7" },
   { icon: Globe, title: "Global Reach", description: "Expand into new markets across 150+ countries", number: "150+" },
@@ -101,7 +101,7 @@ const STEPS = [
   { step: "01", title: "Apply", description: "Submit your partnership inquiry below" },
   { step: "02", title: "Review", description: "Our team evaluates your application" },
   { step: "03", title: "Integrate", description: "Connect your inventory to ZIVO" },
-  { step: "04", title: "Grow", description: "Start reaching millions of travelers" },
+  { step: "04", title: "Grow", description: "Start reaching members across ZIVO's connected marketplace" },
 ];
 
 /* Map URL ?type= param values to Select values */
@@ -225,8 +225,8 @@ export default function PartnerWithZivo() {
             Become a ZIVO Partner
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-base sm:text-lg leading-relaxed">
-            Join our network of travel providers and connect with millions of travelers
-            searching for their next adventure.
+            Join our network of travel, local service, shop, restaurant, driver, and employer partners
+            reaching members across ZIVO.
           </p>
 
           {/* Trust Stats Row */}
@@ -551,9 +551,9 @@ export default function PartnerWithZivo() {
         <section className="text-center pb-8">
           <div className="bg-muted/20 rounded-2xl p-6 max-w-2xl mx-auto border border-border/30">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Partner Disclosure:</strong> ZIVO acts as a booking facilitator
-              and sub-agent. Travel services are provided by licensed partners. All partnerships are subject to
-              review and approval based on ZIVO's quality and compliance standards.
+              <strong className="text-foreground">Partner Disclosure:</strong> ZIVO acts as a facilitator for partner
+              discovery, bookings, listings, and service workflows. Travel services are provided by licensed partners.
+              All partnerships are subject to review and approval based on ZIVO's quality and compliance standards.
             </p>
           </div>
           <div className="mt-4">

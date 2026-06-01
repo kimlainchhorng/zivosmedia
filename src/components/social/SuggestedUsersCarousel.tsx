@@ -66,19 +66,12 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
   const handleFollow = async (profileId: string) => {
     if (!user) return;
     try {
-      const { error } = await (supabase as any).from("user_followers").insert({
-        follower_id: user.id,
-        following_id: profileId,
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "follow", following_id: profileId },
       });
-      if (error && !error.message?.includes("duplicate")) throw error;
+      if (error) throw error;
       setFollowing((prev) => new Set([...prev, profileId]));
       toast.success("Following!");
-      try {
-        const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).single();
-        await supabase.functions.invoke("send-push-notification", {
-          body: { user_id: profileId, notification_type: "new_follower", title: "New Follower 🔔", body: `${sp?.full_name || "Someone"} started following you`, data: { type: "new_follower", follower_id: user.id, avatar_url: sp?.avatar_url, action_url: `/user/${user.id}` } },
-        });
-      } catch {}
     } catch {
       toast.error("Failed to follow");
     }

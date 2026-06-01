@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 import CreateSheet from "@/components/feed/CreateSheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
@@ -55,6 +56,7 @@ import { copyText } from "@/lib/native/clipboard";
 import { normalizeSupabaseMediaUrl } from "@/utils/normalizeSupabaseMediaUrl";
 import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
 import { reportFeedQueryError } from "@/lib/feedQueryTelemetry";
+import { removePostBookmark, savePostBookmark } from "@/lib/social/postBookmarkManage";
 
 const FeedStoryRing = lazy(() => import("@/components/social/FeedStoryRing"));
 const ZivoMobileNav = lazy(() => import("@/components/app/ZivoMobileNav"));
@@ -248,7 +250,7 @@ export default function SocialFeedPage() {
   }, [feedError, hasFeedError, tab, user?.id]);
 
   const goAuth = () => {
-    navigate("/auth?next=" + encodeURIComponent("/feed"));
+    navigate(withRedirectParam("/login", "/feed"));
   };
 
   return (
@@ -541,7 +543,7 @@ function PostFooter({ post }: { post: FeedPost }) {
     setSaved(!!post.viewer_has_saved);
   }, [post.id, post.viewer_has_liked, post.viewer_has_saved]);
 
-  const goAuth = () => navigate("/auth?next=" + encodeURIComponent("/feed"));
+  const goAuth = () => navigate(withRedirectParam("/login", "/feed"));
 
   const handleLike = async () => {
     if (!user?.id) return goAuth();
@@ -596,17 +598,22 @@ function PostFooter({ post }: { post: FeedPost }) {
     setSaved(!wasSaved);
     try {
       if (wasSaved) {
-        await (supabase as any)
-          .from("bookmarks")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("item_type", "post")
-          .eq("item_id", post.id);
+        const { error } = await removePostBookmark({
+          post_id: post.id,
+          source: "user",
+          sync_legacy: true,
+          legacy_item_id: post.id,
+        });
+        if (error) throw error;
         toast("Removed from Saved");
       } else {
-        const { error } = await (supabase as any)
-          .from("bookmarks")
-          .insert({ user_id: user.id, item_type: "post", item_id: post.id });
+        const { error } = await savePostBookmark({
+          post_id: post.id,
+          source: "user",
+          sync_legacy: true,
+          legacy_item_id: post.id,
+          collection_name: "Posts",
+        });
         if (error && (error as any).code !== "23505") throw error;
         toast.success("Saved", {
           description: "Find it in your Saved collection.",
@@ -785,7 +792,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   };
 
   const handleHidePost = async () => {
-    if (!user?.id) return navigate("/auth?next=" + encodeURIComponent("/feed"));
+    if (!user?.id) return navigate(withRedirectParam("/login", "/feed"));
     try {
       const { error } = await (supabase as any)
         .from("hidden_posts")
@@ -801,7 +808,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   };
 
   const handleMuteAuthor = async () => {
-    if (!user?.id) return navigate("/auth?next=" + encodeURIComponent("/feed"));
+    if (!user?.id) return navigate(withRedirectParam("/login", "/feed"));
     try {
       const { error } = await (supabase as any)
         .from("muted_users")
@@ -817,7 +824,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   };
 
   const handleReport = async () => {
-    if (!user?.id) return navigate("/auth?next=" + encodeURIComponent("/feed"));
+    if (!user?.id) return navigate(withRedirectParam("/login", "/feed"));
     const reason = window.prompt("Why are you reporting this post?");
     if (!reason || !reason.trim()) return;
     try {
@@ -863,9 +870,13 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   const handleSaveOwn = async () => {
     if (!user?.id) return;
     try {
-      const { error } = await (supabase as any)
-        .from("bookmarks")
-        .insert({ user_id: user.id, item_type: "post", item_id: post.id });
+      const { error } = await savePostBookmark({
+        post_id: post.id,
+        source: "user",
+        sync_legacy: true,
+        legacy_item_id: post.id,
+        collection_name: "Posts",
+      });
       if (error && (error as any).code !== "23505") throw error;
       queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
       toast.success("Saved", { description: "Find it in your Saved collection.", action: { label: "View", onClick: () => navigate("/saved") } });
@@ -1096,18 +1107,16 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
   if (isSelf || isBusiness === null || following === null || friendStatus === null) return null;
 
   const handleFollow = async () => {
-    if (!user?.id) { navigate("/auth?next=" + encodeURIComponent("/feed")); return; }
+    if (!user?.id) { navigate(withRedirectParam("/login", "/feed")); return; }
     if (followBusy) return;
     setFollowBusy(true);
     const wasFollowing = following;
     setFollowing(!wasFollowing);
     try {
-      if (wasFollowing) {
-        await (supabase as any).from("user_followers").delete().eq("follower_id", user.id).eq("following_id", targetUserId);
-      } else {
-        const { error } = await (supabase as any).from("user_followers").insert({ follower_id: user.id, following_id: targetUserId });
-        if (error && (error as any).code !== "23505") throw error;
-      }
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: wasFollowing ? "unfollow" : "follow", following_id: targetUserId },
+      });
+      if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["social-feed-posts"] });
       queryClient.invalidateQueries({ queryKey: ["follow-suggestions"] });
     } catch {
@@ -1121,26 +1130,8 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
   // Friend ⇄ Follow always travel together for personal accounts.
   // Sending or accepting a friend request also follows; cancelling or
   // removing a friend also unfollows. The user only ever taps one pill.
-  const ensureFollow = async () => {
-    if (!user?.id) return;
-    const { error } = await (supabase as any)
-      .from("user_followers")
-      .insert({ follower_id: user.id, following_id: targetUserId });
-    if (error && (error as any).code !== "23505") throw error;
-    setFollowing(true);
-  };
-  const ensureUnfollow = async () => {
-    if (!user?.id) return;
-    await (supabase as any)
-      .from("user_followers")
-      .delete()
-      .eq("follower_id", user.id)
-      .eq("following_id", targetUserId);
-    setFollowing(false);
-  };
-
   const handleFriend = async () => {
-    if (!user?.id) { navigate("/auth?next=" + encodeURIComponent("/feed")); return; }
+    if (!user?.id) { navigate(withRedirectParam("/login", "/feed")); return; }
     if (friendBusy) return;
     setFriendBusy(true);
     const prev = friendStatus;
@@ -1149,27 +1140,38 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
       if (prev === "none") {
         // Send request + auto-follow
         setFriendStatus("pending_out");
-        const { error } = await (supabase as any).from("friendships").insert({ user_id: user.id, friend_id: targetUserId, status: "pending" });
-        if (error && (error as any).code !== "23505") throw error;
-        await ensureFollow();
+        setFollowing(true);
+        const { error } = await supabase.functions.invoke("friendship-manage", {
+          body: { action: "send", friend_id: targetUserId },
+        });
+        if (error) throw error;
         toast.success("Friend request sent · also following");
       } else if (prev === "pending_out") {
         // Cancel pending request + unfollow
         setFriendStatus("none");
-        await (supabase as any).from("friendships").delete().eq("user_id", user.id).eq("friend_id", targetUserId);
-        await ensureUnfollow();
+        setFollowing(false);
+        const { error } = await supabase.functions.invoke("friendship-manage", {
+          body: { action: "cancel", friend_id: targetUserId },
+        });
+        if (error) throw error;
         toast("Request cancelled");
       } else if (prev === "pending_in") {
         // Accept their request + follow back
         setFriendStatus("accepted");
-        await (supabase as any).from("friendships").update({ status: "accepted", accepted_at: new Date().toISOString() }).eq("user_id", targetUserId).eq("friend_id", user.id);
-        await ensureFollow();
+        setFollowing(true);
+        const { error } = await supabase.functions.invoke("friendship-manage", {
+          body: { action: "accept", friend_id: targetUserId },
+        });
+        if (error) throw error;
         toast.success("Friends 🎉");
       } else if (prev === "accepted") {
         // Unfriend + unfollow
         setFriendStatus("none");
-        await (supabase as any).from("friendships").delete().or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`);
-        await ensureUnfollow();
+        setFollowing(false);
+        const { error } = await supabase.functions.invoke("friendship-manage", {
+          body: { action: "unfriend", friend_id: targetUserId },
+        });
+        if (error) throw error;
         toast("Friend removed · unfollowed");
       }
       queryClient.invalidateQueries({ queryKey: ["social-feed-posts"] });

@@ -4,7 +4,16 @@ type RedirectLocation = {
   search?: string;
 } | null | undefined;
 
-const AUTH_ROUTES = ["/login", "/verify-otp", "/auth-callback"];
+const AUTH_ROUTES = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/verify-otp",
+  "/verify-new-device",
+  "/auth-callback",
+];
 
 export const getSafeRedirectTarget = (value?: string | null) => {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {

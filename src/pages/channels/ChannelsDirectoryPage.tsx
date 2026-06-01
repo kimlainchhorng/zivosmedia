@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { ChevronLeft, Plus, Search, Users, Megaphone, Sparkles, Check } from "lu
 import { format, formatDistanceToNow, isToday } from "date-fns";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 type Channel = {
   id: string;
@@ -41,6 +42,7 @@ const formatListTime = (iso?: string | null): string => {
 
 export default function ChannelsDirectoryPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -123,7 +125,7 @@ export default function ChannelsDirectoryPage() {
   const handleToggleFollow = async (c: Channel) => {
     if (!user?.id) {
       toast.error("Sign in to follow channels");
-      navigate("/auth");
+      navigate(withRedirectParam("/login", `${location.pathname}${location.search}${location.hash}`));
       return;
     }
     if (pendingId) return;

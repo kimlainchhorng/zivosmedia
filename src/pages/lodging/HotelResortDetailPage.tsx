@@ -778,7 +778,7 @@ export default function HotelResortDetailPage() {
             `Discover ${store?.name || "this hotel"} on ZIVO — rooms, amenities, location and contact.`
           }
         />
-        <link rel="canonical" href={`https://hizivo.com/hotel/${storeId}`} />
+        <link rel="canonical" href={`https://zivollc.com/hotel/${storeId}`} />
       </Helmet>
 
       {/* Hero / Cover */}

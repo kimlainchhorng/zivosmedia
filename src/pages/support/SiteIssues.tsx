@@ -45,7 +45,7 @@ const troubleshootingSteps = [
     id: "cookies",
     icon: Shield,
     title: "Check cookies are enabled",
-    description: "Ensure your browser allows cookies for hizivo.com.",
+    description: "Ensure your browser allows cookies for zivollc.com.",
     tip: "We use cookies for essential site functionality.",
   },
   {
@@ -109,7 +109,7 @@ const commonIssues = [
   {
     issue: "Redirect not working",
     solutions: [
-      "Disable popup blockers for hizivo.com",
+      "Disable popup blockers for zivollc.com",
       "Check if popups are blocked",
       "Try clicking the link again",
       "Clear browser data",
@@ -137,7 +137,7 @@ export default function SiteIssuesSupport() {
       <SEOHead 
         title="Site Issues & Troubleshooting – ZIVO"
         description="Having trouble with the Hizovo website? Follow our troubleshooting guide to resolve common issues."
-        canonical="https://hizivo.com/support/site-issues"
+        canonical="https://zivollc.com/support/site-issues"
       />
       <Header />
 

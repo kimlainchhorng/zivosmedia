@@ -32,7 +32,7 @@ interface RunResult {
   ran_at: string;
 }
 
-const SITE_URL = Deno.env.get("SITE_URL") ?? "https://hizivo.com";
+const SITE_URL = Deno.env.get("SITE_URL") ?? "https://zivollc.com";
 
 function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
   const authorization = req.headers.get("Authorization") || "";

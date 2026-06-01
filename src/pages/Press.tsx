@@ -33,7 +33,7 @@ import { toast } from "sonner";
 const companyFacts = [
   { label: "Founded", value: "2024" },
   { label: "Headquarters", value: "United States" },
-  { label: "Services", value: "Flights, Hotels, Car Rentals, Rides, Eats, Move" },
+  { label: "Services", value: "Travel, Rides, Eats, Feed, Reels, Shops, Jobs, Chat" },
   { label: "Markets", value: "United States (Expanding)" },
 ];
 
@@ -51,7 +51,7 @@ const pressContacts = [
   {
     label: "Corporate Accounts",
     email: "business@hizivo.com",
-    description: "For enterprise and corporate travel solutions",
+    description: "For enterprise, marketplace, hiring, and corporate travel solutions",
   },
 ];
 
@@ -75,7 +75,7 @@ const Press = () => {
       <SEOHead
         title="Press & Media | ZIVO"
         description="ZIVO press resources, media kit, and contact information for journalists and media outlets."
-        canonical="https://hizivo.com/press"
+        canonical="https://zivollc.com/press"
       />
       <Header />
 
@@ -252,10 +252,10 @@ const Press = () => {
                 <h2 className="text-2xl font-bold mb-6 text-center">Recent Coverage</h2>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
-                    { outlet: "TechCrunch", title: "ZIVO raises seed round to unify travel booking", date: "Jan 2025", category: "Funding", emoji: "💰" },
+                    { outlet: "TechCrunch", title: "ZIVO raises seed round to build an all-in-one consumer app", date: "Jan 2025", category: "Funding", emoji: "💰" },
                     { outlet: "Travel Weekly", title: "How ZIVO is disrupting the OTA landscape", date: "Dec 2024", category: "Industry", emoji: "✈️" },
                     { outlet: "Forbes", title: "10 Travel Startups to Watch in 2025", date: "Nov 2024", category: "Recognition", emoji: "🏆" },
-                    { outlet: "Skift", title: "ZIVO launches multi-modal travel platform", date: "Oct 2024", category: "Launch", emoji: "🚀" },
+                    { outlet: "Skift", title: "ZIVO launches travel, local services, and social platform", date: "Oct 2024", category: "Launch", emoji: "🚀" },
                     { outlet: "The Points Guy", title: "ZIVO Miles: A new loyalty program worth exploring", date: "Sep 2024", category: "Rewards", emoji: "⭐" },
                     { outlet: "Wired", title: "The future of AI-powered trip planning", date: "Aug 2024", category: "Technology", emoji: "🤖" },
                   ].map(a => (
@@ -281,8 +281,8 @@ const Press = () => {
                 <h2 className="text-2xl font-bold mb-6 text-center">Company Milestones</h2>
                 <div className="space-y-3">
                   {[
-                    { year: "2025", event: "Expanded to 50+ team members, launched ZIVO Rides & Eats", icon: "🎯" },
-                    { year: "2024", event: "Founded ZIVO, launched flight search and hotel booking", icon: "🏁" },
+                    { year: "2025", event: "Expanded to 50+ team members, launched ZIVO Rides, Eats, Feed, and Reels", icon: "🎯" },
+                    { year: "2024", event: "Founded ZIVO, launched travel search, hotel booking, and social discovery", icon: "🏁" },
                     { year: "2024", event: "ZIVO Miles loyalty program launched", icon: "⭐" },
                     { year: "2024", event: "Car rental and multi-city booking added", icon: "🚗" },
                   ].map((m, i) => (
@@ -306,10 +306,10 @@ const Press = () => {
                     </h3>
                     <div className="grid sm:grid-cols-2 gap-3">
                       {[
-                        { q: "What is ZIVO?", a: "A unified travel and mobility platform for flights, hotels, car rentals, rides, food delivery, and more." },
-                        { q: "Who founded ZIVO?", a: "ZIVO was founded in 2024 with a mission to connect how the world moves." },
+                        { q: "What is ZIVO?", a: "An all-in-one app for travel, rides, food, feed, reels, creators, shops, jobs, chat, and calls." },
+                        { q: "Who founded ZIVO?", a: "ZIVO was founded in 2024 with a mission to connect everyday life in one app." },
                         { q: "Where is ZIVO based?", a: "United States, with a fully remote and global team." },
-                        { q: "How does ZIVO make money?", a: "Referral commissions from travel partners, ZIVO+ memberships, and advertising." },
+                        { q: "How does ZIVO make money?", a: "Referral commissions, marketplace and partner services, ZIVO+ memberships, creator subscriptions, and advertising." },
                       ].map(f => (
                         <div key={f.q} className="p-3 rounded-xl bg-card/60 border border-border/30">
                           <p className="text-xs font-bold text-foreground mb-1">{f.q}</p>
@@ -376,7 +376,7 @@ const Press = () => {
                   <CardContent className="p-6">
                     <h3 className="font-bold mb-3">About ZIVO (Boilerplate)</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      ZIVO (hizivo.com) is a travel search and comparison platform that helps users find and compare flights, hotels, car rentals, and travel services from trusted partners worldwide. Founded in 2024, ZIVO's mission is to connect how the world moves by building a unified platform for travel and mobility. ZIVO does not sell tickets or process payments — when users select an option, they are redirected to trusted travel partners to complete their booking. ZIVO is free for users and earns revenue through affiliate commissions from travel partners. For more information, visit hizivo.com.
+                      ZIVO (zivollc.com) is an all-in-one app for travel booking, rides, food, social feed, reels, creator subscriptions, online shops, jobs, hiring, chat, and calls. Founded in 2024, ZIVO's mission is to connect everyday life through a unified platform for consumers, creators, businesses, and travel partners. For travel bookings, ZIVO redirects users to trusted travel partners that complete booking, payment, and fulfillment. ZIVO is free for users and earns revenue through partner commissions, marketplace services, memberships, creator subscriptions, and advertising. For more information, visit zivollc.com.
                     </p>
                     <p className="text-xs text-muted-foreground mt-3 italic">
                       Copy-paste ready for publications. For custom quotes, contact press@hizivo.com.

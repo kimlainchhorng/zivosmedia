@@ -15,7 +15,7 @@ describe("pathFromNativeOpenUrl", () => {
   });
 
   it("accepts trusted web links received through native app open events", () => {
-    expect(pathFromNativeOpenUrl("https://hizivo.com/chat?thread=abc")).toBe("/chat?thread=abc");
+    expect(pathFromNativeOpenUrl("https://zivollc.com/chat?thread=abc")).toBe("/chat?thread=abc");
   });
 
   it("rejects untrusted schemes and hosts", () => {

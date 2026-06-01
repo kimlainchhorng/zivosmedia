@@ -7,6 +7,8 @@ import { scanContentForLinks, logBlockedAttempt, isAbuseThresholdExceeded, isIpA
 import { isLikelyMaliciousBot } from "../_shared/botDetection.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
+const META_GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
+
 Deno.serve(withSecurity("post-to-facebook-page", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
 
@@ -85,7 +87,7 @@ Deno.serve(withSecurity("post-to-facebook-page", async (req, ctx) => {
 
     let fbRes: Response;
     if (image_url) {
-      fbRes = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
+      fbRes = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/${page_id}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ caption: message, url: image_url, access_token: pageToken }),
@@ -93,7 +95,7 @@ Deno.serve(withSecurity("post-to-facebook-page", async (req, ctx) => {
     } else {
       const payload: Record<string, string> = { message, access_token: pageToken };
       if (link) payload.link = link;
-      fbRes = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
+      fbRes = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/${page_id}/feed`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

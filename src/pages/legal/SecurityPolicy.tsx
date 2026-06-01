@@ -9,7 +9,7 @@ export default function SecurityPolicy() {
       <Helmet>
         <title>Security Policy | ZIVO</title>
         <meta name="description" content="ZIVO's security policy — how we protect your data, accounts, and transactions in 2026." />
-        <link rel="canonical" href="https://hizivo.com/legal/security" />
+        <link rel="canonical" href="https://zivollc.com/legal/security" />
       </Helmet>
       <main className="container mx-auto max-w-3xl py-10 px-4 space-y-6">
         <header className="space-y-2">

@@ -33,7 +33,7 @@ const URL_SHORTENERS = new Set([
   "short.io", "qr.ae", "s.id", "v.gd",
 ]);
 
-const ZIVO_OWNED_HOSTS = ["hizivo.com", "myzivo.lovable.app"];
+const ZIVO_OWNED_HOSTS = ["zivollc.com", "myzivo.lovable.app"];
 
 const ALLOWED_PARTNER_DOMAINS = new Set([
   "aviasales.com", "tp.media", "tpo.li", "hotellook.com", "economybookings.com",
@@ -42,7 +42,7 @@ const ALLOWED_PARTNER_DOMAINS = new Set([
   "yesim.app", "radicalstorage.com", "airhelp.com", "compensair.com",
   "booking.com", "expedia.com", "hotels.com", "duffel.com", "links.duffel.com",
   "skyscanner.com", "skyscanner.net", "rentalcover.com",
-  "hizivo.com", "myzivo.lovable.app",
+  "zivollc.com", "myzivo.lovable.app",
 ]);
 
 function levenshtein(a: string, b: string): number {

@@ -1,6 +1,24 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
+const GOOGLE_ADS_API_VERSION = Deno.env.get("GOOGLE_ADS_API_VERSION") || "v22";
+
+function googleAdsCustomerId(): string {
+  const raw = Deno.env.get("GOOGLE_ADS_CUSTOMER_ID");
+  if (!raw) throw new Error("GOOGLE_ADS_CUSTOMER_ID not configured");
+  return raw.replace(/\D/g, "");
+}
+
+function googleAdsHeaders(accessToken: string, developerToken: string) {
+  const loginCustomerId = Deno.env.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")?.replace(/\D/g, "");
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    "developer-token": developerToken,
+    ...(loginCustomerId ? { "login-customer-id": loginCustomerId } : {}),
+    "Content-Type": "application/json",
+  };
+}
+
 // Creates a Google Ads Search campaign via the REST API.
 // Admin-only. Stores result in ad_campaigns table.
 async function getAccessToken(): Promise<string> {
@@ -29,7 +47,7 @@ Deno.serve(withSecurity("google-ads-create-campaign", async (req, ctx) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const customerId = Deno.env.get("GOOGLE_ADS_CUSTOMER_ID")!;
+    const customerId = googleAdsCustomerId();
     const developerToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN")!;
 
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
@@ -45,19 +63,15 @@ Deno.serve(withSecurity("google-ads-create-campaign", async (req, ctx) => {
     }
 
     const {
-      name = "ZIVO MVP Launch — Search",
+      name = "ZIVO - Search Campaign",
       daily_budget_cents = 2000,
-      keywords = ["ride app", "food delivery", "rides cambodia", "tuk tuk app"],
-      final_url = "https://hizivo.com",
+      keywords = ["zivo app", "free super app", "travel booking app", "social creator app", "online shop app", "jobs app"],
+      final_url = "https://zivollc.com",
     } = await req.json().catch(() => ({}));
 
     const accessToken = await getAccessToken();
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      "developer-token": developerToken,
-      "Content-Type": "application/json",
-    };
-    const apiBase = `https://googleads.googleapis.com/v18/customers/${customerId}`;
+    const headers = googleAdsHeaders(accessToken, developerToken);
+    const apiBase = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}`;
 
     // 1) Create budget
     const budgetResp = await fetch(`${apiBase}/campaignBudgets:mutate`, {
@@ -66,7 +80,7 @@ Deno.serve(withSecurity("google-ads-create-campaign", async (req, ctx) => {
       body: JSON.stringify({
         operations: [{
           create: {
-            name: `${name} — budget ${Date.now()}`,
+            name: `${name} - budget ${Date.now()}`,
             amountMicros: String(daily_budget_cents * 10000), // cents → micros (×10,000)
             deliveryMethod: "STANDARD",
           },

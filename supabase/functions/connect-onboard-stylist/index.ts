@@ -91,7 +91,7 @@ Deno.serve(withSecurity("connect-onboard-stylist", async (req, ctx) => {
     }
 
     const appUrl =
-      Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || req.headers.get("origin") || "https://hizivo.com";
+      Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || req.headers.get("origin") || "https://zivollc.com";
     const returnUrl = body.return_url || `${appUrl}/stylist/${stylistId}`;
 
     // --- Create the Connect Express account on first call --------------------

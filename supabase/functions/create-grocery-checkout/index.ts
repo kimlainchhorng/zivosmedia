@@ -182,7 +182,7 @@ Deno.serve(withSecurity("create-grocery-checkout", async (req, ctx) => {
       }
     }
 
-    const origin = req.headers.get("origin") || "https://hizivo.com";
+    const origin = req.headers.get("origin") || "https://zivollc.com";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

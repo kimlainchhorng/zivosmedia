@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 const GroupCallLauncher = lazy(() => import("@/components/chat/call/GroupCallLauncher"));
 
@@ -317,7 +318,7 @@ export default function VoiceRoomDetailPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => (user ? joinMut.mutate() : navigate(`/login?redirect=/voice-rooms/${id}`))}
+                  onClick={() => (user ? joinMut.mutate() : navigate(withRedirectParam("/login", `/voice-rooms/${id}`)))}
                   disabled={joinMut.isPending}
                   className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-primary-foreground font-extrabold text-sm transition-all active:scale-[0.98] disabled:opacity-60"
                 >

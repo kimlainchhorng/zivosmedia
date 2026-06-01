@@ -7,10 +7,12 @@
  * back online.
  *
  * Payloads are kept opaque (`Record<string, unknown>`) because direct_messages
- * and group_messages share no schema. The only requirement is that the row
- * inserts cleanly via supabase.from(table).insert(payload).
+ * and group_messages share no schema. The retry path sends through the same
+ * Edge Function gates as live sends so ownership checks stay server-side.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
+import { sendGroupMessage } from "@/lib/chat/groupMessageSend";
 
 const STORAGE_KEY = "zivo.chat.outbox.v1";
 const CHANGE_EVENT = "zivo:outbox:change";
@@ -116,13 +118,9 @@ export async function flush(): Promise<{ sent: number; failed: number }> {
     for (const item of items) {
       if (!beginSend(item.id)) continue;
       try {
-        const { error } = await (supabase as unknown as {
-          from: (t: string) => {
-            insert: (p: Record<string, unknown>) => Promise<{ error: unknown }>;
-          };
-        })
-          .from(item.table)
-          .insert(item.payload);
+        const { error } = item.table === "direct_messages"
+          ? await sendDirectMessage(item.payload as Parameters<typeof sendDirectMessage>[0])
+          : await sendGroupMessage(item.payload as Parameters<typeof sendGroupMessage>[0]);
         if (error) throw error;
         remove(item.id);
         sent += 1;

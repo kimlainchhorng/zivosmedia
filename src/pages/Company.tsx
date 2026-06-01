@@ -24,8 +24,8 @@ const Company = () => {
     <div className="min-h-screen bg-background">
       <SEOHead 
         title="Company | ZIVO LLC"
-        description="Learn about ZIVO LLC, a travel search and comparison platform based in the United States."
-        canonical="https://hizivo.com/company"
+        description="Learn about ZIVO LLC, the company building an all-in-one app for travel, social discovery, creators, shops, jobs, chat, and calls."
+        canonical="https://zivollc.com/company"
       />
       <Header />
       
@@ -41,7 +41,7 @@ const Company = () => {
               ZIVO LLC
             </h1>
             <p className="text-lg text-muted-foreground">
-              Travel Search & Comparison Platform
+              All-in-One Super-App Platform
             </p>
           </div>
 
@@ -55,8 +55,8 @@ const Company = () => {
                 <div>
                   <h2 className="text-2xl font-bold mb-2">About ZIVO</h2>
                   <p className="text-muted-foreground">
-                    ZIVO is a travel search and comparison platform that helps travelers 
-                    find and compare flights, hotels, and car rentals from trusted partners.
+                    ZIVO is an all-in-one platform that brings travel, rides, food, social discovery,
+                    reels, creator tools, shops, jobs, chat, and calls into one app.
                   </p>
                 </div>
               </div>
@@ -73,7 +73,7 @@ const Company = () => {
                   <Globe className="w-5 h-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Website</p>
-                    <p className="text-sm text-muted-foreground">hizivo.com</p>
+                    <p className="text-sm text-muted-foreground">zivollc.com</p>
                   </div>
                 </div>
               </div>
@@ -90,10 +90,10 @@ const Company = () => {
                   <div className="flex items-start gap-4">
                     <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-semibold mb-2">Search & Compare</h3>
+                      <h3 className="font-semibold mb-2">Travel & Local Discovery</h3>
                       <p className="text-muted-foreground text-sm">
-                        We aggregate travel options from multiple trusted partners, 
-                        making it easy to compare prices and find the best deals.
+                        We help people compare travel options, discover local services,
+                        and move between booking, shopping, social, and work tasks with less friction.
                       </p>
                     </div>
                   </div>
@@ -105,10 +105,10 @@ const Company = () => {
                   <div className="flex items-start gap-4">
                     <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-semibold mb-2">Partner Connections</h3>
+                      <h3 className="font-semibold mb-2">Partner & Business Tools</h3>
                       <p className="text-muted-foreground text-sm">
-                        We connect travelers with licensed travel partners who handle 
-                        bookings, payments, and fulfillment.
+                        We connect customers, creators, sellers, employers, and licensed travel partners
+                        through workflows that support discovery, conversations, payments, and fulfillment.
                       </p>
                     </div>
                   </div>
@@ -122,8 +122,8 @@ const Company = () => {
                     <div>
                       <h3 className="font-semibold mb-2">Transparent Information</h3>
                       <p className="text-muted-foreground text-sm">
-                        We provide clear information about pricing, partners, 
-                        and booking processes so you can make informed decisions.
+                        We provide clear information about pricing, partners,
+                        creator offers, listings, and booking processes so users can make informed decisions.
                       </p>
                     </div>
                   </div>

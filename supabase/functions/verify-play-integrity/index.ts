@@ -1,6 +1,6 @@
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const PACKAGE_NAME = "com.myzivo.app";
+const PACKAGE_NAME = "com.hizovo.app";
 
 Deno.serve(withSecurity("verify-play-integrity", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;

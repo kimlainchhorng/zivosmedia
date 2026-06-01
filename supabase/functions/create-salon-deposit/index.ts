@@ -115,7 +115,7 @@ Deno.serve(withSecurity("create-salon-deposit", async (req, ctx) => {
       .eq("id", b.store_id)
       .maybeSingle();
     const storeName = (store as any)?.name ?? "your salon";
-    const appUrl = Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || "https://hizivo.com";
+    const appUrl = Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || "https://zivollc.com";
 
     // ---- Create the Checkout Session --------------------------------------
     const startLocal = new Date(b.start_at).toLocaleString("en-US", {

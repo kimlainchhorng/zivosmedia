@@ -9,6 +9,55 @@ import { lazyRetry } from "@/lib/lazyRetry";
 // Mobile app home
 const AppHome = lazy(() => lazyRetry(() => import("@/pages/app/AppHome")));
 
+const MobileHomeFallback = () => (
+  <main className="min-h-screen bg-black px-5 py-[max(1.5rem,var(--zivo-safe-top,0px))] text-white">
+    <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-md flex-col">
+      <div className="flex items-center justify-between">
+        <a href="/" className="text-xl font-black tracking-tight" aria-label="ZIVO Home">
+          ZIVO
+        </a>
+        <div className="flex items-center gap-2">
+          <a href="/login" className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-bold text-white/85">
+            Log in
+          </a>
+          <a href="/signup" className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-black">
+            Sign up
+          </a>
+        </div>
+      </div>
+
+      <section className="flex flex-1 flex-col justify-center py-12" aria-label="ZIVO home is loading">
+        <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white/65">
+          Loading Home
+        </div>
+        <h1 className="max-w-sm text-4xl font-black leading-[0.95] tracking-tight">
+          One app for travel, reels, chat, shopping, and everyday plans.
+        </h1>
+        <p className="mt-4 max-w-sm text-sm font-medium leading-6 text-white/62">
+          We are getting your ZIVO Home ready. You can jump straight into the main surfaces now.
+        </p>
+
+        <div className="mt-7 grid grid-cols-2 gap-2.5" aria-label="Primary ZIVO shortcuts">
+          {[
+            ["Feed", "/feed"],
+            ["Reels", "/reels"],
+            ["Chat", "/chat"],
+            ["Profile", "/profile"],
+          ].map(([label, href]) => (
+            <a
+              key={href}
+              href={href}
+              className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+            >
+              {label}
+            </a>
+          ))}
+        </div>
+      </section>
+    </div>
+  </main>
+);
+
 const Index = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -49,14 +98,14 @@ const Index = () => {
     if (user) {
       return (
         <SetupRequiredRoute>
-          <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <Suspense fallback={<MobileHomeFallback />}>
             <AppHome />
           </Suspense>
         </SetupRequiredRoute>
       );
     }
     return (
-      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <Suspense fallback={<MobileHomeFallback />}>
         <AppHome />
       </Suspense>
     );

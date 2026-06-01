@@ -1,16 +1,35 @@
 /**
  * ads-studio-track
- * Public tracking pixel for Ads Studio creatives.
+ * Public tracking pixel for Ads Studio creatives and generic browser analytics.
  * Records impressions/clicks/conversions from external ad platforms via UTM params.
  *
  * GET  /functions/v1/ads-studio-track?c=<creative_id>&t=click&v=<variant_id>&src=google
  * POST /functions/v1/ads-studio-track  { creative_id, event_type, variant_id, revenue_cents, utm_* }
+ * POST /functions/v1/ads-studio-track  { event_name, session_id, page, meta, ...analytics_fields }
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
 const VALID_EVENTS = new Set(["impression", "click", "conversion", "signup"]);
+const ANALYTICS_EVENT_PATTERN = /^[a-zA-Z0-9_.:-]{1,120}$/;
+const MAX_TEXT = 240;
+const MAX_PAGE = 2048;
+const MAX_META_JSON = 8_192;
+
+type AnalyticsBody = {
+  event_name?: unknown;
+  session_id?: unknown;
+  page?: unknown;
+  meta?: unknown;
+  order_id?: unknown;
+  value?: unknown;
+  device_type?: unknown;
+  traffic_source?: unknown;
+  is_new_user?: unknown;
+  country?: unknown;
+  created_at?: unknown;
+};
 
 // 1x1 transparent GIF
 const PIXEL = Uint8Array.from([
@@ -50,6 +69,10 @@ serve(withSecurity("ads-studio-track", async (req, ctx) => {
         utm_content: url.searchParams.get("utm_content"),
         revenue_cents: Number(url.searchParams.get("rev") || 0),
       };
+    }
+
+    if (req.method === "POST" && typeof payload.event_name !== "undefined") {
+      return await handleAnalyticsEvent(req, trackingHeaders, admin, payload);
     }
 
     if (!payload.creative_id || !VALID_EVENTS.has(payload.event_type)) {
@@ -100,3 +123,98 @@ serve(withSecurity("ads-studio-track", async (req, ctx) => {
     return new Response(PIXEL, { status: 200, headers: { ...trackingHeaders, "Content-Type": "image/gif" } });
   }
 }, { allowedMethods: ["GET", "POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));
+
+async function handleAnalyticsEvent(
+  req: Request,
+  headers: Record<string, string>,
+  admin: ReturnType<typeof createClient>,
+  body: AnalyticsBody,
+): Promise<Response> {
+  const json = (payload: unknown, status = 200) =>
+    new Response(JSON.stringify(payload), {
+      status,
+      headers: { ...headers, "Content-Type": "application/json" },
+    });
+
+  const eventName = cleanEventName(body.event_name);
+  if (!eventName) return json({ error: "Invalid event name" }, 400);
+
+  const meta = cleanJson(body.meta);
+  if (meta === undefined) return json({ error: "Invalid event metadata" }, 400);
+
+  const userId = await getAuthenticatedUserId(req, admin);
+  const payload = {
+    event_name: eventName,
+    session_id: cleanText(body.session_id, MAX_TEXT) ?? crypto.randomUUID(),
+    user_id: userId,
+    page: cleanText(body.page, MAX_PAGE),
+    meta,
+    order_id: cleanText(body.order_id, MAX_TEXT),
+    value: cleanNumber(body.value),
+    device_type: cleanText(body.device_type, 32),
+    traffic_source: cleanText(body.traffic_source, MAX_TEXT),
+    is_new_user: typeof body.is_new_user === "boolean" ? body.is_new_user : null,
+    country: cleanText(body.country, 2),
+    created_at: cleanTimestamp(body.created_at) ?? new Date().toISOString(),
+  };
+
+  const { data, error } = await admin
+    .from("analytics_events")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[ads-studio-track:analytics]", error.message);
+    return json({ error: "Analytics event failed" }, 500);
+  }
+
+  return json({ ok: true, id: data?.id ?? null });
+}
+
+async function getAuthenticatedUserId(
+  req: Request,
+  admin: ReturnType<typeof createClient>,
+): Promise<string | null> {
+  const token = req.headers.get("Authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) return null;
+
+  const { data } = await admin.auth.getUser(token);
+  return data.user?.id ?? null;
+}
+
+function cleanEventName(value: unknown): string | null {
+  const eventName = cleanText(value, 120);
+  if (!eventName || !ANALYTICS_EVENT_PATTERN.test(eventName)) return null;
+  return eventName;
+}
+
+function cleanText(value: unknown, maxLength: number): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, maxLength);
+}
+
+function cleanNumber(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return value;
+}
+
+function cleanTimestamp(value: unknown): string | null {
+  const raw = cleanText(value, 64);
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function cleanJson(value: unknown): unknown | undefined {
+  if (value === undefined) return null;
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized.length > MAX_META_JSON) return undefined;
+    return JSON.parse(serialized);
+  } catch {
+    return undefined;
+  }
+}

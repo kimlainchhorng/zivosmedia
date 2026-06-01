@@ -43,6 +43,7 @@ Also adds:
 Required secrets:
 - `META_ACCESS_TOKEN`
 - Optional: `META_PIXEL_ID` (defaults to `2304266847061310`)
+- Optional: `META_GRAPH_VERSION` (defaults to `v25.0`)
 
 ## Frontend Add-ons
 

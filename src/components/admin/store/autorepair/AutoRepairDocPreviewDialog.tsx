@@ -34,6 +34,8 @@ export type PreviewDoc = {
   email: string;
   address: string;
   vin: string;
+  licensePlate?: string;
+  plateState?: string;
   vehicle: string;
   year: string;
   make: string;
@@ -132,6 +134,7 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
       <p class="name">${doc.vehicle || `${doc.year} ${doc.make} ${doc.model}`.trim() || "—"}</p>
       <p>${[doc.trim, doc.engine, doc.driveType].filter(Boolean).join(" · ")}</p>
       <p style="font-family:monospace;font-size:11px;color:#888">VIN ${doc.vin || "—"}</p>
+      ${doc.licensePlate ? `<p style="font-family:monospace;font-size:11px;color:#888">Plate ${doc.licensePlate}${doc.plateState ? ` (${doc.plateState})` : ""}</p>` : ""}
     </div>
   </div>
   <table>
@@ -195,6 +198,8 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
     address: doc.address,
     vehicle: doc.vehicle || `${doc.year} ${doc.make} ${doc.model}`.trim() || "—",
     vin: doc.vin,
+    licensePlate: doc.licensePlate,
+    plateState: doc.plateState,
     items: doc.items.map((i) => ({
       category: i.category,
       description: i.description,

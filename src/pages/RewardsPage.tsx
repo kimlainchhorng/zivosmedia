@@ -27,6 +27,7 @@ import {
   ReferralCard,
 } from "@/components/loyalty";
 import { POINTS_COMPLIANCE, type ZivoTier } from "@/config/zivoPoints";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 export default function RewardsPage() {
   const navigate = useNavigate();
@@ -165,7 +166,7 @@ export default function RewardsPage() {
   });
 
   if (!authLoading && !user) {
-    return <Navigate to="/login?redirect=/rewards" replace />;
+    return <Navigate to={withRedirectParam("/login", "/rewards")} replace />;
   }
 
   return (
@@ -173,7 +174,7 @@ export default function RewardsPage() {
       <SEOHead 
         title="ZIVO Points | Earn Rewards on Your Travels"
         description="Earn ZIVO Points on bookings and redeem for discounts, priority alerts, and exclusive deals."
-        canonical="https://hizivo.com/rewards"
+        canonical="https://zivollc.com/rewards"
       />
       
       {/* Premium Header */}

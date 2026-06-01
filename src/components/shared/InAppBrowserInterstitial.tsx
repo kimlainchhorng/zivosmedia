@@ -3,15 +3,14 @@
  * (Facebook, Instagram, TikTok, etc.) to prompt app download.
  * Shows once per session; can be dismissed.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { detectInAppBrowser } from "@/lib/isInAppBrowser";
 import { X, Smartphone, Zap, Bell, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import zivoLogo from "@/assets/ZIVO_LOGO.png";
-
-const APP_STORE_URL = "https://apps.apple.com/us/app/zivo-customer/id6759480121";
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.hizovo.app";
+import { getAttributedStoreUrls } from "@/lib/deepLinks";
+import { trackMetaAppInstallClick } from "@/lib/metaAdsTracking";
 
 const SESSION_KEY = "zivo_iab_dismissed";
 
@@ -29,6 +28,10 @@ export default function InAppBrowserInterstitial() {
   const location = useLocation();
   const [visible, setVisible] = useState(false);
   const [platform, setPlatform] = useState<string | null>(null);
+  const storeUrls = useMemo(
+    () => getAttributedStoreUrls({ content: "in_app_browser_interstitial" }),
+    [],
+  );
 
   const authRoutes = ["/login", "/signup", "/verify-email", "/verify-otp", "/verify-new-device", "/forgot-password", "/reset-password", "/setup"];
   const onAuthRoute = authRoutes.some((r) => location.pathname.startsWith(r));
@@ -50,8 +53,9 @@ export default function InAppBrowserInterstitial() {
     setVisible(false);
   };
 
-  const storeUrl = isIOS() ? APP_STORE_URL : PLAY_STORE_URL;
-  const storeName = isIOS() ? "App Store" : "Google Play";
+  const storePlatform = isIOS() ? "ios" : "android";
+  const storeUrl = storePlatform === "ios" ? storeUrls.ios : storeUrls.android;
+  const storeName = storePlatform === "ios" ? "App Store" : "Google Play";
 
   return (
     <AnimatePresence>
@@ -117,6 +121,7 @@ export default function InAppBrowserInterstitial() {
             <div className="space-y-3 pt-1">
               <a
                 href={storeUrl}
+                onClick={() => trackMetaAppInstallClick({ platform: storePlatform, surface: "in_app_browser_interstitial", destinationUrl: storeUrl })}
                 className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-primary text-primary-foreground font-semibold text-[15px] shadow-lg active:scale-[0.97] transition-transform touch-manipulation"
               >
                 <Smartphone className="w-5 h-5" />

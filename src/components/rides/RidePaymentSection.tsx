@@ -457,6 +457,8 @@ export default function RidePaymentSection({
 }: RidePaymentSectionProps) {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const authRedirectTarget = `${location.pathname}${location.search}${location.hash}`;
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [loadingCards, setLoadingCards] = useState(true);
@@ -534,14 +536,14 @@ export default function RidePaymentSection({
             <Button
               variant="outline"
               className="flex-1 h-10 rounded-lg font-bold gap-1.5 text-sm"
-              onClick={() => navigate(withRedirectParam("/login", window.location.pathname + window.location.search))}
+              onClick={() => navigate(withRedirectParam("/login", authRedirectTarget))}
             >
               <LogIn className="w-3.5 h-3.5" />
               Sign In
             </Button>
             <Button
               className="flex-1 h-10 rounded-lg font-bold gap-1.5 text-sm bg-primary text-primary-foreground"
-              onClick={() => navigate(withRedirectParam("/login?mode=signup", window.location.pathname + window.location.search))}
+              onClick={() => navigate(withRedirectParam("/signup", authRedirectTarget))}
             >
               <UserPlus className="w-3.5 h-3.5" />
               Sign Up Free
@@ -650,7 +652,7 @@ export default function RidePaymentSection({
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         toast.error("Session expired. Please sign in again.");
-        navigate(withRedirectParam("/login", window.location.pathname + window.location.search));
+        navigate(withRedirectParam("/login", authRedirectTarget));
         return;
       }
       const expiresAt = sessionData.session.expires_at;

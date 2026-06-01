@@ -92,8 +92,8 @@ function NewDeviceLoginEmail({
   identifier = 'you@example.com',
   detectedAt = new Date().toISOString(),
   deviceFingerprint = '',
-  manageSecurityUrl = 'https://hizivo.com/account/security',
-  notMeUrl = 'https://hizivo.com/account/security?action=lock',
+  manageSecurityUrl = 'https://zivollc.com/account/security',
+  notMeUrl = 'https://zivollc.com/account/security?action=lock',
 }: NewDeviceLoginProps) {
   const niceDate = (() => {
     try { return new Date(detectedAt).toLocaleString() } catch { return detectedAt }
@@ -125,7 +125,7 @@ function NewDeviceLoginEmail({
           <Text style={footer}>
             Tip: turn on two-factor authentication in account security to require a code on every new device.
           </Text>
-          <Text style={footer}>© {new Date().getFullYear()} ZIVO · hizivo.com</Text>
+          <Text style={footer}>© {new Date().getFullYear()} ZIVO · zivollc.com</Text>
         </Container>
       </Body>
     </Html>
@@ -140,7 +140,7 @@ export const template: TemplateEntry<NewDeviceLoginProps> = {
     identifier: 'jane@example.com',
     detectedAt: new Date().toISOString(),
     deviceFingerprint: 'a3f9c1d8e2b74f50',
-    manageSecurityUrl: 'https://hizivo.com/account/security',
-    notMeUrl: 'https://hizivo.com/account/security?action=lock',
+    manageSecurityUrl: 'https://zivollc.com/account/security',
+    notMeUrl: 'https://zivollc.com/account/security?action=lock',
   },
 }

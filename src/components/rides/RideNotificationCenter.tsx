@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebPush } from "@/hooks/useWebPush";
+import { markNotificationRead, markNotificationsRead } from "@/lib/notifications/notificationManage";
 
 type NotifTab = "feed" | "prefs" | "alerts";
 
@@ -109,16 +110,28 @@ export default function RideNotificationCenter() {
   const markAllRead = async () => {
     if (!user?.id || unreadCount === 0) return;
     const unreadIds = notifs.filter(n => !n.is_read).map(n => n.id);
-    await supabase.functions.invoke("notification-manage", {
-      body: { action: "mark_read", notification_ids: unreadIds },
-    });
+    const prev = notifs;
     setNotifs(ns => ns.map(n => ({ ...n, is_read: true })));
-    toast.success("All notifications marked as read");
+    try {
+      await markNotificationsRead(unreadIds);
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      setNotifs(prev);
+      console.warn("Could not mark ride notifications read", error);
+      toast.error("Couldn't mark notifications read");
+    }
   };
 
   const markRead = async (id: string) => {
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_id: id } });
+    const prev = notifs;
     setNotifs(ns => ns.map(n => n.id === id ? { ...n, is_read: true } : n));
+    try {
+      await markNotificationRead(id);
+    } catch (error) {
+      setNotifs(prev);
+      console.warn("Could not mark ride notification read", error);
+      toast.error("Couldn't mark notification read");
+    }
   };
 
   const handleEnablePush = async () => {

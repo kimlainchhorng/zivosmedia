@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { saveAccount } from "@/hooks/useSavedAccounts";
+import { getSupabaseFunctionErrorDetails } from "@/lib/supabaseFunctionError";
+import { getSafeRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
 
 const RESEND_COOLDOWN = 30;
 
@@ -16,7 +18,7 @@ const VerifyOTP = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const email = params.get("email") || "";
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const mode = params.get("mode") === "signup" ? "signup" : "login";
   const isSignup = mode === "signup";
 
@@ -30,9 +32,7 @@ const VerifyOTP = () => {
   const [showCodeEntry, setShowCodeEntry] = useState(isSignup);
 
   const getEmailRedirectTo = () => {
-    const redirectParams = new URLSearchParams();
-    redirectParams.set("redirect", redirect);
-    return `${window.location.origin}/auth-callback?${redirectParams.toString()}`;
+    return `${window.location.origin}${withRedirectParam("/auth-callback", redirect)}`;
   };
 
   const persistVerifiedAccount = useCallback(async () => {
@@ -103,8 +103,10 @@ const VerifyOTP = () => {
       });
 
       if (error || !data?.success) {
+        const details = error ? await getSupabaseFunctionErrorDetails(error) : {};
+        if (details.retryAfter) setCooldown(details.retryAfter);
         setSubmitting(false);
-        toast.error(data?.error || error?.message || "Invalid or expired code.");
+        toast.error(data?.error || details.message || "Invalid or expired code.");
         setCode(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
         return;
@@ -136,7 +138,7 @@ const VerifyOTP = () => {
 
       setSubmitting(false);
       toast.success("Email verified. Please sign in.");
-      navigate(`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`, { replace: true });
+      navigate(withRedirectParam("/login", redirect), { replace: true });
       return;
     }
 
@@ -190,7 +192,9 @@ const VerifyOTP = () => {
       });
       setResending(false);
       if (error) {
-        toast.error(error.message || "Could not resend code.");
+        const details = await getSupabaseFunctionErrorDetails(error);
+        if (details.retryAfter) setCooldown(details.retryAfter);
+        toast.error(details.message || "Could not resend code.");
         return;
       }
       toast.success("New code sent!");
@@ -356,7 +360,7 @@ const VerifyOTP = () => {
 
         {/* Footer card */}
         <div className="mt-3 bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/10 rounded-xl px-6 py-4 text-center shadow-sm">
-          <Link to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`} className="flex items-center justify-center gap-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">
+          <Link to={withRedirectParam("/login", redirect)} className="flex items-center justify-center gap-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to sign in
           </Link>
         </div>

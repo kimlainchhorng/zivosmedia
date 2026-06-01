@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  ANDROID_STORE_URL,
-  IOS_STORE_URL,
   buildNativeReelUrl,
   buildNativeShopUrl,
+  getAttributedStoreUrls,
 } from "@/lib/deepLinks";
+import { trackMetaAppInstallClick } from "@/lib/metaAdsTracking";
 
 function isIOS(): boolean {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -31,11 +31,18 @@ export default function DeepLinkLandingPage() {
     return null;
   }, [kind, id]);
 
+  const storeUrls = useMemo(
+    () => getAttributedStoreUrls({ content: `${kind || "deep_link"}_fallback` }),
+    [kind],
+  );
+
   const storeUrl = useMemo(() => {
-    if (isIOS()) return IOS_STORE_URL;
-    if (isAndroid()) return ANDROID_STORE_URL;
-    return IOS_STORE_URL;
-  }, []);
+    if (isIOS()) return storeUrls.ios;
+    if (isAndroid()) return storeUrls.android;
+    return storeUrls.ios;
+  }, [storeUrls]);
+  const storePlatform = useMemo(() => (isAndroid() ? "android" : "ios"), []);
+  const storeSurface = `${kind || "deep_link"}_fallback`;
 
   useEffect(() => {
     if (!nativeUrl) {
@@ -48,6 +55,7 @@ export default function DeepLinkLandingPage() {
     }, 150);
 
     const storeFallbackTimer = window.setTimeout(() => {
+      trackMetaAppInstallClick({ platform: storePlatform, surface: storeSurface, destinationUrl: storeUrl });
       window.location.assign(storeUrl);
     }, 1800);
 
@@ -60,7 +68,7 @@ export default function DeepLinkLandingPage() {
       window.clearTimeout(storeFallbackTimer);
       window.clearTimeout(webFallbackTimer);
     };
-  }, [navigate, nativeUrl, storeUrl, webPath]);
+  }, [navigate, nativeUrl, storePlatform, storeSurface, storeUrl, webPath]);
 
   return (
     <div className="min-h-screen bg-background text-foreground grid place-items-center px-6">
@@ -77,6 +85,7 @@ export default function DeepLinkLandingPage() {
         </a>
         <a
           href={storeUrl}
+          onClick={() => trackMetaAppInstallClick({ platform: storePlatform, surface: storeSurface, destinationUrl: storeUrl })}
           className="block w-full rounded-xl border border-border py-3 text-sm font-semibold"
         >
           Download ZiVo

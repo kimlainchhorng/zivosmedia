@@ -84,7 +84,10 @@ import { createPortal } from "react-dom";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
+import { copyText } from "@/lib/native/clipboard";
+import { withRedirectParam } from "@/lib/authRedirect";
 import { shouldSendLikeNotification } from "@/lib/social/likeNotificationGuard";
+import { removePostBookmark, savePostBookmark } from "@/lib/social/postBookmarkManage";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { useHaptic } from "@/hooks/useHaptic";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -100,6 +103,7 @@ import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
 import { detectSensitiveContent, isSensitiveReportReason, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
 import { submitSafetyReport } from "@/lib/social/safetyReport";
+import { getAppSurfaceSeo } from "@/lib/appSurfaceSeo";
 // videoRepair is heavy (FFmpeg WASM) — dynamic import only when needed
 
 const FEED_STORE_PAGE_SIZE = 18;
@@ -473,6 +477,7 @@ function ReelCard({
   initialAuthorIsLive?: boolean;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const haptic = useHaptic();
   const sensitiveMediaPreference = useSensitiveMediaPreference(userId);
@@ -644,33 +649,36 @@ function ReelCard({
   // Follow state — seeded from parent's batch-fetched followingIds set
   const authorId = post.source === "user" ? post.author_id : null;
   const isSelf = !!userId && userId === authorId;
+  const reelAuthorLabel = getReelAuthorLabel(post);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [followLoading, setFollowLoading] = useState(false);
 
+  const handleSignInForReelAction = () => {
+    const redirectTo = `${location.pathname}${location.search}${location.hash}`;
+    navigate(withRedirectParam("/login", redirectTo));
+  };
+
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!userId || !authorId || followLoading) return;
+    if (!userId) {
+      handleSignInForReelAction();
+      return;
+    }
+    if (!authorId || followLoading) return;
     setFollowLoading(true);
     try {
       if (isFollowing) {
-        await supabase.from("user_followers" as any).delete()
-          .eq("follower_id", userId).eq("following_id", authorId);
+        const { error } = await supabase.functions.invoke("follow-manage", {
+          body: { action: "unfollow", following_id: authorId },
+        });
+        if (error) throw error;
         setIsFollowing(false);
       } else {
-        await (supabase as any).from("user_followers").insert({
-          follower_id: userId,
-          following_id: authorId,
+        const { error } = await supabase.functions.invoke("follow-manage", {
+          body: { action: "follow", following_id: authorId },
         });
+        if (error) throw error;
         setIsFollowing(true);
-        // Notify new follower (best-effort — failure here must not roll back the follow)
-        try {
-          const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", userId).single();
-          await supabase.functions.invoke("send-push-notification", {
-            body: { user_id: authorId, notification_type: "new_follower", title: "New Follower 🔔", body: `${sp?.full_name || "Someone"} started following you`, data: { type: "new_follower", follower_id: userId, avatar_url: sp?.avatar_url, action_url: `/user/${userId}` } },
-          });
-        } catch (notifyErr) {
-          console.warn("[ReelCard] follow push notify failed", notifyErr);
-        }
       }
     } catch (err) {
       console.error("[ReelCard] follow toggle failed", err);
@@ -932,6 +940,7 @@ function ReelCard({
     const isUser = post.source === "user";
     const rawId = post.id.startsWith("u-") ? post.id.slice(2) : post.id;
     const likesTable = isUser ? "post_likes" : "store_post_likes";
+    const postSource = isUser ? "user" : "store";
     const channel = supabase
       .channel(`reel-engagement-${post.id}`)
       .on(
@@ -947,12 +956,18 @@ function ReelCard({
       .on(
         "postgres_changes" as any,
         { event: "INSERT", schema: "public", table: "post_comments", filter: `post_id=eq.${rawId}` },
-        () => setLiveCommentsCount((n) => n + 1),
+        (payload: any) => {
+          if (payload?.new?.post_source && payload.new.post_source !== postSource) return;
+          setLiveCommentsCount((n) => n + 1);
+        },
       )
       .on(
         "postgres_changes" as any,
         { event: "DELETE", schema: "public", table: "post_comments", filter: `post_id=eq.${rawId}` },
-        () => setLiveCommentsCount((n) => Math.max(0, n - 1)),
+        (payload: any) => {
+          if (payload?.old?.post_source && payload.old.post_source !== postSource) return;
+          setLiveCommentsCount((n) => Math.max(0, n - 1));
+        },
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
@@ -962,7 +977,7 @@ function ReelCard({
 
   const handleSaveToggle = async () => {
     if (!userId) {
-      toast.error("Please sign in to save reels");
+      handleSignInForReelAction();
       return;
     }
     if (savingBookmarkRef.current) return;
@@ -972,47 +987,25 @@ function ReelCard({
     setSaved(next);
     try {
       if (next) {
-        const [modernBookmark, legacyBookmark] = await Promise.all([
-          (supabase as any).from("post_bookmarks").upsert(
-            {
-              user_id: userId,
-              post_id: rawPostId,
-              source: bookmarkSource,
-            },
-            { onConflict: "user_id,post_id,source", ignoreDuplicates: true },
-          ),
-          (supabase as any).from("bookmarks").upsert(
-            {
-              user_id: userId,
-              item_id: post.id,
-              item_type: "post",
-              collection_name: "Reels",
-            },
-            { onConflict: "user_id,item_type,item_id", ignoreDuplicates: true },
-          ),
-        ]);
-        const error = modernBookmark.error || legacyBookmark.error;
+        const { error } = await savePostBookmark({
+          post_id: rawPostId,
+          source: bookmarkSource,
+          sync_legacy: true,
+          legacy_item_id: post.id,
+          collection_name: "Reels",
+        });
         if (error && !String(error.message || "").toLowerCase().includes("duplicate")) throw error;
         toast.success("Saved", {
           action: { label: "View", onClick: () => navigate("/saved") },
         });
       } else {
-        const alternateIds = Array.from(new Set([post.id, rawPostId]));
-        const [modernDelete, legacyDelete] = await Promise.all([
-          (supabase as any)
-            .from("post_bookmarks")
-            .delete()
-            .eq("user_id", userId)
-            .eq("post_id", rawPostId)
-            .eq("source", bookmarkSource),
-          (supabase as any)
-            .from("bookmarks")
-            .delete()
-            .eq("user_id", userId)
-            .eq("item_type", "post")
-            .in("item_id", alternateIds),
-        ]);
-        if (modernDelete.error || legacyDelete.error) throw modernDelete.error || legacyDelete.error;
+        const { error } = await removePostBookmark({
+          post_id: rawPostId,
+          source: bookmarkSource,
+          sync_legacy: true,
+          legacy_item_id: post.id,
+        });
+        if (error) throw error;
         toast.success("Removed from saved");
       }
       void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
@@ -1762,6 +1755,8 @@ function ReelCard({
               type="button"
               onClick={handleFollow}
               disabled={followLoading}
+              aria-label={isFollowing ? `Following ${reelAuthorLabel}` : `Follow ${reelAuthorLabel}`}
+              data-testid="reel-follow-button"
               className={cn(
                 "shrink-0 px-3 py-1 rounded-md text-xs font-bold transition-all active:scale-95 border backdrop-blur-sm hover:opacity-90",
                 isFollowing
@@ -1900,6 +1895,7 @@ function ReelCard({
               postId={rawPostId}
               source={post.source ?? "store"}
               totalCount={liveCommentsCount}
+              variant="overlay"
               onOpen={() => onOpenComments({
                 postId: post.id,
                 source: getFeedPostSource(post),
@@ -2389,7 +2385,7 @@ function ReelCard({
               role="dialog"
               aria-modal="true"
               aria-label="Reel actions"
-              className="zivo-social-sheet-panel fixed inset-x-0 bottom-0 z-[1500] flex max-h-[86dvh] flex-col overflow-hidden rounded-t-[1.75rem]"
+              className="zivo-social-sheet-panel zivo-social-sheet-panel-dark zivo-reel-actions-sheet fixed inset-x-0 bottom-0 z-[1500] flex max-h-[86dvh] flex-col overflow-hidden rounded-t-[1.75rem] text-white"
             >
               <div
                 onPointerDown={(e) => {
@@ -2421,18 +2417,12 @@ function ReelCard({
               </div>
               <div className="space-y-1 overflow-y-auto overscroll-contain px-2 py-2 pb-[max(0.75rem,var(--zivo-safe-bottom,0px))] [&>button]:rounded-2xl [&>button]:transition-colors [&>button:hover]:bg-white/58 [&>button:hover]:shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
                 <button type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setShowMoreMenu(false);
-                    const url = `${window.location.origin}/reels/${post.id}`;
+                    const url = getPostShareUrl(post.id);
                     try {
-                      const ta = document.createElement("textarea");
-                      ta.value = url;
-                      ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
-                      document.body.appendChild(ta);
-                      ta.select();
-                      document.execCommand("copy");
-                      document.body.removeChild(ta);
-                      toast.success("Link copied");
+                      await copyText(url);
+                      toast.success("Reel link copied");
                     } catch { toast.info("Long-press URL bar to copy"); }
                   }}
                   className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
@@ -2659,7 +2649,7 @@ function ReelCard({
               role="dialog"
               aria-modal="true"
               aria-label="Playback speed"
-              className="zivo-social-sheet-panel fixed inset-x-0 bottom-0 z-[1500] flex max-h-[86dvh] flex-col overflow-hidden rounded-t-[1.75rem]"
+              className="zivo-social-sheet-panel zivo-social-sheet-panel-dark zivo-reel-speed-sheet fixed inset-x-0 bottom-0 z-[1500] flex max-h-[86dvh] flex-col overflow-hidden rounded-t-[1.75rem] text-white"
             >
               <div
                 onPointerDown={(e) => {
@@ -2685,7 +2675,7 @@ function ReelCard({
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Playback</p>
                   <h3 className="text-base font-black tracking-tight text-foreground">Speed control</h3>
                 </div>
-                <span className="rounded-full border border-white/45 bg-white/55 px-3 py-1 text-[11px] font-black text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+                <span className="zivo-reel-speed-badge rounded-full border border-white/45 bg-white/55 px-3 py-1 text-[11px] font-black text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
                   {playbackSpeed}× active
                 </span>
               </div>
@@ -2697,9 +2687,9 @@ function ReelCard({
                       key={rate}
                       onClick={() => { haptic("selection"); setPlaybackSpeed(rate); setShowSpeedPicker(false); }}
                       className={cn(
-                        "rounded-2xl py-3 text-sm font-black tabular-nums transition-all active:scale-95",
+                        "zivo-reel-speed-option rounded-2xl py-3 text-sm font-black tabular-nums transition-all active:scale-95",
                         active
-                          ? "bg-gradient-to-br from-cyan-400 via-primary to-fuchsia-500 text-white shadow-[0_18px_38px_hsl(189_94%_43%/0.22)]"
+                          ? "zivo-reel-speed-option-active bg-gradient-to-br from-cyan-400 via-primary to-fuchsia-500 text-white shadow-[0_18px_38px_hsl(189_94%_43%/0.22)]"
                           : "zivo-social-module-tile text-foreground hover:scale-[1.01]",
                       )}
                     >
@@ -2857,7 +2847,7 @@ function CommentSheet({
       }
       const likedByUser = new Set((userLikeRows ?? []).map((r: any) => r.comment_id));
 
-      // Normalize text column — store_post_comments uses `content`, user_post_comments may use `comment`
+      // Normalize text column across legacy and unified comment rows.
       return rawComments.map((c: any) => ({
         ...c,
         content: c.content ?? c.comment ?? c.text ?? c.body ?? "",
@@ -3779,8 +3769,8 @@ function SoundOverlay({
   return (
     <>
       <SEOHead
-        title="ZIVO Feed – Short Videos, Reels & Stories"
-        description="Watch and share short videos, reels, and stories from creators around the world. Like, comment, follow, and discover trending content on ZIVO."
+        title="ZIVO Feed - Short Videos, Reels & Stories"
+        description="Watch and share posts, short videos, reels, and stories from creators, shops, jobs, and communities on ZIVO."
         canonical="/feed"
       />
       {/* Backdrop */}
@@ -3950,9 +3940,8 @@ function DiscoverPeopleOverlay({ onClose, onNavigate }: { onClose: () => void; o
     if (!userId || followingLoadingIds.has(profileId)) return;
     setFollowingLoadingIds((prev) => new Set([...prev, profileId]));
     try {
-      const { error } = await (supabase as any).from("user_followers").insert({
-        follower_id: userId,
-        following_id: profileId,
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "follow", following_id: profileId },
       });
       if (error) throw error;
       setFollowingIds((prev) => new Set([...prev, profileId]));
@@ -4071,11 +4060,19 @@ function ReelReportDialog({
 }) {
   const [reason, setReason] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleSignInForReport = () => {
+    const redirectTo = `${location.pathname}${location.search}${location.hash}`;
+    onClose();
+    navigate(withRedirectParam("/login", redirectTo));
+  };
 
   const submit = async () => {
     if (!reason || submitting) return;
     if (!reporterId) {
-      toast.error("Please sign in to report");
+      handleSignInForReport();
       return;
     }
     setSubmitting(true);
@@ -4112,7 +4109,10 @@ function ReelReportDialog({
         animate={{ y: 0 }}
         exit={{ y: 80 }}
         onClick={(e) => e.stopPropagation()}
-        className="zivo-social-sheet-panel w-full max-w-md overflow-hidden rounded-t-[1.75rem]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Report post"
+        className="zivo-social-sheet-panel zivo-social-sheet-panel-dark zivo-reel-report-dialog w-full max-w-md overflow-hidden rounded-t-[1.75rem] text-white"
         style={{ paddingBottom: "calc(var(--zivo-safe-bottom,0px) + 16px)" }}
       >
         <div className="flex justify-center pb-1 pt-3" aria-hidden="true">
@@ -4139,11 +4139,12 @@ function ReelReportDialog({
           {REPORT_REASONS.map((r) => (
             <button type="button"
               key={r}
+              aria-pressed={reason === r}
               onClick={() => setReason(r)}
               className={cn(
-                "flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-sm font-bold transition-all",
+                "zivo-reel-report-reason flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-sm font-bold transition-all",
                 reason === r
-                  ? "border border-destructive/20 bg-destructive/10 text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+                  ? "zivo-reel-report-reason-active border border-destructive/20 bg-destructive/10 text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
                   : "text-foreground hover:bg-white/58 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]",
               )}
             >
@@ -4155,8 +4156,8 @@ function ReelReportDialog({
         <div className="px-5 pt-2 pb-3">
           <button
             type="button"
-            disabled={!reason || submitting || !reporterId}
-            onClick={submit}
+            disabled={reporterId ? (!reason || submitting) : false}
+            onClick={reporterId ? submit : handleSignInForReport}
             className="h-11 w-full rounded-2xl bg-destructive text-sm font-black text-destructive-foreground shadow-[0_16px_34px_hsl(var(--destructive)/0.22)] disabled:opacity-40"
           >
             {!reporterId ? "Sign in to report" : submitting ? "Submitting…" : "Submit report"}
@@ -4179,6 +4180,7 @@ export default function FeedPage() {
   // On `/reels` we render the TikTok-style hero — hide the desktop side rails
   // so the video can fill the viewport. `/feed` keeps the 3-column layout.
   const isReelsRoute = location.pathname.startsWith("/reels");
+  const surfaceSeo = getAppSurfaceSeo(isReelsRoute ? "reels" : "feed");
   useEffect(() => {
     if (!isReelsRoute || typeof document === "undefined") return;
     document.body.classList.add("zivo-reels-active");
@@ -4258,6 +4260,7 @@ export default function FeedPage() {
   const [soundOverlayName, setSoundOverlayName] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showDiscover, setShowDiscover] = useState(false);
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
   const [reelComposerDraft, setReelComposerDraft] = useState<ReelComposerDraft | null>(null);
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
@@ -4294,11 +4297,9 @@ export default function FeedPage() {
     try { localStorage.setItem("zivo_reel_source", feedSource); } catch {}
   }, [feedSource]);
   const activeSourceFilter = REEL_SOURCE_FILTERS.find((option) => option.key === feedSource) ?? REEL_SOURCE_FILTERS[0];
-  const cycleSourceFilter = useCallback(() => {
-    setFeedSource((current) => {
-      const index = REEL_SOURCE_FILTERS.findIndex((option) => option.key === current);
-      return REEL_SOURCE_FILTERS[(index + 1) % REEL_SOURCE_FILTERS.length].key;
-    });
+  const selectSourceFilter = useCallback((nextSource: ReelSourceFilter) => {
+    setFeedSource(nextSource);
+    setShowSourcePicker(false);
     setActiveIndex(0);
     requestAnimationFrame(() => cardRefs.current[0]?.scrollIntoView({ block: "start" }));
   }, []);
@@ -5050,7 +5051,19 @@ export default function FeedPage() {
         next.add(postId);
         return next;
       });
-      toast.success("We'll show fewer posts like this");
+      toast.success("We'll show fewer posts like this", {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            setDeletedPostIds((prev) => {
+              const next = new Set(prev);
+              next.delete(postId);
+              return next;
+            });
+            toast.success("Reel restored");
+          },
+        },
+      });
     };
     const onReport = (e: Event) => {
       const postId = (e as CustomEvent<{ postId: string }>).detail?.postId;
@@ -5435,9 +5448,12 @@ export default function FeedPage() {
   return (
     <MotionConfig reducedMotion="user">
     <SEOHead
-      title={isReelsRoute ? "ZIVO Reels – Full-Screen Short Videos" : "ZIVO Feed – Short Videos, Reels & Stories"}
-      description={isReelsRoute ? "Watch full-screen creator reels, trending videos, captions, reposts, comments, and shares on ZIVO." : "Watch and share short videos, reels, and stories from creators around the world on ZIVO."}
-      canonical={isReelsRoute ? "/reels" : "/feed"}
+      title={isReelsRoute ? "ZIVO Reels - Full-Screen Creator Videos" : "ZIVO Feed - Posts, Reels & Stories"}
+      description={isReelsRoute ? "Watch full-screen creator reels, trending videos, captions, reposts, comments, shares, and product moments on ZIVO." : "Watch and share posts, short videos, reels, stories, creator updates, and community moments on ZIVO."}
+      canonical={surfaceSeo.canonical}
+      appLink={surfaceSeo.appLink}
+      structuredData={surfaceSeo.structuredData}
+      keywords={isReelsRoute ? ["ZIVO reels", "full-screen video", "creator videos", "social commerce"] : ["ZIVO feed", "social posts", "stories", "creator community"]}
     />
     <div className="fixed inset-0 bg-black lg:flex lg:flex-col">
       {/* Desktop NavBar */}
@@ -5610,8 +5626,10 @@ export default function FeedPage() {
       >
         <button
           type="button"
-          onClick={cycleSourceFilter}
+          onClick={() => setShowSourcePicker(true)}
           aria-label={`Showing ${activeSourceFilter.label}. Tap to change reel source.`}
+          aria-haspopup="menu"
+          aria-expanded={showSourcePicker}
           className="zivo-feed-action-orb pointer-events-auto inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-white"
         >
           {feedSource === "people" ? (
@@ -5625,10 +5643,81 @@ export default function FeedPage() {
         </button>
       </div>
 
-      {/* Discover + Search + Live buttons — hide on desktop.
-          Wrapped in a centered container so on iPad (md+), where the reel
-          sits in a 420-px-wide phone frame, the buttons hug the right edge
-          of the frame instead of floating in the black gutter outside it. */}
+      {/* Source picker for the top-left All / People / Shops control. */}
+      <AnimatePresence>
+        {showSourcePicker && (
+          <motion.div
+            key="reel-source-picker"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-[75]"
+          >
+            <button
+              type="button"
+              aria-label="Close reel source picker"
+              className="absolute inset-0 cursor-default"
+              onClick={() => setShowSourcePicker(false)}
+            />
+            <motion.div
+              data-testid="reel-source-picker"
+              role="menu"
+              aria-label="Reel source"
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ type: "spring", damping: 24, stiffness: 360 }}
+              className="absolute left-3 top-[calc(var(--zivo-safe-top,0px)+56px)] w-[min(92vw,15rem)] overflow-hidden rounded-[1.5rem] border border-white/15 bg-zinc-950/90 p-2 text-white shadow-2xl shadow-black/45 backdrop-blur-xl lg:left-4"
+            >
+              <div className="px-2.5 pb-2 pt-1.5">
+                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-white/50">Reel source</p>
+              </div>
+              <div className="space-y-1">
+                {REEL_SOURCE_FILTERS.map((option) => {
+                  const active = option.key === feedSource;
+                  const Icon = option.key === "people" ? UserCircle : option.key === "shops" ? Store : Film;
+                  const helper = option.key === "all"
+                    ? "Creators and shops"
+                    : option.key === "people"
+                      ? "People only"
+                      : "Shop posts";
+
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={active}
+                      onClick={() => selectSourceFilter(option.key)}
+                      className={cn(
+                        "flex min-h-[52px] w-full items-center gap-3 rounded-2xl px-3 text-left transition-all active:scale-[0.98]",
+                        active ? "bg-white text-black" : "text-white hover:bg-white/10",
+                      )}
+                    >
+                      <span className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                        active ? "bg-black text-white" : "bg-white/10 text-white",
+                      )}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-black">{option.label}</span>
+                        <span className={cn("block truncate text-[11px] font-semibold", active ? "text-black/55" : "text-white/50")}>
+                          {helper}
+                        </span>
+                      </span>
+                      {active && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Discover + Search + Live buttons - hide on desktop. */}
       <div
         className="absolute inset-x-0 z-50 mx-auto md:max-w-[420px] pointer-events-none lg:hidden"
         style={{ top: "calc(var(--zivo-safe-top, 0px) + 8px)" }}
@@ -5970,7 +6059,7 @@ export default function FeedPage() {
                 <button type="button" onClick={() => navigate("/shop")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><ShoppingBag className="w-4 h-4 text-primary shrink-0" /> Shop</button>
               </div>
             </div>
-            <p className="mt-auto px-1 pt-4 text-[11px] font-semibold text-muted-foreground/70">© ZIVO LLC · hizivo.com</p>
+            <p className="mt-auto px-1 pt-4 text-[11px] font-semibold text-muted-foreground/70">© ZIVO LLC · zivollc.com</p>
           </aside>
         )}
 
@@ -6186,6 +6275,7 @@ export default function FeedPage() {
               postSource={sharePost ? getFeedPostSource(sharePost) : "store"}
               sharePostAuthorId={sharePost?.author_id}
               sharePostAuthorName={sharePost?.author_name ?? sharePost?.store_name}
+              reelsSurface={isReelsRoute}
               onShareRecorded={() => {
                 if (!sharePost) return;
                 updatePostEngagementCount(sharePost.id, getFeedPostSource(sharePost), "shares_count", (count) => count + 1);

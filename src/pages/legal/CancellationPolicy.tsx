@@ -17,7 +17,7 @@ const CancellationPolicy = () => {
       <SEOHead 
         title="Cancellation Policy – ZIVO Travel"
         description="Understand cancellation terms for Hotels, Car Rentals, and Flights booked through ZIVO. Different policies apply based on service type."
-        canonical="https://hizivo.com/legal/cancellation"
+        canonical="https://zivollc.com/legal/cancellation"
       />
       <NavBar />
       

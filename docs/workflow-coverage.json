@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-01T12:45:14.481Z",
+  "generated": "2026-06-01T20:06:05.688Z",
   "currentGate": {
     "mode": "strict",
     "readyForProductionGate": false,
@@ -22,11 +22,11 @@
     "Supabase remote migration history is unavailable (access_token_missing)."
   ],
   "totals": {
-    "frontendFiles": 2418,
-    "backendFiles": 684,
-    "databaseFiles": 1048,
-    "testFiles": 137,
-    "docsFiles": 29
+    "frontendFiles": 2421,
+    "backendFiles": 707,
+    "databaseFiles": 1062,
+    "testFiles": 143,
+    "docsFiles": 31
   },
   "priority": [],
   "workflows": [
@@ -34,33 +34,33 @@
       "id": "sso-auth-sessions",
       "label": "SSO, Auth, Sessions, Devices",
       "frontend": {
-        "count": 1020,
+        "count": 1022,
         "samples": [
-          "src/pages/AITripPlanner.tsx",
-          "src/pages/AMAPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AffiliateHubPage.tsx",
-          "src/pages/AffiliateLinksPage.tsx",
-          "src/pages/AppSettingsPage.tsx",
-          "src/pages/AudioSpacesPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
         ]
       },
       "backend": {
-        "count": 508,
+        "count": 521,
         "samples": [
-          "supabase/functions/_shared/aalCheck.ts",
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/audit_test.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/bruteForce.ts",
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/cors.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
         ]
       },
       "database": {
-        "count": 780,
+        "count": 790,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
@@ -73,67 +73,67 @@
         ]
       },
       "tests": {
-        "count": 90,
+        "count": 98,
         "samples": [
           "src/test/accountDeletionLifecycle.test.ts",
           "src/test/accountExportManifest.test.ts",
           "src/test/adminModerationRoleAccess.test.ts",
           "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
           "src/test/adsMarketingPrivacyDisclosure.test.ts",
           "src/test/aiAutomatedDecisionDisclosure.test.ts",
-          "src/test/apiObservabilityContracts.test.ts",
-          "src/test/apiOperationsReportSurfaces.test.ts"
+          "src/test/apiObservabilityContracts.test.ts"
         ]
       },
       "docs": {
-        "count": 24,
+        "count": 26,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/api-readiness-report.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/dev/capacitor-safe-area.md",
           "docs/end-to-end-platform-readiness.md",
-          "docs/platform-readiness-matrix.json",
-          "docs/platform-readiness-matrix.md"
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
+          "docs/OTA_LIVE_UPDATES.md"
         ]
       },
       "nextAction": "Keep `npm run qa:sso-auth-contracts` green for OAuth, passwordless OTP, MFA, trusted devices, active sessions, and role-aware route gates.",
-      "implementationCount": 2308,
-      "testCoverageRatio": 0.039,
+      "implementationCount": 2333,
+      "testCoverageRatio": 0.042,
       "status": "covered"
     },
     {
       "id": "customer-booking-order",
       "label": "Customer Booking, Order, Trip",
       "frontend": {
-        "count": 2121,
+        "count": 2124,
         "samples": [
-          "src/pages/AITripPlanner.tsx",
-          "src/pages/AMAPage.tsx",
-          "src/pages/ARFiltersPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/AchievementsPage.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminContentReportsPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
         ]
       },
       "backend": {
-        "count": 405,
+        "count": 409,
         "samples": [
-          "supabase/functions/_shared/aalCheck.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/cors.ts",
-          "supabase/functions/_shared/deps.ts",
-          "supabase/functions/_shared/eats-notifications.ts",
-          "supabase/functions/_shared/email-templates/email-change.tsx"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/admin-create-user-post/index.ts",
+          "supabase/functions/admin-moderate-message/index.ts",
+          "supabase/functions/admin-update-profile/index.ts",
+          "supabase/functions/ads-studio-export/index.ts",
+          "supabase/functions/ads-studio-track/index.ts"
         ]
       },
       "database": {
-        "count": 539,
+        "count": 547,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
@@ -146,67 +146,67 @@
         ]
       },
       "tests": {
-        "count": 79,
+        "count": 84,
         "samples": [
           "src/test/accountExportManifest.test.ts",
           "src/test/ageEligibilitySafetyDisclosure.test.ts",
           "src/test/aiAutomatedDecisionDisclosure.test.ts",
           "src/test/apiObservabilityContracts.test.ts",
           "src/test/apiOperationsReportSurfaces.test.ts",
-          "src/test/automatedLegalPolicyHub.test.ts",
-          "src/test/botDetection.test.ts",
-          "src/test/checkoutLegalCanonicalLinks.test.ts"
+          "src/test/appShellAuthRedirect.test.ts",
+          "src/test/authRedirect.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts"
         ]
       },
       "docs": {
-        "count": 24,
+        "count": 26,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
           "docs/native-release-checklist.md",
-          "docs/platform-readiness-matrix.json",
-          "docs/platform-readiness-matrix.md",
-          "docs/platform-upgrade-workflow.md"
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/platform-readiness-matrix.json"
         ]
       },
       "nextAction": "Keep `npm run qa:customer-booking-contracts` green for grocery checkout, order scoping, lodging add-ons, and shopping-order RLS.",
-      "implementationCount": 3065,
-      "testCoverageRatio": 0.0258,
+      "implementationCount": 3080,
+      "testCoverageRatio": 0.0273,
       "status": "covered"
     },
     {
       "id": "shop-owner-admin",
       "label": "Shop Owner Setup and Operations",
       "frontend": {
-        "count": 1297,
+        "count": 1302,
         "samples": [
-          "src/pages/AITripPlanner.tsx",
-          "src/pages/AMAPage.tsx",
-          "src/pages/ARFiltersPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/AchievementsPage.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminModerationPage.tsx"
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AddressesPage.tsx",
+          "src/pages/account/FavoritesPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx"
         ]
       },
       "backend": {
-        "count": 485,
+        "count": 500,
         "samples": [
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/bruteForce.ts",
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/cors.ts",
-          "supabase/functions/_shared/flags.ts",
-          "supabase/functions/_shared/grocery-notifications.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts",
+          "supabase/functions/admin-create-user-post/index.ts"
         ]
       },
       "database": {
-        "count": 671,
+        "count": 682,
         "samples": [
           "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
           "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql",
@@ -219,67 +219,67 @@
         ]
       },
       "tests": {
-        "count": 92,
+        "count": 96,
         "samples": [
           "src/test/accountDeletionLifecycle.test.ts",
           "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
           "src/test/adsMarketingPrivacyDisclosure.test.ts",
           "src/test/ageEligibilitySafetyDisclosure.test.ts",
           "src/test/aiAutomatedDecisionDisclosure.test.ts",
           "src/test/apiObservabilityContracts.test.ts",
-          "src/test/apiOperationsReportSurfaces.test.ts",
-          "src/test/authSessionSecurity.test.ts"
+          "src/test/apiOperationsReportSurfaces.test.ts"
         ]
       },
       "docs": {
-        "count": 26,
+        "count": 28,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/api-readiness-report.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/dev/capacitor-safe-area.md",
           "docs/end-to-end-platform-readiness.md",
-          "docs/native-release-checklist.md",
-          "docs/platform-readiness-matrix.json"
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
+          "docs/native-release-checklist.md"
         ]
       },
       "nextAction": "Keep `npm run qa:shop-owner-contracts` green for owner setup, dashboard routes, scoped store operations, and RLS/grants.",
-      "implementationCount": 2453,
-      "testCoverageRatio": 0.0375,
+      "implementationCount": 2484,
+      "testCoverageRatio": 0.0386,
       "status": "covered"
     },
     {
       "id": "client-staff-workflows",
       "label": "Client, Staff, Employee Workflows",
       "frontend": {
-        "count": 1292,
+        "count": 1294,
         "samples": [
-          "src/pages/AMAPage.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/AchievementsPage.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminContentReportsPage.tsx",
-          "src/pages/AdminModerationPage.tsx",
-          "src/pages/AdultDiscoveryPage.tsx",
-          "src/pages/AffiliateHubPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx"
         ]
       },
       "backend": {
-        "count": 472,
+        "count": 488,
         "samples": [
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/botDetection.ts",
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/cors.ts",
-          "supabase/functions/_shared/deps.ts",
-          "supabase/functions/_shared/eats-notifications.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
         ]
       },
       "database": {
-        "count": 241,
+        "count": 245,
         "samples": [
           "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
           "supabase/migrations/20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql",
@@ -292,34 +292,34 @@
         ]
       },
       "tests": {
-        "count": 46,
+        "count": 47,
         "samples": [
           "src/test/accountDeletionLifecycle.test.ts",
           "src/test/adminSupportAccountRoleAccess.test.ts",
           "src/test/apiObservabilityContracts.test.ts",
+          "src/test/authRedirect.test.ts",
           "src/test/critical-flows.test.tsx",
           "src/test/errorBoundaryObservability.test.tsx",
           "src/test/fileUploadSecurity.test.ts",
-          "src/test/ipHelpers.test.ts",
-          "src/test/legalTrustIntakeContracts.test.ts"
+          "src/test/ipHelpers.test.ts"
         ]
       },
       "docs": {
-        "count": 13,
+        "count": 14,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/google-ads-launch-plan.md",
+          "docs/OTA_LIVE_UPDATES.md",
           "docs/platform-readiness-matrix.json",
           "docs/platform-readiness-matrix.md",
-          "docs/production-preflight-report.md",
-          "docs/security-anti-abuse-drills.md"
+          "docs/production-preflight-report.md"
         ]
       },
       "nextAction": "Keep `npm run qa:client-staff-contracts` green for invite acceptance, owner-only staff invites, schedule reads, payroll/rules, training, and client scoping.",
-      "implementationCount": 2005,
-      "testCoverageRatio": 0.0229,
+      "implementationCount": 2027,
+      "testCoverageRatio": 0.0232,
       "status": "covered"
     },
     {
@@ -328,31 +328,31 @@
       "frontend": {
         "count": 1564,
         "samples": [
-          "src/pages/AITripPlanner.tsx",
-          "src/pages/AMAPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/AchievementsPage.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminContentReportsPage.tsx",
-          "src/pages/AdminModerationPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
         ]
       },
       "backend": {
-        "count": 551,
+        "count": 570,
         "samples": [
-          "supabase/functions/_shared/aalCheck.ts",
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/audit_test.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/botDetection.ts",
-          "supabase/functions/_shared/bruteForce.ts",
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
         ]
       },
       "database": {
-        "count": 1048,
+        "count": 1062,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
@@ -365,7 +365,7 @@
         ]
       },
       "tests": {
-        "count": 102,
+        "count": 106,
         "samples": [
           "src/test/accountDeletionLifecycle.test.ts",
           "src/test/accountExportManifest.test.ts",
@@ -378,21 +378,21 @@
         ]
       },
       "docs": {
-        "count": 25,
+        "count": 27,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/api-readiness-report.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/end-to-end-platform-readiness.md",
-          "docs/platform-readiness-matrix.json",
-          "docs/platform-readiness-matrix.md",
-          "docs/platform-upgrade-workflow.md"
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/platform-readiness-matrix.json"
         ]
       },
       "nextAction": "Keep `npm run qa:payments-refunds-contracts` green for provider webhooks, idempotent refunds, subscription portals, refund-state UI, and audit ledgers.",
-      "implementationCount": 3163,
-      "testCoverageRatio": 0.0322,
+      "implementationCount": 3196,
+      "testCoverageRatio": 0.0332,
       "status": "covered"
     },
     {
@@ -401,27 +401,27 @@
       "frontend": {
         "count": 630,
         "samples": [
-          "src/pages/AITripPlanner.tsx",
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/AffiliateHubPage.tsx",
-          "src/pages/AffiliateLinksPage.tsx",
-          "src/pages/AppSettingsPage.tsx",
-          "src/pages/BecomePartnerPage.tsx",
-          "src/pages/BookingManagement.tsx"
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/GiftCardsPage.tsx",
+          "src/pages/account/GiftCardSuccessPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx",
+          "src/pages/account/LoyaltyPage.tsx"
         ]
       },
       "backend": {
-        "count": 186,
+        "count": 188,
         "samples": [
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/eats-notifications.ts",
-          "supabase/functions/_shared/grocery-notifications.ts",
-          "supabase/functions/_shared/lodging-notifications.ts",
-          "supabase/functions/_shared/networkSignals.ts",
-          "supabase/functions/_shared/salon-notifications.ts",
-          "supabase/functions/_shared/threatIntel.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/admin-moderate-message/index.ts",
+          "supabase/functions/admin-post-comment/index.ts",
+          "supabase/functions/admin-update-profile/index.ts",
+          "supabase/functions/ads-studio-generate/index.ts",
+          "supabase/functions/ai-smart-deals/index.ts"
         ]
       },
       "database": {
@@ -438,67 +438,67 @@
         ]
       },
       "tests": {
-        "count": 50,
+        "count": 51,
         "samples": [
           "src/test/accountExportManifest.test.ts",
           "src/test/adsMarketingConsentRuntime.test.ts",
           "src/test/ageEligibilitySafetyDisclosure.test.ts",
           "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/authRedirect.test.ts",
           "src/test/automatedLegalPolicyHub.test.ts",
           "src/test/createPostComposerVisualContracts.test.ts",
-          "src/test/creatorMonetizationLegalDisclosure.test.ts",
-          "src/test/crossVerticalRoleNavigation.test.ts"
+          "src/test/creatorMonetizationLegalDisclosure.test.ts"
         ]
       },
       "docs": {
-        "count": 17,
+        "count": 19,
         "samples": [
           "docs/api-operations-runbook.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
           "docs/native-release-checklist.md",
           "docs/platform-readiness-matrix.json",
-          "docs/platform-readiness-matrix.md",
-          "docs/production-preflight-report.md",
-          "docs/production-preflight-summary.json"
+          "docs/platform-readiness-matrix.md"
         ]
       },
       "nextAction": "Keep `npm run qa:payouts-earnings-contracts` green for payout auth, server-gated payout methods, idempotent retries, and auditable ledgers.",
-      "implementationCount": 1004,
-      "testCoverageRatio": 0.0498,
+      "implementationCount": 1006,
+      "testCoverageRatio": 0.0507,
       "status": "covered"
     },
     {
       "id": "email-marketing-consent",
       "label": "Email Marketing, Consent, Suppression",
       "frontend": {
-        "count": 580,
+        "count": 582,
         "samples": [
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/AdultDiscoveryPage.tsx",
-          "src/pages/AffiliateDisclosure.tsx",
-          "src/pages/AppSettingsPage.tsx",
-          "src/pages/AudioSpacesPage.tsx",
-          "src/pages/AuthCallback.tsx",
-          "src/pages/AutoMessagesLogPage.tsx"
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/BusinessInvoicesPage.tsx",
+          "src/pages/account/GiftCardsPage.tsx",
+          "src/pages/account/GiftCardSuccessPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx"
         ]
       },
       "backend": {
-        "count": 229,
+        "count": 238,
         "samples": [
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/audit_test.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/bruteForce.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/eats-notifications.ts",
-          "supabase/functions/_shared/email-templates/email-change.tsx",
-          "supabase/functions/_shared/email-templates/invite.tsx"
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-create-user/index.ts",
+          "supabase/functions/admin-list-created-users/index.ts",
+          "supabase/functions/ads-studio-export/index.ts",
+          "supabase/functions/ads-studio-generate/index.ts"
         ]
       },
       "database": {
-        "count": 219,
+        "count": 221,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
@@ -511,67 +511,67 @@
         ]
       },
       "tests": {
-        "count": 66,
+        "count": 68,
         "samples": [
           "src/test/accountExportManifest.test.ts",
           "src/test/adsMarketingConsentRuntime.test.ts",
           "src/test/adsMarketingPrivacyDisclosure.test.ts",
           "src/test/ageEligibilitySafetyDisclosure.test.ts",
           "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/authRedirect.test.ts",
           "src/test/authSessionSecurity.test.ts",
-          "src/test/automatedLegalPolicyHub.test.ts",
-          "src/test/checkoutLegalCanonicalLinks.test.ts"
+          "src/test/automatedLegalPolicyHub.test.ts"
         ]
       },
       "docs": {
-        "count": 13,
+        "count": 15,
         "samples": [
           "docs/database-upgrade-readiness-report.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
           "docs/platform-readiness-matrix.json",
           "docs/platform-readiness-matrix.md",
           "docs/production-deploy-secrets.md",
-          "docs/security-anti-abuse-drills.md",
-          "docs/supabase-deploy-env-setup.md",
-          "docs/supabase-secret-rotation-runbook.md"
+          "docs/security-anti-abuse-drills.md"
         ]
       },
       "nextAction": "Keep `npm run qa:email-marketing-contracts` green for transactional-vs-marketing separation, suppression, consent, and campaign event logging.",
-      "implementationCount": 1028,
-      "testCoverageRatio": 0.0642,
+      "implementationCount": 1041,
+      "testCoverageRatio": 0.0653,
       "status": "covered"
     },
     {
       "id": "ads-monetization-tracking",
       "label": "Ads, Monetization, Conversion Tracking",
       "frontend": {
-        "count": 2277,
+        "count": 2282,
         "samples": [
-          "src/pages/AITripPlanner.tsx",
-          "src/pages/AMAPage.tsx",
-          "src/pages/ARFiltersPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/AchievementsPage.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminContentReportsPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
         ]
       },
       "backend": {
-        "count": 636,
+        "count": 658,
         "samples": [
-          "supabase/functions/_shared/aalCheck.ts",
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/botDetection.ts",
-          "supabase/functions/_shared/bruteForce.ts",
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/cors.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
         ]
       },
       "database": {
-        "count": 922,
+        "count": 935,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
@@ -584,7 +584,7 @@
         ]
       },
       "tests": {
-        "count": 133,
+        "count": 139,
         "samples": [
           "src/test/accountDeletionDataRightsLinks.test.ts",
           "src/test/accountDeletionLifecycle.test.ts",
@@ -597,54 +597,54 @@
         ]
       },
       "docs": {
-        "count": 28,
+        "count": 30,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/api-readiness-report.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/dev/capacitor-safe-area.md",
           "docs/end-to-end-platform-readiness.md",
-          "docs/native-android-setup.md",
-          "docs/native-release-checklist.md"
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
+          "docs/native-android-setup.md"
         ]
       },
       "nextAction": "Keep `npm run qa:ads-monetization-contracts` green for attribution, conversion uploads, Ads Studio ROAS, creator monetization, and provider roadmap coverage.",
-      "implementationCount": 3835,
-      "testCoverageRatio": 0.0347,
+      "implementationCount": 3875,
+      "testCoverageRatio": 0.0359,
       "status": "covered"
     },
     {
       "id": "push-notifications",
       "label": "Push Notifications and Notification Center",
       "frontend": {
-        "count": 504,
+        "count": 505,
         "samples": [
-          "src/pages/AMAPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AppSettingsPage.tsx",
-          "src/pages/AutoMessagesLogPage.tsx",
-          "src/pages/CarRentalBooking.tsx",
-          "src/pages/CarResultsPage.tsx",
-          "src/pages/ChatHubPage.tsx"
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx",
+          "src/pages/account/LinkedDevicesPage.tsx",
+          "src/pages/account/NotificationSettings.tsx"
         ]
       },
       "backend": {
-        "count": 193,
+        "count": 199,
         "samples": [
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/eats-notifications.ts",
-          "supabase/functions/_shared/grocery-notifications.ts",
-          "supabase/functions/_shared/lodging-notifications.ts",
-          "supabase/functions/_shared/networkSignals.ts",
-          "supabase/functions/_shared/rateLimiter.ts",
-          "supabase/functions/_shared/salon-notifications.ts"
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-create-user-post/index.ts",
+          "supabase/functions/admin-list-created-users/index.ts",
+          "supabase/functions/ads-studio-auto-winner/index.ts",
+          "supabase/functions/ads-studio-budget-guard/index.ts",
+          "supabase/functions/ads-studio-generate/index.ts",
+          "supabase/functions/ads-studio-publish/index.ts"
         ]
       },
       "database": {
-        "count": 103,
+        "count": 106,
         "samples": [
           "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
           "supabase/migrations/20260129225210_7429b719-03e7-49dc-98a2-a101f956b59d.sql",
@@ -683,41 +683,41 @@
         ]
       },
       "nextAction": "Keep `npm run qa:push-notification-contracts` green for token registration, opt-outs, digest dispatch, and service worker routing.",
-      "implementationCount": 800,
-      "testCoverageRatio": 0.0338,
+      "implementationCount": 810,
+      "testCoverageRatio": 0.0333,
       "status": "covered"
     },
     {
       "id": "storage-media-cdn",
       "label": "Storage, Media, CDN, Downloads",
       "frontend": {
-        "count": 893,
+        "count": 894,
         "samples": [
-          "src/pages/ARFiltersPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminModerationPage.tsx",
-          "src/pages/AdultDiscoveryPage.tsx",
-          "src/pages/AffiliateHubPage.tsx",
-          "src/pages/AudioRoomsPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
         ]
       },
       "backend": {
-        "count": 164,
+        "count": 174,
         "samples": [
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/email-templates/email-change.tsx",
-          "supabase/functions/_shared/fileUpload.ts",
-          "supabase/functions/_shared/flags.ts",
-          "supabase/functions/_shared/idempotency.ts",
-          "supabase/functions/_shared/rateLimiter.ts",
-          "supabase/functions/_shared/transactional-email-templates/lodging-receipt-ready.tsx",
-          "supabase/functions/_shared/transactional-email-templates/new-device-login.tsx"
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/admin-create-user-post/index.ts",
+          "supabase/functions/admin-delete-user-post/index.ts",
+          "supabase/functions/admin-list-created-users/index.ts",
+          "supabase/functions/admin-update-profile/index.ts",
+          "supabase/functions/ads-studio-export/index.ts",
+          "supabase/functions/ads-studio-generate/index.ts"
         ]
       },
       "database": {
-        "count": 200,
+        "count": 202,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
@@ -730,7 +730,7 @@
         ]
       },
       "tests": {
-        "count": 64,
+        "count": 65,
         "samples": [
           "src/test/accountDeletionLifecycle.test.ts",
           "src/test/accountExportManifest.test.ts",
@@ -743,54 +743,54 @@
         ]
       },
       "docs": {
-        "count": 20,
+        "count": 21,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/dev/capacitor-safe-area.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/google-ads-launch-plan.md",
           "docs/native-release-checklist.md",
+          "docs/OTA_LIVE_UPDATES.md",
           "docs/platform-readiness-matrix.json",
-          "docs/platform-readiness-matrix.md",
-          "docs/platform-upgrade-workflow.md"
+          "docs/platform-readiness-matrix.md"
         ]
       },
       "nextAction": "Keep `npm run qa:storage-media-contracts`, `npm run qa:database-storage-contracts`, and `npm run platform:test:storage-media` green for upload validation, public, protected, owner, and client/staff media paths plus Data API/RLS gates.",
-      "implementationCount": 1257,
-      "testCoverageRatio": 0.0509,
+      "implementationCount": 1270,
+      "testCoverageRatio": 0.0512,
       "status": "covered"
     },
     {
       "id": "policy-legal-trust",
       "label": "Law, Policy, Compliance, Trust",
       "frontend": {
-        "count": 495,
+        "count": 496,
         "samples": [
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/AdultDiscoveryPage.tsx",
-          "src/pages/AffiliateDisclosure.tsx",
-          "src/pages/AppSettingsPage.tsx",
-          "src/pages/BookingManagement.tsx",
-          "src/pages/BookingReturnPage.tsx",
-          "src/pages/BrandMission.tsx"
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx",
+          "src/pages/account/AddressesPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx",
+          "src/pages/account/NotificationSettings.tsx"
         ]
       },
       "backend": {
-        "count": 109,
+        "count": 116,
         "samples": [
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/eats-notifications.ts",
-          "supabase/functions/_shared/grocery-notifications.ts",
-          "supabase/functions/_shared/lodging-notifications.ts",
-          "supabase/functions/_shared/transactional-email-templates/eats-order-confirmed.tsx",
-          "supabase/functions/_shared/transactional-email-templates/eats-refund-issued.tsx",
-          "supabase/functions/_shared/transactional-email-templates/grocery-order-confirmed.tsx"
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/affiliate-click-log/index.ts",
+          "supabase/functions/ai-support-chat/index.ts",
+          "supabase/functions/aviasales-search/index.ts",
+          "supabase/functions/cancel-creator-subscription/index.ts",
+          "supabase/functions/cancel-eats-order/index.ts",
+          "supabase/functions/cancel-grocery-order/index.ts"
         ]
       },
       "database": {
-        "count": 671,
+        "count": 679,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
@@ -816,54 +816,54 @@
         ]
       },
       "docs": {
-        "count": 14,
+        "count": 16,
         "samples": [
           "docs/api-operations-runbook.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
           "docs/native-release-checklist.md",
           "docs/platform-readiness-matrix.json",
           "docs/platform-readiness-matrix.md",
-          "docs/platform-upgrade-workflow.md",
-          "docs/qa/stories-e2e-2026-04-25.md",
-          "docs/supabase-performance-upgrade-report.md"
+          "docs/platform-upgrade-workflow.md"
         ]
       },
       "nextAction": "Keep `npm run qa:legal-policy-contracts` green across legal pages, consent logs, export/delete, grants, and policy-backed booking flows.",
-      "implementationCount": 1275,
-      "testCoverageRatio": 0.0502,
+      "implementationCount": 1291,
+      "testCoverageRatio": 0.0496,
       "status": "covered"
     },
     {
       "id": "api-speed-ops",
       "label": "API, Server Speed, Observability",
       "frontend": {
-        "count": 2208,
+        "count": 2211,
         "samples": [
-          "src/pages/AMAPage.tsx",
-          "src/pages/ARFiltersPage.tsx",
-          "src/pages/AchievementsPage.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminContentReportsPage.tsx",
-          "src/pages/AdminModerationPage.tsx",
-          "src/pages/AdultDiscoveryPage.tsx",
-          "src/pages/AffiliateHubPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx"
         ]
       },
       "backend": {
-        "count": 642,
+        "count": 665,
         "samples": [
-          "supabase/functions/_shared/aalCheck.ts",
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/audit_test.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/botDetection.ts",
-          "supabase/functions/_shared/bruteForce.ts",
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
         ]
       },
       "database": {
-        "count": 552,
+        "count": 560,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
@@ -876,7 +876,7 @@
         ]
       },
       "tests": {
-        "count": 98,
+        "count": 102,
         "samples": [
           "src/test/accountDeletionLifecycle.test.ts",
           "src/test/accountExportManifest.test.ts",
@@ -889,54 +889,54 @@
         ]
       },
       "docs": {
-        "count": 26,
+        "count": 28,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/api-readiness-report.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
           "docs/native-release-checklist.md",
-          "docs/platform-readiness-matrix.json",
-          "docs/platform-readiness-matrix.md"
+          "docs/OTA_LIVE_UPDATES.md"
         ]
       },
       "nextAction": "Keep `npm run qa:api-operations-contracts` green for 5xx, slow query, webhook failure, auth/payment spike, cron, runtime settings, and preflight observability.",
-      "implementationCount": 3402,
-      "testCoverageRatio": 0.0288,
+      "implementationCount": 3436,
+      "testCoverageRatio": 0.0297,
       "status": "covered"
     },
     {
       "id": "security-anti-hack",
       "label": "Security, Anti-Abuse, Hacker Protection",
       "frontend": {
-        "count": 776,
+        "count": 778,
         "samples": [
-          "src/pages/AMAPage.tsx",
-          "src/pages/ARFiltersPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/AccountDeletionInfo.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminContentReportsPage.tsx",
-          "src/pages/AdultDiscoveryPage.tsx",
-          "src/pages/AppSettingsPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx",
+          "src/pages/account/AddressesPage.tsx"
         ]
       },
       "backend": {
-        "count": 473,
+        "count": 480,
         "samples": [
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/botDetection.ts",
-          "supabase/functions/_shared/bruteForce.ts",
-          "supabase/functions/_shared/cancellation-cascade.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/errors.ts",
-          "supabase/functions/_shared/fileUpload.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
         ]
       },
       "database": {
-        "count": 687,
+        "count": 697,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
@@ -949,7 +949,7 @@
         ]
       },
       "tests": {
-        "count": 86,
+        "count": 87,
         "samples": [
           "src/test/accountDeletionLifecycle.test.ts",
           "src/test/accountExportManifest.test.ts",
@@ -958,58 +958,58 @@
           "src/test/aiAutomatedDecisionDisclosure.test.ts",
           "src/test/apiObservabilityContracts.test.ts",
           "src/test/apiOperationsReportSurfaces.test.ts",
-          "src/test/authSessionSecurity.test.ts"
+          "src/test/authRedirect.test.ts"
         ]
       },
       "docs": {
-        "count": 24,
+        "count": 25,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/api-readiness-report.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/dev/capacitor-safe-area.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/meta-facebook-ads-launch.md",
           "docs/native-release-checklist.md",
-          "docs/platform-readiness-matrix.json"
+          "docs/OTA_LIVE_UPDATES.md"
         ]
       },
       "nextAction": "Keep `npm run qa:security-anti-abuse-contracts` green for account takeover, card testing, spam, scraping, fake booking, key leakage, WAF, rate limits, and network-risk controls.",
-      "implementationCount": 1936,
-      "testCoverageRatio": 0.0444,
+      "implementationCount": 1955,
+      "testCoverageRatio": 0.0445,
       "status": "covered"
     },
     {
       "id": "graphics-design-speed",
       "label": "Graphics, Design, Frontend Speed",
       "frontend": {
-        "count": 1709,
+        "count": 1712,
         "samples": [
-          "src/pages/AITripPlanner.tsx",
-          "src/pages/AMAPage.tsx",
-          "src/pages/ARFiltersPage.tsx",
-          "src/pages/AchievementsPage.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminContentReportsPage.tsx",
-          "src/pages/AdminModerationPage.tsx",
-          "src/pages/AdultDiscoveryPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx"
         ]
       },
       "backend": {
-        "count": 526,
+        "count": 542,
         "samples": [
-          "supabase/functions/_shared/aalCheck.ts",
-          "supabase/functions/_shared/audit.ts",
-          "supabase/functions/_shared/auth.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/eats-notifications.ts",
-          "supabase/functions/_shared/errors.ts",
-          "supabase/functions/_shared/fileUpload.ts",
-          "supabase/functions/_shared/grocery-notifications.ts"
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
         ]
       },
       "database": {
-        "count": 174,
+        "count": 176,
         "samples": [
           "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
           "supabase/migrations/20260126204406_4b930ffe-7701-4cca-8669-5b8015c31411.sql",
@@ -1022,7 +1022,7 @@
         ]
       },
       "tests": {
-        "count": 54,
+        "count": 59,
         "samples": [
           "src/test/accountDeletionLifecycle.test.ts",
           "src/test/aiAutomatedDecisionDisclosure.test.ts",
@@ -1035,54 +1035,54 @@
         ]
       },
       "docs": {
-        "count": 22,
+        "count": 24,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/api-operations-runbook.md",
           "docs/api-readiness-report.md",
           "docs/database-upgrade-readiness-report.md",
           "docs/dev/capacitor-safe-area.md",
           "docs/end-to-end-platform-readiness.md",
-          "docs/native-release-checklist.md",
-          "docs/platform-readiness-matrix.json"
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
+          "docs/native-release-checklist.md"
         ]
       },
       "nextAction": "Keep `npm run qa:frontend-visual-contracts` green for visual route coverage, mobile safe areas, lazy media, loading/error states, and no clipped controls.",
-      "implementationCount": 2409,
-      "testCoverageRatio": 0.0224,
+      "implementationCount": 2430,
+      "testCoverageRatio": 0.0243,
       "status": "covered"
     },
     {
       "id": "native-mobile-release",
       "label": "Native iOS, Android, OTA, Store Release",
       "frontend": {
-        "count": 1157,
+        "count": 1160,
         "samples": [
-          "src/pages/AITripPlanner.tsx",
-          "src/pages/AMAPage.tsx",
-          "src/pages/ARFiltersPage.tsx",
           "src/pages/About.tsx",
-          "src/pages/AchievementsPage.tsx",
-          "src/pages/ActivityFeedPage.tsx",
-          "src/pages/AdminContentReportsPage.tsx",
-          "src/pages/AdminModerationPage.tsx"
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx"
         ]
       },
       "backend": {
-        "count": 193,
+        "count": 196,
         "samples": [
-          "supabase/functions/_shared/botDetection.ts",
-          "supabase/functions/_shared/contentLinkValidation.ts",
-          "supabase/functions/_shared/eats-notifications.ts",
-          "supabase/functions/_shared/grocery-notifications.ts",
-          "supabase/functions/_shared/lodging-notifications.ts",
-          "supabase/functions/_shared/threatIntel.ts",
-          "supabase/functions/_shared/transactional-email-templates/eats-order-confirmed.tsx",
-          "supabase/functions/_shared/transactional-email-templates/grocery-order-confirmed.tsx"
+          "supabase/functions/ads-studio-generate/index.ts",
+          "supabase/functions/ads-studio-track-conversion/index.ts",
+          "supabase/functions/ai-smart-deals/index.ts",
+          "supabase/functions/approve-lodging-change/index.ts",
+          "supabase/functions/ar-estimate-send/index.ts",
+          "supabase/functions/ar-receipts-helper/index.ts",
+          "supabase/functions/aviasales-search/index.ts",
+          "supabase/functions/bakong-verify/index.ts"
         ]
       },
       "database": {
-        "count": 150,
+        "count": 151,
         "samples": [
           "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
           "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
@@ -1095,34 +1095,34 @@
         ]
       },
       "tests": {
-        "count": 42,
+        "count": 45,
         "samples": [
+          "src/test/adsMarketingConsentRuntime.test.ts",
           "src/test/apiObservabilityContracts.test.ts",
           "src/test/createPostComposerVisualContracts.test.ts",
           "src/test/critical-flows.test.tsx",
           "src/test/deployWorkflowGates.test.ts",
           "src/test/feedMobileVisualContracts.test.ts",
           "src/test/feedResponsiveShellContracts.test.ts",
-          "src/test/mobileBottomNavVisualContracts.test.ts",
-          "src/test/nativePermissionsDeepLinks.test.ts"
+          "src/test/mobileBottomNavVisualContracts.test.ts"
         ]
       },
       "docs": {
-        "count": 20,
+        "count": 22,
         "samples": [
-          "docs/OTA_LIVE_UPDATES.md",
           "docs/dev/capacitor-safe-area.md",
           "docs/end-to-end-platform-readiness.md",
+          "docs/google-ads-launch-plan.md",
+          "docs/meta-facebook-ads-launch.md",
           "docs/native-android-setup.md",
           "docs/native-release-checklist.md",
-          "docs/platform-readiness-matrix.json",
-          "docs/platform-readiness-matrix.md",
-          "docs/production-deploy-secrets.md"
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/platform-readiness-matrix.json"
         ]
       },
       "nextAction": "Keep `npm run qa:native-app-contracts` green for Capacitor config, iOS/Android metadata, OTA safety, store listing alignment, and native release checks.",
-      "implementationCount": 1500,
-      "testCoverageRatio": 0.028,
+      "implementationCount": 1507,
+      "testCoverageRatio": 0.0299,
       "status": "covered"
     }
   ]

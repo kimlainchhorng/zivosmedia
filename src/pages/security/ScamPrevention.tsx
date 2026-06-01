@@ -20,7 +20,7 @@ import SEOHead from "@/components/SEOHead";
 const officialChannels = [
   { channel: "Email", value: "@hizivo.com domains only", icon: Mail },
   { channel: "In-App", value: "Official app notifications", icon: MessageSquare },
-  { channel: "Website", value: "hizivo.com only", icon: ExternalLink },
+  { channel: "Website", value: "zivollc.com only", icon: ExternalLink },
 ];
 
 const neverAskFor = [

@@ -4,6 +4,7 @@ import { Bot as BotIcon, MessageCircle, Star, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 type PublicBot = {
   id: string;
@@ -65,8 +66,7 @@ export default function BotPublicProfilePage() {
   const startChat = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      sessionStorage.setItem("post_auth_redirect", `/chat?with=${bot.bot_user_id}`);
-      navigate("/auth");
+      navigate(withRedirectParam("/login", `/chat?with=${bot.bot_user_id}`));
       return;
     }
     navigate(`/chat?with=${bot.bot_user_id}`);

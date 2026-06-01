@@ -64,6 +64,13 @@ export function resolveBusinessDashboardRoute(
     return { path: `/admin/stores/${storeId}?tab=cd-dashboard`, fallback: false };
   }
 
+  // Bus operators → dedicated standalone operator console (routes, trips,
+  // bookings). Matches the "bus-booking" wizard category (normalizes to
+  // "bus booking"); the console scopes to the owner's bus store(s) itself.
+  if (normalizedCategory.includes("bus") && storeId) {
+    return { path: `/bus/operator`, fallback: false };
+  }
+
   // Lodging → store edit page on the lodge tab.
   if (category && isLodgingStoreCategory(category as StoreCategory) && storeId) {
     return { path: `/admin/stores/${storeId}?tab=lodge-overview`, fallback: false };

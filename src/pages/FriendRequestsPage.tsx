@@ -106,22 +106,21 @@ export default function FriendRequestsPage() {
 
   const accept = async (id: string) => {
     qc.setQueryData<FriendshipRow[]>(["friend-requests", user?.id], (old) => (old ?? []).filter((r) => r.id !== id));
-    const sb = supabase as unknown as {
-      from: (t: string) => {
-        update: (v: Record<string, unknown>) => { eq: (k: string, v: string) => Promise<{ error: unknown }> };
-      };
-    };
-    const { error } = await sb.from("friendships").update({ status: "accepted", accepted_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.functions.invoke("friendship-manage", {
+      body: { action: "accept", request_id: id },
+    });
     if (error) { toast.error("Couldn't accept"); qc.invalidateQueries({ queryKey: ["friend-requests", user?.id] }); }
     else toast.success("Friend request accepted");
   };
 
-  const decline = async (id: string) => {
-    qc.setQueryData<FriendshipRow[]>(["friend-requests", user?.id], (old) => (old ?? []).filter((r) => r.id !== id));
-    const sb = supabase as unknown as { from: (t: string) => { delete: () => { eq: (k: string, v: string) => Promise<{ error: unknown }> } } };
-    const { error } = await sb.from("friendships").delete().eq("id", id);
-    if (error) { toast.error("Couldn't decline"); qc.invalidateQueries({ queryKey: ["friend-requests", user?.id] }); }
-    else toast.success("Request removed");
+  const dismiss = async (request: FriendshipRow) => {
+    qc.setQueryData<FriendshipRow[]>(["friend-requests", user?.id], (old) => (old ?? []).filter((r) => r.id !== request.id));
+    const action = request.friend_id === user?.id ? "decline" : "cancel";
+    const { error } = await supabase.functions.invoke("friendship-manage", {
+      body: { action, request_id: request.id },
+    });
+    if (error) { toast.error(action === "decline" ? "Couldn't decline" : "Couldn't cancel"); qc.invalidateQueries({ queryKey: ["friend-requests", user?.id] }); }
+    else toast.success(action === "decline" ? "Request declined" : "Request cancelled");
   };
 
   return (
@@ -197,7 +196,7 @@ export default function FriendRequestsPage() {
                     <button type="button" aria-label="Accept" onClick={() => accept(r.id)} className="h-9 w-9 rounded-full bg-ig-gradient text-white inline-flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-sm">
                       <Check className="h-3.5 w-3.5" />
                     </button>
-                    <button type="button" aria-label="Decline" onClick={() => decline(r.id)} className="h-9 w-9 rounded-full bg-secondary text-foreground hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 inline-flex items-center justify-center active:scale-95 transition-all">
+                    <button type="button" aria-label="Decline" onClick={() => dismiss(r)} className="h-9 w-9 rounded-full bg-secondary text-foreground hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 inline-flex items-center justify-center active:scale-95 transition-all">
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </motion.div>
@@ -234,7 +233,7 @@ export default function FriendRequestsPage() {
                       <p className="text-sm font-bold text-foreground line-clamp-1">{name}</p>
                       <p className="text-[11px] text-muted-foreground">Waiting · {formatRelative(r.created_at)}</p>
                     </div>
-                    <button type="button" aria-label="Cancel" onClick={() => decline(r.id)} className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold active:scale-95 transition-all">
+                    <button type="button" aria-label="Cancel" onClick={() => dismiss(r)} className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold active:scale-95 transition-all">
                       Cancel
                     </button>
                   </motion.div>

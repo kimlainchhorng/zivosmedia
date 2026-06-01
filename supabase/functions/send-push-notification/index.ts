@@ -315,7 +315,11 @@ serve(withSecurity("send-push-notification", async (req, ctx) => {
           },
         };
 
-        const sendResult = await sendVAPIDWebPush(subscription, { title, body, data });
+        // Keep web-push payloads aligned with native APNs/FCM payloads so the
+        // service worker can route clicks by notification_type the same way
+        // Capacitor clients do.
+        const enrichedData = { notification_type, type: notification_type, ...(data || {}) };
+        const sendResult = await sendVAPIDWebPush(subscription, { title, body, data: enrichedData });
         
         // If subscription is expired, mark as inactive
         if (!sendResult.success && sendResult.expired) {
@@ -424,8 +428,8 @@ async function sendVAPIDWebPush(
   const vapidSubject = Deno.env.get("VAPID_SUBJECT");
 
   if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) {
-    console.log("[WebPush] VAPID keys not configured, skipping");
-    return { success: true }; // Don't fail if not configured yet
+    console.error("[WebPush] Missing VAPID credentials");
+    return { success: false, error: "Missing VAPID credentials" };
   }
 
   try {
@@ -467,8 +471,8 @@ async function sendWebPush(
   token: string,
   payload: { title: string; body?: string; data?: Record<string, unknown> }
 ): Promise<{ success: boolean; error?: string }> {
-  console.log("[WebPush Legacy] Would send to:", token.substring(0, 30), payload.title);
-  return { success: true };
+  console.error("[WebPush Legacy] Not implemented — push NOT sent to:", token.substring(0, 30), payload.title);
+  return { success: false, error: "Legacy web push not implemented" };
 }
 
 // APNs implementation via FCM (Firebase handles APNs routing for Capacitor apps)
@@ -610,8 +614,11 @@ async function sendFCM(
   const fcmKey = Deno.env.get("FCM_SERVER_KEY");
 
   if (!fcmKey) {
-    console.log("[FCM] Missing server key, skipping native push");
-    return { success: true };
+    // Surface missing credentials as a real failure so push_notification_logs
+    // and alerting reflect reality. Previously returned success:true, which
+    // made undelivered Android pushes look healthy on dashboards.
+    console.error("[FCM] Missing FCM_SERVER_KEY — native push NOT sent");
+    return { success: false, error: "Missing FCM server key" };
   }
 
   try {

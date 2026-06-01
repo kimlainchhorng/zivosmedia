@@ -61,7 +61,9 @@ import PullToRefresh from "@/components/shared/PullToRefresh";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
+import { withRedirectParam } from "@/lib/authRedirect";
 import { formatDistanceToNowStrict } from "date-fns";
+import { getAppSurfaceSeo } from "@/lib/appSurfaceSeo";
 
 const LANGS = [
   { code: "en", label: "English", cc: "us" },
@@ -565,7 +567,7 @@ const Profile = () => {
     selectionChanged();
     if (!user) {
       toast.info("Sign in to open Shop Dashboard");
-      navigate("/login?redirect=/shop-dashboard");
+      navigate(withRedirectParam("/login", "/shop-dashboard"));
       return;
     }
     if (ownerStoreLoading) {
@@ -745,13 +747,23 @@ const Profile = () => {
     ]);
   }, [queryClient, user?.id]);
 
+  const profileSeo = getAppSurfaceSeo("profile");
+
   return (
     <PullToRefresh
       onRefresh={handlePullRefresh}
       mouseDragScroll
       className="min-h-screen bg-background relative overflow-x-hidden safe-area-bottom"
     >
-      <SEOHead title="Profile Settings – ZIVO" description="Manage your ZIVO account, profile, and travel preferences." noIndex={true} />
+      <SEOHead
+        title="Profile Settings - ZIVO"
+        description="Manage your ZIVO account, profile, privacy, notifications, social preferences, and app settings."
+        canonical={profileSeo.canonical}
+        appLink={profileSeo.appLink}
+        structuredData={profileSeo.structuredData}
+        keywords={["ZIVO profile", "account settings", "privacy settings", "app profile"]}
+        noIndex={true}
+      />
 
       {/* Desktop NavBar */}
       <div className="hidden lg:block">
@@ -1652,7 +1664,7 @@ const Profile = () => {
                         <div className="lg:hidden mt-2.5 grid grid-cols-4 gap-2">
                           {[
                             { label: "Shop", icon: Store, tone: "from-emerald-500/18 to-teal-500/8", onClick: openShopDashboard },
-                            { label: "Employees", icon: Users, tone: "from-sky-500/18 to-blue-500/8", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
+                            { label: "Employees", icon: Users, tone: "from-sky-500/18 to-blue-500/8", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate(withRedirectParam("/login", "/personal-dashboard")); return; } navigate("/personal-dashboard"); } },
                             { label: "Mode", icon: Repeat, tone: "from-violet-500/18 to-fuchsia-500/8", onClick: () => { selectionChanged(); setModeOpen(true); } },
                             { label: "Earn", icon: DollarSign, tone: "from-amber-500/20 to-orange-500/8", onClick: () => { selectionChanged(); navigate("/monetization"); } },
                           ].map((a) => (

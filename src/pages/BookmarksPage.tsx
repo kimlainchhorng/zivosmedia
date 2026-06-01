@@ -15,6 +15,7 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { EmptyState } from "@/components/ui/empty-state";
 import ReelThumbnail from "@/components/social/ReelThumbnail";
+import { removePostBookmark } from "@/lib/social/postBookmarkManage";
 
 type BookmarkTab = "all" | "post" | "flight" | "restaurant";
 
@@ -156,24 +157,25 @@ export default function BookmarksPage() {
 
   const removeBookmark = async (bookmark: any) => {
     if (bookmark.post_bookmark_id && bookmark.post_raw_id && bookmark.post_source) {
-      await Promise.all([
-        (supabase as any).from("post_bookmarks").delete().eq("id", bookmark.post_bookmark_id),
-        (supabase as any)
-          .from("bookmarks")
-          .delete()
-          .eq("user_id", user?.id)
-          .eq("item_type", "post")
-          .in("item_id", [bookmark.item_id, bookmark.post_raw_id]),
-      ]);
+      const { error } = await removePostBookmark({
+        post_bookmark_id: bookmark.post_bookmark_id,
+        post_id: bookmark.post_raw_id,
+        source: bookmark.post_source,
+        sync_legacy: true,
+        legacy_item_id: bookmark.item_id,
+      });
+      if (error) throw error;
     } else {
-      await (supabase as any).from("bookmarks").delete().eq("id", bookmark.id);
       if (bookmark.post_raw_id && bookmark.post_source) {
-        await (supabase as any)
-          .from("post_bookmarks")
-          .delete()
-          .eq("user_id", user?.id)
-          .eq("post_id", bookmark.post_raw_id)
-          .eq("source", bookmark.post_source);
+        const { error } = await removePostBookmark({
+          post_id: bookmark.post_raw_id,
+          source: bookmark.post_source,
+          sync_legacy: true,
+          legacy_item_id: bookmark.item_id,
+        });
+        if (error) throw error;
+      } else {
+        await (supabase as any).from("bookmarks").delete().eq("id", bookmark.id);
       }
     }
     queryClient.invalidateQueries({ queryKey: ["bookmarks"] });

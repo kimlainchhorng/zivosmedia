@@ -189,11 +189,13 @@ const contracts = [
       const fingerprintPath = "src/lib/security/deviceFingerprint.ts";
       const sendOtpPath = "supabase/functions/send-otp-email/index.ts";
       const verifyOtpPath = "supabase/functions/verify-otp-code/index.ts";
+      const otpSharedPath = "supabase/functions/_shared/otp.ts";
       const trustedMigrationPath = "supabase/migrations/20260415015212_c5a25c0f-eb2c-4e0c-b585-004ff757eca1.sql";
       const verifyDevice = source(verifyDevicePath);
       const fingerprint = source(fingerprintPath);
       const sendOtp = source(sendOtpPath);
       const verifyOtp = source(verifyOtpPath);
+      const otpShared = source(otpSharedPath);
       const trustedMigration = source(trustedMigrationPath);
 
       for (const needle of [
@@ -204,6 +206,8 @@ const contracts = [
         "zivo_device_otp_email",
         "zivo_device_otp_userid",
         'supabase.functions.invoke("send-otp-email"',
+        "getSupabaseFunctionErrorDetails",
+        "setCountdown(details.retryAfter)",
       ]) {
         requireContains(this.id, verifyDevice, needle, verifyDevicePath);
       }
@@ -216,18 +220,36 @@ const contracts = [
       }
       for (const needle of [
         "recentCount && recentCount >= 5",
+        "OTP_RESEND_COOLDOWN_SECONDS = 30",
+        "OTP_RESEND_COOLDOWN",
+        '"Idempotency-Key": idempotencyKey',
+        "otp-email/${insertedOtp.id}",
+        "markOtpDeliveryFailed",
         "expiresAt = new Date(Date.now() + 10 * 60 * 1000)",
         "otp_codes",
+        "generateOtpCode()",
+        "hashOtpCode(email, code)",
       ]) {
         requireContains(this.id, sendOtp, needle, sendOtpPath);
       }
+      requireNotContains(this.id, sendOtp, "Math.random()", sendOtpPath);
       for (const needle of [
         "attempts >= 5",
+        "isOtpCodeMatch(otpRecord.code, normalizedEmail, code)",
         "auth.admin.updateUserById",
         "email_confirm: true",
         "auth.admin.generateLink",
       ]) {
         requireContains(this.id, verifyOtp, needle, verifyOtpPath);
+      }
+      for (const needle of [
+        "crypto.getRandomValues",
+        "crypto.subtle.importKey",
+        "HMAC",
+        "sha256:",
+        "constantTimeEqual",
+      ]) {
+        requireContains(this.id, otpShared, needle, otpSharedPath);
       }
       for (const needle of [
         "CREATE OR REPLACE FUNCTION public.is_device_trusted",

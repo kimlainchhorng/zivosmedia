@@ -2,7 +2,7 @@
  * PublicUserProfilePage — view any user's public profile
  * Route: /user/:userId
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,9 @@ import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import MoreHorizontal from "lucide-react/dist/esm/icons/more-horizontal";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import { getAttributedStoreUrls } from "@/lib/deepLinks";
+import { trackMetaAppInstallClick } from "@/lib/metaAdsTracking";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 interface UserProfile {
   user_id: string;
@@ -46,6 +49,10 @@ export default function PublicUserProfilePage() {
   const [friendStatus, setFriendStatus] = useState<FriendStatus>("none");
   const [actionLoading, setActionLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const storeUrls = useMemo(
+    () => getAttributedStoreUrls({ content: "public_profile_banner" }),
+    [],
+  );
 
   const refetchFriendship = useCallback(async () => {
     if (!authUser?.id || !userId || authUser.id === userId) {
@@ -92,9 +99,9 @@ export default function PublicUserProfilePage() {
     if (!authUser?.id || !profile) return;
     setActionLoading(true);
     try {
-      const { error } = await (supabase as any)
-        .from("friendships")
-        .insert({ user_id: authUser.id, friend_id: profile.user_id, status: "pending" });
+      const { error } = await supabase.functions.invoke("friendship-manage", {
+        body: { action: "send", friend_id: profile.user_id },
+      });
       if (error) throw error;
       toast.success("Friend request sent");
       await refetchFriendship();
@@ -109,10 +116,9 @@ export default function PublicUserProfilePage() {
     if (!friendship) return;
     setActionLoading(true);
     try {
-      const { error } = await (supabase as any)
-        .from("friendships")
-        .delete()
-        .eq("id", friendship.id);
+      const { error } = await supabase.functions.invoke("friendship-manage", {
+        body: { action: "cancel", request_id: friendship.id },
+      });
       if (error) throw error;
       toast.success("Request cancelled");
       await refetchFriendship();
@@ -127,10 +133,9 @@ export default function PublicUserProfilePage() {
     if (!friendship) return;
     setActionLoading(true);
     try {
-      const { error } = await (supabase as any)
-        .from("friendships")
-        .update({ status: "accepted", accepted_at: new Date().toISOString() })
-        .eq("id", friendship.id);
+      const { error } = await supabase.functions.invoke("friendship-manage", {
+        body: { action: "accept", request_id: friendship.id },
+      });
       if (error) throw error;
       toast.success("You are now friends");
       await refetchFriendship();
@@ -142,13 +147,13 @@ export default function PublicUserProfilePage() {
   };
 
   const unfriend = async () => {
-    if (!friendship) return;
+    if (!friendship || !authUser?.id) return;
+    const otherUserId = friendship.user_id === authUser.id ? friendship.friend_id : friendship.user_id;
     setActionLoading(true);
     try {
-      const { error } = await (supabase as any)
-        .from("friendships")
-        .delete()
-        .eq("id", friendship.id);
+      const { error } = await supabase.functions.invoke("friendship-manage", {
+        body: { action: "unfriend", friend_id: otherUserId },
+      });
       if (error) throw error;
       toast.success("Removed from friends");
       await refetchFriendship();
@@ -285,8 +290,6 @@ export default function PublicUserProfilePage() {
             const isAndroid = /Android/i.test(ua);
             const isMobile = isIOS || isAndroid;
             if (!isMobile) return null;
-            const APP_STORE = "https://apps.apple.com/us/app/zivo-customer/id6759480121";
-            const PLAY_STORE = "https://play.google.com/store/apps/details?id=com.myzivo.app";
             return (
               <div className="rounded-2xl bg-primary/8 border border-primary/30 p-4 text-left space-y-2">
                 <p className="text-sm font-bold text-foreground">Add {profile.full_name || "this contact"} on ZIVO</p>
@@ -296,17 +299,17 @@ export default function PublicUserProfilePage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2 pt-1">
                   {isIOS && (
-                    <a href={APP_STORE} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-foreground text-background text-sm font-bold active:scale-[0.98]">
+                    <a href={storeUrls.ios} onClick={() => trackMetaAppInstallClick({ platform: "ios", surface: "public_profile_banner", destinationUrl: storeUrls.ios })} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-foreground text-background text-sm font-bold active:scale-[0.98]">
                       Download for iPhone
                     </a>
                   )}
                   {isAndroid && (
-                    <a href={PLAY_STORE} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-foreground text-background text-sm font-bold active:scale-[0.98]">
+                    <a href={storeUrls.android} onClick={() => trackMetaAppInstallClick({ platform: "android", surface: "public_profile_banner", destinationUrl: storeUrls.android })} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-foreground text-background text-sm font-bold active:scale-[0.98]">
                       Get it on Google Play
                     </a>
                   )}
                   <button type="button"
-                    onClick={() => navigate(`/auth?redirect=${encodeURIComponent(`/user/${profile.user_id}`)}`)}
+                    onClick={() => navigate(withRedirectParam("/login", `/user/${profile.user_id}`))}
                     className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-semibold active:scale-[0.98]"
                   >
                     Sign in instead

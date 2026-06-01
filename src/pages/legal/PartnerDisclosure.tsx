@@ -30,7 +30,7 @@ const PartnerDisclosure = () => {
       <SEOHead
         title="Partner Disclosure – ZIVO Travel"
         description="Understand how ZIVO handles bookings: Flights are searched on ZIVO and booked through licensed travel partners. ZIVO does not issue airline tickets."
-        canonical="https://hizivo.com/partner-disclosure"
+        canonical="https://zivollc.com/partner-disclosure"
       />
       <NavBar />
 

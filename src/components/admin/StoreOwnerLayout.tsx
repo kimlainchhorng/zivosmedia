@@ -18,7 +18,7 @@ import {
   Inbox, BadgeCheck, Star, Building2, Tag, Tv, Briefcase, BookOpen, UserCog, Banknote, Download,
   Moon, ScrollText, Receipt, TrendingUp, Bell, Zap,
   UtensilsCrossed, Gift, AlarmClock, WashingMachine, MessageCircleWarning,
-  Camera, Globe, QrCode, Timer,
+  Camera, Globe, QrCode, Timer, Bus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -141,6 +141,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   const isCafe = normalizedStoreCategory === "cafe" || isCafeTab(activeTab);
   const isCarRental = normalizedStoreCategory === "car-rental" || normalizedStoreCategory === "car rental" || isCarRentalTab(activeTab);
   const isCarDealership = normalizedStoreCategory === "car-dealership" || normalizedStoreCategory === "car dealership" || isCarDealershipTab(activeTab);
+  const isBus = normalizedStoreCategory.includes("bus");
   const productsLabel = isAutoRepair ? "Services" : isLodging ? "Rooms" : isCarRental ? "Fleet" : isCarDealership ? "Inventory" : "Products";
   const paymentLabel = isAutoRepair ? "Bookings" : "Payment & Payouts";
 
@@ -206,6 +207,8 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
 
   const navItems = [
     { id: "profile", label: "Profile", icon: Store },
+    // Bus operators manage routes/trips/bookings in the dedicated console.
+    ...(isBus ? [{ id: "_bus_console", label: "Bus Routes & Trips", icon: Bus, external: "/bus/operator" }] : []),
     // Salon / Cafe / Car Rental / Car Dealership replace "Orders" with their dedicated tickets view.
     ...(!isSalon && !isCafe && !isCarRental && !isCarDealership ? [
       { id: "orders", label: `Orders${orderCount ? ` (${orderCount})` : ""}`, icon: ClipboardList },
@@ -223,11 +226,11 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
       { id: "payment", label: paymentLabel, icon: isAutoRepair ? Calendar : isLodging ? CalendarRange : CreditCard },
     ] : []),
     ...(isAutoRepair ? [
+      { id: "ar-invoices", label: "Invoices", icon: FileText },
       { id: "ar-dashboard", label: "Auto Repair Dashboard", icon: LayoutDashboard },
       { id: "_ar_frontdesk_label", label: "AUTO REPAIR FRONT DESK", icon: ClipboardList, divider: true },
       { id: "customer-bookings", label: "Customer Bookings", icon: CalendarCheck },
       { id: "ar-service-catalog", label: "Service Catalog", icon: BookOpen },
-      { id: "ar-invoices", label: "Invoices", icon: FileText },
       { id: "ar-vehicles", label: "Customer Vehicles", icon: Car },
       { id: "ar-autocheck", label: "Auto Check (VIN)", icon: ScanSearch },
       { id: "_ar_shopfloor_label", label: "AUTO REPAIR SHOP FLOOR", icon: Wrench, divider: true },
@@ -556,30 +559,10 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
           className="flex-1 min-h-0 px-2 py-2 overflow-y-scroll scroll-momentum overscroll-contain touch-pan-y"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
-          <div className={cn(isAutoRepair && "sticky top-0 z-10 -mx-2 mb-1 bg-card px-2 pb-1 pt-1")}>
+          <div>
             <p id="sidebar-group-manage" className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70">
               {isAutoRepair ? "Auto Repair" : isSalon ? "Salon" : isCafe ? "Cafe" : isCarRental ? "Car Rental" : isCarDealership ? "Car Dealership" : "Manage"}
             </p>
-            {isAutoRepair && (
-              <button
-                type="button"
-                onClick={() => { onTabChange?.("ar-dashboard"); closeSidebar(); }}
-                className={cn(
-                  "mb-1.5 flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
-                  activeTab === "ar-dashboard"
-                    ? "border-emerald-500/35 bg-emerald-500/12 text-emerald-800 dark:text-emerald-300"
-                    : "border-emerald-500/20 bg-emerald-500/8 text-foreground hover:bg-emerald-500/12"
-                )}
-              >
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/12">
-                  <Wrench className="h-4 w-4 text-emerald-600" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-[12px] font-bold">Auto Repair Software</p>
-                  <p className="truncate text-[10px] text-muted-foreground">Work orders, VIN, invoices, parts</p>
-                </div>
-              </button>
-            )}
           </div>
           {isLodging && (
             <div className="mb-1.5 rounded-md border border-primary/15 bg-primary/5 px-2 py-1 text-primary">
@@ -608,7 +591,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
               return (
                 <button type="button"
                   key={item.id}
-                  onClick={() => { onTabChange?.(item.id); closeSidebar(); }}
+                  onClick={() => { if (item.external) { navigate(item.external); } else { onTabChange?.(item.id); } closeSidebar(); }}
                   className={cn(
                     "relative w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors duration-150 active:scale-[0.99]",
                     isActive

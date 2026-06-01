@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
+import { getSafeRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
 
 // ── Saved account avatar card ────────────────────────────────────────────────
 // In `editing` mode the X delete button is shown on each avatar. In normal
@@ -140,7 +141,7 @@ const getLoginErrorFacts = (error: Error) => {
 const Login = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const { signIn, user, isLoading: authLoading } = useAuth();
   const { accounts, remove, refresh } = useSavedAccounts();
 
@@ -163,9 +164,8 @@ const Login = () => {
   const forgotPasswordHref = useMemo(() => {
     const forgotParams = new URLSearchParams();
     if (activeEmail) forgotParams.set("email", activeEmail);
-    if (redirect) forgotParams.set("redirect", redirect);
     const query = forgotParams.toString();
-    return `/forgot-password${query ? `?${query}` : ""}`;
+    return withRedirectParam(`/forgot-password${query ? `?${query}` : ""}`, redirect);
   }, [activeEmail, redirect]);
 
   const canSubmit =
@@ -312,13 +312,11 @@ const Login = () => {
   };
 
   const getEmailRedirectTo = () => {
-    const redirectParams = new URLSearchParams();
-    redirectParams.set("redirect", redirect);
-    return `${window.location.origin}/auth-callback?${redirectParams.toString()}`;
+    return `${window.location.origin}${withRedirectParam("/auth-callback", redirect)}`;
   };
 
   const getVerifyOtpPath = (targetEmail: string) =>
-    `/verify-otp?email=${encodeURIComponent(targetEmail)}&mode=login&entry=link${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ""}`;
+    withRedirectParam(`/verify-otp?email=${encodeURIComponent(targetEmail)}&mode=login&entry=link`, redirect);
 
   const requestSignInCode = async (targetEmail: string): Promise<
     { ok: true; email: string } | { ok: false; message: string }
@@ -401,7 +399,7 @@ const Login = () => {
 
       if (facts.emailExists === false) {
         toast.error("No account found for this email.", {
-          action: { label: "Sign Up", onClick: () => navigate(`/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`) },
+          action: { label: "Sign Up", onClick: () => navigate(withRedirectParam("/signup", redirect)) },
         });
       } else if (facts.isEmailNotConfirmed) {
         toast.error("Please verify your email before logging in.", {
@@ -852,7 +850,7 @@ const Login = () => {
           <p className="text-sm text-zinc-700 dark:text-zinc-300">
             Don't have an account?{" "}
             <Link
-              to={`/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+              to={withRedirectParam("/signup", redirect)}
               className="inline-flex min-h-[40px] items-center font-semibold text-rose-500 hover:text-rose-600"
             >
               Sign up

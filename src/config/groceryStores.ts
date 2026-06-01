@@ -33,6 +33,7 @@ export type StoreCategory =
   | "tire-shop"
   | "auto-parts"
   | "gas-station"
+  | "bus-booking"
   | "salon"
   | "spa"
   | "gym"
@@ -88,6 +89,9 @@ export const STORE_CATEGORY_OPTIONS: { value: StoreCategory; label: string; grou
   { value: "tire-shop", label: "Tire Shop", group: "Auto" },
   { value: "auto-parts", label: "Auto Parts", group: "Auto" },
   { value: "gas-station", label: "Gas Station", group: "Auto" },
+
+  // 🚌 Travel & Transport
+  { value: "bus-booking", label: "Bus Booking", group: "Travel & Transport" },
 
   // 💆 Beauty & Wellness
   { value: "salon", label: "Salon / Barber", group: "Beauty & Wellness" },

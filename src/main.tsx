@@ -4,6 +4,22 @@ import App from "./App.tsx";
 import "./index.css";
 import "./lib/toastErrorFilter";
 import { setupGlobalErrorHandlers } from "@/lib/security/errorReporting";
+import { captureGclidFromUrl } from "@/lib/googleAdsConversion";
+import { captureMetaClickIdFromUrl } from "@/lib/metaAdsTracking";
+import { COOKIE_CONSENT_UPDATED_EVENT } from "@/lib/privacy/cookieConsent";
+
+const configuredMetaPixelId = import.meta.env.VITE_META_PIXEL_ID?.trim();
+if (configuredMetaPixelId) {
+  const metaPixel = document.querySelector<HTMLMetaElement>('meta[name="zivo-meta-pixel"]');
+  if (metaPixel) metaPixel.content = configuredMetaPixelId;
+}
+
+captureGclidFromUrl();
+captureMetaClickIdFromUrl();
+window.addEventListener(COOKIE_CONSENT_UPDATED_EVENT, () => {
+  captureGclidFromUrl();
+  captureMetaClickIdFromUrl();
+});
 
 // Dev mode only: unregister any service worker left over from a previous
 // prod build and wipe its caches, so HMR updates show up on refresh instead

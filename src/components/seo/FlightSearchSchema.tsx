@@ -11,7 +11,7 @@ interface FlightSearchSchemaProps {
   destination?: string;
 }
 
-const SITE_URL = 'https://hizivo.com';
+const SITE_URL = 'https://zivollc.com';
 
 export default function FlightSearchSchema({ origin, destination }: FlightSearchSchemaProps) {
   useEffect(() => {

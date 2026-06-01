@@ -11,25 +11,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { urlBase64ToUint8Array } from "@/lib/push/vapidKey";
+import { getSupabaseFunctionAuthHeaders } from "@/lib/supabaseFunctionAuth";
+import { getSupabaseFunctionErrorDetails } from "@/lib/supabaseFunctionError";
 
 // VAPID public key - must match server-side VAPID_PUBLIC_KEY secret
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
-
-// Convert base64 string to Uint8Array for VAPID key
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
 
 // Convert ArrayBuffer to base64 string
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -127,7 +114,7 @@ export function useWebPush() {
       const vapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       const subscription = await (registration as any).pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: vapidKey.buffer as ArrayBuffer,
+        applicationServerKey: vapidKey,
       });
 
       // Extract keys
@@ -136,6 +123,12 @@ export function useWebPush() {
 
       if (!p256dhKey || !authKey) {
         throw new Error("Failed to get subscription keys");
+      }
+
+      const authHeaders = await getSupabaseFunctionAuthHeaders();
+      if (!authHeaders) {
+        await subscription.unsubscribe().catch(() => undefined);
+        throw new Error("Sign in again to enable push notifications on this device.");
       }
 
       // Register with backend
@@ -149,12 +142,15 @@ export function useWebPush() {
               auth: arrayBufferToBase64(authKey),
             },
           },
+          headers: authHeaders,
         }
       );
 
       if (registerError) {
-        console.error("[useWebPush] Registration error:", registerError);
-        // Don't throw - subscription still works locally
+        const details = await getSupabaseFunctionErrorDetails(registerError);
+        console.error("[useWebPush] Registration error:", details.message || registerError);
+        await subscription.unsubscribe().catch(() => undefined);
+        throw new Error(details.message || "Failed to register push subscription with ZIVO.");
       }
 
       setState(prev => ({
@@ -185,6 +181,10 @@ export function useWebPush() {
 
     try {
       const endpoint = state.subscription.endpoint;
+      const authHeaders = await getSupabaseFunctionAuthHeaders();
+      if (!authHeaders) {
+        throw new Error("Sign in again to disable push notifications on this device.");
+      }
       
       // Unsubscribe from browser
       await state.subscription.unsubscribe();
@@ -193,6 +193,7 @@ export function useWebPush() {
       try {
         await supabase.functions.invoke("unregister-web-push", {
           body: { endpoint },
+          headers: authHeaders,
         });
       } catch (serverErr) {
         console.warn("[useWebPush] Failed to remove from server:", serverErr);
@@ -236,6 +237,9 @@ export function useWebPush() {
     // Send through the production dispatcher so the test respects the user's
     // master push opt-out and quiet-hours preferences.
     try {
+      const authHeaders = await getSupabaseFunctionAuthHeaders();
+      if (!authHeaders) throw new Error("Sign in again to send a test notification.");
+
       const { error } = await supabase.functions.invoke("notify-dispatch", {
         body: {
           user_id: user.id,
@@ -246,6 +250,7 @@ export function useWebPush() {
           category: "transactional",
           data: { type: "test", url: "/account" },
         },
+        headers: authHeaders,
       });
 
       if (error) {

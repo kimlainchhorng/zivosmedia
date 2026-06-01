@@ -19,6 +19,7 @@ import Image from "lucide-react/dist/esm/icons/image";
 import ReelThumbnail from "@/components/social/ReelThumbnail";
 import SavedCollectionsRail from "@/components/social/SavedCollectionsRail";
 import AddToCollectionPopover from "@/components/social/AddToCollectionPopover";
+import { removePostBookmark } from "@/lib/social/postBookmarkManage";
 
 interface SavedTile {
   bookmarkId: string;
@@ -146,9 +147,16 @@ export default function SavedPostsPage() {
     ? tiles.filter((t) => collectionMemberIds?.has(t.bookmarkId))
     : tiles;
 
-  async function handleRemove(bookmarkId: string) {
+  async function handleRemove(tile: SavedTile) {
     try {
-      await (supabase as any).from("post_bookmarks").delete().eq("id", bookmarkId);
+      const { error } = await removePostBookmark({
+        post_bookmark_id: tile.bookmarkId,
+        post_id: tile.postId,
+        source: tile.source,
+        sync_legacy: true,
+        legacy_item_id: tile.source === "user" ? `u-${tile.postId}` : tile.postId,
+      });
+      if (error) throw error;
       toast.success("Removed from saved");
       refetch();
     } catch {
@@ -286,7 +294,7 @@ export default function SavedPostsPage() {
                 className="absolute left-1.5 top-1.5 z-10 rounded-full bg-black/55 p-2 text-white shadow-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity active:scale-90 backdrop-blur-sm"
               />
               <button type="button"
-                onClick={(e) => { e.stopPropagation(); handleRemove(tile.bookmarkId); }}
+                onClick={(e) => { e.stopPropagation(); handleRemove(tile); }}
                 className="absolute right-1.5 top-1.5 z-10 rounded-full bg-red-500/90 p-2 text-white shadow-lg opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 group-active:opacity-100 transition-opacity active:scale-90"
                 aria-label="Remove from saved"
               >

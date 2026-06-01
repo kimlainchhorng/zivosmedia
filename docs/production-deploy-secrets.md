@@ -1,6 +1,6 @@
 # Production Deploy Secrets
 
-Use this checklist for the GitHub `production` environment and any CI runner that can deploy `myzivo.com`.
+Use this checklist for the GitHub `production` environment and any CI runner that can deploy `zivollc.com`.
 
 ## Required GitHub Secrets
 
@@ -14,7 +14,7 @@ Use this checklist for the GitHub `production` environment and any CI runner tha
 | `SUPABASE_ACCESS_TOKEN` | strict preflight | Supabase CLI token for linked remote migration-history checks. |
 | `CHANNEL_OG_FUNCTION_URL` | strict preflight, share previews | Optional explicit `channel-og` Edge Function URL; omit when `SUPABASE_URL` can derive it. |
 | `NETLIFY_AUTH_TOKEN` | production deploy | Netlify API token for publishing the production bundle. |
-| `NETLIFY_SITE_ID` | production deploy | Netlify site API ID for `myzivo.com`. |
+| `NETLIFY_SITE_ID` | production deploy | Netlify site API ID for `zivollc.com`. |
 
 ## Setup Rules
 

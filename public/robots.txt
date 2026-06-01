@@ -1,5 +1,5 @@
 # ============================================
-# ZIVO (hizivo.com) - robots.txt
+# ZIVO (zivollc.com) - robots.txt
 # OTA-grade SEO configuration
 # ============================================
 

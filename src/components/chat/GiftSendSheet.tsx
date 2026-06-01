@@ -11,12 +11,12 @@ const GIFT_CATALOG: GiftItem[] = [
   ...giftCatalog.interactive,
   ...giftCatalog.exclusive,
 ];
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Coins from "lucide-react/dist/esm/icons/coins";
 import Gift from "lucide-react/dist/esm/icons/gift";
 import { cn } from "@/lib/utils";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
 
 interface Props {
   open: boolean;
@@ -40,7 +40,7 @@ export default function GiftSendSheet({ open, onClose, recipientId }: Props) {
         coins: selected.coins,
         note: note.trim() || null,
       };
-      const { error } = await (supabase as any).from("direct_messages").insert({
+      const { error } = await sendDirectMessage({
         sender_id: user.id,
         receiver_id: recipientId,
         message: `🎁 ${selected.name} (${selected.coins} coins)`,

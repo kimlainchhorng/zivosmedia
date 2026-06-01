@@ -48,15 +48,15 @@ export default function LocalizedFlightRoutePage() {
       <Helmet>
         <title>{title}</title>
         <meta name="description" content={description} />
-        <link rel="canonical" href={`https://hizivo.com/${countrySlug}/flights/${routeSlug}`} />
+        <link rel="canonical" href={`https://zivollc.com/${countrySlug}/flights/${routeSlug}`} />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         
         {/* hreflang for international SEO */}
-        <link rel="alternate" hrefLang="en-gb" href={`https://hizivo.com/uk/flights/${routeSlug}`} />
-        <link rel="alternate" hrefLang="en-us" href={`https://hizivo.com/us/flights/${routeSlug}`} />
-        <link rel="alternate" hrefLang="en-ca" href={`https://hizivo.com/ca/flights/${routeSlug}`} />
-        <link rel="alternate" hrefLang="x-default" href={`https://hizivo.com/flights/${routeSlug}`} />
+        <link rel="alternate" hrefLang="en-gb" href={`https://zivollc.com/uk/flights/${routeSlug}`} />
+        <link rel="alternate" hrefLang="en-us" href={`https://zivollc.com/us/flights/${routeSlug}`} />
+        <link rel="alternate" hrefLang="en-ca" href={`https://zivollc.com/ca/flights/${routeSlug}`} />
+        <link rel="alternate" hrefLang="x-default" href={`https://zivollc.com/flights/${routeSlug}`} />
       </Helmet>
       
       <div className="min-h-screen flex flex-col bg-background">

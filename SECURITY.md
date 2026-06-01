@@ -48,7 +48,7 @@ Edge-function responses additionally receive `Cache-Control: no-store`, `X-Frame
 Two-layer defense against phishing/scam links posted in user-generated content (post captions, comments, bios, reviews, support tickets, refund disputes, lost-item reports, community descriptions, ride feedback):
 
 - **Client-side write gate** (`src/lib/security/contentLinkValidation.ts`):
-  `confirmContentSafe(text, label)` runs `assessLinkSync` (`src/hooks/useLinkRisk.ts` + `src/lib/urlSafety.ts`) on every URL extracted from the input. Hard-blocks: ZIVO typosquats (Levenshtein ≤ 2 from `hizivo.com` / `myzivo.lovable.app`), embedded credentials, dangerous protocols, impersonation. Surfaces as suspicious: 23 URL shorteners, suspicious TLDs (`.zip`, `.tk`, etc.), punycode/IDN, raw IPs, oversized URLs.
+  `confirmContentSafe(text, label)` runs `assessLinkSync` (`src/hooks/useLinkRisk.ts` + `src/lib/urlSafety.ts`) on every URL extracted from the input. Hard-blocks: ZIVO typosquats (Levenshtein ≤ 2 from `zivollc.com` / `myzivo.lovable.app`), embedded credentials, dangerous protocols, impersonation. Surfaces as suspicious: 23 URL shorteners, suspicious TLDs (`.zip`, `.tk`, etc.), punycode/IDN, raw IPs, oversized URLs.
 - **Client-side render gate** (`src/components/social/SafeCaption.tsx`): all user-content surfaces (20 sites including FeedPage, ReelsFeedPage, Profile, PublicProfile, Dating, ChatContact, Communities, Stores, Hotels, Reviews, etc.) tokenize URLs through SafeCaption, rendering blocked links struck through and non-clickable, suspicious links with a Caution badge + interstitial.
 - **Server-side mirror** (`supabase/functions/_shared/contentLinkValidation.ts`): port of the client validator for use in edge functions. Wire into any function that accepts user free-text — returns `422` with `{ blocked: string[] }` on hard fail. Closes the "malicious client bypasses JS gate" attack. **Currently wired in 11 endpoints**: `submit-refund-request`, `channel-broadcast`, `admin-update-profile`, `cancel-lodging-reservation`, `request-lodging-change`, `admin-post-comment`, `admin-moderate-message`, `post-to-facebook-page`, `create-tip-checkout`, `create-tip-payment-intent`, `process-refund`.
 - **Blocked-attempt logging** (`public.blocked_link_attempts`): every server-side rejection is fire-and-forget logged with user_id, endpoint, blocked URLs, content preview (200 chars), and SHA-256 hash of source IP (no raw PII). Admin-readable, service-role-writable. Migration: `20260430020000_blocked_link_attempts.sql`. Helper: `logBlockedAttempt()` in `_shared/contentLinkValidation.ts`.
@@ -151,7 +151,7 @@ the social graph and group membership.
   - `android:networkSecurityConfig="@xml/network_security_config"`
 - `network_security_config.xml`:
   - HTTPS-only baseline (`cleartextTrafficPermitted="false"`)
-  - SPKI-SHA256 pin sets for `*.supabase.co`, `myzivo.com`, and `*.stripe.com`
+  - SPKI-SHA256 pin sets for `*.supabase.co`, `zivollc.com`, and `*.stripe.com`
     with primary + backup pins per RFC 7469
   - Pins expire `2027-04-29` — rotate before that date.
 

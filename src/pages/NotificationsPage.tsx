@@ -300,27 +300,12 @@ const NotificationsPage = () => {
 
   const handleAcceptFriend = async (request: FriendRequest) => {
     try {
-      const { error } = await (supabase as any)
-        .from('friendships')
-        .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-        .eq('id', request.id);
+      const { error } = await supabase.functions.invoke("friendship-manage", {
+        body: { action: "accept", request_id: request.id },
+      });
       if (error) throw error;
       setFriendRequests(prev => prev.filter(r => r.id !== request.id));
       toast.success(`You are now friends with ${request.profile?.full_name || 'this user'}!`);
-
-      // Notify the requester that their friend request was accepted
-      try {
-        const { data: myProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user?.id).single();
-        await supabase.functions.invoke("send-push-notification", {
-          body: {
-            user_id: request.user_id,
-            notification_type: "friend_request_accepted",
-            title: "Friend Request Accepted 🎉",
-            body: `${myProfile?.full_name || "Someone"} accepted your friend request`,
-            data: { type: "friend_accepted", sender_id: user?.id, avatar_url: myProfile?.avatar_url, action_url: `/user/${user?.id}` },
-          },
-        });
-      } catch {}
     } catch (err) {
       console.error(err);
       toast.error('Failed to accept request');
@@ -329,10 +314,9 @@ const NotificationsPage = () => {
 
   const handleDeclineFriend = async (request: FriendRequest) => {
     try {
-      const { error } = await (supabase as any)
-        .from('friendships')
-        .update({ status: 'declined' })
-        .eq('id', request.id);
+      const { error } = await supabase.functions.invoke("friendship-manage", {
+        body: { action: "decline", request_id: request.id },
+      });
       if (error) throw error;
       setFriendRequests(prev => prev.filter(r => r.id !== request.id));
       toast('Friend request declined');

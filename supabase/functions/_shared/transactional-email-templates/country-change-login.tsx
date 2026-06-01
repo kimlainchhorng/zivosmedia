@@ -51,8 +51,8 @@ function CountryChangeEmail({
   detectedAt = new Date().toISOString(),
   priorCountry = 'US',
   newCountry = 'XX',
-  manageSecurityUrl = 'https://hizivo.com/account/security',
-  notMeUrl = 'https://hizivo.com/account/security?action=lock',
+  manageSecurityUrl = 'https://zivollc.com/account/security',
+  notMeUrl = 'https://zivollc.com/account/security?action=lock',
 }: CountryChangeProps) {
   const niceDate = (() => { try { return new Date(detectedAt).toLocaleString() } catch { return detectedAt } })()
   return (
@@ -81,7 +81,7 @@ function CountryChangeEmail({
           <Text style={footer}>
             Tip: turn on two-factor authentication so attackers can&apos;t sign in with just your password.
           </Text>
-          <Text style={footer}>© {new Date().getFullYear()} ZIVO · hizivo.com</Text>
+          <Text style={footer}>© {new Date().getFullYear()} ZIVO · zivollc.com</Text>
         </Container>
       </Body>
     </Html>
@@ -97,7 +97,7 @@ export const template: TemplateEntry<CountryChangeProps> = {
     detectedAt: new Date().toISOString(),
     priorCountry: 'US',
     newCountry: 'KH',
-    manageSecurityUrl: 'https://hizivo.com/account/security',
-    notMeUrl: 'https://hizivo.com/account/security?action=lock',
+    manageSecurityUrl: 'https://zivollc.com/account/security',
+    notMeUrl: 'https://zivollc.com/account/security?action=lock',
   },
 }

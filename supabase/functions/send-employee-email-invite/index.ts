@@ -84,7 +84,7 @@ Deno.serve(withSecurity("send-employee-email-invite", async (req, ctx) => {
     });
     if (insErr) return json(500, { error: "invite_insert_failed", detail: insErr.message }, inviteHeaders);
 
-    const loginUrl = `https://hizivo.com/auth/accept-invite?token=${inviteToken}`;
+    const loginUrl = `https://zivollc.com/auth/accept-invite?token=${inviteToken}`;
 
     // Delegate actual email send to send-transactional-email (uses queue + suppression)
     const sendRes = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {

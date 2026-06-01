@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -25,17 +25,39 @@ import { toast } from "sonner";
 // Local config helpers
 // ─────────────────────────────────────────────────────────────────────────────
 const LS_KEY = "zivo_admin_fb_page_config";
+const META_GRAPH_VERSION = import.meta.env.VITE_META_GRAPH_VERSION || "v25.0";
 interface FbPageConfig { pageId: string; pageName: string; pageToken: string; serverSaved?: boolean; }
 const loadConfig = (): FbPageConfig | null => { try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : null; } catch { return null; } };
 const saveLocalConfig = (cfg: FbPageConfig) => localStorage.setItem(LS_KEY, JSON.stringify(cfg));
 const clearLocalConfig = () => localStorage.removeItem(LS_KEY);
+
+function slugifyCampaignName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "zivo-meta-campaign";
+}
+
+function buildMetaTrackedUrl(rawLink: string, campaignName: string) {
+  try {
+    const url = new URL(rawLink || "https://zivollc.com");
+    url.searchParams.set("utm_source", "facebook");
+    url.searchParams.set("utm_medium", "paid_social");
+    url.searchParams.set("utm_campaign", slugifyCampaignName(campaignName));
+    url.searchParams.set("utm_content", "meta_admin");
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
 
 // Call Facebook Graph API and return the JSON (or throw with FB's error message)
 async function fbGet(path: string, token: string, fields?: string, extra?: Record<string, string>) {
   const params = new URLSearchParams({ access_token: token });
   if (fields) params.set("fields", fields);
   if (extra) Object.entries(extra).forEach(([k, v]) => params.set(k, v));
-  const res = await fetch(`https://graph.facebook.com/v21.0/${path}?${params}`);
+  const res = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/${path}?${params}`);
   const json = await res.json();
   if (json.error) throw new Error(json.error.message || "Facebook API error");
   return json;
@@ -51,10 +73,11 @@ export default function AdminMetaAdsPage() {
   const [dailyBudget, setDailyBudget] = useState("20");
   const [headline, setHeadline] = useState("ZIVO — Rides, Eats, Travel");
   const [adBody, setAdBody] = useState("Book rides, order food, and explore deals on ZIVO.");
-  const [adLink, setAdLink] = useState("https://hizivo.com");
+  const [adLink, setAdLink] = useState("https://zivollc.com");
   const [adImageUrl, setAdImageUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const trackedLandingUrl = useMemo(() => buildMetaTrackedUrl(adLink, adName), [adLink, adName]);
 
   // ── FB Page config state ──────────────────────────────────────────────────
   const [config, setConfig] = useState<FbPageConfig | null>(() => loadConfig());
@@ -368,7 +391,7 @@ export default function AdminMetaAdsPage() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Campaign created (paused).");
+      toast.success("Campaign created paused with Meta UTM tracking.");
       qc.invalidateQueries({ queryKey: ["ad_campaigns", "meta"] });
     } catch (e: any) { toast.error(e?.message || "Failed"); }
     finally { setCreating(false); }
@@ -458,7 +481,7 @@ export default function AdminMetaAdsPage() {
       });
 
       const res = await fetch(
-        `https://graph.facebook.com/v21.0/${boostPost.postId}/promotions`,
+        `https://graph.facebook.com/${META_GRAPH_VERSION}/${boostPost.postId}/promotions`,
         { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() }
       );
       const fbData = await res.json() as any;
@@ -548,6 +571,10 @@ export default function AdminMetaAdsPage() {
                   <div className="space-y-1"><Label>Landing URL</Label><Input value={adLink} onChange={(e) => setAdLink(e.target.value)} /></div>
                   <div className="space-y-1"><Label>Image URL (optional)</Label><Input value={adImageUrl} onChange={(e) => setAdImageUrl(e.target.value)} placeholder="https://…" /></div>
                 </div>
+                <div className="rounded-md border bg-muted/40 px-3 py-2">
+                  <div className="text-xs font-medium text-muted-foreground">Tracked URL</div>
+                  <div className="break-all text-xs">{trackedLandingUrl || "Enter a valid https URL to preview Facebook attribution tags."}</div>
+                </div>
                 <Button onClick={createCampaign} disabled={creating} className="gap-2">
                   {creating && <Loader2 className="h-4 w-4 animate-spin" />} Create campaign
                 </Button>
@@ -568,6 +595,11 @@ export default function AdminMetaAdsPage() {
                           <div className="text-xs text-muted-foreground">
                             {fmtUsd(c.daily_budget_cents ?? 0)}/day{c.total_spend_cents ? ` · spent ${fmtUsd(c.total_spend_cents)}` : ""}{c.impressions ? ` · ${c.impressions.toLocaleString()} imp` : ""}
                           </div>
+                          {c.metadata?.link && (
+                            <a className="mt-1 inline-flex items-center gap-1 text-xs text-[#1877F2] hover:underline" href={c.metadata.link} target="_blank" rel="noreferrer">
+                              <ExternalLink className="h-3 w-3" /> Destination
+                            </a>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant={c.status === "active" ? "default" : "secondary"} className="capitalize">{c.status}</Badge>
@@ -842,7 +874,7 @@ export default function AdminMetaAdsPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5" />Link (optional)</Label>
-                        <Input value={postLink} onChange={(e) => setPostLink(e.target.value)} placeholder="https://hizivo.com" />
+                        <Input value={postLink} onChange={(e) => setPostLink(e.target.value)} placeholder="https://zivollc.com" />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" />Photo URL (optional)</Label>

@@ -100,8 +100,8 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const stripeCarRentalWebhook = read("supabase/functions/stripe-car-rental-webhook/index.ts");
     const twilioWebhook = read("supabase/functions/twilio-webhook/index.ts");
 
-    expect(cors).toContain("https://hizivo.com");
-    expect(cors).toContain(".hizivo.com");
+    expect(cors).toContain("https://zivollc.com");
+    expect(cors).toContain(".zivollc.com");
     expect(errors).toContain("ctx?.corsHeaders ?? getCorsHeaders(req)");
     expect(respond).toContain("type CorsSource = Request | Record<string, string>");
 
@@ -334,7 +334,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(publicBookingSecurity).toContain("NEW.price_cents := v_svc.price_cents");
     expect(publicBookingSecurity).toContain("NEW.status := 'pending'");
     expect(publicBookingSecurity).toContain("Public can request bookings");
-    expect(publicSalonBookingPage).toContain('functions.invoke(\n      "salon-booking-submit"');
+    expect(publicSalonBookingPage).toMatch(/functions\.invoke\(\s*"salon-booking-submit"/);
     expect(publicSalonBookingPage).not.toMatch(/from\("salon_bookings"\)[\s\S]{0,360}\.(insert|upsert)/);
     expect(salonBookingSubmit).toContain('withSecurity("salon-booking-submit"');
     expect(salonBookingSubmit).toContain('allowedMethods: ["POST"]');
@@ -923,6 +923,359 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(contactFn).toContain('from("contact_requests")');
   });
 
+  it("keeps legacy friendship mutations behind verified server-side ownership checks", () => {
+    const friendshipFn = read("supabase/functions/friendship-manage/index.ts");
+    const friendshipGate = read("supabase/migrations/20260601165245_friendships_server_gate.sql");
+    const notificationsPage = read("src/pages/NotificationsPage.tsx");
+    const friendRequestsPage = read("src/pages/FriendRequestsPage.tsx");
+    const publicProfilePage = read("src/pages/PublicProfilePage.tsx");
+    const socialFeedPage = read("src/pages/SocialFeedPage.tsx");
+    const publicUserProfilePage = read("src/pages/user/PublicUserProfilePage.tsx");
+    const socialListModal = read("src/components/profile/SocialListModal.tsx");
+
+    expect(friendshipFn).toContain('withSecurity("friendship-manage"');
+    expect(friendshipFn).toContain("strictCors: true");
+    expect(friendshipFn).toContain('allowedMethods: ["POST"]');
+    expect(friendshipFn).toContain('trackNetwork: "suspicious"');
+    expect(friendshipFn).toContain("blockNetworkRiskAt: 80");
+    expect(friendshipFn).toContain("auth.getUser(token)");
+    expect(friendshipFn).toContain("cleanUuid");
+    expect(friendshipFn).toContain("ensureFollowing");
+    expect(friendshipFn).toContain("removeFollowing");
+    expect(friendshipFn).toContain('from("friendships")');
+    expect(friendshipFn).toContain('from("user_followers")');
+    expect(friendshipFn).toContain("send-push-notification");
+    expect(friendshipFn).toContain("friend_request_received");
+    expect(friendshipFn).toContain("friend_request_accepted");
+    expect(friendshipFn).not.toContain('"Access-Control-Allow-Origin": "*"');
+
+    for (const policy of [
+      "friendships_block_direct_insert",
+      "friendships_block_direct_update",
+      "friendships_block_direct_delete",
+    ]) {
+      expect(friendshipGate).toContain(policy);
+    }
+    expect(friendshipGate).toContain("AS RESTRICTIVE");
+    expect(friendshipGate).toContain("trusted server-side ingestion");
+
+    for (const surface of [
+      notificationsPage,
+      friendRequestsPage,
+      publicProfilePage,
+      socialFeedPage,
+      publicUserProfilePage,
+      socialListModal,
+    ]) {
+      expect(surface).toContain('functions.invoke("friendship-manage"');
+      expect(surface).not.toMatch(/from\(["']friendships["']\)[\s\S]{0,360}\.(insert|upsert|update|delete)/);
+    }
+    expect(notificationsPage).not.toContain('functions.invoke("send-push-notification"');
+  });
+
+  it("keeps high-traffic follower mutations behind verified server-side ownership checks", () => {
+    const followFn = read("supabase/functions/follow-manage/index.ts");
+    const surfaces = [
+      read("src/pages/PublicProfilePage.tsx"),
+      read("src/pages/SocialFeedPage.tsx"),
+      read("src/pages/FeedPage.tsx"),
+      read("src/pages/ReelsFeedPage.tsx"),
+      read("src/pages/LiveStreamPage.tsx"),
+      read("src/components/profile/SocialListModal.tsx"),
+      read("src/components/social/FollowSuggestions.tsx"),
+      read("src/components/social/SuggestedUsersCarousel.tsx"),
+      read("src/components/social/FeaturedCreatorsRow.tsx"),
+      read("src/components/social/TrendingCreators.tsx"),
+    ];
+
+    expect(followFn).toContain('withSecurity("follow-manage"');
+    expect(followFn).toContain("strictCors: true");
+    expect(followFn).toContain('allowedMethods: ["POST"]');
+    expect(followFn).toContain('trackNetwork: "suspicious"');
+    expect(followFn).toContain("blockNetworkRiskAt: 80");
+    expect(followFn).toContain("auth.getUser(token)");
+    expect(followFn).toContain("cleanUuid");
+    expect(followFn).toContain("removeFollower");
+    expect(followFn).toContain("notifyNewFollower");
+    expect(followFn).toContain('from("user_followers")');
+    expect(followFn).toContain("send-push-notification");
+    expect(followFn).toContain("new_follower");
+    expect(followFn).not.toContain('"Access-Control-Allow-Origin": "*"');
+
+    for (const surface of surfaces) {
+      expect(surface).toContain('functions.invoke("follow-manage"');
+      expect(surface).not.toMatch(/from\(["']user_followers["'](?: as any)?\)[\s\S]{0,360}\.(insert|upsert|update|delete)/);
+      expect(surface).not.toContain('notification_type: "new_follower"');
+    }
+  });
+
+  it("keeps direct-message sends behind a verified server-side sender gate", () => {
+    const chatSendFn = read("supabase/functions/chat-message-send/index.ts");
+    const chatSendGate = read("supabase/migrations/20260601172000_direct_messages_server_gate.sql");
+    const sendHelper = read("src/lib/chat/directMessageSend.ts");
+    const outbox = read("src/lib/chat/messageOutbox.ts");
+    const surfaces = [
+      read("src/components/chat/PersonalChat.tsx"),
+      read("src/pages/ChatHubPage.tsx"),
+      read("src/components/chat/CallScreen.tsx"),
+      read("src/components/chat/ShareToChatSheet.tsx"),
+      read("src/components/stories/StoryViewer.tsx"),
+      read("src/components/stories/StoryForwardSheet.tsx"),
+      read("src/hooks/useBroadcastLists.ts"),
+      read("src/hooks/useMessageActions.ts"),
+      read("src/components/chat/GiftSendSheet.tsx"),
+      read("src/components/notifications/ChatBellPopover.tsx"),
+      read("src/pages/NotificationCenterPage.tsx"),
+    ];
+
+    expect(chatSendFn).toContain('withSecurity("chat-message-send"');
+    expect(chatSendFn).toContain("strictCors: true");
+    expect(chatSendFn).toContain('allowedMethods: ["POST"]');
+    expect(chatSendFn).toContain('trackNetwork: "suspicious"');
+    expect(chatSendFn).toContain("blockNetworkRiskAt: 80");
+    expect(chatSendFn).toContain("auth.getUser(token)");
+    expect(chatSendFn).toContain("MESSAGE_TYPES");
+    expect(chatSendFn).toContain("locked_payload_content");
+    expect(chatSendFn).toContain('sender_id: senderId');
+    expect(chatSendFn).toContain('from("direct_messages")');
+    expect(chatSendFn).toContain('from("direct_message_locked_payloads")');
+    expect(chatSendFn).not.toContain('"Access-Control-Allow-Origin": "*"');
+
+    expect(chatSendGate).toContain("direct_messages_block_direct_insert");
+    expect(chatSendGate).toContain("direct_message_locked_payloads_block_direct_insert");
+    expect(chatSendGate).toContain("AS RESTRICTIVE");
+    expect(chatSendGate).toContain("CREATE OR REPLACE FUNCTION public.tg_notify_direct_message()");
+    expect(chatSendGate).toContain("user_id = NEW.sender_id OR id = NEW.sender_id");
+
+    expect(sendHelper).toContain('functions.invoke<FunctionSendResult>("chat-message-send"');
+    expect(sendHelper).toContain("stripClientSender");
+    expect(outbox).toContain("sendDirectMessage");
+
+    for (const surface of surfaces) {
+      expect(surface).toMatch(/sendDirectMessage|sendDirectMessages/);
+      expect(surface).not.toMatch(/from\(["']direct_messages["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.insert/);
+      expect(surface).not.toMatch(/dbFrom\(["']direct_messages["']\)\.insert/);
+      expect(surface).not.toMatch(/supabase\.from\(["']direct_messages["']\)\.insert/);
+      expect(surface).not.toContain('notification_type: "chat_message"');
+      expect(surface).not.toContain("sendChatPush");
+    }
+  });
+
+  it("keeps group-message sends behind verified server-side membership checks", () => {
+    const groupSendFn = read("supabase/functions/group-message-send/index.ts");
+    const groupSendGate = read("supabase/migrations/20260601173500_group_messages_server_gate.sql");
+    const sendHelper = read("src/lib/chat/groupMessageSend.ts");
+    const outbox = read("src/lib/chat/messageOutbox.ts");
+    const surfaces = [
+      read("src/components/chat/GroupChat.tsx"),
+      read("src/components/chat/ShareToChatSheet.tsx"),
+    ];
+
+    expect(groupSendFn).toContain('withSecurity("group-message-send"');
+    expect(groupSendFn).toContain("strictCors: true");
+    expect(groupSendFn).toContain('allowedMethods: ["POST"]');
+    expect(groupSendFn).toContain('trackNetwork: "suspicious"');
+    expect(groupSendFn).toContain("blockNetworkRiskAt: 80");
+    expect(groupSendFn).toContain("auth.getUser(token)");
+    expect(groupSendFn).toContain("MESSAGE_TYPES");
+    expect(groupSendFn).toContain('from("chat_group_members")');
+    expect(groupSendFn).toContain('.eq("group_id", groupId)');
+    expect(groupSendFn).toContain('.eq("user_id", senderId)');
+    expect(groupSendFn).toContain('sender_id: senderId');
+    expect(groupSendFn).toContain('from("group_messages")');
+    expect(groupSendFn).not.toContain('"Access-Control-Allow-Origin": "*"');
+
+    expect(groupSendGate).toContain("group_messages_block_direct_insert");
+    expect(groupSendGate).toContain("AS RESTRICTIVE");
+    expect(groupSendGate).toContain("CREATE OR REPLACE FUNCTION public.tg_notify_group_message()");
+    expect(groupSendGate).toContain("user_id = NEW.sender_id OR id = NEW.sender_id");
+    expect(groupSendGate).toContain("send-push-notification");
+    expect(groupSendGate).toContain("group_message");
+
+    expect(sendHelper).toContain('functions.invoke<FunctionSendResult>("group-message-send"');
+    expect(sendHelper).toContain("stripClientSender");
+    expect(outbox).toContain("sendGroupMessage");
+
+    for (const surface of surfaces) {
+      expect(surface).toContain("sendGroupMessage");
+      expect(surface).not.toMatch(/from\(["']group_messages["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.insert/);
+      expect(surface).not.toMatch(/dbFrom\(["']group_messages["']\)\.insert/);
+      expect(surface).not.toMatch(/supabase\.from\(["']group_messages["']\)\.insert/);
+      expect(surface).not.toContain('notification_type: "group_message"');
+      expect(surface).not.toContain("sendGroupPush");
+    }
+  });
+
+  it("keeps group lifecycle mutations behind verified server-side role checks", () => {
+    const groupManageFn = read("supabase/functions/chat-group-manage/index.ts");
+    const groupManageGate = read("supabase/migrations/20260601175000_chat_groups_server_gate.sql");
+    const helper = read("src/lib/chat/groupManage.ts");
+    const surfaces = [
+      read("src/hooks/useGroupAdmin.ts"),
+      read("src/components/chat/CreateGroupModal.tsx"),
+      read("src/components/chat/GroupInfoSheet.tsx"),
+      read("src/components/chat/GroupChat.tsx"),
+      read("src/pages/ChatHubPage.tsx"),
+    ];
+
+    expect(groupManageFn).toContain('withSecurity("chat-group-manage"');
+    expect(groupManageFn).toContain("strictCors: true");
+    expect(groupManageFn).toContain('allowedMethods: ["POST"]');
+    expect(groupManageFn).toContain('trackNetwork: "suspicious"');
+    expect(groupManageFn).toContain("blockNetworkRiskAt: 80");
+    expect(groupManageFn).toContain("auth.getUser(token)");
+    expect(groupManageFn).toContain('"create_group"');
+    expect(groupManageFn).toContain('"set_member_role"');
+    expect(groupManageFn).toContain('"create_invite"');
+    expect(groupManageFn).toContain("requireAdmin");
+    expect(groupManageFn).toContain("getMemberRole");
+    expect(groupManageFn).toContain("countOwners");
+    expect(groupManageFn).toContain('from("chat_groups")');
+    expect(groupManageFn).toContain('from("chat_group_members")');
+    expect(groupManageFn).toContain('from("chat_group_invites")');
+    expect(groupManageFn).not.toContain('"Access-Control-Allow-Origin": "*"');
+
+    for (const policy of [
+      "chat_groups_block_direct_insert",
+      "chat_groups_block_direct_update",
+      "chat_groups_block_direct_delete",
+      "chat_group_members_block_direct_insert",
+      "chat_group_members_block_direct_update",
+      "chat_group_members_block_direct_delete",
+      "chat_group_invites_block_direct_insert",
+      "chat_group_invites_block_direct_update",
+      "chat_group_invites_block_direct_delete",
+    ]) {
+      expect(groupManageGate).toContain(policy);
+    }
+    expect(groupManageGate).toContain("AS RESTRICTIVE");
+    expect(groupManageGate).toContain("trusted server-side");
+
+    expect(helper).toContain('functions.invoke<GroupManageResult<T>>("chat-group-manage"');
+    for (const helperName of [
+      "createGroup",
+      "updateGroup",
+      "addGroupMembers",
+      "removeGroupMember",
+      "leaveGroup",
+      "setGroupMemberRole",
+      "muteGroupMember",
+      "createGroupInvite",
+      "revokeGroupInvite",
+    ]) {
+      expect(helper).toContain(helperName);
+    }
+
+    for (const surface of surfaces) {
+      expect(surface).toMatch(/createGroup|updateGroup|addGroupMembers|removeGroupMember|leaveGroup|setGroupMemberRole|muteGroupMember|createGroupInvite|revokeGroupInvite/);
+      expect(surface).not.toMatch(/from\(["']chat_groups["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/);
+      expect(surface).not.toMatch(/dbFrom\(["']chat_groups["']\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/);
+      expect(surface).not.toMatch(/from\(["']chat_group_members["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/);
+      expect(surface).not.toMatch(/dbFrom\(["']chat_group_members["']\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/);
+      expect(surface).not.toMatch(/from\(["']chat_group_invites["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|update|delete)/);
+    }
+  });
+
+  it("keeps Feed and Reels post reactions behind verified server-side ownership checks", () => {
+    const reactionManageFn = read("supabase/functions/post-reaction-manage/index.ts");
+    const reactionGate = read("supabase/migrations/20260601180500_post_reactions_server_gate.sql");
+    const helper = read("src/lib/social/postReactionManage.ts");
+    const surfaces = [
+      read("src/hooks/usePostReactions.ts"),
+      read("src/pages/ReelsFeedPage.tsx"),
+    ];
+
+    expect(reactionManageFn).toContain('withSecurity("post-reaction-manage"');
+    expect(reactionManageFn).toContain("strictCors: true");
+    expect(reactionManageFn).toContain('allowedMethods: ["POST"]');
+    expect(reactionManageFn).toContain('trackNetwork: "suspicious"');
+    expect(reactionManageFn).toContain("blockNetworkRiskAt: 80");
+    expect(reactionManageFn).toContain("auth.getUser(token)");
+    expect(reactionManageFn).toContain("REACTION_EMOJIS");
+    expect(reactionManageFn).toContain("cleanEmoji");
+    expect(reactionManageFn).toContain("ensurePostExists");
+    expect(reactionManageFn).toContain('source === "user" ? "user_posts" : "store_posts"');
+    expect(reactionManageFn).toContain('from("post_reactions")');
+    expect(reactionManageFn).toContain('.eq("user_id", user.id)');
+    expect(reactionManageFn).toContain('onConflict: "user_id,post_id,source"');
+    expect(reactionManageFn).not.toContain('"Access-Control-Allow-Origin": "*"');
+
+    for (const policy of [
+      "post_reactions_block_direct_insert",
+      "post_reactions_block_direct_update",
+      "post_reactions_block_direct_delete",
+    ]) {
+      expect(reactionGate).toContain(policy);
+    }
+    expect(reactionGate).toContain("AS RESTRICTIVE");
+    expect(reactionGate).toContain("trusted server-side");
+
+    expect(helper).toContain('functions.invoke<PostReactionManageResult>("post-reaction-manage"');
+    expect(helper).toContain("set_reaction");
+    expect(helper).toContain("clear_reaction");
+
+    for (const surface of surfaces) {
+      expect(surface).toContain("setPostReaction");
+      expect(surface).not.toMatch(/from\(["']post_reactions["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|upsert|update|delete)/);
+    }
+  });
+
+  it("keeps social saved-post mutations behind verified server-side ownership checks", () => {
+    const bookmarkManageFn = read("supabase/functions/post-bookmark-manage/index.ts");
+    const bookmarkGate = read("supabase/migrations/20260601182000_post_bookmarks_server_gate.sql");
+    const helper = read("src/lib/social/postBookmarkManage.ts");
+    const surfaces = [
+      read("src/hooks/usePostActions.ts"),
+      read("src/pages/FeedPage.tsx"),
+      read("src/pages/ReelsFeedPage.tsx"),
+      read("src/pages/BookmarksPage.tsx"),
+      read("src/pages/SavedPostsPage.tsx"),
+      read("src/pages/SocialFeedPage.tsx"),
+      read("src/components/profile/ProfileContentTabs.tsx"),
+      read("src/pages/PublicProfilePage.tsx"),
+    ];
+
+    expect(bookmarkManageFn).toContain('withSecurity("post-bookmark-manage"');
+    expect(bookmarkManageFn).toContain("strictCors: true");
+    expect(bookmarkManageFn).toContain('allowedMethods: ["POST"]');
+    expect(bookmarkManageFn).toContain('trackNetwork: "suspicious"');
+    expect(bookmarkManageFn).toContain("blockNetworkRiskAt: 80");
+    expect(bookmarkManageFn).toContain("auth.getUser(token)");
+    expect(bookmarkManageFn).toContain("ensurePostExists");
+    expect(bookmarkManageFn).toContain("resolveBookmarkTarget");
+    expect(bookmarkManageFn).toContain("saveLegacyBookmark");
+    expect(bookmarkManageFn).toContain("deleteLegacyBookmark");
+    expect(bookmarkManageFn).toContain('source === "user" ? "user_posts" : "store_posts"');
+    expect(bookmarkManageFn).toContain('from("post_bookmarks")');
+    expect(bookmarkManageFn).toContain('from("bookmarks")');
+    expect(bookmarkManageFn).toContain('onConflict: "user_id,post_id,source"');
+    expect(bookmarkManageFn).toContain('onConflict: "user_id,item_type,item_id"');
+    expect(bookmarkManageFn).not.toContain('"Access-Control-Allow-Origin": "*"');
+
+    for (const policy of [
+      "post_bookmarks_block_direct_insert",
+      "post_bookmarks_block_direct_update",
+      "post_bookmarks_block_direct_delete",
+      "bookmarks_block_direct_post_insert",
+      "bookmarks_block_direct_post_update",
+      "bookmarks_block_direct_post_delete",
+    ]) {
+      expect(bookmarkGate).toContain(policy);
+    }
+    expect(bookmarkGate).toContain("AS RESTRICTIVE");
+    expect(bookmarkGate).toContain("Non-post bookmarks keep existing user-owned RLS");
+
+    expect(helper).toContain('functions.invoke<PostBookmarkManageResult>("post-bookmark-manage"');
+    expect(helper).toContain("save_post");
+    expect(helper).toContain("unsave_post");
+
+    for (const surface of surfaces) {
+      expect(surface).toMatch(/savePostBookmark|removePostBookmark/);
+      expect(surface).not.toMatch(/from\(["']post_bookmarks["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,360}\.(insert|upsert|update|delete)/);
+      expect(surface).not.toMatch(/from\(["']bookmarks["'](?:\s+as\s+any)?\)(?:(?!;)[\s\S]){0,420}\.(insert|upsert|update|delete)[\s\S]{0,240}item_type["']?\s*:\s*["']post["']/);
+    }
+  });
+
   it("keeps legacy user safety actions behind verified server-side ownership checks", () => {
     const safetyActionFn = read("supabase/functions/user-safety-action-manage/index.ts");
     const safetyActionGate = read("supabase/migrations/20260601093000_user_safety_actions_server_gate.sql");
@@ -993,6 +1346,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
   it("keeps user notification update and delete actions behind server-side ownership checks", () => {
     const notificationFn = read("supabase/functions/notification-manage/index.ts");
     const notificationGate = read("supabase/migrations/20260601100000_notifications_server_gate.sql");
+    const notificationHelper = read("src/lib/notifications/notificationManage.ts");
     const notificationCenter = read("src/pages/NotificationCenterPage.tsx");
     const notificationsHook = read("src/hooks/useNotifications.ts");
     const personalNotifications = read("src/pages/app/personal/PersonalNotificationsPage.tsx");
@@ -1006,8 +1360,17 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(notificationFn).toContain("cleanIds");
     expect(notificationFn).toContain("cleanDate");
     expect(notificationFn).toContain('from("notifications")');
-    expect(notificationFn).toContain('.eq("user_id", user.id)');
+    expect(notificationFn).toContain("userOwnershipFilter(user.id)");
+    expect(notificationFn).toContain("user_id.eq");
+    expect(notificationFn).toContain("to_value.eq");
     expect(notificationFn).not.toContain('"Access-Control-Allow-Origin": "*"');
+
+    expect(notificationHelper).toContain('functions.invoke("notification-manage"');
+    expect(notificationHelper).toContain('action: "mark_read"');
+    expect(notificationHelper).toContain('action: "mark_all_read"');
+    expect(notificationHelper).toContain('action: "delete"');
+    expect(notificationHelper).toContain('action: "clear_in_app"');
+    expect(notificationHelper).toContain('action: "snooze"');
 
     for (const policy of ["notifications_block_direct_update", "notifications_block_direct_delete"]) {
       expect(notificationGate).toContain(policy);
@@ -1016,8 +1379,9 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(notificationGate).toContain("trusted server-side ingestion");
 
     for (const surface of [notificationCenter, notificationsHook, personalNotifications, rideNotifications]) {
-      expect(surface).toMatch(/functions\.invoke\(['"]notification-manage['"]/);
+      expect(surface).toContain("notificationManage");
       expect(surface).toContain("notifications");
+      expect(surface).not.toMatch(/functions\.invoke\(['"]notification-manage['"]/);
       expect(surface).not.toMatch(/from\(['"]notifications['"]\)[\s\S]{0,260}\.(update|delete)/);
     }
   });

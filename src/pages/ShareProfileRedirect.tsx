@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Smartphone, Download } from "lucide-react";
+import { ANDROID_APP_PACKAGE, getAttributedStoreUrls } from "@/lib/deepLinks";
+import { trackMetaAppInstallClick } from "@/lib/metaAdsTracking";
 
-const IOS_APP_STORE_URL = "https://apps.apple.com/us/app/zivo-customer/id6759480121";
-const ANDROID_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.hizovo.app";
-const APP_SCHEME = "com.hizovo.app";
+const APP_SCHEME = ANDROID_APP_PACKAGE;
 // How long to wait for the app to take focus before deciding it isn't installed.
 const APP_LAUNCH_TIMEOUT_MS = 1500;
 
@@ -33,10 +33,6 @@ function isNativeWebView(): boolean {
   return false;
 }
 
-function storeUrlFor(platform: Platform): string {
-  return platform === "android" ? ANDROID_PLAY_STORE_URL : IOS_APP_STORE_URL;
-}
-
 function deepLinkFor(path: string): string {
   return `${APP_SCHEME}://${path.replace(/^\//, "")}`;
 }
@@ -50,6 +46,15 @@ export default function ShareProfileRedirect() {
   const [platform] = useState<Platform>(() => detectPlatform());
   const [showFallback, setShowFallback] = useState(false);
   const fallbackTimer = useRef<number | null>(null);
+  const storeUrls = useMemo(
+    () => getAttributedStoreUrls({ content: "share_profile_fallback" }),
+    [],
+  );
+  const storePlatform = platform === "android" ? "android" : "ios";
+  const storeUrl = useMemo(
+    () => (storePlatform === "android" ? storeUrls.android : storeUrls.ios),
+    [storePlatform, storeUrls],
+  );
 
   // Path to attempt opening in the native app (preserves /p/:code + ?post=...).
   const sharedPath = (() => {
@@ -78,7 +83,8 @@ export default function ShareProfileRedirect() {
 
     // If we're still here after the timeout, the app isn't installed → store.
     fallbackTimer.current = window.setTimeout(() => {
-      window.location.replace(storeUrlFor(platform));
+      trackMetaAppInstallClick({ platform: storePlatform, surface: "share_profile_fallback", destinationUrl: storeUrl });
+      window.location.replace(storeUrl);
     }, APP_LAUNCH_TIMEOUT_MS);
   };
 
@@ -163,7 +169,8 @@ export default function ShareProfileRedirect() {
             variant="outline"
             className="w-full gap-2"
             onClick={() => {
-              window.location.assign(storeUrlFor(platform));
+              trackMetaAppInstallClick({ platform: storePlatform, surface: "share_profile_fallback", destinationUrl: storeUrl });
+              window.location.assign(storeUrl);
             }}
           >
             <Download className="h-4 w-4" />

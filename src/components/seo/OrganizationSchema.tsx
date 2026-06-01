@@ -12,10 +12,10 @@ export default function OrganizationSchema() {
       "@type": "Organization",
       "name": "ZIVO",
       "legalName": "ZIVO LLC",
-      "alternateName": "ZIVO Travel",
-      "url": "https://hizivo.com",
-      "logo": "https://hizivo.com/og-image.png",
-      "description": "ZIVO is a travel search and comparison platform helping users find the best deals on flights, hotels, and car rentals from 500+ partners.",
+      "alternateName": ["ZIVO App", "ZIVO Travel"],
+      "url": "https://zivollc.com",
+      "logo": "https://zivollc.com/og-image.png",
+      "description": "ZIVO is an all-in-one app for travel booking, rides, food, social feed, reels, creator subscriptions, online shops, jobs, hiring, chat, and calls.",
       "foundingDate": "2024",
       "email": "info@hizivo.com",
       "sameAs": [
@@ -48,12 +48,18 @@ export default function OrganizationSchema() {
         "name": "Worldwide"
       },
       "knowsAbout": [
-        "Flight booking",
+        "Travel booking",
+        "Flight comparison",
         "Hotel reservations",
         "Car rentals",
-        "Travel comparison",
         "Ride services",
-        "Food delivery"
+        "Food delivery",
+        "Social networking",
+        "Short-form video",
+        "Creator subscriptions",
+        "Online shops",
+        "Job marketplace",
+        "Messaging and video calls"
       ]
     };
 

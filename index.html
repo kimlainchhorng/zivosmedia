@@ -10,6 +10,11 @@
          versions in public/_headers are authoritative. -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="zivo-meta-pixel" content="2304266847061310" />
+    <meta name="facebook-domain-verification" content="__META_DOMAIN_VERIFICATION__" />
+    <!-- Google AdSense publisher ID (ca-pub-XXXXXXXXXXXXXXXX). Paste yours here to turn on display ads.
+         Leave empty to keep ads off. Ads load only after marketing-cookie consent, web only. -->
+    <meta name="zivo-adsense-client" content="" />
 
     <!-- Critical CSS — reserve viewport to prevent layout shift (CLS) -->
     <style>
@@ -20,7 +25,20 @@
     <!-- Analytics/marketing pixels — idle-loaded after first paint to protect LCP/TBT -->
     <script>
     (function(){
-      var loaded=false;
+      var gtagLoaded=false;
+      var analyticsLoaded=false;
+      var marketingLoaded=false;
+      window.dataLayer=window.dataLayer||[];
+      function zivoGtag(){window.dataLayer.push(arguments);}
+      window.gtag=window.gtag||zivoGtag;
+      var gtag=window.gtag;
+      gtag('consent','default',{
+        ad_storage:'denied',
+        ad_user_data:'denied',
+        ad_personalization:'denied',
+        analytics_storage:'denied'
+      });
+      gtag('set','ads_data_redaction',true);
       function readCookiePrefs(){
         // Never load third-party trackers during local QA/dev.
         if(location.hostname==='localhost'||location.hostname==='127.0.0.1') return null;
@@ -32,32 +50,53 @@
           return null;
         }
       }
+      function updateGoogleConsent(analyticsAllowed,marketingAllowed){
+        gtag('consent','update',{
+          analytics_storage:analyticsAllowed?'granted':'denied',
+          ad_storage:marketingAllowed?'granted':'denied',
+          ad_user_data:marketingAllowed?'granted':'denied',
+          ad_personalization:marketingAllowed?'granted':'denied'
+        });
+        gtag('set','ads_data_redaction',!marketingAllowed);
+      }
+      function readMetaPixelId(){
+        var fallback='2304266847061310';
+        var meta=document.querySelector('meta[name="zivo-meta-pixel"]');
+        var configured=meta&&meta.getAttribute('content')?meta.getAttribute('content').trim():'';
+        if(configured&&configured.charAt(0)!=='%')return configured;
+        return fallback;
+      }
       function loadConsentPixels(){
-        if(loaded)return; loaded=true;
         var prefs=readCookiePrefs();
-        if(!prefs)return;
+        if(!prefs){updateGoogleConsent(false,false);return;}
         var analyticsAllowed=prefs.analytics===true;
         var marketingAllowed=prefs.marketing===true;
+        updateGoogleConsent(analyticsAllowed,marketingAllowed);
         if(!analyticsAllowed&&!marketingAllowed)return;
+        if((!analyticsAllowed||analyticsLoaded)&&(!marketingAllowed||marketingLoaded))return;
         // Skip on native
         if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())return;
-        // gtag base is shared by analytics and Google Ads, but each config is consent-gated separately.
-        var s=document.createElement('script');s.async=true;
-        s.src='https://www.googletagmanager.com/gtag/js?id=G-VVH8W5PW3E';
-        document.head.appendChild(s);
-        window.dataLayer=window.dataLayer||[];
-        function gtag(){dataLayer.push(arguments);} window.gtag=gtag;
-        gtag('js',new Date());
-        if(analyticsAllowed){
-          gtag('config','G-VVH8W5PW3E',{send_page_view:true});
+        // gtag base is shared by analytics and Google Ads; load once, configure each consent gate separately.
+        if(!gtagLoaded){
+          var s=document.createElement('script');s.async=true;
+          s.src='https://www.googletagmanager.com/gtag/js?id=G-VVH8W5PW3E';
+          document.head.appendChild(s);
+          gtag('js',new Date());
+          gtagLoaded=true;
         }
-        if(marketingAllowed){
+        if(analyticsAllowed&&!analyticsLoaded){
+          gtag('config','G-VVH8W5PW3E',{send_page_view:true});
+          analyticsLoaded=true;
+        }
+        if(marketingAllowed&&!marketingLoaded){
           gtag('config','AW-18077605056');
           // Meta Pixel
           !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
           if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
           t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init','2304266847061310');fbq('track','PageView');
+          var metaPixelId=readMetaPixelId();
+          fbq('init',metaPixelId);fbq('track','PageView');
+          window.__zivoMetaLastPageView={path:location.pathname,at:Date.now()};
           // TikTok Pixel — reads optional id from <meta name="zivo-tiktok-pixel" content="...">
           var ttMeta=document.querySelector('meta[name="zivo-tiktok-pixel"]');
           var ttId=ttMeta&&ttMeta.getAttribute('content');
@@ -66,6 +105,16 @@
               ttq.load(ttId);ttq.page();
             }(window,document,'ttq');
           }
+          // Google AdSense — display ads (loads only with marketing consent, web only).
+          // Reads publisher id from <meta name="zivo-adsense-client" content="ca-pub-...">.
+          var adsMeta=document.querySelector('meta[name="zivo-adsense-client"]');
+          var adsClient=adsMeta&&adsMeta.getAttribute('content')?adsMeta.getAttribute('content').trim():'';
+          if(adsClient&&adsClient.indexOf('ca-pub-')===0){
+            var ad=document.createElement('script');ad.async=true;ad.crossOrigin='anonymous';
+            ad.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+adsClient;
+            document.head.appendChild(ad);
+          }
+          marketingLoaded=true;
         }
       }
       // Expose for consent flows that enable analytics after initial page load.
@@ -101,7 +150,7 @@
     <link rel="dns-prefetch" href="https://api.duffel.com" />
     <link rel="dns-prefetch" href="https://js.stripe.com" />
     
-    <title>ZIVO – Free Super-App: Travel, Social, Shop, Jobs & Creators</title>
+    <title>ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators</title>
     <meta name="description" content="All-in-one free app: book flights, hotels & cars, order rides & food, share reels, follow creators, open a shop, post or apply for jobs, chat & call. Join free.">
 
     <meta name="author" content="ZIVO" />
@@ -117,7 +166,7 @@
     <meta name="format-detection" content="telephone=no" />
     
     <!-- Apple Smart App Banner - prompts iOS Safari users to download the app -->
-    <meta name="apple-itunes-app" content="app-id=6759480121, app-argument=https://hizivo.com" />
+    <meta name="apple-itunes-app" content="app-id=6759480121, app-argument=https://zivollc.com" />
     
     <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" href="/pwa-icons/icon-192x192.png" />
@@ -144,27 +193,33 @@
     <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://hizivo.com/" />
+    <link rel="canonical" href="https://zivollc.com/" />
 
     <!-- Open Graph - Enhanced for Social Sharing -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://hizivo.com/" />
-    <meta property="og:image" content="https://hizivo.com/og-image.png" />
+    <meta property="og:url" content="https://zivollc.com/" />
+    <meta property="og:image" content="https://zivollc.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ZIVO - Compare Flights, Hotels & Car Rentals" />
+    <meta property="og:image:alt" content="ZIVO - Travel, Social, Shop, Jobs & Creators" />
     <meta property="og:site_name" content="ZIVO" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:locale:alternate" content="km_KH" />
     <meta property="og:locale:alternate" content="ar_AR" />
     <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="al:ios:url" content="com.hizovo.app://" />
+    <meta property="al:ios:app_store_id" content="6759480121" />
+    <meta property="al:ios:app_name" content="ZIVO" />
+    <meta property="al:android:url" content="com.hizovo.app://" />
+    <meta property="al:android:package" content="com.hizovo.app" />
+    <meta property="al:android:app_name" content="ZIVO" />
 
     <!-- Twitter Card - Enhanced -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@ZivoApp" />
     <meta name="twitter:creator" content="@ZivoApp" />
-    <meta name="twitter:image" content="https://hizivo.com/og-image.png" />
-    <meta name="twitter:image:alt" content="ZIVO - Compare Flights, Hotels & Car Rentals" />
+    <meta name="twitter:image" content="https://zivollc.com/og-image.png" />
+    <meta name="twitter:image:alt" content="ZIVO - Travel, Social, Shop, Jobs & Creators" />
 
     <!-- Organization Schema -->
     <script type="application/ld+json">
@@ -174,9 +229,9 @@
       "name": "ZIVO",
       "legalName": "ZIVO LLC",
       "alternateName": ["ZIVO App", "Hizivo", "ZivoLLC"],
-      "url": "https://hizivo.com",
-      "logo": "https://hizivo.com/og-image.png",
-      "image": "https://hizivo.com/og-image.png",
+      "url": "https://zivollc.com",
+      "logo": "https://zivollc.com/og-image.png",
+      "image": "https://zivollc.com/og-image.png",
       "description": "ZIVO is an all-in-one travel and lifestyle super-app. Search and compare flights, hotels, and car rentals from 500+ trusted partners; book rides; order food delivery; share short videos and reels; chat; and discover local experiences — all in one place. ZIVO is a booking agent and is not the merchant of record for airline tickets.",
       "foundingDate": "2024",
       "knowsAbout": [
@@ -204,7 +259,8 @@
       "sameAs": [
         "https://zivollc.com",
         "https://www.zivollc.com",
-        "https://apps.apple.com/app/id6759480121"
+        "https://apps.apple.com/us/app/zivos/id6759480121",
+        "https://play.google.com/store/apps/details?id=com.hizovo.app"
       ]
     }
     </script>
@@ -216,21 +272,21 @@
       "@type": "WebSite",
       "name": "ZIVO",
       "alternateName": "ZIVO App",
-      "url": "https://hizivo.com",
-      "description": "Compare flights, hotels, and car rentals. Book rides, order food, share reels, and chat — all on ZIVO.",
+      "url": "https://zivollc.com",
+      "description": "ZIVO combines travel booking, rides, food, social feed, reels, creators, online shops, jobs, and chat in one free app.",
       "publisher": {
         "@type": "Organization",
         "name": "ZIVO",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://hizivo.com/og-image.png"
+          "url": "https://zivollc.com/og-image.png"
         }
       },
       "potentialAction": {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": "https://hizivo.com/flights?q={search_term_string}"
+          "urlTemplate": "https://zivollc.com/flights?q={search_term_string}"
         },
         "query-input": "required name=search_term_string"
       }
@@ -251,8 +307,12 @@
         "price": "0",
         "priceCurrency": "USD"
       },
-      "downloadUrl": "https://apps.apple.com/app/id6759480121",
-      "screenshot": "https://hizivo.com/og-image.png",
+      "downloadUrl": "https://apps.apple.com/us/app/zivos/id6759480121",
+      "sameAs": [
+        "https://apps.apple.com/us/app/zivos/id6759480121",
+        "https://play.google.com/store/apps/details?id=com.hizovo.app"
+      ],
+      "screenshot": "https://zivollc.com/og-image.png",
       "publisher": {
         "@type": "Organization",
         "name": "ZIVO"
@@ -268,7 +328,7 @@
       "@type": "WebApplication",
       "name": "ZIVO",
       "alternateName": "ZIVO Web App",
-      "url": "https://hizivo.com",
+      "url": "https://zivollc.com",
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "applicationCategory": "LifestyleApplication",
       "applicationSubCategory": "Super App – Travel, Social, Commerce, Jobs",
@@ -292,7 +352,7 @@
         "Jobs board with apply and hiring tools",
         "Chat with voice and video calls"
       ],
-      "screenshot": "https://hizivo.com/og-image.png",
+      "screenshot": "https://zivollc.com/og-image.png",
       "publisher": {
         "@type": "Organization",
         "name": "ZIVO"
@@ -308,7 +368,7 @@
       "provider": {
         "@type": "Organization",
         "name": "ZIVO",
-        "url": "https://hizivo.com"
+        "url": "https://zivollc.com"
       },
       "serviceType": "All-in-one super-app",
       "areaServed": "Worldwide",
@@ -363,7 +423,7 @@
           "name": "Where can I download the ZIVO app?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "ZIVO is available on iOS and Android, and works as a fast web app at hizivo.com."
+            "text": "ZIVO is available on iOS and Android, and works as a fast web app at zivollc.com."
           }
         }
       ]
@@ -374,24 +434,26 @@
 
   <!-- Open Graph & Twitter titles — kept consistent with the main <title> so social previews
        (FB, IG, X, LinkedIn, WhatsApp, iMessage) advertise the full super-app, not just travel. -->
-  <meta property="og:title" content="ZIVO – Free Super-App: Travel, Social, Shop, Jobs & Creators" />
-  <meta name="twitter:title" content="ZIVO – Free Super-App: Travel, Social, Shop, Jobs & Creators" />
+  <meta property="og:title" content="ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators" />
+  <meta name="twitter:title" content="ZIVO - Free Super-App: Travel, Social, Shop, Jobs & Creators" />
   <meta property="og:description" content="One free app for everything: book flights, hotels & cars, order rides & food, share reels, follow creators, open a shop, post or apply for jobs, chat & call. Join free." />
   <meta name="twitter:description" content="One free app for everything: flights, hotels, cars, rides, food, reels, creators, shops, jobs, chat & calls. Join ZIVO free." />
 
   <!-- hreflang — language alternates so Google can serve ZIVO to non-English searchers
        (Khmer, Arabic, French audiences are explicitly supported per Organization schema). -->
-  <link rel="alternate" hreflang="x-default" href="https://hizivo.com/" />
-  <link rel="alternate" hreflang="en" href="https://hizivo.com/" />
-  <link rel="alternate" hreflang="km" href="https://hizivo.com/?lang=km" />
-  <link rel="alternate" hreflang="ar" href="https://hizivo.com/?lang=ar" />
-  <link rel="alternate" hreflang="fr" href="https://hizivo.com/?lang=fr" />
+  <link rel="alternate" hreflang="x-default" href="https://zivollc.com/" />
+  <link rel="alternate" hreflang="en" href="https://zivollc.com/" />
+  <link rel="alternate" hreflang="km" href="https://zivollc.com/?lang=km" />
+  <link rel="alternate" hreflang="ar" href="https://zivollc.com/?lang=ar" />
+  <link rel="alternate" hreflang="fr" href="https://zivollc.com/?lang=fr" />
 </head>
 
   <body>
-    <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=2304266847061310&ev=PageView&noscript=1"
-    /></noscript>
+    <noscript>
+      <div style="padding:16px;font:14px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+        ZIVO needs JavaScript enabled to run the app.
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     

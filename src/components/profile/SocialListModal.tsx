@@ -206,26 +206,30 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
     setActionLoading(`${item.relationId}-${type}`);
     try {
       if (type === "unfriend") {
-        await (supabase as any).from("friendships").delete().eq("id", item.relationId);
-        // Also unfollow if follow relation exists
-        if (item.followRelationId) {
-          await (supabase as any).from("user_followers").delete().eq("id", item.followRelationId);
-        }
+        const { error } = await supabase.functions.invoke("friendship-manage", {
+          body: { action: "unfriend", friend_id: item.id },
+        });
+        if (error) throw error;
         toast.success(`Unfriended ${item.full_name || "user"}`);
         setList((prev) => prev.filter((i) => i.relationId !== item.relationId));
       } else if (type === "unfollow") {
+        const { error } = await supabase.functions.invoke("follow-manage", {
+          body: { action: "unfollow", following_id: item.id },
+        });
+        if (error) throw error;
         if (tab === "friends" && item.followRelationId) {
-          await (supabase as any).from("user_followers").delete().eq("id", item.followRelationId);
           toast.success(`Unfollowed ${item.full_name || "user"}`);
           // Update follow status in list without removing
           setList((prev) => prev.map((i) => i.relationId === item.relationId ? { ...i, followRelationId: null } : i));
         } else {
-          await (supabase as any).from("user_followers").delete().eq("id", item.relationId);
           toast.success(`Unfollowed ${item.full_name || "user"}`);
           setList((prev) => prev.filter((i) => i.relationId !== item.relationId));
         }
       } else if (type === "remove_follower") {
-        await (supabase as any).from("user_followers").delete().eq("id", item.relationId);
+        const { error } = await supabase.functions.invoke("follow-manage", {
+          body: { action: "remove_follower", follower_id: item.id },
+        });
+        if (error) throw error;
         toast.success(`Removed ${item.full_name || "user"} from followers`);
         setList((prev) => prev.filter((i) => i.relationId !== item.relationId));
       }
@@ -244,18 +248,15 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
     if (!user?.id || item.followRelationId) return;
     setActionLoading(`${item.relationId}-follow`);
     try {
-      const { data, error } = await (supabase as any)
-        .from("user_followers")
-        .insert({ follower_id: user.id, following_id: item.id })
-        .select("id")
-        .maybeSingle();
-
-      if (error && error.code !== "23505") throw error;
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: "follow", following_id: item.id },
+      });
+      if (error) throw error;
 
       setList((prev) =>
         prev.map((row) =>
           row.id === item.id
-            ? { ...row, followRelationId: data?.id || row.followRelationId || `local-${item.id}` }
+            ? { ...row, followRelationId: row.followRelationId || `local-${item.id}` }
             : row
         )
       );

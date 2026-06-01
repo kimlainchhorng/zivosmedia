@@ -70,4 +70,39 @@ describe("SSO, auth, sessions, and devices workflow", () => {
       expect(source).not.toContain('"Access-Control-Allow-Origin": "*"');
     }
   });
+
+  it("keeps email OTP generation cryptographically random and stored as a hash", () => {
+    const sendOtp = read("supabase/functions/send-otp-email/index.ts");
+    const verifyOtp = read("supabase/functions/verify-otp-code/index.ts");
+    const sharedOtp = read("supabase/functions/_shared/otp.ts");
+
+    expect(sendOtp).toContain("generateOtpCode()");
+    expect(sendOtp).toContain("hashOtpCode(email, code)");
+    expect(sendOtp).not.toContain("Math.random()");
+    expect(verifyOtp).toContain("isOtpCodeMatch(otpRecord.code, normalizedEmail, code)");
+    expect(sharedOtp).toContain("crypto.getRandomValues");
+    expect(sharedOtp).toContain("crypto.subtle.importKey");
+    expect(sharedOtp).toContain("constantTimeEqual");
+  });
+
+  it("keeps email OTP resend and delivery retries safe", () => {
+    const sendOtp = read("supabase/functions/send-otp-email/index.ts");
+    const verifyOtpPage = read("src/pages/VerifyOTP.tsx");
+    const verifyDevice = read("src/pages/VerifyNewDevice.tsx");
+    const passwordChange = read("src/components/auth/PasswordChangeVerifyDialog.tsx");
+    const functionErrors = read("src/lib/supabaseFunctionError.ts");
+
+    expect(sendOtp).toContain("OTP_RESEND_COOLDOWN_SECONDS = 30");
+    expect(sendOtp).toContain("OTP_RESEND_COOLDOWN");
+    expect(sendOtp).toContain('"Idempotency-Key": idempotencyKey');
+    expect(sendOtp).toContain("otp-email/${insertedOtp.id}");
+    expect(sendOtp).toContain("markOtpDeliveryFailed");
+    expect(sendOtp).toContain("Failed to invalidate undelivered OTP");
+    expect(functionErrors).toContain("getSupabaseFunctionErrorDetails");
+    expect(functionErrors).toContain("retryAfter");
+    for (const source of [verifyOtpPage, verifyDevice, passwordChange]) {
+      expect(source).toContain("getSupabaseFunctionErrorDetails");
+      expect(source).toContain("details.retryAfter");
+    }
+  });
 });

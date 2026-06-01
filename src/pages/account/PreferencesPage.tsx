@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useRef, useCallback, useEffect } from "react";
 import SEOHead from "@/components/SEOHead";
-import { ArrowLeft, Globe, DollarSign, Check, Palette, Sparkles, Ruler, Thermometer, Clock, CalendarDays, Accessibility, Languages, Type, Eye, Zap } from "lucide-react";
+import { ArrowLeft, Globe, DollarSign, Check, Sparkles, Ruler, Thermometer, Clock, CalendarDays, Accessibility, Languages, Type, Eye, Zap } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { motion, useScroll, useTransform } from "framer-motion";
@@ -11,7 +11,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePersonalizationSettings } from "@/hooks/usePersonalizationSettings";
 import { SUPPORTED_CURRENCIES } from "@/config/currencies";
 import { toast } from "sonner";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useSupportedLanguages } from "@/hooks/useGlobalExpansion";
 import { useUnitPreferences, type DistanceUnit, type TemperatureUnit, type TimeFormat, type DateFormat } from "@/hooks/useUnitPreferences";
 import { useAccessibilityPrefs, type FontScale } from "@/hooks/useAccessibilityPrefs";
@@ -204,17 +203,6 @@ const PreferencesPage = () => {
           </motion.div>
 
           <div className="space-y-5">
-            {/* Appearance */}
-            <Section3D icon={Palette} title="Appearance" subtitle="Choose your preferred theme" delay={0.1} iconColor="text-primary">
-              <ThemeToggle
-                onChange={(theme) => {
-                  if (user) {
-                    updateSettings({ preferred_theme: theme } as any);
-                  }
-                }}
-              />
-            </Section3D>
-
             {/* Language */}
             <Section3D icon={Globe} title="Language" subtitle="Choose your preferred language" delay={0.2} iconColor="text-primary">
               <div className="space-y-0.5 max-h-[360px] overflow-y-auto rounded-xl">

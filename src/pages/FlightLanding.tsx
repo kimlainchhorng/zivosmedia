@@ -1151,11 +1151,11 @@ const FlightLanding = () => {
             "@type": "WebPage",
             "name": "Search Flights from Cambodia – ZIVO",
             "description": "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines.",
-            "url": "https://hizivo.com/flights",
-            "isPartOf": { "@type": "WebSite", "url": "https://hizivo.com", "name": "ZIVO" },
+            "url": "https://zivollc.com/flights",
+            "isPartOf": { "@type": "WebSite", "url": "https://zivollc.com", "name": "ZIVO" },
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "https://hizivo.com/flights/results?origin={origin}&destination={destination}&date={date}",
+              "target": "https://zivollc.com/flights/results?origin={origin}&destination={destination}&date={date}",
               "query-input": "required name=origin required name=destination required name=date"
             }
           },
@@ -1163,8 +1163,8 @@ const FlightLanding = () => {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://hizivo.com/" },
-              { "@type": "ListItem", "position": 2, "name": "Flights", "item": "https://hizivo.com/flights" }
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://zivollc.com/" },
+              { "@type": "ListItem", "position": 2, "name": "Flights", "item": "https://zivollc.com/flights" }
             ]
           },
           {
@@ -1173,16 +1173,16 @@ const FlightLanding = () => {
             "name": "Popular flight destinations from Cambodia on ZIVO",
             "itemListOrder": "https://schema.org/ItemListOrderAscending",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1,  "name": "Siem Reap",     "url": "https://hizivo.com/flights/to-siem-reap" },
-              { "@type": "ListItem", "position": 2,  "name": "Sihanoukville", "url": "https://hizivo.com/flights/to-sihanoukville" },
-              { "@type": "ListItem", "position": 3,  "name": "Bangkok",       "url": "https://hizivo.com/flights/to-bangkok" },
-              { "@type": "ListItem", "position": 4,  "name": "Singapore",     "url": "https://hizivo.com/flights/to-singapore" },
-              { "@type": "ListItem", "position": 5,  "name": "Kuala Lumpur",  "url": "https://hizivo.com/flights/to-kuala-lumpur" },
-              { "@type": "ListItem", "position": 6,  "name": "Hong Kong",     "url": "https://hizivo.com/flights/to-hong-kong" },
-              { "@type": "ListItem", "position": 7,  "name": "Tokyo",         "url": "https://hizivo.com/flights/to-tokyo" },
-              { "@type": "ListItem", "position": 8,  "name": "Seoul",         "url": "https://hizivo.com/flights/to-seoul" },
-              { "@type": "ListItem", "position": 9,  "name": "Ho Chi Minh",   "url": "https://hizivo.com/flights/to-ho-chi-minh" },
-              { "@type": "ListItem", "position": 10, "name": "Hanoi",         "url": "https://hizivo.com/flights/to-hanoi" }
+              { "@type": "ListItem", "position": 1,  "name": "Siem Reap",     "url": "https://zivollc.com/flights/to-siem-reap" },
+              { "@type": "ListItem", "position": 2,  "name": "Sihanoukville", "url": "https://zivollc.com/flights/to-sihanoukville" },
+              { "@type": "ListItem", "position": 3,  "name": "Bangkok",       "url": "https://zivollc.com/flights/to-bangkok" },
+              { "@type": "ListItem", "position": 4,  "name": "Singapore",     "url": "https://zivollc.com/flights/to-singapore" },
+              { "@type": "ListItem", "position": 5,  "name": "Kuala Lumpur",  "url": "https://zivollc.com/flights/to-kuala-lumpur" },
+              { "@type": "ListItem", "position": 6,  "name": "Hong Kong",     "url": "https://zivollc.com/flights/to-hong-kong" },
+              { "@type": "ListItem", "position": 7,  "name": "Tokyo",         "url": "https://zivollc.com/flights/to-tokyo" },
+              { "@type": "ListItem", "position": 8,  "name": "Seoul",         "url": "https://zivollc.com/flights/to-seoul" },
+              { "@type": "ListItem", "position": 9,  "name": "Ho Chi Minh",   "url": "https://zivollc.com/flights/to-ho-chi-minh" },
+              { "@type": "ListItem", "position": 10, "name": "Hanoi",         "url": "https://zivollc.com/flights/to-hanoi" }
             ]
           }
         ]}

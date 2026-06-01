@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
 import { checkPasswordBreach } from "@/lib/security/passwordStrength";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,7 @@ type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -77,7 +78,7 @@ const ResetPassword = () => {
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (!error && (recoveryType === "recovery" || data.session)) {
-          window.history.replaceState({}, document.title, window.location.pathname);
+          window.history.replaceState({}, document.title, withRedirectParam(window.location.pathname, redirect));
           if (isMounted) setIsValidSession(true);
           return;
         }
@@ -90,7 +91,7 @@ const ResetPassword = () => {
         });
 
         if (!error) {
-          window.history.replaceState({}, document.title, window.location.pathname);
+          window.history.replaceState({}, document.title, withRedirectParam(window.location.pathname, redirect));
           if (isMounted) setIsValidSession(true);
           return;
         }
@@ -151,7 +152,7 @@ const ResetPassword = () => {
       
       // Redirect to login after a short delay
       setTimeout(() => {
-        navigate(`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`);
+        navigate(withRedirectParam("/login", redirect));
       }, 2000);
     } catch (error: any) {
       toast.error(error.message || "Failed to update password");

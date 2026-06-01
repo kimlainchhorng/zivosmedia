@@ -29,8 +29,10 @@ import {
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import packageJson from "../../package.json";
+import { getAttributedStoreUrls } from "@/lib/deepLinks";
+import { trackMetaAppInstallClick } from "@/lib/metaAdsTracking";
 
 const CHANGELOG: { version: string; date: string; highlights: string[] }[] = [
   {
@@ -74,6 +76,11 @@ const CHANGELOG: { version: string; date: string; highlights: string[] }[] = [
 ];
 
 const About = () => {
+  const storeUrls = useMemo(
+    () => getAttributedStoreUrls({ content: "about_store_rating" }),
+    [],
+  );
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash?.replace("#", "");
@@ -87,8 +94,8 @@ const About = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
-        title="About ZIVO – Global Travel Search & Comparison Platform"
-        description="ZIVO is a global travel search and comparison platform helping users find and compare flights, hotels, car rentals, and travel services from trusted partners worldwide."
+        title="About ZIVO - Free Super-App for Travel, Social, Shop, Jobs & Creators"
+        description="ZIVO brings travel booking, social feed, reels, chat, local shopping, creator tools, jobs, and notifications together in one professional app experience."
       />
       <Header />
       
@@ -104,8 +111,8 @@ const About = () => {
               About ZIVO
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              ZIVO is a global travel search and comparison platform that helps users find and compare 
-              flights, hotels, car rentals, and travel services from trusted partners worldwide.
+              ZIVO is a free super-app for travel, social discovery, reels, chat, local shopping, creator tools,
+              jobs, and everyday services - all connected through one account.
             </p>
           </motion.div>
 
@@ -117,9 +124,8 @@ const About = () => {
                   <h2 className="text-3xl font-bold mb-4">What We Do</h2>
                   <div className="space-y-4 text-muted-foreground text-lg leading-relaxed">
                     <p>
-                      ZIVO aggregates and compares travel options from multiple trusted partners, 
-                      helping travelers find the best flights, hotels, car rentals, and travel services 
-                      in one place.
+                      ZIVO connects the workflows people use every day: book trips, share reels, chat and call,
+                      discover local businesses, shop products, follow creators, post jobs, and apply for work.
                     </p>
                     <p className="font-medium text-foreground">
                       ZIVO does not sell tickets or process payments.
@@ -420,18 +426,20 @@ const About = () => {
                 </p>
                 <div className="flex flex-wrap gap-3 justify-center">
                   <a
-                    href="https://apps.apple.com/app/zivo"
+                    href={storeUrls.ios}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackMetaAppInstallClick({ platform: "ios", surface: "about_store_rating", destinationUrl: storeUrls.ios })}
                     className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
                   >
                     <Apple className="w-4 h-4" />
                     Rate on App Store
                   </a>
                   <a
-                    href="https://play.google.com/store/apps/details?id=com.zivo"
+                    href={storeUrls.android}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackMetaAppInstallClick({ platform: "android", surface: "about_store_rating", destinationUrl: storeUrls.android })}
                     className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
                   >
                     <Smartphone className="w-4 h-4" />
@@ -452,7 +460,7 @@ const About = () => {
           <div className="text-center bg-gradient-to-r from-primary/10 via-background to-teal-500/10 rounded-3xl p-10 border border-primary/20">
             <h2 className="text-3xl font-bold mb-4">Start Your Journey</h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-              Compare flights, hotels, and car rentals from trusted partners worldwide.
+              Book travel, share reels, chat, shop local, follow creators, and discover work opportunities.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link to="/book-flight">

@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSendPhoneOTP, useVerifyPhoneOTP } from "@/hooks/useNotificationPreferences";
+import { getSupabaseFunctionErrorDetails } from "@/lib/supabaseFunctionError";
 import { toast } from "sonner";
 
 interface Props {
@@ -77,7 +78,11 @@ export default function PasswordChangeVerifyDialog({
         const { error } = await supabase.functions.invoke("send-otp-email", {
           body: { email },
         });
-        if (error) throw error;
+        if (error) {
+          const details = await getSupabaseFunctionErrorDetails(error);
+          if (details.retryAfter) setCooldown(details.retryAfter);
+          throw new Error(details.message || error.message);
+        }
         toast.success(`Code sent to ${email}`);
       } else {
         if (!phoneE164) {
@@ -108,7 +113,10 @@ export default function PasswordChangeVerifyDialog({
         const { data, error } = await supabase.functions.invoke("verify-otp-code", {
           body: { email, code },
         });
-        if (error) throw error;
+        if (error) {
+          const details = await getSupabaseFunctionErrorDetails(error);
+          throw new Error(details.message || error.message);
+        }
         if ((data as any)?.error) throw new Error((data as any).error);
       } else {
         await verifySms.mutateAsync({ phoneE164: phoneE164!, code });

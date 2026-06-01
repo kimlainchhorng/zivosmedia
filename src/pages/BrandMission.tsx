@@ -35,12 +35,12 @@ const brandValues = [
   {
     icon: Lightbulb,
     title: "Innovation",
-    description: "AI-powered search, smart recommendations, and seamless booking experiences.",
+    description: "AI-powered discovery, smart recommendations, and seamless everyday workflows.",
   },
   {
     icon: Users,
     title: "User-First",
-    description: "Every decision we make prioritizes the traveler's needs and experience.",
+    description: "Every decision we make prioritizes the member, creator, seller, traveler, and business experience.",
   },
   {
     icon: Heart,
@@ -92,7 +92,7 @@ const brandTone = [
   { label: "Trusted", description: "Reliable, secure, and professionally managed" },
   { label: "Modern", description: "Contemporary design with cutting-edge technology" },
   { label: "Transparent", description: "Clear communication and honest practices" },
-  { label: "Global", description: "Serving travelers and users worldwide" },
+  { label: "Global", description: "Serving members, creators, businesses, travelers, and communities worldwide" },
 ];
 
 const BrandMission = () => {
@@ -100,8 +100,8 @@ const BrandMission = () => {
     <div className="min-h-screen bg-background">
       <SEOHead
         title="Brand Mission & Vision | ZIVO"
-        description="ZIVO connects how the world moves. Discover our mission, vision, values, and brand architecture."
-        canonical="https://hizivo.com/brand"
+        description="ZIVO connects how people move, share, sell, hire, create, and communicate. Discover our mission, vision, values, and brand architecture."
+        canonical="https://zivollc.com/brand"
       />
       <Header />
 
@@ -114,10 +114,10 @@ const BrandMission = () => {
               Brand Identity
             </Badge>
             <h1 className="font-display text-4xl md:text-5xl font-bold mb-6">
-              ZIVO connects how the world moves.
+              ZIVO connects everyday life.
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              One platform for global travel and local mobility—unified, intelligent, seamless.
+              One platform for travel, social discovery, creator tools, shops, jobs, chat, and local services.
             </p>
           </motion.div>
 
@@ -130,9 +130,9 @@ const BrandMission = () => {
                 </div>
                 <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
                 <p className="text-muted-foreground text-lg">
-                  To simplify how people move—whether across the globe or across town. 
-                  ZIVO provides a unified platform that connects travelers with trusted 
-                  partners, transparent pricing, and seamless booking experiences.
+                  To simplify how people move, share, sell, hire, create, and communicate.
+                  ZIVO provides a unified platform that connects members with trusted partners,
+                  creators, businesses, transparent pricing, and seamless app experiences.
                 </p>
               </CardContent>
             </Card>
@@ -144,9 +144,9 @@ const BrandMission = () => {
                 </div>
                 <h2 className="text-2xl font-bold mb-4">Our Vision</h2>
                 <p className="text-muted-foreground text-lg">
-                  The future of travel and mobility—unified, intelligent, seamless. 
-                  A world where booking a flight, finding a hotel, or ordering a ride 
-                  happens through a single, trusted platform.
+                  The future of everyday apps is unified, intelligent, and seamless.
+                  A world where travel, reels, shops, jobs, creator tools, and conversations
+                  work together through a single, trusted platform.
                 </p>
               </CardContent>
             </Card>
@@ -271,9 +271,9 @@ const BrandMission = () => {
             <h2 className="text-3xl font-bold text-center mb-8">What People Say About Us</h2>
             <div className="grid sm:grid-cols-3 gap-4">
               {[
-                { quote: "ZIVO is redefining how people discover travel deals — transparent, fast, and refreshingly honest.", source: "TechCrunch", emoji: "📰" },
-                { quote: "Finally, a travel platform that doesn't add hidden fees. What you see is genuinely what you pay.", source: "Forbes Travel", emoji: "🏆" },
-                { quote: "The unified approach — flights, hotels, cars in one place — is exactly what travelers have been asking for.", source: "Skift", emoji: "✨" },
+                { quote: "ZIVO is redefining how people move between social discovery, travel, shopping, jobs, and chat.", source: "TechCrunch", emoji: "📰" },
+                { quote: "A consumer app that treats transparency, creators, and local businesses as part of the same experience.", source: "Forbes", emoji: "🏆" },
+                { quote: "The unified approach to travel, commerce, and community is exactly what mobile users have been asking for.", source: "Skift", emoji: "✨" },
               ].map(q => (
                 <Card key={q.source} className="border-border/50">
                   <CardContent className="p-6">

@@ -84,20 +84,20 @@ export default function FlightToCity() {
       <SEOHead
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/flights/to-${citySlug}`}
+        canonical={`https://zivollc.com/flights/to-${citySlug}`}
         ogImage="/og-flights.jpg"
         appLink={`zivo://flights/to/${citySlug}`}
         structuredData={{
           "@context": "https://schema.org",
           "@type": "TravelAction",
-          "agent": { "@type": "Organization", "name": "ZIVO", "url": "https://hizivo.com" },
+          "agent": { "@type": "Organization", "name": "ZIVO", "url": "https://zivollc.com" },
           "toLocation": {
             "@type": "City",
             "name": cityName,
-            "url": `https://hizivo.com/flights/to-${citySlug}`,
+            "url": `https://zivollc.com/flights/to-${citySlug}`,
           },
           "actionStatus": "https://schema.org/PotentialActionStatus",
-          "target": `https://hizivo.com${searchUrl}`,
+          "target": `https://zivollc.com${searchUrl}`,
         }}
       />
       <FlightSearchSchema destination={cityName} />

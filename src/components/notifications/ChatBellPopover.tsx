@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { sendDirectMessage } from "@/lib/chat/directMessageSend";
 
 // Pull the receiver id out of a chat notification's action_url. Returns null
 // for non-chat notifications (e.g. orders, payouts) so the reply UI hides.
@@ -243,7 +244,7 @@ export function ChatBellPopover({
     const text = replyText.trim();
     if (!text || replySending) return;
     setReplySending(true);
-    const { error } = await (supabase as any).from("direct_messages").insert({
+    const { error } = await sendDirectMessage({
       sender_id: user.id,
       receiver_id: replyOpenFor,
       message: text,

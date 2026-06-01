@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 interface PollOption {
   text: string;
@@ -96,7 +97,7 @@ function PollPostCardInner({
         action: {
           label: "Log in",
           onClick: () => {
-            window.location.assign(`/login?redirect=${encodeURIComponent("/feed")}`);
+            window.location.assign(withRedirectParam("/login", "/feed"));
           },
         },
       });

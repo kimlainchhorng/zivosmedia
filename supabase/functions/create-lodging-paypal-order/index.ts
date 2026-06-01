@@ -152,7 +152,7 @@ Deno.serve(withSecurity("create-lodging-paypal-order", async (req, ctx) => {
 }, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 function safeRedirectUrl(req: Request, value: unknown, fallbackPath: string) {
-  const origin = req.headers.get("origin") || "https://hizivo.com";
+  const origin = req.headers.get("origin") || "https://zivollc.com";
   const fallback = `${origin}${fallbackPath}`;
   if (typeof value !== "string" || !value) return fallback;
   try {

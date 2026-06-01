@@ -49,39 +49,39 @@ const colorConfig = {
     ring: "ring-primary/20",
   },
   green: {
-    iconBg: "bg-gradient-to-br from-emerald-500/25 to-emerald-500/5",
-    iconColor: "text-emerald-500",
-    valueTrend: "text-emerald-500",
-    gradient: "from-emerald-500/10 to-emerald-500/5",
-    ring: "ring-emerald-500/20",
+    iconBg: "bg-gradient-to-br from-success/25 to-success/5",
+    iconColor: "text-success",
+    valueTrend: "text-success",
+    gradient: "from-success/10 to-success/5",
+    ring: "ring-success/20",
   },
   red: {
-    iconBg: "bg-gradient-to-br from-red-500/25 to-red-500/5",
-    iconColor: "text-red-500",
-    valueTrend: "text-red-500",
-    gradient: "from-red-500/10 to-red-500/5",
-    ring: "ring-red-500/20",
+    iconBg: "bg-gradient-to-br from-destructive/25 to-destructive/5",
+    iconColor: "text-destructive",
+    valueTrend: "text-destructive",
+    gradient: "from-destructive/10 to-destructive/5",
+    ring: "ring-destructive/20",
   },
   amber: {
-    iconBg: "bg-gradient-to-br from-amber-500/25 to-amber-500/5",
-    iconColor: "text-amber-500",
-    valueTrend: "text-amber-500",
-    gradient: "from-amber-500/10 to-amber-500/5",
-    ring: "ring-amber-500/20",
+    iconBg: "bg-gradient-to-br from-warning/25 to-warning/5",
+    iconColor: "text-warning",
+    valueTrend: "text-warning",
+    gradient: "from-warning/10 to-warning/5",
+    ring: "ring-warning/20",
   },
   sky: {
-    iconBg: "bg-gradient-to-br from-sky-500/25 to-sky-500/5",
-    iconColor: "text-sky-500",
-    valueTrend: "text-sky-500",
+    iconBg: "bg-gradient-to-br from-primary/25 to-primary/5",
+    iconColor: "text-primary",
+    valueTrend: "text-primary",
     gradient: "from-muted to-muted",
-    ring: "ring-sky-500/20",
+    ring: "ring-primary/20",
   },
   purple: {
-    iconBg: "bg-gradient-to-br from-violet-500/25 to-violet-500/5",
-    iconColor: "text-violet-500",
-    valueTrend: "text-violet-500",
+    iconBg: "bg-ig-gradient",
+    iconColor: "text-ig-gradient",
+    valueTrend: "text-ig-gradient",
     gradient: "from-muted to-muted",
-    ring: "ring-violet-500/20",
+    ring: "ring-primary/20",
   },
   rides: {
     iconBg: "bg-gradient-to-br from-rides/25 to-rides/5",
@@ -203,8 +203,8 @@ export const StatCard: React.FC<StatCardProps> = ({
             transition={{ type: "spring", delay: 0.2 }}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold",
-              trend === "up" && "bg-emerald-500/15 text-emerald-500",
-              trend === "down" && "bg-red-500/15 text-red-500",
+              trend === "up" && "bg-success/15 text-success",
+              trend === "down" && "bg-destructive/15 text-destructive",
               trend === "neutral" && "bg-muted/50 text-muted-foreground"
             )}
           >
@@ -260,9 +260,9 @@ export const DataListItem: React.FC<DataListItemProps> = ({
 
   const badgeColors = {
     default: "bg-muted text-muted-foreground",
-    green: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
-    red: "bg-red-500/15 text-red-500 border-red-500/20",
-    amber: "bg-amber-500/15 text-amber-500 border-amber-500/20",
+    green: "bg-success/15 text-success border-success/20",
+    red: "bg-destructive/15 text-destructive border-destructive/20",
+    amber: "bg-warning/15 text-warning border-warning/20",
     primary: "bg-primary/15 text-primary border-primary/20",
   };
 
@@ -299,7 +299,7 @@ export const DataListItem: React.FC<DataListItemProps> = ({
               aria-label="Copy value"
             >
               {copied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <Check className="w-3.5 h-3.5 text-success" />
               ) : (
                 <Copy className="w-3.5 h-3.5 text-muted-foreground" />
               )}
@@ -357,7 +357,7 @@ export const DataListItem: React.FC<DataListItemProps> = ({
                   animate={{ scale: 1 }}
                   exit={{ scale: 0 }}
                 >
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <Check className="w-3.5 h-3.5 text-success" />
                 </motion.div>
               ) : (
                 <motion.div
@@ -407,9 +407,9 @@ export const InfoRow: React.FC<InfoRowProps> = ({
 }) => {
   const itemColors = {
     primary: "bg-primary/10 border-primary/20",
-    green: "bg-emerald-500/10 border-emerald-500/20",
-    amber: "bg-amber-500/10 border-amber-500/20",
-    sky: "bg-sky-500/10 border-sky-500/20",
+    green: "bg-success/10 border-success/20",
+    amber: "bg-warning/10 border-warning/20",
+    sky: "bg-primary/10 border-primary/20",
   };
 
   if (variant === "pills") {
@@ -515,12 +515,12 @@ interface ProgressListProps {
 }
 
 const progressColors = {
-  primary: "bg-gradient-to-r from-primary to-teal-400",
-  green: "bg-gradient-to-r from-emerald-500 to-green-400",
-  red: "bg-gradient-to-r from-red-500 to-orange-500",
-  amber: "bg-gradient-to-r from-amber-500 to-yellow-400",
-  sky: "bg-gradient-to-r from-sky-500 to-blue-400",
-  violet: "bg-gradient-to-r from-violet-500 to-purple-400",
+  primary: "bg-primary",
+  green: "bg-success",
+  red: "bg-destructive",
+  amber: "bg-warning",
+  sky: "bg-primary",
+  violet: "bg-ig-gradient",
 };
 
 export const ProgressList: React.FC<ProgressListProps> = ({
@@ -651,8 +651,8 @@ export const ComparisonCard: React.FC<ComparisonCardProps> = ({
           transition={{ type: "spring", delay: 0.2 }}
           className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold mb-1",
-            isPositive && "bg-emerald-500/15 text-emerald-500",
-            !isPositive && !isNeutral && "bg-red-500/15 text-red-500",
+            isPositive && "bg-success/15 text-success",
+            !isPositive && !isNeutral && "bg-destructive/15 text-destructive",
             isNeutral && "bg-muted/50 text-muted-foreground"
           )}
         >

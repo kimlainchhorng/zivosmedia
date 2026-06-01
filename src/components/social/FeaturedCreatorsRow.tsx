@@ -137,18 +137,10 @@ export default function FeaturedCreatorsRow({ fullBleed = true }: Props) {
     });
 
     try {
-      if (isFollowing) {
-        await (supabase as any)
-          .from("user_followers")
-          .delete()
-          .eq("follower_id", userId)
-          .eq("following_id", creatorId);
-      } else {
-        await (supabase as any).from("user_followers").insert({
-          follower_id: userId,
-          following_id: creatorId,
-        });
-      }
+      const { error } = await supabase.functions.invoke("follow-manage", {
+        body: { action: isFollowing ? "unfollow" : "follow", following_id: creatorId },
+      });
+      if (error) throw error;
     } catch {
       // Roll back
       setFollowingIds((s) => {

@@ -32,6 +32,12 @@ function requireMatch(id, text, pattern, relativePath) {
   }
 }
 
+function requireNotContains(id, text, needle, relativePath) {
+  if (text.includes(needle)) {
+    failures.push(`${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`);
+  }
+}
+
 function requireStrictSecurity(id, relativePath, text, risk = 80) {
   requireContains(id, text, "withSecurity(", relativePath);
   requireContains(id, text, "strictCors: true", relativePath);
@@ -54,12 +60,14 @@ const contracts = [
       const integrityPath = "supabase/functions/check-device-integrity/index.ts";
       const corsPath = "supabase/functions/_shared/cors.ts";
       const hookPath = "src/hooks/usePushNotifications.ts";
+      const vapidKeyPath = "src/lib/push/vapidKey.ts";
       const nativeRegister = source(nativePath);
       const webRegister = source(webPath);
       const webUnregister = source(unregisterPath);
       const deviceIntegrity = source(integrityPath);
       const cors = source(corsPath);
       const pushHook = source(hookPath);
+      const vapidKey = source(vapidKeyPath);
 
       for (const [relativePath, text] of [
         [nativePath, nativeRegister],
@@ -75,6 +83,15 @@ const contracts = [
       requireContains(this.id, webRegister, "user_id: user.id", webPath);
       requireContains(this.id, webUnregister, '.eq("user_id", user.id)', unregisterPath);
       requireContains(this.id, cors, "x-supabase-client-platform", corsPath);
+      requireContains(this.id, pushHook, "urlBase64ToUint8Array(vapidPublicKey)", hookPath);
+      requireContains(this.id, vapidKey, "window.atob", vapidKeyPath);
+      requireContains(this.id, vapidKey, "Uint8Array", vapidKeyPath);
+      requireContains(this.id, pushHook, "getSupabaseFunctionErrorDetails", hookPath);
+      requireContains(this.id, pushHook, "register-push-token failed", hookPath);
+      requireContains(this.id, pushHook, "Could not unregister token: auth session unavailable", hookPath);
+      requireContains(this.id, pushHook, "deactivate: true", hookPath);
+      requireNotContains(this.id, pushHook, '.from("device_tokens")', hookPath);
+      requireNotContains(this.id, pushHook, ".upsert(payload", hookPath);
       for (const [relativePath, text] of [
         [webPath, webRegister],
         [unregisterPath, webUnregister],

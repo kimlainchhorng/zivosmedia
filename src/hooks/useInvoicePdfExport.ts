@@ -228,7 +228,7 @@ export function useInvoicePdfExport() {
     </div>
     
     <div class="footer">
-      <p>Thank you for choosing <a href="https://hizivo.com">ZIVO</a></p>
+      <p>Thank you for choosing <a href="https://zivollc.com">ZIVO</a></p>
       <p class="footer-note">
         ZIVO is a travel search and referral service. Payment and ticketing are handled by our licensed travel partners.
       </p>
