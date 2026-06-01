@@ -4061,9 +4061,6 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string
-          body_style: string | null
-          drivetrain: string | null
-          engine_size: string | null
           id: string
           make: string
           mileage: number | null
@@ -4074,7 +4071,6 @@ export type Database = {
           owner_phone: string | null
           plate: string | null
           store_id: string
-          trim: string | null
           updated_at: string
           vin: string | null
           year: number | null
@@ -4082,9 +4078,6 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string
-          body_style?: string | null
-          drivetrain?: string | null
-          engine_size?: string | null
           id?: string
           make: string
           mileage?: number | null
@@ -4095,7 +4088,6 @@ export type Database = {
           owner_phone?: string | null
           plate?: string | null
           store_id: string
-          trim?: string | null
           updated_at?: string
           vin?: string | null
           year?: number | null
@@ -4103,9 +4095,6 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string
-          body_style?: string | null
-          drivetrain?: string | null
-          engine_size?: string | null
           id?: string
           make?: string
           mileage?: number | null
@@ -4116,7 +4105,6 @@ export type Database = {
           owner_phone?: string | null
           plate?: string | null
           store_id?: string
-          trim?: string | null
           updated_at?: string
           vin?: string | null
           year?: number | null
@@ -4806,11 +4794,7 @@ export type Database = {
           store_id: string
           tech_id: string
           updated_at: string
-          vehicle_engine: string | null
           vehicle_id: string | null
-          vehicle_label: string | null
-          vehicle_plate: string | null
-          vehicle_vin: string | null
           work_order_id: string | null
         }
         Insert: {
@@ -4824,11 +4808,7 @@ export type Database = {
           store_id: string
           tech_id: string
           updated_at?: string
-          vehicle_engine?: string | null
           vehicle_id?: string | null
-          vehicle_label?: string | null
-          vehicle_plate?: string | null
-          vehicle_vin?: string | null
           work_order_id?: string | null
         }
         Update: {
@@ -4842,11 +4822,7 @@ export type Database = {
           store_id?: string
           tech_id?: string
           updated_at?: string
-          vehicle_engine?: string | null
           vehicle_id?: string | null
-          vehicle_label?: string | null
-          vehicle_plate?: string | null
-          vehicle_vin?: string | null
           work_order_id?: string | null
         }
         Relationships: [
