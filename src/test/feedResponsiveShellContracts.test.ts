@@ -31,12 +31,12 @@ describe("feed responsive shell contracts", () => {
     const noOverlap = source("tests/e2e/mobile-layout-no-overlap.spec.ts");
     const mobileContract = source("src/test/feedMobileVisualContracts.test.ts");
 
-    expect(feed).toContain('(["For You", "Friends", "Following"] as const).map((label) => (');
+    expect(feed).toContain('FEED_TABS.map((label) => (');
     expect(feed.match(/aria-pressed=\{feedTab === label\}/g)?.length).toBeGreaterThanOrEqual(2);
     expect(feed).toContain('(["all", "photos", "videos", "text"] as const).map((f) => (');
     expect(feed).toContain("grid grid-cols-4 gap-1 px-2 pb-1.5 pt-1");
     expect(feed).toContain("min-h-10 w-full px-2 py-2 rounded-full");
-    expect(feed).toContain("min-h-[40px] rounded-[1rem] px-6");
+    expect(feed).toContain("min-h-[40px] flex-shrink-0 whitespace-nowrap rounded-[1rem] px-5");
 
     expect(noOverlap).toContain("feed keeps category controls fully visible at compact mobile width");
     expect(noOverlap).toContain('[data-testid="feed-sticky-header"] [role="tab"], [data-testid="feed-sticky-header"] button');

@@ -379,6 +379,21 @@ interface PollPayload {
   expires_at?: string | null;
 }
 
+// Feed tab strip. "Travel Trending" / "Eat Trending" surface store posts whose
+// owning business category matches travel- or food-related keywords, ranked by
+// engagement rather than recency.
+const FEED_TABS = ["For You", "Friends", "Following", "Travel Trending", "Eat Trending"] as const;
+type FeedTab = (typeof FEED_TABS)[number];
+
+// Business-category keyword matchers for the trending tabs. Categories on
+// store_profiles are free-text (e.g. "Bus", "Restaurant", "Hotel"), so we match
+// on substrings. Bus operators carry "bus" in their category — see memory.
+const TRAVEL_CATEGORY = /bus|travel|tour|trip|hotel|lodg|resort|hostel|guesthouse|villa|flight|airline|airport|transport|taxi|cab|rental|cruise|booking|holiday|vacation/i;
+const EAT_CATEGORY = /restaurant|food|cafe|café|coffee|eat|eatery|dining|diner|bakery|grill|kitchen|cuisine|pizz|burger|bbq|grocer|deli|bistro|dessert|catering|bar\b|snack|drink|juice|tea/i;
+
+const feedItemEngagement = (i: FeedItem) =>
+  (i.likes_count || 0) + (i.comments_count || 0) * 2 + (i.shares_count || 0) * 3;
+
 interface FeedItem {
   id: string;
   source: "store" | "user" | "poll";
@@ -395,6 +410,9 @@ interface FeedItem {
   author_id?: string;
   author_is_verified?: boolean;
   store_slug?: string;
+  // Business category of the owning store (store posts only). Drives the
+  // "Travel Trending" / "Eat Trending" feed tabs.
+  store_category?: string | null;
   created_at: string;
   location?: string | null;
   is_pinned?: boolean;
@@ -879,10 +897,10 @@ export default function ReelsFeedPage() {
   const [storeSearchResults, setStoreSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [feedFilter, setFeedFilter] = useState<"all" | "photos" | "videos" | "text">("all");
-  const [feedTab, setFeedTab] = useState<"For You" | "Friends" | "Following">(() => {
+  const [feedTab, setFeedTab] = useState<FeedTab>(() => {
     try {
       const v = localStorage.getItem("zivo:feed-tab-v1");
-      if (v === "For You" || v === "Friends" || v === "Following") return v;
+      if ((FEED_TABS as readonly string[]).includes(v as string)) return v as FeedTab;
     } catch { /* ignore */ }
     return "For You";
   });
@@ -1162,7 +1180,7 @@ export default function ReelsFeedPage() {
         const storeIds = [...new Set(storePosts.map((p: any) => p.store_id))];
         const { data: stores } = await supabase
           .from("store_profiles")
-          .select("id, name, logo_url, slug, is_verified")
+          .select("id, name, logo_url, slug, is_verified, category")
           .in("id", storeIds);
         const storeMap = new Map((stores || []).map((s: any) => [s.id, s]));
 
@@ -1191,6 +1209,7 @@ export default function ReelsFeedPage() {
             author_id: store?.id || post.store_id,
             author_is_verified: store?.is_verified === true,
             store_slug: store?.slug || null,
+            store_category: store?.category ?? null,
             created_at: post.created_at,
           });
         }
@@ -1895,16 +1914,17 @@ export default function ReelsFeedPage() {
                     headerHidden ? "max-h-0 opacity-0" : "max-h-[124px] opacity-100"
                   )}
                 >
-                  {/* Tab strip — For You / Friends / Following (signed-in only) */}
+                  {/* Tab strip — For You / Friends / Following / Travel / Eat (signed-in only).
+                      Horizontally scrollable so the longer trending labels fit on narrow phones. */}
                   {userId && (
-                    <div className="zivo-feed-tabbar mx-2 mb-2.5 grid grid-cols-3 gap-1 rounded-[1.25rem] p-1">
-                      {(["For You", "Friends", "Following"] as const).map((label) => (
+                    <div className="zivo-feed-tabbar mx-2 mb-2.5 flex gap-1 overflow-x-auto rounded-[1.25rem] p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {FEED_TABS.map((label) => (
                         <button type="button"
                           key={label}
                           onClick={() => setFeedTab(label)}
                           aria-pressed={feedTab === label}
                           className={cn(
-                            "relative min-h-[36px] rounded-[1rem] px-2 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                            "relative min-h-[36px] flex-shrink-0 whitespace-nowrap rounded-[1rem] px-3 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                             feedTab === label
                               ? "zivo-feed-tab-active"
                               : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
@@ -2255,14 +2275,14 @@ export default function ReelsFeedPage() {
           {/* Feed mode tabs — desktop only (mobile uses the sticky header tabs) */}
           {userId && (
             <div className="zivo-feed-tabs-shell hidden lg:flex justify-center sticky lg:top-[60px] z-20 py-1">
-              <div className="zivo-feed-tabbar grid w-[min(420px,calc(100%-2rem))] grid-cols-3 gap-1 rounded-[1.35rem] p-1">
-                {(["For You", "Friends", "Following"] as const).map((label) => (
+              <div className="zivo-feed-tabbar flex max-w-[calc(100%-2rem)] gap-1 overflow-x-auto rounded-[1.35rem] p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {FEED_TABS.map((label) => (
                   <button type="button"
                     key={label}
                     onClick={() => setFeedTab(label)}
                     aria-pressed={feedTab === label}
                     className={cn(
-                      "relative min-h-[40px] rounded-[1rem] px-6 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                      "relative min-h-[40px] flex-shrink-0 whitespace-nowrap rounded-[1rem] px-5 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                       feedTab === label
                         ? "zivo-feed-tab-active"
                         : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
@@ -2324,6 +2344,14 @@ export default function ReelsFeedPage() {
               ? baseItems.filter(i => i.author_id && friendIds.has(i.author_id))
               : feedTab === "Following"
               ? baseItems.filter(i => i.author_id && followingIds.has(i.author_id))
+              : feedTab === "Travel Trending"
+              ? baseItems
+                  .filter(i => i.source === "store" && !!i.store_category && TRAVEL_CATEGORY.test(i.store_category))
+                  .sort((a, b) => feedItemEngagement(b) - feedItemEngagement(a))
+              : feedTab === "Eat Trending"
+              ? baseItems
+                  .filter(i => i.source === "store" && !!i.store_category && EAT_CATEGORY.test(i.store_category))
+                  .sort((a, b) => feedItemEngagement(b) - feedItemEngagement(a))
               : baseItems;
             const filteredItems = feedFilter === "all" ? tabItems
               : feedFilter === "photos" ? tabItems.filter(i => i.media_type === "image" && i.media_urls.length > 0)
@@ -2344,6 +2372,28 @@ export default function ReelsFeedPage() {
                       className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                     >
                       Clear filter
+                    </button>
+                  </>
+                ) : feedTab === "Travel Trending" || feedTab === "Eat Trending" ? (
+                  <>
+                    <div className="zivo-social-share-orb mb-1 flex h-14 w-14 items-center justify-center rounded-2xl">
+                      {feedTab === "Travel Trending"
+                        ? <Plane className="h-7 w-7 text-primary" />
+                        : <UtensilsCrossed className="h-7 w-7 text-primary" />}
+                    </div>
+                    <p className="text-sm text-foreground font-medium">
+                      No {feedTab.replace(" Trending", "").toLowerCase()} posts trending yet
+                    </p>
+                    <p className="text-xs text-muted-foreground max-w-[260px]">
+                      {feedTab === "Travel Trending"
+                        ? "Posts from travel & transport businesses will show up here."
+                        : "Posts from restaurants & food businesses will show up here."}
+                    </p>
+                    <button type="button"
+                      onClick={() => setFeedTab("For You")}
+                      className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                    >
+                      Back to For You
                     </button>
                   </>
                 ) : feedTab === "Following" || feedTab === "Friends" ? (
