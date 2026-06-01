@@ -256,14 +256,18 @@ export default function AccountSecurity() {
   };
 
   const handleExportData = async () => {
+    if (!user) return;
     setIsExporting(true);
     try {
-      await supabase.from("feedback_submissions").insert({
-        category: "data_export_request",
-        subject: "GDPR Data Export Request",
-        message: `User ${user?.id} requested data export at ${new Date().toISOString()}`,
-        user_id: user?.id ?? null,
-      });
+      const { error } = await supabase.functions.invoke("privacy-request-submit", { body: {
+        kind: "dsar_request",
+        request_type: "download",
+        request_title: "GDPR Data Export Request",
+        reason: "Requested from account security settings",
+        email: user.email,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
       toast.success("Data export requested. You'll receive an email when it's ready.");
     } catch {
       toast.error("Failed to submit export request.");

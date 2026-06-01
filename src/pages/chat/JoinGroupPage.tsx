@@ -131,6 +131,8 @@ export default function JoinGroupPage() {
           src={groupAvatarSrc}
           alt=""
           className="w-20 h-20 rounded-full object-cover border border-border/60"
+          loading="lazy"
+          decoding="async"
         />
       ) : (
         <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">

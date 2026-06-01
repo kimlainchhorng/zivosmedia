@@ -173,9 +173,8 @@ export function useEventTracking() {
       };
 
       // Fire and forget - don't block UI
-      supabase
-        .from('analytics_events')
-        .insert(eventPayload as any)
+      supabase.functions
+        .invoke('analytics-event-track', { body: eventPayload })
         .then(({ error }) => {
           if (error) {
             console.error('[Tracking] Failed to track event:', error.message, error.code, error.details);

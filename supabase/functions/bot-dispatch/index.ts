@@ -10,18 +10,16 @@
  * Body: { message_id: uuid, bot_id: uuid }
  */
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(withSecurity("bot-dispatch", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const { message_id, bot_id } = await req.json();
-    if (!message_id || !bot_id) return j({ error: "message_id and bot_id required" }, 400);
+    if (!message_id || !bot_id) return j({ error: "message_id and bot_id required" }, 400, corsHeaders);
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -32,7 +30,7 @@ Deno.serve(async (req) => {
       sb.from("direct_messages").select("*").eq("id", message_id).maybeSingle(),
       sb.from("bots").select("id, bot_user_id, username, webhook_url, is_active").eq("id", bot_id).maybeSingle(),
     ]);
-    if (!msg || !bot || !bot.is_active) return j({ ok: true, skipped: true });
+    if (!msg || !bot || !bot.is_active) return j({ ok: true, skipped: true }, 200, corsHeaders);
 
     const { data: senderProfile } = await sb.from("profiles")
       .select("user_id, full_name, username, avatar_url").eq("user_id", msg.sender_id).maybeSingle();
@@ -91,13 +89,13 @@ Deno.serve(async (req) => {
     }
 
     await queue;
-    return j({ ok: true, matched: !!rule, webhook_status: whStatus });
+    return j({ ok: true, matched: !!rule, webhook_status: whStatus }, 200, corsHeaders);
   } catch (e) {
-    return j({ error: String(e) }, 500);
+    return j({ error: String(e) }, 500, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));
 
-function j(body: unknown, status = 200) {
+function j(body: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

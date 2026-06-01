@@ -35,11 +35,11 @@ const complianceCategories = [
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
     links: [
-      { name: "Terms of Service", href: "/terms", updated: "2024-01" },
-      { name: "Privacy Policy", href: "/privacy", updated: "2024-01" },
-      { name: "Cookie Policy", href: "/cookies", updated: "2024-01" },
-      { name: "Refund Policy", href: "/refunds", updated: "2024-01" },
-      { name: "Cancellation Policy", href: "/legal/cancellation-policy", updated: "2024-01" },
+      { name: "Terms of Service", href: "/legal/terms", updated: "2024-01" },
+      { name: "Privacy Policy", href: "/legal/privacy", updated: "2024-01" },
+      { name: "Cookie Policy", href: "/legal/cookies", updated: "2024-01" },
+      { name: "Refund Policy", href: "/legal/refunds", updated: "2024-01" },
+      { name: "Cancellation Policy", href: "/legal/cancellation", updated: "2024-01" },
       { name: "Acceptable Use Policy", href: "/legal/acceptable-use", updated: "2024-01" },
     ],
   },
@@ -66,7 +66,7 @@ const complianceCategories = [
     color: "text-purple-500",
     bgColor: "bg-purple-500/10",
     links: [
-      { name: "Privacy Controls", href: "/account/privacy", updated: "2024-01" },
+      { name: "Privacy Controls", href: "/account/data-rights", updated: "2024-01" },
       { name: "Data Protection", href: "/security/data-protection", updated: "2024-01" },
       { name: "Data Residency", href: "/legal/data-residency", updated: "2024-01" },
       { name: "Children's Privacy", href: "/legal/children-privacy", updated: "2024-01" },
@@ -82,7 +82,7 @@ const complianceCategories = [
     bgColor: "bg-teal-500/10",
     links: [
       { name: "Affiliate Disclosure", href: "/affiliate-disclosure", updated: "2024-01" },
-      { name: "Partner Disclosure", href: "/partner-disclosure", updated: "2024-01" },
+      { name: "Partner Disclosure", href: "/legal/partner-disclosure", updated: "2024-01" },
       { name: "Partner Agreement", href: "/partner-agreement", updated: "2024-01" },
       { name: "Third Party Services", href: "/legal/third-party-services", updated: "2024-01" },
       { name: "How ZIVO Makes Money", href: "/how-zivo-makes-money", updated: "2024-01" },
@@ -223,7 +223,7 @@ export default function ComplianceCenter() {
           <Card className="bg-muted/30">
             <CardContent className="p-6">
               <div className="grid sm:grid-cols-3 gap-4">
-                <Link to="/account/privacy" className="block">
+                <Link to="/account/data-rights" className="block">
                   <div className="p-4 rounded-xl bg-background border hover:shadow-md transition-shadow text-center">
                     <Eye className="w-8 h-8 text-primary mx-auto mb-2" />
                     <p className="font-medium text-sm">Manage Privacy</p>

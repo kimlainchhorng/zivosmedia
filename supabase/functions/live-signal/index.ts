@@ -12,13 +12,7 @@
  */
 // @ts-ignore - Deno std
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-pair-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 type Role = "publisher" | "viewer";
 type SignalType = "join" | "offer" | "answer" | "ice" | "bye" | "heartbeat";
@@ -71,12 +65,15 @@ function isDuplicateIce(streamId: string, fromRole: string, payload: any): boole
   return false;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+Deno.serve(withSecurity("live-signal", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const signalHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "POST, OPTIONS" };
+
+  if (req.method === "OPTIONS") return new Response("ok", { headers: signalHeaders });
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "method_not_allowed" }), {
       status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -99,7 +96,7 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(JSON.stringify({ error: "invalid_json" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -120,7 +117,7 @@ Deno.serve(async (req) => {
   ) {
     return new Response(JSON.stringify({ error: "invalid_payload" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -162,14 +159,21 @@ Deno.serve(async (req) => {
   if (!stream) {
     return new Response(JSON.stringify({ error: "stream_not_found" }), {
       status: 404,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (from_role === "publisher" && !effectiveUserId) {
+    return new Response(JSON.stringify({ error: "publisher_auth_required" }), {
+      status: 401,
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
     });
   }
 
   if (from_role === "publisher" && effectiveUserId && stream.user_id !== effectiveUserId) {
     return new Response(JSON.stringify({ error: "not_publisher" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -177,14 +181,14 @@ Deno.serve(async (req) => {
   if (!rateLimit(`${rateKey}:${stream_id}`) || !minuteLimit(`${stream_id}`)) {
     return new Response(JSON.stringify({ error: "rate_limited" }), {
       status: 429,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
     });
   }
 
   // Drop duplicate ICE candidates (cuts signaling spam ~30-50%)
   if (type === "ice" && isDuplicateIce(stream_id, from_role, payload)) {
     return new Response(JSON.stringify({ ok: true, deduped: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -203,7 +207,7 @@ Deno.serve(async (req) => {
         .eq("user_id", effectiveUserId);
     }
     return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...signalHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -219,7 +223,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: "insert_failed", details: insertError.message }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...signalHeaders, "Content-Type": "application/json" },
       },
     );
   }
@@ -247,6 +251,6 @@ Deno.serve(async (req) => {
       role: from_role,
       paired: !!pairedStoreOwnerId,
     }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    { headers: { ...signalHeaders, "Content-Type": "application/json" } },
   );
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

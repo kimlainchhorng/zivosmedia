@@ -170,6 +170,7 @@ export default function MediaLibraryPage() {
                         alt={post.caption ?? "Post media"}
                         className="w-full h-full object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     )
                   ) : (

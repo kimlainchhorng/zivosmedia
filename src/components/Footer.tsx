@@ -66,14 +66,14 @@ const footerSections = [
 ];
 
 const legalLinks = [
-  { name: "Terms", href: "/terms" },
-  { name: "Privacy", href: "/privacy" },
-  { name: "Cookies", href: "/cookies" },
-  { name: "Partner Disclosure", href: "/partner-disclosure" },
-  { name: "Refund Policy", href: "/refunds" },
+  { name: "Terms", href: "/legal/terms" },
+  { name: "Privacy", href: "/legal/privacy" },
+  { name: "Cookies", href: "/legal/cookies" },
+  { name: "Partner Disclosure", href: "/legal/partner-disclosure" },
+  { name: "Refund Policy", href: "/legal/refunds" },
   { name: "Seller of Travel", href: "/legal/seller-of-travel" },
-  { name: "Accessibility", href: "/accessibility" },
-  { name: "Do Not Sell My Info", href: "/do-not-sell" },
+  { name: "Accessibility", href: "/legal/accessibility" },
+  { name: "Do Not Sell My Info", href: "/legal/do-not-sell" },
 ];
 
 const socialLinks = [

@@ -241,7 +241,7 @@ export default function MarketplaceCartPage() {
                     aria-label={`View ${l.title}`}
                   >
                     {firstImage ? (
-                      <img src={firstImage} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={firstImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full bg-ig-gradient/10 flex items-center justify-center">
                         <Package className="h-6 w-6 text-ig-gradient" />

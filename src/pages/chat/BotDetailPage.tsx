@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSmartBack } from "@/lib/smartBack";
 import { ArrowLeft, Copy, RefreshCw, Trash2, Plus, X, Bot as BotIcon, MessageCircle, Send, Activity, Users, Clock, Flag, Star } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,8 +17,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-const SEND_ENDPOINT = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/bot-send-message";
-const AI_HANDLER_BASE = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/bot-ai-handler";
+const SEND_ENDPOINT = `${SUPABASE_URL}/functions/v1/bot-send-message`;
+const AI_HANDLER_BASE = `${SUPABASE_URL}/functions/v1/bot-ai-handler`;
+const BOT_API_ENDPOINT = `${SUPABASE_URL}/functions/v1/bot-api`;
 
 type Bot = {
   id: string;
@@ -474,7 +475,7 @@ export default function BotDetailPage() {
         <section className="rounded-2xl bg-card border border-border p-4 flex items-center gap-3">
           <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
             {bot.avatar_url
-              ? <img src={bot.avatar_url} alt="" className="w-full h-full object-cover" />
+              ? <img src={bot.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               : <BotIcon className="w-7 h-7 text-primary" />}
           </div>
           <div className="flex-1 min-w-0">
@@ -927,7 +928,7 @@ export default function BotDetailPage() {
           <div className="text-sm font-medium">API quick reference</div>
           <div className="text-xs text-muted-foreground">Single endpoint, Telegram-style methods.</div>
           <pre className="rounded-md bg-muted p-3 text-xs overflow-x-auto whitespace-pre-wrap break-all">
-{`POST https://slirphzzwcogdbkeicff.supabase.co/functions/v1/bot-api
+{`POST ${BOT_API_ENDPOINT}
 { "token": "<token>", "method": "sendMessage", "chat_id": "<user-uuid>", "text": "Hi!" }
 
 Methods: getMe · sendMessage · setWebhook · deleteWebhook

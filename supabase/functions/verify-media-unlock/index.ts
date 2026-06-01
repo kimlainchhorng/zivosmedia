@@ -117,4 +117,4 @@ serve(withSecurity("verify-media-unlock", async (req, ctx) => {
       status: 500,
     });
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

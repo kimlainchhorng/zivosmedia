@@ -49,33 +49,15 @@ interface UseSalonStylistsResult {
   refresh: () => Promise<void>;
 }
 
-async function syncStylistServices(stylistId: string, serviceIds: string[]) {
-  // Replace the full set: read current, compute add/remove.
-  const { data: current, error: readErr } = await supabase
-    .from("salon_stylist_services")
-    .select("service_id")
-    .eq("stylist_id", stylistId);
-  if (readErr) throw readErr;
-
-  const currentIds = new Set<string>((current ?? []).map((r: any) => r.service_id as string));
-  const nextIds = new Set(serviceIds);
-  const toAdd = [...nextIds].filter((id) => !currentIds.has(id));
-  const toRemove = [...currentIds].filter((id) => !nextIds.has(id));
-
-  if (toAdd.length > 0) {
-    const { error } = await supabase
-      .from("salon_stylist_services")
-      .insert(toAdd.map((service_id) => ({ stylist_id: stylistId, service_id })) as never);
-    if (error) throw error;
-  }
-  if (toRemove.length > 0) {
-    const { error } = await supabase
-      .from("salon_stylist_services")
-      .delete()
-      .eq("stylist_id", stylistId)
-      .in("service_id", toRemove);
-    if (error) throw error;
-  }
+function normalizeStylist(row: any, fallbackServiceIds: string[] = []): SalonStylist {
+  const joinedServiceIds = (row?.salon_stylist_services ?? []).map((j: any) => j.service_id as string);
+  return {
+    ...(row ?? {}),
+    service_ids: Array.isArray(row?.service_ids)
+      ? row.service_ids
+      : joinedServiceIds.length > 0 ? joinedServiceIds : fallbackServiceIds,
+    commission_percent: Number(row?.commission_percent ?? 0),
+  } as SalonStylist;
 }
 
 export function useSalonStylists(storeId: string | undefined): UseSalonStylistsResult {
@@ -103,11 +85,7 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
       setLoading(false);
       return;
     }
-    const rows = (data ?? []).map((row: any) => ({
-      ...row,
-      service_ids: (row.salon_stylist_services ?? []).map((j: any) => j.service_id as string),
-      commission_percent: Number(row.commission_percent ?? 0),
-    })) as SalonStylist[];
+    const rows = (data ?? []).map((row: any) => normalizeStylist(row)) as SalonStylist[];
     setStylists(rows);
     setLoading(false);
   }, [storeId]);
@@ -120,9 +98,7 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
     if (!storeId) return null;
     setSaving(true);
     setError(null);
-    const sort_order = stylists.length > 0 ? Math.max(...stylists.map((s) => s.sort_order)) + 10 : 0;
     const payload = {
-      store_id: storeId,
       display_name: draft.display_name.trim(),
       title: draft.title?.trim() || null,
       bio: draft.bio?.trim() || null,
@@ -132,34 +108,26 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
       commission_percent: draft.commission_percent,
       user_id: draft.user_id,
       is_active: draft.is_active,
-      sort_order,
+      service_ids: draft.service_ids,
     };
-    const { data, error: err } = await supabase
-      .from("salon_stylists")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("salon-stylist-manage", {
+      body: {
+        action: "create",
+        store_id: storeId,
+        stylist: payload,
+      },
+    });
     if (err) {
       console.error("[useSalonStylists] create failed", err);
       setError("Couldn't add stylist.");
       setSaving(false);
       return null;
     }
-    const created = data as any;
-    try {
-      await syncStylistServices(created.id, draft.service_ids);
-    } catch (e) {
-      console.error("[useSalonStylists] create — service link failed", e);
-    }
-    const final: SalonStylist = {
-      ...created,
-      service_ids: draft.service_ids,
-      commission_percent: Number(created.commission_percent ?? 0),
-    };
+    const final = normalizeStylist(data?.stylist, draft.service_ids);
     setStylists((prev) => [...prev, final]);
     setSaving(false);
     return final;
-  }, [storeId, stylists]);
+  }, [storeId]);
 
   const update = useCallback(async (id: string, patch: Partial<SalonStylistDraft>): Promise<boolean> => {
     setSaving(true);
@@ -187,32 +155,29 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
       )
     );
 
-    let ok = true;
-    if (Object.keys(cleanPatch).length > 0) {
-      const { error: err } = await supabase
-        .from("salon_stylists")
-        .update(cleanPatch as never)
-        .eq("id", id);
-      if (err) {
-        console.error("[useSalonStylists] update failed", err);
-        setError("Couldn't save changes — refreshing.");
-        await load();
-        setSaving(false);
-        return false;
-      }
+    const { data, error: err } = await supabase.functions.invoke("salon-stylist-manage", {
+      body: {
+        action: "update",
+        stylist_id: id,
+        stylist: {
+          ...cleanPatch,
+          ...(patch.service_ids !== undefined ? { service_ids: patch.service_ids } : {}),
+        },
+      },
+    });
+    if (err) {
+      console.error("[useSalonStylists] update failed", err);
+      setError("Couldn't save changes — refreshing.");
+      await load();
+      setSaving(false);
+      return false;
     }
-    if (patch.service_ids !== undefined) {
-      try {
-        await syncStylistServices(id, patch.service_ids);
-      } catch (e) {
-        console.error("[useSalonStylists] service sync failed", e);
-        setError("Couldn't update services — refreshing.");
-        await load();
-        ok = false;
-      }
+    if (data?.stylist) {
+      const updated = normalizeStylist(data.stylist, patch.service_ids);
+      setStylists((prev) => prev.map((s) => (s.id === id ? updated : s)));
     }
     setSaving(false);
-    return ok;
+    return true;
   }, [load]);
 
   const remove = useCallback(async (id: string): Promise<boolean> => {
@@ -220,10 +185,12 @@ export function useSalonStylists(storeId: string | undefined): UseSalonStylistsR
     setError(null);
     const previous = stylists;
     setStylists((prev) => prev.filter((s) => s.id !== id));
-    const { error: err } = await supabase
-      .from("salon_stylists")
-      .delete()
-      .eq("id", id);
+    const { error: err } = await supabase.functions.invoke("salon-stylist-manage", {
+      body: {
+        action: "delete",
+        stylist_id: id,
+      },
+    });
     if (err) {
       console.error("[useSalonStylists] delete failed", err);
       setError("Couldn't delete stylist.");

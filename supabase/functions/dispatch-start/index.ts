@@ -1,16 +1,22 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 import { serve, createClient } from "../_shared/deps.ts";
-import { publicCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const json = (body: Record<string, unknown>, status = 200) =>
+const json = (body: Record<string, unknown>, corsHeaders: Record<string, string>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
-      ...publicCorsHeaders,
+      ...corsHeaders,
       "Content-Type": "application/json",
     },
   });
+
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
 
 const toRad = (d: number) => (d * Math.PI) / 180;
 const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -109,34 +115,41 @@ async function manualDispatch(adminClient: any, jobId: string, customerId: strin
   return { offer_id: offerData?.id, driver_id: best.driver_id, distance_m: best.hasCoords ? Math.round(best.distance) : null };
 }
 
-serve(async (req) => {
+serve(withSecurity("dispatch-start", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: publicCorsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const authHeader = req.headers.get("authorization") ?? "";
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    if (!authHeader) return json({ error: "Unauthorized" }, corsHeaders, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
     if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-      return json({ error: "Supabase env is not configured" }, 500);
+      return json({ error: "Supabase env is not configured" }, corsHeaders, 500);
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: authHeader } },
-    });
+    const isInternal = isServiceRoleRequest(req, serviceRoleKey);
+    let userId: string | null = null;
+    if (!isInternal) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        auth: { persistSession: false },
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: { user }, error: userError } = await userClient.auth.getUser();
+      if (userError || !user) return json({ error: "Unauthorized" }, corsHeaders, 401);
+      userId = user.id;
+    }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });
-
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) return json({ error: "Unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body.job_id === "string" ? body.job_id : "";
@@ -147,7 +160,7 @@ serve(async (req) => {
       ? Math.max(200, Math.min(50000, Number(body.radius_meters)))
       : 15000;
 
-    if (!jobId) return json({ error: "job_id is required" }, 400);
+    if (!jobId) return json({ error: "job_id is required" }, corsHeaders, 400);
 
     const { data: job, error: jobError } = await adminClient
       .from("jobs")
@@ -156,28 +169,29 @@ serve(async (req) => {
       .maybeSingle();
 
     if (jobError) throw jobError;
-    if (!job) return json({ error: "Job not found" }, 404);
-    if (job.customer_id !== user.id) return json({ error: "Forbidden" }, 403);
-    if (job.assigned_driver_id) return json({ ok: true, already_assigned: true, job_id: jobId });
+    if (!job) return json({ error: "Job not found" }, corsHeaders, 404);
+    if (!isInternal && job.customer_id !== userId) return json({ error: "Forbidden" }, corsHeaders, 403);
+    if (job.assigned_driver_id) return json({ ok: true, already_assigned: true, job_id: jobId }, corsHeaders);
 
     if (!["created", "requested", "dispatched"].includes(job.status)) {
-      return json({ error: `Job status ${job.status} cannot be dispatched` }, 400);
+      return json({ error: `Job status ${job.status} cannot be dispatched` }, corsHeaders, 400);
     }
 
     // Always use manual dispatch (reliable, handles null coords)
-    const offer = await manualDispatch(adminClient, jobId, user.id, radiusMeters, offerTtlSeconds);
+    const offer = await manualDispatch(adminClient, jobId, job.customer_id, radiusMeters, offerTtlSeconds);
 
     return json({
       ok: true,
       job_id: jobId,
       dispatched: Boolean(offer?.offer_id),
       offer,
-    });
+    }, corsHeaders);
   } catch (error) {
     console.error("[dispatch-start]", error);
     return json(
       { error: error instanceof Error ? error.message : "Unexpected error" },
+      corsHeaders,
       500,
     );
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

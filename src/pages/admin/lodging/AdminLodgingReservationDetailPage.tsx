@@ -317,7 +317,7 @@ export default function AdminLodgingReservationDetailPage() {
           <CardContent className="space-y-3">
             <div className="flex items-start gap-3">
               <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted shrink-0">
-                {cover ? <img src={cover} alt={room?.name || ""} className="h-full w-full object-cover" />
+                {cover ? <img src={cover} alt={room?.name || ""} className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   : <div className="h-full w-full flex items-center justify-center"><BedDouble className="h-6 w-6 text-muted-foreground/40" /></div>}
               </div>
               <div className="flex-1 min-w-0">

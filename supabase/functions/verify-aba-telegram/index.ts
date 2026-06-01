@@ -198,4 +198,4 @@ Deno.serve(withSecurity("verify-aba-telegram", async (req, ctx) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

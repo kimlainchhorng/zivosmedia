@@ -6,6 +6,7 @@ import {
   isCommentSafetySchemaDriftError,
   isSensitiveReportReason,
 } from "@/lib/social/sensitiveContent";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 
 const COMMENTS_BASE_SELECT = "id, content, user_id, parent_id, likes_count, created_at, is_pinned, updated_at";
 const COMMENTS_SAFETY_SELECT = `${COMMENTS_BASE_SELECT}, hidden_at, hidden_by, hidden_reason, sensitive_report_count`;
@@ -337,27 +338,24 @@ export function usePostComments({ postId, postSource, currentUserId }: UsePostCo
 
     const blockCommenter = async () => {
       if (!sensitiveReport) return;
-      await (supabase as any).from("user_safety_actions").upsert(
-        {
-          user_id: currentUserId,
-          target_user_id: comment.user_id,
-          action: "block",
-        },
-        { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
-      );
+      await submitSafetyReport({
+        type: "safety_action",
+        target_user_id: comment.user_id,
+        action: "block",
+      });
     };
 
     try {
-      const { error } = await (supabase as any).from("comment_reports").insert({
-        reporter_id: currentUserId,
+      await submitSafetyReport({
+        type: "comment",
         comment_id: comment.id,
         post_id: postId,
         post_source: postSource,
         reason,
         description: comment.content.slice(0, 500),
+        target_user_id: comment.user_id,
+        auto_block: sensitiveReport,
       });
-      if (error) throw error;
-      await blockCommenter();
       toast.success(
         sensitiveReport
           ? "We hid the comment, blocked this user, and sent it for safety review"

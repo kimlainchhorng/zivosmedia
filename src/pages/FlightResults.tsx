@@ -1056,7 +1056,7 @@ const FlightResults = () => {
                         {lowestDuffelPrice && (
                           <div className="flex items-center justify-between gap-3 px-4 py-3 bg-[hsl(var(--flights)/0.04)]">
                             <div className="flex items-center gap-3 min-w-0">
-                              <img src={zivoLogoPng} alt="ZIVO" className="w-9 h-9 rounded-lg object-contain shrink-0" />
+                              <img src={zivoLogoPng} alt="ZIVO" className="w-9 h-9 rounded-lg object-contain shrink-0" loading="lazy" decoding="async" />
                               <div>
                                 <div className="flex items-center gap-1.5">
                                   <p className="text-sm font-bold text-foreground">ZIVO</p>
@@ -1153,7 +1153,7 @@ const FlightResults = () => {
                       <div className="px-4 py-2 border-t border-border/20 bg-muted/20">
                           <p className="text-[9px] text-muted-foreground text-center">
                            All prices are live from real-time API queries. Final price confirmed at checkout.{' '}
-                           <Link to="/partner-disclosure" className="underline hover:text-foreground transition-colors">Partner Disclosure</Link>
+                           <Link to="/legal/partner-disclosure" className="underline hover:text-foreground transition-colors">Partner Disclosure</Link>
                         </p>
                       </div>
                     </CardContent>

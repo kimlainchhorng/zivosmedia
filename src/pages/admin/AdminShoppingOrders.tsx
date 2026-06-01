@@ -228,7 +228,7 @@ export default function AdminShoppingOrders() {
                         {order.items.map((item: any, idx: number) => (
                           <div key={idx} className="flex items-center gap-2 text-xs">
                             {item.image && (
-                              <img src={item.image} alt="" className="h-8 w-8 rounded-lg object-contain bg-white border border-border/30" />
+                              <img src={item.image} alt="" className="h-8 w-8 rounded-lg object-contain bg-white border border-border/30" loading="lazy" decoding="async" />
                             )}
                             <span className="flex-1 truncate">{item.quantity || 1}× {item.name}</span>
                             <span className="font-medium">${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
@@ -264,6 +264,8 @@ export default function AdminShoppingOrders() {
                             src={order.receipt_photo_url}
                             alt="Receipt"
                             className="h-32 w-auto rounded-xl border border-border/50 object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </button>
                       </div>

@@ -99,4 +99,4 @@ serve(withSecurity("create-coin-checkout", async (req, ctx) => {
       status: 400,
     });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious" }));

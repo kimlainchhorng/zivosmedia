@@ -15,16 +15,7 @@
  * - This is a best-effort embed — some sites still break (CSP script-src,
  *   geolocated bot walls). UI shows a graceful fallback when that happens.
  */
-const getCorsHeaders = (req: Request): Record<string, string> => {
-  const origin = req.headers.get("origin") ?? "*";
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Vary": "Origin",
-  };
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const ALLOWED_HOSTS = new Set([
   "autozonepro.com", "www.autozonepro.com", "autozone.com", "www.autozone.com",
@@ -72,13 +63,8 @@ const STRIP_HEADERS = new Set([
   "strict-transport-security",
 ]);
 
-Deno.serve(async (req) => {
-  const dynamicCorsHeaders = getCorsHeaders(req);
-
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: dynamicCorsHeaders });
-  }
-
+Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
+  const dynamicCorsHeaders = ctx.corsHeaders;
   const url = new URL(req.url);
   const target = url.searchParams.get("u");
   if (!target) {
@@ -594,4 +580,12 @@ Deno.serve(async (req) => {
   }
 
   return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["GET", "POST"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+  skipBotDetection: true,
+  skipWaf: true,
+}));

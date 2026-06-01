@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 
 export type ReportableType = "ppv_post" | "paid_dm" | "creator";
 
@@ -24,20 +25,15 @@ export function useReportContent() {
   const reportMut = useMutation({
     mutationFn: async (args: ReportArgs) => {
       if (!user) throw new Error("Sign in to report");
-      const { error } = await (supabase as any).from("content_reports").insert({
-        reporter_id: user.id,
+      const res = await submitSafetyReport({
+        type: "content",
         reported_user_id: args.reportedUserId ?? null,
         content_type: args.contentType,
         content_id: args.contentId,
         reason: args.reason,
         description: args.description?.slice(0, 1000) || null,
       });
-      if (error) {
-        // 23505 = unique_violation → already reported, treat as success
-        if ((error as any)?.code === "23505") return { alreadyReported: true };
-        throw error;
-      }
-      return { alreadyReported: false };
+      return { alreadyReported: res.alreadyReported === true };
     },
     onSuccess: (res) => {
       toast.success(res.alreadyReported ? "Already reported" : "Report submitted — thank you");

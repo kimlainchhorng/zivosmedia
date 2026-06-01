@@ -2434,4 +2434,4 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
       status: 500,
     });
   }
-}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

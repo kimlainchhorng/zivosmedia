@@ -18,7 +18,6 @@ import Timer from "lucide-react/dist/esm/icons/timer";
 import Video from "lucide-react/dist/esm/icons/video";
 import Vote from "lucide-react/dist/esm/icons/vote";
 import WalletCards from "lucide-react/dist/esm/icons/wallet-cards";
-import X from "lucide-react/dist/esm/icons/x";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { cn } from "@/lib/utils";
@@ -141,8 +140,6 @@ export default function ChatComposerHub({
   onOpenChange,
   source,
   draftText,
-  onDraftTextChange,
-  onClearDraft,
   onImageSelect,
   onVideoSelect,
   onGifSelect,
@@ -233,30 +230,6 @@ export default function ChatComposerHub({
               {source.type === "group" ? "Group" : "Direct chat"} tools for {source.title}
             </SheetDescription>
           </SheetHeader>
-
-          <div className="mt-4 rounded-2xl border border-border/50 bg-muted/20 p-3">
-            <div className="flex items-start gap-2">
-              <textarea
-                value={draftText}
-                onChange={(event) => onDraftTextChange(event.target.value)}
-                placeholder="Message..."
-                rows={3}
-                className="min-h-20 flex-1 resize-none rounded-xl border border-border/40 bg-background/80 px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  onDraftTextChange("");
-                  void onClearDraft();
-                }}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/50 px-3 text-xs font-semibold text-muted-foreground transition hover:bg-muted/70 hover:text-foreground"
-                aria-label="Clear"
-              >
-                <X className="h-3.5 w-3.5" />
-                <span>Clear</span>
-              </button>
-            </div>
-          </div>
 
           <div className="mt-5 space-y-5">
             {COMPOSER_ACTION_SECTIONS.map((section) => {

@@ -97,7 +97,9 @@ export default function EatsOrdersPage() {
 
   const handleRate = async (orderId: string, stars: number) => {
     setSavingRating(true);
-    const { error } = await supabase.from("food_orders").update({ rating: stars } as any).eq("id", orderId);
+    const { error } = await supabase.functions.invoke("eats-order-state-update", {
+      body: { order_id: orderId, action: "rate_order", rating: stars },
+    });
     setSavingRating(false);
     if (!error) {
       setSelectedOrder(prev => prev ? { ...prev, rating: stars } : prev);

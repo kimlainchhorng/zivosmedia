@@ -527,13 +527,13 @@ const FlightTravelerInfo = () => {
 
                     <div className="pt-2 border-t border-border/40 flex items-center justify-between">
                       <Link
-                        to="/partner-disclosure"
+                        to="/legal/partner-disclosure"
                         className="text-[hsl(var(--flights))] hover:underline font-medium text-xs"
                       >
                         View full Partner Disclosure →
                       </Link>
                       <Link
-                        to="/privacy-policy"
+                        to="/legal/privacy"
                         className="text-muted-foreground hover:underline text-xs"
                       >
                         Privacy Policy
@@ -661,9 +661,9 @@ const FlightTravelerInfo = () => {
         {/* Legal links — tappable */}
         <p className="text-[9px] text-center text-muted-foreground/60">
           By continuing, you agree to our{" "}
-          <Link to="/terms-of-service" className="text-[hsl(var(--flights))]/70 hover:underline">Terms</Link>,{" "}
-          <Link to="/privacy-policy" className="text-[hsl(var(--flights))]/70 hover:underline">Privacy</Link>, and{" "}
-          <Link to="/partner-disclosure" className="text-[hsl(var(--flights))]/70 hover:underline">Partner Disclosure</Link>
+          <Link to="/legal/terms" className="text-[hsl(var(--flights))]/70 hover:underline">Terms</Link>,{" "}
+          <Link to="/legal/privacy" className="text-[hsl(var(--flights))]/70 hover:underline">Privacy</Link>, and{" "}
+          <Link to="/legal/partner-disclosure" className="text-[hsl(var(--flights))]/70 hover:underline">Partner Disclosure</Link>
         </p>
       </motion.div>
     </div>

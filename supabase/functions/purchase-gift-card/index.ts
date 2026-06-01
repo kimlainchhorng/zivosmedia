@@ -1,6 +1,6 @@
 import { serve, createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PRESET_AMOUNTS = [1000, 2500, 5000, 10000]; // $10, $25, $50, $100 in cents
 
@@ -11,8 +11,8 @@ function generateCode(): string {
   return `ZIVO-${segment()}-${segment()}`;
 }
 
-serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+serve(withSecurity("purchase-gift-card", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -148,4 +148,4 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

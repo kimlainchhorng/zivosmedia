@@ -213,7 +213,7 @@ export default function ShareToChatSheet() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={handleClose}
-          className="fixed inset-0 z-[185] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-[185] flex items-end justify-center bg-black/55 px-2 backdrop-blur-md sm:items-center sm:px-4"
           role="dialog"
           aria-modal="true"
           aria-label="Share to a chat"
@@ -224,12 +224,17 @@ export default function ShareToChatSheet() {
             exit={{ y: 80, opacity: 0 }}
             transition={{ type: "spring", damping: 26, stiffness: 280 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-md bg-background rounded-t-2xl sm:rounded-2xl pb-[max(1rem,var(--zivo-safe-bottom,0px))] max-h-[85dvh] flex flex-col overflow-hidden"
+            className="zivo-chat-popover-glass flex max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-[1.75rem] pb-[max(1rem,var(--zivo-safe-bottom,0px))] shadow-2xl sm:max-w-md sm:rounded-[1.75rem]"
           >
-            <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border/30">
+            <div className="zivo-chat-header-glass px-4 pb-3 pt-4">
+              <div className="mb-3 flex justify-center sm:hidden">
+                <div className="h-1 w-11 rounded-full bg-foreground/20" />
+              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-foreground">Share to chat</h3>
-                <p className="text-[11px] text-muted-foreground">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Card route</p>
+                <h3 className="text-lg font-black text-foreground">Share to chat</h3>
+                <p className="text-[11px] font-semibold text-muted-foreground">
                   {selected.size === 0
                     ? "Tap to select — send to multiple at once."
                     : `${selected.size} selected`}
@@ -238,14 +243,15 @@ export default function ShareToChatSheet() {
               <button type="button"
                 onClick={handleClose}
                 aria-label="Close"
-                className="h-9 w-9 -mr-1.5 flex items-center justify-center rounded-full hover:bg-muted"
+                  className="zivo-chat-icon-button -mr-1.5 flex h-9 w-9 items-center justify-center"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
+            </div>
 
             {/* Card preview — centered, no time meta */}
-            <div className="px-4 py-3 border-b border-border bg-muted/20 flex justify-center [&>div>div]:!max-w-none [&>div>div]:!w-[260px]">
+            <div className="flex justify-center border-b border-white/10 bg-background/30 px-4 py-3 [&>div>div]:!max-w-none [&>div>div]:!w-[260px]">
               <ZivoActionBubble payload={card} isMe={false} time="" />
             </div>
 
@@ -261,26 +267,28 @@ export default function ShareToChatSheet() {
                   inputMode="search"
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 [&::-webkit-search-cancel-button]:appearance-none"
+                  className="zivo-chat-search w-full py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:appearance-none"
                 />
               </div>
             </div>
 
             {/* Recipients list — Groups first, then Friends */}
-            <div className="flex-1 overflow-y-auto px-2 py-2">
+            <div className="flex-1 overflow-y-auto px-4 py-2">
               {(filteredFriends == null && filteredGroups == null) ? (
-                <div className="flex justify-center py-10">
+                <div className="zivo-chat-card flex min-h-32 items-center justify-center">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
                 </div>
               ) : (filteredGroups?.length || 0) === 0 && (filteredFriends?.length || 0) === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-10">
+                <div className="zivo-chat-card flex min-h-32 items-center justify-center p-6 text-center">
+                <p className="text-sm font-semibold text-muted-foreground">
                   {search ? `No matches for "${search}"` : "No friends or groups yet — add some to share."}
                 </p>
+                </div>
               ) : (
                 <>
                   {filteredGroups && filteredGroups.length > 0 && (
                     <>
-                      <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <p className="px-1 pb-2 pt-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
                         Groups
                       </p>
                       {filteredGroups.map((g) => (
@@ -288,23 +296,23 @@ export default function ShareToChatSheet() {
                           key={`g:${g.id}`}
                           onClick={() => toggleSelect(g.id)}
                           disabled={sending}
-                          className={`w-full flex items-center gap-3 px-2 py-2.5 rounded-xl transition disabled:opacity-50 ${selected.has(g.id) ? "bg-primary/10" : "hover:bg-muted/40 active:bg-muted/60"}`}
+                          className={`mb-2 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 transition disabled:opacity-50 ${selected.has(g.id) ? "zivo-chat-row-unread" : "zivo-chat-row"}`}
                         >
-                          <Avatar className="h-9 w-9">
+                          <Avatar className="h-10 w-10 ring-2 ring-primary/10">
                             <AvatarImage src={g.avatar_url || undefined} />
-                            <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+                            <AvatarFallback className="bg-primary/10 text-xs font-black text-primary">
                               {g.name.slice(0, 1).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0 text-left">
-                            <p className="text-sm font-semibold text-foreground truncate">{g.name}</p>
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="truncate text-sm font-black text-foreground">{g.name}</p>
+                            <p className="text-[11px] font-semibold text-muted-foreground">
                               {typeof g.member_count === "number" && g.member_count > 0
                                 ? `${g.member_count} member${g.member_count === 1 ? "" : "s"}`
                                 : "Group"}
                             </p>
                           </div>
-                          <span className={`h-8 w-8 inline-flex items-center justify-center rounded-full transition ${selected.has(g.id) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground/70 ring-1 ring-border"}`}>
+                          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${selected.has(g.id) ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "zivo-chat-chip text-muted-foreground/70"}`}>
                             <Check className="w-3.5 h-3.5" />
                           </span>
                         </button>
@@ -314,7 +322,7 @@ export default function ShareToChatSheet() {
 
                   {filteredFriends && filteredFriends.length > 0 && (
                     <>
-                      <p className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <p className="px-1 pb-2 pt-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
                         Friends
                       </p>
                       {filteredFriends.map((f) => (
@@ -322,23 +330,23 @@ export default function ShareToChatSheet() {
                           key={`f:${f.user_id}`}
                           onClick={() => toggleSelect(f.user_id)}
                           disabled={sending}
-                          className={`w-full flex items-center gap-3 px-2 py-2.5 rounded-xl transition disabled:opacity-50 ${selected.has(f.user_id) ? "bg-primary/10" : "hover:bg-muted/40 active:bg-muted/60"}`}
+                          className={`mb-2 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 transition disabled:opacity-50 ${selected.has(f.user_id) ? "zivo-chat-row-unread" : "zivo-chat-row"}`}
                         >
-                          <Avatar className="h-9 w-9">
+                          <Avatar className="h-10 w-10 ring-2 ring-primary/10">
                             <AvatarImage src={f.avatar_url || undefined} />
-                            <AvatarFallback className="text-xs bg-muted">
+                            <AvatarFallback className="bg-primary/10 text-xs font-black text-primary">
                               {(f.full_name || f.username || "?").slice(0, 1).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0 text-left">
-                            <p className="text-sm font-semibold text-foreground truncate">
+                            <p className="truncate text-sm font-black text-foreground">
                               {f.full_name || (f.username ? `@${f.username}` : "User")}
                             </p>
                             {f.username && f.full_name && (
-                              <p className="text-[11px] text-muted-foreground truncate">@{f.username}</p>
+                              <p className="truncate text-[11px] font-semibold text-muted-foreground">@{f.username}</p>
                             )}
                           </div>
-                          <span className={`h-8 w-8 inline-flex items-center justify-center rounded-full transition ${selected.has(f.user_id) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground/70 ring-1 ring-border"}`}>
+                          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${selected.has(f.user_id) ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "zivo-chat-chip text-muted-foreground/70"}`}>
                             <Check className="w-3.5 h-3.5" />
                           </span>
                         </button>
@@ -351,11 +359,11 @@ export default function ShareToChatSheet() {
 
             {/* Sticky send button — appears once at least one recipient selected */}
             {selected.size > 0 && (
-              <div className="px-4 pt-2 pb-1 border-t border-border">
+              <div className="zivo-chat-header-glass px-4 pb-1 pt-3">
                 <button type="button"
                   onClick={() => void sendSelected()}
                   disabled={sending}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm active:opacity-80 transition disabled:opacity-60"
+                  className="zivo-chat-chip-active flex w-full items-center justify-center gap-2 py-3 text-sm font-black transition active:opacity-80 disabled:opacity-60"
                 >
                   {sending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

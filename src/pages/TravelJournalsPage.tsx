@@ -266,7 +266,7 @@ export default function TravelJournalsPage() {
                 >
                   <div className="relative h-24 bg-muted">
                     {j.cover_url ? (
-                      <img src={j.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={j.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full bg-ig-gradient" />
                     )}

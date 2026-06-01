@@ -42,6 +42,8 @@ export interface SecurityOptions {
   blockNetworkRiskAt?: number;
   /** Skip browser-oriented bot detection for provider webhooks/internal callers. */
   skipBotDetection?: boolean;
+  /** Restrict non-OPTIONS requests to explicit HTTP methods before handler logic runs. */
+  allowedMethods?: string[];
 }
 
 export type SecuredHandler = (req: Request, ctx: SecurityContext) => Promise<Response>;
@@ -86,6 +88,14 @@ export function withSecurity(
     if (req.method === 'OPTIONS') {
       if (opts.strictCors) return new Response(null, { status: 204, headers: corsHeaders });
       return preflight(req);
+    }
+    if (opts.allowedMethods?.length && !opts.allowedMethods.includes(req.method)) {
+      const allow = [...new Set([...opts.allowedMethods, 'OPTIONS'])].join(', ');
+      const res = err(req, 'Method not allowed', 405);
+      applyCorsHeaders(res, corsHeaders);
+      res.headers.set('Allow', allow);
+      applySecurityHeaders(res);
+      return res;
     }
 
     const correlationId = newCorrelationId(req);
@@ -258,7 +268,7 @@ function resolveCorsHeaders(req: Request, strict = false): Record<string, string
   const origin = req.headers.get('origin');
   if (!origin) {
     return {
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name, x-request-id',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature, x-lovable-signature, x-lovable-timestamp, x-application-name, x-request-id, x-cron-secret, x-pair-token',
       'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
       'Vary': 'Origin',
     };

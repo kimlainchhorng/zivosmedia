@@ -89,10 +89,10 @@ const moreItems = [
 ];
 
 const legalItems = [
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
-  { label: "Partner Disclosure", href: "/partner-disclosure" },
-  { label: "Cookies", href: "/cookies" },
+  { label: "Privacy Policy", href: "/legal/privacy" },
+  { label: "Terms of Service", href: "/legal/terms" },
+  { label: "Partner Disclosure", href: "/legal/partner-disclosure" },
+  { label: "Cookies", href: "/legal/cookies" },
 ];
 
 const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {

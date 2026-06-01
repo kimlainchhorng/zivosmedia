@@ -12,7 +12,7 @@ const Privacy = () => {
       <SEOHead
         title="Privacy Policy - ZIVO | Travel Platform"
         description="Learn how ZIVO handles your data for Hotels, Car Rentals (direct sale), and Flights (partner referral). We protect your information."
-        canonical="https://hizivo.com/privacy"
+        canonical="https://hizivo.com/legal/privacy"
       />
       
       <Header />
@@ -183,7 +183,7 @@ const Privacy = () => {
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                We use cookies to operate and improve our services, remember your preferences, and analyze usage. You can control cookies via your browser settings. See our <Link to="/cookies" className="text-primary hover:underline">Cookie Policy</Link> for details.
+                We use cookies to operate and improve our services, remember your preferences, and analyze usage. You can control cookies via your browser settings. See our <Link to="/legal/cookies" className="text-primary hover:underline">Cookie Policy</Link> for details.
               </p>
             </div>
           </section>
@@ -236,15 +236,15 @@ const Privacy = () => {
 
           {/* Related Links */}
           <div className="flex flex-wrap gap-4 justify-center pt-8 border-t border-border">
-            <Link to="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Terms of Service
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/cookies" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/cookies" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Cookie Policy
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Partner Disclosure
             </Link>
           </div>

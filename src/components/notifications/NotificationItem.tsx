@@ -1,4 +1,4 @@
-import { Package, Gift, Headphones, Clock, User, ChevronRight, Heart, Repeat2, MessageCircle, AtSign } from 'lucide-react';
+import { Package, Gift, Headphones, Clock, User, ChevronRight, Heart, Repeat2, MessageCircle, AtSign, CheckCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -158,10 +158,10 @@ const NotificationItem = ({ notification, onMarkAsRead, onClick }: NotificationI
       role="button"
       tabIndex={0}
       className={cn(
-        "group w-full rounded-2xl border bg-card px-3.5 py-3 text-left shadow-sm transition-colors hover:bg-muted/30",
+        "group relative w-full overflow-hidden rounded-[1.15rem] border bg-card/95 px-3 py-2.5 text-left shadow-[0_1px_2px_hsl(var(--foreground)/0.05),0_10px_28px_hsl(var(--foreground)/0.04)] transition-colors hover:bg-muted/20",
         notification.is_read
-          ? "border-border/50"
-          : "border-primary/15 bg-primary/[0.025] shadow-[inset_3px_0_0_hsl(var(--primary)/0.45),0_8px_24px_hsl(var(--primary)/0.06)]"
+          ? "border-border/55"
+          : "border-primary/18 bg-primary/[0.018]"
       )}
       onClick={onClick}
       onKeyDown={(e) => {
@@ -171,19 +171,22 @@ const NotificationItem = ({ notification, onMarkAsRead, onClick }: NotificationI
         }
       }}
     >
+      {!notification.is_read && (
+        <span className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-primary/70" aria-hidden="true" />
+      )}
       <div className="flex items-start gap-2.5">
         <div className={cn(
-          "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ring-1 ring-border/45",
-          config.iconBg
+          "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/70 ring-1 ring-border/50",
+          notification.is_read ? "opacity-75" : "bg-primary/8 ring-primary/15"
         )}>
-          <Icon className={cn("h-[18px] w-[18px]", config.iconColor)} />
+          <Icon className={cn("h-4 w-4", config.iconColor)} />
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex min-w-0 items-center gap-2">
+          <div className="mb-0.5 flex min-w-0 items-center gap-2">
             <Badge
               variant="secondary"
-              className={cn("h-5 rounded-full border px-2 text-[10px] font-bold", config.badgeClass)}
+              className={cn("h-4 rounded-full border px-1.5 text-[9px] font-semibold", config.badgeClass)}
             >
               {config.label}
             </Badge>
@@ -194,12 +197,12 @@ const NotificationItem = ({ notification, onMarkAsRead, onClick }: NotificationI
 
           <h4 className={cn(
             "line-clamp-1 text-[14px] leading-snug",
-            notification.is_read ? "font-semibold text-foreground/80" : "font-bold text-foreground"
+            notification.is_read ? "font-semibold text-foreground/75" : "font-semibold text-foreground"
           )}>
             {title}
           </h4>
 
-          <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-muted-foreground">
+          <p className="mt-0.5 line-clamp-1 text-[12px] leading-snug text-muted-foreground">
             {body}
           </p>
           {!notification.is_read && (
@@ -209,8 +212,9 @@ const NotificationItem = ({ notification, onMarkAsRead, onClick }: NotificationI
                 e.stopPropagation();
                 onMarkAsRead();
               }}
-              className="mt-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary active:scale-95"
+              className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-foreground/75 ring-1 ring-border/45 transition-colors active:scale-95"
             >
+              <CheckCheck className="h-3 w-3 text-primary" />
               Mark read
             </button>
           )}

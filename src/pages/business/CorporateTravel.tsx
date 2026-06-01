@@ -70,13 +70,19 @@ export default function CorporateTravel() {
     setIsSubmitting(true);
     const form = e.target as HTMLFormElement;
     const data = new FormData(form);
-    const message = `Company: ${data.get("company") || ""}\nName: ${data.get("name") || ""}\nEmail: ${data.get("email") || ""}\nSize: ${data.get("size") || ""}\nMessage: ${data.get("message") || ""}`;
+    const email = String(data.get("email") || "");
+    const company = String(data.get("company") || "");
+    const message = `Name: ${data.get("name") || ""}\nSize: ${data.get("size") || ""}\nMessage: ${data.get("message") || ""}`;
     try {
-      const { error } = await supabase.from("feedback_submissions").insert({
+      const { error } = await supabase.functions.invoke("marketing-interest-submit", { body: {
         category: "corporate_lead",
         subject: "Corporate Travel Inquiry",
+        email,
+        company,
         message,
-      });
+        context: "corporate_travel",
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       toast.success("Thanks for your interest! We'll be in touch soon.");
       form.reset();
@@ -241,7 +247,10 @@ export default function CorporateTravel() {
                 </Button>
                 
                 <p className="text-xs text-center text-muted-foreground">
-                  We'll only contact you about ZIVO for Business. No spam.
+                  We'll only contact you about ZIVO for Business. No spam. See our{" "}
+                  <Link to="/legal/privacy" className="underline underline-offset-2">Privacy Policy</Link>
+                  {" "}and{" "}
+                  <Link to="/legal/terms" className="underline underline-offset-2">Terms</Link>.
                 </p>
               </form>
             </div>

@@ -363,9 +363,9 @@ export default function TrendingPage() {
                         {post.media_urls[0] ? (
                           <div className="shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-muted">
                             {post.media_type === "video" ? (
-                              <video src={post.media_urls[0]} className="w-full h-full object-cover" muted />
+                              <video src={post.media_urls[0]} className="w-full h-full object-cover" muted preload="metadata" />
                             ) : (
-                              <img src={post.media_urls[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                              <img src={post.media_urls[0]} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                         ) : (

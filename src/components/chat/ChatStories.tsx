@@ -138,9 +138,23 @@ export default function ChatStories() {
 
   return (
     <>
-      {/* Stories Row — Telegram-style compact */}
-      <div className="px-3 pt-2 pb-1.5">
-        <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-0.5">
+      <div className="zivo-chat-card mb-3 rounded-3xl px-3.5 pb-2.5 pt-3">
+        <div className="mb-2 flex items-center justify-between px-0.5">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+              Stories
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="rounded-full px-2.5 py-1 text-[11px] font-bold text-primary transition-colors active:scale-95"
+          >
+            Create
+          </button>
+        </div>
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-0.5">
           {/* Your Story */}
           <button type="button"
             onClick={() => {
@@ -156,7 +170,7 @@ export default function ChatStories() {
                   ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_10px_-3px_hsl(160_84%_45%/0.55)]"
                   : "bg-muted-foreground/25"
               )}>
-                <div className="h-full w-full rounded-full overflow-hidden border-2 border-background bg-card flex items-center justify-center">
+                <div className="zivo-chat-avatar-ring h-full w-full rounded-full overflow-hidden border-2 border-background bg-card flex items-center justify-center">
                   {(() => {
                     const latest = myStories?.stories[myStories.stories.length - 1];
                     if (latest && latest.mediaType === "image" && latest.mediaUrl) {
@@ -216,7 +230,7 @@ export default function ChatStories() {
                 className="flex flex-col items-center gap-1 flex-shrink-0 w-[58px]"
               >
                 <div className="h-[54px] w-[54px] rounded-full p-[2px] bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_10px_-3px_hsl(160_84%_45%/0.55)]">
-                  <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
+                  <div className="zivo-chat-avatar-ring w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
                     {group.avatarUrl ? (
 	                      <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (

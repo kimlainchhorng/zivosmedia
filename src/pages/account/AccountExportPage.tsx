@@ -329,7 +329,7 @@ export default function AccountExportPage() {
           </div>
           <h2 className="text-lg font-semibold">Download your data</h2>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-            Get a portable copy of your information in your chosen format. Right under GDPR & CCPA.
+            Get a portable copy of your information in your chosen format. Rights under GDPR & CCPA.
           </p>
         </div>
 

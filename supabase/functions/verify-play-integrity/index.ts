@@ -69,4 +69,4 @@ Deno.serve(withSecurity("verify-play-integrity", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}, { rateLimit: "api_general", strictCors: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["POST"], rateLimit: "api_general", strictCors: true, trackNetwork: "suspicious" }));

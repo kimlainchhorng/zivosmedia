@@ -1,5 +1,5 @@
 import { createClient, serve } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined } };
 
@@ -219,14 +219,27 @@ const PURCHASE_TABLES = new Set([
   "trips", "food_orders", "flight_bookings", "travel_bookings", "transactions",
 ]);
 
-serve(async (req: Request) => {
-  const cors = getCorsHeaders(req);
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
+serve(withSecurity("meta-conversion-bridge", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
     const pixelId = Deno.env.get("META_PIXEL_ID");
     const accessToken = Deno.env.get("META_ACCESS_TOKEN");
     const testCode = Deno.env.get("META_TEST_EVENT_CODE") || undefined;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!serviceKey || !isServiceRoleRequest(req, serviceKey)) {
+      return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+        status: 403,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
 
     if (!pixelId || !accessToken) {
       return new Response(
@@ -249,7 +262,6 @@ serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, serviceKey);
 
     let event: MetaPayload | null = null;
@@ -320,4 +332,4 @@ serve(async (req: Request) => {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

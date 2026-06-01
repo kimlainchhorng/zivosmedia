@@ -335,7 +335,7 @@ export default function VoicemailsPage() {
                     {/* Caller avatar */}
                     <div className="relative shrink-0">
                       {avatar ? (
-                        <img src={avatar} alt="" className="h-10 w-10 rounded-full object-cover" loading="lazy" />
+                        <img src={avatar} alt="" className="h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="h-10 w-10 rounded-full bg-ig-gradient flex items-center justify-center text-white text-xs font-extrabold">
                           {initials(name)}

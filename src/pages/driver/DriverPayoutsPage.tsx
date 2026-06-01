@@ -124,28 +124,23 @@ export default function DriverPayoutsPage() {
       if (!authData.user) throw new Error("Sign in required");
 
       const shouldDefault = abaMethods.length === 0 || abaForm.is_default;
-      if (shouldDefault) {
-        const { error: clearDefaultError } = await (supabase.from("customer_payout_methods") as any)
-          .update({ is_default: false })
-          .eq("user_id", authData.user.id)
-          .eq("method_type", "aba")
-          .is("store_id", null);
-        if (clearDefaultError) throw clearDefaultError;
-      }
-
-      const { error } = await (supabase.from("customer_payout_methods") as any).insert({
-        user_id: authData.user.id,
-        method_type: "aba",
-        rail: "aba",
-        country_code: "KH",
-        label: label || "ABA Account",
-        bank_name: "ABA Bank",
-        account_holder_name: holderName,
-        aba_account_id: accountId,
-        is_default: shouldDefault,
-        verification_status: "pending",
+      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
+        body: {
+          action: "create",
+          method_type: "aba",
+          rail: "aba",
+          country_code: "KH",
+          label: label || "ABA Account",
+          bank_name: "ABA Bank",
+          account_holder_name: holderName,
+          aba_account_id: accountId,
+          is_default: shouldDefault,
+        },
+        headers: {
+          "Idempotency-Key": `driver-aba-payout-method-${authData.user.id}-${crypto.randomUUID()}`,
+        },
       });
-      if (error) throw error;
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Could not save ABA payout account");
 
       toast.success("ABA payout account saved");
       setAbaForm({ label: "", account_holder_name: "", aba_account_id: "", is_default: false });
@@ -165,18 +160,10 @@ export default function DriverPayoutsPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Sign in required");
 
-      const { error: clearDefaultError } = await (supabase.from("customer_payout_methods") as any)
-        .update({ is_default: false })
-        .eq("user_id", authData.user.id)
-        .eq("method_type", "aba")
-        .is("store_id", null);
-      if (clearDefaultError) throw clearDefaultError;
-
-      const { error } = await (supabase.from("customer_payout_methods") as any)
-        .update({ is_default: true })
-        .eq("id", id)
-        .eq("user_id", authData.user.id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
+        body: { action: "set_default", method_id: id },
+      });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Could not update default payout account");
 
       toast.success("Default ABA payout account updated");
       await refresh();
@@ -195,20 +182,12 @@ export default function DriverPayoutsPage() {
         ? abaMethods.find((method) => method.id !== id)
         : null;
 
-      const { error } = await (supabase.from("customer_payout_methods") as any).delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
+        body: { action: "delete", method_id: id },
+      });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Could not remove payout account");
 
-      if (replacementDefault) {
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        if (authError) throw authError;
-        if (!authData.user) throw new Error("Sign in required");
-
-        const { error: replacementError } = await (supabase.from("customer_payout_methods") as any)
-          .update({ is_default: true })
-          .eq("id", replacementDefault.id)
-          .eq("user_id", authData.user.id);
-        if (replacementError) throw replacementError;
-      }
+      if (replacementDefault) await makeDefaultAbaMethod(replacementDefault.id);
 
       toast.success("ABA payout account removed");
       await refresh();

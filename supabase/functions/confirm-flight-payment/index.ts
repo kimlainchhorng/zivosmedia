@@ -201,4 +201,4 @@ Deno.serve(withSecurity("confirm-flight-payment", async (req, ctx) => {
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
     );
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -144,19 +144,21 @@ export default function ServiceBookingPage() {
     }
     const bookingRef = `BK-${Date.now().toString(36).toUpperCase()}`;
     setSubmitting(true);
-    const { error } = await supabase.from("service_bookings").insert({
-      store_id: store.id,
-      product_id: form.product_id || null,
-      service_name: form.service_name,
-      customer_name: form.customer_name,
-      customer_email: form.customer_email,
-      customer_phone: form.customer_phone,
-      vehicle_make: form.vehicle_make || null,
-      vehicle_model: form.vehicle_model || null,
-      vehicle_year: form.vehicle_year || null,
-      preferred_date: format(date, "yyyy-MM-dd"),
-      preferred_time: form.preferred_time,
-      notes: form.notes || null,
+    const { error } = await supabase.functions.invoke("service-booking-submit", {
+      body: {
+        store_id: store.id,
+        product_id: form.product_id || null,
+        service_name: form.service_name,
+        customer_name: form.customer_name,
+        customer_email: form.customer_email,
+        customer_phone: form.customer_phone,
+        vehicle_make: form.vehicle_make || null,
+        vehicle_model: form.vehicle_model || null,
+        vehicle_year: form.vehicle_year || null,
+        preferred_date: format(date, "yyyy-MM-dd"),
+        preferred_time: form.preferred_time,
+        notes: form.notes || null,
+      },
     });
     setSubmitting(false);
     if (error) {
@@ -453,7 +455,7 @@ export default function ServiceBookingPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3">
-            {store.logo_url && <img src={store.logo_url} alt="" className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover" />}
+            {store.logo_url && <img src={store.logo_url} alt="" className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover" loading="lazy" decoding="async" />}
             <div>
               <h1 className="font-semibold text-foreground text-sm md:text-base">{store.name}</h1>
               <p className="text-xs md:text-sm text-muted-foreground">Book a Service</p>
@@ -575,7 +577,7 @@ export default function ServiceBookingPage() {
               </optgroup>
             </select>
             {serviceImg && (
-              <img src={serviceImg} alt={form.service_name} className="w-full h-40 object-cover rounded-lg" />
+              <img src={serviceImg} alt={form.service_name} className="w-full h-40 object-cover rounded-lg" loading="lazy" decoding="async" />
             )}
           </CardContent>
         </Card>

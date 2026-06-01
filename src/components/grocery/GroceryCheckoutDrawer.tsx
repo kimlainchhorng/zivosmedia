@@ -1484,7 +1484,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                          </p>
                       </div>
                       <p className="text-[8px] text-muted-foreground/50 text-center px-2">
-                        By placing your order, you agree to our <Link to="/grocery/terms" className="text-primary/50 underline">Terms</Link> and <Link to="/privacy" className="text-primary/50 underline">Privacy Policy</Link>
+                        By placing your order, you agree to our <Link to="/grocery/terms" className="text-primary/50 underline">Terms</Link> and <Link to="/legal/privacy" className="text-primary/50 underline">Privacy Policy</Link>
                       </p>
                     </div>
                   </>

@@ -6,6 +6,7 @@
  * standard JSON responses with CORS headers attached.
  */
 import { getCorsHeaders } from "./cors.ts";
+import type { SecurityContext } from "./withSecurity.ts";
 
 export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {
@@ -34,13 +35,13 @@ export class HttpError extends Error {
   }
 }
 
-export type EdgeHandler = (req: Request) => Promise<Response>;
+export type EdgeHandler = (req: Request, ctx?: SecurityContext) => Promise<Response>;
 
 export function withErrorHandling(handler: EdgeHandler, fnName?: string): EdgeHandler {
-  return async (req: Request): Promise<Response> => {
-    const cors = getCorsHeaders(req);
+  return async (req: Request, ctx?: SecurityContext): Promise<Response> => {
+    const cors = ctx?.corsHeaders ?? getCorsHeaders(req);
     try {
-      return await handler(req);
+      return await handler(req, ctx);
     } catch (err) {
       const tag = fnName ? `[${fnName}]` : "[edge]";
       if (err instanceof UnauthorizedError) {

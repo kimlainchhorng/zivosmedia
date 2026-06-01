@@ -184,7 +184,7 @@ export default function GroupOrdersPage() {
                 >
                   <div className="flex items-start gap-3">
                     {r?.logo_url ? (
-                      <img src={r.logo_url} alt="" className="shrink-0 h-10 w-10 rounded-xl object-cover" loading="lazy" />
+                      <img src={r.logo_url} alt="" className="shrink-0 h-10 w-10 rounded-xl object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="shrink-0 h-10 w-10 rounded-xl bg-ig-gradient/10 flex items-center justify-center">
                         <UtensilsCrossed className="h-4 w-4 text-ig-gradient" />

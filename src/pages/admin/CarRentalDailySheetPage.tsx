@@ -140,7 +140,7 @@ export default function CarRentalDailySheetPage() {
             <p className="mt-0.5 text-sm text-muted-foreground">{store?.name}</p>
             <p className="mt-0.5 text-base font-semibold text-foreground">{formatDate(`${date}T12:00:00`)}</p>
           </div>
-          {store?.logo_url && <img src={store.logo_url} alt="" className="h-14 w-14 rounded-lg object-cover" />}
+          {store?.logo_url && <img src={store.logo_url} alt="" className="h-14 w-14 rounded-lg object-cover" loading="lazy" decoding="async" />}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-6">

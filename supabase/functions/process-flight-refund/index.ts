@@ -250,4 +250,4 @@ serve(withSecurity("process-flight-refund", async (req, ctx) => {
       }
     );
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

@@ -34,12 +34,7 @@
  * forced to auth.uid() to prevent spoofing).
  */
 import { serve, createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 type Channel = "push" | "email" | "sms" | "inbox";
 
@@ -62,10 +57,10 @@ interface DispatchRequest {
   idempotency_key?: string;
 }
 
-const j = (status: number, body: unknown) =>
+const j = (headers: Record<string, string>, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 
 // Map event_type → notification_preferences boolean column (when applicable).
@@ -98,9 +93,11 @@ function isWithinQuietHours(start?: string | null, end?: string | null): boolean
   return s < e ? minutes >= s && minutes < e : minutes >= s || minutes < e;
 }
 
-serve(async (req) => {
+serve(withSecurity("notify-dispatch", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return j(405, { error: "Method not allowed" });
+  if (req.method !== "POST") return j(corsHeaders, 405, { error: "Method not allowed" });
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -108,10 +105,10 @@ serve(async (req) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
   if (!supabaseUrl || !serviceKey || !anonKey) {
-    return j(500, { error: "Server misconfigured" });
+    return j(corsHeaders, 500, { error: "Server misconfigured" });
   }
   if (!authHeader.startsWith("Bearer ")) {
-    return j(401, { error: "Authentication required" });
+    return j(corsHeaders, 401, { error: "Authentication required" });
   }
 
   const isServiceCall = authHeader === `Bearer ${serviceKey}`;
@@ -126,10 +123,10 @@ serve(async (req) => {
       const { data, error } = await userClient.auth.getUser(
         authHeader.replace("Bearer ", ""),
       );
-      if (error || !data?.user?.id) return j(401, { error: "Authentication required" });
+      if (error || !data?.user?.id) return j(corsHeaders, 401, { error: "Authentication required" });
       callerUserId = data.user.id;
     } catch {
-      return j(401, { error: "Authentication required" });
+      return j(corsHeaders, 401, { error: "Authentication required" });
     }
   }
 
@@ -137,16 +134,16 @@ serve(async (req) => {
   try {
     payload = await req.json();
   } catch {
-    return j(400, { error: "Invalid JSON body" });
+    return j(corsHeaders, 400, { error: "Invalid JSON body" });
   }
 
   if (!payload?.user_id || !payload.event_type || !payload.title) {
-    return j(400, { error: "Missing required fields: user_id, event_type, title" });
+    return j(corsHeaders, 400, { error: "Missing required fields: user_id, event_type, title" });
   }
 
   // Non-service callers can only dispatch to themselves.
   if (callerUserId && payload.user_id !== callerUserId) {
-    return j(403, { error: "Cannot dispatch notifications for another user" });
+    return j(corsHeaders, 403, { error: "Cannot dispatch notifications for another user" });
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
@@ -162,7 +159,7 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
     if (existing) {
-      return j(200, { success: true, deduped: true });
+      return j(corsHeaders, 200, { success: true, deduped: true });
     }
   }
 
@@ -178,8 +175,18 @@ serve(async (req) => {
   const smsEnabled = prefs?.sms_enabled ?? false;
 
   const flag = prefFlagForEvent(payload.event_type);
-  const eventAllowed =
+  const eventFlagAllowed =
     !flag || prefs == null || (prefs as Record<string, unknown>)[flag] !== false;
+  const marketingAllowed =
+    payload.category !== "marketing" ||
+    prefs == null ||
+    (prefs as Record<string, unknown>).marketing_enabled !== false;
+  const deliveryAllowed = eventFlagAllowed && marketingAllowed;
+  const mutedReason = !marketingAllowed
+    ? "marketing_disabled"
+    : !eventFlagAllowed
+      ? "event_muted"
+      : null;
 
   const inQuiet = isWithinQuietHours(
     prefs?.quiet_hours_start,
@@ -243,7 +250,7 @@ serve(async (req) => {
   const tasks: Promise<void>[] = [];
 
   // ---- 2. Push ------------------------------------------------------------
-  if (requested.has("push") && pushEnabled && eventAllowed && !inQuiet) {
+  if (requested.has("push") && pushEnabled && deliveryAllowed && !inQuiet) {
     tasks.push(
       (async () => {
         const r = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
@@ -267,11 +274,11 @@ serve(async (req) => {
       }),
     );
   } else if (requested.has("push")) {
-    results.push = { ok: false, skipped: true, reason: !pushEnabled ? "disabled" : !eventAllowed ? "event_muted" : "quiet_hours" };
+    results.push = { ok: false, skipped: true, reason: !pushEnabled ? "disabled" : mutedReason ?? "quiet_hours" };
   }
 
   // ---- 3. Email -----------------------------------------------------------
-  if (requested.has("email") && emailEnabled && eventAllowed && recipientEmail) {
+  if (requested.has("email") && emailEnabled && deliveryAllowed && recipientEmail) {
     tasks.push(
       (async () => {
         const r = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
@@ -299,11 +306,11 @@ serve(async (req) => {
       }),
     );
   } else if (requested.has("email")) {
-    results.email = { ok: false, skipped: true, reason: !emailEnabled ? "disabled" : !recipientEmail ? "no_recipient" : "event_muted" };
+    results.email = { ok: false, skipped: true, reason: !emailEnabled ? "disabled" : mutedReason ?? (!recipientEmail ? "no_recipient" : "event_muted") };
   }
 
   // ---- 4. SMS -------------------------------------------------------------
-  if (requested.has("sms") && smsEnabled && eventAllowed && recipientPhone) {
+  if (requested.has("sms") && smsEnabled && deliveryAllowed && recipientPhone) {
     tasks.push(
       (async () => {
         const r = await fetch(`${supabaseUrl}/functions/v1/send-sms`, {
@@ -325,13 +332,13 @@ serve(async (req) => {
       }),
     );
   } else if (requested.has("sms")) {
-    results.sms = { ok: false, skipped: true, reason: !smsEnabled ? "disabled" : !recipientPhone ? "no_phone" : "event_muted" };
+    results.sms = { ok: false, skipped: true, reason: !smsEnabled ? "disabled" : mutedReason ?? (!recipientPhone ? "no_phone" : "event_muted") };
   }
 
   await Promise.all(tasks);
 
-  return j(200, { success: true, event_type: payload.event_type, results });
-});
+  return j(corsHeaders, 200, { success: true, event_type: payload.event_type, results });
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 async function safeJson(r: Response): Promise<unknown> {
   try {

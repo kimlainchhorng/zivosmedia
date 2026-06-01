@@ -5,7 +5,9 @@
  * default in send-transactional-email.
  *
  * The hook loads all overrides for the store and exposes save(template_key,
- * patch) + resetToDefault(template_key). RLS keeps writes owner-scoped.
+ * patch) + resetToDefault(template_key). Mutations are routed through
+ * salon-reminder-template-manage so customer-facing notification copy is
+ * owner/admin validated server-side.
  */
 import { useCallback, useEffect, useState } from "react";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
@@ -100,10 +102,10 @@ export function useSalonReminderTemplates(storeId: string | undefined): UseResul
       body_text: merged.body_text?.trim() || null,
       sms_body: merged.sms_body?.trim() || null,
     };
-    const { error: err } = await supabase
-      .from("salon_notification_template_overrides")
-      .upsert(payload as never, { onConflict: "store_id,template_key" });
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-reminder-template-manage", {
+      body: { action: "save", store_id: storeId, template_key: key, template: payload },
+    });
+    if (err || data?.error) {
       console.error("[useSalonReminderTemplates] save failed", err);
       setError("Couldn't save template.");
       setSaving(false);
@@ -117,12 +119,10 @@ export function useSalonReminderTemplates(storeId: string | undefined): UseResul
   const resetToDefault = useCallback(async (key: SalonTemplateKey): Promise<boolean> => {
     if (!storeId) return false;
     setSaving(true); setError(null);
-    const { error: err } = await supabase
-      .from("salon_notification_template_overrides")
-      .delete()
-      .eq("store_id", storeId)
-      .eq("template_key", key);
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-reminder-template-manage", {
+      body: { action: "reset", store_id: storeId, template_key: key },
+    });
+    if (err || data?.error) {
       console.error("[useSalonReminderTemplates] reset failed", err);
       setError("Couldn't reset template.");
       setSaving(false);

@@ -39,7 +39,7 @@ function PreviewThumb({ path }: { path: string | null }) {
   if (!url) return <div className="absolute inset-0 bg-muted animate-pulse" />;
   return (
     <>
-      <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
       <div className="absolute inset-0 backdrop-blur-[2px]" />
       <div className="absolute inset-0 flex items-center justify-center">

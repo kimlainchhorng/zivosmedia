@@ -79,6 +79,16 @@ Deno.serve(withSecurity("process-refund", async (req, ctx) => {
         decision_notes: notes ?? null,
       } as any).eq("id", request_id);
 
+      try {
+        await admin.from("admin_actions").insert({
+          admin_id: user.id,
+          action_type: "refund_denied",
+          entity_type: "ride_refund_request",
+          entity_id: request_id,
+          payload_json: { decision, notes },
+        } as any);
+      } catch {}
+
       // Email rider best-effort
       try {
         const { data: rider } = await admin.from("profiles").select("email, full_name").eq("user_id", refundReq.requester_id).maybeSingle();
@@ -120,12 +130,16 @@ Deno.serve(withSecurity("process-refund", async (req, ctx) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     let stripeRefundId: string | null = null;
     try {
-      const refund = await stripe.refunds.create({
-        payment_intent: piId,
-        amount,
-        reason: "requested_by_customer",
-        metadata: { ride_request_id: ride.id, refund_request_id: request_id },
-      });
+      const idempotencyKey = `ride_refund_${String(request_id).replace(/-/g, "")}_${amount}`;
+      const refund = await stripe.refunds.create(
+        {
+          payment_intent: piId,
+          amount,
+          reason: "requested_by_customer",
+          metadata: { ride_request_id: ride.id, refund_request_id: request_id },
+        },
+        { idempotencyKey },
+      );
       stripeRefundId = refund.id;
     } catch (e: any) {
       console.error("[process-refund] stripe error", e);
@@ -146,16 +160,24 @@ Deno.serve(withSecurity("process-refund", async (req, ctx) => {
 
     await admin.from("ride_requests").update({ payment_status: newPaymentStatus, refund_status: newPaymentStatus } as any).eq("id", ride.id);
 
-    // Ledger entry (negative)
-    await admin.from("financial_ledger").insert({
-      user_id: ride.user_id,
-      ride_request_id: ride.id,
-      entry_type: "refund",
-      amount_cents: -amount,
-      currency: "usd",
-      stripe_reference: stripeRefundId,
-      description: `Refund (${decision}) for ride ${ride.id.slice(0, 8)}`,
-    } as any);
+    // Ledger entry (negative). Guard by Stripe refund id so retries after a
+    // partial failure do not duplicate customer ledger rows.
+    const { data: existingLedger } = await admin
+      .from("financial_ledger")
+      .select("id")
+      .eq("stripe_reference", stripeRefundId)
+      .maybeSingle();
+    if (!existingLedger) {
+      await admin.from("financial_ledger").insert({
+        user_id: ride.user_id,
+        ride_request_id: ride.id,
+        entry_type: "refund",
+        amount_cents: -amount,
+        currency: "usd",
+        stripe_reference: stripeRefundId,
+        description: `Refund (${decision}) for ride ${ride.id.slice(0, 8)}`,
+      } as any);
+    }
 
     // Audit log
     try {
@@ -190,4 +212,4 @@ Deno.serve(withSecurity("process-refund", async (req, ctx) => {
     console.error("[process-refund]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

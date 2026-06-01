@@ -170,4 +170,4 @@ serve(withSecurity("register-push-token", async (req, ctx) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-}, { rateLimit: "api_general", strictCors: true, trackNetwork: "suspicious" }));
+}, { rateLimit: "api_general", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

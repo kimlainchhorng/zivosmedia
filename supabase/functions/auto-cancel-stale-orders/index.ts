@@ -7,12 +7,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
 serve(withSecurity("auto-cancel-stale-orders", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method === "OPTIONS") {
@@ -92,7 +86,7 @@ serve(withSecurity("auto-cancel-stale-orders", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}, { rateLimit: "admin_action", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { rateLimit: "admin_action", strictCors: true, allowedMethods: ["POST"], skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
 
 function isInternalCaller(req: Request) {
   const authHeader = req.headers.get("Authorization") || "";

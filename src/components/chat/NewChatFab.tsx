@@ -40,7 +40,7 @@ export default function NewChatFab({ onNewChat, onNewGroup, onNewContact, onBroa
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setOpen(false)}
-            className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-30 bg-black/35 backdrop-blur-md"
           />
         )}
       </AnimatePresence>
@@ -61,12 +61,12 @@ export default function NewChatFab({ onNewChat, onNewGroup, onNewContact, onBroa
                 exit={{ opacity: 0, y: 10, scale: 0.9 }}
                 transition={{ delay: i * 0.03 }}
                 onClick={() => { setOpen(false); it.onClick(); }}
-                className="flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-full bg-card border border-border/40 shadow-lg active:scale-95 transition-transform"
+                className="zivo-chat-card flex items-center gap-3 rounded-full py-2.5 pl-4 pr-3 transition-transform active:scale-95"
                 aria-label={it.label}
                 title={it.label}
               >
-                <span className="text-sm font-semibold text-foreground">{it.label}</span>
-                <span className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-sm font-black text-foreground">{it.label}</span>
+                <span className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full">
                   <Icon className="w-4 h-4 text-primary" />
                 </span>
               </motion.button>
@@ -83,8 +83,8 @@ export default function NewChatFab({ onNewChat, onNewGroup, onNewContact, onBroa
           className={cn(
             "w-14 h-14 rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-all",
             open
-              ? "bg-muted text-foreground"
-              : "bg-primary text-primary-foreground shadow-primary/30"
+              ? "zivo-chat-icon-button text-foreground"
+              : "zivo-chat-chip-active text-white"
           )}
           aria-label={open ? "Close" : "New"}
           title={open ? "Close" : "New"}

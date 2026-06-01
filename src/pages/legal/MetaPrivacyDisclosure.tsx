@@ -99,11 +99,11 @@ export default function MetaPrivacyDisclosure() {
         <div className="text-center space-y-2 pt-2">
           <p className="text-[11px] text-muted-foreground">
             For full privacy details, see our{" "}
-            <Link to="/privacy" className="text-primary underline">
+            <Link to="/legal/privacy" className="text-primary underline">
               Privacy Policy
             </Link>
             {" "}and{" "}
-            <Link to="/cookies" className="text-primary underline">
+            <Link to="/legal/cookies" className="text-primary underline">
               Cookie Policy
             </Link>
             .

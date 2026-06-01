@@ -46,11 +46,12 @@ export default function ShopSettingsPage() {
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!store?.id) throw new Error("No store found");
+      if (!store?.id || !user?.id) throw new Error("No store found");
       const { error } = await supabase
         .from("store_profiles")
         .update({ name, description, phone, address, hours })
-        .eq("id", store.id);
+        .eq("id", store.id)
+        .eq("owner_id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {

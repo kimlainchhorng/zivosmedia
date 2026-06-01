@@ -1,6 +1,6 @@
 /**
  * CreatorMilestonesPage — Creator achievement timeline.
- * Pulls real rows from `creator_milestones` (orphan schema, no UI before).
+ * Reads server-awarded rows from `creator_milestones`.
  * Also auto-detects "implied" milestones the user has already crossed
  * (first follower, 100 followers, 10 posts, etc) from live counts.
  */
@@ -121,15 +121,11 @@ export default function CreatorMilestonesPage() {
 
   const celebrateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const sb = supabase as unknown as {
-        from: (t: string) => {
-          update: (payload: Record<string, unknown>) => {
-            eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>;
-          };
-        };
-      };
-      const { error } = await sb.from("creator_milestones").update({ is_celebrated: true }).eq("id", id);
+      const { data, error } = await supabase.functions.invoke("creator-milestone-celebrate", {
+        body: { milestone_id: id },
+      });
       if (error) throw new Error(error.message);
+      if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => {
       toast.success("🎉");

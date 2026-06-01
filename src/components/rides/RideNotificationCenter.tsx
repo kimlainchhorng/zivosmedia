@@ -109,16 +109,15 @@ export default function RideNotificationCenter() {
   const markAllRead = async () => {
     if (!user?.id || unreadCount === 0) return;
     const unreadIds = notifs.filter(n => !n.is_read).map(n => n.id);
-    await (supabase as any)
-      .from("notifications")
-      .update({ is_read: true })
-      .in("id", unreadIds);
+    await supabase.functions.invoke("notification-manage", {
+      body: { action: "mark_read", notification_ids: unreadIds },
+    });
     setNotifs(ns => ns.map(n => ({ ...n, is_read: true })));
     toast.success("All notifications marked as read");
   };
 
   const markRead = async (id: string) => {
-    await (supabase as any).from("notifications").update({ is_read: true }).eq("id", id);
+    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_id: id } });
     setNotifs(ns => ns.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 

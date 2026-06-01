@@ -128,4 +128,4 @@ Deno.serve(withSecurity("google-ads-oauth-callback", async (req) => {
   } catch (e) {
     return back(`error=${encodeURIComponent((e as Error).message)}`);
   }
-}, { rateLimit: "admin_action", strictCors: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["GET"], rateLimit: "admin_action", strictCors: true, skipWaf: true, trackNetwork: "suspicious" }));

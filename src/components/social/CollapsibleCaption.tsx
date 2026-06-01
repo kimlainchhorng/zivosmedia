@@ -13,7 +13,9 @@
  * overflow-threshold heuristic.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useHaptic } from "@/hooks/useHaptic";
 
 type Variant = "card" | "overlay";
 
@@ -39,6 +41,7 @@ export function CollapsibleCaption({
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const haptic = useHaptic();
 
   // Measure overflow whenever text or width changes.
   useLayoutEffect(() => {
@@ -84,9 +87,13 @@ export function CollapsibleCaption({
 
   const linkColor =
     variant === "overlay" ? "text-white/80" : "text-muted-foreground";
+  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  const captionMeta = wordCount > 0 ? `${wordCount} words` : "caption";
+  const readCue = wordCount >= 80 ? "Long read" : wordCount >= 35 ? "More context" : "Quick read";
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    haptic("light");
     setExpanded((v) => !v);
   };
 
@@ -110,18 +117,29 @@ export function CollapsibleCaption({
           type="button"
           onClick={handleToggle}
           aria-expanded={false}
-          aria-label="Show full caption"
+          aria-label={`Show full caption, ${captionMeta}`}
           className={cn(
-            "absolute right-0 bottom-0 pl-16 pr-0 text-[13px] font-medium max-w-[70%] text-right whitespace-nowrap",
+            "zivo-social-caption-toggle absolute bottom-0 right-0 inline-flex max-w-[76%] items-center justify-end gap-1 whitespace-nowrap pl-16 pr-0 text-right text-[13px] font-bold",
             "bg-gradient-to-r",
             maskFrom,
             linkColor,
-            "active:opacity-70",
+            "transition-opacity active:opacity-70",
           )}
         >
           {"…  "}
-          <span className={variant === "overlay" ? "text-white" : "text-foreground"}>
-            See more
+          <span className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-sm",
+            variant === "overlay" ? "border border-white/15 bg-black/25 text-white" : "zivo-social-chip text-foreground",
+          )}>
+            <Sparkles className="h-3 w-3" />
+            <span>See more</span>
+            <span className={cn(
+              "rounded-full px-1.5 py-0 text-[10px] font-black",
+              variant === "overlay" ? "bg-white/15 text-white/80" : "bg-background/70 text-muted-foreground",
+            )}>
+              {readCue}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5" />
           </span>
         </button>
       )}
@@ -132,13 +150,24 @@ export function CollapsibleCaption({
           type="button"
           onClick={handleToggle}
           aria-expanded={true}
-          aria-label="Collapse caption"
+          aria-label={`Collapse caption, ${captionMeta}`}
           className={cn(
-            "mt-0.5 text-[12px] font-medium active:opacity-70",
+            "mt-1 inline-flex min-h-[28px] items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold transition-all active:scale-95 active:opacity-70",
+            variant === "overlay"
+              ? "border border-white/15 bg-black/30 backdrop-blur-md"
+              : "zivo-social-caption-less",
             linkColor,
           )}
         >
+          <Sparkles className="h-3 w-3" />
           See less
+          <span className={cn(
+            "rounded-full px-1.5 py-0 text-[10px] font-black",
+            variant === "overlay" ? "bg-white/15 text-white/80" : "bg-background/70 text-muted-foreground",
+          )}>
+            {wordCount} words
+          </span>
+          <ChevronUp className="h-3.5 w-3.5" />
         </button>
       )}
     </div>

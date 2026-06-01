@@ -1,19 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SUPABASE_URL } from "@/integrations/supabase/client";
 
-const MANIFEST_URL =
-  "https://slirphzzwcogdbkeicff.supabase.co/storage/v1/object/public/app-updates/latest.json";
+const MANIFEST_URL = `${SUPABASE_URL}/storage/v1/object/public/app-updates/latest.json`;
 const CHECK_INTERVAL_MS = 10 * 60 * 1000;
 const MIN_CHECK_GAP_MS = 30 * 1000;
+const MANIFEST_FETCH_TIMEOUT_MS = 10 * 1000;
+const MAX_BUNDLE_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_MANIFEST_FUTURE_SKEW_MS = 5 * 60 * 1000;
+const MAX_MANIFEST_AGE_MS = 180 * 24 * 60 * 60 * 1000;
+const MAX_RELEASE_MESSAGE_LENGTH = 240;
 
 type UpdateActivation = "prompt" | "next_launch" | "immediate";
 
 interface UpdateManifest {
   version: string;
   url: string;
-  checksum?: string;
+  checksum: string;
+  bundleSizeBytes: number;
+  createdAt: string;
   message?: string;
-  mandatory?: boolean;
-  activation?: UpdateActivation;
+  mandatory: boolean;
+  activation: UpdateActivation;
   minNativeVersion?: string;
 }
 
@@ -77,6 +84,69 @@ function satisfiesMinimumVersion(currentVersion: string | undefined | null, mini
   return comparison >= 0;
 }
 
+function isValidSemver(version: string | undefined) {
+  return typeof version === "string" && /^\d+\.\d+\.\d+$/.test(version);
+}
+
+function isValidOptionalSemver(version: string | undefined) {
+  return version === undefined || isValidSemver(version);
+}
+
+function isValidOptionalMessage(message: string | undefined) {
+  return message === undefined || (typeof message === "string" && message.trim() === message && message.length > 0 && message.length <= MAX_RELEASE_MESSAGE_LENGTH);
+}
+
+function isManifestRecord(value: unknown): value is UpdateManifest {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isValidManifestTimestamp(createdAt: string | undefined) {
+  const timestamp = Date.parse(createdAt);
+  const now = Date.now();
+  return Number.isFinite(timestamp)
+    && timestamp <= now + MAX_MANIFEST_FUTURE_SKEW_MS
+    && timestamp >= now - MAX_MANIFEST_AGE_MS;
+}
+
+function isAllowedBundleSize(bundleSizeBytes: number | undefined) {
+  return Number.isFinite(bundleSizeBytes) && bundleSizeBytes > 0 && bundleSizeBytes <= MAX_BUNDLE_SIZE_BYTES;
+}
+
+function isValidSha256Checksum(checksum: string | undefined) {
+  return typeof checksum === "string" && /^[a-f0-9]{64}$/i.test(checksum);
+}
+
+function isValidActivation(activation: UpdateManifest["activation"]) {
+  return activation === "prompt" || activation === "next_launch" || activation === "immediate";
+}
+
+function isValidBoolean(value: boolean | undefined) {
+  return typeof value === "boolean";
+}
+
+function isValidMandatoryActivation(mandatory: boolean | undefined, activation: UpdateManifest["activation"]) {
+  return (!mandatory || activation === "next_launch" || activation === "immediate")
+    && (activation !== "immediate" || mandatory === true);
+}
+
+function isAllowedBundleUrl(url: string | undefined, version: string | undefined) {
+  if (!url || !version) return false;
+
+  try {
+    const bundleUrl = new URL(url);
+    const supabaseUrl = new URL(SUPABASE_URL);
+    const expectedPath = `/storage/v1/object/public/app-updates/zivo-v${version}.zip`;
+
+    return bundleUrl.protocol === "https:"
+      && bundleUrl.host === supabaseUrl.host
+      && bundleUrl.search === ""
+      && bundleUrl.hash === ""
+      && decodeURIComponent(bundleUrl.pathname) === expectedPath;
+  } catch {
+    return false;
+  }
+}
+
 export function useOTAUpdate(): OTAState {
   const [pending, setPending] = useState(false);
   const [pendingVersion, setPendingVersion] = useState<string | null>(null);
@@ -106,27 +176,48 @@ export function useOTAUpdate(): OTAState {
 
         const { CapacitorUpdater } = await import("@capgo/capacitor-updater");
 
-        const res = await fetch(MANIFEST_URL, { cache: "no-store" });
+        const fetchController = new AbortController();
+        const fetchTimeout = window.setTimeout(() => fetchController.abort(), MANIFEST_FETCH_TIMEOUT_MS);
+        let res: Response;
+        try {
+          res = await fetch(MANIFEST_URL, {
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+            signal: fetchController.signal,
+          });
+        } finally {
+          window.clearTimeout(fetchTimeout);
+        }
         if (!res.ok || cancelled) return;
+        if (!res.headers.get("content-type")?.toLowerCase().includes("application/json")) return;
 
-        const manifest = (await res.json()) as UpdateManifest;
-        if (!manifest.version || !manifest.url || cancelled) return;
+        const manifestJson: unknown = await res.json();
+        if (!isManifestRecord(manifestJson)) return;
+
+        const manifest = manifestJson;
+        if (!isValidSemver(manifest.version) || !isValidOptionalMessage(manifest.message) || !isValidManifestTimestamp(manifest.createdAt) || !isAllowedBundleUrl(manifest.url, manifest.version) || !isValidSha256Checksum(manifest.checksum) || !isValidActivation(manifest.activation) || !isValidBoolean(manifest.mandatory) || !isValidMandatoryActivation(manifest.mandatory, manifest.activation) || cancelled) return;
 
         const { bundle, native } = await CapacitorUpdater.current();
         // bundle.version is empty string for the built-in (store) bundle
         const runningVersion = bundle.version || import.meta.env.VITE_APP_VERSION;
 
         if (!shouldInstallUpdate(runningVersion, manifest.version) || cancelled) return;
+        if (!isAllowedBundleSize(manifest.bundleSizeBytes)) return;
+        if (!isValidOptionalSemver(manifest.minNativeVersion)) return;
         if (!satisfiesMinimumVersion(native, manifest.minNativeVersion)) return;
         if (queuedVersions.has(manifest.version) || downloadedRef.current?.version === manifest.version) return;
 
         const newBundle = await CapacitorUpdater.download({
           url: manifest.url,
           version: manifest.version,
-          ...(manifest.checksum ? { checksum: manifest.checksum } : {}),
+          checksum: manifest.checksum,
         });
 
         if (cancelled) return;
+        if (newBundle.version !== manifest.version) {
+          await CapacitorUpdater.delete({ id: newBundle.id });
+          return;
+        }
 
         await CapacitorUpdater.next({ id: newBundle.id });
         queuedVersions.add(manifest.version);

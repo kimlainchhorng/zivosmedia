@@ -1,17 +1,9 @@
 // Notifications Summary v2026 — unread count + latest 5 in 1 call
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+Deno.serve(withSecurity("notifications-summary", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -80,4 +72,10 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["GET"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

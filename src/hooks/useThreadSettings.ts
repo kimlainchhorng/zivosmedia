@@ -74,9 +74,9 @@ export function useThreadSettings() {
       const current = byThread[threadId] ?? { thread_id: threadId, ...empty };
       const next = { ...current, ...patch, thread_id: threadId };
       setByThread((prev) => ({ ...prev, [threadId]: next as ThreadSettings }));
-      await supabase
-        .from("chat_thread_settings")
-        .upsert({ user_id: user.id, thread_id: threadId, ...patch }, { onConflict: "user_id,thread_id" });
+      await supabase.functions.invoke("chat-thread-settings-update", {
+        body: { thread_id: threadId, patch },
+      });
     },
     [user, byThread],
   );

@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bookmark, BookmarkCheck, VolumeX, UserX, Flag, Link2, Info, X, BarChart3, Pencil, Trash2, EyeOff } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, VolumeX, UserX, Flag, Link2, Info, X, BarChart3, Pencil, Trash2, EyeOff, ShieldQuestion, AlertTriangle, Sparkles, ShieldCheck, Compass } from "lucide-react";
 import { toast } from "sonner";
 import type { PostActionTarget } from "@/hooks/usePostActions";
 
@@ -47,6 +47,16 @@ export default function PostActionsMenu({
   onNotInterested,
 }: Props) {
   const [view, setView] = useState<"main" | "report" | "why" | "confirm-delete">("main");
+  const guidanceLabel = isOwnPost
+    ? "Review performance or edit safely"
+    : isBookmarked
+      ? "Saved for later"
+      : "Save, tune, or share";
+  const guidanceMeta = isOwnPost
+    ? "Owner tools are shown first"
+    : isBookmarked
+      ? "Tap Saved to remove it from your library"
+      : "Bookmark this post if you want to revisit it";
 
   const handleClose = () => { setView("main"); onClose(); };
 
@@ -72,7 +82,7 @@ export default function PostActionsMenu({
           onClick={handleClose}
         >
           <motion.div
-            className="w-full max-w-md md:max-w-lg rounded-t-3xl bg-background p-2 pb-6 shadow-2xl sm:rounded-3xl sm:pb-3 max-h-[85vh] overflow-y-auto"
+            className="zivo-social-composer-panel w-full max-w-md md:max-w-lg rounded-t-3xl p-2 pb-6 sm:rounded-3xl sm:pb-3 max-h-[85vh] overflow-y-auto"
             initial={{ y: 400, opacity: 0.5 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 400, opacity: 0 }}
@@ -81,10 +91,76 @@ export default function PostActionsMenu({
             style={{ paddingBottom: "max(1.5rem, var(--zivo-safe-bottom,0px))" }}
           >
             {/* Drag handle (mobile only) */}
-            <div className="mx-auto mb-2 mt-1 h-1 w-10 rounded-full bg-muted-foreground/30 sm:hidden" />
+            <div className="mx-auto mb-2 mt-1 h-1 w-10 rounded-full bg-foreground/25 shadow-[0_0_12px_hsl(var(--foreground)/0.12)] sm:hidden" />
 
             {view === "main" && (
               <div className="px-2">
+                <div className="zivo-social-header-glass mb-3 flex items-center justify-between gap-3 rounded-[1.15rem] px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-primary">
+                      <Sparkles className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-extrabold text-foreground">Post actions</h3>
+                      <p className="truncate text-xs font-medium text-muted-foreground">
+                        {authorName ? `Manage options for ${authorName}` : "Save, share, tune, or report this post"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    aria-label="Close post actions"
+                    className="zivo-social-icon-button flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="mb-3 grid grid-cols-3 gap-2">
+                  <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      {isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black leading-none text-foreground">{isBookmarked ? "Saved" : "Open"}</p>
+                      <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Library</p>
+                    </div>
+                  </div>
+                  <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black leading-none text-foreground">{isOwnPost ? "Owner" : "Viewer"}</p>
+                      <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Access</p>
+                    </div>
+                  </div>
+                  <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/10 text-fuchsia-500">
+                      <Info className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black leading-none text-foreground">{target.source === "store" ? "Shop" : "Post"}</p>
+                      <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Source</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="zivo-social-module-tile mb-3 flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500">
+                      <Compass className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                        Action guidance
+                      </span>
+                      <span className="block truncate text-xs font-black text-foreground">{guidanceLabel}</span>
+                    </span>
+                  </span>
+                  <span className="hidden min-w-0 truncate text-right text-[10px] font-semibold text-muted-foreground sm:block">
+                    {guidanceMeta}
+                  </span>
+                </div>
                 {/* Author-only rows: insights / edit / delete, surfaced first */}
                 {isOwnPost && (onViewInsights || onEditCaption || onDeletePost) && (
                   <>
@@ -112,7 +188,7 @@ export default function PostActionsMenu({
                         onClick={() => setView("confirm-delete")}
                       />
                     )}
-                    <hr className="my-2 border-border/50" />
+                    <hr className="my-2 border-border/30" />
                   </>
                 )}
                 <MenuRow
@@ -141,7 +217,7 @@ export default function PostActionsMenu({
                     onClick={() => { onNotInterested(); handleClose(); }}
                   />
                 )}
-                <hr className="my-2 border-border/50" />
+                <hr className="my-2 border-border/30" />
                 {target.authorId && (
                   <>
                     <MenuRow
@@ -169,16 +245,27 @@ export default function PostActionsMenu({
 
             {view === "report" && (
               <div className="px-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-base font-semibold">Why are you reporting?</h3>
-                  <button type="button" onClick={() => setView("main")} className="text-sm text-muted-foreground">Back</button>
+                <div className="zivo-social-header-glass mb-3 flex items-center justify-between gap-3 rounded-[1.15rem] px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-red-500">
+                      <Flag className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-extrabold text-foreground">Report post</h3>
+                      <p className="truncate text-xs font-medium text-muted-foreground">Tell us what needs review</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setView("main")} className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-bold text-muted-foreground">
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back
+                  </button>
                 </div>
                 <div className="space-y-1">
                   {REPORT_REASONS.map((r) => (
                     <button type="button"
                       key={r.id}
                       onClick={() => { onReport(r.id); handleClose(); }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-sm hover:bg-muted"
+                      className="zivo-social-sheet-row flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-sm transition-all active:scale-[0.99]"
                     >
                       <span>{r.label}</span>
                       <Flag className="h-4 w-4 text-muted-foreground" />
@@ -190,11 +277,22 @@ export default function PostActionsMenu({
 
             {view === "why" && (
               <div className="px-4 py-2">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-base font-semibold">Why you're seeing this</h3>
-                  <button type="button" onClick={() => setView("main")} className="text-sm text-muted-foreground">Back</button>
+                <div className="zivo-social-header-glass mb-3 flex items-center justify-between gap-3 rounded-[1.15rem] px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-primary">
+                      <ShieldQuestion className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-extrabold text-foreground">Why you're seeing this</h3>
+                      <p className="truncate text-xs font-medium text-muted-foreground">Signals that ranked this post</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setView("main")} className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-bold text-muted-foreground">
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back
+                  </button>
                 </div>
-                <div className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground space-y-2">
+                <div className="zivo-social-module rounded-[1.25rem] p-4 text-sm text-muted-foreground space-y-2">
                   <p>This post was ranked using:</p>
                   <ul className="ml-4 list-disc space-y-1">
                     <li>How recent it is</li>
@@ -209,11 +307,22 @@ export default function PostActionsMenu({
 
             {view === "confirm-delete" && (
               <div className="px-4 py-2">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-red-600">Delete this post?</h3>
-                  <button type="button" onClick={() => setView("main")} className="text-sm text-muted-foreground">Back</button>
+                <div className="zivo-social-header-glass mb-3 flex items-center justify-between gap-3 rounded-[1.15rem] px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-red-500">
+                      <AlertTriangle className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-extrabold text-red-600">Delete this post?</h3>
+                      <p className="truncate text-xs font-medium text-muted-foreground">This action cannot be undone</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setView("main")} className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-bold text-muted-foreground">
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back
+                  </button>
                 </div>
-                <div className="rounded-lg bg-red-500/5 border border-red-500/20 p-4 text-sm text-foreground space-y-2">
+                <div className="zivo-social-sheet-row zivo-social-sheet-row-danger rounded-[1.25rem] p-4 text-sm text-foreground space-y-2">
                   <p>This will permanently remove the post from your profile and the feed.</p>
                   <ul className="ml-4 list-disc space-y-1 text-muted-foreground text-xs">
                     <li>Likes, reactions, and comments will be deleted with it</li>
@@ -224,7 +333,7 @@ export default function PostActionsMenu({
                 <div className="mt-4 flex gap-2">
                   <button type="button"
                     onClick={() => setView("main")}
-                    className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-medium hover:bg-muted active:scale-95 transition-transform min-h-[44px]"
+                    className="zivo-social-chip flex-1 rounded-xl px-3 py-2.5 text-sm font-medium active:scale-95 transition-transform min-h-[44px]"
                   >
                     Cancel
                   </button>
@@ -251,9 +360,10 @@ function MenuRow({
   return (
     <button type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 sm:py-3 text-left hover:bg-muted active:bg-muted/80 transition-colors min-h-[52px] sm:min-h-[44px]"
+      aria-label={sub ? `${label}: ${sub}` : label}
+      className="zivo-social-sheet-row flex w-full items-center gap-3 rounded-2xl px-3 py-3.5 sm:py-3 text-left transition-all active:scale-[0.99] min-h-[52px] sm:min-h-[44px]"
     >
-      <span className="shrink-0 text-foreground">{icon}</span>
+      <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-foreground">{icon}</span>
       <span className="flex-1 min-w-0">
         <span className="block text-[15px] sm:text-sm font-medium text-foreground">{label}</span>
         {sub && <span className="block text-xs text-muted-foreground mt-0.5">{sub}</span>}

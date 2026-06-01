@@ -239,32 +239,35 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999] flex items-end justify-center"
+        className="fixed inset-0 z-[9999] flex items-end justify-center px-2 sm:px-4"
         onClick={onClose}
       >
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/45 backdrop-blur-md" />
         <motion.div
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative bg-background rounded-t-3xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+          className="zivo-chat-popover-glass relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-[1.75rem] shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="sticky top-0 bg-background/95 backdrop-blur-xl z-10 px-5 pt-5 pb-3 border-b border-border/30 pt-safe">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-4" />
+          <div className="zivo-chat-header-glass sticky top-0 z-10 px-5 pt-5 pb-4 pt-safe">
+            <div className="mx-auto mb-4 h-1 w-11 rounded-full bg-foreground/20" />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {view !== "menu" && (
-                  <button type="button" onClick={() => setView("menu")} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <button type="button" onClick={() => setView("menu")} className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center" aria-label="Back to mini apps">
                     <ChevronRight className="w-4 h-4 text-muted-foreground rotate-180" />
                   </button>
                 )}
-                <h3 className="text-lg font-bold text-foreground">
-                  {view === "menu" ? "Mini Apps" : view === "poll" ? "Polls" : view === "todo" ? "To-Do Lists" : "Split Bills"}
-                </h3>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Chat tools</p>
+                  <h3 className="text-lg font-black text-foreground">
+                    {view === "menu" ? "Mini Apps" : view === "poll" ? "Polls" : view === "todo" ? "To-Do Lists" : view === "split" ? "Split Bills" : view === "book_table" ? "Book Table" : "Trip Idea"}
+                  </h3>
+                </div>
               </div>
-              <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+              <button type="button" onClick={onClose} className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center" aria-label="Close mini apps">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
@@ -283,14 +286,14 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
                   <button type="button"
                     key={app.id}
                     onClick={() => setView(app.id)}
-                    className="flex flex-col items-center gap-2 py-5 rounded-2xl border border-border/30 hover:bg-muted/30 transition-colors relative"
+                    className="group relative flex min-h-[122px] flex-col items-center justify-center gap-2 rounded-3xl border border-white/10 bg-background/45 px-2 py-5 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-muted/20 hover:shadow-lg"
                   >
-                    <div className={`w-12 h-12 rounded-xl ${app.color} flex items-center justify-center`}>
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${app.color} shadow-lg transition-transform group-hover:scale-105`}>
                       <app.icon className="w-6 h-6 text-white" />
                     </div>
-                    <span className="text-xs font-semibold text-foreground">{app.label}</span>
+                    <span className="text-center text-xs font-black text-foreground">{app.label}</span>
                     {app.count > 0 && (
-                      <span className="absolute top-2 right-2 min-w-[18px] h-[18px] px-1 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute right-2 top-2 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-black text-primary-foreground shadow-lg">
                         {app.count}
                       </span>
                     )}
@@ -303,13 +306,13 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
             {view === "poll" && (
               <div className="space-y-4">
                 {/* Create new poll */}
-                <div className="p-4 rounded-2xl border border-border/40 space-y-3">
-                  <h4 className="text-xs font-bold text-foreground">Create a Poll</h4>
+                <div className="zivo-chat-card space-y-3 p-4">
+                  <h4 className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Create a Poll</h4>
                   <input
                     placeholder="Ask a question..."
                     value={newPollQ}
                     onChange={(e) => setNewPollQ(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground placeholder:text-muted-foreground"
                   />
                   {newPollOpts.map((opt, i) => (
                     <input
@@ -321,17 +324,17 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
                         n[i] = e.target.value;
                         setNewPollOpts(n);
                       }}
-                      className="w-full h-9 px-3 rounded-lg border border-border/30 bg-muted/20 text-sm text-foreground placeholder:text-muted-foreground"
+                      className="zivo-chat-search h-9 w-full px-3 text-sm text-foreground placeholder:text-muted-foreground"
                     />
                   ))}
                   <div className="flex gap-2">
                     {newPollOpts.length < 6 && (
-                      <button type="button" onClick={() => setNewPollOpts([...newPollOpts, ""])} className="text-xs text-primary font-medium flex items-center gap-1">
+                      <button type="button" onClick={() => setNewPollOpts([...newPollOpts, ""])} className="zivo-chat-chip flex items-center gap-1 px-3 py-2 text-xs font-black text-primary">
                         <Plus className="w-3 h-3" /> Add option
                       </button>
                     )}
                   </div>
-                  <button type="button" onClick={createPoll} className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">
+                  <button type="button" onClick={createPoll} className="zivo-chat-chip-active h-10 w-full justify-center text-sm font-black">
                     Create Poll
                   </button>
                 </div>
@@ -341,10 +344,10 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
                   const totalVotes = Object.keys(poll.votes).length;
                   const myVote = poll.votes[user!.id];
                   return (
-                    <div key={poll.id} className="p-4 rounded-2xl border border-border/40 space-y-2">
+                    <div key={poll.id} className="zivo-chat-card space-y-2 p-4">
                       <div className="flex items-start justify-between">
-                        <p className="text-sm font-bold text-foreground">{poll.question}</p>
-                        {poll.is_closed && <span className="text-[9px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Closed</span>}
+                        <p className="text-sm font-black text-foreground">{poll.question}</p>
+                        {poll.is_closed && <span className="zivo-chat-chip px-2 py-0.5 text-[9px] font-black text-muted-foreground">Closed</span>}
                       </div>
                       {(poll.options as string[]).map((opt) => {
                         const voteCount = Object.values(poll.votes).filter(v => v === opt).length;
@@ -355,22 +358,22 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
                             key={opt}
                             onClick={() => votePoll(poll.id, opt)}
                             disabled={poll.is_closed}
-                            className={`w-full text-left px-3 py-2 rounded-xl border relative overflow-hidden transition-colors ${
-                              isMyVote ? "border-primary/50 bg-primary/5" : "border-border/30"
+                            className={`relative w-full overflow-hidden rounded-2xl border px-3 py-2.5 text-left transition-colors ${
+                              isMyVote ? "border-primary/50 bg-primary/10" : "border-border/30 bg-background/35"
                             }`}
                           >
                             <div className="absolute inset-y-0 left-0 bg-primary/10 transition-all" style={{ width: `${pct}%` }} />
                             <div className="relative flex items-center justify-between">
-                              <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                              <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                                 {isMyVote && <Check className="w-3 h-3 text-primary" />}
                                 {opt}
                               </span>
-                              <span className="text-[10px] text-muted-foreground">{pct}%</span>
+                              <span className="text-[10px] font-black text-muted-foreground">{pct}%</span>
                             </div>
                           </button>
                         );
                       })}
-                      <p className="text-[10px] text-muted-foreground">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</p>
                     </div>
                   );
                 })}
@@ -380,13 +383,13 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
             {/* To-Do view */}
             {view === "todo" && (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl border border-border/40 space-y-3">
-                  <h4 className="text-xs font-bold text-foreground">Create a To-Do List</h4>
+                <div className="zivo-chat-card space-y-3 p-4">
+                  <h4 className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Create a To-Do List</h4>
                   <input
                     placeholder="List title..."
                     value={newTodoTitle}
                     onChange={(e) => setNewTodoTitle(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground placeholder:text-muted-foreground"
                   />
                   {newTodoItems.map((item, i) => (
                     <input
@@ -398,37 +401,37 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
                         n[i] = e.target.value;
                         setNewTodoItems(n);
                       }}
-                      className="w-full h-9 px-3 rounded-lg border border-border/30 bg-muted/20 text-sm text-foreground placeholder:text-muted-foreground"
+                      className="zivo-chat-search h-9 w-full px-3 text-sm text-foreground placeholder:text-muted-foreground"
                     />
                   ))}
-                  <button type="button" onClick={() => setNewTodoItems([...newTodoItems, ""])} className="text-xs text-primary font-medium flex items-center gap-1">
+                  <button type="button" onClick={() => setNewTodoItems([...newTodoItems, ""])} className="zivo-chat-chip flex items-center gap-1 px-3 py-2 text-xs font-black text-primary">
                     <Plus className="w-3 h-3" /> Add item
                   </button>
-                  <button type="button" onClick={createTodo} className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">
+                  <button type="button" onClick={createTodo} className="zivo-chat-chip-active h-10 w-full justify-center text-sm font-black">
                     Create List
                   </button>
                 </div>
 
                 {todos.map((todo) => (
-                  <div key={todo.id} className="p-4 rounded-2xl border border-border/40 space-y-2">
-                    <h4 className="text-sm font-bold text-foreground">{todo.title}</h4>
+                  <div key={todo.id} className="zivo-chat-card space-y-2 p-4">
+                    <h4 className="text-sm font-black text-foreground">{todo.title}</h4>
                     {(todo.items as TodoItem[]).map((item, i) => (
                       <button type="button"
                         key={i}
                         onClick={() => toggleTodoItem(todo.id, i)}
-                        className="w-full flex items-center gap-2.5 py-1.5 text-left"
+                        className="flex w-full items-center gap-2.5 rounded-2xl px-2 py-2 text-left hover:bg-muted/20"
                       >
                         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
                           item.done ? "bg-primary border-primary" : "border-border"
                         }`}>
                           {item.done && <Check className="w-3 h-3 text-primary-foreground" />}
                         </div>
-                        <span className={`text-sm ${item.done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                        <span className={`text-sm font-semibold ${item.done ? "line-through text-muted-foreground" : "text-foreground"}`}>
                           {item.text}
                         </span>
                       </button>
                     ))}
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[10px] font-semibold text-muted-foreground">
                       {(todo.items as TodoItem[]).filter(i => i.done).length}/{(todo.items as TodoItem[]).length} completed
                     </p>
                   </div>
@@ -439,13 +442,13 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
             {/* SPLIT BILL VIEW */}
             {view === "split" && (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl border border-border/40 space-y-3">
-                  <h4 className="text-xs font-bold text-foreground">Split a Bill</h4>
+                <div className="zivo-chat-card space-y-3 p-4">
+                  <h4 className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Split a Bill</h4>
                   <input
                     placeholder="What's it for?"
                     value={newBillTitle}
                     onChange={(e) => setNewBillTitle(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground placeholder:text-muted-foreground"
                   />
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
@@ -454,30 +457,30 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
                       placeholder="0.00"
                       value={newBillAmount}
                       onChange={(e) => setNewBillAmount(e.target.value)}
-                      className="w-full h-10 pl-7 pr-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground"
+                      className="zivo-chat-search h-10 w-full pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Split evenly between you and {chatPartnerName}</p>
-                  <button type="button" onClick={createSplitBill} className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">
+                  <p className="text-[10px] font-semibold text-muted-foreground">Split evenly between you and {chatPartnerName}</p>
+                  <button type="button" onClick={createSplitBill} className="zivo-chat-chip-active h-10 w-full justify-center text-sm font-black">
                     Create Split
                   </button>
                 </div>
 
                 {bills.map((bill) => (
-                  <div key={bill.id} className="p-4 rounded-2xl border border-border/40 space-y-2">
+                  <div key={bill.id} className="zivo-chat-card space-y-2 p-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-foreground">{bill.title}</h4>
-                      <span className="text-sm font-bold text-primary">${Number(bill.total_amount).toFixed(2)}</span>
+                      <h4 className="text-sm font-black text-foreground">{bill.title}</h4>
+                      <span className="text-sm font-black text-primary">${Number(bill.total_amount).toFixed(2)}</span>
                     </div>
                     {bill.splits.map((split, i) => (
                       <div key={i} className="flex items-center justify-between py-1.5 border-b border-border/10 last:border-0">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${split.paid ? "bg-emerald-500" : "bg-amber-500"}`} />
-                          <span className="text-xs text-foreground">{split.userId === user?.id ? "You" : split.name}</span>
+                          <span className="text-xs font-semibold text-foreground">{split.userId === user?.id ? "You" : split.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-foreground">${Number(split.amount).toFixed(2)}</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                          <span className="text-xs font-black text-foreground">${Number(split.amount).toFixed(2)}</span>
+                          <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-black ${
                             split.paid ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
                           }`}>
                             {split.paid ? "Paid" : "Pending"}
@@ -493,21 +496,21 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
             {/* BOOK TABLE VIEW */}
             {view === "book_table" && (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl border border-border/40 space-y-3">
-                  <h4 className="text-xs font-bold text-foreground">Book a Table</h4>
+                <div className="zivo-chat-card space-y-3 p-4">
+                  <h4 className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Book a Table</h4>
                   <input
                     placeholder="Restaurant name..."
                     value={newBookingTitle}
                     onChange={(e) => setNewBookingTitle(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground placeholder:text-muted-foreground"
                   />
                   <input
                     type="datetime-local"
                     value={newBookingDate}
                     onChange={(e) => setNewBookingDate(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground"
                   />
-                  <button type="button" onClick={createBooking} className="w-full h-10 rounded-xl bg-orange-500 text-white text-sm font-semibold">
+                  <button type="button" onClick={createBooking} className="h-10 w-full rounded-2xl bg-orange-500 text-sm font-black text-white shadow-lg shadow-orange-500/20">
                     Send Suggestion
                   </button>
                 </div>
@@ -517,21 +520,21 @@ export default function ChatMiniApps({ open, onClose, chatPartnerId, chatPartner
             {/* TRIP IDEA VIEW */}
             {view === "trip_idea" && (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl border border-border/40 space-y-3">
-                  <h4 className="text-xs font-bold text-foreground">Plan a Trip</h4>
+                <div className="zivo-chat-card space-y-3 p-4">
+                  <h4 className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Plan a Trip</h4>
                   <input
                     placeholder="Trip title (e.g. Summer Vacay)"
                     value={newTripTitle}
                     onChange={(e) => setNewTripTitle(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground placeholder:text-muted-foreground"
                   />
                   <input
                     placeholder="Destination..."
                     value={newTripDest}
                     onChange={(e) => setNewTripDest(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground placeholder:text-muted-foreground"
                   />
-                  <button type="button" onClick={createTrip} className="w-full h-10 rounded-xl bg-indigo-500 text-white text-sm font-semibold">
+                  <button type="button" onClick={createTrip} className="h-10 w-full rounded-2xl bg-indigo-500 text-sm font-black text-white shadow-lg shadow-indigo-500/20">
                     Share Idea
                   </button>
                 </div>

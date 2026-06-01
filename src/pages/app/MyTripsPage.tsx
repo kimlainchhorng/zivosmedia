@@ -223,6 +223,7 @@ export default function MyTripsPage() {
           alt=""
           className="absolute inset-0 w-full h-full object-cover opacity-[0.1]"
           loading="lazy"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/90" />
         <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.04] via-transparent to-primary/[0.03]" />

@@ -736,6 +736,8 @@ export default function HotelsLandingPage() {
             src={tabHotelsBg}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
             aria-hidden
           />
           <div className="absolute inset-0 bg-black/20" />
@@ -832,6 +834,7 @@ export default function HotelsLandingPage() {
                           src={s.banner_url || s.logo_url || ""}
                           alt=""
                           loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -1129,6 +1132,7 @@ export default function HotelsLandingPage() {
                   src={dest.img}
                   alt={dest.label}
                   loading="lazy"
+                  decoding="async"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display = "none";
                   }}
@@ -1282,6 +1286,7 @@ export default function HotelsLandingPage() {
                       alt={rv.name}
                       className="absolute inset-0 w-full h-full object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />

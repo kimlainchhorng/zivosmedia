@@ -293,7 +293,7 @@ export default function AccountAnalyticsPage() {
                 <span className="w-5 text-xs font-bold tabular-nums text-muted-foreground">{i + 1}</span>
                 <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center">
                   {post.media_url ? (
-                    <img src={post.media_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    <img src={post.media_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   )}

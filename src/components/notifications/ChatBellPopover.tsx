@@ -263,7 +263,7 @@ export function ChatBellPopover({
     <div ref={wrapRef} className={cn("relative", className)}>
       <button type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+        className="zivo-chat-icon-button relative flex h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all"
         aria-label={buttonLabel}
         aria-expanded={open}
       >
@@ -284,14 +284,17 @@ export function ChatBellPopover({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed z-[10000] flex w-[min(380px,calc(100vw-24px))] max-h-[min(620px,calc(100dvh-148px))] flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
+            className="zivo-chat-popover-glass fixed z-[10000] flex w-[min(380px,calc(100vw-24px))] max-h-[min(620px,calc(100dvh-148px))] flex-col overflow-hidden rounded-3xl"
             style={{ top: panelPos.top, right: panelPos.right }}
             role="dialog"
             aria-label={dialogLabel}
           >
             {/* Header */}
-            <div className="shrink-0 px-4 pt-3 pb-2 flex items-center justify-between bg-card">
-              <h3 className="text-base font-bold text-foreground">Notifications</h3>
+            <div className="shrink-0 px-4 pt-3 pb-2 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Chat pulse</p>
+                <h3 className="text-base font-black text-foreground">Notifications</h3>
+              </div>
               {unreadCount > 0 && (
                 <button type="button"
                   onClick={() => markAllAsRead()}
@@ -304,16 +307,16 @@ export function ChatBellPopover({
             </div>
 
             {/* Tabs */}
-            <div className="shrink-0 px-4 pb-2 flex items-center gap-2 bg-card">
+            <div className="shrink-0 px-4 pb-2 flex items-center gap-2">
               {(["all", "unread"] as const).map((t) => (
                 <button type="button"
                   key={t}
                   onClick={() => setTab(t)}
                   className={cn(
-                    "px-3 py-1 rounded-full text-xs font-semibold transition-colors",
+                    "rounded-full px-3 py-1 text-xs font-black transition-colors",
                     tab === t
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground hover:bg-muted/70"
+                      ? "zivo-chat-chip-active"
+                      : "zivo-chat-chip text-foreground"
                   )}
                 >
                   {t === "all" ? "All" : "Unread"}
@@ -325,11 +328,14 @@ export function ChatBellPopover({
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {isLoading ? (
                 <div className="flex items-center justify-center py-10">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                  <div className="zivo-chat-card flex items-center gap-2 rounded-full px-4 py-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-xs font-bold text-muted-foreground">Loading</span>
+                  </div>
                 </div>
               ) : list.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <div className="zivo-chat-card w-12 h-12 rounded-2xl flex items-center justify-center mb-3">
                     <Bell className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <p className="text-sm font-semibold text-foreground">
@@ -348,12 +354,11 @@ export function ChatBellPopover({
                     const isReplying = !!threadId && replyOpenFor === threadId;
                     const isRowMuted = !!threadId && isMuted(threadId);
                     return (
-                      <li key={n.id} className={cn(isReplying && "bg-muted/40")}>
+                      <li key={n.id} className={cn("px-2 py-1", isReplying && "bg-white/35")}>
                         <div
                           className={cn(
-                            "w-full text-left px-4 py-2.5 flex gap-3 items-start transition-colors",
-                            hasUnread && !isReplying && "bg-primary/5",
-                            !isReplying && "hover:bg-muted/60"
+                            "zivo-chat-row w-full text-left px-3 py-2.5 flex gap-3 items-start transition-colors",
+                            hasUnread && !isReplying && "zivo-chat-row-unread"
                           )}
                         >
                           <div className="mt-1 w-2 h-2 rounded-full flex-shrink-0 bg-primary"
@@ -370,7 +375,7 @@ export function ChatBellPopover({
                                 <BellOff className="h-3 w-3 text-muted-foreground shrink-0" aria-label="Muted" />
                               )}
                               {g.count > 1 && (
-                                <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary">
+                                <span className="zivo-chat-chip shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-primary">
                                   {g.count} new
                                 </span>
                               )}
@@ -400,7 +405,7 @@ export function ChatBellPopover({
                                   openReply(threadId, g.ids);
                                 }}
                                 aria-label="Reply"
-                                className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 active:scale-90 transition-all"
+                                className="zivo-chat-icon-button h-8 w-8 rounded-full text-primary flex items-center justify-center active:scale-90 transition-all"
                               >
                                 <CornerUpLeft className="h-4 w-4" />
                               </button>
@@ -410,7 +415,7 @@ export function ChatBellPopover({
                                   setPreviewUserId(threadId);
                                 }}
                                 aria-label="Preview profile"
-                                className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground active:scale-90 transition-all flex items-center justify-center"
+                                className="zivo-chat-icon-button h-8 w-8 rounded-full text-muted-foreground active:scale-90 transition-all flex items-center justify-center"
                               >
                                 <UserCircle className="h-4 w-4" />
                               </button>
@@ -428,8 +433,8 @@ export function ChatBellPopover({
                                 }}
                                 aria-label={isMuted(threadId) ? "Unmute conversation" : "Mute conversation"}
                                 className={cn(
-                                  "h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted active:scale-90 transition-all",
-                                  isMuted(threadId) ? "bg-muted text-foreground" : "text-muted-foreground"
+                                  "zivo-chat-icon-button h-8 w-8 rounded-full flex items-center justify-center active:scale-90 transition-all",
+                                  isMuted(threadId) ? "text-foreground" : "text-muted-foreground"
                                 )}
                               >
                                 <BellOff className="h-4 w-4" />
@@ -449,7 +454,7 @@ export function ChatBellPopover({
                               transition={{ duration: 0.15 }}
                               className="overflow-hidden"
                             >
-                              <div className="px-4 pb-3 pt-0 grid grid-cols-2 gap-1.5">
+                              <div className="px-4 pb-3 pt-1 grid grid-cols-2 gap-1.5">
                                 {MUTE_DURATIONS.map((d) => (
                                   <button type="button"
                                     key={d.id}
@@ -459,7 +464,7 @@ export function ChatBellPopover({
                                       setMuteOpenFor(null);
                                       toast.success(`Muted · ${d.label.toLowerCase()}`);
                                     }}
-                                    className="h-8 px-3 rounded-full bg-muted/70 hover:bg-muted text-foreground text-[12px] font-medium flex items-center justify-center"
+                                    className="zivo-chat-chip h-8 px-3 rounded-full text-foreground text-[12px] font-bold flex items-center justify-center"
                                   >
                                     {d.label}
                                   </button>
@@ -480,7 +485,7 @@ export function ChatBellPopover({
                               transition={{ duration: 0.15 }}
                               className="overflow-hidden"
                             >
-                              <div className="px-4 pb-3 pt-0 flex items-center gap-2">
+                              <div className="px-4 pb-3 pt-1 flex items-center gap-2">
                                 <input
                                   ref={replyInputRef}
                                   value={replyText}
@@ -496,7 +501,7 @@ export function ChatBellPopover({
                                   }}
                                   placeholder={`Reply to ${n.title}…`}
                                   disabled={replySending}
-                                  className="flex-1 h-9 px-3 rounded-full bg-background border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+                                  className="zivo-chat-search flex-1 h-9 px-3 rounded-full text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
                                 />
                                 <button type="button"
                                   onClick={cancelReply}
@@ -510,7 +515,7 @@ export function ChatBellPopover({
                                   onClick={() => void sendReply()}
                                   disabled={!replyText.trim() || replySending}
                                   aria-label="Send reply"
-                                  className="shrink-0 h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all"
+                                  className="zivo-chat-chip-active shrink-0 h-9 w-9 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all"
                                 >
                                   {replySending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -530,13 +535,13 @@ export function ChatBellPopover({
             </div>
 
             {/* Footer */}
-            <div className="shrink-0 border-t border-border bg-card">
+            <div className="shrink-0 border-t border-border/30">
               <button type="button"
                 onClick={() => {
                   setOpen(false);
                   navigate("/notifications");
                 }}
-                className="w-full py-3 text-sm font-semibold text-primary hover:bg-muted/50 transition-colors"
+                className="w-full py-3 text-sm font-black text-primary hover:bg-white/45 transition-colors"
               >
                 See all notifications
               </button>

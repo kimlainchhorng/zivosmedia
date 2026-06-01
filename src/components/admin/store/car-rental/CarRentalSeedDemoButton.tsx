@@ -38,24 +38,25 @@ export default function CarRentalSeedDemoButton({ storeId, hasLocation, hasVehic
       // 1. Default location
       let locationId: string | null = null;
       if (!hasLocation) {
-        const { data, error: err } = await supabase
-          .from("car_rental_locations")
-          .insert({
+        const { data, error: err } = await supabase.functions.invoke("car-rental-location-manage", {
+          body: {
+            action: "create",
             store_id: storeId,
-            name: "Main Branch",
-            address: "100 Main Street",
-            city: "Phnom Penh",
-            country: "Cambodia",
-            phone: "+855 12 345 678",
-            open_time: "07:00",
-            close_time: "20:00",
-            is_default: true,
-            is_active: true,
-          } as never)
-          .select("id")
-          .single();
+            location: {
+              name: "Main Branch",
+              address: "100 Main Street",
+              city: "Phnom Penh",
+              country: "Cambodia",
+              phone: "+855 12 345 678",
+              open_time: "07:00",
+              close_time: "20:00",
+              is_default: true,
+              is_active: true,
+            },
+          },
+        });
         if (err) throw err;
-        locationId = (data as any).id;
+        locationId = (data as any)?.location?.id ?? null;
       } else {
         const { data } = await supabase.from("car_rental_locations").select("id").eq("store_id", storeId).order("is_default", { ascending: false }).limit(1).maybeSingle();
         locationId = (data as any)?.id ?? null;
@@ -98,7 +99,9 @@ export default function CarRentalSeedDemoButton({ storeId, hasLocation, hasVehic
         const payload = vehicleSeeds.map((v) => ({
           ...v, store_id: storeId, home_location_id: locationId, is_active: true,
         }));
-        const { error: err } = await supabase.from("car_rental_vehicles").insert(payload as never);
+        const { error: err } = await supabase.functions.invoke("car-rental-vehicle-manage", {
+          body: { action: "create_many", store_id: storeId, vehicles: payload },
+        });
         if (err) throw err;
       }
 
@@ -111,7 +114,9 @@ export default function CarRentalSeedDemoButton({ storeId, hasLocation, hasVehic
           { name: "Additional driver", description: "Add a second authorized driver.", price_cents: 1200, billing: "per_rental" as const, sort_order: 4 },
         ];
         const payload = addons.map((a) => ({ ...a, store_id: storeId, is_active: true }));
-        const { error: err } = await supabase.from("car_rental_addons").insert(payload as never);
+        const { error: err } = await supabase.functions.invoke("car-rental-addon-manage", {
+          body: { action: "create_many", store_id: storeId, addons: payload },
+        });
         if (err) throw err;
       }
 
@@ -122,17 +127,22 @@ export default function CarRentalSeedDemoButton({ storeId, hasLocation, hasVehic
         .eq("store_id", storeId)
         .maybeSingle();
       if (!existingSettings) {
-        await supabase.from("car_rental_store_settings").insert({
-          store_id: storeId,
-          tax_rate_bps: 1000,
-          tax_label: "VAT",
-          currency_code: "USD",
-          no_show_grace_hours: 4,
-          auto_confirm_app_bookings: false,
-          late_grace_hours: 12,
-          cancellation_policy:
-            "Free cancellation up to 24 hours before pickup. After that, 50% of the daily rate is non-refundable. No-shows forfeit the full deposit.",
-        } as never);
+        const { error: err } = await supabase.functions.invoke("car-rental-settings-update", {
+          body: {
+            store_id: storeId,
+            settings: {
+              tax_rate_bps: 1000,
+              tax_label: "VAT",
+              currency_code: "USD",
+              no_show_grace_hours: 4,
+              auto_confirm_app_bookings: false,
+              late_grace_hours: 12,
+              cancellation_policy:
+                "Free cancellation up to 24 hours before pickup. After that, 50% of the daily rate is non-refundable. No-shows forfeit the full deposit.",
+            },
+          },
+        });
+        if (err) throw err;
       }
 
       // Audit attribution

@@ -296,7 +296,7 @@ const RenterTerms = () => {
                   Damage Policy
                 </Badge>
               </Link>
-              <Link to="/privacy">
+              <Link to="/legal/privacy">
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted">
                   Privacy Policy
                 </Badge>

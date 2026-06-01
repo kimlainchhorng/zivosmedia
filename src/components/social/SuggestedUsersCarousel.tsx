@@ -7,10 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { X, Users } from "lucide-react";
+import { ChevronRight, Compass, Handshake, Sparkles, UserCheck, X, Users } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
-import { MutualFollowsBadge, useMutualFollows } from "./MutualFollowsBadge";
+import { MutualFollowsBadge } from "./MutualFollowsBadge";
+import { useMutualFollows } from "@/hooks/useMutualFollows";
 import { useState, memo, forwardRef } from "react";
 import SafeCaption from "@/components/social/SafeCaption";
 import { useNavigate } from "react-router-dom";
@@ -88,14 +89,52 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
 
   if (!user || visible.length === 0) return null;
 
+  const followCount = following.size;
+  const dismissedCount = dismissed.size;
+  const verifiedCount = visible.filter((profile: any) => isBlueVerified(profile.is_verified)).length;
+  const mutualTotal = visible.reduce((sum: number, profile: any) => sum + (mutualMap?.get(profile.id)?.total ?? 0), 0);
+  const matchSignal = mutualTotal > 0
+    ? `${mutualTotal} mutual links`
+    : verifiedCount > 0
+      ? `${verifiedCount} verified picks`
+      : "Fresh discovery";
+  const SignalIcon = mutualTotal > 0 ? Handshake : verifiedCount > 0 ? UserCheck : Compass;
+
   // Inline variant — compact row for between-post injection
   if (variant === "inline") {
     const inlineVisible = visible.slice(0, 5);
     return (
-      <div className="py-4 px-4 bg-card/50 border-y border-border/20">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-bold text-foreground">People you may know</h3>
+      <div className="zivo-social-module mx-2 my-3 overflow-hidden rounded-[1.25rem] px-3 py-3">
+        <div className="zivo-social-header-glass mb-3 flex items-center justify-between gap-3 rounded-[1.15rem] px-3 py-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl">
+              <Users className="h-4 w-4 text-primary" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-bold text-foreground">People you may know</h3>
+              <p className="truncate text-[11px] font-medium text-muted-foreground">
+                {inlineVisible.length} fresh account{inlineVisible.length === 1 ? "" : "s"} to follow
+              </p>
+            </div>
+          </div>
+          <span className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-primary">
+            {followCount > 0 ? <UserCheck className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+            {followCount > 0 ? `${followCount} added` : "New"}
+          </span>
+        </div>
+        <div className="zivo-social-module-tile mb-3 flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500">
+              <SignalIcon className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">Match signal</span>
+              <span className="block truncate text-xs font-black text-foreground">{matchSignal}</span>
+            </span>
+          </span>
+          <span className="zivo-social-chip-active shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black">
+            {inlineVisible.length} ready
+          </span>
         </div>
         <div className="flex gap-3 overflow-x-auto scrollbar-none pb-1">
           <AnimatePresence>
@@ -106,12 +145,12 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="flex-shrink-0 flex items-center gap-2.5 bg-background rounded-xl border border-border/30 px-3 py-2.5 min-w-[180px]"
+                className="zivo-social-module-tile group flex min-w-[200px] flex-shrink-0 items-center gap-2.5 rounded-2xl px-3 py-2.5 transition-all hover:-translate-y-0.5"
               >
                 <div onClick={() => navigate(`/user/${profile.id}`)} className="cursor-pointer">
-                  <Avatar className="h-10 w-10">
+                  <Avatar className="zivo-social-avatar-ring h-11 w-11 transition-transform group-hover:scale-105">
                     <AvatarImage src={optimizeAvatar(profile.avatar_url, 40)} loading="lazy" />
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                    <AvatarFallback className="bg-transparent text-primary font-bold text-sm">
                       {profile.full_name?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
@@ -128,13 +167,23 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                 <button type="button"
                   onClick={() => handleFollow(profile.id)}
                   disabled={following.has(profile.id)}
-                  className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all shrink-0 ${
+                  aria-label={
                     following.has(profile.id)
-                      ? "bg-muted text-muted-foreground"
-                      : "bg-primary text-primary-foreground"
+                      ? `Already following ${profile.full_name || "this user"}`
+                      : `Follow ${profile.full_name || "this user"}`
+                  }
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black transition-all active:scale-95 ${
+                    following.has(profile.id)
+                      ? "zivo-social-chip text-muted-foreground"
+                      : "zivo-social-chip-active"
                   }`}
                 >
-                  {following.has(profile.id) ? "✓" : "Follow"}
+                  {following.has(profile.id) ? (
+                    <span className="inline-flex items-center gap-1">
+                      <UserCheck className="h-3 w-3" />
+                      Added
+                    </span>
+                  ) : "Follow"}
                 </button>
               </motion.div>
             ))}
@@ -146,16 +195,80 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
 
   // Default — full "Suggested for you" section
   return (
-    <div className="py-2.5">
-      <div className="flex items-center justify-between px-3 mb-2">
-        <div className="flex items-center gap-1.5">
-          <Users className="h-3.5 w-3.5 text-primary" />
-          <h3 className="text-xs font-bold text-foreground">Suggested for you</h3>
+    <div className="zivo-social-module mx-2 my-3 overflow-hidden rounded-[1.25rem] px-3 py-3">
+      <div className="zivo-social-header-glass mb-2.5 flex items-center justify-between gap-3 rounded-[1.15rem] px-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl">
+            <Users className="h-4 w-4 text-primary" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-[13px] font-bold text-foreground">Suggested for you</h3>
+            <p className="truncate text-[11px] font-medium text-muted-foreground">
+              {visible.length} account{visible.length === 1 ? "" : "s"} matched to your activity
+            </p>
+          </div>
         </div>
-        <button type="button" className="text-[10px] text-primary font-medium">See all</button>
+        <button type="button" className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold text-primary active:scale-95">
+          See all
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
       </div>
 
-      <div className="flex gap-2 px-3 overflow-x-auto scrollbar-none pb-1">
+      <div className="mb-2.5 grid grid-cols-4 gap-2">
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Users className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black leading-none text-foreground">{visible.length}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Matches</p>
+          </div>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+            <UserCheck className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black leading-none text-foreground">{followCount}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Added</p>
+          </div>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/10 text-fuchsia-500">
+            <Sparkles className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black leading-none text-foreground">{verifiedCount}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Verified</p>
+          </div>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <X className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black leading-none text-foreground">{dismissedCount}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Skipped</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="zivo-social-module-tile mb-2.5 flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500">
+            <SignalIcon className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">Match signal</span>
+            <span className="block truncate text-xs font-black text-foreground">{matchSignal}</span>
+          </span>
+        </span>
+        <span className="zivo-social-chip-active shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black">
+          Fresh set
+        </span>
+      </div>
+
+      <div className="flex gap-2.5 overflow-x-auto scrollbar-none pb-1">
         <AnimatePresence>
           {visible.map((profile: any) => (
             <motion.div
@@ -164,29 +277,36 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="flex-shrink-0 w-[120px] bg-card rounded-xl border border-border/30 p-2.5 text-center relative group"
+              className="zivo-social-module-tile group relative w-[140px] flex-shrink-0 overflow-hidden rounded-2xl p-3 text-center transition-all hover:-translate-y-0.5"
             >
+              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
               {/* Dismiss */}
               <button type="button"
                 onClick={() => setDismissed((prev) => new Set([...prev, profile.id]))}
-                className="absolute top-1.5 right-1.5 p-0.5 rounded-full hover:bg-muted/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label={`Dismiss ${profile.full_name || "this suggestion"}`}
+                className="zivo-social-icon-button absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
               >
                 <X className="h-2.5 w-2.5 text-muted-foreground" />
               </button>
+              {isBlueVerified(profile.is_verified) && (
+                <span className="zivo-social-chip absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] text-primary">
+                  Verified
+                </span>
+              )}
 
               {/* Avatar */}
               <div
                 onClick={() => navigate(`/user/${profile.id}`)}
                 className="cursor-pointer"
               >
-                <Avatar className="h-12 w-12 mx-auto mb-1.5 ring-2 ring-primary/10">
+                <Avatar className="zivo-social-avatar-ring mx-auto mb-2 h-16 w-16 transition-transform group-hover:scale-105">
                   <AvatarImage src={optimizeAvatar(profile.avatar_url, 48)} loading="lazy" />
-                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                  <AvatarFallback className="bg-transparent text-primary font-bold text-sm">
                     {profile.full_name?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>
                 </Avatar>
 
-                <div className="flex items-center justify-center gap-0.5 mb-0.5">
+                <div className="mb-0.5 flex items-center justify-center gap-0.5">
                   <p className="text-[10px] font-semibold text-foreground truncate max-w-[90px]">
                     {profile.full_name || "User"}
                   </p>
@@ -200,7 +320,7 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                 )}
 
                 {/* Follower / posts hint */}
-                <p className="text-[9px] text-muted-foreground/70 mb-0.5">
+                <p className="zivo-social-chip mx-auto mb-1 mt-1 w-fit rounded-full px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
                   {profile.follower_count > 0
                     ? `${profile.follower_count >= 1000 ? `${(profile.follower_count / 1000).toFixed(1)}k` : profile.follower_count} followers`
                     : profile.posts_count > 0
@@ -214,13 +334,23 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
               <button type="button"
                 onClick={() => handleFollow(profile.id)}
                 disabled={following.has(profile.id)}
-                className={`w-full py-1 rounded-lg text-[10px] font-semibold transition-all ${
+                aria-label={
                   following.has(profile.id)
-                    ? "bg-muted text-muted-foreground"
-                    : "bg-primary text-primary-foreground"
+                    ? `Already following ${profile.full_name || "this user"}`
+                    : `Follow ${profile.full_name || "this user"}`
+                }
+                className={`w-full rounded-full py-1.5 text-[10px] font-black transition-all active:scale-95 ${
+                  following.has(profile.id)
+                    ? "zivo-social-chip text-muted-foreground"
+                    : "zivo-social-chip-active"
                 }`}
               >
-                {following.has(profile.id) ? "Following" : "Follow"}
+                {following.has(profile.id) ? (
+                  <span className="inline-flex items-center justify-center gap-1">
+                    <UserCheck className="h-3 w-3" />
+                    Added
+                  </span>
+                ) : "Follow"}
               </button>
             </motion.div>
           ))}

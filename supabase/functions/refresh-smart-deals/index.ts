@@ -1,4 +1,5 @@
 import { serve, createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 /**
  * Refresh Smart Deals Cache — Scheduled Background Worker
@@ -66,6 +67,12 @@ const AVG_PRICES: Record<string, number> = {
   'DEN-PHX': 140,
   'PNH-REP': 80, 'PNH-BKK': 120,
 };
+
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
 
 async function searchRoute(origin: string, destination: string, date: string, apiKey: string) {
   try {
@@ -196,19 +203,27 @@ async function getAIEnhancements(deals: any[], aiKey: string): Promise<any[]> {
   } catch { return deals; }
 }
 
-serve(async (req: Request) => {
+serve(withSecurity("refresh-smart-deals", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   // This function is called by pg_cron — no CORS needed
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+  const provided = new URL(req.url).searchParams.get("secret") ?? req.headers.get("x-cron-secret") ?? "";
+  const isInternal = Boolean(cronSecret && provided === cronSecret) || isServiceRoleRequest(req, serviceKey);
+  if (!isInternal) {
+    return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const duffelKey = Deno.env.get('DUFFEL_API_KEY');
   const aiKey = Deno.env.get('LOVABLE_API_KEY');
 
   if (!duffelKey) {
-    return new Response(JSON.stringify({ error: 'DUFFEL_API_KEY not configured' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'DUFFEL_API_KEY not configured' }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
@@ -335,7 +350,7 @@ serve(async (req: Request) => {
       routesSearched,
       dealsCached: rows.length,
       refreshedAt: now,
-    }), { headers: { 'Content-Type': 'application/json' } });
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     console.error('[refresh-smart-deals] Error:', error);
@@ -346,6 +361,6 @@ serve(async (req: Request) => {
         error_message: error instanceof Error ? error.message : 'Unknown error',
       }).eq('id', logId);
     }
-    return new Response(JSON.stringify({ error: 'Refresh failed' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'Refresh failed' }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

@@ -54,6 +54,14 @@ jobs:
         run: npm run supabase:migrations:check
         continue-on-error: true
 
+      - name: Security scan
+        run: npm run security:scan
+
+      - name: Local deploy preflight
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: npm run deploy:preflight:local
+
       - name: Production build
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
@@ -114,4 +122,3 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         timeout-minutes: 5
-

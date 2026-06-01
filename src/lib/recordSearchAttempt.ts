@@ -1,7 +1,7 @@
 /**
  * recordSearchAttempt
  * -------------------
- * Logs a search to `abandoned_searches`. The intent: if the user later
+ * Logs a search through `travel-tracking-log`. The intent: if the user later
  * never books, we can re-engage them via email or a "Resume your search"
  * widget (see `PriceAlertsWidget`).
  *
@@ -37,16 +37,12 @@ export async function recordSearchAttempt(
   searchParams: Record<string, unknown>
 ): Promise<void> {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    const email = userData?.user?.email ?? null;
-
-    await (supabase as any).from("abandoned_searches").insert({
-      search_session_id: getSessionId(),
-      email,
+    await supabase.functions.invoke("travel-tracking-log", { body: {
+      type: "abandoned_search",
+      session_id: getSessionId(),
       search_type: searchType,
       search_params: searchParams,
-      searched_at: new Date().toISOString(),
-    });
+    } });
   } catch {
     // Swallow — telemetry must never break a search.
   }

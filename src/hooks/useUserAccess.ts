@@ -38,17 +38,22 @@ let accessRpcAvailable: boolean | null = null;
 
 function normalizeAccess(data: any): UserAccess {
   const roles = Array.isArray(data?.roles) ? data.roles.map(String) : [];
+  // The get_my_user_access RPC only emits a subset of explicit booleans
+  // (is_admin/is_driver/is_merchant). Derive the remaining role flags from the
+  // roles array so support/moderator/operations are honored when the RPC omits
+  // their booleans — matching the non-RPC fallback path below.
+  const hasRole = (role: string) => roles.includes(role);
   return {
-    isAdmin: Boolean(data?.isAdmin ?? data?.is_admin),
-    isDriver: Boolean(data?.isDriver ?? data?.is_driver),
+    isAdmin: Boolean(data?.isAdmin ?? data?.is_admin) || hasRole("admin") || hasRole("super_admin"),
+    isDriver: Boolean(data?.isDriver ?? data?.is_driver) || hasRole("driver"),
     isRestaurantOwner: Boolean(data?.isRestaurantOwner ?? data?.is_restaurant_owner),
     isCarRentalOwner: Boolean(data?.isCarRentalOwner ?? data?.is_car_rental_owner),
     isHotelOwner: Boolean(data?.isHotelOwner ?? data?.is_hotel_owner),
     isFlightManager: Boolean(data?.isFlightManager ?? data?.is_flight_manager),
     isStoreOwner: Boolean(data?.isStoreOwner ?? data?.is_store_owner),
-    isSupport: Boolean(data?.isSupport ?? data?.is_support),
-    isModerator: Boolean(data?.isModerator ?? data?.is_moderator),
-    isOperations: Boolean(data?.isOperations ?? data?.is_operations),
+    isSupport: Boolean(data?.isSupport ?? data?.is_support) || hasRole("support"),
+    isModerator: Boolean(data?.isModerator ?? data?.is_moderator) || hasRole("moderator"),
+    isOperations: Boolean(data?.isOperations ?? data?.is_operations) || hasRole("operations"),
     roles,
     driverId: data?.driverId ?? data?.driver_id ?? undefined,
     restaurantId: data?.restaurantId ?? data?.restaurant_id ?? undefined,

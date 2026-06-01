@@ -20,14 +20,9 @@
  * Auth: cron-secret OR service-role.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-cron-secret",
-};
-
-const j = (status: number, body: unknown) =>
+const j = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -52,12 +47,14 @@ function fmtMoney(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-serve(async (req) => {
+serve(withSecurity("notifications-weekly-digest", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" });
+  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" }, corsHeaders);
 
   // Auth: cron secret OR service role.
   const cronSecretExpected = Deno.env.get("CRON_SECRET") ?? "";
@@ -67,7 +64,7 @@ serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
   const isService = auth === `Bearer ${serviceKey}`;
   const cronOk = !!cronSecretExpected && providedSecret === cronSecretExpected;
-  if (!isService && !cronOk) return j(401, { error: "Unauthorized" });
+  if (!isService && !cronOk) return j(401, { error: "Unauthorized" }, corsHeaders);
 
   const supabase = createClient(supabaseUrl, serviceKey);
   const now = new Date();
@@ -108,7 +105,7 @@ serve(async (req) => {
   ]);
 
   if (activeUserIds.size === 0) {
-    return j(200, { ok: true, recipients: 0, week: weekStamp });
+    return j(200, { ok: true, recipients: 0, week: weekStamp }, corsHeaders);
   }
 
   // Cap per-run for safety. The cron only runs once a week so unless you
@@ -214,5 +211,5 @@ serve(async (req) => {
     sent,
     skipped,
     errors: errors.slice(0, 20),
-  });
-});
+  }, corsHeaders);
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

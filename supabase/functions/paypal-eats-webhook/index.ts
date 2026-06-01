@@ -155,4 +155,4 @@ Deno.serve(withSecurity("paypal-eats-webhook", async (req) => {
     .eq("id", logRowId);
 
   return new Response(JSON.stringify({ received: true, status: processingStatus }), { status: 200, headers: { "Content-Type": "application/json" } });
-}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

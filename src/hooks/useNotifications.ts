@@ -103,10 +103,9 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     setUnreadCount(prev => Math.max(0, prev - unreadDelta));
 
     try {
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update({ is_read: true, read_at: nowIso })
-        .in('id', notificationIds);
+      const { error: updateError } = await supabase.functions.invoke('notification-manage', {
+        body: { action: 'mark_read', notification_ids: notificationIds },
+      });
 
       if (updateError) throw updateError;
     } catch (err: any) {
@@ -127,14 +126,9 @@ export function useNotifications(limit = 50): UseNotificationsResult {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) return;
 
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update({ 
-          is_read: true, 
-          read_at: new Date().toISOString() 
-        })
-        .eq('user_id', session.session.user.id)
-        .eq('is_read', false);
+      const { error: updateError } = await supabase.functions.invoke('notification-manage', {
+        body: { action: 'mark_all_read' },
+      });
 
       if (updateError) throw updateError;
 
@@ -174,10 +168,9 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     setUnreadCount(prev => Math.max(0, prev - removedUnread));
 
     try {
-      const { error: delError } = await supabase
-        .from('notifications')
-        .delete()
-        .in('id', notificationIds);
+      const { error: delError } = await supabase.functions.invoke('notification-manage', {
+        body: { action: 'delete', notification_ids: notificationIds },
+      });
       if (delError) throw delError;
     } catch (err: any) {
       setNotifications(prevSnapshot);
@@ -213,11 +206,9 @@ export function useNotifications(limit = 50): UseNotificationsResult {
       setNotifications([]);
       setUnreadCount(0);
 
-      const { error: delError } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', session.session.user.id)
-        .eq('channel', 'in_app');
+      const { error: delError } = await supabase.functions.invoke('notification-manage', {
+        body: { action: 'clear_in_app' },
+      });
 
       if (delError) {
         setNotifications(prevSnapshot);
@@ -250,10 +241,9 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
 
     try {
-      const { error: updErr } = await (supabase as any)
-        .from('notifications')
-        .update({ snoozed_until: until })
-        .eq('id', notificationId);
+      const { error: updErr } = await supabase.functions.invoke('notification-manage', {
+        body: { action: 'snooze', notification_id: notificationId, snoozed_until: until },
+      });
       if (updErr) throw updErr;
 
       const minutes = Math.round(durationMs / 60000);

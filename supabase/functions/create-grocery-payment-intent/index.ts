@@ -191,6 +191,16 @@ Deno.serve(withSecurity("create-grocery-payment-intent", async (req, ctx) => {
 
     const paymentIntent = await stripe.paymentIntents.create(piParams);
 
+    await admin
+      .from("shopping_orders")
+      .update({
+        stripe_payment_intent_id: paymentIntent.id,
+        payment_provider: "stripe",
+        payment_status: paymentIntent.status === "succeeded" ? "paid" : "pending",
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("id", order.id);
+
     if (["succeeded", "processing", "requires_capture"].includes(paymentIntent.status)) {
       await admin
         .from("shopping_orders")
@@ -219,4 +229,4 @@ Deno.serve(withSecurity("create-grocery-payment-intent", async (req, ctx) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

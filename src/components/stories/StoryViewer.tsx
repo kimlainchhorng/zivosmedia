@@ -56,6 +56,7 @@ import {
   isStoryCommentSafetySchemaDriftError,
   isStorySafetySchemaDriftError,
 } from "@/lib/social/sensitiveContent";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 
 export interface StoryItem {
   id: string;
@@ -683,14 +684,11 @@ export default function StoryViewer({
 
   const blockForReporter = useCallback(async (targetUserId: string) => {
     if (!user?.id || targetUserId === user.id) return;
-    await (supabase as any).from("user_safety_actions").upsert(
-      {
-        user_id: user.id,
-        target_user_id: targetUserId,
-        action: "block",
-      },
-      { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
-    );
+    await submitSafetyReport({
+      type: "safety_action",
+      target_user_id: targetUserId,
+      action: "block",
+    });
   }, [user?.id]);
 
   const handleReportStory = useCallback(async () => {
@@ -709,15 +707,13 @@ export default function StoryViewer({
     setPaused(false);
 
     try {
-      const { error } = await (supabase as any).from("story_reports").insert({
-        reporter_id: user.id,
+      await submitSafetyReport({
+        type: "story",
         story_id: currentStory.id,
         owner_id: viewingGroup.userId,
         reason,
         description: (currentStory.caption || "").slice(0, 500),
       });
-      if (error) throw error;
-      await blockForReporter(viewingGroup.userId);
       invalidateAllStoryCaches(queryClient, user.id);
       toast.success("We hid it, blocked this user, and sent it for safety review");
       goNext();
@@ -751,16 +747,14 @@ export default function StoryViewer({
     setReportedCommentIds((prev) => new Set(prev).add(comment.id));
 
     try {
-      const { error } = await (supabase as any).from("story_comment_reports").insert({
-        reporter_id: user.id,
+      await submitSafetyReport({
+        type: "story_comment",
         comment_id: comment.id,
         story_id: currentStory.id,
         comment_author_id: comment.user_id,
         reason,
         description: (comment.content || "").slice(0, 500),
       });
-      if (error) throw error;
-      await blockForReporter(comment.user_id);
       queryClient.invalidateQueries({ queryKey: ["story-comments", currentStory.id] });
       toast.success("Comment hidden, user blocked, and report sent for review");
     } catch (error) {

@@ -69,7 +69,7 @@ function FeaturedStore({ store, eta, location }: { store: StoreConfig; eta: numb
 
       <div className="relative flex items-center gap-4">
         <div className="h-[72px] w-[72px] rounded-[20px] bg-background border border-border/30 flex items-center justify-center p-3 shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 shrink-0">
-          <img src={store.logo} alt={store.name} className="h-full w-full object-contain" />
+          <img src={store.logo} alt={store.name} className="h-full w-full object-contain" loading="lazy" decoding="async" />
         </div>
         <div className="flex-1 min-w-0 text-left">
           <div className="flex items-center gap-2 mb-1">
@@ -132,7 +132,7 @@ function StoreCardWithLocation({ store, eta, location }: { store: StoreConfig; e
       }`}
     >
       <div className="relative h-14 w-14 rounded-2xl bg-background border border-border/25 flex items-center justify-center p-2 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 shrink-0">
-        <img src={store.logo} alt={store.name} className="h-full w-full object-contain" />
+        <img src={store.logo} alt={store.name} className="h-full w-full object-contain" loading="lazy" decoding="async" />
         <div className="absolute -top-0.5 -right-0.5">
           <StatusDot status={status.status} />
         </div>

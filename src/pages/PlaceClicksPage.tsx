@@ -171,7 +171,7 @@ export default function PlaceClicksPage() {
                 >
                   <div className="shrink-0 h-10 w-10 rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
                     {s?.logo_url ? (
-                      <img src={s.logo_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={s.logo_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <Store className="h-4 w-4 text-muted-foreground" />
                     )}

@@ -58,6 +58,7 @@ Deno.serve(withSecurity("platform-readiness", async (req, ctx) => {
   }, missing.length === 0 ? 200 : 503, ctx.corsHeaders);
 }, {
   strictCors: true,
+  allowedMethods: ["GET"],
   rateLimit: "api_general",
   trackNetwork: "suspicious",
 }));

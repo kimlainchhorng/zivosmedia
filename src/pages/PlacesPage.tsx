@@ -172,7 +172,7 @@ export default function PlacesPage() {
               >
                 <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-muted">
                   {p.cover_url ? (
-                    <img src={p.cover_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                    <img src={p.cover_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full bg-ig-gradient flex items-center justify-center">
                       <MapPin className="h-5 w-5 text-white/85" />

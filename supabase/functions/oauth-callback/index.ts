@@ -188,4 +188,4 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
   } catch (e) {
     return htmlRedirect(`${returnBase}?error=${encodeURIComponent((e as Error).message)}`);
   }
-}, { rateLimit: "admin_action", strictCors: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["GET"], rateLimit: "admin_action", strictCors: true, skipWaf: true, trackNetwork: "suspicious" }));

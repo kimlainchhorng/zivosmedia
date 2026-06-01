@@ -168,6 +168,7 @@ const RestaurantCard = ({ restaurant, onNavigate }: { restaurant: HomeRestaurant
         height={120}
         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         loading="lazy"
+        decoding="async"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
       {restaurant.rating && (
@@ -791,7 +792,7 @@ const AppHome = () => {
             <div className="flex items-center justify-between px-5 pt-safe pb-3">
               <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-2.5 touch-manipulation active:opacity-75 transition-opacity">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={userName} width={40} height={40} className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/25" />
+                  <img src={avatarUrl} alt={userName} width={40} height={40} className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/25" loading="lazy" decoding="async" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/40 to-primary/15 flex items-center justify-center ring-2 ring-primary/20 shrink-0">
                     <span className="text-sm font-bold text-primary">{initials}</span>
@@ -1020,7 +1021,7 @@ const AppHome = () => {
                   >
                     <div className="w-[60px] h-[60px] rounded-2xl bg-card border border-border/40 shadow-sm flex items-center justify-center overflow-hidden group-hover:border-primary/30 transition-colors">
                       {item.thumbnail_url ? (
-                        <img src={item.thumbnail_url} alt={item.title || "Item"} width={60} height={60} className="w-full h-full object-cover" loading="lazy" />
+                        <img src={item.thumbnail_url} alt={item.title || "Item"} width={60} height={60} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <Globe className="w-5 h-5 text-muted-foreground" />
                       )}
@@ -1081,6 +1082,7 @@ const AppHome = () => {
                         alt={`${ownerStore.name} cover`}
                         className="absolute inset-0 w-full h-full object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/15 to-transparent" />

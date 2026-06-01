@@ -1,17 +1,15 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const APP_ORIGIN = "https://zivollc.com";
 const SOCIAL_CRAWLER_UA = /facebookexternalhit|facebot|twitterbot|xbot|linkedinbot|slackbot|discordbot|telegrambot|whatsapp|skypeuripreview|pinterest|redditbot|embedly|meta-externalagent|meta-externalfetcher/i;
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+Deno.serve(withSecurity("profile-og", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const ogHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "GET, OPTIONS" };
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: ogHeaders });
   }
 
   try {
@@ -24,7 +22,7 @@ Deno.serve(async (req) => {
     if (!code) {
       return new Response(JSON.stringify({ error: "code required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...ogHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -42,7 +40,7 @@ Deno.serve(async (req) => {
     if (!profile) {
       return new Response(JSON.stringify({ error: "Profile not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...ogHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -68,12 +66,12 @@ Deno.serve(async (req) => {
         },
       }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...ogHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!SOCIAL_CRAWLER_UA.test(userAgent)) {
-      return Response.redirect(shareLandingUrl, 302);
+      return new Response(null, { status: 302, headers: { ...ogHeaders, Location: shareLandingUrl } });
     }
 
     // Serve crawlable HTML for social previews; real users are redirected with JS only.
@@ -120,10 +118,10 @@ Deno.serve(async (req) => {
   } catch (err) {
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...ogHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));
 
 function escapeHtml(str: string): string {
   return str

@@ -96,7 +96,7 @@ export function ChannelInfoSheet({
           <div className="border-b border-border/50 bg-muted/25">
             <div className="h-28 overflow-hidden bg-muted">
               {channel.banner_url ? (
-                <img src={channel.banner_url} alt="" className="h-full w-full object-cover" />
+                <img src={channel.banner_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 via-background to-muted">
                   <Hash className="h-8 w-8 text-muted-foreground" />
@@ -317,7 +317,7 @@ function MediaTile({ item }: { item: ChannelMediaItem }) {
           </span>
         </>
       ) : (
-        <img src={item.url} alt="" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
+        <img src={item.url} alt="" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" loading="lazy" decoding="async" />
       )}
       {item.tab === "gif" && (
         <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">GIF</span>

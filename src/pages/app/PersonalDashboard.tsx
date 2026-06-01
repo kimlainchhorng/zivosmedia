@@ -120,8 +120,10 @@ const PersonalDashboard = () => {
           .limit(1)
           .maybeSingle();
         if (byEmail) {
-          await supabase.from("store_employees").update({ user_id: user.id }).eq("id", byEmail.id);
-          return byEmail;
+          const { data } = await supabase.functions.invoke("store-employee-manage", {
+            body: { action: "link_self_by_email" },
+          });
+          return data?.employee || byEmail;
         }
       }
       return null;
@@ -678,7 +680,7 @@ const PersonalDashboard = () => {
         >
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-semibold text-[14px] overflow-hidden shrink-0">
             {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
             ) : (
               <span>{initials || "U"}</span>
             )}
@@ -1309,7 +1311,7 @@ const PersonalDashboard = () => {
                 >
                   <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                     {j.career_companies?.logo_url ? (
-                      <img src={j.career_companies.logo_url} alt="" className="w-full h-full object-cover" />
+                      <img src={j.career_companies.logo_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <Building2 className="w-4 h-4 text-muted-foreground" />
                     )}

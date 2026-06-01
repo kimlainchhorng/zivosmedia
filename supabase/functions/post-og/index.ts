@@ -1,13 +1,8 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const APP_ORIGIN = "https://zivollc.com";
 const SOCIAL_CRAWLER_UA = /facebookexternalhit|facebot|twitterbot|xbot|linkedinbot|slackbot|discordbot|telegrambot|whatsapp|skypeuripreview|pinterest|redditbot|embedly|meta-externalagent|meta-externalfetcher/i;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
 
 type PostMeta = {
   id: string;
@@ -29,9 +24,12 @@ function isImageUrl(url: string): boolean {
   return IMAGE_EXT_RE.test(url);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("post-og", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const ogHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "GET, OPTIONS" };
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: ogHeaders });
   }
 
   try {
@@ -42,7 +40,7 @@ Deno.serve(async (req) => {
     if (!postId) {
       return new Response(JSON.stringify({ error: "post required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...ogHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -55,7 +53,7 @@ Deno.serve(async (req) => {
     if (!postMeta) {
       return new Response(JSON.stringify({ error: "Post not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...ogHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -63,7 +61,7 @@ Deno.serve(async (req) => {
     const description = postMeta.caption?.trim() || `Check out this post by ${postMeta.authorName} on ZIVO.`;
 
     if (!SOCIAL_CRAWLER_UA.test(userAgent)) {
-      return Response.redirect(shareLandingUrl, 302);
+      return new Response(null, { status: 302, headers: { ...ogHeaders, Location: shareLandingUrl } });
     }
 
     const ogType = postMeta.mediaType === "video" ? "video.other" : "article";
@@ -110,10 +108,10 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...ogHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));
 
 async function resolvePostMeta(
   supabase: any,

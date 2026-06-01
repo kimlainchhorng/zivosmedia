@@ -334,6 +334,8 @@ export default function AdminPricingPage() {
                       src={RIDE_TYPE_IMAGES[form.ride_type]}
                       alt={form.ride_type}
                       className="w-16 h-10 object-contain"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <span className="text-sm font-medium text-foreground">{getRideTypeLabel(form.ride_type, isCambodia)}</span>
                   </div>
@@ -461,6 +463,8 @@ export default function AdminPricingPage() {
                             src={RIDE_TYPE_IMAGES[row.ride_type || ""]}
                             alt={row.ride_type || ""}
                             className="w-10 h-7 object-contain"
+                            loading="lazy"
+                            decoding="async"
                           />
                         )}
                         <span>{getRideTypeLabel(row.ride_type || "", isCambodia)}</span>

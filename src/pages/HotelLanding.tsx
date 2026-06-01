@@ -120,6 +120,7 @@ export default function HotelLanding() {
               alt={heroImage.alt}
               className="absolute inset-0 w-full h-full object-cover"
               loading="eager"
+              decoding="async"
               fetchPriority="high"
             />
             {/* Gradient Overlay */}
@@ -227,6 +228,7 @@ export default function HotelLanding() {
                         alt={photo?.alt || `Hotels in ${dest.city}`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         loading="lazy"
+                        decoding="async"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

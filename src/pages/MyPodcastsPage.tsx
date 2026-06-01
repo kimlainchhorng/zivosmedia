@@ -97,7 +97,7 @@ export default function MyPodcastsPage() {
               const p = podcastMap.get(s.podcast_id);
               return (
                 <motion.div key={s.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx, 12) * 0.02 }} className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border">
-                  {p?.cover_url ? <img src={p.cover_url} alt="" className="shrink-0 h-14 w-14 rounded-xl object-cover" loading="lazy" /> : <div className="shrink-0 h-14 w-14 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><Mic className="h-5 w-5 text-ig-gradient" /></div>}
+                  {p?.cover_url ? <img src={p.cover_url} alt="" className="shrink-0 h-14 w-14 rounded-xl object-cover" loading="lazy" decoding="async" /> : <div className="shrink-0 h-14 w-14 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><Mic className="h-5 w-5 text-ig-gradient" /></div>}
                   <button type="button" onClick={() => navigate(`/podcasts/${s.podcast_id}`)} className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-bold text-foreground line-clamp-1">{p?.title ?? "Podcast"}</p>
                     {p?.description && <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{p.description}</p>}

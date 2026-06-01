@@ -143,7 +143,7 @@ Deno.serve(withSecurity("aba-payway-checkout", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 function safeReturnUrl(req: Request, value: unknown) {
   const origin = req.headers.get("origin") || "https://hizivo.com";

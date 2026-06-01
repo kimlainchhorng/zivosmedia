@@ -70,9 +70,9 @@ export default function SalonReviewsSection({ storeId }: SalonReviewsSectionProp
   const handleRespond = async () => {
     if (!respondTo) return;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_reviews")
-      .update({ owner_response: responseText.trim() || null } as never)
-      .eq("id", respondTo.id);
+    const { error: err } = await supabase.functions.invoke("salon-review-manage", {
+      body: { action: "reply", review_id: respondTo.id, response: responseText.trim() },
+    });
     setSaving(false);
     if (err) { setError("Couldn't save response."); return; }
     toast.success("Response saved.");
@@ -86,7 +86,9 @@ export default function SalonReviewsSection({ storeId }: SalonReviewsSectionProp
     // Optimistic flip so the row updates immediately — without this, on a
     // slow connection the click feels unresponsive until the reload completes.
     setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, is_visible: next } : x)));
-    const { error: err } = await supabase.from("salon_reviews").update({ is_visible: next } as never).eq("id", r.id);
+    const { error: err } = await supabase.functions.invoke("salon-review-manage", {
+      body: { action: "set_visible", review_id: r.id, is_visible: next },
+    });
     setSaving(false);
     if (err) {
       setError("Couldn't update visibility.");
@@ -106,7 +108,9 @@ export default function SalonReviewsSection({ storeId }: SalonReviewsSectionProp
     );
     if (!ok) return;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_reviews").delete().eq("id", review.id);
+    const { error: err } = await supabase.functions.invoke("salon-review-manage", {
+      body: { action: "delete", review_id: review.id },
+    });
     setSaving(false);
     if (err) { setError("Couldn't delete."); return; }
     toast.success("Review deleted.");

@@ -8,20 +8,8 @@ name: Security
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "website/**"
-      - "**/*.md"
-      - "**/*.log"
-      - "booking-*.json"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "website/**"
-      - "**/*.md"
-      - "**/*.log"
-      - "booking-*.json"
   schedule:
     # Mondays 09:00 UTC
     - cron: "0 9 * * 1"
@@ -56,8 +44,8 @@ jobs:
       - name: npm audit (high+)
         run: npm run security:audit
 
-      - name: Secret scan
-        run: npm run security:check-secrets
+      - name: Security scan
+        run: npm run security:scan
 
       - name: Supabase migration integrity
         run: npm run supabase:migrations:check

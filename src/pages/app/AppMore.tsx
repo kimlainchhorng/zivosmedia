@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   ChevronRight, Settings, ShoppingBag, Wallet, MapPin, Handshake,
   Sparkles, Car, UtensilsCrossed, Store, Wrench, Building2, Truck, Shield,
-  Copy, Share2, QrCode, Check, User, Plane, Hotel, DollarSign,
+  Copy, Share2, QrCode, Check, User, Users, Plane, Hotel, DollarSign,
   Scissors, Hand, Heart, Dumbbell, GraduationCap, Stethoscope, PawPrint,
   Briefcase, Camera, Music, Crown,
   AlertCircle, CheckCircle2, BarChart3,
@@ -86,7 +86,7 @@ const AppMore = () => {
   const isDesignatedAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
   const profileBrandName = (profile as { display_brand_name?: string | null } | null)?.display_brand_name;
   const hasBrandShopIdentity = Boolean(profileBrandName && profileBrandName.trim().toLowerCase() !== "zivo");
-  const hasShopDashboard = Boolean(user) || Boolean(access?.isStoreOwner) || ownerStores.length > 0 || hasBrandShopIdentity;
+  const hasShopDashboard = Boolean(access?.isStoreOwner) || ownerStores.length > 0 || hasBrandShopIdentity;
   const primaryOwnerStore = ownerStores[0];
   const shopDashboardPath = primaryOwnerStore
     ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id).path
@@ -99,8 +99,11 @@ const AppMore = () => {
     if (isDesignatedAdmin) {
       options.push({ icon: Shield, label: "Admin Dashboard", description: "Manage the platform", href: "/admin/analytics", color: "from-red-500 to-red-600" });
     }
+    if (isAdmin || access?.isSupport) {
+      options.push({ icon: Users, label: "Employees", description: "Manage your team & roles", href: "/admin/employees", color: "from-indigo-500 to-blue-600" });
+    }
     if (access?.isDriver) {
-      options.push({ icon: Car, label: "Driver Dashboard", description: "Manage your rides", href: "/driver", color: "from-blue-500 to-blue-600" });
+      options.push({ icon: Car, label: "Driver Dashboard", description: "Manage your rides", href: "/drive", color: "from-blue-500 to-blue-600" });
     }
     if (access?.isRestaurantOwner) {
       options.push({ icon: UtensilsCrossed, label: "Restaurant Dashboard", description: "Manage your restaurant", href: "/eats/restaurant-dashboard", color: "from-orange-500 to-amber-500" });

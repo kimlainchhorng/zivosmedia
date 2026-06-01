@@ -211,7 +211,7 @@ export default function PromotePage() {
                         isVideo ? (
                           <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                         ) : (
-                          <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         )
                       ) : (
                         <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-4 w-4 text-muted-foreground" /></div>

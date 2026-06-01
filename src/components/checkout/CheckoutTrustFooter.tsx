@@ -51,9 +51,9 @@ export default function CheckoutTrustFooter({
         </p>
         {/* Legal links */}
         <div className="flex items-center justify-center gap-2 flex-wrap text-[10px] text-muted-foreground/60 mb-2">
-          <Link to="/terms" className="hover:text-primary hover:underline">Terms</Link>
+          <Link to="/legal/terms" className="hover:text-primary hover:underline">Terms</Link>
           <span>·</span>
-          <Link to="/privacy" className="hover:text-primary hover:underline">Privacy</Link>
+          <Link to="/legal/privacy" className="hover:text-primary hover:underline">Privacy</Link>
           <span>·</span>
           <Link to="/legal/flight-terms" className="hover:text-primary hover:underline">Flight Terms</Link>
           <span>·</span>
@@ -105,9 +105,9 @@ export default function CheckoutTrustFooter({
 
       {/* Legal Links */}
       <div className="flex items-center justify-center gap-3 flex-wrap text-xs text-muted-foreground">
-        <Link to="/terms" className="hover:text-primary hover:underline">Terms of Service</Link>
+        <Link to="/legal/terms" className="hover:text-primary hover:underline">Terms of Service</Link>
         <span className="text-border">·</span>
-        <Link to="/privacy" className="hover:text-primary hover:underline">Privacy Policy</Link>
+        <Link to="/legal/privacy" className="hover:text-primary hover:underline">Privacy Policy</Link>
         <span className="text-border">·</span>
         <Link to="/legal/flight-terms" className="hover:text-primary hover:underline">Flight Terms</Link>
         <span className="text-border">·</span>

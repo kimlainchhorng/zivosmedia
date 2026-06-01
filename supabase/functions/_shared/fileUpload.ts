@@ -48,7 +48,7 @@ const BLOCKED_EXTENSIONS = new Set([
   '.ps1', '.psm1', '.psd1', '.vbs', '.vbe', '.wsf', '.wsh', '.hta', '.jar',
   '.php', '.php3', '.php4', '.php5', '.phtml', '.asp', '.aspx', '.jsp',
   '.py', '.rb', '.pl', '.lua', '.go', '.rs', '.ts', '.js', '.mjs', '.cjs',
-  '.elf', '.out', '.bin', '.run', '.app',
+  '.elf', '.out', '.bin', '.run', '.app', '.svg', '.html', '.htm', '.xhtml', '.xml',
 ]);
 
 export interface UploadValidation {
@@ -57,10 +57,27 @@ export interface UploadValidation {
 }
 
 function checkMagicBytes(bytes: Uint8Array, mimeType: string): boolean {
-  const sig = SIGNATURES.find(s => s.mime === mimeType);
-  if (!sig) return true; // no signature registered — allow (MIME header is still checked)
-  const offset = sig.offset ?? 0;
-  return sig.bytes.every((b, i) => bytes[offset + i] === b);
+  const signatures = SIGNATURES.filter(s => s.mime === mimeType);
+  if (signatures.length === 0) return true; // no signature registered — allow (MIME header is still checked)
+  return signatures.some((sig) => {
+    const offset = sig.offset ?? 0;
+    return sig.bytes.every((b, i) => bytes[offset + i] === b);
+  });
+}
+
+function validateFileName(name: string): UploadValidation {
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, reason: 'File name is required' };
+  if (trimmed.length > 180) return { ok: false, reason: 'File name is too long' };
+  if (/[\\/\0-\x1F\x7F]/.test(trimmed) || trimmed.includes('..')) {
+    return { ok: false, reason: 'File name contains an unsafe path sequence' };
+  }
+
+  const extensions = trimmed.toLowerCase().match(/\.[a-z0-9]+/g) ?? [];
+  const blocked = extensions.find((ext) => BLOCKED_EXTENSIONS.has(ext));
+  if (blocked) return { ok: false, reason: `File extension "${blocked}" is not allowed` };
+
+  return { ok: true };
 }
 
 /**
@@ -76,13 +93,12 @@ export async function validateUpload(
   category: UploadCategory,
   fileBytes?: Uint8Array,
 ): Promise<UploadValidation> {
-  // 1. Extension check
-  const ext = (name.includes('.') ? name.slice(name.lastIndexOf('.')).toLowerCase() : '');
-  if (BLOCKED_EXTENSIONS.has(ext)) {
-    return { ok: false, reason: `File extension "${ext}" is not allowed` };
-  }
+  // 1. Filename and extension checks
+  const filenameCheck = validateFileName(name);
+  if (!filenameCheck.ok) return filenameCheck;
 
   // 2. File size
+  if (size <= 0) return { ok: false, reason: 'File is empty' };
   if (size > MAX_SIZES[category]) {
     const maxMb = (MAX_SIZES[category] / 1024 / 1024).toFixed(0);
     return { ok: false, reason: `File exceeds maximum size of ${maxMb} MB` };
@@ -103,7 +119,7 @@ export async function validateUpload(
 
     // Extra: reject files with embedded script tags in the first 4 KB
     const preview = new TextDecoder('utf-8', { fatal: false }).decode(fileBytes.slice(0, 4096));
-    if (/<script\b|javascript:|onerror\s*=/i.test(preview)) {
+    if (/<script\b|<svg\b|<iframe\b|<html\b|javascript:|data:text\/html|onerror\s*=|onload\s*=|<\?php/i.test(preview)) {
       return { ok: false, reason: 'File contains potentially dangerous embedded content' };
     }
   }

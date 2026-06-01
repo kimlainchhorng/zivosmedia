@@ -76,14 +76,11 @@ export function useSecretChat(partnerId: string | null) {
         if (cancelled) return;
         setMyKey(self.publicKeyJwk);
 
-        await supabase.from("device_keys").upsert(
-          {
-            user_id: user.id,
-            device_fingerprint: getDeviceFingerprint(),
-            public_key_jwk: self.publicKeyJwk as never,
-          },
-          { onConflict: "user_id,device_fingerprint" },
-        );
+        await supabase.functions.invoke("device-key-manage", { body: {
+          action: "upsert",
+          device_fingerprint: getDeviceFingerprint(),
+          public_key_jwk: self.publicKeyJwk,
+        } });
 
         // 2. Look up partner's most recent device key.
         const { data: keyRows, error: keyErr } = await supabase
@@ -271,11 +268,10 @@ export function useSecretChat(partnerId: string | null) {
   const resetKeys = useCallback(async () => {
     await resetIdentity();
     if (user) {
-      await supabase
-        .from("device_keys")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("device_fingerprint", getDeviceFingerprint());
+      await supabase.functions.invoke("device-key-manage", { body: {
+        action: "delete",
+        device_fingerprint: getDeviceFingerprint(),
+      } });
     }
     toast.success("Encryption keys reset. Reload to start fresh.");
   }, [user]);

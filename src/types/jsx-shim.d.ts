@@ -6,6 +6,10 @@ import type * as React from "react";
 type AnyClassComponent = React.Component<any, any, any> & Record<string, any>;
 
 declare global {
+  interface Window {
+    __zivoLoadAnalytics?: () => void;
+  }
+
   namespace JSX {
     interface ElementClass extends AnyClassComponent {}
     interface IntrinsicAttributes {

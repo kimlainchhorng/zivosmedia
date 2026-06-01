@@ -199,7 +199,7 @@ export default function MyCarTripPage() {
               >
                 {image && (
                   <div className="h-40 w-full bg-muted overflow-hidden">
-                    <img src={image} alt={booking.vehicle.model} className="w-full h-full object-cover" />
+                    <img src={image} alt={booking.vehicle.model} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   </div>
                 )}
                 <div className="p-4 space-y-3">

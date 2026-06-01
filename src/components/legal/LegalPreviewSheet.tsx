@@ -66,7 +66,7 @@ export function LegalPreviewLink({ kind, className, children }: LegalPreviewLink
     ? "How ZIVO works as a travel search and referral platform."
     : "How we collect, use, and protect your data.";
   const sections = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS;
-  const fullPath = isTerms ? "/terms" : "/privacy";
+  const fullPath = isTerms ? "/legal/terms" : "/legal/privacy";
 
   return (
     <>

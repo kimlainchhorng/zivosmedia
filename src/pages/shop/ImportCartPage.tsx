@@ -95,7 +95,7 @@ export default function ImportCartPage() {
           <section className="space-y-2">
             {items.map((it) => (
               <div key={`${it.productId}-${it.variant ?? ""}`} className="bg-card rounded-2xl p-2.5 flex gap-2.5 border border-border/30">
-                <img src={it.image} alt="" className="h-16 w-16 rounded-xl object-cover bg-muted/40" />
+                <img src={it.image} alt="" className="h-16 w-16 rounded-xl object-cover bg-muted/40" loading="lazy" decoding="async" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-semibold leading-tight line-clamp-2">{it.title}</p>
                   {it.variant && <p className="text-[11px] text-muted-foreground mt-0.5">{it.variant}</p>}

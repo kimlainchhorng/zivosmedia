@@ -1,23 +1,23 @@
 // marketing-automations-tick — pg_cron-driven enrollment + step advancement engine.
 // Guarded by CRON_SECRET (no JWT). Enrolls users matching trigger and advances enrollments.
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 type Step = {
   type: "wait" | "send_push" | "send_email" | "send_sms" | "apply_promo" | "add_to_segment";
   config?: Record<string, any>;
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("marketing-automations-tick", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const auth = req.headers.get("Authorization");
   const expected = `Bearer ${Deno.env.get("CRON_SECRET")}`;
-  if (auth !== expected) {
+  const headerSecret = req.headers.get("x-cron-secret");
+  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+  if (auth !== expected && (!cronSecret || headerSecret !== cronSecret)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -114,13 +114,32 @@ Deno.serve(async (req) => {
           if (step.type === "wait") {
             const hours = Number(step.config?.hours ?? 24);
             nextRun = new Date(Date.now() + hours * 60 * 60 * 1000);
-          } else if (step.type === "send_push") {
-            await admin.functions.invoke("send-push-notification", {
+          } else if (step.type === "send_push" || step.type === "send_email" || step.type === "send_sms") {
+            const channel = step.type === "send_push"
+              ? "push"
+              : step.type === "send_email"
+                ? "email"
+                : "sms";
+            await admin.functions.invoke("notify-dispatch", {
               body: {
                 user_id: enroll.user_id,
+                event_type: "marketing_automation",
+                category: "marketing",
                 title: step.config?.title || "Update",
                 body: step.config?.body || "",
-                data: { automation_id: auto.id },
+                channels: [channel],
+                email: {
+                  template: step.config?.template || "marketing-generic",
+                  data: step.config || {},
+                },
+                sms: {
+                  body: step.config?.sms_body || step.config?.body || "",
+                },
+                data: {
+                  automation_id: auto.id,
+                  category: "marketing",
+                  notification_type: "marketing_automation",
+                },
               },
             }).catch(() => {});
           } else if (step.type === "apply_promo") {
@@ -187,4 +206,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

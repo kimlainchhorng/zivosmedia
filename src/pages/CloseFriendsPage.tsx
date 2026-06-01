@@ -101,12 +101,9 @@ export default function CloseFriendsPage() {
   const addMutation = useMutation({
     mutationFn: async (friendId: string) => {
       if (!user?.id) throw new Error("not signed in");
-      const sb = supabase as unknown as {
-        from: (t: string) => {
-          insert: (payload: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
-        };
-      };
-      const { error } = await sb.from("close_friends").insert({ user_id: user.id, friend_id: friendId });
+      const { error } = await supabase.functions.invoke("close-friend-manage", {
+        body: { action: "add", friend_id: friendId },
+      });
       if (error) throw new Error(error.message);
     },
     onMutate: (id) => setPendingId(id),
@@ -120,16 +117,9 @@ export default function CloseFriendsPage() {
   const removeMutation = useMutation({
     mutationFn: async (friendId: string) => {
       if (!user?.id) throw new Error("not signed in");
-      const sb = supabase as unknown as {
-        from: (t: string) => {
-          delete: () => {
-            eq: (k: string, v: string) => {
-              eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>;
-            };
-          };
-        };
-      };
-      const { error } = await sb.from("close_friends").delete().eq("user_id", user.id).eq("friend_id", friendId);
+      const { error } = await supabase.functions.invoke("close-friend-manage", {
+        body: { action: "remove", friend_id: friendId },
+      });
       if (error) throw new Error(error.message);
     },
     onMutate: (id) => setPendingId(id),

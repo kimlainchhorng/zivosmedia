@@ -1087,6 +1087,8 @@ function ProfileCard({
             src={acc.coverUrl}
             alt="Cover"
             className="w-full h-full object-cover select-none"
+            loading="lazy"
+            decoding="async"
             style={{ objectPosition: `center ${localCoverPos}%` }}
             draggable={false}
           />
@@ -1146,7 +1148,7 @@ function ProfileCard({
           }}
         >
           {acc.avatarUrl ? (
-            <img src={acc.avatarUrl} alt={`${acc.username} avatar`} className="h-full w-full object-cover object-top" loading="lazy" />
+            <img src={acc.avatarUrl} alt={`${acc.username} avatar`} className="h-full w-full object-cover object-top" loading="lazy" decoding="async" />
           ) : (
             initials
           )}
@@ -1425,6 +1427,8 @@ function ProfileCard({
                 src={acc.coverUrl}
                 alt="Cover"
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
                 style={{ objectPosition: `center ${localCoverPos}%` }}
               />
             ) : (
@@ -1463,6 +1467,7 @@ function ProfileCard({
                   alt={`${acc.username} avatar`}
                   className="h-full w-full object-cover object-top"
                   loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 initials
@@ -1532,7 +1537,7 @@ function ProfileCard({
               }}
             >
               {acc.avatarUrl ? (
-                <img src={acc.avatarUrl} alt={`${acc.username} avatar`} className="h-full w-full object-cover object-top" loading="lazy" />
+                <img src={acc.avatarUrl} alt={`${acc.username} avatar`} className="h-full w-full object-cover object-top" loading="lazy" decoding="async" />
               ) : (
                 initials
               )}
@@ -1582,7 +1587,7 @@ function ProfileCard({
                   }}
                 >
                   {acc.avatarUrl ? (
-                    <img src={acc.avatarUrl} alt={`${acc.username} avatar`} className="h-full w-full object-cover object-top" loading="lazy" />
+                    <img src={acc.avatarUrl} alt={`${acc.username} avatar`} className="h-full w-full object-cover object-top" loading="lazy" decoding="async" />
                   ) : (
                     initials
                   )}
@@ -1611,9 +1616,9 @@ function ProfileCard({
                  <div className="px-5 pb-3 space-y-3">
                    <div className="relative aspect-square overflow-hidden rounded-xl border border-border/30 bg-muted/30">
                      {newPostMedia[activePreviewIndex]?.type?.startsWith("video") ? (
-                       <video src={newPostPreviews[activePreviewIndex]} className="h-full w-full object-cover" controls muted />
+                       <video src={newPostPreviews[activePreviewIndex]} className="h-full w-full object-cover" controls muted preload="metadata" />
                      ) : (
-                       <img src={newPostPreviews[activePreviewIndex]} alt="" className="h-full w-full object-cover" />
+                       <img src={newPostPreviews[activePreviewIndex]} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                      )}
 
                      <button
@@ -1639,9 +1644,9 @@ function ProfileCard({
                          className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${previewIndex === activePreviewIndex ? "border-primary ring-1 ring-primary/30" : "border-border/30 opacity-70 hover:opacity-100"}`}
                        >
                          {newPostMedia[previewIndex]?.type?.startsWith("video") ? (
-                           <video src={preview} className="h-full w-full object-cover" muted />
+                           <video src={preview} className="h-full w-full object-cover" muted preload="metadata" />
                          ) : (
-                           <img src={preview} alt="" className="h-full w-full object-cover" />
+                           <img src={preview} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                          )}
                        </button>
                      ))}
@@ -1797,7 +1802,7 @@ function ProfileCard({
                       isVideo ? (
                         <ReelThumbnail url={post.media_url} />
                       ) : (
-                        <img src={post.media_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        <img src={post.media_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                       )
                     ) : (
                       <div className="h-full w-full flex items-center justify-center p-2">
@@ -1845,12 +1850,15 @@ function ProfileCard({
                       className="max-h-full max-w-full"
                       controls
                       playsInline
+                      preload="metadata"
                     />
                   ) : (
                     <img
                       src={selectedPost.media_url}
                       alt={selectedPost.caption || `${acc.username} post`}
                       className="max-h-full max-w-full object-contain"
+                      loading="lazy"
+                      decoding="async"
                     />
                   )
                 ) : (
@@ -1871,7 +1879,7 @@ function ProfileCard({
                     }}
                   >
                     {acc.avatarUrl ? (
-                      <img src={acc.avatarUrl} alt={`${acc.username} avatar`} className="h-full w-full object-cover object-top" loading="lazy" />
+                      <img src={acc.avatarUrl} alt={`${acc.username} avatar`} className="h-full w-full object-cover object-top" loading="lazy" decoding="async" />
                     ) : (
                       initials
                     )}
@@ -1953,7 +1961,7 @@ function ProfileCard({
                           <div key={comment.id} className="flex gap-2">
                             <div className="h-7 w-7 rounded-full shrink-0 bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground overflow-hidden">
                               {comment.avatar_url ? (
-                                <img src={comment.avatar_url} alt="" className="h-full w-full object-cover" />
+                                <img src={comment.avatar_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                               ) : (
                                 (comment.display_name || "U")[0].toUpperCase()
                               )}

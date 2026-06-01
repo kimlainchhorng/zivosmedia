@@ -13,7 +13,7 @@
  *  - Bails out if the reservation is already in a terminal payment state.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 
@@ -36,8 +36,8 @@ const sha256Hex = async (s: string) => {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
+Deno.serve(withSecurity("create-car-rental-deposit", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
@@ -307,4 +307,4 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

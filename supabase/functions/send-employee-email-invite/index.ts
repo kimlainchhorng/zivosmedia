@@ -4,15 +4,9 @@
  * Body: { storeEmployeeId: uuid, email: string, storeName?: string, role?: string }
  */
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(status: number, body: unknown) {
+function json(status: number, body: unknown, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -25,9 +19,12 @@ function generateToken(): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+Deno.serve(withSecurity("send-employee-email-invite", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const inviteHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "POST, OPTIONS" };
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: inviteHeaders });
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" }, inviteHeaders);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -36,14 +33,14 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization") || "";
     const jwt = authHeader.replace("Bearer ", "");
-    if (!jwt) return json(401, { error: "unauthenticated" });
+    if (!jwt) return json(401, { error: "unauthenticated" }, inviteHeaders);
 
     const userClient = createClient(supabaseUrl, anon, {
       global: { headers: { Authorization: `Bearer ${jwt}` } },
     });
     const { data: userRes } = await userClient.auth.getUser();
     const user = userRes?.user;
-    if (!user) return json(401, { error: "unauthenticated" });
+    if (!user) return json(401, { error: "unauthenticated" }, inviteHeaders);
 
     const body = await req.json().catch(() => ({}));
     const storeEmployeeId: string | undefined = body.storeEmployeeId;
@@ -51,9 +48,9 @@ Deno.serve(async (req) => {
     const storeName: string = (body.storeName || "your team").toString().slice(0, 80);
     const role: string = (body.role || "staff").toString().slice(0, 40);
 
-    if (!storeEmployeeId || !email) return json(400, { error: "missing_fields" });
+    if (!storeEmployeeId || !email) return json(400, { error: "missing_fields" }, inviteHeaders);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      return json(400, { error: "invalid_email" });
+      return json(400, { error: "invalid_email" }, inviteHeaders);
     }
 
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -65,7 +62,7 @@ Deno.serve(async (req) => {
       .select("id, store_id")
       .eq("id", storeEmployeeId)
       .maybeSingle();
-    if (!emp) return json(404, { error: "employee_not_found" });
+    if (!emp) return json(404, { error: "employee_not_found" }, inviteHeaders);
 
     const { data: store } = await admin
       .from("store_profiles")
@@ -73,7 +70,7 @@ Deno.serve(async (req) => {
       .eq("id", emp.store_id)
       .maybeSingle();
     if (!store || store.owner_id !== user.id) {
-      return json(403, { error: "not_store_owner" });
+      return json(403, { error: "not_store_owner" }, inviteHeaders);
     }
 
     const inviteToken = generateToken();
@@ -85,7 +82,7 @@ Deno.serve(async (req) => {
       token: inviteToken,
       sent_by: user.id,
     });
-    if (insErr) return json(500, { error: "invite_insert_failed", detail: insErr.message });
+    if (insErr) return json(500, { error: "invite_insert_failed", detail: insErr.message }, inviteHeaders);
 
     const loginUrl = `https://hizivo.com/auth/accept-invite?token=${inviteToken}`;
 
@@ -107,12 +104,12 @@ Deno.serve(async (req) => {
     const sendData = await sendRes.json().catch(() => ({}));
     if (!sendRes.ok) {
       console.error("send-transactional-email failed", sendData);
-      return json(502, { error: "email_send_failed", detail: sendData });
+      return json(502, { error: "email_send_failed", detail: sendData }, inviteHeaders);
     }
 
-    return json(200, { ok: true });
+    return json(200, { ok: true }, inviteHeaders);
   } catch (e) {
     console.error("send-employee-email-invite error", e);
-    return json(500, { error: "internal_error", detail: String(e) });
+    return json(500, { error: "internal_error", detail: String(e) }, inviteHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

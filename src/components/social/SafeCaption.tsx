@@ -4,7 +4,7 @@
  * links are rendered as non-clickable text with a warning tooltip.
  */
 import { useMemo, useState } from "react";
-import { ShieldAlert, ShieldCheck, ExternalLink } from "lucide-react";
+import { AtSign, Hash, ShieldAlert, ShieldCheck, ExternalLink, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { assessLinkSync, type LinkRiskLevel } from "@/hooks/useLinkRisk";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -84,10 +84,10 @@ function tokenize(text: string): Segment[] {
 }
 
 const LINK_STYLES: Record<LinkRiskLevel, string> = {
-  trusted: "text-primary underline decoration-primary/40 hover:decoration-primary",
-  neutral: "text-primary underline decoration-primary/30 hover:decoration-primary",
-  suspicious: "text-amber-600 dark:text-amber-400 underline decoration-dotted decoration-amber-500",
-  blocked: "text-destructive line-through decoration-destructive/60 cursor-not-allowed",
+  trusted: "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15",
+  neutral: "border-cyan-400/20 bg-cyan-400/10 text-cyan-600 dark:text-cyan-300 hover:bg-cyan-400/15",
+  suspicious: "border-amber-400/30 bg-amber-400/12 text-amber-700 dark:text-amber-300",
+  blocked: "border-destructive/25 bg-destructive/10 text-destructive line-through cursor-not-allowed",
 };
 
 export default function SafeCaption({ text, className }: SafeCaptionProps) {
@@ -137,6 +137,11 @@ export default function SafeCaption({ text, className }: SafeCaptionProps) {
     if (pendingLink?.href) openExternalUrl(pendingLink.href);
     setPendingLink(null);
   };
+  const linkSafetySignal = pendingLink?.risk === "suspicious"
+    ? { label: "Review needed", detail: `${pendingLink.warnings?.length || 1} warning${(pendingLink.warnings?.length || 1) === 1 ? "" : "s"} found`, width: "62%" }
+    : pendingLink?.risk === "neutral"
+      ? { label: "Standard caution", detail: "External destination", width: "78%" }
+      : { label: "Safety check", detail: "Destination looks clear", width: "100%" };
 
   return (
     <>
@@ -157,8 +162,11 @@ export default function SafeCaption({ text, className }: SafeCaptionProps) {
                 tabIndex={0}
                 onClick={(e) => handleHashtagClick(e, seg.token!)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleHashtagClick(e as any, seg.token!); } }}
-                className="inline text-inherit font-normal cursor-pointer active:opacity-70"
+                title={`Open #${seg.token}`}
+                aria-label={`Open hashtag ${seg.token}`}
+                className="mx-0.5 inline-flex items-center gap-0.5 rounded-full border border-white/25 bg-white/15 px-1.5 py-0.5 text-inherit font-black shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_14px_rgba(15,23,42,0.06)] backdrop-blur-sm transition-transform hover:-translate-y-0.5 active:opacity-70"
               >
+                <Hash className="h-3 w-3" aria-hidden />
                 {seg.value}
               </span>
             );
@@ -171,8 +179,11 @@ export default function SafeCaption({ text, className }: SafeCaptionProps) {
                 tabIndex={0}
                 onClick={(e) => handleMentionClick(e, seg.token!)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleMentionClick(e as any, seg.token!); } }}
-                className="text-primary font-medium hover:underline cursor-pointer active:opacity-70 inline"
+                title={`Open @${seg.token}`}
+                aria-label={`Open profile mention ${seg.token}`}
+                className="mx-0.5 inline-flex items-center gap-0.5 rounded-full border border-primary/25 bg-primary/10 px-1.5 py-0.5 font-black text-primary shadow-[0_6px_14px_hsl(var(--primary)/0.08)] transition-transform hover:-translate-y-0.5 active:opacity-70"
               >
+                <AtSign className="h-3 w-3" aria-hidden />
                 {seg.value}
               </span>
             );
@@ -184,52 +195,133 @@ export default function SafeCaption({ text, className }: SafeCaptionProps) {
               href={seg.href}
               onClick={(e) => handleLinkClick(e, seg)}
               title={seg.warnings?.length ? seg.warnings.join(" · ") : seg.href}
+              aria-label={`${risk === "blocked" ? "Blocked" : risk === "suspicious" ? "Suspicious" : risk === "trusted" ? "Trusted" : "External"} link: ${seg.value}`}
               className={cn(
-                "inline-flex items-center gap-0.5 break-all",
+                "mx-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[0.95em] font-black shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_14px_rgba(15,23,42,0.06)] backdrop-blur-sm transition-all hover:-translate-y-0.5",
                 LINK_STYLES[risk]
               )}
               aria-disabled={risk === "blocked"}
             >
-              {risk === "blocked" && <ShieldAlert className="w-3 h-3 shrink-0" aria-hidden />}
-              {risk === "suspicious" && <ShieldAlert className="w-3 h-3 shrink-0" aria-hidden />}
-              {seg.value}
+              {(risk === "blocked" || risk === "suspicious") ? (
+                <ShieldAlert className="h-3 w-3 shrink-0" aria-hidden />
+              ) : risk === "trusted" ? (
+                <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden />
+              ) : (
+                <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+              )}
+              <span className="max-w-[16rem] truncate align-bottom">{seg.value}</span>
             </a>
           );
         })}
       </span>
 
       <Dialog open={!!pendingLink} onOpenChange={(o) => !o && setPendingLink(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              {pendingLink?.risk === "suspicious" ? (
-                <ShieldAlert className="w-5 h-5 text-amber-500" />
-              ) : (
-                <ShieldCheck className="w-5 h-5 text-primary" />
-              )}
-              {pendingLink?.risk === "suspicious" ? "Caution: external link" : "Leaving ZIVO"}
-            </DialogTitle>
-            <DialogDescription className="text-xs break-all pt-1">
-              {pendingLink?.href}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="zivo-social-sheet-panel max-w-sm overflow-hidden border-0 p-0">
+          <div className="px-3 pt-3">
+            <DialogHeader className="zivo-social-header-glass rounded-[1.25rem] px-4 py-3 text-left">
+              <DialogTitle className="flex items-center gap-3 text-base font-black">
+                <span className={cn(
+                  "zivo-social-share-orb flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                  pendingLink?.risk === "suspicious" && "text-amber-500",
+                )}>
+                  {pendingLink?.risk === "suspicious" ? (
+                    <ShieldAlert className="h-5 w-5" />
+                  ) : (
+                    <ShieldCheck className="h-5 w-5" />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate">{pendingLink?.risk === "suspicious" ? "Caution: external link" : "Leaving ZIVO"}</span>
+                  <span className="block truncate text-[11px] font-semibold text-muted-foreground">
+                    Check the destination before continuing
+                  </span>
+                </span>
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="px-5 pb-5 pt-3">
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+              <span className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-xl",
+                pendingLink?.risk === "suspicious" ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600",
+              )}>
+                {pendingLink?.risk === "suspicious" ? <ShieldAlert className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-black capitalize leading-none text-foreground">{pendingLink?.risk ?? "Link"}</p>
+                <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Risk check</p>
+              </div>
+            </div>
+            <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-black leading-none text-foreground">External</p>
+                <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Destination</p>
+              </div>
+            </div>
+          </div>
+          <div className="zivo-social-module-tile mb-3 rounded-2xl px-3 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className={cn(
+                  "zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl",
+                  pendingLink?.risk === "suspicious" ? "text-amber-500" : "text-primary",
+                )}>
+                  {pendingLink?.risk === "suspicious" ? <ShieldAlert className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-foreground">{linkSafetySignal.label}</span>
+                  <span className="block truncate text-[11px] font-semibold text-muted-foreground">{linkSafetySignal.detail}</span>
+                </span>
+              </span>
+              <span className={cn(
+                "rounded-full border px-2.5 py-1 text-[10px] font-black uppercase",
+                pendingLink?.risk === "suspicious"
+                  ? "border-amber-400/20 bg-amber-400/10 text-amber-600"
+                  : "border-primary/15 bg-primary/10 text-primary",
+              )}>
+                Link
+              </span>
+            </div>
+            <div className="zivo-social-chip mt-3 h-1.5 overflow-hidden rounded-full p-0">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-[width] duration-300",
+                  pendingLink?.risk === "suspicious" ? "bg-gradient-to-r from-amber-400 via-orange-400 to-primary" : "bg-gradient-to-r from-emerald-400 via-primary to-fuchsia-500",
+                )}
+                style={{ width: linkSafetySignal.width }}
+              />
+            </div>
+          </div>
+          <DialogDescription className="zivo-social-sheet-input break-all rounded-2xl p-3 text-xs font-semibold">
+            {pendingLink?.href}
+          </DialogDescription>
           {pendingLink?.warnings?.length ? (
-            <ul className="text-[11px] text-amber-600 dark:text-amber-400 space-y-0.5 list-disc pl-4">
-              {pendingLink.warnings.map((w, i) => <li key={i}>{w}</li>)}
+            <ul className="zivo-social-module-tile mt-3 space-y-2 rounded-2xl p-3 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+              {pendingLink.warnings.map((w, i) => (
+                <li key={i} className="flex gap-2">
+                  <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{w}</span>
+                </li>
+              ))}
             </ul>
           ) : (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="zivo-social-module-tile mt-3 rounded-2xl p-3 text-[11px] font-semibold leading-5 text-muted-foreground">
               This link goes to a third-party site outside ZIVO. Verify the URL before continuing.
             </p>
           )}
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" size="sm" onClick={() => setPendingLink(null)}>
+          <DialogFooter className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPendingLink(null)} className="zivo-social-chip min-h-[40px] rounded-full font-black">
               Cancel
             </Button>
-            <Button size="sm" onClick={proceed} className="gap-1.5">
-              <ExternalLink className="w-3.5 h-3.5" /> Continue
+            <Button size="sm" onClick={proceed} className="min-h-[40px] gap-1.5 rounded-full font-black">
+              <ExternalLink className="h-3.5 w-3.5" /> Continue
             </Button>
           </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>

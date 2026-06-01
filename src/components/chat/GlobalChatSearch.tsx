@@ -198,45 +198,51 @@ export default function GlobalChatSearch({ open, onClose }: Props) {
   const go = (path: string) => { onClose(); nav(path); };
 
   const Avatar = ({ src, fallback }: { src: string | null; fallback: string }) => (
-    <div className="w-9 h-9 rounded-full bg-muted overflow-hidden flex items-center justify-center text-xs font-semibold text-muted-foreground shrink-0">
+    <div className="zivo-chat-avatar-ring flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs font-semibold text-muted-foreground">
 	      {src ? <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : fallback.slice(0, 2).toUpperCase()}
     </div>
   );
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="bottom" className="h-[88vh] rounded-t-3xl p-0 flex flex-col">
+      <SheetContent side="bottom" className="zivo-chat-popover-glass flex h-[88vh] flex-col rounded-t-[1.75rem] p-0">
         <SheetHeader className="sr-only">
           <SheetTitle>Search chats</SheetTitle>
           <SheetDescription>
             Search across chats, contacts, channels, and messages.
           </SheetDescription>
         </SheetHeader>
-        <div className="flex items-center gap-2 px-3 pt-3 pb-2 border-b border-border/40">
+        <div className="flex items-center gap-2 border-b border-border/30 px-3 pb-2 pt-3">
           <SearchIcon className="w-4 h-4 text-muted-foreground" />
           <input
             ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search chats, contacts, channels, messages…"
-            className="flex-1 bg-transparent outline-none text-sm py-2"
+            className="zivo-chat-search flex-1 rounded-2xl px-3 py-2 text-sm outline-none"
             autoComplete="off"
           />
-          <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-muted/60" aria-label="Close">
+          <button type="button" onClick={onClose} className="zivo-chat-icon-button rounded-full p-1.5" aria-label="Close">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {debounced.length < 2 && (
-            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              Type at least 2 characters to search across chats, people, channels and messages.
+            <div className="px-4 py-10 text-center">
+              <div className="zivo-chat-card mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
+                <SearchIcon className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-sm font-semibold text-muted-foreground">Type at least 2 characters to search across chats, people, channels and messages.</p>
             </div>
           )}
 
           {empty && (
-            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              No results for "{debounced}".
+            <div className="px-4 py-10 text-center">
+              <div className="zivo-chat-card mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
+                <X className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-semibold text-muted-foreground">No results for "{debounced}".</p>
             </div>
           )}
 
@@ -310,7 +316,7 @@ export default function GlobalChatSearch({ open, onClose }: Props) {
                   <Row
                     key={`${m.sourceType}-${m.id}`}
                     onClick={() => user?.id && go(buildGlobalMessageHitPath(m, user.id))}
-                    avatar={<div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center"><FileText className="w-4 h-4 text-muted-foreground" /></div>}
+                    avatar={<div className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full"><FileText className="w-4 h-4 text-muted-foreground" /></div>}
                     title={<HighlightedText text={m.message} term={debounced} />}
                     subtitle={m.sourceType === "group" ? `${m.group_name} · ${new Date(m.created_at).toLocaleDateString()}` : new Date(m.created_at).toLocaleDateString()}
                   />
@@ -330,7 +336,7 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
       <div className="px-1 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold inline-flex items-center gap-1.5">
         {icon} {title}
       </div>
-      <div className="rounded-xl bg-card/60 divide-y divide-border/30">
+      <div className="zivo-chat-card overflow-hidden rounded-2xl">
         {children}
       </div>
     </div>
@@ -341,7 +347,7 @@ function Row({
   avatar, title, subtitle, onClick,
 }: { avatar: React.ReactNode; title: React.ReactNode; subtitle: React.ReactNode; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className={cn("w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/40 active:scale-[0.99] transition-all")}>
+    <button type="button" onClick={onClick} className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left transition-all hover:bg-white/50 active:scale-[0.99]")}>
       {avatar}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium truncate">{title}</div>

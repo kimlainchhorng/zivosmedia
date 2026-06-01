@@ -1,13 +1,9 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 
 // Internal-only function. Idempotent. Generates a branded ZIVO PDF receipt for a completed ride,
 // uploads to private `trip-receipts` bucket, records in `receipts`, emails the rider.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 const ZERO_DECIMAL_CURRENCIES = new Set(["BIF", "CLP", "DJF", "GNF", "JPY", "KHR", "KMF", "KRW", "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"]);
 
 function normalizeCurrency(value: unknown, paymentStatus: unknown): string {
@@ -51,7 +47,9 @@ function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
   return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("generate-trip-receipt", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -233,4 +231,4 @@ Deno.serve(async (req) => {
     console.error("[generate-trip-receipt]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

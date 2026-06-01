@@ -90,28 +90,30 @@ export default function ChatRowActionsSheet({
       <SheetContent
         side="bottom"
         className={cn(
-          "z-[10000] max-h-[86dvh] overflow-y-auto rounded-t-3xl pb-8",
+          "zivo-chat-popover-glass z-[10000] max-h-[86dvh] overflow-y-auto rounded-t-[1.75rem] pb-8",
           "sm:inset-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:bottom-auto sm:w-[min(420px,calc(100vw-32px))]",
           "sm:max-h-[min(620px,calc(100dvh-64px))] sm:-translate-x-1/2 sm:-translate-y-1/2",
-          "sm:rounded-2xl sm:border sm:p-5 sm:pb-5",
+          "sm:rounded-3xl sm:p-5 sm:pb-5",
           "sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0",
           "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95"
         )}
       >
+        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)] sm:hidden" />
         <SheetHeader className="text-left pr-10">
-          <SheetTitle className="text-base truncate">{target.name}</SheetTitle>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Chat tools</p>
+          <SheetTitle className="truncate text-base font-black">{target.name}</SheetTitle>
           <SheetDescription className="sr-only">
             Chat actions for {target.name}. You can pin, mute, mark read or unread, archive, clear history, or delete this chat.
           </SheetDescription>
         </SheetHeader>
 
         {canManageFolders && customFolders.length > 0 && (
-          <div className="mt-3 rounded-xl border border-border/50 bg-muted/20 p-2">
+          <div className="zivo-chat-card mt-3 rounded-2xl p-2">
             <button type="button"
               onClick={() => setShowFolderMenu((v) => !v)}
-              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/60"
+              className="flex w-full items-center justify-between gap-2 rounded-xl px-2 py-1.5 hover:bg-white/50"
             >
-              <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+              <span className="inline-flex items-center gap-2 text-sm font-bold text-foreground">
                 <FolderPlus className="w-4 h-4" />
                 Folders
               </span>
@@ -133,8 +135,8 @@ export default function ChatRowActionsSheet({
                         }
                       }}
                       className={cn(
-                        "flex items-center justify-between gap-2 px-2 py-2 rounded-lg text-left",
-                        "hover:bg-muted/60 active:scale-[0.99] transition-all"
+                        "flex items-center justify-between gap-2 rounded-xl px-2 py-2 text-left",
+                        "hover:bg-white/50 active:scale-[0.99] transition-all"
                       )}
                     >
                       <span className="inline-flex items-center gap-2 min-w-0">
@@ -156,7 +158,7 @@ export default function ChatRowActionsSheet({
           </div>
         )}
 
-        <div className="mt-3 flex flex-col gap-0.5">
+        <div className="mt-3 flex flex-col gap-1">
           {items.map((it) => {
             const Icon = it.icon;
             const disabled = (it as { disabled?: boolean }).disabled;
@@ -166,14 +168,19 @@ export default function ChatRowActionsSheet({
                 disabled={disabled}
                 onClick={() => { it.onClick(); onClose(); }}
                 className={cn(
-                  "flex items-center gap-3 px-2 py-3 text-left rounded-xl active:scale-[0.98] transition-all",
+                  "zivo-chat-row flex items-center gap-3 px-3 py-3 text-left active:scale-[0.98] transition-all",
                   disabled && "opacity-40",
                   it.destructive ? "text-destructive" : "text-foreground",
-                  "hover:bg-muted/60"
+                  it.destructive && "zivo-chat-danger-orb"
                 )}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-sm font-medium">{it.label}</span>
+                <span className={cn(
+                  "zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full",
+                  it.destructive && "zivo-chat-danger-orb",
+                )}>
+                  <Icon className="w-5 h-5" />
+                </span>
+                <span className="text-sm font-bold">{it.label}</span>
               </button>
             );
           })}

@@ -309,7 +309,7 @@ export default function GroceryOrderTracking() {
               <div className="flex items-center gap-3">
                 <div className="relative">
                   {driver.avatar_url ? (
-                    <img src={driver.avatar_url} alt="" className="h-12 w-12 rounded-xl object-cover border-2 border-primary/20" />
+                    <img src={driver.avatar_url} alt="" className="h-12 w-12 rounded-xl object-cover border-2 border-primary/20" loading="lazy" decoding="async" />
                   ) : (
                     <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center border-2 border-primary/20">
                       <User className="h-6 w-6 text-primary" />
@@ -466,7 +466,7 @@ export default function GroceryOrderTracking() {
                   {order.items.map((item, i) => (
                     <div key={i} className="flex items-center gap-3">
                       {item.image ? (
-                        <img src={item.image} alt="" className="h-10 w-10 rounded-lg object-contain bg-muted/20 border border-border/15 p-0.5" referrerPolicy="no-referrer" />
+                        <img src={item.image} alt="" className="h-10 w-10 rounded-lg object-contain bg-muted/20 border border-border/15 p-0.5" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                       ) : (
                         <div className="h-10 w-10 rounded-lg bg-muted/20 border border-border/15 flex items-center justify-center">
                           <Package className="h-4 w-4 text-muted-foreground/20" />

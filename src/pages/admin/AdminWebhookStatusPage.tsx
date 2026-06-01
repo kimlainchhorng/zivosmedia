@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { Copy, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-const WEBHOOK_URL = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/stripe-ride-webhook";
+const WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/stripe-ride-webhook`;
 
 export default function AdminWebhookStatusPage() {
   const [events, setEvents] = useState<any[]>([]);

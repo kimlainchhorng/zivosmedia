@@ -66,7 +66,6 @@ export function useCarRentalExpenses(storeId: string | undefined) {
   const create = useCallback(async (draft: CarRentalExpenseDraft): Promise<CarRentalExpense | null> => {
     if (!storeId) return null;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       store_id: storeId,
       vehicle_id: draft.vehicle_id ?? null,
@@ -78,20 +77,17 @@ export function useCarRentalExpenses(storeId: string | undefined) {
       payment_method: draft.payment_method?.trim() || null,
       expense_date: draft.expense_date,
       is_recurring: draft.is_recurring ?? false,
-      created_by_user_id: user?.id ?? null,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_expenses")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-expense-manage", {
+      body: { action: "create", store_id: storeId, expense: payload },
+    });
     if (err) {
       console.error("[useCarRentalExpenses] create failed", err);
       setError("Couldn't add expense.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalExpense;
+    const created = data?.expense as CarRentalExpense;
     setExpenses((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -100,11 +96,16 @@ export function useCarRentalExpenses(storeId: string | undefined) {
   const update = useCallback(async (id: string, patch: Partial<CarRentalExpenseDraft>) => {
     setSaving(true);
     setExpenses((prev) => prev.map((e) => (e.id === id ? ({ ...e, ...patch } as CarRentalExpense) : e)));
-    const { error: err } = await supabase.from("car_rental_expenses").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-rental-expense-manage", {
+      body: { action: "update", expense_id: id, expense: patch },
+    });
     if (err) {
       console.error("[useCarRentalExpenses] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
+    } else if (data?.expense) {
+      const updated = data.expense as CarRentalExpense;
+      setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)));
     }
     setSaving(false);
   }, [load]);
@@ -113,7 +114,9 @@ export function useCarRentalExpenses(storeId: string | undefined) {
     setSaving(true);
     const prev = expenses;
     setExpenses((p) => p.filter((e) => e.id !== id));
-    const { error: err } = await supabase.from("car_rental_expenses").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-expense-manage", {
+      body: { action: "delete", expense_id: id },
+    });
     if (err) {
       console.error("[useCarRentalExpenses] delete failed", err);
       setError("Couldn't delete expense.");

@@ -33,6 +33,12 @@ const USER_TABLES: Array<{ table: string; userColumn: string }> = [
   { table: "customer_payout_methods",   userColumn: "user_id" },
   { table: "user_devices",              userColumn: "user_id" },
   { table: "trusted_devices",           userColumn: "user_id" },
+  { table: "user_consent_logs",         userColumn: "user_id" },
+  { table: "policy_consents",           userColumn: "user_id" },
+  { table: "role_terms_acceptance",     userColumn: "user_id" },
+  { table: "user_consents",             userColumn: "user_id" },
+  { table: "legal_disputes",            userColumn: "complainant_id" },
+  { table: "legal_audit_log",           userColumn: "actor_id" },
 ];
 
 serve(
@@ -71,6 +77,6 @@ serve(
 
       return ok(req, exportData);
     }, "account-export"),
-    { rateLimit: "auth_password_reset" }, // 3 requests / 5 min — exports are heavy
+    { strictCors: true, allowedMethods: ["POST"], rateLimit: "auth_password_reset" }, // 3 requests / 5 min — exports are heavy
   ),
 );

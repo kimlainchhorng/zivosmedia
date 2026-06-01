@@ -46,10 +46,11 @@ export default function AutoRepairPromosSection({ storeId }: Props) {
   const create = useMutation({
     mutationFn: async () => {
       if (!form.title.trim()) throw new Error("Title is required");
-      const { error } = await (supabase as any)
-        .from("store_promotions")
-        .insert({
+      const { error } = await supabase.functions.invoke("store-promotion-manage", {
+        body: {
+          action: "create",
           store_id: storeId,
+          promotion: {
           title: form.title.trim(),
           promo_code: form.promo_code.trim() || null,
           discount_type: "percent",
@@ -57,7 +58,9 @@ export default function AutoRepairPromosSection({ storeId }: Props) {
           start_date: form.start_date || null,
           end_date: form.end_date || null,
           is_active: true,
-        });
+          },
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -71,10 +74,9 @@ export default function AutoRepairPromosSection({ storeId }: Props) {
 
   const toggle = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await (supabase as any)
-        .from("store_promotions")
-        .update({ is_active })
-        .eq("id", id);
+      const { error } = await supabase.functions.invoke("store-promotion-manage", {
+        body: { action: "set_active", promotion_id: id, is_active },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ar-promos", storeId] }),
@@ -83,10 +85,9 @@ export default function AutoRepairPromosSection({ storeId }: Props) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from("store_promotions")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.functions.invoke("store-promotion-manage", {
+        body: { action: "delete", promotion_id: id },
+      });
       if (error) throw error;
     },
     onSuccess: () => {

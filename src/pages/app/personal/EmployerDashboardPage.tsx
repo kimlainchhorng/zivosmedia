@@ -298,7 +298,7 @@ export default function EmployerDashboardPage() {
             <Card className="p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
-                  {company.logo_url ? <img src={company.logo_url} alt="" className="h-full w-full rounded-lg object-cover" /> : <Building2 className="h-5 w-5 text-muted-foreground" />}
+                  {company.logo_url ? <img src={company.logo_url} alt="" className="h-full w-full rounded-lg object-cover" loading="lazy" decoding="async" /> : <Building2 className="h-5 w-5 text-muted-foreground" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-base font-semibold">{company.name}</div>

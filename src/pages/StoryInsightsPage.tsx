@@ -185,7 +185,7 @@ export default function StoryInsightsPage() {
                     ) : isVideo ? (
                       <video src={s.media_url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                     ) : (
-                      <img src={s.media_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={s.media_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     )}
                     {isVideo && <Film className="absolute top-2 right-2 h-4 w-4 text-white drop-shadow-md" />}
                     {isText && <TypeIcon className="absolute top-2 right-2 h-4 w-4 text-white drop-shadow-md" />}

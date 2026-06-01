@@ -91,6 +91,7 @@ import type { SocialCardPayload } from "./ChatSocialShareSheet";
 import { suggestStickersFor } from "@/lib/stickerSuggest";
 import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
 import { detectSensitiveContent, isGroupMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 import { formatChatDateLabel } from "@/lib/chat/dateLabels";
 import ChatFormatBar, { matchFormatHotkey } from "./ChatFormatBar";
@@ -99,6 +100,7 @@ import { repairVideoBlob, validateVideoForChatUpload } from "@/utils/videoRepair
 import { DEFAULT_CHAT_WALLPAPER_CLASS } from "./chatPersonalizationStyles";
 import { getChatMessageHighlightClass } from "./chatMessageHighlight";
 import { getComposerDraftPartnerId, type ChatComposerSource, type ComposerActionId } from "./chatComposerHubModel";
+import { cn } from "@/lib/utils";
 
 interface GroupChatProps {
   groupId: string;
@@ -2242,27 +2244,22 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     setMessages((prev) => prev.filter((m) => m.id !== msgId));
 
     const blockSender = async () => {
-      await (supabase as any).from("user_safety_actions").upsert(
-        {
-          user_id: user.id,
-          target_user_id: msg.sender_id,
-          action: "block",
-        },
-        { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
-      );
+      await submitSafetyReport({
+        type: "safety_action",
+        target_user_id: msg.sender_id,
+        action: "block",
+      });
     };
 
     try {
-      const { error } = await (supabase as any).from("group_message_reports").insert({
-        reporter_id: user.id,
+      await submitSafetyReport({
+        type: "group_message",
         group_id: msg.group_id,
         message_id: msg.id,
         sender_id: msg.sender_id,
         reason,
         description: (msg.message || "").slice(0, 500),
       });
-      if (error) throw error;
-      await blockSender();
       toast.success("We hid it, blocked this user, and sent it for safety review");
     } catch (error) {
       if (isGroupMessageSafetySchemaDriftError(error)) {
@@ -2403,16 +2400,16 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       // from that variable's right edge so the chat sits next to the list
       // instead of covering it. On mobile the variable falls back to 0px and
       // the chat covers the viewport as before.
-      className="fixed inset-y-0 right-0 left-0 z-[1300] bg-background flex flex-col lg:top-[60px] lg:bottom-0 lg:inset-y-auto lg:left-[var(--chat-sidebar-w,0px)] transition-[left] duration-200"
+      className="zivo-chat-surface fixed inset-y-0 right-0 left-0 z-[1300] flex flex-col lg:top-[60px] lg:bottom-0 lg:inset-y-auto lg:left-[var(--chat-sidebar-w,0px)] transition-[left] duration-200"
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "tween", duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border/30 safe-area-top">
+      <div className="zivo-chat-header-glass sticky top-0 z-10 safe-area-top">
         <div className="px-3 py-2 flex items-center gap-3 lg:max-w-4xl lg:mx-auto lg:w-full">
-          <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Back" title="Back">
+          <button type="button" onClick={onClose} className="zivo-chat-icon-button flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full active:scale-90 transition-transform" aria-label="Back" title="Back">
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
           <button
@@ -2421,7 +2418,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             aria-label={`Open ${currentGroupName} group info`}
             className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40"
           >
-            <Avatar className="h-9 w-9 ring-1 ring-border/40 shadow-sm">
+            <Avatar className="zivo-chat-avatar-ring h-9 w-9">
               <AvatarImage src={currentGroupAvatarSrc || undefined} />
               <AvatarFallback className="text-[11px] font-bold bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-white">{initials}</AvatarFallback>
             </Avatar>
@@ -2436,7 +2433,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             <OutboxPendingBadge chatKey={groupId} />
             <button type="button"
               onClick={() => { void primeCallAudio(); setGroupCall("video"); }}
-              className="h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted/60 active:bg-muted transition-colors"
+              className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center rounded-full transition-colors active:scale-90"
               aria-label="Video call"
               title="Video call"
             >
@@ -2444,7 +2441,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             </button>
             <button type="button"
               onClick={() => { void primeCallAudio(); setGroupCall("audio"); }}
-              className="h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted/60 active:bg-muted transition-colors"
+              className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center rounded-full transition-colors active:scale-90"
               aria-label="Voice call"
               title="Voice call"
             >
@@ -2452,7 +2449,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             </button>
             <button type="button"
               onClick={() => setShowMembers(true)}
-              className="h-11 px-2 flex items-center justify-center gap-1 rounded-full hover:bg-muted/60 active:bg-muted transition-colors"
+              className="zivo-chat-icon-button flex h-11 items-center justify-center gap-1 rounded-full px-2 transition-colors active:scale-90"
               aria-label="Members"
               title="Members"
             >
@@ -2461,7 +2458,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" className="h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted/60 active:bg-muted transition-colors" aria-label="More options" title="More options">
+                <button type="button" className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center rounded-full transition-colors active:scale-90" aria-label="More options" title="More options">
                   <MoreVertical className="h-4 w-4 text-foreground" />
                 </button>
               </DropdownMenuTrigger>
@@ -2493,7 +2490,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       </div>
 
       {activePinnedMessage && pinnedPreview && (
-        <div className="w-full border-b border-sky-400/30 bg-gradient-to-r from-sky-500/10 via-sky-400/5 to-transparent px-3 py-2">
+        <div className="zivo-chat-card w-full px-3 py-2">
           <div className="flex items-center gap-2 border-l-2 border-sky-500/70 pl-2 lg:max-w-4xl lg:mx-auto lg:w-full">
             <button
               type="button"
@@ -2542,14 +2539,19 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         className={`flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-2 [-webkit-overflow-scrolling:touch] touch-pan-y [transform:translateZ(0)] [contain:layout_paint] lg:[&>*]:max-w-4xl lg:[&>*]:mx-auto lg:[&>*]:w-full ${DEFAULT_CHAT_WALLPAPER_CLASS}`}
       >
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <div className="flex h-40 items-center justify-center">
+            <div className="zivo-chat-card flex items-center gap-2 rounded-full px-4 py-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-xs font-bold text-muted-foreground">Loading group</span>
+            </div>
           </div>
         ) : visibleMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-muted-foreground/50">
-            <Users className="w-8 h-8 mb-2" />
-            <p className="text-sm">Group created</p>
-            <p className="text-xs mt-1">Say hello to the group!</p>
+          <div className="flex h-40 flex-col items-center justify-center text-center text-muted-foreground">
+            <div className="zivo-chat-card mb-3 flex h-16 w-16 items-center justify-center rounded-[1.5rem]">
+              <Users className="h-7 w-7 text-primary" />
+            </div>
+            <p className="text-sm font-black text-foreground">Group created</p>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">Say hello to the group!</p>
           </div>
         ) : (
           <>
@@ -2736,7 +2738,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               setUnreadWhileScrolled(0);
             }}
             aria-label={unreadWhileScrolled > 0 ? `${unreadWhileScrolled} new ${unreadWhileScrolled === 1 ? "message" : "messages"} — jump to latest` : "Jump to latest"}
-            className="absolute right-4 bottom-[calc(var(--zivo-safe-bottom,0px)+5.25rem)] z-20 inline-flex items-center gap-1.5 h-10 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/25"
+            className="zivo-chat-chip-active absolute right-4 bottom-[calc(var(--zivo-safe-bottom,0px)+5.25rem)] z-20 inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black"
           >
             Jump to latest
             {unreadWhileScrolled > 0 && (
@@ -2755,7 +2757,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-muted/50 border-t border-border/30 px-4 py-2 flex items-center gap-2 overflow-hidden"
+            className="zivo-chat-card flex items-center gap-2 overflow-hidden px-4 py-2"
           >
             <div className="w-1 h-8 rounded-full bg-primary shrink-0" />
             <div className="flex-1 min-w-0">
@@ -2952,9 +2954,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               className="fixed inset-0 z-[200] bg-black/40" onClick={() => setActionTarget(null)} />
             <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
               transition={{ type: "spring", damping: 26, stiffness: 400 }}
-              className="fixed bottom-0 left-0 right-0 z-[201] bg-background rounded-t-2xl px-4 pb-[calc(var(--zivo-safe-bottom,0px)+2rem)] pt-3 shadow-2xl border-t border-border/20 max-w-lg mx-auto"
+              className="zivo-chat-popover-glass fixed bottom-0 left-0 right-0 z-[201] mx-auto max-w-lg rounded-t-[1.75rem] px-4 pb-[calc(var(--zivo-safe-bottom,0px)+2rem)] pt-3"
             >
-              <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-4" />
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
               <p className="text-xs text-muted-foreground truncate mb-3 px-1">{actionTarget.message || "📷 Media"}</p>
               <div className="grid grid-cols-4 gap-3">
                 {[
@@ -3004,7 +3006,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       </AnimatePresence>
 
       {/* Input */}
-      <div className="bg-background/80 backdrop-blur-2xl border-t border-border/5 px-2.5 py-2 relative [padding-bottom:max(var(--zivo-safe-bottom,0px),0.875rem)] lg:[&>*]:max-w-4xl lg:[&>*]:mx-auto lg:[&>*]:w-full">
+      <div className="zivo-chat-header-glass relative px-2.5 py-2 [padding-bottom:max(var(--zivo-safe-bottom,0px),0.875rem)] lg:[&>*]:mx-auto lg:[&>*]:w-full lg:[&>*]:max-w-4xl">
         {/* Sticker auto-suggestions (Telegram parity) — shown when the user types an emoji.
             Hidden during slash mode so the popovers don't fight. */}
         {stickerSuggestions.length > 0 && slashQuery == null && (
@@ -3017,7 +3019,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                   setInput("");
                   updateGroupDraft("");
                 }}
-                className="shrink-0 w-16 h-16 rounded-xl bg-muted/50 hover:bg-muted active:scale-95 transition-all flex items-center justify-center p-1"
+                className="zivo-chat-card flex h-16 w-16 shrink-0 items-center justify-center rounded-xl p-1 transition-all active:scale-95"
                 aria-label={`Send sticker: ${s.alt}`}
                 title={s.alt}
               >
@@ -3060,9 +3062,10 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                 setShowComposerHub(false);
                 setShowStickerKeyboard((prev) => !prev);
               }}
-              className={`h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                showStickerKeyboard ? "bg-primary/10 text-primary" : "text-muted-foreground/60 hover:bg-muted/50"
-              }`}
+              className={cn(
+                "zivo-chat-icon-button flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all",
+                showStickerKeyboard ? "text-primary" : "text-muted-foreground/70",
+              )}
               aria-label="Open stickers"
               title="Open stickers"
             >
@@ -3103,7 +3106,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <div className="flex-1 relative">
             {/* @mention suggestions popover */}
             {mentionQuery != null && mentionCandidates.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-lg shadow-black/10 overflow-hidden z-20">
+              <div className="zivo-chat-popover-glass absolute bottom-full left-0 right-0 z-20 mb-2 overflow-hidden rounded-xl">
                 <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/30">
                   Mention
                 </div>
@@ -3112,7 +3115,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                     key={m.user_id}
                     onMouseDown={(e) => { e.preventDefault(); applyMention(m.name); }}
                     onMouseEnter={() => setMentionIndex(i)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${i === mentionIndex ? "bg-muted/60" : "hover:bg-muted/40"}`}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${i === mentionIndex ? "bg-white/60" : "hover:bg-white/45"}`}
                   >
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary overflow-hidden shrink-0">
                       {m.avatar ? (
@@ -3130,7 +3133,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             {slashQuery != null && slashCandidates.length > 0 && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setSlashQuery(null)} />
-                <div className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-lg shadow-black/10 overflow-hidden z-40">
+                <div className="zivo-chat-popover-glass absolute bottom-full left-0 right-0 z-40 mb-2 overflow-hidden rounded-xl">
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/30">
                     Group commands
                   </div>
@@ -3139,7 +3142,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                       key={cmd.id}
                       onMouseDown={(e) => { e.preventDefault(); runSlashCommand(cmd); }}
                       onMouseEnter={() => setSlashIndex(i)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${i === slashIndex ? "bg-muted/60" : "hover:bg-muted/40"}`}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${i === slashIndex ? "bg-white/60" : "hover:bg-white/45"}`}
                     >
                       <span className="text-[13px] font-mono font-semibold text-primary">{cmd.label}</span>
                       <span className="text-[12px] text-muted-foreground truncate">{cmd.hint}</span>
@@ -3219,7 +3222,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               }}
               placeholder={disappearingSec != null ? "Disappearing message..." : "Message..."}
               className={`w-full h-12 pl-4 pr-14 rounded-full text-[15px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all ${
-                disappearingSec != null ? "bg-amber-500/5 border border-amber-500/15 focus:ring-2 focus:ring-amber-500/10" : "bg-muted/30 border border-border/10 focus:ring-2 focus:ring-primary/15 focus:border-primary/20"
+                disappearingSec != null ? "zivo-chat-search border-amber-500/25 focus:ring-2 focus:ring-amber-500/10" : "zivo-chat-search focus:ring-2 focus:ring-primary/15"
               }`}
             />
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
@@ -3230,7 +3233,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                   setComposerHubOpen(!showComposerHub);
                 }}
                 disabled={uploadingImage}
-                className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${showComposerHub ? "text-primary bg-primary/10" : "text-muted-foreground/45 hover:text-muted-foreground"}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-full transition-all active:scale-90 ${showComposerHub ? "zivo-chat-chip-active" : "text-muted-foreground/60 hover:text-muted-foreground"}`}
                 aria-label="Composer hub"
                 title="Composer hub"
               >
@@ -3284,7 +3287,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             <button type="button"
               onClick={() => handleSend()}
               disabled={sending}
-              className="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all shrink-0 shadow-sm"
+              className="zivo-chat-chip-active flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all active:scale-90 disabled:opacity-40"
               aria-label="Send message"
               title="Send message"
             >

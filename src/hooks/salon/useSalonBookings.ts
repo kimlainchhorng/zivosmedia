@@ -205,12 +205,7 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
     setSaving(true);
     setError(null);
     const end = new Date(new Date(draft.start_at).getTime() + draft.duration_minutes * 60 * 1000);
-    // Record who added the booking for the audit trail. The sanitize trigger
-    // overrides this to NULL for source='app' (public) inserts so we don't
-    // accidentally attribute customer-placed bookings to an owner.
-    const { data: { user } } = await supabase.auth.getUser();
     const payload = {
-      store_id: storeId,
       client_id: draft.client_id,
       stylist_id: draft.stylist_id,
       service_id: draft.service_id,
@@ -228,13 +223,14 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       client_notes: draft.client_notes?.trim() || null,
       internal_notes: draft.internal_notes?.trim() || null,
       referral_source: draft.referral_source?.trim() || null,
-      created_by_user_id: user?.id ?? null,
     };
-    const { data, error: err } = await supabase
-      .from("salon_bookings")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("salon-booking-manage", {
+      body: {
+        action: "create",
+        store_id: storeId,
+        booking: payload,
+      },
+    });
     if (err) {
       console.error("[useSalonBookings] create failed", err);
       // 23P01 is raised by THREE things: the no-overlap GIST exclusion (which
@@ -256,7 +252,7 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       setSaving(false);
       return null;
     }
-    const created = data as unknown as SalonBooking;
+    const created = data?.booking as unknown as SalonBooking;
     // Only add to local state if it falls into the visible day.
     if (created.start_at >= range.from && created.start_at < range.to) {
       setBookings((prev) => [...prev, created].sort((a, b) => a.start_at.localeCompare(b.start_at)));
@@ -307,10 +303,13 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       prev.map((b) => (b.id === id ? ({ ...b, ...cleanPatch } as SalonBooking) : b))
     );
 
-    const { error: err } = await supabase
-      .from("salon_bookings")
-      .update(cleanPatch as never)
-      .eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("salon-booking-manage", {
+      body: {
+        action: "update",
+        booking_id: id,
+        patch: cleanPatch,
+      },
+    });
     if (err) {
       console.error("[useSalonBookings] update failed", err);
       if ((err as any).code === "23P01") {
@@ -326,6 +325,10 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
       await load();
       setSaving(false);
       return false;
+    }
+    if (data?.booking) {
+      const updated = data.booking as SalonBooking;
+      setBookings((prev) => prev.map((b) => (b.id === id ? updated : b)));
     }
     setSaving(false);
     return true;
@@ -356,16 +359,25 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
     setBookings((prev) =>
       prev.map((b) => (b.id === id ? ({ ...b, ...cleanPatch } as SalonBooking) : b))
     );
-    const { error: err } = await supabase
-      .from("salon_bookings")
-      .update(cleanPatch as never)
-      .eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("salon-booking-manage", {
+      body: {
+        action: "change_status",
+        booking_id: id,
+        status,
+        reason: opts?.reason,
+        no_show_fee_cents: opts?.noShowFeeCents,
+      },
+    });
     if (err) {
       console.error("[useSalonBookings] changeStatus failed", err);
       setError("Couldn't change status — refreshing.");
       await load();
       setSaving(false);
       return false;
+    }
+    if (data?.booking) {
+      const updated = data.booking as SalonBooking;
+      setBookings((prev) => prev.map((b) => (b.id === id ? updated : b)));
     }
     setSaving(false);
     return true;
@@ -376,10 +388,12 @@ export function useSalonBookings({ storeId, date }: UseSalonBookingsArgs): UseSa
     setError(null);
     const previous = bookings;
     setBookings((prev) => prev.filter((b) => b.id !== id));
-    const { error: err } = await supabase
-      .from("salon_bookings")
-      .delete()
-      .eq("id", id);
+    const { error: err } = await supabase.functions.invoke("salon-booking-manage", {
+      body: {
+        action: "delete",
+        booking_id: id,
+      },
+    });
     if (err) {
       console.error("[useSalonBookings] delete failed", err);
       setError("Couldn't delete booking.");

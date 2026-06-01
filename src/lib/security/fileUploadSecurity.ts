@@ -8,6 +8,7 @@ const BLOCKED_EXTENSIONS = new Set([
   '.exe', '.dll', '.bat', '.cmd', '.com', '.msi', '.sh', '.bash',
   '.ps1', '.vbs', '.hta', '.jar', '.php', '.asp', '.aspx', '.jsp',
   '.py', '.rb', '.pl', '.ts', '.js', '.mjs', '.elf', '.app', '.bin',
+  '.svg', '.html', '.htm', '.xhtml', '.xml',
 ]);
 
 const ALLOWED_MIME: Record<string, string[]> = {
@@ -34,11 +35,18 @@ export interface FileValidationResult {
 }
 
 export function validateFileClient(file: File, category: FileCategory): FileValidationResult {
-  // Extension
-  const name = file.name.toLowerCase();
-  const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
-  if (BLOCKED_EXTENSIONS.has(ext)) {
-    return { ok: false, error: `File type "${ext}" is not allowed.` };
+  // Filename and extension checks. The server repeats these checks before storage writes.
+  const name = file.name.trim();
+  if (!name) return { ok: false, error: 'File name is required.' };
+  if (name.length > 180) return { ok: false, error: 'File name is too long.' };
+  if (/[\\/\0-\x1F\x7F]/.test(name) || name.includes('..')) {
+    return { ok: false, error: 'File name contains an unsafe path sequence.' };
+  }
+
+  const extensions = name.toLowerCase().match(/\.[a-z0-9]+/g) ?? [];
+  const blocked = extensions.find((ext) => BLOCKED_EXTENSIONS.has(ext));
+  if (blocked) {
+    return { ok: false, error: `File type "${blocked}" is not allowed.` };
   }
 
   // MIME type

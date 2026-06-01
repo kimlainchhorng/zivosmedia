@@ -285,7 +285,7 @@ export default function FavoritesPage() {
                   >
                     {/* Cover */}
                     {image ? (
-                      <img src={image} alt={getItemName(fav)} className={cn("w-full object-cover", viewMode === "grid" ? "h-24" : "h-28")} loading="lazy" />
+                      <img src={image} alt={getItemName(fav)} className={cn("w-full object-cover", viewMode === "grid" ? "h-24" : "h-28")} loading="lazy" decoding="async" />
                     ) : (
                       <div className={cn("w-full flex items-center justify-center", style.bg, viewMode === "grid" ? "h-24" : "h-28")}>
                         <TypeIcon className={cn(viewMode === "grid" ? "w-8 h-8" : "w-10 h-10", style.color)} />

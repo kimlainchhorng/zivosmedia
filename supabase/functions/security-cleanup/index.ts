@@ -18,11 +18,7 @@
 // Returns a JSON summary of how many rows were affected.
 
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface CleanupResult {
   ip_blocklist_pruned: number;
@@ -33,7 +29,15 @@ interface CleanupResult {
   errors: string[];
 }
 
-Deno.serve(async (req) => {
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
+Deno.serve(withSecurity("security-cleanup", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -46,6 +50,16 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+  const provided = new URL(req.url).searchParams.get("secret") ?? req.headers.get("x-cron-secret") ?? "";
+  const cronAuthorized = Boolean(cronSecret && provided === cronSecret);
+  if (!cronAuthorized && !isServiceRoleRequest(req, serviceKey)) {
+    return new Response(JSON.stringify({ error: "forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const admin = createClient(url, serviceKey, {
     auth: { persistSession: false },
   });
@@ -124,4 +138,4 @@ Deno.serve(async (req) => {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

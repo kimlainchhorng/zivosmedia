@@ -1,4 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 /**
  * get-ice-servers v2 — STUN + TURN ICE servers with caching & fallback chain.
@@ -14,13 +15,6 @@ const STUN_FALLBACK: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
 ];
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
 // In-memory cache (per-isolate). Twilio tokens are valid 1h; we cache 30s
 // so we benefit from burst traffic without holding stale creds for too long.
@@ -78,9 +72,8 @@ async function fetchTwilioIce(): Promise<RTCIceServer[] | null> {
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
+Deno.serve(withSecurity("get-ice-servers", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Authentication required" }), {
@@ -138,4 +131,10 @@ Deno.serve(async (req) => {
       status: 200,
     },
   );
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["GET", "POST"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

@@ -155,4 +155,4 @@ Deno.serve(withSecurity("manage-payment-methods", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious" }));

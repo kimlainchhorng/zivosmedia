@@ -70,54 +70,32 @@ export function useStoreTrainingPrograms(storeId: string) {
 
   const upsert = useMutation({
     mutationFn: async (draft: ProgramDraft) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
-      if (!uid) throw new Error("Not signed in");
-
-      let programId = draft.id;
-      if (programId) {
-        const { error } = await supabase
-          .from("store_training_programs")
-          .update({
+      const { error } = await supabase.functions.invoke("store-training-program-manage", {
+        body: {
+          action: "save",
+          store_id: storeId,
+          program_id: draft.id,
+          program: {
             name: draft.name,
             type: draft.type,
             description: draft.description ?? null,
-          })
-          .eq("id", programId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from("store_training_programs")
-          .insert({
-            store_id: storeId,
-            name: draft.name,
-            type: draft.type,
-            description: draft.description ?? null,
-            created_by: uid,
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        programId = data.id;
-      }
-
-      if (draft.modules && draft.modules.length && programId) {
-        const rows = draft.modules.map((m, i) => ({
-          program_id: programId!,
-          title: m.title,
-          duration_minutes: m.duration_minutes,
-          sort_order: i,
-        }));
-        const { error } = await supabase.from("store_training_modules").insert(rows);
-        if (error) throw error;
-      }
+            ...(draft.modules ? { modules: draft.modules } : {}),
+          },
+        },
+      });
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(storeId) }),
   });
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("store_training_programs").delete().eq("id", id);
+      const { error } = await supabase.functions.invoke("store-training-program-manage", {
+        body: {
+          action: "delete",
+          program_id: id,
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(storeId) }),
@@ -125,34 +103,14 @@ export function useStoreTrainingPrograms(storeId: string) {
 
   const seedDefaults = useMutation({
     mutationFn: async (defaults: ProgramDraft[]) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
-      if (!uid) throw new Error("Not signed in");
-
-      for (const d of defaults) {
-        const { data: prog, error } = await supabase
-          .from("store_training_programs")
-          .insert({
-            store_id: storeId,
-            name: d.name,
-            type: d.type,
-            description: d.description ?? null,
-            created_by: uid,
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        if (d.modules?.length) {
-          const rows = d.modules.map((m, i) => ({
-            program_id: prog.id,
-            title: m.title,
-            duration_minutes: m.duration_minutes,
-            sort_order: i,
-          }));
-          const { error: mErr } = await supabase.from("store_training_modules").insert(rows);
-          if (mErr) throw mErr;
-        }
-      }
+      const { error } = await supabase.functions.invoke("store-training-program-manage", {
+        body: {
+          action: "seed_defaults",
+          store_id: storeId,
+          programs: defaults,
+        },
+      });
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(storeId) }),
   });

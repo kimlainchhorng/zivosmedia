@@ -155,7 +155,7 @@ export default function CafeReviewSubmitPage() {
       <div className="max-w-md mx-auto">
         <div className="text-center mb-4">
           {data.store.logo_url ? (
-            <img src={data.store.logo_url} alt="" className="h-14 w-14 mx-auto rounded-lg object-cover" />
+            <img src={data.store.logo_url} alt="" className="h-14 w-14 mx-auto rounded-lg object-cover" loading="lazy" decoding="async" />
           ) : (
             <div className="h-14 w-14 mx-auto rounded-lg bg-amber-500/15 grid place-items-center">
               <Coffee className="h-7 w-7 text-amber-700" />

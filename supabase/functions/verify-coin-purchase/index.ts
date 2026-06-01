@@ -154,4 +154,4 @@ serve(withSecurity("verify-coin-purchase", async (req, ctx) => {
       status: 400,
     });
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -81,12 +81,16 @@ export default function BusinessLandingPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const message = `Company: ${formData.companyName}\nContact: ${formData.contactName}\nEmail: ${formData.email}\nPhone: ${formData.phone}\nSize: ${formData.companySize}\nIndustry: ${formData.industry}\nMessage: ${formData.message}`;
-      const { error } = await supabase.from("feedback_submissions").insert({
+      const message = `Contact: ${formData.contactName}\nPhone: ${formData.phone}\nSize: ${formData.companySize}\nIndustry: ${formData.industry}\nMessage: ${formData.message}`;
+      const { error } = await supabase.functions.invoke("marketing-interest-submit", { body: {
         category: "business_inquiry",
         subject: `Business Inquiry - ${formData.companyName}`,
+        email: formData.email,
+        company: formData.companyName,
         message,
-      });
+        context: "business_landing",
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       toast.success("Thank you! Our business team will contact you within 24 hours.");
       setFormData({ companyName: "", contactName: "", email: "", phone: "", companySize: "", industry: "", message: "" });
@@ -567,8 +571,8 @@ export default function BusinessLandingPage() {
 
                     <p className="text-xs text-center text-muted-foreground">
                       By submitting, you agree to our{" "}
-                      <Link to="/terms" className="underline">Terms</Link> and{" "}
-                      <Link to="/privacy" className="underline">Privacy Policy</Link>.
+                      <Link to="/legal/terms" className="underline">Terms</Link> and{" "}
+                      <Link to="/legal/privacy" className="underline">Privacy Policy</Link>.
                     </p>
                   </form>
                 </CardContent>

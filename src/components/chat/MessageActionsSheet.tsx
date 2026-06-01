@@ -47,20 +47,26 @@ export default function MessageActionsSheet({
     <Button
       variant="ghost"
       onClick={() => { onClick(); onOpenChange(false); }}
-      className={`w-full justify-start h-12 ${danger ? "text-destructive" : ""}`}
+      className={`h-12 w-full justify-start rounded-2xl px-3 font-bold hover:bg-muted/20 ${danger ? "text-destructive hover:text-destructive" : ""}`}
     >
-      <Icon className="w-5 h-5 mr-3" />
+      <span className={`mr-3 flex h-9 w-9 items-center justify-center rounded-full ${danger ? "bg-destructive/10" : "zivo-chat-avatar-ring"}`}>
+        <Icon className="h-4 w-4" />
+      </span>
       {label}
     </Button>
   );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-safe">
-        <SheetHeader>
-          <SheetTitle className="text-left text-sm text-muted-foreground">Message actions</SheetTitle>
+      <SheetContent side="bottom" className="zivo-chat-popover-glass rounded-t-[1.75rem] border-white/10 px-0 pb-safe shadow-2xl">
+        <div className="zivo-chat-header-glass px-5 pb-4 pt-5">
+          <div className="mx-auto mb-4 h-1 w-11 rounded-full bg-foreground/20" />
+          <SheetHeader>
+            <p className="text-left text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Message tools</p>
+            <SheetTitle className="text-left text-lg font-black text-foreground">Message actions</SheetTitle>
         </SheetHeader>
-        <div className="flex flex-col gap-1 mt-2">
+        </div>
+        <div className="mx-4 mt-3 flex flex-col gap-1 rounded-3xl border border-white/10 bg-background/40 p-1 shadow-sm backdrop-blur-xl">
           <Item icon={Smile} label="React" onClick={onReact} />
           <Item icon={Reply} label="Reply" onClick={onReply} />
           <Item icon={Forward} label="Forward" onClick={onForward} />
@@ -74,6 +80,7 @@ export default function MessageActionsSheet({
           <Item icon={Languages} label="Translate" onClick={onTranslate} />
           {isOwn && <Item icon={Trash2} label="Delete" onClick={onDelete} danger />}
         </div>
+        <div className="h-4" />
       </SheetContent>
     </Sheet>
   );

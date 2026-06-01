@@ -60,7 +60,7 @@ export default function AutoRepairBookingLinkSection({ storeId }: Props) {
 </style></head><body>
   <h1>Scan to book your next appointment</h1>
   <p>Point your phone camera at the code below</p>
-  <img src="${dataUrl}" alt="Booking QR"/>
+  <img src="${dataUrl}" alt="Booking QR" loading="lazy" decoding="async"/>
   <p class="url">${bookingUrl}</p>
 </body></html>`);
     w.document.close();

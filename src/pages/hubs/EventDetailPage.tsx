@@ -128,7 +128,7 @@ export default function EventDetailPage() {
           <div className="space-y-5">
             {event.cover_url && (
               <div className="rounded-2xl overflow-hidden bg-muted aspect-[16/9]">
-                <img src={event.cover_url} alt="" className="w-full h-full object-cover" />
+                <img src={event.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               </div>
             )}
 

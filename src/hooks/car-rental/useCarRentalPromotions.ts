@@ -83,11 +83,9 @@ export function useCarRentalPromotions(storeId: string | undefined) {
       ends_at: draft.ends_at ?? null,
       is_active: draft.is_active ?? true,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_promotions")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-promotion-manage", {
+      body: { action: "create", store_id: storeId, promotion: payload },
+    });
     if (err) {
       console.error("[useCarRentalPromotions] create failed", err);
       if ((err as any).code === "23505") {
@@ -98,7 +96,7 @@ export function useCarRentalPromotions(storeId: string | undefined) {
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalPromotion;
+    const created = data?.promotion as CarRentalPromotion;
     setPromos((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -109,7 +107,9 @@ export function useCarRentalPromotions(storeId: string | undefined) {
     const cleaned: Record<string, unknown> = {};
     Object.entries(patch).forEach(([k, v]) => { cleaned[k] = typeof v === "string" && k === "code" ? v.toUpperCase() : v; });
     setPromos((prev) => prev.map((p) => p.id === id ? ({ ...p, ...cleaned } as CarRentalPromotion) : p));
-    const { error: err } = await supabase.from("car_rental_promotions").update(cleaned as never).eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-promotion-manage", {
+      body: { action: "update", promotion_id: id, promotion: cleaned },
+    });
     if (err) {
       console.error("[useCarRentalPromotions] update failed", err);
       setError("Couldn't save changes — refreshing.");
@@ -122,7 +122,9 @@ export function useCarRentalPromotions(storeId: string | undefined) {
     setSaving(true);
     const prev = promos;
     setPromos((p) => p.filter((x) => x.id !== id));
-    const { error: err } = await supabase.from("car_rental_promotions").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-promotion-manage", {
+      body: { action: "delete", promotion_id: id },
+    });
     if (err) {
       console.error("[useCarRentalPromotions] delete failed", err);
       setError("Couldn't delete promotion.");

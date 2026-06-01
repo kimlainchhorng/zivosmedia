@@ -1,5 +1,6 @@
 /**
  * SalonExpensesSection — outgoing money ledger.
+ * Mutations are routed through salon-expense-manage for owner/admin scoping.
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -202,7 +203,6 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
     }
     setSaving(true);
     const payload = {
-      store_id: storeId,
       expense_date: draft.expense_date,
       amount_cents: cents,
       category: draft.category.trim() || "Other",
@@ -212,18 +212,20 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
       is_recurring: draft.is_recurring,
       recurrence: draft.is_recurring && draft.recurrence ? draft.recurrence : null,
     };
-    if (editingId) {
-      const { error: err } = await supabase.from("salon_expenses").update(payload as never).eq("id", editingId);
-      if (err) { setError("Couldn't save changes."); setSaving(false); return; }
-      toast.success("Expense updated.");
-    } else {
-      // Author tagging — useful when multiple staff log expenses.
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error: err } = await supabase.from("salon_expenses").insert({ ...payload, created_by_user_id: user?.id ?? null } as never);
-      if (err) { setError("Couldn't add expense."); setSaving(false); return; }
-      toast.success("Expense added.");
-    }
+    const { data, error: err } = await supabase.functions.invoke("salon-expense-manage", {
+      body: {
+        action: editingId ? "update" : "create",
+        store_id: storeId,
+        expense_id: editingId,
+        expense: payload,
+      },
+    });
     setSaving(false);
+    if (err || data?.error) {
+      setError(data?.error || (editingId ? "Couldn't save changes." : "Couldn't add expense."));
+      return;
+    }
+    toast.success(editingId ? "Expense updated." : "Expense added.");
     setDialogOpen(false);
     await load();
   };
@@ -231,9 +233,11 @@ export default function SalonExpensesSection({ storeId }: SalonExpensesSectionPr
   const handleDelete = async () => {
     if (!confirmDeleteId) return;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_expenses").delete().eq("id", confirmDeleteId);
+    const { data, error: err } = await supabase.functions.invoke("salon-expense-manage", {
+      body: { action: "delete", expense_id: confirmDeleteId },
+    });
     setSaving(false);
-    if (err) { setError("Couldn't delete."); return; }
+    if (err || data?.error) { setError(data?.error || "Couldn't delete."); return; }
     setConfirmDeleteId(null);
     toast.success("Expense removed.");
     await load();

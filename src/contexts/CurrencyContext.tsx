@@ -21,6 +21,7 @@ import {
   getPriceDisplay,
   type ExchangeRates,
 } from "@/lib/currency";
+import { SUPABASE_URL } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "zivo_currency";
 const RATES_CACHE_KEY = "zivo_fx_rates";
@@ -172,7 +173,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       setRatesLoading(true);
       try {
         const response = await fetch(
-          `https://slirphzzwcogdbkeicff.supabase.co/functions/v1/exchange-rates`,
+          `${SUPABASE_URL}/functions/v1/exchange-rates`,
           {
             headers: {
               "Content-Type": "application/json",

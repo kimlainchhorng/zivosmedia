@@ -240,7 +240,7 @@ function OrderCard({ order, onReorder, onRate, onTrack }: {
                 {(order.items || []).slice(0, 8).map((item, i) => (
                   <div key={i} className="flex items-center gap-2.5">
                     {item.image && (
-                      <img src={item.image} alt="" className="h-9 w-9 rounded-lg object-contain bg-muted/20 border border-border/15 p-0.5" referrerPolicy="no-referrer" />
+                      <img src={item.image} alt="" className="h-9 w-9 rounded-lg object-contain bg-muted/20 border border-border/15 p-0.5" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                     )}
                     <div className="flex-1 min-w-0">
                       <span className="text-[11px] text-foreground/80 truncate block">
@@ -381,10 +381,12 @@ export default function GroceryOrderHistory() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "active" | "past">("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
+    setCurrentUserId(user.id);
 
     const { data, error } = await supabase
       .from("shopping_orders")
@@ -413,13 +415,9 @@ export default function GroceryOrderHistory() {
       if (stale.length === 0) return;
 
       for (const order of stale) {
-        const { error } = await supabase
-          .from("shopping_orders")
-          .update({
-            status: "cancelled",
-            cancelled_at: new Date().toISOString(),
-          } as any)
-          .eq("id", order.id);
+        const { error } = await supabase.functions.invoke("shopping-order-state-update", {
+          body: { order_id: order.id, action: "cancel_stale_pending_payment" },
+        });
 
         if (!error) {
           setOrders((prev) =>
@@ -436,7 +434,7 @@ export default function GroceryOrderHistory() {
     if (!loading && orders.length > 0) {
       autoCancelStale();
     }
-  }, [loading, orders.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentUserId, loading, orders.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Real-time subscription for active orders
   useEffect(() => {
@@ -470,16 +468,15 @@ export default function GroceryOrderHistory() {
     setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, rating: stars } : o));
     toast.success(`Rated ${stars} star${stars !== 1 ? "s" : ""} — thank you!`);
 
-    const { error } = await supabase
-      .from("shopping_orders")
-      .update({ rating: stars } as any)
-      .eq("id", orderId);
+    const { error } = await supabase.functions.invoke("shopping-order-state-update", {
+      body: { order_id: orderId, action: "rate_order", rating: stars },
+    });
 
     if (error) {
       console.error("Failed to save rating:", error);
       // Don't revert — rating column may not exist yet, but local state is fine
     }
-  }, []);
+  }, [currentUserId]);
 
   const handleRefresh = () => { setRefreshing(true); fetchOrders(); };
 

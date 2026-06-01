@@ -181,7 +181,6 @@ export default function SalonMembershipsSection({ storeId }: SalonMembershipsSec
     }
     setSaving(true);
     const payload = {
-      store_id: storeId,
       name: cleanName,
       description: dialog.description.trim() || null,
       monthly_price_cents: priceCents,
@@ -191,32 +190,20 @@ export default function SalonMembershipsSection({ storeId }: SalonMembershipsSec
     };
 
     let tierId = dialog.id;
-    if (tierId) {
-      const { error: err } = await (supabase
-        .from("salon_membership_tiers") as any)
-        .update(payload)
-        .eq("id", tierId);
-      if (err) {
-        setSaving(false);
-        toast.error(err.message);
-        return;
-      }
-    } else {
-      // sort_order — append. Trivially racy but doesn't matter (manual
-      // re-order is a future feature).
-      const sort_order = tiers.length > 0 ? Math.max(...tiers.map((t) => t.sort_order)) + 10 : 0;
-      const { data, error: err } = await (supabase
-        .from("salon_membership_tiers") as any)
-        .insert({ ...payload, sort_order })
-        .select("id")
-        .single();
-      if (err) {
-        setSaving(false);
-        toast.error(err.message);
-        return;
-      }
-      tierId = (data as { id: string }).id;
+    const { data, error: err } = await supabase.functions.invoke("salon-membership-tier-manage", {
+      body: {
+        action: tierId ? "update" : "create",
+        store_id: storeId,
+        tier_id: tierId,
+        tier: payload,
+      },
+    });
+    if (err || data?.error) {
+      setSaving(false);
+      toast.error(data?.error || err?.message || "Could not save tier.");
+      return;
     }
+    tierId = data?.tier_id ?? tierId;
 
     // Sync to Stripe immediately so the tier is subscribable. Failure here
     // doesn't undo the DB row — the owner can click "Sync to Stripe" later.
@@ -228,8 +215,13 @@ export default function SalonMembershipsSection({ storeId }: SalonMembershipsSec
 
   const removeTier = async (t: Tier) => {
     if (!window.confirm(`Delete "${t.name}"? Existing subscribers stay billed via Stripe — cancel them from the active members table first.`)) return;
-    const { error: err } = await (supabase as any).from("salon_membership_tiers").delete().eq("id", t.id);
-    if (err) { toast.error(err.message); return; }
+    const { data, error: err } = await supabase.functions.invoke("salon-membership-tier-manage", {
+      body: { action: "delete", tier_id: t.id },
+    });
+    if (err || data?.error) {
+      toast.error(data?.error || err?.message || "Could not delete tier.");
+      return;
+    }
     toast.success("Tier removed.");
     await load();
   };

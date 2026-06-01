@@ -1,9 +1,29 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
+
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
 
 // Cron-triggered: expire pending offers older than 15s and re-dispatch with widened radius.
-Deno.serve(async (_req) => {
+Deno.serve(withSecurity("dispatch-escalate", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+  const provided = new URL(req.url).searchParams.get("secret") ?? req.headers.get("x-cron-secret") ?? "";
+  const isInternal = Boolean(cronSecret && provided === cronSecret) || isServiceRoleRequest(req, serviceKey);
+  if (!isInternal) {
+    return new Response(JSON.stringify({ error: "forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const admin = createClient(supabaseUrl, serviceKey);
 
   try {
@@ -40,10 +60,10 @@ Deno.serve(async (_req) => {
     }
 
     return new Response(JSON.stringify({ ok: true, expired: expired?.length ?? 0, escalated }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("[dispatch-escalate]", e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

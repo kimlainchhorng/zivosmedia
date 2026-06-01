@@ -69,8 +69,8 @@ GRANT EXECUTE ON FUNCTION public.salon_get_low_stock_for_store(UUID) TO service_
 --    morning coffee, late enough that yesterday's last-minute sales are
 --    already counted.
 --
---    URL + Authorization header mirror the pattern used by
---    20260509180000_notifications_cron_schedule.sql.
+--    URL + Authorization header are read from per-project runtime settings
+--    so this migration can be applied safely to staging and production.
 ------------------------------------------------------------------------------
 
 CREATE EXTENSION IF NOT EXISTS pg_cron;
@@ -85,8 +85,11 @@ SELECT cron.schedule(
   '0 14 * * *',
   $$
   SELECT net.http_post(
-    url     := 'https://slirphzzwcogdbkeicff.supabase.co/functions/v1/salon-low-stock-digest',
-    headers := '{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI"}'::jsonb,
+    url     := NULLIF(current_setting('app.settings.supabase_url', true), '') || '/functions/v1/salon-low-stock-digest',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || NULLIF(current_setting('app.settings.supabase_anon_key', true), '')
+    ),
     body    := '{}'::jsonb
   );
   $$

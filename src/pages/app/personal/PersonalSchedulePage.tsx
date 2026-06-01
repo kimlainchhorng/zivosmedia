@@ -86,8 +86,10 @@ export default function PersonalSchedulePage() {
           .limit(1)
           .maybeSingle();
         if (byEmail) {
-          await supabase.from("store_employees").update({ user_id: user.id }).eq("id", byEmail.id);
-          return byEmail;
+          const { data } = await supabase.functions.invoke("store-employee-manage", {
+            body: { action: "link_self_by_email" },
+          });
+          return data?.employee || byEmail;
         }
       }
       return null;
@@ -224,12 +226,19 @@ export default function PersonalSchedulePage() {
     if (!reqDate) return;
     setReqSubmitting(true);
     try {
-      await (supabase as any).from("feedback_submissions").insert({
+      const { error } = await supabase.functions.invoke("travel-support-submit", { body: {
         category: reqType === "time_off" ? "time_off_request" : "shift_swap_request",
         subject: `${reqType === "time_off" ? "Time off" : "Shift swap"}: ${reqDate}`,
-        message: `Employee: ${empRecord?.name ?? "Unknown"} (${empRecord?.id ?? ""})\nDate: ${reqDate}\nReason: ${reqReason}\nNote: ${reqNote || "(none)"}`,
-        user_id: user?.id ?? null,
-      });
+        payload: {
+          employeeName: empRecord?.name ?? "Unknown",
+          employeeId: empRecord?.id ?? "",
+          date: reqDate,
+          reason: reqReason,
+          note: reqNote || null,
+        },
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
       setReqDone(true);
     } catch {
       /* silent fail */

@@ -44,13 +44,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  getModerationActionOutcome,
   getModerationContentLabel,
-  getModerationStatusLabel,
   isPendingModerationStatus,
   normalizeModerationContentType,
   type ModerationContentKind,
   type ModerationReviewAction,
+  getModerationStatusLabel,
 } from "@/lib/admin/moderationQueue";
 
 interface QueueRow {
@@ -398,89 +397,20 @@ export default function AdminModerationPage() {
     return { pending, actioned, dismissed, high, total: reports.length };
   }, [reports]);
 
-  const applyTargetVisibility = async (
-    report: ModerationReport,
-    action: ModerationReviewAction,
-    moderatorId: string,
-    details: ContentDetails | null,
-  ) => {
-    if (action === "dismiss") return;
-    const table =
-      report.kind === "user_post"
-        ? "user_posts"
-        : report.kind === "post_comment"
-          ? "post_comments"
-          : report.kind === "direct_message"
-            ? "direct_messages"
-            : report.kind === "group_message"
-              ? "group_messages"
-              : report.kind === "story"
-                ? "stories"
-                : report.kind === "story_comment"
-                  ? "story_comments"
-                  : null;
-    if (!table) return;
-
-    const hidePatch = {
-      hidden_at: details?.hiddenAt || new Date().toISOString(),
-      hidden_by: moderatorId,
-      hidden_reason: details?.hiddenReason || "moderator_action",
-    };
-    const unhidePatch = {
-      hidden_at: null,
-      hidden_by: null,
-      hidden_reason: null,
-    };
-    const basePatch = action === "unhide_false_positive" ? unhidePatch : hidePatch;
-    const patch =
-      report.kind === "user_post" || report.kind === "story"
-        ? action === "unhide_false_positive"
-          ? { ...basePatch, is_sensitive: false, sensitive_reason: null }
-          : { ...basePatch, is_sensitive: true, sensitive_reason: "moderator_sensitive" }
-        : basePatch;
-
-    const { error } = await (supabase as any).from(table).update(patch).eq("id", report.contentId);
-    if (error) throw error;
-  };
-
   const handleReviewAction = async (report: ModerationReport, action: ModerationReviewAction) => {
     setActioningId(report.id);
-    const outcome = getModerationActionOutcome(action);
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) throw userError || new Error("Admin user not available");
-
-      const details = selectedReport?.id === report.id ? selectedDetails : await loadContentDetails(report);
-      await applyTargetVisibility(report, action, user.id, details);
-
-      const now = new Date().toISOString();
-      const { error: queueError } = await (supabase as any)
-        .from("content_moderation_queue")
-        .update({
-          status: outcome.queueStatus,
-          assigned_to: user.id,
-          updated_at: now,
-        })
-        .eq("id", report.id);
-      if (queueError) throw queueError;
-
-      const { error: auditError } = await (supabase as any).from("moderation_actions").insert({
-        queue_item_id: report.id,
-        moderator_id: user.id,
-        action_type: outcome.auditActionType,
-        target_user_id: details?.ownerId ?? null,
-        target_content_id: report.contentId,
-        target_content_type: report.kind,
-        reason: report.reason,
-        notes: `${getModerationContentLabel(report.kind)} review: ${outcome.auditActionType}`,
+      const { data, error } = await supabase.functions.invoke("admin-moderation-review", {
+        body: {
+          report_id: report.id,
+          action,
+        },
       });
-      if (auditError) throw auditError;
+      if (error) throw error;
 
-      toast.success(outcome.successLabel);
-      setSelectedReport((current) => (current?.id === report.id ? { ...current, status: outcome.queueStatus } : current));
+      const nextStatus = data?.status === "actioned" || data?.status === "dismissed" ? data.status : report.status;
+      toast.success(data?.successLabel || "Moderation review saved");
+      setSelectedReport((current) => (current?.id === report.id ? { ...current, status: nextStatus } : current));
       await loadReports();
     } catch (err) {
       const message = err && typeof err === "object" && "message" in err ? String(err.message) : "Unknown error";

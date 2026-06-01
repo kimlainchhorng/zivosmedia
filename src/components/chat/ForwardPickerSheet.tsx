@@ -101,30 +101,40 @@ export default function ForwardPickerSheet({ open, onOpenChange, onConfirm }: Pr
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-safe h-[80vh] flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="text-left flex items-center gap-2">
-            <Forward className="w-5 h-5" /> Forward to…
+      <SheetContent side="bottom" className="zivo-chat-popover-glass flex h-[80vh] flex-col rounded-t-[1.75rem] border-white/10 px-0 pb-safe shadow-2xl">
+        <div className="zivo-chat-header-glass px-5 pb-4 pt-5">
+          <div className="mx-auto mb-4 h-1 w-11 rounded-full bg-foreground/20" />
+          <SheetHeader>
+            <p className="text-left text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Message route</p>
+          <SheetTitle className="flex items-center gap-2 text-left text-lg font-black">
+            <Forward className="h-5 w-5 text-primary" /> Forward to…
           </SheetTitle>
         </SheetHeader>
+        </div>
+        <div className="px-4 pt-3">
         <Input
           placeholder="Search contacts"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mt-3"
+          className="zivo-chat-search h-11"
         />
-        <div className="flex-1 overflow-y-auto mt-3 space-y-1">
+        </div>
+        <div className="mt-3 flex-1 space-y-1 overflow-y-auto px-4">
           {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">No contacts found</p>
+            <div className="zivo-chat-card flex min-h-32 items-center justify-center p-6 text-center">
+              <p className="text-sm font-semibold text-muted-foreground">No contacts found</p>
+            </div>
           )}
           {filtered.map((c) => (
             <button type="button"
               key={c.id}
               onClick={() => toggle(c.contact_user_id)}
-              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50"
+              className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all ${
+                selected.has(c.contact_user_id) ? "zivo-chat-row-unread" : "zivo-chat-row"
+              }`}
             >
               <Checkbox checked={selected.has(c.contact_user_id)} />
-              <div className="w-9 h-9 rounded-full bg-muted overflow-hidden shrink-0">
+              <div className="zivo-chat-avatar-ring h-10 w-10 shrink-0 overflow-hidden rounded-full">
 	                {c.avatar_url && (
 	                  <img
 	                    src={c.avatar_url}
@@ -136,24 +146,28 @@ export default function ForwardPickerSheet({ open, onOpenChange, onConfirm }: Pr
 	                )}
               </div>
               <div className="flex-1 text-left min-w-0">
-                <div className="text-sm font-medium truncate">{c.display_name || "Unnamed"}</div>
-                {c.username && <div className="text-xs text-muted-foreground truncate">@{c.username}</div>}
+                <div className="truncate text-sm font-black">{c.display_name || "Unnamed"}</div>
+                {c.username && <div className="truncate text-xs font-semibold text-muted-foreground">@{c.username}</div>}
               </div>
             </button>
           ))}
         </div>
         {selected.size > 0 && (
+          <div className="px-4 pt-3">
           <Input
             placeholder="Add a comment (optional)…"
             value={comment}
             onChange={(e) => setComment(e.target.value.slice(0, 500))}
-            className="mt-3"
+            className="zivo-chat-search h-11"
             maxLength={500}
           />
+          </div>
         )}
-        <Button onClick={confirm} disabled={selected.size === 0} className="mt-3">
+        <div className="zivo-chat-header-glass mt-3 px-4 py-3">
+        <Button onClick={confirm} disabled={selected.size === 0} className="zivo-chat-chip-active h-12 w-full border-0 text-sm font-black">
           Forward {selected.size > 0 && `(${selected.size})`}
         </Button>
+        </div>
       </SheetContent>
     </Sheet>
   );

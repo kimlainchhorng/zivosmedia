@@ -33,6 +33,7 @@ import { getE2ESeedPosts } from "@/lib/testing/e2eSeed";
 import { track } from "@/lib/analytics";
 import { useHiddenPosts } from "@/hooks/useHiddenPosts";
 import { copyText } from "@/lib/native/clipboard";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 
 /**
  * Fullscreen post viewer wrapper with drag-down-to-close.
@@ -212,6 +213,15 @@ const writeLocalPosts = (storageKey: string | null, posts: FeedItem[]) => {
   } catch {
     // Local persistence is best effort.
   }
+};
+
+const parseUserPostStorageKey = (url?: string | null): string | null => {
+  if (!url) return null;
+  const marker = "/user-posts/";
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  const key = url.slice(idx + marker.length).split("?")[0];
+  return key || null;
 };
 
 type UserPostRow = {
@@ -1057,16 +1067,21 @@ export default function ProfileContentTabs({
   }, [currentProfileAvatar, onPostsChanged, persistLocalPost, uploadMediaToSupabase, user?.email, user?.id]);
 
   const handleDeletePost = useCallback(async (postId: string) => {
+    const targetPost = feed.find((p) => p.id === postId) || readLocalPosts(localPostsKey).find((p) => p.id === postId);
     setFeed((prev) => prev.filter((p) => p.id !== postId));
     setSelectedPost(null);
     setShowPostMenu(false);
     writeLocalPosts(localPostsKey, readLocalPosts(localPostsKey).filter((p) => p.id !== postId));
     if (user?.id) {
+      const storageKey = parseUserPostStorageKey(targetPost?.url);
       try { await (supabase as any).from("user_posts").delete().eq("id", postId); } catch {}
+      if (storageKey?.startsWith(`${user.id}/`)) {
+        try { await supabase.storage.from("user-posts").remove([storageKey]); } catch {}
+      }
     }
     onPostsChanged?.();
     toast.success("Post deleted");
-  }, [localPostsKey, onPostsChanged, user?.id]);
+  }, [feed, localPostsKey, onPostsChanged, user?.id]);
 
   const handleEditCaption = useCallback(async (postId: string, newCaption: string) => {
     setFeed((prev) => prev.map((p) => p.id === postId ? { ...p, caption: newCaption } : p));
@@ -1153,15 +1168,15 @@ export default function ProfileContentTabs({
 
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 pb-10">
       {/* Create Post Bar */}
-      <div className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/10 bg-card rounded-2xl">
+      <div className="w-full rounded-[24px] border border-border/70 bg-card p-2.5 shadow-sm">
         <button
           type="button"
           onClick={() => openCreatePost()}
-          className="min-w-0 flex flex-1 items-center gap-3 rounded-xl text-left transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="min-w-0 flex w-full items-center gap-2.5 rounded-[18px] bg-muted/30 px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
-          <div className="h-10 w-10 rounded-full overflow-hidden bg-muted border-2 border-primary/20 shrink-0">
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-background bg-muted shadow-sm">
             {currentProfileAvatar ? (
               <img src={currentProfileAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
             ) : (
@@ -1170,41 +1185,45 @@ export default function ProfileContentTabs({
               </div>
             )}
           </div>
-          <span className="text-sm text-muted-foreground flex-1 truncate">What's on your mind?</span>
+          <span className="flex-1 truncate text-sm font-semibold text-muted-foreground">What's on your mind?</span>
+          <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/55" />
         </button>
-        <div className="flex shrink-0 gap-1.5">
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
           <button
             type="button"
             aria-label="Create photo post"
             title="Photo"
             onClick={() => openCreatePost("photo")}
-            className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center transition hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            className="flex min-h-10 items-center justify-center gap-1.5 rounded-2xl border border-emerald-500/15 bg-emerald-500/8 px-2 text-[11px] font-black text-emerald-700 transition hover:bg-emerald-500/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:text-emerald-300"
           >
             <Image className="h-3.5 w-3.5 text-emerald-600" />
+            <span>Photo</span>
           </button>
           <button
             type="button"
             aria-label="Create reel"
             title="Reel"
             onClick={() => openCreatePost("reel")}
-            className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center transition hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+            className="flex min-h-10 items-center justify-center gap-1.5 rounded-2xl border border-blue-500/15 bg-blue-500/8 px-2 text-[11px] font-black text-blue-700 transition hover:bg-blue-500/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-blue-300"
           >
             <Film className="h-3.5 w-3.5 text-blue-600" />
+            <span>Reel</span>
           </button>
           <button
             type="button"
             aria-label="Go live from camera"
             title="Live camera"
             onClick={openLiveBroadcast}
-            className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center transition hover:bg-orange-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50"
+            className="flex min-h-10 items-center justify-center gap-1.5 rounded-2xl border border-orange-500/15 bg-orange-500/8 px-2 text-[11px] font-black text-orange-700 transition hover:bg-orange-500/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 dark:text-orange-300"
           >
             <Camera className="h-3.5 w-3.5 text-orange-600" />
+            <span>Live</span>
           </button>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1 bg-muted/30 rounded-xl p-1">
+      <div className="flex items-center gap-1 rounded-[22px] border border-border/70 bg-card p-1 shadow-sm">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
@@ -1214,9 +1233,9 @@ export default function ProfileContentTabs({
               data-testid={`profile-tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all",
+                "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-[17px] px-2 text-xs font-extrabold transition-all",
                 active
-                  ? "bg-card text-foreground shadow-sm"
+                  ? "bg-foreground text-background shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -1246,23 +1265,29 @@ export default function ProfileContentTabs({
           </button>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex min-h-[190px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-card px-5 py-8 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <EmptyStateIcon className="h-5 w-5" />
+        <div className="mb-8 overflow-hidden rounded-[28px] border border-border bg-card p-4 text-center shadow-sm">
+          <div className="relative mb-4 grid h-36 place-items-center overflow-hidden rounded-[24px] bg-muted/35">
+            <div className="absolute -left-5 top-5 h-24 w-24 rounded-full bg-emerald-500/10" />
+            <div className="absolute -right-7 bottom-2 h-28 w-28 rounded-full bg-sky-500/10" />
+            <div className="absolute left-10 top-9 h-20 w-16 rotate-[-8deg] rounded-2xl border border-border/50 bg-background shadow-sm" />
+            <div className="absolute right-10 top-9 h-20 w-16 rotate-[8deg] rounded-2xl border border-border/50 bg-background shadow-sm" />
+            <div className="relative grid h-16 w-16 place-items-center rounded-2xl border border-border bg-background shadow-md">
+              <EmptyStateIcon className="h-6 w-6 text-foreground" />
+            </div>
           </div>
-          <p className="text-sm font-bold text-foreground">{emptyState.title}</p>
-          <p className="mt-1 max-w-[260px] text-xs leading-5 text-muted-foreground">{emptyState.description}</p>
+          <p className="text-base font-black text-foreground">{emptyState.title}</p>
+          <p className="mx-auto mt-1 max-w-[260px] text-sm leading-6 text-muted-foreground">{emptyState.description}</p>
           <button
             type="button"
             onClick={() => openCreatePost(emptyState.mode)}
-            className="mt-4 inline-flex min-h-[38px] items-center justify-center rounded-full bg-foreground px-4 text-xs font-bold text-background transition active:scale-[0.98]"
+            className="mt-4 inline-flex min-h-[42px] items-center justify-center rounded-2xl bg-foreground px-5 text-xs font-extrabold text-background transition active:scale-[0.98]"
           >
             {emptyState.action}
           </button>
         </div>
       ) : activeTab === "all" ? (
-        /* Feed-style view for "All" tab — full parity with main feed */
-        <div className="divide-y divide-border/30">
+        /* Feed-style view for "All" tab — carded for the profile surface */
+        <div className="space-y-3">
           {filtered.map((item) => (
             <ProfileFeedCard
               key={item.id}
@@ -1895,12 +1920,12 @@ export default function ProfileContentTabs({
                         const targetId = selectedPost?.id;
                         try {
                           if (selectedPost) {
-                            const { error } = await (supabase as any).from("post_reports").insert({
+                            await submitSafetyReport({
+                              type: "post",
                               post_id: toUserPostInteractionId(selectedPost.id),
-                              reporter_id: user?.id,
-                              category: reportCategory,
+                              post_source: "user",
+                              reason: reportCategory || "profile report",
                             });
-                            if (error) throw error;
                           }
                         } catch (err) {
                           logProfileActionError(

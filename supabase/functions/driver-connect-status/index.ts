@@ -1,10 +1,10 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 
 // Refreshes Stripe Connect account capabilities for the calling driver.
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
+Deno.serve(withSecurity("driver-connect-status", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
@@ -50,6 +50,6 @@ Deno.serve(async (req) => {
     }), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[driver-connect-status]", e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -81,7 +81,7 @@ Deno.serve(withSecurity("chat-consume-view-once", async (req, ctx) => {
     const message = error instanceof Error ? error.message : "Open failed";
     return json({ error: message }, 500, corsHeaders);
   }
-}, { rateLimit: "api_general", strictCors: true }));
+}, { rateLimit: "api_general", strictCors: true, allowedMethods: ["POST"] }));
 
 /** Pull the object path out of a Supabase storage signed/public URL. */
 function extractStoragePath(url: string, bucket: string): string | null {

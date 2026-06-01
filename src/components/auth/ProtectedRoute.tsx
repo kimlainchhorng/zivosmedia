@@ -1,6 +1,7 @@
 import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserAccess } from "@/hooks/useUserAccess";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import { withRedirectParam } from "@/lib/authRedirect";
 import AccessDenied from "@/components/auth/AccessDenied";
@@ -21,13 +22,21 @@ type ProtectedRouteProps = {
   children: React.ReactNode;
   requireAdmin?: boolean;
   allowStoreOwner?: boolean;
+  allowSupport?: boolean;
 };
 
-const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = false }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = false, allowSupport = false }: ProtectedRouteProps) => {
   const { user, isLoading, isAdmin } = useAuth();
   const location = useLocation();
   const { storeId } = useParams<{ storeId?: string }>();
   const shouldCheckStoreOwner = requireAdmin && allowStoreOwner && !!storeId && !!user?.id && !isAdmin;
+
+  // Support-role accounts may enter admin-gated routes that opt in via
+  // allowSupport (the Support console). Reuses the cached access query.
+  const accessQuery = useUserAccess(user?.id);
+  const needsSupportCheck = requireAdmin && allowSupport && !!user && !isAdmin;
+  const supportAccessResolved = accessQuery.isSuccess || accessQuery.isError;
+  const supportAccessAllowed = needsSupportCheck && accessQuery.data?.isSupport === true;
 
   const publicStoreQuery = useQuery({
     queryKey: ["protected-route-public-store", storeId],
@@ -99,6 +108,18 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   }
 
   if (requireAdmin && !isAdmin) {
+    if (needsSupportCheck && !supportAccessResolved) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Checking access...</p>
+          </div>
+        </div>
+      );
+    }
+    if (supportAccessAllowed) return <>{children}</>;
+
     if (allowStoreOwner && storeId) {
       if (shouldCheckStoreOwner && !ownerAccessResolved) {
         return (

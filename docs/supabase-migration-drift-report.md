@@ -1,45 +1,73 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-05-26T21:27:07.378Z
+Generated: 2026-06-01T12:56:17.343Z
 
 ## Summary
 
-- Local migrations: 831
+- Local migrations: 1049
 - Invalid filenames: 0
-- Duplicate versions: 8
-- Allowed duplicate versions: 8
+- Duplicate versions: 0
+- Allowed duplicate versions: 0
 - New duplicate versions: 0
 - Duplicate SQL hashes: 0
+- SUPABASE_ACCESS_TOKEN configured: no
+- Local version range: 20260126182101 to 20260609000000
+- Remote version range: none to none
 - Remote migrations: 0
 - Matched versions: 0
-- Local-only pending: 831
+- Local-only pending: 1049
 - Remote-only missing locally: 0
-- Pending risk: high=763, medium=50, low=18
+- Near timestamp pairs within 5 seconds: 0
+- Near timestamp pairs within 1 minute: 0
+- One-to-one reconciliation candidates within 5 seconds: 0
+- One-to-one reconciliation candidates within 1 minute: 0
+- Unmatched local migrations after one-to-one candidates: 1049
+- Unmatched remote versions after one-to-one candidates: 0
+- Unmatched local migrations after remote range: 0
+- Unmatched remote versions before local range: 0
+- Pending local creates tables: 0
+- Pending local creates tables without RLS: 0
+- Pending local creates tables without explicit grants: 0
+- Pending local sequence-backed ids without sequence grants: 0
+- Pending local SECURITY DEFINER without search_path: 0
+- Pending local hardcoded Supabase URLs: 0
+- Pending local legacy anon JWTs: 0
+- Shared migration calendar days: 0
+- Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv
+- Unmatched local CSV: docs/supabase-migration-unmatched-local.csv
+- Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
+- Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
+- Pending local review CSV: docs/supabase-migration-pending-local-review.csv
+- Pending risk: high=974, medium=53, low=22
 
 ## Domains
 
-- security/auth: 693
-- commerce/store: 51
-- chat/social: 36
+- security/auth: 896
+- commerce/store: 57
+- chat/social: 41
 - travel/lodging: 22
-- general: 19
-- infrastructure: 10
+- general: 21
+- infrastructure: 12
 
 ## Duplicate Versions
 
-- 20260429230000: 20260429230000_security_hardening.sql, 20260429230000_user_posts_visibility_location.sql (allowed legacy duplicate)
-- 20260429240000: 20260429240000_backfill_storage_paths.sql, 20260429240000_increment_user_post_views.sql (allowed legacy duplicate)
-- 20260429250000: 20260429250000_post_actions_tables.sql, 20260429250000_user_posts_realtime.sql (allowed legacy duplicate)
-- 20260429260000: 20260429260000_post_comments_realtime.sql, 20260429260000_post_reactions.sql (allowed legacy duplicate)
-- 20260430020000: 20260430020000_blocked_link_attempts.sql, 20260430020000_fix_social_notification_triggers.sql (allowed legacy duplicate)
-- 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql (allowed legacy duplicate)
-- 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql (allowed legacy duplicate)
-- 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql (allowed legacy duplicate)
+- None
 
 ## Remote Query
 
+- Auth token: SUPABASE_ACCESS_TOKEN was not present for this run.
 - Error: Initialising login role...
-2026/05/26 16:27:07 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
+2026/06/01 05:56:17 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
+- Hint: Run `supabase login` or export `SUPABASE_ACCESS_TOKEN` before linked migration checks.
+
+## Reconciliation Diagnostics
+
+- Exact version overlap was not evaluated because linked remote migration history could not be read.
+- Near-timestamp diagnostics require authenticated remote migration history.
+
+### Closest Local/Remote Version Pairs
+
+- None
 
 ## High Risk Pending Migrations
 
@@ -143,7 +171,7 @@ Generated: 2026-05-26T21:27:07.378Z
 - 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
 - 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
 - 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 663 more
+- ...and 874 more
 
 ## Remote-Only Versions
 

@@ -213,7 +213,7 @@ export default function SoundPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : thumb ? (
-                    <img src={thumb} alt="" className="w-full h-full object-cover" />
+                    <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Music className="h-6 w-6 text-muted-foreground/50" />

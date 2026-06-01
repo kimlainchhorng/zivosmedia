@@ -495,10 +495,10 @@ const PartnerAgreement = () => {
               <p><strong>Hours:</strong> Monday-Friday, 9 AM - 6 PM EST</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link to="/terms-of-service">
+              <Link to="/legal/terms">
                 <Button variant="outline" size="sm">Terms of Service</Button>
               </Link>
-              <Link to="/privacy-policy">
+              <Link to="/legal/privacy">
                 <Button variant="outline" size="sm">Privacy Policy</Button>
               </Link>
               <Link to="/help">

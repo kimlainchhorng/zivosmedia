@@ -2,12 +2,14 @@
 
 This app is currently React/Vite + Supabase/Postgres + Supabase Edge Functions. Keep that as the core platform until real traffic or product requirements justify another database or service.
 
+For the broader frontend/backend/product completion plan, use `docs/end-to-end-platform-readiness.md` as the release-lane checklist.
+
 ## What Is Built Now
 
 - SQL/Postgres: Supabase migrations, RLS, hot-path indexes, trigram search indexes.
 - API/server: Supabase Edge Functions with shared WAF, CORS, rate limits, bot detection, IP blocklist, and network-risk signals.
 - Media: shared `SmartImage`, shared `LazyVideo`, PWA image/video caching, and `npm run perf:media-report`.
-- Security workflow: `npm run security:api-readiness:report`, `npm run security:check-secrets`, `platform-readiness` edge function.
+- Security workflow: `npm run security:api-readiness:report`, `npm run security:scan`, `platform-readiness` edge function.
 - Database upgrade workflow: `npm run supabase:upgrade-readiness` creates a non-destructive Postgres/Supabase upgrade report.
 - User/IP/VPN workflow: `network_security_events` stores hashed IP metadata, proxy/VPN-like headers, risk score, and request IDs.
 
@@ -26,9 +28,18 @@ This app is currently React/Vite + Supabase/Postgres + Supabase Edge Functions. 
 Run:
 
 ```bash
+npm run platform:audit
+npm run release:gate
+npm run release:production-gate
+npm run deploy:preflight:strict
+```
+
+For targeted investigation, run:
+
+```bash
 npm run type-check
 npm run build
-npm run security:check-secrets
+npm run security:scan
 npm run security:api-readiness:report
 npm run supabase:upgrade-readiness
 npm run perf:media-report

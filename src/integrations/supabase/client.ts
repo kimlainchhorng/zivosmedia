@@ -4,22 +4,34 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import type { Database } from './types';
 
-const DEFAULT_SUPABASE_CONFIG = {
-  url: "https://slirphzzwcogdbkeicff.supabase.co",
-  publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI",
-  projectRef: "slirphzzwcogdbkeicff",
-};
-
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_CONFIG.url;
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_CONFIG.publishableKey;
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 const REMEMBER_ME_KEY = "zivo_remember_me";
 const SUPABASE_PROJECT_REF =
   import.meta.env.VITE_SUPABASE_PROJECT_ID ||
-  (SUPABASE_URL ? new URL(SUPABASE_URL).hostname.split(".")[0] : DEFAULT_SUPABASE_CONFIG.projectRef);
+  (SUPABASE_URL ? new URL(SUPABASE_URL).hostname.split(".")[0] : "");
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   throw new Error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY.");
+}
+
+function isSupabaseSecretKey(key: string): boolean {
+  if (key.startsWith("sb_secret_")) return true;
+  const [, payload] = key.split(".");
+  if (!payload) return false;
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const json = JSON.parse(atob(padded));
+    return json?.role === "service_role";
+  } catch {
+    return false;
+  }
+}
+
+if (isSupabaseSecretKey(SUPABASE_PUBLISHABLE_KEY)) {
+  throw new Error("VITE_SUPABASE_PUBLISHABLE_KEY must be a publishable/anon key, not a secret or service-role key.");
 }
 
 const isNativePlatform = Capacitor.isNativePlatform();

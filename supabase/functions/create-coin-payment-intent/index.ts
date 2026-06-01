@@ -117,4 +117,4 @@ Deno.serve(withSecurity("create-coin-payment-intent", async (req, ctx) => {
       status: 400,
     });
   }
-}, { rateLimit: "payment", strictCors: true }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"] }));

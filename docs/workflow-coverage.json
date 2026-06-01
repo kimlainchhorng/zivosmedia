@@ -1,0 +1,1129 @@
+{
+  "generated": "2026-06-01T12:45:14.481Z",
+  "currentGate": {
+    "mode": "strict",
+    "readyForProductionGate": false,
+    "remoteMigrationHistoryStatus": "access_token_missing",
+    "productionBlockers": [
+      "Environment readiness has 3 critical finding(s).",
+      "Missing SUPABASE_URL for production backend cron/runtime settings.",
+      "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+      "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+      "API readiness has 1 warning(s).",
+      "Supabase remote migration history is unavailable (access_token_missing)."
+    ]
+  },
+  "productionBlockers": [
+    "Environment readiness has 3 critical finding(s).",
+    "Missing SUPABASE_URL for production backend cron/runtime settings.",
+    "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+    "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+    "API readiness has 1 warning(s).",
+    "Supabase remote migration history is unavailable (access_token_missing)."
+  ],
+  "totals": {
+    "frontendFiles": 2418,
+    "backendFiles": 684,
+    "databaseFiles": 1048,
+    "testFiles": 137,
+    "docsFiles": 29
+  },
+  "priority": [],
+  "workflows": [
+    {
+      "id": "sso-auth-sessions",
+      "label": "SSO, Auth, Sessions, Devices",
+      "frontend": {
+        "count": 1020,
+        "samples": [
+          "src/pages/AITripPlanner.tsx",
+          "src/pages/AMAPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AffiliateHubPage.tsx",
+          "src/pages/AffiliateLinksPage.tsx",
+          "src/pages/AppSettingsPage.tsx",
+          "src/pages/AudioSpacesPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 508,
+        "samples": [
+          "supabase/functions/_shared/aalCheck.ts",
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/audit_test.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/bruteForce.ts",
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/cors.ts"
+        ]
+      },
+      "database": {
+        "count": 780,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql"
+        ]
+      },
+      "tests": {
+        "count": 90,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 24,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:sso-auth-contracts` green for OAuth, passwordless OTP, MFA, trusted devices, active sessions, and role-aware route gates.",
+      "implementationCount": 2308,
+      "testCoverageRatio": 0.039,
+      "status": "covered"
+    },
+    {
+      "id": "customer-booking-order",
+      "label": "Customer Booking, Order, Trip",
+      "frontend": {
+        "count": 2121,
+        "samples": [
+          "src/pages/AITripPlanner.tsx",
+          "src/pages/AMAPage.tsx",
+          "src/pages/ARFiltersPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/AchievementsPage.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminContentReportsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 405,
+        "samples": [
+          "supabase/functions/_shared/aalCheck.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/cors.ts",
+          "supabase/functions/_shared/deps.ts",
+          "supabase/functions/_shared/eats-notifications.ts",
+          "supabase/functions/_shared/email-templates/email-change.tsx"
+        ]
+      },
+      "database": {
+        "count": 539,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql"
+        ]
+      },
+      "tests": {
+        "count": 79,
+        "samples": [
+          "src/test/accountExportManifest.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts",
+          "src/test/botDetection.test.ts",
+          "src/test/checkoutLegalCanonicalLinks.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 24,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/platform-upgrade-workflow.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:customer-booking-contracts` green for grocery checkout, order scoping, lodging add-ons, and shopping-order RLS.",
+      "implementationCount": 3065,
+      "testCoverageRatio": 0.0258,
+      "status": "covered"
+    },
+    {
+      "id": "shop-owner-admin",
+      "label": "Shop Owner Setup and Operations",
+      "frontend": {
+        "count": 1297,
+        "samples": [
+          "src/pages/AITripPlanner.tsx",
+          "src/pages/AMAPage.tsx",
+          "src/pages/ARFiltersPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/AchievementsPage.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminModerationPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 485,
+        "samples": [
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/bruteForce.ts",
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/cors.ts",
+          "supabase/functions/_shared/flags.ts",
+          "supabase/functions/_shared/grocery-notifications.ts"
+        ]
+      },
+      "database": {
+        "count": 671,
+        "samples": [
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql",
+          "supabase/migrations/20260129222403_8821654d-63c2-4fb4-b5bf-216b04f4a603.sql",
+          "supabase/migrations/20260131202033_2a6cde74-5ca5-4f55-9675-9580420c3829.sql",
+          "supabase/migrations/20260131204001_8fc6e8e9-7bc7-46de-bd85-4266f95306aa.sql",
+          "supabase/migrations/20260201013822_2bc1f474-0e88-44be-a68d-befe581a0753.sql"
+        ]
+      },
+      "tests": {
+        "count": 92,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts",
+          "src/test/authSessionSecurity.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 26,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:shop-owner-contracts` green for owner setup, dashboard routes, scoped store operations, and RLS/grants.",
+      "implementationCount": 2453,
+      "testCoverageRatio": 0.0375,
+      "status": "covered"
+    },
+    {
+      "id": "client-staff-workflows",
+      "label": "Client, Staff, Employee Workflows",
+      "frontend": {
+        "count": 1292,
+        "samples": [
+          "src/pages/AMAPage.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/AchievementsPage.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminContentReportsPage.tsx",
+          "src/pages/AdminModerationPage.tsx",
+          "src/pages/AdultDiscoveryPage.tsx",
+          "src/pages/AffiliateHubPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 472,
+        "samples": [
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/botDetection.ts",
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/cors.ts",
+          "supabase/functions/_shared/deps.ts",
+          "supabase/functions/_shared/eats-notifications.ts"
+        ]
+      },
+      "database": {
+        "count": 241,
+        "samples": [
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql",
+          "supabase/migrations/20260131202033_2a6cde74-5ca5-4f55-9675-9580420c3829.sql",
+          "supabase/migrations/20260201143419_282f5007-80e4-4b53-881f-6268400c8d51.sql",
+          "supabase/migrations/20260202220847_bedb61f0-7016-4d3e-927c-061886814f3d.sql",
+          "supabase/migrations/20260202221827_244880bc-6bd0-4820-a0b7-d58f49e96c92.sql",
+          "supabase/migrations/20260202223817_e5ee102f-2b49-44be-bdf7-ae4a2eb44ae8.sql",
+          "supabase/migrations/20260202231736_6b8dc9d3-3a5f-4793-877b-8cbee0fb9382.sql"
+        ]
+      },
+      "tests": {
+        "count": 46,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/critical-flows.test.tsx",
+          "src/test/errorBoundaryObservability.test.tsx",
+          "src/test/fileUploadSecurity.test.ts",
+          "src/test/ipHelpers.test.ts",
+          "src/test/legalTrustIntakeContracts.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 13,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/production-preflight-report.md",
+          "docs/security-anti-abuse-drills.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:client-staff-contracts` green for invite acceptance, owner-only staff invites, schedule reads, payroll/rules, training, and client scoping.",
+      "implementationCount": 2005,
+      "testCoverageRatio": 0.0229,
+      "status": "covered"
+    },
+    {
+      "id": "payments-refunds",
+      "label": "Payments, Refunds, Webhooks",
+      "frontend": {
+        "count": 1564,
+        "samples": [
+          "src/pages/AITripPlanner.tsx",
+          "src/pages/AMAPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/AchievementsPage.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminContentReportsPage.tsx",
+          "src/pages/AdminModerationPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 551,
+        "samples": [
+          "supabase/functions/_shared/aalCheck.ts",
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/audit_test.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/botDetection.ts",
+          "supabase/functions/_shared/bruteForce.ts",
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts"
+        ]
+      },
+      "database": {
+        "count": 1048,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql"
+        ]
+      },
+      "tests": {
+        "count": 102,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 25,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/platform-upgrade-workflow.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:payments-refunds-contracts` green for provider webhooks, idempotent refunds, subscription portals, refund-state UI, and audit ledgers.",
+      "implementationCount": 3163,
+      "testCoverageRatio": 0.0322,
+      "status": "covered"
+    },
+    {
+      "id": "payouts-earnings",
+      "label": "Payouts, Earnings, Balances",
+      "frontend": {
+        "count": 630,
+        "samples": [
+          "src/pages/AITripPlanner.tsx",
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/AffiliateHubPage.tsx",
+          "src/pages/AffiliateLinksPage.tsx",
+          "src/pages/AppSettingsPage.tsx",
+          "src/pages/BecomePartnerPage.tsx",
+          "src/pages/BookingManagement.tsx"
+        ]
+      },
+      "backend": {
+        "count": 186,
+        "samples": [
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/eats-notifications.ts",
+          "supabase/functions/_shared/grocery-notifications.ts",
+          "supabase/functions/_shared/lodging-notifications.ts",
+          "supabase/functions/_shared/networkSignals.ts",
+          "supabase/functions/_shared/salon-notifications.ts",
+          "supabase/functions/_shared/threatIntel.ts"
+        ]
+      },
+      "database": {
+        "count": 188,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql",
+          "supabase/migrations/20260131202033_2a6cde74-5ca5-4f55-9675-9580420c3829.sql",
+          "supabase/migrations/20260131204001_8fc6e8e9-7bc7-46de-bd85-4266f95306aa.sql",
+          "supabase/migrations/20260201143419_282f5007-80e4-4b53-881f-6268400c8d51.sql",
+          "supabase/migrations/20260201143843_74a114aa-2010-4487-91e4-5b4f3e2e5f04.sql",
+          "supabase/migrations/20260202035408_41812af0-2f9d-4a2d-9e9c-65de3934ea7c.sql"
+        ]
+      },
+      "tests": {
+        "count": 50,
+        "samples": [
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts",
+          "src/test/createPostComposerVisualContracts.test.ts",
+          "src/test/creatorMonetizationLegalDisclosure.test.ts",
+          "src/test/crossVerticalRoleNavigation.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 17,
+        "samples": [
+          "docs/api-operations-runbook.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/production-preflight-report.md",
+          "docs/production-preflight-summary.json"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:payouts-earnings-contracts` green for payout auth, server-gated payout methods, idempotent retries, and auditable ledgers.",
+      "implementationCount": 1004,
+      "testCoverageRatio": 0.0498,
+      "status": "covered"
+    },
+    {
+      "id": "email-marketing-consent",
+      "label": "Email Marketing, Consent, Suppression",
+      "frontend": {
+        "count": 580,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/AdultDiscoveryPage.tsx",
+          "src/pages/AffiliateDisclosure.tsx",
+          "src/pages/AppSettingsPage.tsx",
+          "src/pages/AudioSpacesPage.tsx",
+          "src/pages/AuthCallback.tsx",
+          "src/pages/AutoMessagesLogPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 229,
+        "samples": [
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/audit_test.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/bruteForce.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/eats-notifications.ts",
+          "supabase/functions/_shared/email-templates/email-change.tsx",
+          "supabase/functions/_shared/email-templates/invite.tsx"
+        ]
+      },
+      "database": {
+        "count": 219,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql",
+          "supabase/migrations/20260126210105_93ebc1b8-2f34-4353-8ebe-0cd1ec2b2902.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260201015944_d2dcded2-8f84-47d7-b226-bb29a6944d8f.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260201045033_b7016c20-b1d2-43dc-ad6f-1b0c0d3746b2.sql"
+        ]
+      },
+      "tests": {
+        "count": 66,
+        "samples": [
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/authSessionSecurity.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts",
+          "src/test/checkoutLegalCanonicalLinks.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 13,
+        "samples": [
+          "docs/database-upgrade-readiness-report.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/production-deploy-secrets.md",
+          "docs/security-anti-abuse-drills.md",
+          "docs/supabase-deploy-env-setup.md",
+          "docs/supabase-secret-rotation-runbook.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:email-marketing-contracts` green for transactional-vs-marketing separation, suppression, consent, and campaign event logging.",
+      "implementationCount": 1028,
+      "testCoverageRatio": 0.0642,
+      "status": "covered"
+    },
+    {
+      "id": "ads-monetization-tracking",
+      "label": "Ads, Monetization, Conversion Tracking",
+      "frontend": {
+        "count": 2277,
+        "samples": [
+          "src/pages/AITripPlanner.tsx",
+          "src/pages/AMAPage.tsx",
+          "src/pages/ARFiltersPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/AchievementsPage.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminContentReportsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 636,
+        "samples": [
+          "supabase/functions/_shared/aalCheck.ts",
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/botDetection.ts",
+          "supabase/functions/_shared/bruteForce.ts",
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/cors.ts"
+        ]
+      },
+      "database": {
+        "count": 922,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql",
+          "supabase/migrations/20260126204406_4b930ffe-7701-4cca-8669-5b8015c31411.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql"
+        ]
+      },
+      "tests": {
+        "count": 133,
+        "samples": [
+          "src/test/accountDeletionDataRightsLinks.test.ts",
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 28,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-android-setup.md",
+          "docs/native-release-checklist.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:ads-monetization-contracts` green for attribution, conversion uploads, Ads Studio ROAS, creator monetization, and provider roadmap coverage.",
+      "implementationCount": 3835,
+      "testCoverageRatio": 0.0347,
+      "status": "covered"
+    },
+    {
+      "id": "push-notifications",
+      "label": "Push Notifications and Notification Center",
+      "frontend": {
+        "count": 504,
+        "samples": [
+          "src/pages/AMAPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AppSettingsPage.tsx",
+          "src/pages/AutoMessagesLogPage.tsx",
+          "src/pages/CarRentalBooking.tsx",
+          "src/pages/CarResultsPage.tsx",
+          "src/pages/ChatHubPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 193,
+        "samples": [
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/eats-notifications.ts",
+          "supabase/functions/_shared/grocery-notifications.ts",
+          "supabase/functions/_shared/lodging-notifications.ts",
+          "supabase/functions/_shared/networkSignals.ts",
+          "supabase/functions/_shared/rateLimiter.ts",
+          "supabase/functions/_shared/salon-notifications.ts"
+        ]
+      },
+      "database": {
+        "count": 103,
+        "samples": [
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260129225210_7429b719-03e7-49dc-98a2-a101f956b59d.sql",
+          "supabase/migrations/20260129225228_f8acf683-0020-463d-baac-e9c8dda02913.sql",
+          "supabase/migrations/20260201011854_0dd90e3e-d414-443c-ab60-74ab8b147261.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260202192002_5a1b188b-1b4c-40d3-9293-a5fbb9590879.sql",
+          "supabase/migrations/20260203024509_48237148-549e-4acd-83ff-c267f196c088.sql",
+          "supabase/migrations/20260203145120_c5fecd17-cad2-40b3-ac3c-22600caed6e2.sql"
+        ]
+      },
+      "tests": {
+        "count": 27,
+        "samples": [
+          "src/test/deployWorkflowGates.test.ts",
+          "src/test/errorBoundaryObservability.test.tsx",
+          "src/test/feedMobileVisualContracts.test.ts",
+          "src/test/marketingConsentSuppression.test.ts",
+          "src/test/nativePermissionsDeepLinks.test.ts",
+          "src/test/otaDeployBypass.test.ts",
+          "src/test/paymentWebhookIdempotency.test.ts",
+          "src/test/payoutAuthorization.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 15,
+        "samples": [
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/platform-upgrade-workflow.md",
+          "docs/security-anti-abuse-drills.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:push-notification-contracts` green for token registration, opt-outs, digest dispatch, and service worker routing.",
+      "implementationCount": 800,
+      "testCoverageRatio": 0.0338,
+      "status": "covered"
+    },
+    {
+      "id": "storage-media-cdn",
+      "label": "Storage, Media, CDN, Downloads",
+      "frontend": {
+        "count": 893,
+        "samples": [
+          "src/pages/ARFiltersPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminModerationPage.tsx",
+          "src/pages/AdultDiscoveryPage.tsx",
+          "src/pages/AffiliateHubPage.tsx",
+          "src/pages/AudioRoomsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 164,
+        "samples": [
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/email-templates/email-change.tsx",
+          "supabase/functions/_shared/fileUpload.ts",
+          "supabase/functions/_shared/flags.ts",
+          "supabase/functions/_shared/idempotency.ts",
+          "supabase/functions/_shared/rateLimiter.ts",
+          "supabase/functions/_shared/transactional-email-templates/lodging-receipt-ready.tsx",
+          "supabase/functions/_shared/transactional-email-templates/new-device-login.tsx"
+        ]
+      },
+      "database": {
+        "count": 200,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126222347_17c79ffb-aefb-49fe-9f4c-311d704354ee.sql",
+          "supabase/migrations/20260129225210_7429b719-03e7-49dc-98a2-a101f956b59d.sql",
+          "supabase/migrations/20260129225228_f8acf683-0020-463d-baac-e9c8dda02913.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260201162950_5af8902a-3602-41e8-851a-3e26875239af.sql",
+          "supabase/migrations/20260202033232_5ff94892-d738-4994-ad98-4b857a97b277.sql"
+        ]
+      },
+      "tests": {
+        "count": 64,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts",
+          "src/test/createPostComposerVisualContracts.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 20,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/platform-upgrade-workflow.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:storage-media-contracts`, `npm run qa:database-storage-contracts`, and `npm run platform:test:storage-media` green for upload validation, public, protected, owner, and client/staff media paths plus Data API/RLS gates.",
+      "implementationCount": 1257,
+      "testCoverageRatio": 0.0509,
+      "status": "covered"
+    },
+    {
+      "id": "policy-legal-trust",
+      "label": "Law, Policy, Compliance, Trust",
+      "frontend": {
+        "count": 495,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/AdultDiscoveryPage.tsx",
+          "src/pages/AffiliateDisclosure.tsx",
+          "src/pages/AppSettingsPage.tsx",
+          "src/pages/BookingManagement.tsx",
+          "src/pages/BookingReturnPage.tsx",
+          "src/pages/BrandMission.tsx"
+        ]
+      },
+      "backend": {
+        "count": 109,
+        "samples": [
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/eats-notifications.ts",
+          "supabase/functions/_shared/grocery-notifications.ts",
+          "supabase/functions/_shared/lodging-notifications.ts",
+          "supabase/functions/_shared/transactional-email-templates/eats-order-confirmed.tsx",
+          "supabase/functions/_shared/transactional-email-templates/eats-refund-issued.tsx",
+          "supabase/functions/_shared/transactional-email-templates/grocery-order-confirmed.tsx"
+        ]
+      },
+      "database": {
+        "count": 671,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126222347_17c79ffb-aefb-49fe-9f4c-311d704354ee.sql",
+          "supabase/migrations/20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql"
+        ]
+      },
+      "tests": {
+        "count": 64,
+        "samples": [
+          "src/test/accountDeletionDataRightsLinks.test.ts",
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 14,
+        "samples": [
+          "docs/api-operations-runbook.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/platform-upgrade-workflow.md",
+          "docs/qa/stories-e2e-2026-04-25.md",
+          "docs/supabase-performance-upgrade-report.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:legal-policy-contracts` green across legal pages, consent logs, export/delete, grants, and policy-backed booking flows.",
+      "implementationCount": 1275,
+      "testCoverageRatio": 0.0502,
+      "status": "covered"
+    },
+    {
+      "id": "api-speed-ops",
+      "label": "API, Server Speed, Observability",
+      "frontend": {
+        "count": 2208,
+        "samples": [
+          "src/pages/AMAPage.tsx",
+          "src/pages/ARFiltersPage.tsx",
+          "src/pages/AchievementsPage.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminContentReportsPage.tsx",
+          "src/pages/AdminModerationPage.tsx",
+          "src/pages/AdultDiscoveryPage.tsx",
+          "src/pages/AffiliateHubPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 642,
+        "samples": [
+          "supabase/functions/_shared/aalCheck.ts",
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/audit_test.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/botDetection.ts",
+          "supabase/functions/_shared/bruteForce.ts",
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts"
+        ]
+      },
+      "database": {
+        "count": 552,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql"
+        ]
+      },
+      "tests": {
+        "count": 98,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 26,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:api-operations-contracts` green for 5xx, slow query, webhook failure, auth/payment spike, cron, runtime settings, and preflight observability.",
+      "implementationCount": 3402,
+      "testCoverageRatio": 0.0288,
+      "status": "covered"
+    },
+    {
+      "id": "security-anti-hack",
+      "label": "Security, Anti-Abuse, Hacker Protection",
+      "frontend": {
+        "count": 776,
+        "samples": [
+          "src/pages/AMAPage.tsx",
+          "src/pages/ARFiltersPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/AccountDeletionInfo.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminContentReportsPage.tsx",
+          "src/pages/AdultDiscoveryPage.tsx",
+          "src/pages/AppSettingsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 473,
+        "samples": [
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/botDetection.ts",
+          "supabase/functions/_shared/bruteForce.ts",
+          "supabase/functions/_shared/cancellation-cascade.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/errors.ts",
+          "supabase/functions/_shared/fileUpload.ts"
+        ]
+      },
+      "database": {
+        "count": 687,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql"
+        ]
+      },
+      "tests": {
+        "count": 86,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts",
+          "src/test/authSessionSecurity.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 24,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:security-anti-abuse-contracts` green for account takeover, card testing, spam, scraping, fake booking, key leakage, WAF, rate limits, and network-risk controls.",
+      "implementationCount": 1936,
+      "testCoverageRatio": 0.0444,
+      "status": "covered"
+    },
+    {
+      "id": "graphics-design-speed",
+      "label": "Graphics, Design, Frontend Speed",
+      "frontend": {
+        "count": 1709,
+        "samples": [
+          "src/pages/AITripPlanner.tsx",
+          "src/pages/AMAPage.tsx",
+          "src/pages/ARFiltersPage.tsx",
+          "src/pages/AchievementsPage.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminContentReportsPage.tsx",
+          "src/pages/AdminModerationPage.tsx",
+          "src/pages/AdultDiscoveryPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 526,
+        "samples": [
+          "supabase/functions/_shared/aalCheck.ts",
+          "supabase/functions/_shared/audit.ts",
+          "supabase/functions/_shared/auth.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/eats-notifications.ts",
+          "supabase/functions/_shared/errors.ts",
+          "supabase/functions/_shared/fileUpload.ts",
+          "supabase/functions/_shared/grocery-notifications.ts"
+        ]
+      },
+      "database": {
+        "count": 174,
+        "samples": [
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126204406_4b930ffe-7701-4cca-8669-5b8015c31411.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260201015944_d2dcded2-8f84-47d7-b226-bb29a6944d8f.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260202051526_be8b4e54-ffc7-4534-aaa6-abec65adfef1.sql",
+          "supabase/migrations/20260202174006_90659f78-5306-4f6a-bd58-1d418ec8608f.sql",
+          "supabase/migrations/20260202182912_634f3df2-e9b3-4ba9-8f66-987d421ff0c4.sql"
+        ]
+      },
+      "tests": {
+        "count": 54,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts",
+          "src/test/botDetection.test.ts",
+          "src/test/createPostComposerVisualContracts.test.ts",
+          "src/test/critical-flows.test.tsx",
+          "src/test/errorBoundaryObservability.test.tsx"
+        ]
+      },
+      "docs": {
+        "count": 22,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:frontend-visual-contracts` green for visual route coverage, mobile safe areas, lazy media, loading/error states, and no clipped controls.",
+      "implementationCount": 2409,
+      "testCoverageRatio": 0.0224,
+      "status": "covered"
+    },
+    {
+      "id": "native-mobile-release",
+      "label": "Native iOS, Android, OTA, Store Release",
+      "frontend": {
+        "count": 1157,
+        "samples": [
+          "src/pages/AITripPlanner.tsx",
+          "src/pages/AMAPage.tsx",
+          "src/pages/ARFiltersPage.tsx",
+          "src/pages/About.tsx",
+          "src/pages/AchievementsPage.tsx",
+          "src/pages/ActivityFeedPage.tsx",
+          "src/pages/AdminContentReportsPage.tsx",
+          "src/pages/AdminModerationPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 193,
+        "samples": [
+          "supabase/functions/_shared/botDetection.ts",
+          "supabase/functions/_shared/contentLinkValidation.ts",
+          "supabase/functions/_shared/eats-notifications.ts",
+          "supabase/functions/_shared/grocery-notifications.ts",
+          "supabase/functions/_shared/lodging-notifications.ts",
+          "supabase/functions/_shared/threatIntel.ts",
+          "supabase/functions/_shared/transactional-email-templates/eats-order-confirmed.tsx",
+          "supabase/functions/_shared/transactional-email-templates/grocery-order-confirmed.tsx"
+        ]
+      },
+      "database": {
+        "count": 150,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260126210105_93ebc1b8-2f34-4353-8ebe-0cd1ec2b2902.sql",
+          "supabase/migrations/20260201011854_0dd90e3e-d414-443c-ab60-74ab8b147261.sql",
+          "supabase/migrations/20260201015944_d2dcded2-8f84-47d7-b226-bb29a6944d8f.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260201143843_74a114aa-2010-4487-91e4-5b4f3e2e5f04.sql"
+        ]
+      },
+      "tests": {
+        "count": 42,
+        "samples": [
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/createPostComposerVisualContracts.test.ts",
+          "src/test/critical-flows.test.tsx",
+          "src/test/deployWorkflowGates.test.ts",
+          "src/test/feedMobileVisualContracts.test.ts",
+          "src/test/feedResponsiveShellContracts.test.ts",
+          "src/test/mobileBottomNavVisualContracts.test.ts",
+          "src/test/nativePermissionsDeepLinks.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 20,
+        "samples": [
+          "docs/OTA_LIVE_UPDATES.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/native-android-setup.md",
+          "docs/native-release-checklist.md",
+          "docs/platform-readiness-matrix.json",
+          "docs/platform-readiness-matrix.md",
+          "docs/production-deploy-secrets.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:native-app-contracts` green for Capacitor config, iOS/Android metadata, OTA safety, store listing alignment, and native release checks.",
+      "implementationCount": 1500,
+      "testCoverageRatio": 0.028,
+      "status": "covered"
+    }
+  ]
+}

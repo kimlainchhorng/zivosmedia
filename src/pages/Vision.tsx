@@ -3,6 +3,7 @@
  */
 
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -105,11 +106,13 @@ const Vision = () => {
     }
     setSubmittingNewsletter(true);
     try {
-      const { error } = await supabase.from("feedback_submissions").insert({
+      const { error } = await supabase.functions.invoke("marketing-interest-submit", { body: {
         category: "newsletter_signup",
         subject: "Vision page newsletter signup",
-        message: `Email: ${email}`,
-      });
+        email,
+        context: "vision_page",
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       setSubscribed(true);
       setEmail("");
@@ -323,23 +326,31 @@ const Vision = () => {
                   Thanks for joining! We'll keep you updated.
                 </div>
               ) : (
-                <form onSubmit={handleSubscribe} className="flex gap-3 max-w-md mx-auto">
-                  <div className="flex-1 relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-12 h-12 rounded-xl"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" disabled={submittingNewsletter} className="h-12 px-6 gap-2">
-                    {submittingNewsletter ? "Subscribing…" : "Subscribe"}
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </form>
+                <>
+                  <form onSubmit={handleSubscribe} className="flex gap-3 max-w-md mx-auto">
+                    <div className="flex-1 relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-12 h-12 rounded-xl"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={submittingNewsletter} className="h-12 px-6 gap-2">
+                      {submittingNewsletter ? "Subscribing…" : "Subscribe"}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </form>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Launch updates are marketing messages. You can unsubscribe anytime. See our{" "}
+                    <Link to="/legal/privacy" className="underline underline-offset-2">Privacy Policy</Link>
+                    {" "}and{" "}
+                    <Link to="/legal/terms" className="underline underline-offset-2">Terms</Link>.
+                  </p>
+                </>
               )}
             </CardContent>
           </Card>

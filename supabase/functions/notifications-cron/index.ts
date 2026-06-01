@@ -22,25 +22,22 @@
  */
 import { serve, createClient } from "../_shared/deps.ts";
 import { sendSalonReminder, firstNameOf } from "../_shared/salon-notifications.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-cron-secret",
-};
-
-const j = (status: number, body: unknown) =>
+const j = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-serve(async (req) => {
+serve(withSecurity("notifications-cron", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" });
+  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" }, corsHeaders);
 
   // Auth: accept cron secret header/query OR service-role bearer token.
   const cronSecretExpected = Deno.env.get("CRON_SECRET") ?? "";
@@ -50,7 +47,7 @@ serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
   const isService = auth === `Bearer ${serviceKey}`;
   const cronOk = !!cronSecretExpected && providedSecret === cronSecretExpected;
-  if (!isService && !cronOk) return j(401, { error: "Unauthorized" });
+  if (!isService && !cronOk) return j(401, { error: "Unauthorized" }, corsHeaders);
 
   const supabase = createClient(supabaseUrl, serviceKey);
   const now = Date.now();
@@ -691,5 +688,5 @@ serve(async (req) => {
     results.errors.push(`salon_birthday: ${e instanceof Error ? e.message : String(e)}`);
   }
 
-  return j(200, { ok: true, ts: new Date().toISOString(), results });
-});
+  return j(200, { ok: true, ts: new Date().toISOString(), results }, corsHeaders);
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

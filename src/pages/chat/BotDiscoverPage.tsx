@@ -147,7 +147,7 @@ export default function BotDiscoverPage() {
                   className="flex-shrink-0 w-32 rounded-2xl bg-card border border-border p-3 text-center hover:bg-muted/40"
                 >
                   <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center overflow-hidden mb-1">
-                    {b.avatar_url ? <img src={b.avatar_url} alt="" className="w-full h-full object-cover" /> : <Bot className="w-6 h-6 text-primary" />}
+                    {b.avatar_url ? <img src={b.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <Bot className="w-6 h-6 text-primary" />}
                   </div>
                   <div className="text-xs font-medium truncate">{b.display_name}</div>
                   <div className="text-[10px] text-muted-foreground truncate">@{b.username}</div>
@@ -211,7 +211,7 @@ export default function BotDiscoverPage() {
               <div key={b.id} className="flex items-center gap-3 p-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                   {b.avatar_url ? (
-                    <img src={b.avatar_url} alt="" className="w-full h-full object-cover" />
+                    <img src={b.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <Bot className="w-5 h-5 text-primary" />
                   )}

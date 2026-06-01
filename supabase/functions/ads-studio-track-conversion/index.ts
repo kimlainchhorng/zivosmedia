@@ -1,11 +1,7 @@
 // Conversion attribution: called after a successful order to link it back to an ad click.
 // Updates the food_orders row with click_id/creative_id/variant_id/platform and logs a conversion event.
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface Body {
   order_id: string;
@@ -16,7 +12,9 @@ interface Body {
   revenue_cents?: number;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("ads-studio-track-conversion", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -97,4 +95,4 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ ok: true, order_id: body.order_id, attributed: Object.keys(update) }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -95,7 +95,6 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
     setSaving(true);
     setError(null);
     const payload = {
-      store_id: storeId,
       display_name: draft.display_name.trim(),
       phone: draft.phone?.trim() || null,
       email: draft.email?.trim() || null,
@@ -107,18 +106,16 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
       email_opt_in: draft.email_opt_in ?? true,
       marketing_opt_in: draft.marketing_opt_in ?? false,
     };
-    const { data, error: err } = await supabase
-      .from("salon_clients")
-      .insert(payload as never)
-      .select("*")
-      .single();
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-client-manage", {
+      body: { action: "create", store_id: storeId, client: payload },
+    });
+    if (err || data?.error) {
       console.error("[useSalonClients] create failed", err);
       setError("Couldn't add client.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as SalonClient;
+    const created = data.client as SalonClient;
     setClients((prev) => [...prev, created].sort((a, b) => a.display_name.localeCompare(b.display_name)));
     setSaving(false);
     return created;
@@ -144,16 +141,18 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
       prev.map((c) => (c.id === id ? ({ ...c, ...cleanPatch } as SalonClient) : c))
     );
 
-    const { error: err } = await supabase
-      .from("salon_clients")
-      .update(cleanPatch as never)
-      .eq("id", id);
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-client-manage", {
+      body: { action: "update", client_id: id, client: cleanPatch },
+    });
+    if (err || data?.error) {
       console.error("[useSalonClients] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
       setSaving(false);
       return false;
+    }
+    if (data?.client) {
+      setClients((prev) => prev.map((c) => (c.id === id ? data.client as SalonClient : c)));
     }
     setSaving(false);
     return true;
@@ -164,11 +163,10 @@ export function useSalonClients(storeId: string | undefined): UseSalonClientsRes
     setError(null);
     const previous = clients;
     setClients((prev) => prev.filter((c) => c.id !== id));
-    const { error: err } = await supabase
-      .from("salon_clients")
-      .delete()
-      .eq("id", id);
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-client-manage", {
+      body: { action: "delete", client_id: id },
+    });
+    if (err || data?.error) {
       console.error("[useSalonClients] delete failed", err);
       setError("Couldn't delete client.");
       setClients(previous);

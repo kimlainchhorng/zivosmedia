@@ -254,13 +254,10 @@ export default function AdminStoresPage() {
   const saveMutation = useMutation({
     mutationFn: async (values: typeof form & { id?: string }) => {
       const { id, ...rest } = values as any;
-      if (id) {
-        const { error } = await supabase.from("store_profiles").update(rest).eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("store_profiles").insert(rest);
-        if (error) throw error;
-      }
+      const { data, error } = await supabase.functions.invoke("store-profile-manage", {
+        body: { action: "save", store_id: id, profile: rest },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to save store");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-stores"] });
@@ -272,8 +269,10 @@ export default function AdminStoresPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("store_profiles").delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("store-profile-manage", {
+        body: { action: "delete", store_id: id },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to delete store");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-stores"] });
@@ -364,12 +363,11 @@ export default function AdminStoresPage() {
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from("store_profiles")
-        .update({ owner_id: targetUserId })
-        .eq("id", ownerDialog.storeId);
+      const { data: ownerUpdate, error: updateError } = await supabase.functions.invoke("store-profile-manage", {
+        body: { action: "assign_owner", store_id: ownerDialog.storeId, owner_id: targetUserId },
+      });
 
-      if (updateError) throw updateError;
+      if (updateError || !ownerUpdate?.ok) throw updateError || new Error(ownerUpdate?.error || "Failed to assign owner");
 
       // Send invite email with store login link
       const storeAccountId = getStoreAccountId(ownerDialog.storeId);
@@ -581,7 +579,7 @@ export default function AdminStoresPage() {
                   <div key={store.id} className="grid gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                     <div className="flex min-w-0 items-start gap-3">
                       {store.logo_url ? (
-                        <img src={store.logo_url} alt={store.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                        <img src={store.logo_url} alt={store.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                           <Store className="h-5 w-5 text-muted-foreground" />
@@ -700,7 +698,7 @@ export default function AdminStoresPage() {
                 <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadStoreImage(f, "logo"); e.target.value = ""; }} />
                 {form.logo_url ? (
                   <div className="relative w-20 h-20 rounded-xl border border-border overflow-hidden group">
-                    <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                    <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                       <button type="button" onClick={() => logoInputRef.current?.click()} className="h-6 w-6 rounded-full bg-background/80 flex items-center justify-center"><Upload className="h-3 w-3" /></button>
                       <button type="button" onClick={() => updateField("logo_url", "")} className="h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"><X className="h-3 w-3" /></button>
@@ -717,7 +715,7 @@ export default function AdminStoresPage() {
                 <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadStoreImage(f, "banner"); e.target.value = ""; }} />
                 {form.banner_url ? (
                   <div className="relative w-full h-20 rounded-xl border border-border overflow-hidden group">
-                    <img src={form.banner_url} alt="Banner" className="w-full h-full object-cover" />
+                    <img src={form.banner_url} alt="Banner" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                       <button type="button" onClick={() => bannerInputRef.current?.click()} className="h-6 w-6 rounded-full bg-background/80 flex items-center justify-center"><Upload className="h-3 w-3" /></button>
                       <button type="button" onClick={() => updateField("banner_url", "")} className="h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"><X className="h-3 w-3" /></button>

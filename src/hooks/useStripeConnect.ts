@@ -65,8 +65,13 @@ export function useInstantPayout() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { amount_cents: number; method?: "instant" | "standard" }) => {
+      const idempotencyKey =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const { data, error } = await supabase.functions.invoke("connect-instant-payout", {
         body: { amount_cents: params.amount_cents, method: params.method ?? "instant" },
+        headers: { "Idempotency-Key": `instant-payout-${idempotencyKey}` },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

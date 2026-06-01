@@ -133,7 +133,9 @@ export function useRequestLiveEarningsPayout() {
       // Calls edge function which (a) calls the validated RPC to insert the row
       // and (b) pings finance via Telegram so ops actually processes it.
       // Without this, requests sat in creator_payouts as 'pending' forever.
+      const idempotencyKey = `creator-payout-${crypto.randomUUID()}`;
       const { data, error } = await supabase.functions.invoke("creator-payout-request", {
+        headers: { "Idempotency-Key": idempotencyKey },
         body: {
           amount_cents: params.amount_cents,
           method: params.method ?? "bank_transfer",

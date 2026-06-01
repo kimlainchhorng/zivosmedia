@@ -166,7 +166,7 @@ export default function MyChallengeSubmissionsPage() {
                 >
                   <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-muted relative">
                     {c?.cover_url || s.content_url ? (
-                      <img src={c?.cover_url ?? s.content_url ?? ""} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={c?.cover_url ?? s.content_url ?? ""} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full bg-ig-gradient/10 flex items-center justify-center">
                         <Trophy className="h-5 w-5 text-ig-gradient" />

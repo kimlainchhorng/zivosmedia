@@ -6,6 +6,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Home, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { reportBoundaryError } from "@/lib/security/errorReporting";
 
 interface Props {
   children: ReactNode;
@@ -16,24 +17,31 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  reportId: string | null;
 }
 
 export class RouteErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, reportId: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, reportId: null };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error(`[RouteError${this.props.section ? `:${this.props.section}` : ""}]`, error, errorInfo);
+    const reportId = reportBoundaryError({
+      boundary: "route",
+      error,
+      section: this.props.section,
+      componentStack: errorInfo.componentStack || undefined,
+    });
+    this.setState({ reportId });
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, reportId: null });
   };
 
   handleGoBack = () => {
@@ -58,6 +66,11 @@ export class RouteErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-muted-foreground mb-5">
               This page encountered an error. The rest of the app is still working.
             </p>
+            {this.state.reportId && (
+              <p className="text-xs text-muted-foreground mb-4">
+                Support code: <span className="font-mono">{this.state.reportId}</span>
+              </p>
+            )}
             {import.meta.env.DEV && this.state.error && (
               <pre className="text-left text-xs bg-muted/50 rounded-xl p-3 mb-5 overflow-auto max-h-24 text-destructive">
                 {this.state.error.message}

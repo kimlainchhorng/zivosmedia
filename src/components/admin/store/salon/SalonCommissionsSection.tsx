@@ -161,29 +161,27 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
     }
 
     setPayingStylistId(totals.stylistId);
-    const { data: { user } } = await supabase.auth.getUser();
     const cleanReference = reference.trim().slice(0, 200);
     const cleanNotes = notes.trim().slice(0, 500);
-    const { error: err } = await supabase
-      .from("salon_commission_payouts")
-      .insert({
+    const { data, error: err } = await supabase.functions.invoke("salon-commission-payout-record", {
+      body: {
+        action: "create",
         store_id: storeId,
         stylist_id: totals.stylistId,
         period_from: from,
         period_to: to,
-        services_count: totals.serviceCount,
-        service_revenue_cents: totals.serviceRevenueCents,
-        tips_cents: totals.tipsCents,
-        commission_cents: totals.commissionEarnedCents,
         total_paid_cents: payout,
         method,
         reference: cleanReference || null,
         notes: cleanNotes || null,
-        paid_by_user_id: user?.id ?? null,
-      } as never);
+      },
+      headers: {
+        "Idempotency-Key": `salon-commission-payout-${storeId}-${totals.stylistId}-${from}-${to}-${payout}`,
+      },
+    });
     setPayingStylistId(null);
-    if (err) {
-      toast.error(`Couldn't record payout: ${err.message}`);
+    if (err || data?.error) {
+      toast.error(`Couldn't record payout: ${data?.error || err?.message}`);
       return;
     }
     toast.success(`Recorded ${formatPrice(payout)} paid to ${totals.name}.`);
@@ -193,8 +191,10 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
 
   const removePayout = async (id: string) => {
     if (!window.confirm("Delete this payout record? (This doesn't undo the actual payment — just removes the log entry.)")) return;
-    const { error: err } = await supabase.from("salon_commission_payouts").delete().eq("id", id);
-    if (err) { toast.error(err.message); return; }
+    const { data, error: err } = await supabase.functions.invoke("salon-commission-payout-record", {
+      body: { action: "delete", payout_id: id },
+    });
+    if (err || data?.error) { toast.error(data?.error || err?.message); return; }
     toast.success("Removed.");
     await loadPayouts();
   };

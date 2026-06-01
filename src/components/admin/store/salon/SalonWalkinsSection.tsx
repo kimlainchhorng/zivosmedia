@@ -82,12 +82,7 @@ export default function SalonWalkinsSection({ storeId }: SalonWalkinsSectionProp
     setSaving(true);
     const start = new Date();
     const end = new Date(start.getTime() + svc.duration_minutes * 60 * 1000);
-    // Audit trail: stamp the front-desk user who created the walk-in so
-    // "who added this?" is answerable later. Matches the pattern used by
-    // owner-create, blockouts, expenses, and loyalty adjustments.
-    const { data: auth } = await supabase.auth.getUser();
     const payload = {
-      store_id: storeId,
       client_id: null,
       stylist_id: stylist?.id ?? null,
       service_id: svc.id,
@@ -102,11 +97,14 @@ export default function SalonWalkinsSection({ storeId }: SalonWalkinsSectionProp
       end_at: end.toISOString(),
       status: "confirmed" as const,
       source: "walk_in" as const,
-      created_by_user_id: auth.user?.id ?? null,
     };
-    const { error: err } = await supabase
-      .from("salon_bookings")
-      .insert(payload as never);
+    const { error: err } = await supabase.functions.invoke("salon-booking-manage", {
+      body: {
+        action: "create",
+        store_id: storeId,
+        booking: payload,
+      },
+    });
     setSaving(false);
     if (err) {
       console.error("[SalonWalkins] insert failed", err);

@@ -3,11 +3,6 @@ import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 Deno.serve(withSecurity("auto-recharge-ads-wallet", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -85,7 +80,7 @@ Deno.serve(withSecurity("auto-recharge-ads-wallet", async (req, ctx) => {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}, { rateLimit: "admin_action", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { rateLimit: "admin_action", strictCors: true, allowedMethods: ["POST"], skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
 
 function isInternalCaller(req: Request) {
   const authHeader = req.headers.get("Authorization") || "";

@@ -5,7 +5,7 @@ import { useState, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { BarChart3, CheckCircle2, Clock, Users } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, Sparkles, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -42,9 +42,35 @@ function PollPostCardInner({
   const [localOptions, setLocalOptions] = useState(options);
 
   const isExpired = expiresAt ? new Date(expiresAt) < new Date() : false;
+  const leadingOptionIndex = localOptions.reduce((leader, option, index) => {
+    const leaderVotes = localOptions[leader]?.votes || 0;
+    return (option.votes || 0) > leaderVotes ? index : leader;
+  }, 0);
+  const statusCopy = isExpired
+    ? "Final results"
+    : voted
+      ? "Live results"
+      : pollType === "quiz"
+        ? "Pick your answer"
+        : "Vote to reveal";
+  const leadingOption = localOptions[leadingOptionIndex];
+  const leadingPercent = totalVotes > 0 ? Math.round(((leadingOption?.votes || 0) / totalVotes) * 100) : 0;
+  const participationCopy = totalVotes === 0
+    ? "Be the first vote"
+    : voted || isExpired
+      ? `${leadingPercent}% chose the leader`
+      : `${totalVotes} already joined`;
+  const votePulse =
+    totalVotes === 0
+      ? { label: "Open floor", detail: "First vote can set the tone", width: "18%" }
+      : leadingPercent >= 70
+        ? { label: "Clear favorite", detail: `${leadingPercent}% behind option ${leadingOptionIndex + 1}`, width: `${leadingPercent}%` }
+        : voted || isExpired
+          ? { label: "Close read", detail: "Results are still competitive", width: `${Math.max(36, leadingPercent)}%` }
+          : { label: "Momentum building", detail: `${totalVotes} vote${totalVotes === 1 ? "" : "s"} in progress`, width: `${Math.min(88, Math.max(32, totalVotes * 12))}%` };
 
   // Check if user already voted
-  const { data: existingVote } = useQuery({
+  useQuery({
     queryKey: ["poll-vote", id, user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -92,6 +118,7 @@ function PollPostCardInner({
       user_id: user.id,
       option_index: index,
     });
+    queryClient.invalidateQueries({ queryKey: ["poll-vote", id, user.id] });
 
     if (pollType === "quiz" && correctOptionIndex !== undefined) {
       if (index === correctOptionIndex) {
@@ -103,26 +130,104 @@ function PollPostCardInner({
   };
 
   return (
-    <div className="rounded-2xl bg-card border border-border/40 overflow-hidden">
+    <div className="zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.25rem]">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 pb-2">
-        <Avatar className="h-9 w-9">
+      <div className="zivo-social-header-glass mx-3 mt-3 flex items-center gap-3 rounded-[1.15rem] px-3 py-2.5">
+        <Avatar className="zivo-social-avatar-ring h-10 w-10">
           <AvatarImage src={authorAvatar || ""} />
-          <AvatarFallback>{authorName[0]}</AvatarFallback>
+          <AvatarFallback className="bg-transparent text-xs font-bold text-primary">{authorName[0]}</AvatarFallback>
         </Avatar>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">{authorName}</p>
-          <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-foreground">{authorName}</p>
+          <p className="truncate text-xs font-medium text-muted-foreground">{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</p>
         </div>
-        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10">
-          <BarChart3 className="h-3 w-3 text-primary" />
-          <span className="text-xs font-medium text-primary">{pollType === "quiz" ? "Quiz" : "Poll"}</span>
+        <div className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5">
+          <BarChart3 className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-semibold text-primary">{pollType === "quiz" ? "Quiz" : "Poll"}</span>
         </div>
       </div>
 
       {/* Question */}
-      <div className="px-4 pb-3">
-        <p className="text-[15px] font-medium text-foreground">{question}</p>
+      <div className="px-4 pb-3 pt-3">
+        <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-primary/80">
+          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+          {statusCopy}
+        </div>
+        <p className="text-[15px] font-semibold leading-snug text-foreground">{question}</p>
+      </div>
+
+      <div className="mx-4 mb-3 grid grid-cols-3 gap-2">
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Users className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black leading-none text-foreground">{totalVotes}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Votes</p>
+          </div>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+            <Trophy className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black leading-none text-foreground">{leadingOptionIndex + 1}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Leader</p>
+          </div>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${isExpired ? "bg-muted text-muted-foreground" : "bg-fuchsia-500/10 text-fuchsia-500"}`}>
+            <Clock className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black leading-none text-foreground">{isExpired ? "Ended" : "Live"}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Status</p>
+          </div>
+        </div>
+      </div>
+      <div className="zivo-social-share-preview mx-4 mb-3 flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            {voted || isExpired ? (
+              <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[10px] font-black uppercase tracking-[0.08em] text-muted-foreground">
+              {voted || isExpired ? "Current leader" : "Participation"}
+            </span>
+            <span className="block truncate text-sm font-bold text-foreground">
+              {voted || isExpired ? leadingOption?.text || "Option" : participationCopy}
+            </span>
+          </span>
+        </div>
+        <span className="zivo-social-chip-active shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black tabular-nums">
+          {voted || isExpired ? `${leadingPercent}%` : pollType === "quiz" ? "Quiz" : "Vote"}
+        </span>
+      </div>
+      <div className="zivo-social-module-tile mx-4 mb-3 rounded-2xl px-3 py-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl">
+              <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-black text-foreground">{votePulse.label}</span>
+              <span className="block truncate text-[11px] font-semibold text-muted-foreground">{votePulse.detail}</span>
+            </span>
+          </div>
+          <span className="rounded-full border border-primary/15 bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase text-primary">
+            Pulse
+          </span>
+        </div>
+        <div className="zivo-social-chip mt-2 h-1.5 overflow-hidden rounded-full p-0">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-primary via-emerald-400 to-fuchsia-500 transition-[width] duration-300"
+            style={{ width: votePulse.width }}
+          />
+        </div>
       </div>
 
       {/* Options */}
@@ -131,19 +236,25 @@ function PollPostCardInner({
           const pct = totalVotes > 0 ? Math.round(((opt.votes || 0) / totalVotes) * 100) : 0;
           const isSelected = selectedIndex === i;
           const isCorrect = pollType === "quiz" && correctOptionIndex === i;
+          const isLeader = (voted || isExpired) && totalVotes > 0 && leadingOptionIndex === i;
 
           return (
             <motion.button
               key={i}
               onClick={() => handleVote(i)}
               disabled={voted || isExpired}
+              aria-label={
+                voted || isExpired
+                  ? `${opt.text}, ${pct}% with ${opt.votes || 0} vote${(opt.votes || 0) === 1 ? "" : "s"}`
+                  : `Vote for ${opt.text}`
+              }
               className={cn(
-                "w-full relative rounded-xl overflow-hidden text-left transition-all",
+                "zivo-social-module-tile group relative w-full overflow-hidden rounded-2xl text-left transition-all",
                 voted ? "cursor-default" : "cursor-pointer active:scale-[0.98]",
-                isSelected && isCorrect && "ring-2 ring-emerald-500",
-                isSelected && !isCorrect && pollType === "quiz" && "ring-2 ring-destructive",
-                !voted && "border border-border/60 hover:border-primary/40",
-                voted && "border border-border/30"
+                isSelected && isCorrect && "ring-2 ring-emerald-500/70",
+                isSelected && !isCorrect && pollType === "quiz" && "ring-2 ring-destructive/70",
+                isLeader && "border-primary/40 shadow-lg shadow-primary/10",
+                !voted && !isExpired && "hover:-translate-y-0.5 hover:border-primary/40",
               )}
               whileTap={!voted ? { scale: 0.98 } : {}}
             >
@@ -154,17 +265,25 @@ function PollPostCardInner({
                   animate={{ width: `${pct}%` }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
                   className={cn(
-                    "absolute inset-y-0 left-0 rounded-xl",
-                    isSelected ? "bg-primary/15" : "bg-muted/50"
+                    "absolute inset-y-0 left-0 rounded-2xl",
+                    isSelected ? "bg-primary/15" : isLeader ? "bg-primary/10" : "bg-white/55"
                   )}
                 />
               )}
-              <div className="relative flex items-center justify-between px-4 py-3">
-                <span className="text-sm font-medium text-foreground">{opt.text}</span>
+              <div className="relative flex min-h-[54px] items-center justify-between gap-3 px-4 py-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold leading-snug text-foreground">{opt.text}</span>
+                  {(voted || isExpired) && (
+                    <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      {(opt.votes || 0)} vote{(opt.votes || 0) === 1 ? "" : "s"}
+                    </span>
+                  )}
+                </span>
                 {voted && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {isLeader && <Trophy className="h-3.5 w-3.5 text-primary" />}
                     {isSelected && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
-                    <span className="text-xs font-semibold text-muted-foreground">{pct}%</span>
+                    <span className="zivo-social-chip rounded-full px-2 py-1 text-xs font-bold text-primary">{pct}%</span>
                   </div>
                 )}
               </div>
@@ -174,15 +293,15 @@ function PollPostCardInner({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-4 pb-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Users className="h-3 w-3" />
-          <span>{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
+      <div className="zivo-social-engagement-summary mx-4 mb-4 flex items-center justify-between gap-3 rounded-2xl px-3 py-2 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="truncate font-semibold">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
         </div>
         {expiresAt && (
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>{isExpired ? "Ended" : `Ends ${formatDistanceToNow(new Date(expiresAt), { addSuffix: true })}`}</span>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="truncate font-semibold">{isExpired ? "Ended" : `Ends ${formatDistanceToNow(new Date(expiresAt), { addSuffix: true })}`}</span>
           </div>
         )}
       </div>

@@ -1,9 +1,10 @@
 const DEFAULT_PUBLIC_ORIGIN = "https://zivollc.com";
+const SUPABASE_FUNCTIONS_BASE = `${import.meta.env.VITE_SUPABASE_URL || ""}/functions/v1`;
 
 // Edge function URL that serves profile OG tags and redirects humans.
-const PROFILE_OG_FUNCTION = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/profile-og";
-const POST_OG_FUNCTION = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/post-og";
-const CHANNEL_OG_FUNCTION = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/channel-og";
+const PROFILE_OG_FUNCTION = `${SUPABASE_FUNCTIONS_BASE}/profile-og`;
+const POST_OG_FUNCTION = `${SUPABASE_FUNCTIONS_BASE}/post-og`;
+const CHANNEL_OG_FUNCTION = `${SUPABASE_FUNCTIONS_BASE}/channel-og`;
 
 /**
  * Returns the public-facing origin for shareable URLs.

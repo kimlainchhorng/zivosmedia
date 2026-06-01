@@ -136,7 +136,7 @@ serve(withSecurity("eats-payout-request", async (req, ctx) => {
     console.error("[eats-payout-request]", msg);
     return json({ error: msg }, 400);
   }
-}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
 
 function jsonResponse(body: unknown, status: number, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {

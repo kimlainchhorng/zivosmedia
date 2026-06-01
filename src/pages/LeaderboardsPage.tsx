@@ -210,7 +210,7 @@ export default function LeaderboardsPage() {
                     {rank <= 3 ? <RankIcon className={cn("h-5 w-5 mx-auto", ri.color)} /> : <span className="text-sm font-extrabold text-muted-foreground">#{rank}</span>}
                   </div>
                   {p?.avatar_url ? (
-                    <img src={p.avatar_url} alt="" className="shrink-0 h-9 w-9 rounded-full object-cover" loading="lazy" />
+                    <img src={p.avatar_url} alt="" className="shrink-0 h-9 w-9 rounded-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="shrink-0 h-9 w-9 rounded-full bg-ig-gradient flex items-center justify-center text-white text-xs font-extrabold">{initials(name)}</div>
                   )}

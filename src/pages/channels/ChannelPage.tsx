@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Bell, ChevronLeft, FileText, Hash, ImageIcon, Inbox, Info, Link as LinkIcon, Mic, Music, Play, Share2, Users } from "lucide-react";
 import { useChannel } from "@/hooks/useChannel";
-import { ChannelHeader } from "@/components/channels/ChannelHeader";
 import { ChannelInfoSheet } from "@/components/channels/ChannelInfoSheet";
 import { ChannelPostCard } from "@/components/channels/ChannelPostCard";
 import { ChannelPostComposer } from "@/components/channels/ChannelPostComposer";
@@ -180,16 +179,6 @@ export default function ChannelPage() {
           })}
         </div>
       </div>
-
-      <ChannelHeader
-        channel={channel}
-        isSubscribed={isSubscribed}
-        isOwner={isOwner}
-        notificationsOn={notificationsOn}
-        onSubscribe={subscribe}
-        onUnsubscribe={unsubscribe}
-        onSetNotifications={setNotifications}
-      />
 
       {pinnedPost && (
         <button

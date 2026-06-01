@@ -1,17 +1,10 @@
 // @ts-nocheck
 import { createClient, serve } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(withSecurity("create-reel-boost", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -71,4 +64,10 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "payment",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

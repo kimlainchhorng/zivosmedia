@@ -227,6 +227,8 @@ export default function Setup() {
                 src={coverPreview}
                 alt="Cover"
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
@@ -264,6 +266,8 @@ export default function Setup() {
                     src={avatarPreview}
                     alt="Avatar"
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">

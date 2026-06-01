@@ -10,13 +10,11 @@
  */
 import { createClient } from "../_shared/deps.ts";
 import { notifyEatsOrderConfirmed } from "../_shared/eats-notifications.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(withSecurity("notify-eats-order-confirmed", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -55,4 +53,4 @@ Deno.serve(async (req) => {
     console.error("[notify-eats-order-confirmed]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

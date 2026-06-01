@@ -13,9 +13,6 @@ import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy";
 
 const CATEGORIES = ["account", "payments", "trips", "chat", "merchant", "other"] as const;
 
-const dbFrom = (table: string): unknown =>
-  (supabase as unknown as { from: (t: string) => unknown }).from(table);
-
 export default function CreateSupportTicketPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -29,11 +26,22 @@ export default function CreateSupportTicketPage() {
     if (!user?.id || !subject) { toast.error("Subject required"); return; }
     setBusy(true);
     try {
-      const { error } = await (dbFrom("support_tickets") as { insert: (p: unknown) => Promise<{ error: unknown }> }).insert({
-        user_id: user.id, subject, body: body || null, category, priority, status: "open",
-      });
+      const message = [
+        body || "No additional details provided.",
+        "",
+        `Category: ${category}`,
+        `Priority: ${priority}`,
+      ].join("\n");
+      const { data, error } = await supabase.functions.invoke("support-ticket-submit", { body: {
+        subject,
+        message,
+        email: user.email ?? null,
+        source: `support_new:${category}:${priority}`,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
-      toast.success("Ticket submitted — we'll respond within 24h");
+      const ticketNumber = (data as any)?.ticket_number;
+      toast.success(ticketNumber ? `Ticket ${ticketNumber} submitted — we'll respond within 24h` : "Ticket submitted — we'll respond within 24h");
       navigate("/support");
     } catch {
       toast.error("Couldn't submit ticket");

@@ -145,4 +145,4 @@ Deno.serve(withSecurity("create-tip-payment-intent", async (req, ctx) => {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-}, { rateLimit: "payment", strictCors: true }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"] }));

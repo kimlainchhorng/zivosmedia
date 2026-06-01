@@ -298,9 +298,9 @@ export default function MessageRequestsPage() {
 
   const handleBlock = async (r: MessageRequest) => {
     if (!user) return;
-    const { error } = await (supabase as any)
-      .from("blocked_users")
-      .insert({ blocker_id: user.id, blocked_id: r.otherUserId });
+    const { error } = await supabase.functions.invoke("block-user-manage", {
+      body: { action: "block", blocked_id: r.otherUserId },
+    });
     if (error) {
       toast.error("Couldn't block user");
       return;
@@ -314,8 +314,9 @@ export default function MessageRequestsPage() {
   const handleBulkBlock = useCallback(async () => {
     if (!user || selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-    const rows = ids.map((id) => ({ blocker_id: user.id, blocked_id: id }));
-    const { error } = await (supabase as any).from("blocked_users").insert(rows);
+    const { error } = await supabase.functions.invoke("block-user-manage", {
+      body: { action: "block", blocked_ids: ids },
+    });
     if (error) {
       toast.error("Couldn't block selected");
       return;
@@ -323,7 +324,7 @@ export default function MessageRequestsPage() {
     toast.success(`${ids.length} blocked`);
     invalidate();
     exitSelectMode();
-  }, [user, selectedIds, exitSelectMode]);
+  }, [user, selectedIds, exitSelectMode, invalidate]);
 
   const handleBulkDismiss = useCallback(() => {
     if (!user || selectedIds.size === 0) return;

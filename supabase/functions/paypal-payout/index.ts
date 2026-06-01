@@ -1,6 +1,7 @@
 import { serve, createClient } from "../_shared/deps.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { getIdempotencyKey, withIdempotency } from "../_shared/idempotency.ts";
 
 const PAYPAL_MODE = Deno.env.get("PAYPAL_MODE") ?? "live"; // "live" | "sandbox"
 const PAYPAL_BASE = PAYPAL_MODE === "sandbox"
@@ -65,91 +66,105 @@ serve(withSecurity("paypal-payout", async (req, ctx) => {
       throw new Error("Valid PayPal email required");
     }
 
-    // Wallet balance check
-    const { data: wallet } = await supabase
-      .from("customer_wallets")
-      .select("id, balance_cents")
-      .eq("user_id", user.id)
-      .single();
-    const currentBalance = wallet?.balance_cents ?? 0;
-    if (amount_cents > currentBalance) {
-      throw new Error(`Insufficient balance. Available: $${(currentBalance / 100).toFixed(2)}`);
-    }
+    const result = await withIdempotency(req, "paypal-payout", user.id, async () => {
+      // Wallet balance check
+      const { data: wallet } = await supabase
+        .from("customer_wallets")
+        .select("id, balance_cents")
+        .eq("user_id", user.id)
+        .single();
+      const currentBalance = wallet?.balance_cents ?? 0;
+      if (amount_cents > currentBalance) {
+        throw new Error(`Insufficient balance. Available: $${(currentBalance / 100).toFixed(2)}`);
+      }
 
-    // Send PayPal payout
-    const accessToken = await getPayPalAccessToken();
-    const senderBatchId = `zivo_${user.id.substring(0, 8)}_${Date.now()}`;
-    const amountStr = (amount_cents / 100).toFixed(2);
+      // Send PayPal payout. Reuse the HTTP idempotency key as PayPal's batch
+      // id so provider retries and wallet ledger retries stay aligned.
+      const requestKey = getIdempotencyKey(req) ?? crypto.randomUUID();
+      const paypalKey = requestKey.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120);
+      const senderBatchId = `zivo_${user.id.substring(0, 8)}_${paypalKey}`;
+      const senderItemId = `zivo_item_${user.id.substring(0, 8)}_${paypalKey}`.slice(0, 120);
+      const accessToken = await getPayPalAccessToken();
+      const amountStr = (amount_cents / 100).toFixed(2);
 
-    const payoutRes = await fetch(`${PAYPAL_BASE}/v1/payments/payouts`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sender_batch_header: {
-          sender_batch_id: senderBatchId,
-          email_subject: "You have a payout from ZIVO!",
-          email_message: "Your ZIVO wallet payout has been sent. Thank you for being a creator!",
+      const payoutRes = await fetch(`${PAYPAL_BASE}/v1/payments/payouts`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
-        items: [{
-          recipient_type: "EMAIL",
-          amount: { value: amountStr, currency: "USD" },
-          receiver: paypal_email,
-          note: "ZIVO creator wallet payout",
-          sender_item_id: `zivo_${user.id.substring(0, 8)}_${Date.now()}`,
-        }],
-      }),
+        body: JSON.stringify({
+          sender_batch_header: {
+            sender_batch_id: senderBatchId,
+            email_subject: "You have a payout from ZIVO!",
+            email_message: "Your ZIVO wallet payout has been sent. Thank you for being a creator!",
+          },
+          items: [{
+            recipient_type: "EMAIL",
+            amount: { value: amountStr, currency: "USD" },
+            receiver: paypal_email,
+            note: "ZIVO creator wallet payout",
+            sender_item_id: senderItemId,
+          }],
+        }),
+      });
+
+      const payoutJson = await payoutRes.json();
+      if (!payoutRes.ok) {
+        console.error("[PAYPAL-PAYOUT] error", payoutJson);
+        const msg = payoutJson?.message || payoutJson?.name || "PayPal payout failed";
+        throw new Error(msg);
+      }
+
+      const payoutBatchId = payoutJson?.batch_header?.payout_batch_id;
+      const status = payoutJson?.batch_header?.batch_status;
+
+      // Deduct wallet balance + log transaction
+      const newBalance = currentBalance - amount_cents;
+      await supabase.from("customer_wallet_transactions").insert({
+        user_id: user.id,
+        amount_cents: -amount_cents,
+        balance_after_cents: newBalance,
+        type: "withdrawal",
+        description: `PayPal payout to ${paypal_email}${payoutBatchId ? ` · ${payoutBatchId}` : ""}`,
+      });
+      await supabase.from("customer_wallets").update({
+        balance_cents: newBalance,
+        updated_at: new Date().toISOString(),
+      }).eq("user_id", user.id);
+
+      // Telegram notify
+      const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+      const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
+      if (botToken && chatId) {
+        const maskedEmail = paypal_email.includes("@")
+          ? `${paypal_email[0]}****@${paypal_email.split("@")[1]}`
+          : "****";
+        const msg = `💸 *PayPal Payout*\nAmount: $${amountStr}\nTo: ${maskedEmail}\nBatch: ${payoutBatchId}\nStatus: ${status}`;
+        try {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "Markdown" }),
+          });
+        } catch (_) {}
+      }
+
+      return {
+        status: 200,
+        body: {
+          success: true,
+          payout_batch_id: payoutBatchId,
+          status,
+          new_balance_cents: newBalance,
+        },
+      };
     });
 
-    const payoutJson = await payoutRes.json();
-    if (!payoutRes.ok) {
-      console.error("[PAYPAL-PAYOUT] error", payoutJson);
-      const msg = payoutJson?.message || payoutJson?.name || "PayPal payout failed";
-      throw new Error(msg);
-    }
-
-    const payoutBatchId = payoutJson?.batch_header?.payout_batch_id;
-    const status = payoutJson?.batch_header?.batch_status;
-
-    // Deduct wallet balance + log transaction
-    const newBalance = currentBalance - amount_cents;
-    await supabase.from("customer_wallet_transactions").insert({
-      user_id: user.id,
-      amount_cents: -amount_cents,
-      balance_after_cents: newBalance,
-      type: "withdrawal",
-      description: `PayPal payout to ${paypal_email}${payoutBatchId ? ` · ${payoutBatchId}` : ""}`,
+    return new Response(JSON.stringify(result.body), {
+      status: result.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "X-Idempotency-Cache": result.cached ? "HIT" : "MISS" },
     });
-    await supabase.from("customer_wallets").update({
-      balance_cents: newBalance,
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", user.id);
-
-    // Telegram notify
-    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
-    if (botToken && chatId) {
-      const maskedEmail = paypal_email.includes("@")
-        ? `${paypal_email[0]}****@${paypal_email.split("@")[1]}`
-        : "****";
-      const msg = `💸 *PayPal Payout*\nAmount: $${amountStr}\nTo: ${maskedEmail}\nBatch: ${payoutBatchId}\nStatus: ${status}`;
-      try {
-        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "Markdown" }),
-        });
-      } catch (_) {}
-    }
-
-    return new Response(JSON.stringify({
-      success: true,
-      payout_batch_id: payoutBatchId,
-      status,
-      new_balance_cents: newBalance,
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Payout failed";
     console.error("[PAYPAL-PAYOUT]", msg);
@@ -158,4 +173,4 @@ serve(withSecurity("paypal-payout", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

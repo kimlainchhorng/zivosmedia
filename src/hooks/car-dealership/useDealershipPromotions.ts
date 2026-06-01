@@ -93,18 +93,16 @@ export function useDealershipPromotions(storeId: string | undefined) {
       is_active: draft.is_active ?? true,
       is_featured: draft.is_featured ?? false,
     };
-    const { data, error: err } = await supabase
-      .from("car_dealership_promotions")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-dealership-promotion-manage", {
+      body: { action: "create", store_id: storeId, promotion: payload },
+    });
     if (err) {
       console.error("[useDealershipPromotions] create failed", err);
       setError((err as any).code === "23505" ? "A promotion with that code already exists." : "Couldn't create promotion.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as DealershipPromotion;
+    const created = data?.promotion as DealershipPromotion;
     setPromotions((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -117,7 +115,9 @@ export function useDealershipPromotions(storeId: string | undefined) {
       cleaned[k] = k === "code" && typeof v === "string" ? v.trim().toUpperCase() || null : v;
     });
     setPromotions((prev) => prev.map((p) => p.id === id ? ({ ...p, ...cleaned } as DealershipPromotion) : p));
-    const { error: err } = await supabase.from("car_dealership_promotions").update(cleaned as never).eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-dealership-promotion-manage", {
+      body: { action: "update", promotion_id: id, promotion: cleaned },
+    });
     if (err) {
       console.error("[useDealershipPromotions] update failed", err);
       setError("Couldn't save — refreshing.");
@@ -133,7 +133,9 @@ export function useDealershipPromotions(storeId: string | undefined) {
     setSaving(true);
     const snapshot = promotions;
     setPromotions((prev) => prev.filter((p) => p.id !== id));
-    const { error: err } = await supabase.from("car_dealership_promotions").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-dealership-promotion-manage", {
+      body: { action: "delete", promotion_id: id },
+    });
     if (err) {
       console.error("[useDealershipPromotions] delete failed", err);
       setError("Couldn't delete promotion.");

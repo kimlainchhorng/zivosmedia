@@ -11,6 +11,7 @@
  * apply to provider-to-provider HTTPS traffic.
  */
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 
 const CAR_RENTAL_TYPES = new Set([
@@ -20,7 +21,7 @@ const CAR_RENTAL_TYPES = new Set([
   "car_rental_deposit_refund",
 ]);
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("stripe-car-rental-webhook", async (req) => {
   if (req.method !== "POST") {
     return new Response("method not allowed", { status: 405 });
   }
@@ -323,4 +324,4 @@ Deno.serve(async (req) => {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
-});
+}, { strictCors: true, allowedMethods: ["POST"], skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

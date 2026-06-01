@@ -8,20 +8,17 @@
  * `chat_id` is the user UUID the bot is replying to (direct chat).
  */
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(withSecurity("bot-send-message", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const { token, chat_id, text, image_url, reply_to_id } = await req.json();
-    if (!token || !chat_id) return json({ error: "token and chat_id required" }, 400);
-    if (!text && !image_url) return json({ error: "text or image_url required" }, 400);
+    if (!token || !chat_id) return json({ error: "token and chat_id required" }, 400, corsHeaders);
+    if (!text && !image_url) return json({ error: "text or image_url required" }, 400, corsHeaders);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -29,10 +26,10 @@ Deno.serve(async (req) => {
     );
 
     const { data: rows, error: vErr } = await supabase.rpc("verify_bot_token", { p_token: token });
-    if (vErr) return json({ error: vErr.message }, 500);
+    if (vErr) return json({ error: vErr.message }, 500, corsHeaders);
     const bot = Array.isArray(rows) ? rows[0] : rows;
-    if (!bot) return json({ error: "invalid token" }, 401);
-    if (!bot.is_active) return json({ error: "bot inactive" }, 403);
+    if (!bot) return json({ error: "invalid token" }, 401, corsHeaders);
+    if (!bot.is_active) return json({ error: "bot inactive" }, 403, corsHeaders);
 
     const { data: inserted, error: iErr } = await supabase
       .from("direct_messages")
@@ -46,18 +43,18 @@ Deno.serve(async (req) => {
       })
       .select("id, created_at")
       .single();
-    if (iErr) return json({ error: iErr.message }, 500);
+    if (iErr) return json({ error: iErr.message }, 500, corsHeaders);
 
     // Push delivery handled by direct_messages AFTER INSERT trigger
     // (tg_notify_direct_message in 20260509120000_unified_notifications.sql).
 
-    return json({ ok: true, message_id: inserted.id, created_at: inserted.created_at });
+    return json({ ok: true, message_id: inserted.id, created_at: inserted.created_at }, 200, corsHeaders);
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    return json({ error: String(e) }, 500, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

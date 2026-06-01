@@ -100,10 +100,10 @@ export function useSalonReminderSettings(storeId: string | undefined): UseResult
       winback_days_threshold: merged.winback_days_threshold,
       sender_name: merged.sender_name,
     };
-    const { error: err } = await supabase
-      .from("salon_reminder_settings")
-      .upsert(payload as never, { onConflict: "store_id" });
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-reminder-settings-update", {
+      body: { store_id: storeId, settings: payload },
+    });
+    if (err || data?.error) {
       console.error("[useSalonReminderSettings] save failed", err);
       setError("Couldn't save reminder settings.");
       setSaving(false);

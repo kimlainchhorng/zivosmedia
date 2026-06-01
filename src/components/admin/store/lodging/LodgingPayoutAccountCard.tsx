@@ -113,8 +113,12 @@ export default function LodgingPayoutAccountCard({ storeId, storeCountry }: Prop
 
   const removeMethod = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("customer_payout_methods").delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
+        body: { action: "delete", method_id: id },
+      });
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Failed to remove payout method");
+      }
     },
     onSuccess: () => {
       toast.success("Payout method removed");
@@ -272,7 +276,7 @@ function ManualMethodForm({
 
       const method_type = rail === "aba" ? "aba" : rail === "paypal" ? "paypal" : "bank_transfer";
       const payload: Record<string, any> = {
-        user_id: user.id,
+        action: "create",
         store_id: storeId,
         country_code: country,
         rail,
@@ -286,8 +290,15 @@ function ManualMethodForm({
         verification_note: rail === "bank_wire" && form.swift ? `SWIFT/BIC: ${form.swift}` : null,
         is_default: methods.length === 0,
       };
-      const { error } = await (supabase.from("customer_payout_methods") as any).insert(payload);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
+        body: payload,
+        headers: {
+          "Idempotency-Key": `store-payout-method-${storeId}-${rail}-${crypto.randomUUID()}`,
+        },
+      });
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Could not save payout method");
+      }
     },
     onSuccess: () => {
       toast.success("Payout method saved");

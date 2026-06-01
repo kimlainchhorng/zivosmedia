@@ -1,12 +1,7 @@
 // send-marketing-campaign — fan-out marketing campaign sends across push/email/sms/inapp.
 // Supports test sends (single recipient) and full audience sends with batched event writes.
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 type Channel = "push" | "email" | "sms" | "inapp";
 type DispatchChannel = "push" | "email" | "sms" | "inbox";
@@ -89,7 +84,40 @@ async function dispatchCampaignNotification(
   };
 }
 
-Deno.serve(async (req) => {
+function dispatchResultForChannel(result: PromiseSettledResult<any>, channel: Channel) {
+  if (result.status === "rejected") {
+    return { event_type: "failed", metadata: { error: String(result.reason?.message || result.reason || "dispatch_failed") } };
+  }
+
+  const dispatchChannel = channel === "inapp" ? "inbox" : channel;
+  const channelResult = result.value?.body?.results?.[dispatchChannel];
+
+  if (channelResult?.skipped) {
+    return {
+      event_type: "skipped",
+      metadata: { reason: channelResult.reason || "skipped" },
+    };
+  }
+
+  if (channelResult?.ok === true) {
+    return {
+      event_type: "sent",
+      metadata: { status: result.value.status ?? null },
+    };
+  }
+
+  return {
+    event_type: "failed",
+    metadata: {
+      status: result.value?.status ?? null,
+      reason: channelResult?.reason || channelResult?.error || "dispatch_failed",
+    },
+  };
+}
+
+Deno.serve(withSecurity("send-marketing-campaign", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -199,27 +227,35 @@ Deno.serve(async (req) => {
     let errors = 0;
     const batches = Math.ceil(recipientIds.length / 500);
 
-    // Insert sent events in batches
     for (let i = 0; i < recipientIds.length; i += 500) {
       const chunk = recipientIds.slice(i, i + 500);
-      const events = chunk.flatMap((uid: string) =>
-        channels.map((ch) => ({
-          campaign_id: campaignId,
-          store_id: storeId,
-          user_id: uid,
-          channel: ch,
-          event_type: "sent",
-        }))
-      );
-      const { error } = await admin.from("marketing_campaign_events" as any).insert(events);
-      if (error) errors++;
-      else sent += chunk.length;
 
-      await Promise.allSettled(
+      const dispatchResults = await Promise.allSettled(
         chunk.map((uid: string) =>
           dispatchCampaignNotification(url, serviceKey, campaign, campaignId, uid, dispatchChannels)
         ),
       );
+
+      const events = chunk.flatMap((uid: string, idx: number) =>
+        channels.map((ch) => {
+          const outcome = dispatchResultForChannel(dispatchResults[idx], ch);
+          return {
+          campaign_id: campaignId,
+          store_id: storeId,
+          user_id: uid,
+          channel: ch,
+          event_type: outcome.event_type,
+          metadata: outcome.metadata,
+          };
+        })
+      );
+      const { error } = await admin.from("marketing_campaign_events" as any).insert(events);
+      if (error) errors++;
+      else {
+        sent += dispatchResults.filter((result) =>
+          channels.some((channel) => dispatchResultForChannel(result, channel).event_type === "sent")
+        ).length;
+      }
     }
 
     // Mark campaign as sent
@@ -239,4 +275,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

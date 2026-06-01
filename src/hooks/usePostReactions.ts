@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { ReactionEmoji } from "@/components/social/ReactionPicker";
+import type { ReactionEmoji } from "@/lib/social/reactions";
 import type { PostSource } from "@/hooks/usePostActions";
 
 const POST_REACTIONS_ENABLED = import.meta.env.VITE_ENABLE_POST_REACTIONS === "true";

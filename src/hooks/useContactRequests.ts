@@ -71,66 +71,47 @@ export function useContactRequests() {
   const send = useCallback(async (toUserId: string, message?: string): Promise<SendResult> => {
     if (!user) return { ok: false, error: "Not signed in" };
     if (toUserId === user.id) return { ok: false, error: "You can't add yourself" };
-    const { error } = await (supabase as any).from("contact_requests").insert({
-      from_user_id: user.id,
-      to_user_id: toUserId,
-      message: message ?? null,
-      status: "pending",
+    const { data, error } = await supabase.functions.invoke("contact-request-manage", {
+      body: { action: "send", to_user_id: toUserId, message: message ?? null },
     });
     if (error) {
-      const code = (error as any).code;
-      const msg = (error.message || "").toLowerCase();
-      if (code === "23505" || msg.includes("duplicate") || msg.includes("already exists")) {
-        await refresh();
-        return { ok: true, duplicate: true };
-      }
       return { ok: false, error: error.message };
     }
     await refresh();
-    return { ok: true };
+    return { ok: true, duplicate: Boolean((data as { duplicate?: boolean } | null)?.duplicate) };
   }, [user, refresh]);
 
   const accept = useCallback(async (id: string) => {
     if (!user) return;
-    const req = incoming.find((r) => r.id === id);
-    const { error } = await (supabase as any)
-      .from("contact_requests")
-      .update({ status: "accepted" })
-      .eq("id", id);
+    const { error } = await supabase.functions.invoke("contact-manage", {
+      body: { action: "accept_request", request_id: id },
+    });
     if (error) return;
-    if (req) {
-      // Reciprocal contact entries
-      await supabase.from("user_contacts").upsert([
-        { owner_id: user.id, contact_user_id: req.from_user_id, added_via: "request" },
-        { owner_id: req.from_user_id, contact_user_id: user.id, added_via: "request" },
-      ]);
-      // Auto-resolve any matching outgoing request from me to the same user
-      await (supabase as any)
-        .from("contact_requests")
-        .update({ status: "accepted" })
-        .eq("from_user_id", user.id)
-        .eq("to_user_id", req.from_user_id)
-        .eq("status", "pending");
-    }
     await refresh();
-  }, [user, incoming, refresh]);
+  }, [user, refresh]);
 
   const decline = useCallback(async (id: string) => {
-    await (supabase as any).from("contact_requests").update({ status: "declined" }).eq("id", id);
+    await supabase.functions.invoke("contact-request-manage", {
+      body: { action: "decline", request_id: id },
+    });
     await refresh();
   }, [refresh]);
 
   const cancel = useCallback(async (id: string) => {
-    await (supabase as any).from("contact_requests").delete().eq("id", id);
+    await supabase.functions.invoke("contact-request-manage", {
+      body: { action: "cancel", request_id: id },
+    });
     await refresh();
   }, [refresh]);
 
   const resend = useCallback(async (id: string): Promise<SendResult> => {
-    const r = outgoing.find((x) => x.id === id);
-    if (!r) return { ok: false, error: "Request not found" };
-    await (supabase as any).from("contact_requests").delete().eq("id", id);
-    return send(r.to_user_id, r.message ?? undefined);
-  }, [outgoing, send]);
+    const { data, error } = await supabase.functions.invoke("contact-request-manage", {
+      body: { action: "resend", request_id: id },
+    });
+    if (error) return { ok: false, error: error.message };
+    await refresh();
+    return { ok: true, duplicate: Boolean((data as { duplicate?: boolean } | null)?.duplicate) };
+  }, [refresh]);
 
   return { incoming, outgoing, loading, refresh, send, accept, decline, cancel, resend };
 }

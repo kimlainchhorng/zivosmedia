@@ -1,10 +1,9 @@
 // Poll endpoint: the issuer device asks "has my QR been scanned yet?"
 import { createClient } from "../_shared/deps.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
+Deno.serve(withSecurity("device-link-poll", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -77,4 +76,10 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["GET"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

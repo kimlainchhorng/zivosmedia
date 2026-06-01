@@ -1,5 +1,4 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 
@@ -12,8 +11,8 @@ function jsonResponse(body: Record<string, unknown>, status: number, headers: Re
   });
 }
 
-Deno.serve(withSecurity("admin-delete-user-post", async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+Deno.serve(withSecurity("admin-delete-user-post", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -84,6 +83,6 @@ Deno.serve(withSecurity("admin-delete-user-post", async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[admin-delete-user-post] unexpected error:", message);
-    return jsonResponse({ error: message }, 500, getCorsHeaders(req));
+    return jsonResponse({ error: message }, 500, corsHeaders);
   }
-}, { rateLimit: "admin_action" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

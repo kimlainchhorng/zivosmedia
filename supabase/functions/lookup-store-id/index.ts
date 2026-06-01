@@ -1,11 +1,10 @@
 import { createClient } from "../_shared/deps.ts";
+import { rateLimitDb } from "../_shared/rateLimiter.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+Deno.serve(withSecurity("lookup-store-id", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,6 +14,22 @@ Deno.serve(async (req) => {
     if (!email || typeof email !== 'string') {
       return new Response(JSON.stringify({ error: 'Email is required' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || normalizedEmail.length > 254) {
+      return new Response(JSON.stringify({ error: 'Valid email is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "anon";
+    const rl = await rateLimitDb(`lookup-store-id:${ip}`, "api_general", { max: 10, windowSec: 3600 });
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: 'Too many lookup attempts. Please try again later.' }), {
+        status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -40,7 +55,7 @@ Deno.serve(async (req) => {
       if (!pageData?.users?.length) break;
       
       const found = pageData.users.find(
-        (u: any) => u.email?.toLowerCase() === email.toLowerCase()
+        (u: any) => u.email?.toLowerCase() === normalizedEmail
       );
       if (found) {
         userId = found.id;
@@ -94,4 +109,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -86,23 +86,16 @@ export default function PublicCarRentalReviewSubmitPage() {
     setSubmitting(true);
     setError(null);
     const payload = {
-      store_id: reservation.store_id,
       reservation_id: reservation.id,
-      customer_id: reservation.customer_id,
-      vehicle_id: reservation.vehicle_id,
-      customer_name: reservation.customer_name,
-      vehicle_label: reservation.vehicle_label,
       rating,
       cleanliness: cleanliness || null,
       service: service || null,
       value: value || null,
       comment: comment.trim() || null,
-      is_published: true,
-      is_acknowledged: false,
     };
-    const { error: err } = await supabase
-      .from("car_rental_reviews")
-      .insert(payload as never);
+    const { error: err } = await supabase.functions.invoke("car-rental-review-submit", {
+      body: payload,
+    });
     if (err) {
       console.error(err);
       setError("Couldn't submit review. Please try again.");
@@ -143,7 +136,7 @@ export default function PublicCarRentalReviewSubmitPage() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-xl px-4 py-3 flex items-center gap-3">
           {store?.logo_url ? (
-            <img src={store.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+            <img src={store.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" />
           ) : (
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
               <Car className="h-5 w-5" />

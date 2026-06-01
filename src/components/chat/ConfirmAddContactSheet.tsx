@@ -62,12 +62,14 @@ export default function ConfirmAddContactSheet({ open, onOpenChange, target, onS
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-3xl pb-8">
+      <SheetContent side="bottom" className="zivo-chat-popover-glass rounded-t-[1.75rem] pb-8">
+        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
         <SheetHeader>
-          <SheetTitle>Send contact request</SheetTitle>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Connect</p>
+          <SheetTitle className="font-black">Send contact request</SheetTitle>
         </SheetHeader>
         <div className="flex flex-col items-center text-center pt-4 pb-3">
-          <Avatar className="w-20 h-20 mb-2">
+          <Avatar className="zivo-chat-avatar-ring w-20 h-20 mb-2">
             <AvatarImage src={target.avatar_url ?? undefined} />
             <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -82,15 +84,15 @@ export default function ConfirmAddContactSheet({ open, onOpenChange, target, onS
           placeholder="Add a message (optional)"
           rows={3}
           aria-label="Optional message"
-          className="mb-3"
+          className="zivo-chat-search mb-3 rounded-2xl"
         />
         <div className="text-[11px] text-muted-foreground mb-3 text-right">{message.length}/200</div>
         <div className="flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={sending}>
+          <Button variant="outline" className="zivo-chat-chip flex-1 rounded-xl font-bold" onClick={() => onOpenChange(false)} disabled={sending}>
             Cancel
           </Button>
           <Button
-            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white gap-2"
+            className="zivo-chat-chip-active flex-1 gap-2 rounded-xl font-black text-white"
             onClick={handleSend}
             disabled={sending}
           >

@@ -283,4 +283,4 @@ Deno.serve(withSecurity("complete-ride-request", async (req, ctx) => {
     console.error("[complete-ride-request]", message);
     return json({ error: message }, 500, cors);
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

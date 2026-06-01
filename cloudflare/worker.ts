@@ -27,6 +27,8 @@ type Env = {
   ZIVO_MEDIA: R2Bucket;
   ALLOWED_ORIGINS?: string;
   MEDIA_WRITE_TOKEN?: string;
+  CHANNEL_OG_FUNCTION_URL?: string;
+  SUPABASE_URL?: string;
 };
 
 const DEFAULT_ALLOWED_ORIGINS = [
@@ -43,7 +45,6 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
 ];
 
-const CHANNEL_OG_FUNCTION_URL = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/channel-og";
 const immutableCache = "public, max-age=31536000, immutable";
 
 function json(data: unknown, init: ResponseInit = {}) {
@@ -209,7 +210,7 @@ async function handleDownload(request: Request, env: Env) {
   return handleR2Object(request, env, downloadKey(url.pathname), "/");
 }
 
-async function handleChannelSharePreview(request: Request) {
+async function handleChannelSharePreview(request: Request, env: Env) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return json({ error: "Method not allowed" }, { status: 405 });
   }
@@ -220,7 +221,14 @@ async function handleChannelSharePreview(request: Request) {
     return json({ error: "Invalid channel handle" }, { status: 400 });
   }
 
-  const upstreamUrl = new URL(CHANNEL_OG_FUNCTION_URL);
+  const upstreamBase =
+    env.CHANNEL_OG_FUNCTION_URL ||
+    (env.SUPABASE_URL ? `${env.SUPABASE_URL}/functions/v1/channel-og` : "");
+  if (!upstreamBase) {
+    return new Response("channel OG upstream not configured", { status: 503 });
+  }
+
+  const upstreamUrl = new URL(upstreamBase);
   upstreamUrl.searchParams.set("handle", handle);
 
   const headers = new Headers();
@@ -254,7 +262,7 @@ export default {
     }
 
     if (url.pathname.startsWith("/share/c/")) {
-      return handleChannelSharePreview(request);
+      return handleChannelSharePreview(request, env);
     }
 
     if (env.ASSETS) {

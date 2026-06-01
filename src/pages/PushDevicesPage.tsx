@@ -80,8 +80,9 @@ export default function PushDevicesPage() {
 
   const revoke = async (id: string) => {
     qc.setQueryData<PushRow[]>(["push-subscriptions-me", user?.id], (old) => (old ?? []).filter((s) => s.id !== id));
-    const sb = supabase as unknown as { from: (t: string) => { delete: () => { eq: (k: string, v: string) => Promise<{ error: unknown }> } } };
-    const { error } = await sb.from("push_subscriptions").delete().eq("id", id);
+    const { error } = await supabase.functions.invoke("push-device-manage", {
+      body: { action: "revoke", subscription_id: id },
+    });
     if (error) { toast.error("Couldn't revoke"); qc.invalidateQueries({ queryKey: ["push-subscriptions-me", user?.id] }); }
     else toast.success("Revoked");
   };

@@ -90,46 +90,29 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
   const doSubscribe = async (tier: any, cents: number) => {
     setJoining(tier.id);
     try {
-      if (tier.is_free) {
-        const { error } = await (supabase as any).from("creator_subscriptions").insert({
-          creator_id: creatorId,
-          subscriber_id: user!.id,
+      const idempotencyKey = `subscribe-tier-${tier.id}-${crypto.randomUUID()}`;
+      const { data, error } = await (supabase as any).functions.invoke("subscribe-to-tier", {
+        headers: { "Idempotency-Key": idempotencyKey },
+        body: {
           tier_id: tier.id,
-          status: "active",
-          price_cents: 0,
-        });
-        if (error) throw error;
-        toast.success(`Joined ${tier.name}`);
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["my-active-subscription", creatorId, user?.id] }),
-          queryClient.invalidateQueries({ queryKey: ["my-subscriptions", user?.id] }),
-          queryClient.invalidateQueries({ queryKey: ["creator-top-supporters", creatorId] }),
-        ]);
-        if (tier.welcome_message) {
-          setWelcomeFor({ name: tier.name, message: tier.welcome_message });
-        }
-      } else {
-        const { data, error } = await (supabase as any).functions.invoke("subscribe-to-tier", {
-          body: {
-            tier_id: tier.id,
-            creator_id: creatorId,
-            amount_cents: cents,
-          },
-        });
-        if (error) throw error;
-        if (data?.url) {
-          window.location.href = data.url;
-          return;
-        }
-        toast.success("Subscription started");
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["my-active-subscription", creatorId, user?.id] }),
-          queryClient.invalidateQueries({ queryKey: ["my-subscriptions", user?.id] }),
-          queryClient.invalidateQueries({ queryKey: ["creator-top-supporters", creatorId] }),
-        ]);
-        if (tier.welcome_message) {
-          setWelcomeFor({ name: tier.name, message: tier.welcome_message });
-        }
+          creator_id: creatorId,
+          amount_cents: cents,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      toast.success(tier.is_free ? `Joined ${tier.name}` : "Subscription started");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["my-active-subscription", creatorId, user?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["my-subscriptions", user?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["creator-top-supporters", creatorId] }),
+      ]);
+      if (tier.welcome_message) {
+        setWelcomeFor({ name: tier.name, message: tier.welcome_message });
       }
     } catch (e: any) {
       toast.error(e.message || "Failed to subscribe");
@@ -156,7 +139,7 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
     return (
       <span className="flex items-baseline gap-1.5 flex-wrap">
         {pct > 0 && (
-          <span className="text-base text-white/60 line-through font-semibold">${(cents / 100).toFixed(2)}</span>
+          <span className="text-base text-muted-foreground line-through font-semibold">${(cents / 100).toFixed(2)}</span>
         )}
         <span>{tier.is_custom_price ? "FROM " : ""}${(discounted / 100).toFixed(2)}</span>
         <span className="text-xs font-semibold opacity-80">{intervalLabel}</span>
@@ -171,53 +154,72 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
       : null;
     const pct = Number(tier.discount_percent || 0);
     const badgeColor = tier.badge_color || "#00AFF0";
+    const benefits = Array.isArray(tier.benefits) && tier.benefits.length > 0
+      ? tier.benefits.slice(0, 6)
+      : [
+          `Support ${creatorName || "this creator"} directly`,
+          "Unlock subscriber-only updates when available",
+          "Get a supporter badge on this profile",
+        ];
     return (
       <motion.div
         whileTap={{ scale: 0.99 }}
-        className="relative overflow-hidden rounded-2xl shadow-lg"
+        className="relative overflow-hidden rounded-[24px] border border-border/70 bg-card shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
         style={{
-          background: `linear-gradient(135deg, ${badgeColor} 0%, ${badgeColor}dd 60%, #0a0a0a 140%)`,
+          background: `linear-gradient(145deg, ${badgeColor}18 0%, hsl(var(--card)) 46%, hsl(var(--muted)) 120%)`,
         }}
       >
+        <div
+          aria-hidden="true"
+          className="absolute -right-14 -top-20 h-44 w-44 rounded-full opacity-25 blur-3xl"
+          style={{ backgroundColor: badgeColor }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-primary/10 blur-3xl"
+        />
         {/* discount ribbon */}
         {pct > 0 && (
-          <div className="absolute top-3 right-3 bg-yellow-400 text-black text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow">
-            Limited offer · Save {pct}%
+          <div className="absolute right-4 top-4 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-extrabold uppercase text-black shadow">
+            Save {pct}%
           </div>
         )}
 
-        <div className="p-4 text-white">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xl">{tier.badge_emoji || "⭐"}</span>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-bold opacity-80">Subscription bundle</p>
+        <div className="relative p-4 text-foreground">
+          <div className="mb-4 flex items-center gap-3">
+            <span
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-xl shadow-sm"
+              style={{ backgroundColor: badgeColor + "22", color: badgeColor }}
+            >
+              {tier.badge_emoji || "⭐"}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground">Creator access</p>
+              <h4 className="truncate text-xl font-black leading-tight">{tier.name || "Subscription"}</h4>
+            </div>
           </div>
 
-          <h4 className="text-xl font-extrabold leading-tight">{tier.name?.toUpperCase() || "SUBSCRIBE"}</h4>
-
-          <div className="mt-2 text-3xl font-extrabold">
+          <div className="text-4xl font-black tracking-tight">
             {renderPriceLine(tier)}
           </div>
           {monthly && (
-            <p className="text-[11px] opacity-80 mt-0.5">{monthly}</p>
+            <p className="mt-1 text-[12px] font-semibold text-muted-foreground">{monthly}</p>
           )}
 
-          {/* perks list */}
-          {Array.isArray(tier.benefits) && tier.benefits.length > 0 && (
-            <ul className="mt-3 space-y-1">
-              {tier.benefits.slice(0, 6).map((b: string, i: number) => (
-                <li key={i} className="text-[12px] flex items-start gap-1.5 opacity-95">
-                  <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="mt-4 grid gap-2">
+            {benefits.map((b: string, i: number) => (
+              <li key={i} className="flex items-start gap-2 rounded-2xl border border-border/50 bg-background/65 px-3 py-2 text-[12px] font-semibold text-foreground/85">
+                <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-500" />
+                <span className="leading-relaxed">{b}</span>
+              </li>
+            ))}
+          </ul>
 
           {!isOwnProfile && (
             subscribedTierId === tier.id ? (
               <button type="button"
                 onClick={() => navigate("/account/subscriptions")}
-                className="w-full mt-4 bg-white/15 backdrop-blur text-white font-extrabold uppercase tracking-wide rounded-full py-3 text-sm border border-white/30 active:scale-[0.99] transition flex items-center justify-center gap-2"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/15 py-3 text-sm font-extrabold uppercase tracking-wide text-emerald-600 transition active:scale-[0.99]"
               >
                 <BadgeCheck className="w-4 h-4" />
                 Subscribed · Manage
@@ -226,7 +228,7 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
               <button type="button"
                 onClick={() => handleSubscribe(tier)}
                 disabled={joining === tier.id || !!subscribedTierId}
-                className="w-full mt-4 bg-white text-black font-extrabold uppercase tracking-wide rounded-full py-3 text-sm hover:bg-white/90 active:scale-[0.99] transition shadow disabled:opacity-60 flex items-center justify-center gap-2"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-3 text-sm font-extrabold uppercase tracking-wide text-background shadow-sm transition hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
               >
                 {joining === tier.id ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -237,7 +239,7 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
                 ) : tier.trial_days > 0 ? (
                   `START ${tier.trial_days}-DAY FREE TRIAL`
                 ) : (
-                  "SUBSCRIBE"
+                    `SUBSCRIBE TO ${tier.name || "TIER"}`
                 )}
               </button>
             )
@@ -299,9 +301,9 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
   };
 
   return (
-    <div className="px-4 max-w-3xl mx-auto mt-4 mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+    <div className="px-3 max-w-3xl mx-auto mt-4 mb-6">
+      <div className="mb-3 flex items-center justify-between px-1">
+        <h3 className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.16em]">
           {subscribedTierId ? (
             <>
               <BadgeCheck className="w-4 h-4 text-emerald-500" />
@@ -310,7 +312,7 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
           ) : (
             <>
               <Crown className="w-4 h-4 text-primary" />
-              Subscribe
+              Creator Pass
             </>
           )}
         </h3>

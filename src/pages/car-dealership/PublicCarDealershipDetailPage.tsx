@@ -244,6 +244,7 @@ function SimilarVehiclesGrid({ vehicles, storeSlug }: SimilarVehiclesProps) {
                   alt=""
                   className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform"
                   loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="absolute inset-0 grid place-items-center">
@@ -315,6 +316,8 @@ function Lightbox({ photos, initialIndex, onClose }: LightboxProps) {
         src={photos[idx]}
         alt=""
         className="max-h-[90vh] max-w-[90vw] object-contain"
+        loading="lazy"
+        decoding="async"
         onClick={(e) => e.stopPropagation()}
       />
       {photos.length > 1 && (
@@ -768,7 +771,7 @@ export default function PublicCarDealershipDetailPage() {
       <header className="border-b border-border bg-card sticky top-0 z-30">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-3">
           {store.logo_url ? (
-            <img src={store.logo_url} alt="" className="h-9 w-9 rounded-lg object-cover" />
+            <img src={store.logo_url} alt="" className="h-9 w-9 rounded-lg object-cover" loading="lazy" decoding="async" />
           ) : (
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
               <Car className="h-4 w-4" />
@@ -859,6 +862,8 @@ export default function PublicCarDealershipDetailPage() {
                     src={photos[activePhoto]}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="absolute bottom-2 right-2 rounded-md bg-black/60 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity">
                     Click to enlarge
@@ -876,7 +881,7 @@ export default function PublicCarDealershipDetailPage() {
                           i === activePhoto ? "border-primary" : "border-transparent opacity-70 hover:opacity-100",
                         )}
                       >
-                        <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+                        <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" />
                       </button>
                     ))}
                   </div>

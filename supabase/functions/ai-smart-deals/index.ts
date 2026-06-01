@@ -1,5 +1,5 @@
 import { serve, createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 
 /**
@@ -136,8 +136,8 @@ async function searchRoute(origin: string, destination: string, date: string, ap
   } catch { return null; }
 }
 
-serve(async (req: Request) => {
-  const corsHeaders = getCorsHeaders(req);
+serve(withSecurity("ai-smart-deals", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -276,4 +276,4 @@ serve(async (req: Request) => {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

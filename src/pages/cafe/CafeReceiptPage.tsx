@@ -134,7 +134,7 @@ export default function CafeReceiptPage() {
         <div className="bg-card border border-border rounded-lg p-5 print:border-0 print:shadow-none print:rounded-none print:p-0">
           <div className="text-center mb-4">
             {store.logo_url ? (
-              <img src={store.logo_url} alt="" className="h-14 w-14 mx-auto rounded-lg object-cover" />
+              <img src={store.logo_url} alt="" className="h-14 w-14 mx-auto rounded-lg object-cover" loading="lazy" decoding="async" />
             ) : (
               <div className="h-14 w-14 mx-auto rounded-lg bg-amber-500/10 grid place-items-center">
                 <Coffee className="h-7 w-7 text-amber-700" />

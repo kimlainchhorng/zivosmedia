@@ -15,13 +15,9 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.106.0";
 import { Resend } from "npm:resend@2.0.0";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const j = (status: number, body: unknown) =>
+const j = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -41,23 +37,32 @@ function fmtDollars(cents: number | null | undefined): string {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-serve(async (req) => {
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
+serve(withSecurity("ar-estimate-send", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" });
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !serviceKey || !anonKey) return j(500, { error: "Server misconfigured" }, corsHeaders);
 
   let body: any;
   try {
     body = await req.json();
   } catch {
-    return j(400, { error: "Invalid JSON body" });
+    return j(400, { error: "Invalid JSON body" }, corsHeaders);
   }
   const estimateId: string | undefined = body?.estimate_id;
   const channel: string | undefined = body?.channel;
   if (!estimateId || !channel || (channel !== "email" && channel !== "sms")) {
-    return j(400, { error: "estimate_id and channel ('email' | 'sms') required" });
+    return j(400, { error: "estimate_id and channel ('email' | 'sms') required" }, corsHeaders);
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
@@ -67,7 +72,24 @@ serve(async (req) => {
     .select("*")
     .eq("id", estimateId)
     .single();
-  if (estErr || !est) return j(404, { error: "Estimate not found" });
+  if (estErr || !est) return j(404, { error: "Estimate not found" }, corsHeaders);
+
+  if (!isServiceRoleRequest(req, serviceKey)) {
+    const authHeader = req.headers.get("Authorization") || "";
+    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) return j(401, { error: "Unauthorized" }, corsHeaders);
+
+    const [{ data: store }, { data: roles }, { data: employee }] = await Promise.all([
+      supabase.from("restaurants").select("owner_id").eq("id", est.store_id).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", user.id),
+      supabase.from("store_employees").select("id").eq("store_id", est.store_id).eq("user_id", user.id).maybeSingle(),
+    ]);
+    const isAdmin = (roles || []).some((r: any) => r.role === "admin" || r.role === "super_admin");
+    if (!isAdmin && store?.owner_id !== user.id && !employee) {
+      return j(403, { error: "Forbidden" }, corsHeaders);
+    }
+  }
 
   let token: string = est.share_token;
   if (!token) {
@@ -76,7 +98,7 @@ serve(async (req) => {
       .from("ar_estimates")
       .update({ share_token: token })
       .eq("id", estimateId);
-    if (tokErr) return j(500, { error: `Could not generate share token: ${tokErr.message}` });
+    if (tokErr) return j(500, { error: `Could not generate share token: ${tokErr.message}` }, corsHeaders);
   }
 
   const { data: store } = await supabase
@@ -110,8 +132,8 @@ serve(async (req) => {
 
   try {
     if (channel === "email") {
-      if (!est.customer_email) return j(400, { error: "Estimate has no customer email" });
-      if (!resend) return j(503, { error: "Email provider not configured" });
+      if (!est.customer_email) return j(400, { error: "Estimate has no customer email" }, corsHeaders);
+      if (!resend) return j(503, { error: "Email provider not configured" }, corsHeaders);
 
       const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;padding:24px;color:#111;line-height:1.55">
   <p style="margin:0 0 12px">Hi ${customerFirstName},</p>
@@ -128,10 +150,10 @@ serve(async (req) => {
         subject,
         html,
       });
-      if (emailError) return j(500, { error: `Resend: ${(emailError as any)?.message ?? String(emailError)}` });
+      if (emailError) return j(500, { error: `Resend: ${(emailError as any)?.message ?? String(emailError)}` }, corsHeaders);
     } else {
       const phone = normalizePhoneE164(est.customer_phone);
-      if (!phone) return j(400, { error: "Estimate has no valid customer phone (need E.164 or 10-digit)" });
+      if (!phone) return j(400, { error: "Estimate has no valid customer phone (need E.164 or 10-digit)" }, corsHeaders);
 
       const smsRes = await fetch(`${supabaseUrl}/functions/v1/send-sms`, {
         method: "POST",
@@ -147,7 +169,7 @@ serve(async (req) => {
       });
       if (!smsRes.ok) {
         const errBody = await smsRes.text().catch(() => "");
-        return j(502, { error: `send-sms ${smsRes.status}: ${errBody.slice(0, 200)}` });
+        return j(502, { error: `send-sms ${smsRes.status}: ${errBody.slice(0, 200)}` }, corsHeaders);
       }
     }
 
@@ -159,9 +181,9 @@ serve(async (req) => {
       await supabase.from("ar_estimates").update(updates).eq("id", estimateId);
     }
 
-    return j(200, { ok: true, channel, share_url: url });
+    return j(200, { ok: true, channel, share_url: url }, corsHeaders);
   } catch (e) {
     console.error("ar-estimate-send failed", e);
-    return j(500, { error: e instanceof Error ? e.message : "send failed" });
+    return j(500, { error: e instanceof Error ? e.message : "send failed" }, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

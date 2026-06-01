@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, FileText, Shield, AlertTriangle, Scale, Users, Car, UtensilsCrossed, Plane, Hotel, Key, Gavel, Lock, Globe, FileWarning } from "lucide-react";
+import { ArrowLeft, FileText, Shield, AlertTriangle, Scale, Users, Car, UtensilsCrossed, Plane, Hotel, Key, Gavel, Lock, Globe, FileWarning, DollarSign, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -52,6 +52,7 @@ const TermsOfService = () => {
             { icon: Key, label: "Car Rental", href: "#rental" },
             { icon: Plane, label: "Flights", href: "#flights" },
             { icon: Hotel, label: "Hotels", href: "#hotels" },
+            { icon: DollarSign, label: "Monetization", href: "#monetization" },
           ].map((item) => (
             <a
               key={item.label}
@@ -81,7 +82,9 @@ const TermsOfService = () => {
                 By creating an account or using any ZIVO service, you confirm that you:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Are at least 18 years of age or the age of legal majority in your jurisdiction</li>
+                <li>Are at least 13 years old to create a limited personal account, and at least 16 where local law requires a higher digital consent age</li>
+                <li>Are at least 18 years old, or the age of legal majority in your jurisdiction, to book travel, request rides, order delivery, rent vehicles, make payments, send or receive gifts, go live, subscribe, unlock paid content, receive payouts, or use business/partner tools</li>
+                <li>If you are 13-17, use ZIVO only with parent or guardian permission and do not access age-restricted, paid, travel, payout, or live-streaming features</li>
                 <li>Have the legal capacity to enter into a binding agreement</li>
                 <li>Are not prohibited from using our services under applicable laws</li>
                 <li>Will provide accurate, current, and complete information during registration</li>
@@ -110,6 +113,7 @@ const TermsOfService = () => {
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Provide truthful and accurate information</li>
+                <li>Provide accurate age or date-of-birth information when requested</li>
                 <li>Maintain the security of your account credentials</li>
                 <li>Notify us immediately of any unauthorized access</li>
                 <li>Accept responsibility for all activities under your account</li>
@@ -397,6 +401,51 @@ const TermsOfService = () => {
               <p>
                 Billing disputes must be submitted within 60 days of the charge. Contact our support team with 
                 transaction details for review.
+              </p>
+
+              <h4 id="monetization" className="font-semibold text-foreground mt-6">8.5 Creator Monetization & Payouts</h4>
+              <p>
+                Eligible creators may earn from tips, gifts, locked media, subscriptions, ad revenue, affiliate
+                programs, live monetization, and other creator tools made available by ZIVO. Earnings are subject
+                to platform fees, identity and tax verification, minimum payout thresholds, refund clawbacks,
+                chargebacks, payment reversals, and fraud review.
+              </p>
+              <p>
+                Creator earnings are not guaranteed. Fraudulent, artificial, self-funded, or policy-violating
+                engagement may result in withheld earnings, payout delays, account restrictions, and forfeiture.
+                Creators are responsible for taxes, required disclosures, sponsored-content compliance, and
+                accurate payout information.
+              </p>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="ai-automated-decisions" className="border border-border rounded-lg px-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Brain className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-semibold">AI, Ranking & Automated Decisions</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="text-muted-foreground space-y-4 pb-6">
+              <p>
+                ZIVO may use AI, machine learning, rules engines, and automated signals for search ranking,
+                recommendations, fraud detection, pricing estimates, moderation, safety review, ad relevance,
+                and chat assistance.
+              </p>
+              <p>
+                AI output may be inaccurate or incomplete. Always verify important information before relying on
+                AI-generated content, travel details, pricing estimates, recommendations, or business advice.
+              </p>
+              <p>
+                Significant decisions such as account suspension, payout holds, content removal, booking risk review,
+                payment risk review, or live-stream restrictions may use automated signals and are subject to
+                human review or appeal where available.
+              </p>
+              <p>
+                You may not scrape, reverse-engineer, manipulate, test, bypass, or interfere with our
+                ranking, recommendation, fraud, safety, moderation, advertising, or pricing systems.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -842,10 +891,10 @@ const TermsOfService = () => {
             By using ZIVO services, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
           </p>
           <div className="flex justify-center gap-4 mt-4">
-            <Link to="/privacy-policy">
+            <Link to="/legal/privacy">
               <Button variant="outline" size="sm">Privacy Policy</Button>
             </Link>
-            <Link to="/refund-policy">
+            <Link to="/legal/refunds">
               <Button variant="outline" size="sm">Refund Policy</Button>
             </Link>
             <Link to="/help">

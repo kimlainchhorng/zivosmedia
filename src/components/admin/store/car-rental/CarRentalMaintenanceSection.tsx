@@ -181,11 +181,7 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
     if (editing) {
       await update(editing.id, draft);
     } else {
-      const created = await create(draft);
-      // If the user marked the vehicle offline, flip the vehicle status.
-      if (created && draft.took_vehicle_offline) {
-        await supabase.from("car_rental_vehicles").update({ status: "maintenance" } as never).eq("id", draft.vehicle_id);
-      }
+      await create(draft);
     }
     setDialogOpen(false);
   };

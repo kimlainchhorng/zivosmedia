@@ -1,5 +1,5 @@
-import { serve, createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { serve } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 /**
  * Duffel Destination Prices Edge Function
@@ -103,13 +103,8 @@ async function fetchLowestFare(
 }
 
 
-serve(async (req: Request) => {
-  const corsHeaders = getCorsHeaders(req);
-
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
-  }
-
+serve(withSecurity("duffel-destination-prices", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   // Public endpoint — flight price browsing doesn't require auth
 
   try {
@@ -197,4 +192,10 @@ serve(async (req: Request) => {
       },
     });
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "search",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

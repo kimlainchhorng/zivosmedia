@@ -10,6 +10,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Lazy load legal page components
 const legalPages: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
+  "/legal/terms": lazy(() => import("@/pages/legal/TermsOfService")),
+  "/legal/privacy": lazy(() => import("@/pages/legal/PrivacyPolicy")),
+  "/legal/cookies": lazy(() => import("@/pages/legal/CookiePolicy")),
+  "/legal/refunds": lazy(() => import("@/pages/legal/RefundPolicy")),
+  "/legal/cancellation": lazy(() => import("@/pages/legal/CancellationPolicy")),
   "/terms": lazy(() => import("@/pages/Terms")),
   "/privacy": lazy(() => import("@/pages/Privacy")),
   "/cookies": lazy(() => import("@/pages/legal/CookiePolicy")),

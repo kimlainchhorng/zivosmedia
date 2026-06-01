@@ -17,7 +17,7 @@ const CancellationPolicy = () => {
       <SEOHead 
         title="Cancellation Policy – ZIVO Travel"
         description="Understand cancellation terms for Hotels, Car Rentals, and Flights booked through ZIVO. Different policies apply based on service type."
-        canonical="https://hizivo.com/cancellation-policy"
+        canonical="https://hizivo.com/legal/cancellation"
       />
       <NavBar />
       
@@ -243,15 +243,15 @@ const CancellationPolicy = () => {
 
           {/* Related Links */}
           <div className="flex flex-wrap gap-4 justify-center pt-8 border-t border-border mt-8">
-            <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/refunds" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Refund Policy
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Terms of Service
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Partner Disclosure
             </Link>
           </div>

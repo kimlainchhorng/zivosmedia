@@ -7,6 +7,7 @@ import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 import Home from "lucide-react/dist/esm/icons/home";
 import { Button } from "@/components/ui/button";
+import { reportBoundaryError } from "@/lib/security/errorReporting";
 
 interface Props {
   children: ReactNode;
@@ -16,20 +17,26 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  reportId: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, reportId: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, reportId: null };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("[ErrorBoundary] Caught error:", error, errorInfo);
+    const reportId = reportBoundaryError({
+      boundary: "global",
+      error,
+      componentStack: errorInfo.componentStack || undefined,
+    });
+    this.setState({ reportId });
 
     // Auto-reload once on chunk/module loading failures (stale deploy)
     const isChunkError =
@@ -62,7 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
       window.location.reload();
       return;
     }
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, reportId: null });
   };
 
   handleGoHome = () => {
@@ -83,6 +90,11 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-base text-muted-foreground mb-6">
               An unexpected error occurred. This has been logged and we're working on a fix.
             </p>
+            {this.state.reportId && (
+              <p className="text-xs text-muted-foreground mb-5">
+                Support code: <span className="font-mono">{this.state.reportId}</span>
+              </p>
+            )}
             {import.meta.env.DEV && this.state.error && (
               <pre className="text-left text-xs bg-secondary border border-border rounded-xl p-4 mb-6 overflow-auto max-h-32 text-destructive font-mono">
                 {this.state.error.message}

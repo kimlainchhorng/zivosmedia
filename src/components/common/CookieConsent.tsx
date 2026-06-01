@@ -11,11 +11,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Cookie, X, Settings, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { COOKIE_CONSENT_STORAGE_KEY } from "@/hooks/useCookiePrefs";
+
+const COOKIE_CONSENT_DATE_STORAGE_KEY = "zivo_cookie_consent_date";
 
 interface CookiePreferences {
   essential: boolean;
   functional: boolean;
   analytics: boolean;
+  marketing: boolean;
 }
 
 const CookieConsent = () => {
@@ -37,6 +41,7 @@ const CookieConsent = () => {
     essential: true,
     functional: true,
     analytics: false,
+    marketing: false,
   });
 
   useEffect(() => {
@@ -47,7 +52,7 @@ const CookieConsent = () => {
       return;
     }
 
-    const consent = localStorage.getItem("zivo-cookie-consent");
+    const consent = localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY);
     if (!consent) {
       // Show banner after a short delay
       const timer = setTimeout(() => setIsVisible(true), 1500);
@@ -58,22 +63,26 @@ const CookieConsent = () => {
   }, [isAuthRoute]);
 
   const handleAcceptAll = () => {
-    const allAccepted = { essential: true, functional: true, analytics: true };
-    localStorage.setItem("zivo-cookie-consent", JSON.stringify(allAccepted));
-    localStorage.setItem("zivo-cookie-consent-date", new Date().toISOString());
+    const allAccepted = { essential: true, functional: true, analytics: true, marketing: true };
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(allAccepted));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    window.__zivoLoadAnalytics?.();
     setIsVisible(false);
   };
 
   const handleRejectAll = () => {
-    const essentialOnly = { essential: true, functional: false, analytics: false };
-    localStorage.setItem("zivo-cookie-consent", JSON.stringify(essentialOnly));
-    localStorage.setItem("zivo-cookie-consent-date", new Date().toISOString());
+    const essentialOnly = { essential: true, functional: false, analytics: false, marketing: false };
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(essentialOnly));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
     setIsVisible(false);
   };
 
   const handleSavePreferences = () => {
-    localStorage.setItem("zivo-cookie-consent", JSON.stringify(preferences));
-    localStorage.setItem("zivo-cookie-consent-date", new Date().toISOString());
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(preferences));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    if (preferences.analytics || preferences.marketing) {
+      window.__zivoLoadAnalytics?.();
+    }
     setIsVisible(false);
   };
 
@@ -94,6 +103,12 @@ const CookieConsent = () => {
       key: "analytics" as keyof CookiePreferences,
       title: "Analytics Cookies",
       description: "Help us understand how you use our services.",
+      required: false,
+    },
+    {
+      key: "marketing" as keyof CookiePreferences,
+      title: "Marketing & Advertising Cookies",
+      description: "Measure campaigns and show relevant offers when you consent.",
       required: false,
     },
   ];
@@ -156,7 +171,7 @@ const CookieConsent = () => {
                           We use cookies to enhance your experience, analyze site traffic, and for marketing purposes. 
                           By clicking "Accept All", you consent to our use of cookies. 
                           Read our{" "}
-                          <Link to="/privacy-policy" className="inline-flex min-h-[40px] items-center px-1 -my-2 text-primary font-medium hover:underline touch-manipulation">Privacy Policy</Link>.
+                          <Link to="/legal/privacy" className="inline-flex min-h-[40px] items-center px-1 -my-2 text-primary font-medium hover:underline touch-manipulation">Privacy Policy</Link>.
                         </p>
                         <div className="flex flex-wrap gap-3">
                           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

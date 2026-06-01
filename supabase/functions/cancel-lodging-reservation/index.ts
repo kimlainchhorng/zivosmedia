@@ -253,4 +253,4 @@ Deno.serve(withSecurity("cancel-lodging-reservation", async (req, ctx) => {
   } catch (err) {
     return new Response(JSON.stringify({ error: String((err as Error).message || err) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious" }));

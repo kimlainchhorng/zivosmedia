@@ -923,7 +923,7 @@ export default function GoLivePage() {
  noIndex
  />
 <div className="absolute inset-0 lg:max-w-md lg:left-1/2 lg:-translate-x-1/2 lg:rounded-[32px] lg:overflow-hidden lg:my-6 lg:bottom-6 lg:h-auto lg:bg-zinc-950 lg:shadow-2xl lg:ring-1 lg:ring-white/10">
-<video ref={videoRef} autoPlay muted playsInline className={cn("absolute inset-0 w-full h-full object-cover", facingMode === "user" && "scale-x-[-1]")} />
+<video ref={videoRef} autoPlay muted playsInline preload="metadata" className={cn("absolute inset-0 w-full h-full object-cover", facingMode === "user" && "scale-x-[-1]")} />
  {cameraError && (
 <div className="absolute left-4 right-4 top-[calc(var(--zivo-safe-top,0px)+4.75rem)] h-20 overflow-hidden rounded-[24px] border border-white/10 bg-zinc-900/95 shadow-2xl shadow-black/50">
 <div className="flex h-full items-center gap-3 px-4">
@@ -1440,7 +1440,7 @@ export default function GoLivePage() {
  >
  {g === 0 ? "Off" : (
 <>
-<img src={goldCoinIcon} alt="" className="w-3.5 h-3.5" />
+<img src={goldCoinIcon} alt="" className="w-3.5 h-3.5" loading="lazy" decoding="async" />
  {g >= 1000 ? `${g / 1000}K` : g}
 </>
  )}
@@ -1782,7 +1782,7 @@ export default function GoLivePage() {
  style={{ borderColor: pinned ? "rgb(16 185 129)" : "rgba(255,255,255,0.15)" }}
  >
 <div className="relative aspect-square">
-<img src={p.img} alt="" className="absolute inset-0 w-full h-full object-cover" />
+<img src={p.img} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
  {pinned && (
 <div className="absolute inset-0 bg-emerald-500/30 flex items-center justify-center">
 <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-sm font-black flex items-center justify-center shadow-md"></span>
@@ -1975,7 +1975,7 @@ export default function GoLivePage() {
  {/* Coin balance + recharge shortcut */}
 <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/20">
 <div className="flex items-center gap-2">
-<img src={goldCoinIcon} alt="" className="w-5 h-5" />
+<img src={goldCoinIcon} alt="" className="w-5 h-5" loading="lazy" decoding="async" />
 <div>
 <p className="text-[10px] text-white/60 leading-none">Your balance</p>
 <p className="text-[14px] font-black text-amber-300 leading-tight">{coinBalance.toLocaleString()}</p>
@@ -2368,7 +2368,7 @@ export default function GoLivePage() {
  )}
  {p.kind === "image" && p.url && (
 <>
-<img src={p.url} alt={p.label} className="w-full h-full object-cover" />
+<img src={p.url} alt={p.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
 <span className="absolute bottom-0 inset-x-0 bg-black/55 text-[9px] text-white text-center py-0.5 font-semibold">{p.label}</span>
 </>
  )}
@@ -2443,7 +2443,7 @@ export default function GoLivePage() {
 <Stat label="Viewers" value={viewerCount} icon={<Eye className="h-4 w-4" />} />
 <Stat label="Likes" value={likes} icon={<Heart className="h-4 w-4 text-red-400" />} />
 <Stat label="Gifts" value={giftsReceived} icon={<Gift className="h-4 w-4 text-amber-300" />} />
-<Stat label="Coins" value={coinsEarned} icon={<img src={goldCoinIcon} alt="" className="h-4 w-4" />} />
+<Stat label="Coins" value={coinsEarned} icon={<img src={goldCoinIcon} alt="" className="h-4 w-4" loading="lazy" decoding="async" />} />
 </div>
 
 <Button onClick={() =>navigate("/live")} className="w-full max-w-sm h-12 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold">
@@ -2456,7 +2456,7 @@ export default function GoLivePage() {
  // ── LIVE screen ──
  return (
 <div className="fixed inset-0 z-50 bg-black flex flex-col">
-<video ref={videoRef} autoPlay muted playsInline className={cn("absolute inset-0 w-full h-full object-cover", facingMode === "user" && "scale-x-[-1]")} />
+<video ref={videoRef} autoPlay muted playsInline preload="metadata" className={cn("absolute inset-0 w-full h-full object-cover", facingMode === "user" && "scale-x-[-1]")} />
 
  {/* Top legibility gradient — keeps chips readable on bright scenes */}
 <div className="absolute inset-x-0 top-0 h-32 z-[5] pointer-events-none bg-gradient-to-b from-black/55 via-black/20 to-transparent" />
@@ -2488,7 +2488,7 @@ export default function GoLivePage() {
 <span className="text-[11px] text-white font-medium">{likes}</span>
 </div>
 <div className="flex items-center gap-1 bg-amber-500/20 backdrop-blur-sm rounded-full px-1.5 py-1 border border-amber-500/30 shrink-0">
-<img src={goldCoinIcon} alt="" className="h-3 w-3" />
+<img src={goldCoinIcon} alt="" className="h-3 w-3" loading="lazy" decoding="async" />
 <span className="text-[11px] text-amber-300 font-bold">{coinsEarned}</span>
 </div>
 <div className="flex-1" />
@@ -2556,7 +2556,7 @@ export default function GoLivePage() {
 <span className="text-[7px] text-white/90 -mt-0.5 font-semibold">BG</span>
 </button>
 <button type="button" onClick={() =>setShowRechargeSheet(true)} className="w-11 h-11 rounded-full bg-amber-500/40 hover:bg-amber-500/55 border border-amber-400/60 active:scale-95 transition flex flex-col items-center justify-center">
-<img src={goldCoinIcon} alt="" className="h-3.5 w-3.5" />
+<img src={goldCoinIcon} alt="" className="h-3.5 w-3.5" loading="lazy" decoding="async" />
 <span className="text-[7px] text-amber-100 -mt-0.5 font-bold">+Coin</span>
 </button>
 </div>
@@ -2621,7 +2621,7 @@ export default function GoLivePage() {
  )}
  {p.kind === "image" && p.url && (
 <>
-<img src={p.url} alt={p.label} className="w-full h-full object-cover" />
+<img src={p.url} alt={p.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
 <span className="absolute bottom-0 inset-x-0 bg-black/55 text-[10px] text-white text-center py-0.5 font-semibold">{p.label}</span>
 </>
  )}

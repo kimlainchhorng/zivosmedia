@@ -800,14 +800,14 @@ export default function PublicCafeOrderPage() {
 
       <div className="relative">
         {store?.banner_url ? (
-          <img src={store.banner_url} alt="" className="h-32 w-full object-cover" />
+          <img src={store.banner_url} alt="" className="h-32 w-full object-cover" loading="lazy" decoding="async" />
         ) : (
           <div className="h-32 bg-gradient-to-br from-amber-500/20 to-amber-700/10" />
         )}
         <div className="px-4 -mt-10">
           <div className="flex items-end gap-3">
             <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl border-4 border-background bg-card shadow-md">
-              {store?.logo_url ? <img src={store.logo_url} alt="" className="h-full w-full rounded-xl object-cover" /> : <Coffee className="h-8 w-8 text-amber-600" />}
+              {store?.logo_url ? <img src={store.logo_url} alt="" className="h-full w-full rounded-xl object-cover" loading="lazy" decoding="async" /> : <Coffee className="h-8 w-8 text-amber-600" />}
             </div>
             <div className="pb-1 min-w-0 flex-1">
               <h1 className="text-xl font-bold truncate">{store?.name}</h1>
@@ -907,7 +907,7 @@ export default function PublicCafeOrderPage() {
                 className="shrink-0 w-44 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card text-left overflow-hidden hover:shadow-md transition-shadow"
               >
                 {it.image_url ? (
-                  <img src={it.image_url} alt="" className="h-24 w-full object-cover" />
+                  <img src={it.image_url} alt="" className="h-24 w-full object-cover" loading="lazy" decoding="async" />
                 ) : (
                   <div className="h-24 grid place-items-center bg-amber-500/10 text-amber-600">
                     <Coffee className="h-7 w-7" />
@@ -944,7 +944,7 @@ export default function PublicCafeOrderPage() {
                   className="shrink-0 w-44 rounded-xl border border-rose-500/30 bg-gradient-to-br from-rose-500/10 via-card to-card text-left overflow-hidden hover:shadow-md transition-shadow relative"
                 >
                   {b.image_url ? (
-                    <img src={b.image_url} alt="" className="h-24 w-full object-cover" />
+                    <img src={b.image_url} alt="" className="h-24 w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="h-24 grid place-items-center bg-rose-500/10 text-rose-600">
                       <Package className="h-7 w-7" />
@@ -1037,7 +1037,7 @@ export default function PublicCafeOrderPage() {
           >
             <div className="flex">
               {item.image_url ? (
-                <img src={item.image_url} alt="" className={cn("h-24 w-24 object-cover shrink-0", item.is_sold_out && "grayscale")} />
+                <img src={item.image_url} alt="" className={cn("h-24 w-24 object-cover shrink-0", item.is_sold_out && "grayscale")} loading="lazy" decoding="async" />
               ) : (
                 <div className="h-24 w-24 grid place-items-center bg-amber-500/10 text-amber-600 shrink-0">
                   <Coffee className="h-7 w-7" />
@@ -1284,7 +1284,7 @@ export default function PublicCafeOrderPage() {
                       className="shrink-0 w-32 rounded-md border border-border bg-card hover:border-primary/50 hover:shadow-sm transition text-left overflow-hidden"
                     >
                       {up.image_url ? (
-                        <img src={up.image_url} alt="" className="h-16 w-full object-cover" />
+                        <img src={up.image_url} alt="" className="h-16 w-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="h-16 grid place-items-center bg-amber-500/10 text-amber-600">
                           <Coffee className="h-5 w-5" />

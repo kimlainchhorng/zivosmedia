@@ -233,10 +233,10 @@ const PreferencesPage = () => {
                   >
                     {/* Hover background flag watermark */}
                     {lang.flag_svg && (
-                      <img src={lang.flag_svg} alt="" className="absolute right-1 top-1/2 w-20 h-20 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
+                      <img src={lang.flag_svg} alt="" className="absolute right-1 top-1/2 w-20 h-20 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" loading="lazy" decoding="async" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
                     )}
                     {lang.flag_svg ? (
-                      <img src={lang.flag_svg} alt={lang.name} className="w-7 h-[19px] rounded-[3px] object-cover shadow-sm border border-black/10 shrink-0 relative z-10" />
+                      <img src={lang.flag_svg} alt={lang.name} className="w-7 h-[19px] rounded-[3px] object-cover shadow-sm border border-black/10 shrink-0 relative z-10" loading="lazy" decoding="async" />
                     ) : (
                       <span className="text-xl">{lang.flag_emoji}</span>
                     )}

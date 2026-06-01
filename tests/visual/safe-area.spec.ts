@@ -58,6 +58,26 @@ const ROUTES: RouteCfg[] = [
 const TOP_CLIP_HEIGHT = 120;
 const BOTTOM_CLIP_HEIGHT = 140;
 
+async function seedConsent(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem(
+        "zivo_cookie_consent",
+        JSON.stringify({
+          necessary: true,
+          functional: true,
+          analytics: false,
+          marketing: false,
+          personalization: false,
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+    } catch {
+      // Storage can be unavailable in hardened browser contexts.
+    }
+  });
+}
+
 for (const vp of VIEWPORTS) {
   test.describe(`safe-area · ${vp.name}`, () => {
     test.use({
@@ -72,6 +92,7 @@ for (const vp of VIEWPORTS) {
 
       test(`${route.name} — top region`, async ({ page }) => {
         test.skip(skip || !!route.skipTop, "auth state missing or top check disabled");
+        await seedConsent(page);
         await page.goto(route.path, { waitUntil: "networkidle" });
         await page.waitForTimeout(500);
         const buf = await page.screenshot({
@@ -84,6 +105,7 @@ for (const vp of VIEWPORTS) {
 
       test(`${route.name} — bottom region`, async ({ page }) => {
         test.skip(skip || !!route.skipBottom, "auth state missing or bottom check disabled");
+        await seedConsent(page);
         await page.goto(route.path, { waitUntil: "networkidle" });
         await page.waitForTimeout(500);
         const h = vp.viewport.height;

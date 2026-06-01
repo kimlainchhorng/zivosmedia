@@ -1,7 +1,7 @@
 /**
  * Partner Redirect Logging
  * 
- * Logs outbound clicks to partner_redirect_logs table
+ * Logs outbound clicks through the travel-tracking-log Edge Function
  * Links to search_sessions via session_id (subid) for conversion tracking
  */
 
@@ -34,43 +34,27 @@ export interface LoggedRedirect {
 export async function logPartnerRedirect(data: PartnerRedirectData): Promise<LoggedRedirect | null> {
   const searchSessionId = getSearchSessionId();
 
-  // Get current user if authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-
   try {
-    // Use type assertion to work around complex generated types
-    const insertResult = await (supabase
-      .from('partner_redirect_logs') as unknown as {
-        insert: (data: Record<string, unknown>) => {
-          select: (cols: string) => {
-            single: () => Promise<{
-              data: { id: string; session_id: string; partner_name: string; redirect_url: string; created_at: string } | null;
-              error: Error | null;
-            }>;
-          };
-        };
-      })
-      .insert({
+    const insertResult = await supabase.functions.invoke('travel-tracking-log', {
+      body: {
+        type: 'partner_redirect',
         session_id: searchSessionId,
         partner_name: data.partnerName,
         search_type: data.searchType,
         offer_id: data.offerId || null,
         redirect_url: data.redirectUrl,
         checkout_mode: data.checkoutMode || 'redirect',
-        status: 'pending',
-        user_id: user?.id || null,
         search_params: data.searchParams || null,
         metadata: data.metadata || null,
-      })
-      .select('id, session_id, partner_name, redirect_url, created_at')
-      .single();
+      },
+    });
 
     if (insertResult.error) {
       console.error('[PartnerRedirect] Failed to log redirect:', insertResult.error);
       return null;
     }
 
-    const result = insertResult.data;
+    const result = insertResult.data?.log;
     if (!result) return null;
 
     return {
@@ -105,20 +89,12 @@ export async function logSearchSession(data: {
 }): Promise<string> {
   const searchSessionId = getSearchSessionId();
   
-  // Get current user if authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-
   try {
-    // Use type assertion to work around complex generated types
-    const insertResult = await (supabase
-      .from('search_sessions') as unknown as {
-        upsert: (data: Record<string, unknown>, options: { onConflict: string }) => Promise<{
-          error: Error | null;
-        }>;
-      })
-      .upsert({
+    const insertResult = await supabase.functions.invoke('travel-tracking-log', {
+      body: {
+        type: 'search_session',
         session_id: searchSessionId,
-        type: data.type,
+        search_type: data.type,
         origin: data.origin || null,
         destination: data.destination || null,
         depart_date: data.departDate || null,
@@ -128,11 +104,11 @@ export async function logSearchSession(data: {
         guests: data.guests || 1,
         cabin_class: data.cabinClass || null,
         search_params: data.searchParams || null,
-        user_id: user?.id || null,
-        user_email: data.userEmail || user?.email || null,
+        user_email: data.userEmail || null,
         device_type: getDeviceType(),
         user_agent: navigator.userAgent,
-      }, { onConflict: 'session_id' });
+      },
+    });
 
     if (insertResult.error) {
       console.error('[SearchSession] Failed to log session:', insertResult.error);

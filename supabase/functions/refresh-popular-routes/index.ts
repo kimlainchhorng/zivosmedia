@@ -1,5 +1,5 @@
 import { serve, createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 /**
  * Refresh Popular Routes Prices
@@ -18,18 +18,31 @@ const POPULAR_ROUTES = [
   { from: "BOS", fromCity: "Boston", to: "FLL", toCity: "Fort Lauderdale" },
 ];
 
-serve(async (req: Request) => {
-  const corsHeaders = getCorsHeaders(req);
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
+serve(withSecurity("refresh-popular-routes", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+    const provided = new URL(req.url).searchParams.get("secret") ?? req.headers.get("x-cron-secret") ?? "";
+    const isInternal = Boolean(cronSecret && provided === cronSecret) || isServiceRoleRequest(req, supabaseServiceKey);
+    if (!isInternal) {
+      return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const duffelApiKey = Deno.env.get('DUFFEL_API_KEY');
     if (!duffelApiKey) throw new Error('DUFFEL_API_KEY not set');
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if cache is still fresh (less than 4 hours old)
@@ -160,4 +173,4 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

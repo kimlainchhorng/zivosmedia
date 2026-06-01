@@ -2,6 +2,7 @@
  * SalonStylistSchedulesSection — set weekly working hours per stylist.
  * One row per (stylist, day_of_week). Used (later) to validate booking
  * times and to drive the public booking site's availability calculation.
+ * Writes go through salon-stylist-schedule-manage for owner/admin validation.
  */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -182,13 +183,18 @@ export default function SalonStylistSchedulesSection({ storeId }: SalonStylistSc
     }
     setSaving(true);
     setError(null);
-    const { error: err } = await supabase
-      .from("salon_stylist_schedules")
-      .upsert(payloads as never, { onConflict: "stylist_id,day_of_week" });
+    const { data, error: err } = await supabase.functions.invoke("salon-stylist-schedule-manage", {
+      body: {
+        action: "upsert",
+        store_id: storeId,
+        stylist_id: selectedStylistId,
+        schedules: payloads,
+      },
+    });
     setSaving(false);
-    if (err) {
+    if (err || data?.error) {
       console.error("[SalonStylistSchedules] save failed", err);
-      setError("Couldn't save schedule.");
+      setError(data?.error || "Couldn't save schedule.");
       return;
     }
     toast.success("Schedule saved.");

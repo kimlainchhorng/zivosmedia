@@ -71,18 +71,16 @@ export function useCarRentalSettings(storeId: string | undefined) {
     setSaving(true);
     setError(null);
     const payload = { ...DEFAULTS, ...(settings ?? {}), ...patch, store_id: storeId };
-    const { data, error: err } = await supabase
-      .from("car_rental_store_settings")
-      .upsert(payload as never, { onConflict: "store_id" })
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-settings-update", {
+      body: { store_id: storeId, settings: payload },
+    });
     if (err) {
       console.error("[useCarRentalSettings] save failed", err);
       setError("Couldn't save settings.");
       setSaving(false);
       return;
     }
-    setSettings(data as unknown as CarRentalSettings);
+    setSettings(data?.settings as CarRentalSettings);
     setSaving(false);
   }, [storeId, settings]);
 

@@ -156,4 +156,4 @@ Deno.serve(withSecurity("submit-refund-request", async (req, ctx) => {
     console.error("[submit-refund-request]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));

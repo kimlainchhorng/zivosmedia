@@ -68,32 +68,28 @@ export function useSalonTimeEntries(storeId: string | undefined): Result {
 
   const clockIn = useCallback(async (stylistId: string) => {
     if (!storeId) return;
-    const { error: err } = await supabase
-      .from("salon_time_entries")
-      .insert({ store_id: storeId, stylist_id: stylistId, source: "admin" } as never);
-    if (err) {
-      // 23505 = unique violation (already clocked in).
-      if ((err as any).code === "23505") throw new Error("Already clocked in.");
-      throw new Error(err.message);
+    const { data, error: err } = await supabase.functions.invoke("salon-time-entry-manage", {
+      body: { action: "clock_in", store_id: storeId, stylist_id: stylistId },
+    });
+    if (err || data?.error) {
+      throw new Error(data?.error || err?.message || "Could not clock in.");
     }
     await refresh();
   }, [storeId, refresh]);
 
   const clockOut = useCallback(async (entryId: string) => {
-    const { error: err } = await supabase
-      .from("salon_time_entries")
-      .update({ end_at: new Date().toISOString() } as never)
-      .eq("id", entryId);
-    if (err) throw new Error(err.message);
+    const { data, error: err } = await supabase.functions.invoke("salon-time-entry-manage", {
+      body: { action: "clock_out", entry_id: entryId },
+    });
+    if (err || data?.error) throw new Error(data?.error || err?.message || "Could not clock out.");
     await refresh();
   }, [refresh]);
 
   const remove = useCallback(async (entryId: string) => {
-    const { error: err } = await supabase
-      .from("salon_time_entries")
-      .delete()
-      .eq("id", entryId);
-    if (err) throw new Error(err.message);
+    const { data, error: err } = await supabase.functions.invoke("salon-time-entry-manage", {
+      body: { action: "delete", entry_id: entryId },
+    });
+    if (err || data?.error) throw new Error(data?.error || err?.message || "Could not delete time entry.");
     await refresh();
   }, [refresh]);
 

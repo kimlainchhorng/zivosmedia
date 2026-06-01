@@ -1,33 +1,30 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-}
-
-function jsonResponse(data: Record<string, unknown>, status = 200): Response {
+function jsonResponse(data: Record<string, unknown>, status = 200, corsHeaders: Record<string, string>): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("handle-email-unsubscribe", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405)
+    return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders)
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    return jsonResponse({ error: 'Server configuration error' }, 500)
+    return jsonResponse({ error: 'Server configuration error' }, 500, corsHeaders)
   }
 
   // Extract token from query params (GET) or body (POST)
@@ -64,7 +61,7 @@ Deno.serve(async (req) => {
   }
 
   if (!token) {
-    return jsonResponse({ error: 'Token is required' }, 400)
+    return jsonResponse({ error: 'Token is required' }, 400, corsHeaders)
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
@@ -77,16 +74,16 @@ Deno.serve(async (req) => {
     .maybeSingle()
 
   if (lookupError || !tokenRecord) {
-    return jsonResponse({ error: 'Invalid or expired token' }, 404)
+    return jsonResponse({ error: 'Invalid or expired token' }, 404, corsHeaders)
   }
 
   if (tokenRecord.used_at) {
-    return jsonResponse({ valid: false, reason: 'already_unsubscribed' })
+    return jsonResponse({ valid: false, reason: 'already_unsubscribed' }, 200, corsHeaders)
   }
 
   // GET: Validate token (the app's unsubscribe page calls this on load)
   if (req.method === 'GET') {
-    return jsonResponse({ valid: true })
+    return jsonResponse({ valid: true }, 200, corsHeaders)
   }
 
   // POST: Process the unsubscribe
@@ -101,11 +98,11 @@ Deno.serve(async (req) => {
 
   if (updateError) {
     console.error('Failed to mark token as used', { error: updateError, token })
-    return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
+    return jsonResponse({ error: 'Failed to process unsubscribe' }, 500, corsHeaders)
   }
 
   if (!updated) {
-    return jsonResponse({ success: false, reason: 'already_unsubscribed' })
+    return jsonResponse({ success: false, reason: 'already_unsubscribed' }, 200, corsHeaders)
   }
 
   // Add email to suppressed list (upsert to handle duplicates)
@@ -118,10 +115,10 @@ Deno.serve(async (req) => {
 
   if (suppressError) {
     console.error('Failed to suppress email', { error: suppressError })
-    return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
+    return jsonResponse({ error: 'Failed to process unsubscribe' }, 500, corsHeaders)
   }
 
   console.log('Email unsubscribed successfully')
 
-  return jsonResponse({ success: true })
-})
+  return jsonResponse({ success: true }, 200, corsHeaders)
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }))

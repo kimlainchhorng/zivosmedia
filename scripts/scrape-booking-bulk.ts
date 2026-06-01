@@ -11,7 +11,7 @@
  *   4. Saves everything to store_profiles, lodge_property_profile, lodge_rooms
  *
  * Usage:
- *   SUPABASE_URL=https://slirphzzwcogdbkeicff.supabase.co \
+ *   SUPABASE_URL=https://<project-ref>.supabase.co \
  *   SUPABASE_SERVICE_ROLE_KEY=... \
  *     bun scripts/scrape-booking-bulk.ts [options]
  *

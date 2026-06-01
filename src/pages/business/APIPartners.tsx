@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import {
   Code2,
   Zap,
@@ -109,11 +110,14 @@ export default function APIPartners() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("feedback_submissions").insert({
+      const { error } = await supabase.functions.invoke("marketing-interest-submit", { body: {
         category: "api_waitlist",
         subject: "API Partner Waitlist",
-        message: `Email: ${email}\nCompany: ${company}`,
-      });
+        email,
+        company,
+        context: "api_partners",
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       toast({ title: "You're on the list!", description: "We'll notify you when our API becomes available." });
       setEmail("");
@@ -177,7 +181,10 @@ export default function APIPartners() {
                 </Button>
               </form>
               <p className="text-sm text-muted-foreground mt-3">
-                Be first to know when we launch
+                Be first to know when we launch. See our{" "}
+                <Link to="/legal/privacy" className="underline underline-offset-2">Privacy Policy</Link>
+                {" "}and{" "}
+                <Link to="/legal/terms" className="underline underline-offset-2">Terms</Link>.
               </p>
             </div>
           </div>
@@ -352,6 +359,12 @@ const response = await zivo.flights.search({
                 Join Waitlist
               </Button>
             </form>
+            <p className="text-sm text-muted-foreground mt-4">
+              API launch updates are marketing messages. See our{" "}
+              <Link to="/legal/privacy" className="underline underline-offset-2">Privacy Policy</Link>
+              {" "}and{" "}
+              <Link to="/legal/terms" className="underline underline-offset-2">Terms</Link>.
+            </p>
             <p className="text-sm text-muted-foreground mt-6">
               Questions? Contact us at{" "}
               <a href="mailto:partners@hizivo.com" className="text-primary hover:underline">

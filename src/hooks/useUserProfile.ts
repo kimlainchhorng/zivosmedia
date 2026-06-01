@@ -8,6 +8,7 @@ import { invalidateAllStoryCaches } from "@/lib/storiesCache";
 export type UserProfile = {
   id: string;
   user_id: string;
+  username: string | null;
   full_name: string | null;
   email: string | null;
   phone: string | null;
@@ -35,6 +36,12 @@ export type UserProfile = {
   allow_friend_requests: boolean | null;
   hide_from_drivers: boolean | null;
   profile_visibility: string | null;
+  profile_completion_score: number | null;
+  has_username: boolean | null;
+  has_avatar: boolean | null;
+  has_cover: boolean | null;
+  has_bio: boolean | null;
+  last_profile_polished_at: string | null;
   created_at: string;
   updated_at: string;
 };

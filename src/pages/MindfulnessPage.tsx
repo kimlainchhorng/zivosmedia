@@ -137,7 +137,7 @@ export default function MindfulnessPage() {
                   className="shrink-0 w-[220px] text-left"
                 >
                   <div className="relative w-[220px] h-[140px] rounded-2xl overflow-hidden bg-muted shadow-md">
-                    <img src={s.cover} alt={s.title} className="w-full h-full object-cover" loading="lazy" />
+                    <img src={s.cover} alt={s.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute top-2 left-2 inline-flex items-center gap-1 bg-white/95 text-foreground text-[10px] font-bold rounded-full px-2 py-0.5">
                       <Clock className="h-2.5 w-2.5" /> {s.duration}
@@ -173,7 +173,7 @@ export default function MindfulnessPage() {
                 className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-card border border-border text-left hover:bg-secondary/40 transition-colors"
               >
                 <div className="relative shrink-0">
-                  <img src={s.cover} alt={s.title} className="w-14 h-14 rounded-lg object-cover" loading="lazy" />
+                  <img src={s.cover} alt={s.title} className="w-14 h-14 rounded-lg object-cover" loading="lazy" decoding="async" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/55 rounded-lg transition-colors">
                     <Play className="h-4 w-4 text-white ml-0.5" fill="currentColor" />
                   </div>

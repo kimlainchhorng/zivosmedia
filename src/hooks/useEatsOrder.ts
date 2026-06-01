@@ -82,33 +82,29 @@ export function useEatsOrder() {
           toast.error("Card payment setup failed. You can retry from order details.");
         } else {
           // Update payment status to processing
-          await supabase
-            .from("food_orders")
-            .update({ payment_status: "processing" } as any)
-            .eq("id", orderId);
+          await supabase.functions.invoke("eats-payment-status-update", {
+            body: { order_id: orderId, action: "card_processing" },
+          });
         }
       } else if (params.paymentType === "cash") {
-        await supabase
-          .from("food_orders")
-          .update({ payment_status: "cash_on_delivery" } as any)
-          .eq("id", orderId);
+        await supabase.functions.invoke("eats-payment-status-update", {
+          body: { order_id: orderId, action: "cash_on_delivery" },
+        });
       } else if (params.paymentType === "wallet") {
         const amountCents = Math.round(params.totalAmount * 100);
         const walletResult = await deductWalletBalance(user.id, amountCents, orderId, `Eats order #${trackingCode}`);
         if (walletResult.success) {
-          await supabase
-            .from("food_orders")
-            .update({ payment_status: "paid", payment_provider: "wallet" } as any)
-            .eq("id", orderId);
+          await supabase.functions.invoke("eats-payment-status-update", {
+            body: { order_id: orderId, action: "wallet_paid" },
+          });
           // Fire confirmation email + SMS — wallet flow doesn't trigger any webhook.
           supabase.functions.invoke("notify-eats-order-confirmed", {
             body: { order_id: orderId, payment_method: "Wallet" },
           }).catch((e) => console.warn("[EatsOrder] confirmation email skipped:", e));
         } else {
-          await supabase
-            .from("food_orders")
-            .update({ payment_status: "failed" } as any)
-            .eq("id", orderId);
+          await supabase.functions.invoke("eats-payment-status-update", {
+            body: { order_id: orderId, action: "payment_failed", error_message: "Wallet payment failed" },
+          });
           toast.error("Wallet payment failed. Please try another method.");
         }
       } else if (params.paymentType === "paypal") {

@@ -84,7 +84,7 @@ Deno.serve(withSecurity("chat-send-gift", async (req, ctx) => {
   } catch (e) {
     return json({ error: (e as Error).message || "Internal error" }, 500, corsHeaders);
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 type DebitResult =
   | { ok: true; previousBalance: number; newBalance: number }

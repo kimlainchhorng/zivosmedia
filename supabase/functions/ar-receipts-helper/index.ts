@@ -15,17 +15,12 @@
 // with a transient storage/DB error such as 08P01.
 
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const FALLBACK_BUCKET = "ar-receipts-fallback";
 const PRIMARY_BUCKET = "ar-receipts";
 
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(body: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -66,7 +61,9 @@ function cleanText(value: unknown, max = 500): string | null {
   return text.slice(0, max);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("ar-receipts-helper", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -74,12 +71,12 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
     if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY) {
-      return jsonResponse({ error: "Server is missing Supabase configuration" }, 500);
+      return jsonResponse({ error: "Server is missing Supabase configuration" }, 500, corsHeaders);
     }
 
     const authHeader = req.headers.get("Authorization") || "";
     const accessToken = authHeader.replace(/^Bearer\s+/i, "").trim();
-    if (!accessToken) return jsonResponse({ error: "Missing Authorization bearer token" }, 401);
+    if (!accessToken) return jsonResponse({ error: "Missing Authorization bearer token" }, 401, corsHeaders);
 
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -113,21 +110,21 @@ Deno.serve(async (req) => {
       } catch { /* ignore */ }
     }
     if (!userId) {
-      return jsonResponse({ error: "Invalid or expired session", details: authDetails }, 401);
+      return jsonResponse({ error: "Invalid or expired session", details: authDetails }, 401, corsHeaders);
     }
 
     let payload: Record<string, unknown> = {};
     try {
       payload = await req.json();
     } catch {
-      return jsonResponse({ error: "Body must be valid JSON" }, 400);
+      return jsonResponse({ error: "Body must be valid JSON" }, 400, corsHeaders);
     }
 
     const action = String(payload.action || "").toLowerCase();
     const storeId = typeof payload.store_id === "string" ? payload.store_id : "";
-    if (!action) return jsonResponse({ error: "Missing 'action'" }, 400);
+    if (!action) return jsonResponse({ error: "Missing 'action'" }, 400, corsHeaders);
     if (!storeId || !/^[0-9a-f-]{36}$/i.test(storeId)) {
-      return jsonResponse({ error: "Missing or invalid 'store_id'" }, 400);
+      return jsonResponse({ error: "Missing or invalid 'store_id'" }, 400, corsHeaders);
     }
 
     // Service-role lookup for ownership / role / employee membership
@@ -169,7 +166,7 @@ Deno.serve(async (req) => {
         primary_bucket: PRIMARY_BUCKET,
         fallback_bucket: FALLBACK_BUCKET,
         expected_folder: storeId,
-      });
+      }, 200, corsHeaders);
     }
 
     if (action === "fallback_upload") {
@@ -188,24 +185,25 @@ Deno.serve(async (req) => {
             roles: roleList,
           },
           403,
+          corsHeaders,
         );
       }
 
       const b64 = typeof payload.image_base64 === "string" ? payload.image_base64 : "";
       const mime = typeof payload.mime_type === "string" ? payload.mime_type : "image/jpeg";
-      if (!b64) return jsonResponse({ error: "Missing 'image_base64'" }, 400);
+      if (!b64) return jsonResponse({ error: "Missing 'image_base64'" }, 400, corsHeaders);
 
       let bytes: Uint8Array;
       try {
         bytes = decodeBase64(b64);
       } catch (e: any) {
-        return jsonResponse({ error: "Invalid base64 image", details: e?.message }, 400);
+        return jsonResponse({ error: "Invalid base64 image", details: e?.message }, 400, corsHeaders);
       }
       if (bytes.byteLength === 0) {
-        return jsonResponse({ error: "Decoded image is empty" }, 400);
+        return jsonResponse({ error: "Decoded image is empty" }, 400, corsHeaders);
       }
       if (bytes.byteLength > 12 * 1024 * 1024) {
-        return jsonResponse({ error: "Image too large (max 12MB)" }, 413);
+        return jsonResponse({ error: "Image too large (max 12MB)" }, 413, corsHeaders);
       }
 
       const ext = safeExt(mime);
@@ -224,6 +222,7 @@ Deno.serve(async (req) => {
             path,
           },
           500,
+          corsHeaders,
         );
       }
 
@@ -239,6 +238,7 @@ Deno.serve(async (req) => {
             path,
           },
           500,
+          corsHeaders,
         );
       }
 
@@ -249,17 +249,17 @@ Deno.serve(async (req) => {
         signed_url: signed?.signedUrl || null,
         size: bytes.byteLength,
         mime,
-      });
+      }, 200, corsHeaders);
     }
 
     if (action === "save_expense") {
       if (!ownsStore) {
-        return jsonResponse({ error: "You don't have permission to save expenses for this store." }, 403);
+        return jsonResponse({ error: "You don't have permission to save expenses for this store." }, 403, corsHeaders);
       }
       const expense = (payload.expense && typeof payload.expense === "object") ? payload.expense as Record<string, unknown> : {};
       const items = Array.isArray(payload.items) ? payload.items as Record<string, unknown>[] : [];
       const amountCents = toInt(expense.amount_cents);
-      if (amountCents <= 0) return jsonResponse({ error: "Scanned invoice total must be greater than zero" }, 400);
+      if (amountCents <= 0) return jsonResponse({ error: "Scanned invoice total must be greater than zero" }, 400, corsHeaders);
 
       const { data: inserted, error: insertErr } = await admin.from("ar_expenses").insert({
         store_id: storeId,
@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
         receipt_url: cleanText(expense.receipt_url, 1000),
         created_by: userId,
       }).select("id").single();
-      if (insertErr) return jsonResponse({ error: "Expense save failed", details: insertErr.message, code: insertErr.code }, 500);
+      if (insertErr) return jsonResponse({ error: "Expense save failed", details: insertErr.message, code: insertErr.code }, 500, corsHeaders);
 
       const expenseId = inserted.id;
       const rows = items
@@ -293,15 +293,15 @@ Deno.serve(async (req) => {
         }));
       if (rows.length) {
         const { error: itemErr } = await admin.from("ar_expense_items").insert(rows);
-        if (itemErr) return jsonResponse({ error: "Line item save failed", details: itemErr.message, code: itemErr.code, expense_id: expenseId }, 500);
+        if (itemErr) return jsonResponse({ error: "Line item save failed", details: itemErr.message, code: itemErr.code, expense_id: expenseId }, 500, corsHeaders);
       }
 
-      return jsonResponse({ ok: true, expense_id: expenseId, item_count: rows.length });
+      return jsonResponse({ ok: true, expense_id: expenseId, item_count: rows.length }, 200, corsHeaders);
     }
 
-    return jsonResponse({ error: `Unknown action '${action}'` }, 400);
+    return jsonResponse({ error: `Unknown action '${action}'` }, 400, corsHeaders);
   } catch (e: any) {
     console.error("ar-receipts-helper error", e);
-    return jsonResponse({ error: e?.message || "Unknown server error" }, 500);
+    return jsonResponse({ error: e?.message || "Unknown server error" }, 500, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

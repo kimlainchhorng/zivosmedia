@@ -1,16 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+Deno.serve(withSecurity("maps-route", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Authentication required" }), {
@@ -72,7 +65,7 @@ Deno.serve(async (req) => {
 
     // ── Fallback to Directions API ──
     console.debug("[maps-route] Falling back to Directions API");
-    return await fallbackDirectionsApi(key, origin_lat, origin_lng, dest_lat, dest_lng, waypoints);
+    return await fallbackDirectionsApi(key, origin_lat, origin_lng, dest_lat, dest_lng, waypoints, corsHeaders);
 
   } catch (e) {
     console.error("[maps-route] Error:", e);
@@ -81,7 +74,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "search",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));
 
 // ── Routes API v2 (returns speed reading intervals for traffic coloring) ──
 async function tryRoutesApi(
@@ -222,7 +221,8 @@ async function fallbackDirectionsApi(
   key: string,
   originLat: number, originLng: number,
   destLat: number, destLng: number,
-  waypoints?: { lat: number; lng: number }[]
+  waypoints?: { lat: number; lng: number }[],
+  corsHeaders: Record<string, string> = {},
 ) {
   let url = `https://maps.googleapis.com/maps/api/directions/json` +
     `?origin=${originLat},${originLng}` +
@@ -250,7 +250,7 @@ async function fallbackDirectionsApi(
     console.error("[maps-route] Google API error:", data.status, data.error_message);
     return new Response(JSON.stringify({ ok: false, error: "No route found" }), {
       status: 404,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -260,7 +260,7 @@ async function fallbackDirectionsApi(
   if (!route || !legs || legs.length === 0) {
     return new Response(JSON.stringify({ ok: false, error: "No route found" }), {
       status: 404,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -312,6 +312,6 @@ async function fallbackDirectionsApi(
     end_address: legs[legs.length - 1].end_address,
     legs: legDetails,
   }), {
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }

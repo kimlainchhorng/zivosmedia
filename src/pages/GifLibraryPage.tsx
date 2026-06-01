@@ -263,7 +263,7 @@ export default function GifLibraryPage() {
                       transition={{ delay: Math.min(idx, 12) * 0.02 }}
                       className="relative aspect-square rounded-xl overflow-hidden bg-muted"
                     >
-                      <img src={g.gif_url} alt={g.label ?? "GIF"} className="w-full h-full object-cover" loading="lazy" />
+                      <img src={g.gif_url} alt={g.label ?? "GIF"} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
                       {g.label && (
                         <p className="absolute bottom-1.5 left-1.5 right-1.5 text-[10px] font-bold text-white drop-shadow-md line-clamp-1">
@@ -314,7 +314,7 @@ export default function GifLibraryPage() {
                       transition={{ delay: Math.min(idx, 12) * 0.02 }}
                       className="relative aspect-square rounded-xl overflow-hidden bg-muted"
                     >
-                      <img src={g.gif_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={g.gif_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       <button
                         type="button"
                         aria-label="Remove from favorites"

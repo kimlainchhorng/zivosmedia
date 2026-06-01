@@ -1,6 +1,7 @@
 /**
  * SalonRetailProductsSection — inventory of physical take-home products
- * (shampoo, polish, styling tools).
+ * (shampoo, polish, styling tools). Writes are routed through
+ * salon-retail-product-manage for owner/admin validation.
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -98,26 +99,25 @@ export default function SalonRetailProductsSection({ storeId }: SalonRetailProdu
     const costCents = Math.round(Number(draft.cost_dollars) * 100);
     if (!Number.isFinite(priceCents) || priceCents < 0) { toast.error("Price must be 0 or more."); return; }
     setSaving(true);
-    const payload = {
-      store_id: storeId, name: draft.name.trim(), description: draft.description.trim() || null,
+    const product = {
+      name: draft.name.trim(), description: draft.description.trim() || null,
       sku: draft.sku.trim() || null, brand: draft.brand.trim() || null,
       price_cents: priceCents, cost_cents: Number.isFinite(costCents) ? Math.max(0, costCents) : 0,
       stock_quantity: Math.max(0, parseInt(draft.stock_quantity, 10) || 0),
       low_stock_threshold: Math.max(0, parseInt(draft.low_stock_threshold, 10) || 0),
       is_active: draft.is_active,
     };
-    const op = editingId
-      ? supabase.from("salon_retail_products").update(payload as never).eq("id", editingId)
-      : supabase.from("salon_retail_products").insert(payload as never);
-    const { error: err } = await op;
+    const { data, error: err } = await supabase.functions.invoke("salon-retail-product-manage", {
+      body: { action: "save", store_id: storeId, product_id: editingId, product },
+    });
     setSaving(false);
-    if (err) {
+    if (err || data?.error) {
       // 23505 = unique_violation. With the per-store SKU unique index, this
       // fires when the SKU collides with an existing product.
-      if ((err as { code?: string }).code === "23505") {
+      if (data?.error?.includes("SKU")) {
         setError(`Another product already uses SKU "${draft.sku.trim()}". Pick a different one.`);
       } else {
-        setError(editingId ? "Couldn't save changes." : "Couldn't add product.");
+        setError(data?.error || (editingId ? "Couldn't save changes." : "Couldn't add product."));
       }
       return;
     }
@@ -137,10 +137,12 @@ export default function SalonRetailProductsSection({ storeId }: SalonRetailProdu
       next = Math.max(0, r.stock_quantity + delta);
       return { ...r, stock_quantity: next };
     }));
-    const { error: err } = await supabase.from("salon_retail_products").update({ stock_quantity: next } as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("salon-retail-product-manage", {
+      body: { action: "adjust_stock", product_id: id, stock_quantity: next },
+    });
     setSaving(false);
-    if (err) {
-      setError("Couldn't adjust stock.");
+    if (err || data?.error) {
+      setError(data?.error || "Couldn't adjust stock.");
       // Roll back the optimistic change so the UI reflects reality. Re-fetch
       // is the safest way since we don't know exactly what concurrent edits
       // happened.
@@ -152,9 +154,11 @@ export default function SalonRetailProductsSection({ storeId }: SalonRetailProdu
   const handleDelete = async () => {
     if (!confirmDeleteId) return;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_retail_products").delete().eq("id", confirmDeleteId);
+    const { data, error: err } = await supabase.functions.invoke("salon-retail-product-manage", {
+      body: { action: "delete", product_id: confirmDeleteId },
+    });
     setSaving(false);
-    if (err) { setError("Couldn't delete."); return; }
+    if (err || data?.error) { setError(data?.error || "Couldn't delete."); return; }
     setConfirmDeleteId(null);
     toast.success("Product removed.");
     await load();

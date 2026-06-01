@@ -305,8 +305,12 @@ export default function AdminMetaAdsPage() {
 
       if (saveToServer) {
         const serverMsg = JSON.stringify({ page_id: cfg.pageId, page_name: cfg.pageName, token: btoa(verifiedToken) });
-        await supabase.from("feedback_submissions" as any).delete().eq("category", "admin_fb_config");
-        await supabase.from("feedback_submissions" as any).insert({ category: "admin_fb_config", message: serverMsg, status: "resolved" });
+        await supabase.functions.invoke("admin-feedback-queue-write", { body: {
+          action: "replace_fb_config",
+          category: "admin_fb_config",
+          message: serverMsg,
+          status: "resolved",
+        } });
         toast.success(`"${verifiedName}" connected & saved for auto-posting!`);
       } else {
         toast.success(`"${verifiedName}" connected!`);
@@ -328,7 +332,7 @@ export default function AdminMetaAdsPage() {
     setFormToken("");
     setTestResult(null);
     setTestError(null);
-    await supabase.from("feedback_submissions" as any).delete().eq("category", "admin_fb_config");
+    await supabase.functions.invoke("admin-feedback-queue-write", { body: { action: "delete_fb_config", category: "admin_fb_config" } });
     toast.info("Facebook Page disconnected");
   };
 
@@ -390,7 +394,12 @@ export default function AdminMetaAdsPage() {
       if (!scheduledAt) { toast.error("Pick a date and time to schedule"); return; }
       if (new Date(scheduledAt) <= new Date()) { toast.error("Scheduled time must be in the future"); return; }
       const payload = { message_text: postMessage, link: postLink || null, image_url: postImageUrl || null, scheduled_at: new Date(scheduledAt).toISOString(), page_id: config.pageId, page_name: config.pageName };
-      const { error } = await supabase.from("feedback_submissions" as any).insert({ category: "fb_scheduled_post", message: JSON.stringify(payload), status: "pending" });
+      const { error } = await supabase.functions.invoke("admin-feedback-queue-write", { body: {
+        action: "insert",
+        category: "fb_scheduled_post",
+        message: JSON.stringify(payload),
+        status: "pending",
+      } });
       if (error) { toast.error("Failed to schedule post"); return; }
       toast.success(`Post scheduled for ${new Date(scheduledAt).toLocaleString()}`);
       setPostMessage(""); setPostLink(""); setPostImageUrl(""); setScheduledAt(""); setScheduleMode(false);
@@ -652,7 +661,7 @@ export default function AdminMetaAdsPage() {
                           >
                             <div className="w-9 h-9 rounded-full overflow-hidden bg-[#1877F2] flex items-center justify-center shrink-0">
                               {page.picture?.data?.url ? (
-                                <img src={page.picture.data.url} alt="" className="w-full h-full object-cover" />
+                                <img src={page.picture.data.url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               ) : (
                                 <Facebook className="h-4 w-4 text-white" />
                               )}
@@ -684,12 +693,12 @@ export default function AdminMetaAdsPage() {
                   {testResult && !testError && (
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
                       {testResult.cover?.source && (
-                        <img src={testResult.cover.source} alt="cover" className="w-full h-24 object-cover" />
+                        <img src={testResult.cover.source} alt="cover" className="w-full h-24 object-cover" loading="lazy" decoding="async" />
                       )}
                       <div className="p-3 flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-full border-2 border-white overflow-hidden shrink-0 ${testResult.cover?.source ? "-mt-6" : ""} bg-[#1877F2] flex items-center justify-center`}>
                           {testResult.picture?.data?.url ? (
-                            <img src={testResult.picture.data.url} alt="" className="w-full h-full object-cover" />
+                            <img src={testResult.picture.data.url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           ) : (
                             <Facebook className="h-5 w-5 text-white" />
                           )}
@@ -741,7 +750,7 @@ export default function AdminMetaAdsPage() {
                 {/* Cover photo */}
                 {coverPhoto ? (
                   <div className="h-32 relative overflow-hidden">
-                    <img src={coverPhoto} alt="Cover" className="w-full h-full object-cover" />
+                    <img src={coverPhoto} alt="Cover" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   </div>
                 ) : (
@@ -753,7 +762,7 @@ export default function AdminMetaAdsPage() {
                     {/* Profile photo */}
                     <div className="w-16 h-16 rounded-full border-4 border-background overflow-hidden bg-[#1877F2] flex items-center justify-center shrink-0">
                       {profilePic ? (
-                        <img src={profilePic} alt="Page" className="w-full h-full object-cover" />
+                        <img src={profilePic} alt="Page" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <Facebook className="h-7 w-7 text-white" />
                       )}
@@ -813,7 +822,7 @@ export default function AdminMetaAdsPage() {
                     {/* Composer header shows page identity */}
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full overflow-hidden bg-[#1877F2] flex items-center justify-center shrink-0">
-                        {profilePic ? <img src={profilePic} alt="" className="w-full h-full object-cover" /> : <Facebook className="h-4 w-4 text-white" />}
+                        {profilePic ? <img src={profilePic} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <Facebook className="h-4 w-4 text-white" />}
                       </div>
                       <div>
                         <p className="text-sm font-semibold leading-none">{pageInfo?.name || config.pageName}</p>
@@ -843,7 +852,7 @@ export default function AdminMetaAdsPage() {
 
                     {postImageUrl && (
                       <div className="rounded-xl overflow-hidden border">
-                        <img src={postImageUrl} alt="Preview" className="w-full max-h-48 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        <img src={postImageUrl} alt="Preview" className="w-full max-h-48 object-cover" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                       </div>
                     )}
 
@@ -1022,7 +1031,7 @@ export default function AdminMetaAdsPage() {
                               {/* Cover photo */}
                               {photo ? (
                                 <div className="h-40 overflow-hidden bg-muted shrink-0">
-                                  <img src={photo} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }} />
+                                  <img src={photo} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }} />
                                 </div>
                               ) : (
                                 <div className="h-20 bg-gradient-to-br from-[#1877F2]/20 to-[#1877F2]/5 flex items-center justify-center shrink-0">
@@ -1035,7 +1044,7 @@ export default function AdminMetaAdsPage() {
                                 {/* Page + date */}
                                 <div className="flex items-center gap-2">
                                   <div className="w-6 h-6 rounded-full overflow-hidden bg-[#1877F2] flex items-center justify-center shrink-0">
-                                    {profilePic ? <img src={profilePic} alt="" className="w-full h-full object-cover" /> : <Facebook className="h-3 w-3 text-white" />}
+                                    {profilePic ? <img src={profilePic} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <Facebook className="h-3 w-3 text-white" />}
                                   </div>
                                   <div className="min-w-0">
                                     <p className="text-xs font-semibold truncate leading-none">{pageInfo?.name || config.pageName}</p>
@@ -1181,7 +1190,7 @@ export default function AdminMetaAdsPage() {
                     <CardContent className="pt-3 pb-3">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-7 h-7 rounded-full overflow-hidden bg-[#1877F2] flex items-center justify-center shrink-0">
-                          {profilePic ? <img src={profilePic} alt="" className="w-full h-full object-cover" /> : <Facebook className="h-3.5 w-3.5 text-white" />}
+                          {profilePic ? <img src={profilePic} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <Facebook className="h-3.5 w-3.5 text-white" />}
                         </div>
                         <span className="text-xs font-semibold">{pageInfo?.name || config?.pageName}</span>
                         <Badge className="ml-auto text-[10px] bg-[#1877F2]/10 text-[#1877F2]">Facebook Page</Badge>

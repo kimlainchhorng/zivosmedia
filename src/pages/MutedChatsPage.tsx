@@ -69,8 +69,9 @@ export default function MutedChatsPage() {
 
   const unmute = async (id: string) => {
     qc.setQueryData<MuteRow[]>(["muted-conversations", user?.id], (old) => (old ?? []).filter((m) => m.id !== id));
-    const sb = supabase as unknown as { from: (t: string) => { delete: () => { eq: (k: string, v: string) => Promise<{ error: unknown }> } } };
-    const { error } = await sb.from("muted_conversations").delete().eq("id", id);
+    const { error } = await supabase.functions.invoke("muted-conversation-manage", {
+      body: { action: "unmute", mute_id: id },
+    });
     if (error) { toast.error("Couldn't unmute"); qc.invalidateQueries({ queryKey: ["muted-conversations", user?.id] }); }
     else toast.success("Unmuted");
   };

@@ -1,17 +1,19 @@
 // Dispatcher: queues or runs publish jobs to Google/Meta/TikTok.
 // Real platform APIs are stubbed — when API tokens are configured, swap the stub for real SDK calls.
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface QueueBody {
   creative_id: string;
   store_id: string;
   platforms: ("google" | "meta" | "tiktok" | "youtube")[];
   scheduled_at?: string;
+}
+
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
 }
 
 async function publishToPlatform(platform: string, creative: any): Promise<{ ok: boolean; campaign_id?: string; response?: any; error?: string }> {
@@ -33,7 +35,9 @@ async function publishToPlatform(platform: string, creative: any): Promise<{ ok:
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("ads-studio-publish", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -44,6 +48,10 @@ Deno.serve(async (req) => {
   //   POST  -> queue new jobs (auth required)
   //   GET   -> drain queue (cron / service)
   if (req.method === "GET") {
+    if (!isServiceRoleRequest(req, serviceKey)) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { data: jobs } = await admin
       .from("ads_studio_publish_jobs")
       .select("*, ads_studio_creatives(*)")
@@ -88,6 +96,25 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "creative_id, store_id, and platforms[] required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
+  const { data: store } = await admin
+    .from("restaurants")
+    .select("owner_id")
+    .eq("id", body.store_id)
+    .maybeSingle();
+  if (!store || store.owner_id !== user.id) {
+    return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  const { data: creative } = await admin
+    .from("ads_studio_creatives")
+    .select("id, store_id")
+    .eq("id", body.creative_id)
+    .eq("store_id", body.store_id)
+    .maybeSingle();
+  if (!creative) {
+    return new Response(JSON.stringify({ error: "creative_not_found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const rows = body.platforms.map((p) => ({
     creative_id: body.creative_id,
     store_id: body.store_id,
@@ -102,4 +129,4 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ queued: data?.length ?? 0, jobs: data }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

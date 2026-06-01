@@ -29,16 +29,16 @@ export function useBlockUser(targetUserId: string) {
   const toggle = useCallback(async () => {
     if (!user || !targetUserId) return;
     if (isBlocked) {
-      await (supabase as any)
-        .from("blocked_users")
-        .delete()
-        .eq("blocker_id", user.id)
-        .eq("blocked_id", targetUserId);
+      const { error } = await supabase.functions.invoke("block-user-manage", {
+        body: { action: "unblock", blocked_id: targetUserId },
+      });
+      if (error) throw new Error(error.message);
       toast.success("User unblocked");
     } else {
-      await (supabase as any)
-        .from("blocked_users")
-        .insert({ blocker_id: user.id, blocked_id: targetUserId });
+      const { error } = await supabase.functions.invoke("block-user-manage", {
+        body: { action: "block", blocked_id: targetUserId },
+      });
+      if (error) throw new Error(error.message);
       toast.success("User blocked");
     }
     queryClient.invalidateQueries({ queryKey: ["block-check"] });

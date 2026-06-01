@@ -17,59 +17,65 @@
       #root{min-height:100vh;min-height:100dvh}
     </style>
 
-    <!-- Analytics — idle-loaded after first paint to protect LCP/TBT -->
+    <!-- Analytics/marketing pixels — idle-loaded after first paint to protect LCP/TBT -->
     <script>
     (function(){
       var loaded=false;
-      function shouldLoadAnalytics(){
+      function readCookiePrefs(){
         // Never load third-party trackers during local QA/dev.
-        if(location.hostname==='localhost'||location.hostname==='127.0.0.1') return false;
-        // Respect cookie consent (analytics must be explicitly enabled).
+        if(location.hostname==='localhost'||location.hostname==='127.0.0.1') return null;
         try{
           var raw=localStorage.getItem('zivo_cookie_consent');
-          if(!raw) return false;
-          var prefs=JSON.parse(raw);
-          return !!(prefs && prefs.analytics===true);
+          if(!raw) return null;
+          return JSON.parse(raw);
         }catch(_e){
-          return false;
+          return null;
         }
       }
-      function loadAnalytics(){
+      function loadConsentPixels(){
         if(loaded)return; loaded=true;
-        if(!shouldLoadAnalytics())return;
+        var prefs=readCookiePrefs();
+        if(!prefs)return;
+        var analyticsAllowed=prefs.analytics===true;
+        var marketingAllowed=prefs.marketing===true;
+        if(!analyticsAllowed&&!marketingAllowed)return;
         // Skip on native
         if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())return;
-        // Meta Pixel
-        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init','2304266847061310');fbq('track','PageView');
-        // gtag
+        // gtag base is shared by analytics and Google Ads, but each config is consent-gated separately.
         var s=document.createElement('script');s.async=true;
         s.src='https://www.googletagmanager.com/gtag/js?id=G-VVH8W5PW3E';
         document.head.appendChild(s);
         window.dataLayer=window.dataLayer||[];
         function gtag(){dataLayer.push(arguments);} window.gtag=gtag;
         gtag('js',new Date());
-        gtag('config','G-VVH8W5PW3E',{send_page_view:true});
-        gtag('config','AW-18077605056');
-        // TikTok Pixel — reads optional id from <meta name="zivo-tiktok-pixel" content="...">
-        var ttMeta=document.querySelector('meta[name="zivo-tiktok-pixel"]');
-        var ttId=ttMeta&&ttMeta.getAttribute('content');
-        if(ttId){
-          !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var s=document.createElement("script");s.type="text/javascript",s.async=!0,s.src=r+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(s,a)};
-            ttq.load(ttId);ttq.page();
-          }(window,document,'ttq');
+        if(analyticsAllowed){
+          gtag('config','G-VVH8W5PW3E',{send_page_view:true});
+        }
+        if(marketingAllowed){
+          gtag('config','AW-18077605056');
+          // Meta Pixel
+          !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init','2304266847061310');fbq('track','PageView');
+          // TikTok Pixel — reads optional id from <meta name="zivo-tiktok-pixel" content="...">
+          var ttMeta=document.querySelector('meta[name="zivo-tiktok-pixel"]');
+          var ttId=ttMeta&&ttMeta.getAttribute('content');
+          if(ttId){
+            !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var s=document.createElement("script");s.type="text/javascript",s.async=!0,s.src=r+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(s,a)};
+              ttq.load(ttId);ttq.page();
+            }(window,document,'ttq');
+          }
         }
       }
       // Expose for consent flows that enable analytics after initial page load.
-      window.__zivoLoadAnalytics = loadAnalytics;
+      window.__zivoLoadAnalytics = loadConsentPixels;
       // Wait for idle time AFTER load to keep LCP/TBT clean
       function schedule(){
         if('requestIdleCallback' in window){
-          requestIdleCallback(loadAnalytics,{timeout:4000});
+          requestIdleCallback(loadConsentPixels,{timeout:4000});
         } else {
-          setTimeout(loadAnalytics,2500);
+          setTimeout(loadConsentPixels,2500);
         }
       }
       if(document.readyState==='complete'){schedule();}

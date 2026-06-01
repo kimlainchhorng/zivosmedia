@@ -133,4 +133,4 @@ Deno.serve(withSecurity("create-masked-call-session", async (req, ctx) => {
     console.error("[create-masked-call-session]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-}, { rateLimit: "admin_action", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { allowedMethods: ["POST"], rateLimit: "admin_action", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

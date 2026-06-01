@@ -1,15 +1,13 @@
 // Generates AI budget-shift / creative recommendations from the last 14d of spend rollups.
 // Uses Lovable AI Gateway (LOVABLE_API_KEY). Auth required: store owner or admin.
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface ReqBody { store_id: string }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("ads-studio-recommendations", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -30,6 +28,16 @@ Deno.serve(async (req) => {
   if (!body.store_id) return new Response(JSON.stringify({ error: "store_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   const admin = createClient(url, serviceKey);
+  const { data: store } = await admin
+    .from("restaurants")
+    .select("owner_id")
+    .eq("id", body.store_id)
+    .maybeSingle();
+  const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
+  const isAdmin = (roles || []).some((r: any) => r.role === "admin");
+  if (!store || (!isAdmin && store.owner_id !== user.id)) {
+    return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   // Pull last 14d of spend per platform
   const since = new Date(Date.now() - 14 * 86400_000).toISOString().slice(0, 10);
@@ -102,4 +110,4 @@ Return JSON only: {"recommendations":[{"type":"budget_shift|pause_platform|creat
   return new Response(JSON.stringify({ created: inserted?.length ?? 0, recommendations: inserted }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

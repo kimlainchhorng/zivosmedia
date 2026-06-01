@@ -252,13 +252,13 @@ export default function RideHubPage() {
       // (e.g. user tapped Rate from a generic CTA). This keeps the existing
       // feedback table populated and lets ops see ratings even if the tip
       // path can't run.
-      await supabase.from("feedback_submissions").insert({
+      await supabase.functions.invoke("ride-support-submit", { body: {
         category: "ride_rating",
         subject: `Ride rating: ${data.rating} stars`,
         message: `Rating: ${data.rating}/5\nTip: $${data.tip.toFixed(2)} ${tipResult?.charged ? "✓ charged" : tipResult?.error ? `✗ ${tipResult.error}` : "(no recent ride)"}\nTags: ${data.tags.join(", ") || "none"}\n\nFeedback: ${data.feedback || "(no comment)"}`,
         rating: data.rating,
-        user_id: user?.id ?? null,
-      });
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
 
       if (tipResult?.charged) {
         toast.success(`Tip of $${data.tip.toFixed(2)} charged. Thanks!`);
@@ -278,12 +278,12 @@ export default function RideHubPage() {
 
   const submitLostItem = async (data: { category: string; description: string }) => {
     try {
-      const { error } = await supabase.from("feedback_submissions").insert({
+      const { error } = await supabase.functions.invoke("ride-support-submit", { body: {
         category: "lost_item_report",
         subject: `Lost ${data.category}`,
         message: data.description,
-        user_id: user?.id ?? null,
-      });
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       toast.success("Lost item reported. We'll be in touch.");
     } catch (e: any) {

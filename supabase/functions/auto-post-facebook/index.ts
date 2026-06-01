@@ -1,13 +1,11 @@
 // Auto-post scheduled Facebook posts.
 // Reads page config + scheduled posts from feedback_submissions, posts due ones to Graph API.
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(withSecurity("auto-post-facebook", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const json = (data: unknown, status = 200) =>
@@ -32,6 +30,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userRes.user.id);
+    const isAdmin = (roles || []).some((r: any) => r.role === "admin" || r.role === "super_admin");
+    if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
     const body = await req.json().catch(() => ({}));
     const { post_row_id } = body as { post_row_id?: string };
@@ -128,4 +129,4 @@ Deno.serve(async (req) => {
     console.error("auto-post-facebook error:", e);
     return json({ error: (e as Error).message }, 500);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

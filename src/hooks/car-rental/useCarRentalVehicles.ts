@@ -156,18 +156,16 @@ export function useCarRentalVehicles(storeId: string | undefined) {
       features: draft.features ?? [],
       is_active: draft.is_active ?? true,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_vehicles")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-vehicle-manage", {
+      body: { action: "create", store_id: storeId, vehicle: payload },
+    });
     if (err) {
       console.error("[useCarRentalVehicles] create failed", err);
       setError("Couldn't add vehicle.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalVehicle;
+    const created = data?.vehicle as CarRentalVehicle;
     setVehicles((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -177,14 +175,16 @@ export function useCarRentalVehicles(storeId: string | undefined) {
     setSaving(true);
     setError(null);
     setVehicles((prev) => prev.map((v) => (v.id === id ? ({ ...v, ...patch } as CarRentalVehicle) : v)));
-    const { error: err } = await supabase
-      .from("car_rental_vehicles")
-      .update(patch as never)
-      .eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-rental-vehicle-manage", {
+      body: { action: "update", vehicle_id: id, vehicle: patch },
+    });
     if (err) {
       console.error("[useCarRentalVehicles] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
+    } else if (data?.vehicle) {
+      const updated = data.vehicle as CarRentalVehicle;
+      setVehicles((prev) => prev.map((v) => (v.id === id ? updated : v)));
     }
     setSaving(false);
   }, [load]);
@@ -194,7 +194,9 @@ export function useCarRentalVehicles(storeId: string | undefined) {
     setError(null);
     const prev = vehicles;
     setVehicles((p) => p.filter((v) => v.id !== id));
-    const { error: err } = await supabase.from("car_rental_vehicles").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-vehicle-manage", {
+      body: { action: "delete", vehicle_id: id },
+    });
     if (err) {
       console.error("[useCarRentalVehicles] delete failed", err);
       setError("Couldn't delete vehicle.");

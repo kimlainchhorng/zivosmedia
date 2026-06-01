@@ -128,16 +128,7 @@ export async function sendSignal(
         headers: pairToken ? { "x-pair-token": pairToken } : undefined,
       });
       if (!error) return;
-      if (attempt === delays.length - 1) {
-        console.warn("[liveWebrtc] live-signal failed after retries, falling back", error, { type, to });
-        await (supabase as any).from("live_stream_signals").insert({
-          stream_id: streamId,
-          from_role: from,
-          to_role: to,
-          type,
-          payload,
-        });
-      }
+      if (attempt === delays.length - 1) console.warn("[liveWebrtc] live-signal failed after retries", error, { type, to });
     } catch (e) {
       if (attempt === delays.length - 1) {
         console.warn("[liveWebrtc] send signal threw after retries", e);

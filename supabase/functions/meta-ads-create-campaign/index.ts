@@ -1,5 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Creates a Meta Ads campaign + adset + creative + ad via Marketing API v21.
 // Admin-only.
@@ -17,8 +17,8 @@ async function metaPost(path: string, token: string, body: Record<string, any>) 
   return json;
 }
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
+Deno.serve(withSecurity("meta-ads-create-campaign", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
@@ -108,6 +108,12 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("[meta-ads-create-campaign]", e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

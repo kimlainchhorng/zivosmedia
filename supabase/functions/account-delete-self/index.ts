@@ -16,7 +16,25 @@ import { ok } from "../_shared/respond.ts";
 
 const schema = v.object({ confirm: v.nonEmptyString });
 
-const STORAGE_BUCKETS = ["chat-media-files", "chat_uploads", "chat-files", "voice-notes"];
+const STORAGE_BUCKETS = [
+  "chat-media-files",
+  "chat_uploads",
+  "chat-files",
+  "voice-notes",
+  "user-posts",
+  "user-stories",
+  "covers",
+  "cv-photos",
+];
+const USER_OWNED_TABLES: Array<{ table: string; userColumn: string }> = [
+  { table: "user_consent_logs",         userColumn: "user_id" },
+  { table: "policy_consents",           userColumn: "user_id" },
+  { table: "role_terms_acceptance",     userColumn: "user_id" },
+  { table: "user_consents",             userColumn: "user_id" },
+  { table: "user_devices",              userColumn: "user_id" },
+  { table: "trusted_devices",           userColumn: "user_id" },
+  { table: "customer_payout_methods",   userColumn: "user_id" },
+];
 
 serve(
   withSecurity(
@@ -59,9 +77,21 @@ serve(
         route:      "account-delete-self",
       }).catch(() => {});
 
-      // 3) Delete the auth user. Foreign-key cascades on user_id columns
-      //    handle most user-owned data. Tables without ON DELETE CASCADE will
-      //    still hold orphaned rows — backfill those tables in a separate task.
+      // 3) Delete user-owned rows that may not be attached to auth.users with
+      //    ON DELETE CASCADE. This keeps privacy/legal promises enforceable even
+      //    in older environments with partial FK coverage.
+      const cleanupErrors: Array<{ table: string; message: string }> = [];
+      for (const { table, userColumn } of USER_OWNED_TABLES) {
+        const { error } = await sb.from(table).delete().eq(userColumn, userId);
+        if (error) cleanupErrors.push({ table, message: error.message });
+      }
+
+      if (cleanupErrors.length > 0) {
+        throw new Error(`Account deletion cleanup failed: ${JSON.stringify(cleanupErrors)}`);
+      }
+
+      // 4) Delete the auth user. Foreign-key cascades on user_id columns handle
+      //    the rest of the user-owned data.
       const { error: delErr } = await sb.auth.admin.deleteUser(userId);
       if (delErr) {
         throw new Error(`Account deletion failed: ${delErr.message}`);
@@ -69,6 +99,6 @@ serve(
 
       return ok(req, { deleted: true });
     }, "account-delete-self"),
-    { rateLimit: "auth_password_reset" }, // 3 requests / 5 min
+    { strictCors: true, allowedMethods: ["POST"], rateLimit: "auth_password_reset" }, // 3 requests / 5 min
   ),
 );

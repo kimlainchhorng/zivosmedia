@@ -95,4 +95,4 @@ Deno.serve(withSecurity("moderate-trip-message", async (req, ctx) => {
     console.error("[moderate-trip-message]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-}, { rateLimit: "api_general", strictCors: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["POST"], rateLimit: "api_general", strictCors: true, trackNetwork: "suspicious" }));

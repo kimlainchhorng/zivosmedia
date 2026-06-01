@@ -52,12 +52,17 @@ export default function DigitalProductsPage() {
     if (!productTitle.trim() || !selectedType) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("feedback_submissions").insert({
+      const { error } = await supabase.functions.invoke("shop-ops-record-submit", { body: {
         category: "digital_product",
         subject: `New ${selectedType.title}: ${productTitle}`,
-        message: `Type: ${selectedType.title}\nTitle: ${productTitle}\nDescription: ${productDesc}\nPrice: $${productPrice || "0"}`,
-        user_id: user?.id ?? null,
-      });
+        payload: {
+          type: selectedType.title,
+          title: productTitle,
+          description: productDesc,
+          price: productPrice || "0",
+        },
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       setSubmitted(true);
       toast.success("Product submitted for review!");

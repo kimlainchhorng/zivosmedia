@@ -1,17 +1,9 @@
 // Account Summary v2026 — single endpoint returning profile + counts + ZIVO+ tier
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+Deno.serve(withSecurity("account-summary", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -93,4 +85,10 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}, {
+  strictCors: true,
+  rateLimit: "api_general",
+  allowedMethods: ["POST"],
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

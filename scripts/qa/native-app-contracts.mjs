@@ -1,0 +1,616 @@
+#!/usr/bin/env node
+/**
+ * Native app release readiness contract check.
+ *
+ * Verifies Capacitor, iOS, Android, OTA, store listing, and native QA wiring
+ * without requiring local Android/iOS toolchains to be installed.
+ */
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+const root = process.cwd();
+const failures = [];
+
+function source(relativePath) {
+  const file = path.join(root, relativePath);
+  if (!existsSync(file)) {
+    failures.push(`missing file: ${relativePath}`);
+    return "";
+  }
+  return readFileSync(file, "utf8");
+}
+
+function requireContains(id, text, needle, relativePath) {
+  if (!text.includes(needle)) {
+    failures.push(`${id}: ${relativePath} missing ${JSON.stringify(needle)}`);
+  }
+}
+
+function requireNotContains(id, text, needle, relativePath) {
+  if (text.includes(needle)) {
+    failures.push(`${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`);
+  }
+}
+
+function requireFile(id, relativePath) {
+  if (!existsSync(path.join(root, relativePath))) {
+    failures.push(`${id}: missing file: ${relativePath}`);
+  }
+}
+
+const contracts = [
+  {
+    id: "capacitor-production-shell",
+    category: "capacitor",
+    check() {
+      const configPath = "capacitor.config.ts";
+      const packagePath = "package.json";
+      const mainPath = "src/main.tsx";
+      const config = source(configPath);
+      const packageJson = source(packagePath);
+      const main = source(mainPath);
+
+      for (const needle of [
+        "appId: 'com.hizovo.app'",
+        "appName: 'ZIVO'",
+        "webDir: 'dist'",
+        "process.env.NODE_ENV !== 'production'",
+        "CAPACITOR_DEV_SERVER_URL",
+        "allowMixedContent: false",
+        "overlaysWebView: true",
+        "resize: \"native\"",
+        "launchAutoHide: false",
+      ]) {
+        requireContains(this.id, config, needle, configPath);
+      }
+      requireNotContains(this.id, config, "http://localhost", configPath);
+      for (const dep of ["@capacitor/core", "@capacitor/ios", "@capacitor/android", "@capgo/capacitor-updater"]) {
+        requireContains(this.id, packageJson, dep, packagePath);
+      }
+      requireContains(this.id, main, "SplashScreen.hide", mainPath);
+    },
+  },
+  {
+    id: "ios-store-privacy-entitlements",
+    category: "ios",
+    check() {
+      const projectPath = "ios/App/App.xcodeproj/project.pbxproj";
+      const infoPath = "ios/App/App/Info.plist";
+      const privacyPath = "ios/App/App/PrivacyInfo.xcprivacy";
+      const entitlementsPath = "ios/App/App/App.entitlements";
+      const listingPath = "ios/store-listing/APP_STORE.md";
+      const project = source(projectPath);
+      const info = source(infoPath);
+      const privacy = source(privacyPath);
+      const entitlements = source(entitlementsPath);
+      const listing = source(listingPath);
+
+      for (const needle of [
+        "PRODUCT_BUNDLE_IDENTIFIER = com.hizovo.app",
+        "MARKETING_VERSION = 1.3.0",
+        "CURRENT_PROJECT_VERSION",
+      ]) {
+        requireContains(this.id, project, needle, projectPath);
+      }
+      for (const needle of [
+        "NSCameraUsageDescription",
+        "NSMicrophoneUsageDescription",
+        "NSLocationWhenInUseUsageDescription",
+        "NSUserTrackingUsageDescription",
+        "NSAppTransportSecurity",
+        "NSPinnedDomains",
+        "supabase.co",
+        "stripe.com",
+      ]) {
+        requireContains(this.id, info, needle, infoPath);
+      }
+      for (const needle of [
+        "NSPrivacyTracking",
+        "NSPrivacyCollectedDataTypes",
+        "NSPrivacyCollectedDataTypeEmailAddress",
+        "NSPrivacyCollectedDataTypePurchaseHistory",
+        "NSPrivacyAccessedAPITypes",
+      ]) {
+        requireContains(this.id, privacy, needle, privacyPath);
+      }
+      for (const needle of [
+        "aps-environment",
+        "com.apple.developer.applesignin",
+        "com.apple.developer.associated-domains",
+        "applinks:hizovo.com",
+        "webcredentials:hizovo.com",
+      ]) {
+        requireContains(this.id, entitlements, needle, entitlementsPath);
+      }
+      requireContains(this.id, listing, "Bundle ID: `com.hizovo.app`", listingPath);
+      requireContains(this.id, listing, "Privacy URL:", listingPath);
+      requireContains(this.id, listing, "https://hizivo.com/legal/privacy", listingPath);
+      requireContains(this.id, listing, "https://hizivo.com/legal/terms", listingPath);
+      requireContains(this.id, listing, "What's New in This Version", listingPath);
+    },
+  },
+  {
+    id: "android-store-build-readiness",
+    category: "android",
+    check() {
+      const buildPath = "android/app/build.gradle";
+      const variablesPath = "android/variables.gradle";
+      const listingPath = "android/store-listing/PLAY_STORE.md";
+      const setupPath = "docs/native-android-setup.md";
+      const build = source(buildPath);
+      const variables = source(variablesPath);
+      const listing = source(listingPath);
+      const setup = source(setupPath);
+
+      for (const needle of [
+        'namespace = "com.hizovo.app"',
+        'applicationId "com.hizovo.app"',
+        "versionCode 2026053101",
+        'versionName "1.3.0"',
+        "com.google.android.play:integrity",
+        "keystore.properties",
+        "google-services.json",
+      ]) {
+        requireContains(this.id, build, needle, buildPath);
+      }
+      for (const needle of [
+        "minSdkVersion = 24",
+        "compileSdkVersion = 36",
+        "targetSdkVersion = 35",
+      ]) {
+        requireContains(this.id, variables, needle, variablesPath);
+      }
+      requireContains(this.id, listing, "Package name: `com.hizovo.app`", listingPath);
+      requireContains(this.id, listing, "Privacy Policy URL", listingPath);
+      requireContains(this.id, listing, "Account Deletion URL", listingPath);
+      requireContains(this.id, listing, "https://hizivo.com/legal/privacy", listingPath);
+      requireContains(this.id, listing, "https://hizivo.com/legal/terms", listingPath);
+      requireContains(this.id, listing, "https://hizivo.com/delete-account", listingPath);
+      requireNotContains(this.id, listing, "https://www.zivollc.com", listingPath);
+      requireContains(this.id, setup, "android/local.properties", setupPath);
+      requireContains(this.id, setup, "npm run android:build:debug", setupPath);
+    },
+  },
+  {
+    id: "native-permissions-deeplinks-push",
+    category: "permissions",
+    check() {
+      const androidManifestPath = "android/app/src/main/AndroidManifest.xml";
+      const androidNetworkPath = "android/app/src/main/res/xml/network_security_config.xml";
+      const iosInfoPath = "ios/App/App/Info.plist";
+      const iosEntitlementsPath = "ios/App/App/App.entitlements";
+      const iosAppDelegatePath = "ios/App/App/AppDelegate.swift";
+      const iosExtensionInfoPath = "ios/App/NotificationServiceExtension/Info.plist";
+      const iosExtensionSwiftPath = "ios/App/NotificationServiceExtension/NotificationService.swift";
+      const iosProjectPath = "ios/App/App.xcodeproj/project.pbxproj";
+      const androidManifest = source(androidManifestPath);
+      const androidNetwork = source(androidNetworkPath);
+      const iosInfo = source(iosInfoPath);
+      const iosEntitlements = source(iosEntitlementsPath);
+      const iosAppDelegate = source(iosAppDelegatePath);
+      const iosExtensionInfo = source(iosExtensionInfoPath);
+      const iosExtensionSwift = source(iosExtensionSwiftPath);
+      const iosProject = source(iosProjectPath);
+
+      for (const permission of [
+        "android.permission.INTERNET",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "com.google.android.gms.permission.AD_ID",
+      ]) {
+        requireContains(this.id, androidManifest, permission, androidManifestPath);
+      }
+      for (const needle of [
+        'android:allowBackup="false"',
+        'android:fullBackupContent="false"',
+        'android:dataExtractionRules="@xml/data_extraction_rules"',
+        'android:usesCleartextTraffic="false"',
+        'android:networkSecurityConfig="@xml/network_security_config"',
+        'android:autoVerify="true"',
+        'android:host="hizovo.com"',
+        'android:host="www.hizovo.com"',
+        'android:scheme="com.hizovo.app"',
+      ]) {
+        requireContains(this.id, androidManifest, needle, androidManifestPath);
+      }
+      requireContains(this.id, androidNetwork, 'cleartextTrafficPermitted="false"', androidNetworkPath);
+
+      for (const needle of [
+        "NSCameraUsageDescription",
+        "NSMicrophoneUsageDescription",
+        "NSLocationWhenInUseUsageDescription",
+        "NSUserTrackingUsageDescription",
+        "CFBundleURLSchemes",
+        "com.hizovo.app",
+        "UIBackgroundModes",
+        "remote-notification",
+      ]) {
+        requireContains(this.id, iosInfo, needle, iosInfoPath);
+      }
+      for (const needle of [
+        "applinks:hizovo.com",
+        "applinks:www.hizovo.com",
+        "webcredentials:hizovo.com",
+        "com.apple.developer.usernotifications.communication",
+      ]) {
+        requireContains(this.id, iosEntitlements, needle, iosEntitlementsPath);
+      }
+      for (const needle of [
+        "UNUserNotificationCenter.current().delegate = self",
+        ".capacitorDidRegisterForRemoteNotifications",
+        ".capacitorDidFailToRegisterForRemoteNotifications",
+        "ApplicationDelegateProxy.shared.application(app, open: url",
+        "ApplicationDelegateProxy.shared.application(application, continue: userActivity",
+      ]) {
+        requireContains(this.id, iosAppDelegate, needle, iosAppDelegatePath);
+      }
+      for (const needle of [
+        "NotificationServiceExtension.appex in Embed App Extensions",
+        "PRODUCT_BUNDLE_IDENTIFIER = com.hizovo.app.NotificationServiceExtension",
+        "NotificationService.swift in Sources",
+      ]) {
+        requireContains(this.id, iosProject, needle, iosProjectPath);
+      }
+      requireContains(this.id, iosExtensionInfo, "com.apple.usernotifications.service", iosExtensionInfoPath);
+      requireContains(this.id, iosExtensionInfo, "$(PRODUCT_MODULE_NAME).NotificationService", iosExtensionInfoPath);
+      requireContains(this.id, iosExtensionSwift, "INSendMessageIntent", iosExtensionSwiftPath);
+      requireContains(this.id, iosExtensionSwift, "isAllowedImageURL", iosExtensionSwiftPath);
+      requireContains(this.id, iosExtensionSwift, "serviceExtensionTimeWillExpire", iosExtensionSwiftPath);
+    },
+  },
+  {
+    id: "ota-update-safety",
+    category: "ota",
+    check() {
+      const hookPath = "src/hooks/useOTAUpdate.ts";
+      const docsPath = "docs/OTA_LIVE_UPDATES.md";
+      const deployPath = "scripts/deploy-update.mjs";
+      const packagePath = "package.json";
+      const configPath = "capacitor.config.ts";
+      const hook = source(hookPath);
+      const docs = source(docsPath);
+      const deploy = source(deployPath);
+      const pkg = source(packagePath);
+      const config = source(configPath);
+
+      for (const needle of [
+        "MANIFEST_URL",
+        "latest.json",
+        "MANIFEST_FETCH_TIMEOUT_MS",
+        "new AbortController()",
+        "fetchController.abort()",
+        "signal: fetchController.signal",
+        "window.clearTimeout(fetchTimeout)",
+        "cache: \"no-store\"",
+        "Accept: \"application/json\"",
+        "headers.get(\"content-type\")",
+        "includes(\"application/json\")",
+        "isManifestRecord",
+        "!Array.isArray",
+        "manifestJson",
+        "CHECK_INTERVAL_MS",
+        "MIN_CHECK_GAP_MS",
+        "MAX_BUNDLE_SIZE_BYTES",
+        "MAX_MANIFEST_FUTURE_SKEW_MS",
+        "MAX_MANIFEST_AGE_MS",
+        "MAX_RELEASE_MESSAGE_LENGTH",
+        "Capacitor.isNativePlatform()",
+        "isValidSemver",
+        "manifest.version",
+        "isValidOptionalMessage",
+        "message.trim() === message",
+        "message.length > 0",
+        "manifest.message",
+        "isValidManifestTimestamp",
+        "manifest.createdAt",
+        "Date.parse(createdAt)",
+        "Number.isFinite(timestamp)",
+        "timestamp >= now - MAX_MANIFEST_AGE_MS",
+        "isAllowedBundleUrl",
+        "new URL(SUPABASE_URL)",
+        "bundleUrl.protocol === \"https:\"",
+        "bundleUrl.host === supabaseUrl.host",
+        "bundleUrl.search === \"\"",
+        "bundleUrl.hash === \"\"",
+        "expectedPath",
+        "decodeURIComponent(bundleUrl.pathname) === expectedPath",
+        "isAllowedBundleUrl(manifest.url, manifest.version)",
+        "decodeURIComponent",
+        "zivo-v${version}.zip",
+        "isValidSha256Checksum",
+        "/^[a-f0-9]{64}$/i",
+        "manifest.checksum",
+        "isValidActivation",
+        "manifest.activation",
+        "activation === \"prompt\"",
+        "activation === \"next_launch\"",
+        "activation === \"immediate\"",
+        "isValidBoolean",
+        "typeof value === \"boolean\"",
+        "isValidMandatoryActivation",
+        "manifest.mandatory",
+        "!mandatory || activation === \"next_launch\" || activation === \"immediate\"",
+        "activation !== \"immediate\" || mandatory === true",
+        "bundleSizeBytes",
+        "isAllowedBundleSize",
+        "Number.isFinite(bundleSizeBytes)",
+        "manifest.bundleSizeBytes",
+        "isValidOptionalSemver",
+        "/^\\d+\\.\\d+\\.\\d+$/",
+        "manifest.minNativeVersion",
+        "minNativeVersion",
+        "CapacitorUpdater.download",
+        "newBundle.version !== manifest.version",
+        "CapacitorUpdater.delete",
+        "CapacitorUpdater.next",
+        "CapacitorUpdater.set",
+        "App.addListener(\"resume\"",
+      ]) {
+        requireContains(this.id, hook, needle, hookPath);
+      }
+      for (const needle of [
+        "Do not use OTA updates for new native plugins",
+        "SHA-256 checksum",
+        "--min-native-version",
+        "app-updates",
+      ]) {
+        requireContains(this.id, docs, needle, docsPath);
+      }
+      for (const needle of ["sha256", "latest.json", "contentType: \"application/zip\"", "cacheControl: \"31536000\"", "contentType: \"application/json\"", "cacheControl: \"0\"", "app-updates", "minNativeVersion", "bundleSizeBytes", "Bundle size:", "DEFAULT_MAX_BUNDLE_SIZE_BYTES", "ZIVO_OTA_MAX_BUNDLE_SIZE_BYTES", "readMaxBundleSizeBytes", "maxBundleSizeBytes", "ZIVO_ALLOW_LARGE_OTA_BUNDLE", "I_UNDERSTAND_THE_OTA_SIZE_RISK", "assertBundleSize", "assertValidManifestPayload", "assertValidManifestVersion", "Invalid OTA version value", "assertValidManifestUrl", "Invalid OTA dry-run URL value", "decodeURIComponent", "assertValidBundleSizeBytes", "Invalid OTA bundleSizeBytes value", "assertValidOptionalMinNativeVersion", "Invalid OTA minNativeVersion value", "assertValidOptionalMessage", "Invalid OTA message value", "assertAllowedBundleUrl", "new URL(SUPABASE_URL)", "bundleUrl.search !== \"\"", "bundleUrl.hash !== \"\"", "expectedObjectPath", "decodeURIComponent(bundleUrl.pathname) !== expectedObjectPath", "Unexpected OTA bundle URL", "/storage/v1/object/public/${BUCKET}/${zipName}", "assertValidActivation", "Invalid OTA activation value", "assertValidCreatedAt", "Invalid OTA manifest createdAt timestamp", "Date.parse(value)", "assertValidMandatory", "Invalid OTA mandatory value", "typeof value !== \"boolean\"", "assertValidActivationConsistency", "immediate updates must be mandatory", "assertValidChecksum", "Invalid OTA checksum value", "/^[a-f0-9]{64}$/i", "MAX_RELEASE_MESSAGE_LENGTH", "OTA release message must be", "prompt", "next_launch", "immediate", "parseSemver", "package.json version", "--min-native-version", "valid semver version like 1.2.3", "activationModeFlags", "Choose only one OTA activation mode flag", "--mandatory requires an explicit OTA activation mode", "releaseMessage", "immediate or mandatory OTA updates require", "dryRun", "Running local dry-run preflight", "--skip-build --skip-type-check", "--strict --skip-build", "Manifest preview", "dry-run://", "No package.json changes were written", "ZIVO_ALLOW_OTA_SKIP_PREFLIGHT", "I_UNDERSTAND_THE_RELEASE_RISK", "originalPackageJson", "uploadedBundle", "remove([zipName])", "local zip cleanup failed", "Restored package.json version bump"]) {
+        requireContains(this.id, deploy, needle, deployPath);
+      }
+      for (const scriptName of ["deploy:update", "deploy:update:dry-run", "deploy:update:next", "deploy:update:immediate"]) {
+        requireContains(this.id, pkg, `"${scriptName}": "npm run security:scan && node scripts/deploy-update.mjs`, packagePath);
+      }
+      requireContains(this.id, pkg, '"deploy:update:dry-run": "npm run security:scan && node scripts/deploy-update.mjs --dry-run"', packagePath);
+      requireContains(this.id, config, "autoUpdate: false", configPath);
+    },
+  },
+  {
+    id: "native-release-gate-wiring",
+    category: "wiring",
+    check() {
+      const packagePath = "package.json";
+      const doctorPath = "scripts/native/doctor.mjs";
+      const matrixPath = "scripts/qa/platform-readiness-matrix.mjs";
+      const coveragePath = "scripts/qa/workflow-coverage.mjs";
+      const checkCoveragePath = "scripts/qa/check-workflow-coverage.mjs";
+      const workflowPath = "src/test/workflows/native-app-release.test.ts";
+      const storeListingUrlTestPath = "src/test/nativeStoreListingCanonicalUrls.test.ts";
+      const packageJson = source(packagePath);
+      const doctor = source(doctorPath);
+      const matrix = source(matrixPath);
+      const coverage = source(coveragePath);
+      const checkCoverage = source(checkCoveragePath);
+      const workflow = source(workflowPath);
+      const storeListingUrlTest = source(storeListingUrlTestPath);
+
+      for (const scriptName of [
+        "qa:native-app-contracts",
+        "qa:platform-readiness:check",
+        "qa:workflow-coverage:check",
+        "qa:workflow-test-plan:check",
+        "native:doctor",
+        "native:sync",
+        "ios:build:sim",
+        "android:build:debug",
+      ]) {
+        requireContains(this.id, packageJson, `"${scriptName}"`, packagePath);
+      }
+      requireContains(this.id, packageJson, "npm run qa:native-app-contracts", packagePath);
+      requireContains(this.id, packageJson, '"platform:audit": "npm run security:scan && npm run qa:platform-readiness', packagePath);
+      requireContains(this.id, packageJson, "npm run qa:platform-readiness && npm run qa:platform-readiness:check", packagePath);
+      requireContains(this.id, packageJson, "npm run qa:workflow-coverage && npm run qa:workflow-coverage:check", packagePath);
+      requireContains(this.id, packageJson, "npm run qa:workflow-test-plan && npm run qa:workflow-test-plan:check", packagePath);
+      for (const needle of [
+        "Capacitor config found",
+        "Android SDK configured",
+        "Android versionName aligned",
+        "iOS marketing version aligned",
+        "iOS bundle id",
+      ]) {
+        requireContains(this.id, doctor, needle, doctorPath);
+      }
+      requireContains(this.id, matrix, "native-mobile-release", matrixPath);
+      requireContains(this.id, matrix, "qa:native-app-contracts", matrixPath);
+      requireContains(this.id, coverage, "native-mobile-release", coveragePath);
+      requireContains(this.id, coverage, "qa:native-app-contracts", coveragePath);
+      requireContains(this.id, checkCoverage, "native-mobile-release", checkCoveragePath);
+      requireContains(this.id, workflow, "native app release workflow", workflowPath);
+      requireContains(this.id, storeListingUrlTest, "native store listing canonical URLs", storeListingUrlTestPath);
+    },
+  },
+  {
+    id: "native-submission-command-alignment",
+    category: "submission",
+    check() {
+      const packagePath = "package.json";
+      const appStorePath = "ios/store-listing/APP_STORE.md";
+      const playStorePath = "android/store-listing/PLAY_STORE.md";
+      const doctorPath = "scripts/native/doctor.mjs";
+      const matrixPath = "scripts/qa/platform-readiness-matrix.mjs";
+      const testPath = "src/test/nativeSubmissionCommands.test.ts";
+      const packageJson = source(packagePath);
+      const appStore = source(appStorePath);
+      const playStore = source(playStorePath);
+      const doctor = source(doctorPath);
+      const matrix = source(matrixPath);
+      const test = source(testPath);
+
+      for (const scriptName of [
+        "native:sync",
+        "ios:sync",
+        "ios:build:sim",
+        "android:sync",
+        "android:build:debug",
+        "android:build:release",
+      ]) {
+        requireContains(this.id, packageJson, `"${scriptName}"`, packagePath);
+      }
+      requireContains(this.id, appStore, "Open Xcode", appStorePath);
+      requireContains(this.id, appStore, "Upload build via Xcode", appStorePath);
+      requireContains(this.id, appStore, "App Store Connect", appStorePath);
+      requireContains(this.id, playStore, "npm run android:sync", playStorePath);
+      requireContains(this.id, playStore, "Generate Signed App Bundle", playStorePath);
+      requireContains(this.id, playStore, "Play Console", playStorePath);
+      requireContains(this.id, playStore, "upload `.aab`", playStorePath);
+      requireNotContains(this.id, playStore, "bun run build", playStorePath);
+      for (const command of ["npm run native:sync", "npm run ios:build:sim", "npm run android:build:debug"]) {
+        requireContains(this.id, matrix, command, matrixPath);
+      }
+      requireContains(this.id, doctor, "Android Gradle wrapper found", doctorPath);
+      requireContains(this.id, doctor, "Xcode available", doctorPath);
+      requireContains(this.id, test, "native submission commands", testPath);
+    },
+  },
+  {
+    id: "native-store-release-assets",
+    category: "assets",
+    check() {
+      const assetTestPath = "src/test/nativeStoreAssets.test.ts";
+      const assetTest = source(assetTestPath);
+
+      for (const relativePath of [
+        "ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json",
+        "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png",
+        "ios/App/App/Assets.xcassets/SplashV2.imageset/Contents.json",
+        "ios/App/App/Assets.xcassets/SplashV2.imageset/zivo-splash.png",
+        "ios/App/App/Assets.xcassets/SplashV2.imageset/zivo-splash@2x.png",
+        "ios/App/App/Assets.xcassets/SplashV2.imageset/zivo-splash@3x.png",
+        "android/store-listing/icon-512.png",
+        "android/store-listing/feature-graphic.jpg",
+        "android/store-listing/from-zip/zivo-icon-512.png",
+      ]) {
+        requireFile(this.id, relativePath);
+      }
+
+      for (const density of ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]) {
+        requireFile(this.id, `android/app/src/main/res/mipmap-${density}/ic_launcher.png`);
+        requireFile(this.id, `android/app/src/main/res/mipmap-${density}/ic_launcher_round.png`);
+        requireFile(this.id, `android/app/src/main/res/drawable-port-${density}/splash.png`);
+        requireFile(this.id, `android/app/src/main/res/drawable-land-${density}/splash.png`);
+      }
+
+      requireContains(this.id, assetTest, "native store release assets", assetTestPath);
+      requireContains(this.id, assetTest, "iosScreenshots.length", assetTestPath);
+      requireContains(this.id, assetTest, "feature-graphic.jpg", assetTestPath);
+    },
+  },
+  {
+    id: "native-store-screenshot-specs",
+    category: "assets",
+    check() {
+      const appStorePath = "ios/store-listing/APP_STORE.md";
+      const playStorePath = "android/store-listing/PLAY_STORE.md";
+      const testPath = "src/test/nativeStoreScreenshotSpecs.test.ts";
+      const appStore = source(appStorePath);
+      const playStore = source(playStorePath);
+      const test = source(testPath);
+
+      requireContains(this.id, appStore, "Screenshot Assets", appStorePath);
+      requireContains(this.id, appStore, "at least 6 iPhone screenshots", appStorePath);
+      requireContains(this.id, appStore, "ios/store-listing/sim-home-now.png", appStorePath);
+      requireContains(this.id, appStore, "ios/store-listing/sim-profile-now.png", appStorePath);
+      requireContains(this.id, playStore, "Phone screenshots:  min 2, max 8", playStorePath);
+      requireContains(this.id, playStore, "Icon:               512", playStorePath);
+      requireContains(this.id, playStore, "Feature graphic:    1024", playStorePath);
+      requireContains(this.id, test, "native store screenshot specs", testPath);
+      requireContains(this.id, test, "sharp", testPath);
+      requireContains(this.id, test, "toBeGreaterThanOrEqual(6)", testPath);
+    },
+  },
+  {
+    id: "native-version-release-alignment",
+    category: "versioning",
+    check() {
+      const packagePath = "package.json";
+      const iosProjectPath = "ios/App/App.xcodeproj/project.pbxproj";
+      const androidBuildPath = "android/app/build.gradle";
+      const appStorePath = "ios/store-listing/APP_STORE.md";
+      const playStorePath = "android/store-listing/PLAY_STORE.md";
+      const testPath = "src/test/nativeVersionReleaseAlignment.test.ts";
+      const packageJson = source(packagePath);
+      const iosProject = source(iosProjectPath);
+      const androidBuild = source(androidBuildPath);
+      const appStore = source(appStorePath);
+      const playStore = source(playStorePath);
+      const test = source(testPath);
+
+      requireContains(this.id, packageJson, '"version": "1.3.0"', packagePath);
+      requireContains(this.id, iosProject, "MARKETING_VERSION = 1.3.0", iosProjectPath);
+      requireContains(this.id, iosProject, "CURRENT_PROJECT_VERSION = 3", iosProjectPath);
+      requireContains(this.id, androidBuild, 'versionName "1.3.0"', androidBuildPath);
+      requireContains(this.id, androidBuild, "versionCode 2026053101", androidBuildPath);
+      for (const listingPath of [appStorePath, playStorePath]) {
+        const listing = listingPath === appStorePath ? appStore : playStore;
+        requireContains(this.id, listing, "Release Metadata", listingPath);
+        requireContains(this.id, listing, "Version: 1.3.0", listingPath);
+      }
+      requireContains(this.id, appStore, "Build: 3", appStorePath);
+      requireContains(this.id, playStore, "Version code: 2026053101", playStorePath);
+      requireContains(this.id, test, "native version release alignment", testPath);
+      requireContains(this.id, test, "MARKETING_VERSION", testPath);
+      requireContains(this.id, test, "versionCode", testPath);
+    },
+  },
+  {
+    id: "native-release-checklist",
+    category: "release",
+    check() {
+      const checklistPath = "docs/native-release-checklist.md";
+      const matrixPath = "scripts/qa/platform-readiness-matrix.mjs";
+      const testPath = "src/test/nativeReleaseChecklist.test.ts";
+      const checklist = source(checklistPath);
+      const matrix = source(matrixPath);
+      const test = source(testPath);
+
+      for (const command of [
+        "npm run qa:native-app-contracts",
+        "npm run native:doctor",
+        "npm run native:sync",
+        "npm run ios:sync",
+        "npm run android:sync",
+        "npm run ios:build:sim",
+        "npm run android:build:debug",
+        "npm run android:build:release",
+        "npm run deploy:update:dry-run",
+      ]) {
+        requireContains(this.id, checklist, command, checklistPath);
+      }
+      for (const releaseValue of [
+        "App version: 1.3.0",
+        "iOS build: 3",
+        "iOS bundle ID: com.hizovo.app",
+        "Android versionCode: 2026053101",
+        "Android package: com.hizovo.app",
+      ]) {
+        requireContains(this.id, checklist, releaseValue, checklistPath);
+      }
+      requireContains(this.id, checklist, "OTA updates must not add native plugins", checklistPath);
+      requireContains(this.id, matrix, "src/test/nativeReleaseChecklist.test.ts", matrixPath);
+      requireContains(this.id, matrix, "src/test/nativeSafeAreaBridgeContracts.test.ts", matrixPath);
+      requireContains(this.id, matrix, "src/test/otaDeployBypass.test.ts", matrixPath);
+      requireContains(this.id, matrix, "simulator/debug builds green", matrixPath);
+      requireContains(this.id, test, "native release checklist", testPath);
+    },
+  },
+];
+
+for (const contract of contracts) contract.check();
+
+console.log(JSON.stringify({
+  generated: new Date().toISOString(),
+  counts: {
+    contracts: contracts.length,
+    failures: failures.length,
+  },
+  contracts: contracts.map(({ id, category }) => ({ id, category })),
+  failures,
+}, null, 2));
+
+if (failures.length > 0) {
+  process.exitCode = 1;
+}

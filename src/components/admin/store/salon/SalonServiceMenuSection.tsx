@@ -297,6 +297,7 @@ export default function SalonServiceMenuSection({ storeId }: SalonServiceMenuSec
                             alt=""
                             className="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-border"
                             loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
@@ -496,6 +497,7 @@ export default function SalonServiceMenuSection({ storeId }: SalonServiceMenuSec
                     alt=""
                     className="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-border"
                     loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">

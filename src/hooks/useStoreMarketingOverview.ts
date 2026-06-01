@@ -70,8 +70,9 @@ export function useStoreMarketingOverview(storeId: string | undefined) {
           .order("created_at", { ascending: false })
           .limit(5000),
         supabase
-          .from("ad_campaigns")
-          .select("id, name, status, platform, created_at, total_spend_cents, conversions")
+          .from("store_ad_campaigns" as any)
+          .select("id, name, status, platforms, created_at, spend_cents, conversions")
+          .eq("store_id", storeId)
           .order("created_at", { ascending: false })
           .limit(50),
         supabase
@@ -122,7 +123,7 @@ export function useStoreMarketingOverview(storeId: string | undefined) {
         id: c.id,
         name: c.name,
         status: c.status,
-        channel: c.platform,
+        channel: Array.isArray(c.platforms) ? c.platforms.join(", ") : undefined,
         created_at: c.created_at,
         sparkline: empty7(),
         audience_size: 0,

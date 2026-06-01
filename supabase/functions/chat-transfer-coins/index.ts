@@ -55,7 +55,7 @@ Deno.serve(withSecurity("chat-transfer-coins", async (req, ctx) => {
   } catch (e) {
     return json({ error: (e as Error).message || "Internal error" }, 500, ctx.corsHeaders);
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 function json(o: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(o), { status, headers: { ...headers, "Content-Type": "application/json" } });

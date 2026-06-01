@@ -36,18 +36,16 @@ export function useTwoStep() {
     if (!user) throw new Error("Not signed in");
     const salt = generateSalt();
     const hash = await hashSecret(password, salt);
-    const { error } = await supabase.from("two_step_auth").upsert({
-      user_id: user.id,
+    const { error } = await supabase.functions.invoke("account-security-settings", { body: {
+      resource: "two_step",
+      action: "upsert",
       password_hash: hash,
       password_salt: salt,
       hint: hint ?? null,
       recovery_email: recoveryEmail ?? null,
       enabled: true,
-    }, { onConflict: "user_id" });
+    } });
     if (error) throw error;
-    await supabase.from("login_alerts").insert({
-      user_id: user.id, event: "two_step_changed", metadata: { action: "enabled" },
-    });
     await refresh();
   }, [user, refresh]);
 
@@ -55,11 +53,11 @@ export function useTwoStep() {
     if (!user || !row) throw new Error("No two-step set");
     const ok = await verifySecret(currentPassword, row.password_salt, row.password_hash);
     if (!ok) throw new Error("Wrong password");
-    const { error } = await supabase.from("two_step_auth").delete().eq("user_id", user.id);
+    const { error } = await supabase.functions.invoke("account-security-settings", { body: {
+      resource: "two_step",
+      action: "delete",
+    } });
     if (error) throw error;
-    await supabase.from("login_alerts").insert({
-      user_id: user.id, event: "two_step_changed", metadata: { action: "disabled" },
-    });
     await refresh();
   }, [user, row, refresh]);
 

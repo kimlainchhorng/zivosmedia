@@ -5,11 +5,13 @@ export type DealershipActivityType =
   | "note"
   | "call"
   | "email"
+  | "sms"
   | "meeting"
   | "test_drive"
   | "offer_made"
   | "status_change"
-  | "other";
+  | "other"
+  | "system";
 
 export interface DealershipLeadActivity {
   id: string;
@@ -58,26 +60,31 @@ export function useDealershipLeadActivities(
   const log = useCallback(async (draft: DealershipLeadActivityDraft): Promise<boolean> => {
     if (!storeId || !leadId) return false;
     setSaving(true);
-    const payload = {
-      store_id: storeId,
-      lead_id: leadId,
-      activity_type: draft.activity_type,
-      summary: draft.summary.trim(),
-      body: draft.body?.trim() || null,
-      outcome: draft.outcome?.trim() || null,
-      occurred_at: draft.occurred_at ?? new Date().toISOString(),
-    };
-    const { data, error } = await supabase
-      .from("car_dealership_lead_activities")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error } = await supabase.functions.invoke("car-dealership-lead-activity-manage", {
+      body: {
+        action: "create",
+        store_id: storeId,
+        lead_id: leadId,
+        activity: {
+          activity_type: draft.activity_type,
+          summary: draft.summary,
+          body: draft.body ?? null,
+          outcome: draft.outcome ?? null,
+          occurred_at: draft.occurred_at ?? new Date().toISOString(),
+        },
+      },
+    });
     if (error) {
       console.error("[useDealershipLeadActivities] log failed", error);
       setSaving(false);
       return false;
     }
-    setActivities((prev) => [data as unknown as DealershipLeadActivity, ...prev]);
+    const created = (data as { activity?: DealershipLeadActivity } | null)?.activity;
+    if (!created) {
+      setSaving(false);
+      return false;
+    }
+    setActivities((prev) => [created, ...prev]);
     setSaving(false);
     return true;
   }, [storeId, leadId]);
@@ -86,7 +93,9 @@ export function useDealershipLeadActivities(
     setSaving(true);
     const snapshot = activities;
     setActivities((prev) => prev.filter((a) => a.id !== id));
-    const { error } = await supabase.from("car_dealership_lead_activities").delete().eq("id", id);
+    const { error } = await supabase.functions.invoke("car-dealership-lead-activity-manage", {
+      body: { action: "delete", activity_id: id },
+    });
     if (error) {
       console.error("[useDealershipLeadActivities] delete failed", error);
       setActivities(snapshot);

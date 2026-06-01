@@ -145,7 +145,7 @@ export default function ReactionPacksPage() {
                 >
                   <div className="relative aspect-square bg-muted">
                     {p.preview_url ? (
-                      <img src={p.preview_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                      <img src={p.preview_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full bg-ig-gradient flex items-center justify-center text-5xl">
                         ❤️

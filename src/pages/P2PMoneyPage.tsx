@@ -175,7 +175,7 @@ export default function P2PMoneyPage() {
               const canRespond = isPending && isReceived;
               return (
                 <motion.div key={t.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx, 12) * 0.02 }} className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border">
-                  {p?.avatar_url ? <img src={p.avatar_url} alt="" className="shrink-0 h-10 w-10 rounded-full object-cover" loading="lazy" /> : <div className="shrink-0 h-10 w-10 rounded-full bg-ig-gradient flex items-center justify-center text-white text-xs font-extrabold">{initials(name)}</div>}
+                  {p?.avatar_url ? <img src={p.avatar_url} alt="" className="shrink-0 h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" /> : <div className="shrink-0 h-10 w-10 rounded-full bg-ig-gradient flex items-center justify-center text-white text-xs font-extrabold">{initials(name)}</div>}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className={cn("text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full", isReceived ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-rose-500/15 text-rose-600 dark:text-rose-400")}>{isReceived ? <ArrowDownLeft className="h-2.5 w-2.5 inline" /> : <ArrowUpRight className="h-2.5 w-2.5 inline" />} {isReceived ? "From" : "To"}</span>

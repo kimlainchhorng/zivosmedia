@@ -208,20 +208,15 @@ const LiveChatWidget = () => {
     setIsSubmittingTicket(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const ticketNumber = `ZS-${Date.now().toString().slice(-6)}`;
-
-      const { error } = await supabase.from("support_tickets").insert({
-        ticket_number: ticketNumber,
-        user_id: user?.id || null,
+      const { data, error } = await supabase.functions.invoke("support-ticket-submit", { body: {
         subject: ESCALATION_CATEGORIES.find((c) => c.value === escalationCategory)?.label || "Support Request",
-        description: escalationMessage || "Customer requested human support via AI chat",
-        category: escalationCategory,
-        priority: escalationCategory === "safety" ? "urgent" : "normal",
-        status: "open",
-      });
+        message: escalationMessage || "Customer requested human support via AI chat",
+        source: `live_chat:${escalationCategory}`,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
 
       if (error) throw error;
+      const ticketNumber = (data as any)?.ticket_number ?? "ZS-SUPPORT";
 
       setMessages((prev) => [
         ...prev,

@@ -1,14 +1,31 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+async function canAccessVoiceNote(supabase: any, userId: string, note: any): Promise<boolean> {
+  if (note.user_id === userId) return true;
+  if (!note.message_id) return false;
+  const { data: message } = await supabase
+    .from("direct_messages")
+    .select("sender_id, receiver_id")
+    .eq("id", note.message_id)
+    .maybeSingle();
+  return Boolean(message && (message.sender_id === userId || message.receiver_id === userId));
+}
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("transcribe-voice", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const auth = req.headers.get("Authorization");
+    if (!auth?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { voice_note_id } = await req.json();
     if (!voice_note_id) {
       return new Response(JSON.stringify({ error: "voice_note_id required" }), {
@@ -27,17 +44,38 @@ Deno.serve(async (req) => {
       });
     }
 
+    const token = auth.replace("Bearer ", "");
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: auth } },
+      auth: { persistSession: false },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+    const user = userData?.user;
+    if (userErr || !user?.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { data: vn, error: vnErr } = await supabase
       .from("voice_notes")
-      .select("id, audio_url, transcript")
+      .select("id, user_id, message_id, audio_url, transcript")
       .eq("id", voice_note_id)
       .maybeSingle();
 
     if (vnErr || !vn) {
       return new Response(JSON.stringify({ error: "voice note not found" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!await canAccessVoiceNote(supabase, user.id, vn)) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -132,4 +170,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -142,4 +142,4 @@ Deno.serve(withSecurity("resolve-bakong-ride-refund", async (req, ctx) => {
     console.error("[resolve-bakong-ride-refund]", message);
     return json({ error: message }, 500, cors);
   }
-}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

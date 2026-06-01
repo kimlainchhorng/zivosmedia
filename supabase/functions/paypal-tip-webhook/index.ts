@@ -133,4 +133,4 @@ Deno.serve(withSecurity("paypal-tip-webhook", async (req) => {
 
   await admin.from("tip_paypal_webhook_events").update({ processing_status: processingStatus, error_message: processingError, tip_id: resolvedTipId }).eq("id", logRowId);
   return new Response(JSON.stringify({ received: true, status: processingStatus }), { status: 200, headers: { "Content-Type": "application/json" } });
-}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

@@ -1189,7 +1189,7 @@ function RouteAwareGlobalUI() {
   const location = useLocation();
   const { user } = useAuth();
   const ready = useAfterFirstPaint(4200);
-  const blockedRoutes = ["/login", "/signup", "/setup", "/forgot-password", "/reset-password", "/verify-email", "/verify-otp", "/verify-new-device"];
+  const blockedRoutes = ["/login", "/signup", "/setup", "/forgot-password", "/reset-password", "/verify-email", "/verify-otp", "/verify-new-device", "/auth-callback"];
   const hideGlobalUI = blockedRoutes.some((route) => location.pathname.startsWith(route));
 
   if (hideGlobalUI || !ready) return null;
@@ -1584,7 +1584,7 @@ const App = () => (
                 <Route path="/smart-search" element={<SmartSearchPage />} />
                 <Route path="/notification-center" element={<ProtectedRoute><NotificationCenterPage /></ProtectedRoute>} />
                 <Route path="/activity" element={<ProtectedRoute><ActivityFeedPage /></ProtectedRoute>} />
-                <Route path="/admin/moderation" element={<ProtectedRoute requireAdmin={true}><AdminModerationPage /></ProtectedRoute>} />
+                <Route path="/admin/moderation" element={<ProtectedRoute requireAdmin={true} allowSupport={true}><AdminModerationPage /></ProtectedRoute>} />
                 <Route path="/admin/content-reports" element={<ProtectedRoute requireAdmin={true}><AdminContentReportsPage /></ProtectedRoute>} />
                 <Route path="/admin/reviews/moderation" element={<ProtectedRoute requireAdmin={true}><ReviewModerationDashboard /></ProtectedRoute>} />
                 <Route path="/admin/launch" element={<ProtectedRoute requireAdmin={true}><AdminLaunchDashboard /></ProtectedRoute>} />
@@ -1687,7 +1687,7 @@ const App = () => (
                 <Route path="/admin/drivers/payouts" element={<ProtectedRoute requireAdmin={true}><AdminDriverPayoutsPage /></ProtectedRoute>} />
                 <Route path="/admin/operations/heatmap" element={<ProtectedRoute requireAdmin={true}><AdminTripHeatmapPage /></ProtectedRoute>} />
                 <Route path="/admin/payments/refunds" element={<ProtectedRoute requireAdmin={true}><AdminRefundsPage /></ProtectedRoute>} />
-                <Route path="/admin/moderation/messages" element={<ProtectedRoute requireAdmin={true}><AdminMessageModerationPage /></ProtectedRoute>} />
+                <Route path="/admin/moderation/messages" element={<ProtectedRoute requireAdmin={true} allowSupport={true}><AdminMessageModerationPage /></ProtectedRoute>} />
                 <Route path="/admin/operations/call-closures" element={<ProtectedRoute requireAdmin={true}><AdminCallClosuresPage /></ProtectedRoute>} />
                 <Route path="/admin/qa/moderation" element={<ProtectedRoute requireAdmin={true}><AdminModerationQAPage /></ProtectedRoute>} />
                 <Route path="/admin/qa/marketing-responsive" element={<ProtectedRoute requireAdmin={true}><AdminMarketingResponsiveQA /></ProtectedRoute>} />
@@ -1725,20 +1725,20 @@ const App = () => (
                 <Route path="/business/new" element={<ProtectedRoute><BusinessPageWizard /></ProtectedRoute>} />
                 <Route path="/business/software/:storeId" element={<ProtectedRoute><BusinessSoftwareDownloadPage /></ProtectedRoute>} />
                 <Route path="/desktop/auto-repair/:storeId" element={<ProtectedRoute requireAdmin={true} allowStoreOwner={true}><AutoRepairDesktopAppPage /></ProtectedRoute>} />
-                <Route path="/admin/employees" element={<ProtectedRoute requireAdmin={true}><AdminEmployeesPage /></ProtectedRoute>} />
+                <Route path="/admin/employees" element={<ProtectedRoute requireAdmin={true} allowSupport={true}><AdminEmployeesPage /></ProtectedRoute>} />
                 <Route path="/admin/wallet" element={<ProtectedRoute requireAdmin={true}><AdminWalletPage /></ProtectedRoute>} />
                 <Route path="/admin/system-health" element={<ProtectedRoute requireAdmin={true}><AdminSystemHealth /></ProtectedRoute>} />
                 <Route path="/admin/app-store-assets" element={<ProtectedRoute requireAdmin={true}><AdminAppStoreAssets /></ProtectedRoute>} />
                 <Route path="/admin/android-verification" element={<ProtectedRoute requireAdmin={true}><AdminAndroidVerification /></ProtectedRoute>} />
-                <Route path="/admin/support" element={<ProtectedRoute requireAdmin={true}><AdminSupportDashboard /></ProtectedRoute>} />
-                <Route path="/admin/user-accounts" element={<ProtectedRoute requireAdmin={true}><AdminUserAccounts /></ProtectedRoute>} />
+                <Route path="/admin/support" element={<ProtectedRoute requireAdmin={true} allowSupport={true}><AdminSupportDashboard /></ProtectedRoute>} />
+                <Route path="/admin/user-accounts" element={<ProtectedRoute requireAdmin={true} allowSupport={true}><AdminUserAccounts /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/boost" element={<ProtectedRoute><AdBoostBidding /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/boost-engine" element={<ProtectedRoute><MerchantBoostEngine /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/ai-creative" element={<ProtectedRoute><AiCreativeSuite /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/ai-content" element={<ProtectedRoute><AiContentSuite /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/wallet" element={<ProtectedRoute><MerchantWalletPage /></ProtectedRoute>} />
                 <Route path="/shop-dashboard/tax-reports" element={<ProtectedRoute><MerchantTaxReportPage /></ProtectedRoute>} />
-                <Route path="/admin/god-view" element={<ProtectedRoute requireAdmin={true}><AdminGodView /></ProtectedRoute>} />
+                <Route path="/admin/god-view" element={<ProtectedRoute requireAdmin={true} allowSupport={true}><AdminGodView /></ProtectedRoute>} />
                 <Route path="/admin/telegram-system" element={<ProtectedRoute requireAdmin={true}><AdminTelegramSystemPage /></ProtectedRoute>} />
                 <Route path="/admin/chat-security" element={<ProtectedRoute requireAdmin={true}><AdminChatSecurityPage /></ProtectedRoute>} />
                 <Route path="/admin/security-sentinel" element={<ProtectedRoute requireAdmin={true}><AdminSecuritySentinelPage /></ProtectedRoute>} />
@@ -2011,6 +2011,7 @@ const App = () => (
                 <Route path="/legal/terms" element={<TermsOfService />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+                <Route path="/legal/cookies" element={<CookiePolicy />} />
                 <Route path="/account-deletion" element={<AccountDeletionInfo />} />
                 <Route path="/delete-account" element={<AccountDeletionInfo />} />
                 <Route path="/refund-policy" element={<RefundPolicy />} />

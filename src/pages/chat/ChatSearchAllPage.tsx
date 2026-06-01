@@ -230,9 +230,9 @@ export default function ChatSearchAllPage() {
                 return (
                   <button type="button" key={m.id} onClick={() => goToChat(partnerId)} className="aspect-square overflow-hidden rounded-lg bg-muted/40">
                     {m.image_url ? (
-                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
-                      <video src={url} className="w-full h-full object-cover" muted />
+                      <video src={url} className="w-full h-full object-cover" muted preload="metadata" />
                     )}
                   </button>
                 );

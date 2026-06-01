@@ -12,6 +12,11 @@ async function getSupabase() {
   return _supabase;
 }
 
+async function logAnalyticsEvent(payload: Record<string, unknown>): Promise<void> {
+  const supabase = await getSupabase();
+  await supabase.functions.invoke("analytics-event-track", { body: payload });
+}
+
 interface ErrorReport {
   type: "error" | "rejection" | "network";
   message: string;
@@ -22,16 +27,28 @@ interface ErrorReport {
   sessionId: string;
 }
 
+export interface BoundaryErrorReportInput {
+  boundary: "global" | "route";
+  error: Error;
+  componentStack?: string;
+  section?: string;
+}
+
 let sessionId = "";
 
 function getSessionId(): string {
   if (!sessionId) {
     sessionId =
       sessionStorage.getItem("zivo_error_session") ||
-      crypto.randomUUID();
+      (crypto.randomUUID?.() ?? `session_${Date.now().toString(36)}`);
     sessionStorage.setItem("zivo_error_session", sessionId);
   }
   return sessionId;
+}
+
+function createReportId(): string {
+  const random = crypto.randomUUID?.().slice(0, 8) ?? Math.random().toString(36).slice(2, 10);
+  return `zivo_${Date.now().toString(36)}_${random}`;
 }
 
 const recentErrors = new Set<string>();
@@ -54,10 +71,9 @@ async function reportError(report: ErrorReport): Promise<void> {
   // Log locally
   console.error(`[ErrorMonitor] ${report.type}: ${report.message}`);
 
-  // Attempt to log to Supabase analytics_events table
+  // Attempt to log through the analytics ingestion gate.
   try {
-    const supabase = await getSupabase();
-    await supabase.from("analytics_events").insert({
+    await logAnalyticsEvent({
       event_name: "client_error",
       session_id: report.sessionId,
       page: report.url,
@@ -71,6 +87,57 @@ async function reportError(report: ErrorReport): Promise<void> {
   } catch {
     // Silently fail - don't create error loops
   }
+}
+
+export function reportBoundaryError(input: BoundaryErrorReportInput): string {
+  const reportId = createReportId();
+  const page = typeof window !== "undefined" ? window.location.href : "";
+  const message = input.error.message || "Unknown render error";
+
+  console.error(
+    `[ErrorBoundary:${input.boundary}] ${reportId}`,
+    input.section ? { section: input.section, message } : { message },
+    input.error,
+  );
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent("zivo:client-error", {
+        detail: {
+          reportId,
+          boundary: input.boundary,
+          section: input.section ?? null,
+          message,
+          page,
+        },
+      }),
+    );
+  } catch {
+    // Do not let telemetry create an error loop.
+  }
+
+  void (async () => {
+    try {
+      await logAnalyticsEvent({
+        event_name: "client_error_boundary",
+        session_id: getSessionId(),
+        page,
+        meta: {
+          report_id: reportId,
+          boundary: input.boundary,
+          section: input.section ?? null,
+          message: message.slice(0, 500),
+          stack: input.error.stack?.slice(0, 1000),
+          component_stack: input.componentStack?.slice(0, 1000),
+          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+        },
+      });
+    } catch {
+      // Silent by design: boundary reporting must never crash the UI.
+    }
+  })();
+
+  return reportId;
 }
 
 export function setupGlobalErrorHandlers(): void {
@@ -142,8 +209,7 @@ export function logProfileActionError(
     // Fire-and-forget Supabase write
     void (async () => {
       try {
-        const supabase = await getSupabase();
-        await supabase.from("analytics_events").insert({
+        await logAnalyticsEvent({
           event_name: "profile_action_error",
           session_id: getSessionId(),
           page: typeof window !== "undefined" ? window.location.href : "",
@@ -188,8 +254,7 @@ export function logGestureEvent(
 
     void (async () => {
       try {
-        const supabase = await getSupabase();
-        await supabase.from("analytics_events").insert({
+        await logAnalyticsEvent({
           event_name: "gesture_event",
           session_id: getSessionId(),
           page: typeof window !== "undefined" ? window.location.href : "",

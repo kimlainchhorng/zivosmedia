@@ -21,7 +21,7 @@ import {
   useDragControls,
   type PanInfo,
 } from "framer-motion";
-import { X } from "lucide-react";
+import { GripHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHaptics } from "@/hooks/useHaptics";
 
@@ -41,7 +41,7 @@ interface SwipeableSheetProps {
    * so the sheet never visually overflows on small / notched screens.
    */
   maxHeightVh?: number;
-  /** Add safe-area-aware padding at the top of the sheet (default true) */
+  /** Add safe-area-aware padding at the top of the sheet (default false) */
   safeAreaTop?: boolean;
   /** Z-index of the overlay (default 100) */
   zIndex?: number;
@@ -69,7 +69,7 @@ export default function SwipeableSheet({
   headerAction,
   ariaLabel,
   maxHeightVh = 85,
-  safeAreaTop = true,
+  safeAreaTop = false,
   zIndex = 100,
   className,
   hideCloseButton,
@@ -165,7 +165,7 @@ export default function SwipeableSheet({
 
   // Snap-point max-height: never exceed viewport minus top safe-area + 24px buffer
   const maxHeightStyle = `min(${maxHeightVh}dvh, calc(100dvh - var(--zivo-safe-top,0px) - 24px))`;
-
+  const safeAreaTopPadding = "var(--zivo-safe-top-sheet)";
   // When using `fixed` positioning, portal to <body> so we escape any
   // transformed ancestor (e.g. PullToRefresh) that would otherwise re-anchor
   // position:fixed and shift the sheet off-screen.
@@ -187,7 +187,7 @@ export default function SwipeableSheet({
           aria-label={labelText}
           aria-labelledby={labelledBy}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="zivo-social-sheet-backdrop absolute inset-0" />
 
           <motion.div
             ref={panelRef}
@@ -211,17 +211,17 @@ export default function SwipeableSheet({
             onDragEnd={handleDragEnd}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              "relative w-full max-w-md bg-background rounded-t-2xl shadow-2xl flex flex-col overflow-hidden outline-none",
+              "zivo-social-sheet-panel relative w-full max-w-md rounded-t-[1.5rem] flex flex-col overflow-hidden outline-none",
               className,
             )}
             style={{
               maxHeight: maxHeightStyle,
               paddingTop: safeAreaTop
-                ? "var(--zivo-safe-top-sheet)"
+                ? safeAreaTopPadding
                 : undefined,
               paddingBottom: "var(--zivo-safe-bottom,0px)",
             }}
-            data-padding-top={safeAreaTop ? "var(--zivo-safe-top-sheet)" : ""}
+            data-padding-top={safeAreaTop ? safeAreaTopPadding : ""}
             data-max-height={maxHeightStyle}
           >
             {/* Drag handle + optional header — this strip is the only drag region */}
@@ -240,28 +240,30 @@ export default function SwipeableSheet({
                 aria-hidden="true"
               >
                 <motion.div
-                  initial={{ width: 28, opacity: 0.5 }}
+                  initial={{ width: 34, opacity: 0.58 }}
                   animate={{
-                    width: [28, 44, 40],
-                    opacity: [0.5, 0.9, 0.6],
+                    width: [34, 56, 48],
+                    opacity: [0.58, 0.96, 0.72],
                   }}
                   transition={{
                     duration: 1.4,
                     times: [0, 0.4, 1],
                     ease: "easeOut",
                   }}
-                  className="h-1.5 rounded-full bg-muted-foreground/40"
+                  className="zivo-social-chip flex h-7 items-center justify-center rounded-full px-3 text-muted-foreground shadow-sm"
                   title="Drag down to close"
-                />
+                >
+                  <GripHorizontal className="h-4 w-4" />
+                </motion.div>
               </div>
 
               {(title || !hideCloseButton || headerAction) && (
-                <div className="flex items-center gap-3 px-4 pb-2 min-h-[44px]">
+                <div className="zivo-social-header-glass mx-3 mb-2 flex min-h-[48px] items-center gap-3 rounded-[1.15rem] px-3 py-2">
                   <div className="flex-1 min-w-0">
                     {isStringTitle ? (
                       <h3
                         id={titleId}
-                        className="text-base font-semibold text-foreground truncate"
+                        className="truncate text-base font-extrabold text-foreground"
                       >
                         {title}
                       </h3>
@@ -277,7 +279,7 @@ export default function SwipeableSheet({
                       aria-label={
                         isStringTitle ? `Close ${title}` : "Close dialog"
                       }
-                      className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-full hover:bg-muted/50 active:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="zivo-social-icon-button flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <X className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                       <span className="sr-only">Close</span>

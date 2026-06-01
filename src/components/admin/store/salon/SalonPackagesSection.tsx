@@ -1,5 +1,7 @@
 /**
  * SalonPackagesSection — multi-service bundles with bundled pricing.
+ * Writes are routed through salon-package-manage so package-service links are
+ * validated and synced server-side.
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -111,48 +113,19 @@ export default function SalonPackagesSection({ storeId }: SalonPackagesSectionPr
     if (!Number.isFinite(cents) || cents < 0) { toast.error("Price must be 0 or more."); return; }
     if (Object.keys(draft.service_quantities).length === 0) { toast.error("Add at least one service."); return; }
     setSaving(true);
-    const pkgPayload: Record<string, unknown> = {
-      store_id: storeId,
+    const packagePayload: Record<string, unknown> = {
       name: draft.name.trim(),
       description: draft.description.trim() || null,
       bundle_price_cents: cents,
       validity_days: draft.validity_days ? Math.max(1, Math.min(730, Number(draft.validity_days) || 0)) : null,
       is_active: draft.is_active,
+      service_quantities: draft.service_quantities,
     };
-    let pkgId = editingId;
-    if (editingId) {
-      const { error: err } = await supabase.from("salon_packages").update(pkgPayload as never).eq("id", editingId);
-      if (err) { setError("Couldn't save package."); setSaving(false); return; }
-    } else {
-      const { data, error: err } = await supabase.from("salon_packages").insert(pkgPayload as never).select("id").single();
-      if (err || !data) { setError("Couldn't create package."); setSaving(false); return; }
-      pkgId = (data as any).id;
-    }
-    // Sync junction. This is delete-then-insert without a transaction, so a
-    // failed insert leaves the package with zero services. Surface the error
-    // and reload — don't claim success on a half-applied edit.
-    if (pkgId) {
-      const { error: dErr } = await supabase.from("salon_package_services").delete().eq("package_id", pkgId);
-      if (dErr) {
-        console.error("[SalonPackages] junction delete failed", dErr);
-        setSaving(false);
-        toast.error("Couldn't update the services list. Reloaded latest from server.");
-        await load();
-        return;
-      }
-      const inserts = Object.entries(draft.service_quantities).map(([service_id, quantity]) => ({ package_id: pkgId, service_id, quantity }));
-      if (inserts.length > 0) {
-        const { error: jErr } = await supabase.from("salon_package_services").insert(inserts as never);
-        if (jErr) {
-          console.error("[SalonPackages] junction insert failed", jErr);
-          setSaving(false);
-          toast.error("Saved the package but couldn't attach services. Open it again and re-pick services.");
-          await load();
-          return;
-        }
-      }
-    }
+    const { data, error: err } = await supabase.functions.invoke("salon-package-manage", {
+      body: { action: "save", store_id: storeId, package_id: editingId, package: packagePayload },
+    });
     setSaving(false);
+    if (err || data?.error) { setError(data?.error || "Couldn't save package."); return; }
     toast.success(editingId ? "Package updated." : "Package created.");
     setDialogOpen(false);
     await load();
@@ -161,9 +134,11 @@ export default function SalonPackagesSection({ storeId }: SalonPackagesSectionPr
   const handleDelete = async () => {
     if (!confirmDeleteId) return;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_packages").delete().eq("id", confirmDeleteId);
+    const { data, error: err } = await supabase.functions.invoke("salon-package-manage", {
+      body: { action: "delete", package_id: confirmDeleteId },
+    });
     setSaving(false);
-    if (err) { setError("Couldn't delete."); return; }
+    if (err || data?.error) { setError(data?.error || "Couldn't delete."); return; }
     setConfirmDeleteId(null);
     toast.success("Package removed.");
     await load();

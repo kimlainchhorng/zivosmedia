@@ -4,11 +4,6 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Stripe webhook for ride PaymentIntent events.
 // verify_jwt=false; signature is verified via STRIPE_WEBHOOK_SECRET.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "stripe-signature, content-type",
-};
-
 Deno.serve(withSecurity("stripe-ride-webhook", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -27,7 +22,7 @@ Deno.serve(withSecurity("stripe-ride-webhook", async (req, ctx) => {
     event = await stripe.webhooks.constructEventAsync(body, sig!, webhookSecret);
   } catch (err) {
     console.error("[stripe-ride-webhook] sig verify failed", err);
-    return new Response(`Webhook Error: ${err}`, { status: 400 });
+    return new Response(`Webhook Error: ${err}`, { status: 400, headers: corsHeaders });
   }
 
   const admin = createClient(supabaseUrl, serviceKey, {
@@ -52,14 +47,14 @@ Deno.serve(withSecurity("stripe-ride-webhook", async (req, ctx) => {
     // Duplicate event — already processed
     console.log(`[stripe-ride-webhook] duplicate event ${event.id} skipped`);
     return new Response(JSON.stringify({ received: true, duplicate: true }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   try {
     if (!rideId) {
       return new Response(JSON.stringify({ received: true, skipped: true }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -130,9 +125,9 @@ Deno.serve(withSecurity("stripe-ride-webhook", async (req, ctx) => {
     }
 
     console.log(`[stripe-ride-webhook] ${event.type} → ride ${rideId}`);
-    return new Response(JSON.stringify({ received: true }), { headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ received: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[stripe-ride-webhook]", e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

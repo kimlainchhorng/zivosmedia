@@ -70,18 +70,16 @@ export function useCarRentalAddons(storeId: string | undefined) {
       is_active: draft.is_active ?? true,
       sort_order: draft.sort_order ?? 0,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_addons")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-addon-manage", {
+      body: { action: "create", store_id: storeId, addon: payload },
+    });
     if (err) {
       console.error("[useCarRentalAddons] create failed", err);
       setError("Couldn't add add-on.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalAddon;
+    const created = data?.addon as CarRentalAddon;
     setAddons((prev) => [...prev, created].sort((a, b) => a.sort_order - b.sort_order));
     setSaving(false);
     return created;
@@ -90,11 +88,16 @@ export function useCarRentalAddons(storeId: string | undefined) {
   const update = useCallback(async (id: string, patch: Partial<CarRentalAddonDraft>) => {
     setSaving(true);
     setAddons((prev) => prev.map((a) => (a.id === id ? ({ ...a, ...patch } as CarRentalAddon) : a)));
-    const { error: err } = await supabase.from("car_rental_addons").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-rental-addon-manage", {
+      body: { action: "update", addon_id: id, addon: patch },
+    });
     if (err) {
       console.error("[useCarRentalAddons] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
+    } else if (data?.addon) {
+      const updated = data.addon as CarRentalAddon;
+      setAddons((prev) => prev.map((a) => (a.id === id ? updated : a)));
     }
     setSaving(false);
   }, [load]);
@@ -103,7 +106,9 @@ export function useCarRentalAddons(storeId: string | undefined) {
     setSaving(true);
     const prev = addons;
     setAddons((p) => p.filter((a) => a.id !== id));
-    const { error: err } = await supabase.from("car_rental_addons").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-addon-manage", {
+      body: { action: "delete", addon_id: id },
+    });
     if (err) {
       console.error("[useCarRentalAddons] delete failed", err);
       setError("Couldn't delete add-on.");

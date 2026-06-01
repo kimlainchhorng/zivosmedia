@@ -175,11 +175,11 @@ export default function PartnerConsentModal({
               <p className="text-xs text-muted-foreground">
                 {consentText.description}{" "}
                 View our{" "}
-                <Link to="/privacy" className="underline hover:text-primary">
+                <Link to="/legal/privacy" className="underline hover:text-primary">
                   Privacy Policy
                 </Link>{" "}
                 and{" "}
-                <Link to="/partner-disclosure" className="underline hover:text-primary">
+                <Link to="/legal/partner-disclosure" className="underline hover:text-primary">
                   Partner Disclosure
                 </Link>.
               </p>

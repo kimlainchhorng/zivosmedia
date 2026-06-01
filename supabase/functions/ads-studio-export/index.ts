@@ -5,37 +5,35 @@
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+serve(withSecurity("ads-studio-export", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const auth = req.headers.get("Authorization");
-    if (!auth) return j({ error: "missing auth" }, 401);
+    if (!auth) return j({ error: "missing auth" }, 401, corsHeaders);
 
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: auth } },
     });
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     const { data: u } = await userClient.auth.getUser();
-    if (!u?.user) return j({ error: "unauthenticated" }, 401);
+    if (!u?.user) return j({ error: "unauthenticated" }, 401, corsHeaders);
 
     const { creative_id, destination_url } = await req.json();
-    if (!creative_id) return j({ error: "creative_id required" }, 400);
+    if (!creative_id) return j({ error: "creative_id required" }, 400, corsHeaders);
 
     const { data: c } = await admin
       .from("ads_studio_creatives")
       .select("*, restaurants:store_id(id, name, owner_id, slug, city)")
       .eq("id", creative_id)
       .maybeSingle();
-    if (!c || (c as any).restaurants?.owner_id !== u.user.id) return j({ error: "forbidden" }, 403);
+    if (!c || (c as any).restaurants?.owner_id !== u.user.id) return j({ error: "forbidden" }, 403, corsHeaders);
 
     const store = (c as any).restaurants;
     const finalUrl = destination_url || `https://hizivo.com/store/${store.slug || store.id}`;
@@ -121,12 +119,12 @@ serve(async (req) => {
         tiktok: "https://ads.tiktok.com/i18n/perf/campaign?aadvid=",
         youtube: "https://ads.google.com/aw/campaigns/new",
       },
-    });
+    }, 200, corsHeaders);
   } catch (e) {
     console.error("export err", e);
-    return j({ error: e instanceof Error ? e.message : "unknown" }, 500);
+    return j({ error: e instanceof Error ? e.message : "unknown" }, 500, corsHeaders);
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 function mapMetaObjective(goal: string) {
   switch (goal) {
@@ -137,6 +135,6 @@ function mapMetaObjective(goal: string) {
   }
 }
 function escapeCsv(s: string) { return (s ?? "").replace(/"/g, '""'); }
-function j(p: unknown, status = 200) {
+function j(p: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(p), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }

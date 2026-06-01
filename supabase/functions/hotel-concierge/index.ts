@@ -11,17 +11,12 @@
  */
 import { serve, createClient } from "../_shared/deps.ts";
 import { rateLimitDb } from "../_shared/rateLimiter.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const json = (payload: unknown, status = 200) =>
+const json = (payload: unknown, status = 200, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(payload), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
 const LODGING_CATEGORIES = [
@@ -35,12 +30,15 @@ interface ConciergePick {
   reason: string;
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+serve(withSecurity("hotel-concierge", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const aiHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "POST, OPTIONS" };
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: aiHeaders });
+  if (req.method !== "POST") return json({ error: "POST only" }, 405, aiHeaders);
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) return json({ error: "Service not configured" }, 500);
+  if (!apiKey) return json({ error: "Service not configured" }, 500, aiHeaders);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -50,14 +48,14 @@ serve(async (req) => {
   // Rate-limit per IP — 12 prompts / hour is plenty for genuine use.
   const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "anon";
   const rl = await rateLimitDb(ip, "hotel-concierge", { max: 12, windowSec: 3600 });
-  if (!rl.allowed) return json({ error: "Too many requests, please try again later" }, 429);
+  if (!rl.allowed) return json({ error: "Too many requests, please try again later" }, 429, aiHeaders);
 
   let body: { prompt?: string; candidate_ids?: string[]; max?: number };
-  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400, aiHeaders); }
 
   const prompt = (body.prompt || "").trim();
   if (prompt.length < 3 || prompt.length > 500) {
-    return json({ error: "Prompt must be 3–500 characters" }, 400);
+    return json({ error: "Prompt must be 3–500 characters" }, 400, aiHeaders);
   }
   const max = Math.max(1, Math.min(10, body.max ?? 5));
 
@@ -82,9 +80,9 @@ serve(async (req) => {
     q = q.in("id", body.candidate_ids);
   }
   const { data: stores, error: storeErr } = await q;
-  if (storeErr) return json({ error: storeErr.message }, 500);
+  if (storeErr) return json({ error: storeErr.message }, 500, aiHeaders);
   const candidates = (stores ?? []) as any[];
-  if (candidates.length === 0) return json({ picks: [], narrator: "No properties match yet." });
+  if (candidates.length === 0) return json({ picks: [], narrator: "No properties match yet." }, 200, aiHeaders);
 
   // Compress candidates into a small JSON shape Claude can scan cheaply.
   const compact = candidates.map((s) => {
@@ -152,18 +150,18 @@ ${JSON.stringify(compact)}`;
     });
     if (!res.ok) {
       const errText = await res.text();
-      return json({ error: "AI provider error", detail: errText.slice(0, 200) }, 502);
+      return json({ error: "AI provider error", detail: errText.slice(0, 200) }, 502, aiHeaders);
     }
     const payload = await res.json();
     claudeRaw = payload?.content?.[0]?.text || "";
   } catch (e) {
-    return json({ error: "AI call failed", detail: String(e).slice(0, 200) }, 502);
+    return json({ error: "AI call failed", detail: String(e).slice(0, 200) }, 502, aiHeaders);
   }
 
   // Parse JSON, defensively stripping any code fences.
   const cleaned = claudeRaw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
   let parsed: { narrator?: string; picks?: ConciergePick[] };
-  try { parsed = JSON.parse(cleaned); } catch { return json({ error: "AI response unparseable", raw: cleaned.slice(0, 300) }, 502); }
+  try { parsed = JSON.parse(cleaned); } catch { return json({ error: "AI response unparseable", raw: cleaned.slice(0, 300) }, 502, aiHeaders); }
 
   const validIds = new Set(compact.map((c) => c.id));
   const picks = (parsed.picks || [])
@@ -178,5 +176,5 @@ ${JSON.stringify(compact)}`;
   return json({
     picks,
     narrator: String(parsed.narrator || "").slice(0, 200),
-  });
-});
+  }, 200, aiHeaders);
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

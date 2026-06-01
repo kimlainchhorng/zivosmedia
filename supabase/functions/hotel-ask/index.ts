@@ -10,21 +10,20 @@
  */
 import { serve, createClient } from "../_shared/deps.ts";
 import { rateLimitDb } from "../_shared/rateLimiter.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-const json = (p: unknown, status = 200) =>
-  new Response(JSON.stringify(p), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+const json = (p: unknown, status = 200, corsHeaders: Record<string, string>) =>
+  new Response(JSON.stringify(p), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+serve(withSecurity("hotel-ask", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const aiHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "POST, OPTIONS" };
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: aiHeaders });
+  if (req.method !== "POST") return json({ error: "POST only" }, 405, aiHeaders);
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) return json({ error: "Service not configured" }, 500);
+  if (!apiKey) return json({ error: "Service not configured" }, 500, aiHeaders);
 
   const sb = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -33,19 +32,19 @@ serve(async (req) => {
 
   const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "anon";
   const rl = await rateLimitDb(ip, "hotel-ask", { max: 30, windowSec: 600 });
-  if (!rl.allowed) return json({ error: "Slow down — please try again in a few minutes" }, 429);
+  if (!rl.allowed) return json({ error: "Slow down — please try again in a few minutes" }, 429, aiHeaders);
 
   let body: {
     store_id?: string;
     question?: string;
     history?: Array<{ role: "user" | "assistant"; content: string }>;
   };
-  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400, aiHeaders); }
 
   const storeId = (body.store_id || "").trim();
   const question = (body.question || "").trim();
-  if (!storeId) return json({ error: "store_id required" }, 400);
-  if (question.length < 2 || question.length > 400) return json({ error: "Question must be 2-400 characters" }, 400);
+  if (!storeId) return json({ error: "store_id required" }, 400, aiHeaders);
+  if (question.length < 2 || question.length > 400) return json({ error: "Question must be 2-400 characters" }, 400, aiHeaders);
 
   const history = Array.isArray(body.history)
     ? body.history.slice(-10).filter((m) =>
@@ -57,8 +56,8 @@ serve(async (req) => {
   const { data: detail, error: detailErr } = await sb.rpc("get_hotel_detail", {
     p_store_id: storeId, p_check_in: null, p_check_out: null,
   });
-  if (detailErr) return json({ error: detailErr.message }, 500);
-  if (!detail || !detail.store) return json({ error: "Hotel not found" }, 404);
+  if (detailErr) return json({ error: detailErr.message }, 500, aiHeaders);
+  if (!detail || !detail.store) return json({ error: "Hotel not found" }, 404, aiHeaders);
 
   // Compress to keep tokens cheap.
   const store = detail.store || {};
@@ -157,13 +156,13 @@ Rules:
     });
     if (!res.ok) {
       const errText = await res.text();
-      return json({ error: "AI provider error", detail: errText.slice(0, 200) }, 502);
+      return json({ error: "AI provider error", detail: errText.slice(0, 200) }, 502, aiHeaders);
     }
     const payload = await res.json();
     answer = payload?.content?.[0]?.text || "";
   } catch (e) {
-    return json({ error: "AI call failed", detail: String(e).slice(0, 200) }, 502);
+    return json({ error: "AI call failed", detail: String(e).slice(0, 200) }, 502, aiHeaders);
   }
 
-  return json({ answer: answer.trim() });
-});
+  return json({ answer: answer.trim() }, 200, aiHeaders);
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

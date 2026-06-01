@@ -112,11 +112,13 @@ export function useContacts() {
   ) => {
     if (!user) return { ok: false, error: "Not signed in" };
     if (contactUserId === user.id) return { ok: false, error: "You can't add yourself" };
-    const { error } = await supabase.from("user_contacts").upsert({
-      owner_id: user.id,
-      contact_user_id: contactUserId,
-      custom_name: opts?.customName ?? null,
-      added_via: opts?.via ?? "username",
+    const { error } = await supabase.functions.invoke("contact-manage", {
+      body: {
+        action: "add",
+        contact_user_id: contactUserId,
+        custom_name: opts?.customName ?? null,
+        added_via: opts?.via ?? "username",
+      },
     });
     if (error) return { ok: false, error: error.message };
     await refresh();
@@ -125,31 +127,25 @@ export function useContacts() {
 
   const remove = useCallback(async (contactUserId: string) => {
     if (!user) return;
-    await supabase
-      .from("user_contacts")
-      .delete()
-      .eq("owner_id", user.id)
-      .eq("contact_user_id", contactUserId);
+    await supabase.functions.invoke("contact-manage", {
+      body: { action: "remove", contact_user_id: contactUserId },
+    });
     await refresh();
   }, [user, refresh]);
 
   const toggleFavorite = useCallback(async (contactUserId: string, favorite: boolean) => {
     if (!user) return;
-    await supabase
-      .from("user_contacts")
-      .update({ favorite })
-      .eq("owner_id", user.id)
-      .eq("contact_user_id", contactUserId);
+    await supabase.functions.invoke("contact-manage", {
+      body: { action: "favorite", contact_user_id: contactUserId, favorite },
+    });
     await refresh();
   }, [user, refresh]);
 
   const rename = useCallback(async (contactUserId: string, customName: string | null) => {
     if (!user) return;
-    await supabase
-      .from("user_contacts")
-      .update({ custom_name: customName })
-      .eq("owner_id", user.id)
-      .eq("contact_user_id", contactUserId);
+    await supabase.functions.invoke("contact-manage", {
+      body: { action: "rename", contact_user_id: contactUserId, custom_name: customName },
+    });
     await refresh();
   }, [user, refresh]);
 

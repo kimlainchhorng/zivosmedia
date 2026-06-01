@@ -84,6 +84,22 @@ function parseDriftReport() {
     matched: pick("Matched versions"),
     localOnly: pick("Local-only pending"),
     remoteOnly: pick("Remote-only missing locally"),
+    nearFiveSeconds: pick("Near timestamp pairs within 5 seconds"),
+    nearOneMinute: pick("Near timestamp pairs within 1 minute"),
+    oneToOneNearFiveSeconds: pick("One-to-one reconciliation candidates within 5 seconds"),
+    oneToOneNearOneMinute: pick("One-to-one reconciliation candidates within 1 minute"),
+    unmatchedLocalAfterCandidates: pick("Unmatched local migrations after one-to-one candidates"),
+    unmatchedRemoteAfterCandidates: pick("Unmatched remote versions after one-to-one candidates"),
+    unmatchedLocalAfterRemoteRange: pick("Unmatched local migrations after remote range"),
+    unmatchedRemoteBeforeLocalRange: pick("Unmatched remote versions before local range"),
+    pendingCreatesTables: pick("Pending local creates tables"),
+    pendingCreatesTablesWithoutRls: pick("Pending local creates tables without RLS"),
+    pendingCreatesTablesWithoutGrants: pick("Pending local creates tables without explicit grants"),
+    pendingSequenceBackedIdsWithoutSequenceGrants: pick("Pending local sequence-backed ids without sequence grants"),
+    pendingSecurityDefinersWithoutSearchPath: pick("Pending local SECURITY DEFINER without search_path"),
+    pendingHardcodedSupabaseUrls: pick("Pending local hardcoded Supabase URLs"),
+    pendingLegacyAnonJwts: pick("Pending local legacy anon JWTs"),
+    sharedDays: pick("Shared migration calendar days"),
     remoteError,
   };
 }
@@ -210,6 +226,113 @@ function extractSecurityDefinerRisks(migrations) {
     .map((migration) => rel(migration.file));
 }
 
+function lineNumber(text, index) {
+  return text.slice(0, index).split("\n").length;
+}
+
+function categorizeSupabaseUrl(url, context) {
+  const loweredUrl = url.toLowerCase();
+  const loweredContext = context.toLowerCase();
+  if (loweredUrl.includes("/functions/v1/")) {
+    return /cron\.schedule|net\.http_(?:get|post)|http_post|http_get/.test(loweredContext)
+      ? "scheduled-function-endpoint"
+      : "function-endpoint";
+  }
+  if (loweredUrl.includes("/storage/v1/object/")) return "storage-object";
+  if (loweredUrl.includes("/auth/v1/")) return "auth-endpoint";
+  if (loweredUrl.includes("/rest/v1/")) return "rest-endpoint";
+  return "project-url";
+}
+
+function extractHardcodedSupabaseUrls(migrations) {
+  const rows = [];
+  const urlRe = /https:\/\/([a-z0-9]{12,})\.supabase\.co[^\s'"`),;]*/gi;
+
+  for (const migration of migrations) {
+    for (const match of migration.sql.matchAll(urlRe)) {
+      const url = match[0];
+      const index = match.index ?? 0;
+      const context = migration.sql.slice(Math.max(0, index - 600), index + 600);
+      rows.push({
+        url,
+        projectRef: match[1],
+        category: categorizeSupabaseUrl(url, context),
+        file: rel(migration.file),
+        line: lineNumber(migration.sql, index),
+      });
+    }
+  }
+
+  return rows;
+}
+
+function jwtRole(token) {
+  const [, payload] = token.split(".");
+  if (!payload) return null;
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = JSON.parse(Buffer.from(normalized, "base64").toString("utf8"));
+    return typeof json?.role === "string" ? json.role : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractHardcodedSupabaseAnonJwts(migrations) {
+  const rows = [];
+  const jwtRe = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
+
+  for (const migration of migrations) {
+    for (const match of migration.sql.matchAll(jwtRe)) {
+      const token = match[0];
+      if (jwtRole(token) !== "anon") continue;
+      const index = match.index ?? 0;
+      const context = migration.sql.slice(Math.max(0, index - 500), index + 500);
+      rows.push({
+        file: rel(migration.file),
+        line: lineNumber(migration.sql, index),
+        tokenHash: createHash("sha256").update(token).digest("hex").slice(0, 12),
+        inCronCommand: /cron\.schedule|net\.http_(?:get|post)|http_post|http_get/.test(context.toLowerCase()),
+      });
+    }
+  }
+
+  return rows;
+}
+
+function hasCronUrlRemediation(migrations) {
+  return migrations.some((migration) => {
+    const sql = stripSqlComments(migration.sql);
+    return /\bcron\.job\b/i.test(sql)
+      && /\bapp\.settings\.supabase_url\b/i.test(sql)
+      && /\/functions\/v1\//i.test(sql);
+  });
+}
+
+function hasCronAnonKeyRemediation(migrations) {
+  return migrations.some((migration) => {
+    const sql = stripSqlComments(migration.sql);
+    return /\bcron\.job\b/i.test(sql)
+      && /\bapp\.settings\.supabase_anon_key\b/i.test(sql)
+      && /\bAuthorization\b/i.test(sql);
+  });
+}
+
+function extractCronRemediationRisks(migrations) {
+  const rows = [];
+  for (const migration of migrations) {
+    if (!/cron\.job/i.test(migration.sql)) continue;
+    if (!/regexp_replace\s*\(/i.test(migration.sql)) continue;
+    if (/\\s/.test(migration.sql)) {
+      rows.push({
+        file: rel(migration.file),
+        issue: "Use POSIX [[:space:]] in Postgres regexp_replace patterns instead of \\s.",
+      });
+    }
+  }
+  return rows;
+}
+
 function renderList(items, mapper, limit = 40) {
   if (!items.length) return "- None";
   const visible = items.slice(0, limit).map(mapper);
@@ -233,6 +356,13 @@ function buildSummary() {
   const dataApiGrantReview = extractDataApiGrantReview(migrations, publicTables);
   const viewRisks = extractViewRisks(migrations);
   const securityDefinerWithoutSearchPath = extractSecurityDefinerRisks(migrations);
+  const hardcodedSupabaseUrls = extractHardcodedSupabaseUrls(migrations);
+  const scheduledFunctionUrls = hardcodedSupabaseUrls.filter((item) => item.category === "scheduled-function-endpoint");
+  const hardcodedAnonJwts = extractHardcodedSupabaseAnonJwts(migrations);
+  const cronAnonJwts = hardcodedAnonJwts.filter((item) => item.inCronCommand);
+  const cronUrlRemediation = hasCronUrlRemediation(migrations);
+  const cronAnonKeyRemediation = hasCronAnonKeyRemediation(migrations);
+  const cronRemediationRisks = extractCronRemediationRisks(migrations);
 
   const blockers = [];
   const warnings = [];
@@ -250,7 +380,11 @@ function buildSummary() {
     if (drift.remoteError) {
       blockers.push("Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before upgrade.");
     } else if (drift.local > 0 && drift.remote > 0 && drift.matched === 0) {
-      blockers.push("Local and remote migration histories have zero matching versions.");
+      blockers.push(
+        drift.nearOneMinute > 0
+          ? "Local and remote migration histories have zero exact matches, with near-timestamp pairs indicating version-id drift."
+          : "Local and remote migration histories have zero matching versions.",
+      );
     }
   }
   if (publicTables.missingRlsInMigrations.length) {
@@ -262,6 +396,15 @@ function buildSummary() {
   if (viewRisks.length) warnings.push(`${viewRisks.length} view(s) may need security_invoker=true review before Postgres 17/Data API exposure.`);
   if (securityDefinerWithoutSearchPath.length) {
     warnings.push(`${securityDefinerWithoutSearchPath.length} SECURITY DEFINER migration file(s) may need explicit SET search_path review.`);
+  }
+  if (scheduledFunctionUrls.length && !cronUrlRemediation) {
+    warnings.push(`${scheduledFunctionUrls.length} hardcoded Supabase scheduled/function endpoint URL(s) found in migrations; prefer current_setting('app.settings.supabase_url', true) in new cron/function SQL.`);
+  }
+  if (cronAnonJwts.length && !cronAnonKeyRemediation) {
+    warnings.push(`${cronAnonJwts.length} hardcoded legacy anon JWT occurrence(s) found in scheduled migration SQL; prefer current_setting('app.settings.supabase_anon_key', true) in new cron/function SQL.`);
+  }
+  if (cronRemediationRisks.length) {
+    warnings.push(`${cronRemediationRisks.length} cron remediation migration regex issue(s) found.`);
   }
 
   return {
@@ -279,6 +422,13 @@ function buildSummary() {
     dataApiGrantReview,
     viewRisks,
     securityDefinerWithoutSearchPath,
+    hardcodedSupabaseUrls,
+    scheduledFunctionUrls,
+    hardcodedAnonJwts,
+    cronAnonJwts,
+    cronUrlRemediation,
+    cronAnonKeyRemediation,
+    cronRemediationRisks,
     blockers,
     warnings,
   };
@@ -300,8 +450,11 @@ function renderReport(summary) {
     `- New duplicate migration versions: ${summary.blockingDuplicateVersions.length}`,
     `- Duplicate SQL hashes: ${summary.duplicateHashes.length}`,
     summary.drift
-      ? `- Last linked drift report: local=${summary.drift.local}, remote=${summary.drift.remote}, matched=${summary.drift.matched}, remoteError=${summary.drift.remoteError ? "yes" : "no"}, generated=${summary.drift.generated}`
+      ? `- Last linked drift report: local=${summary.drift.local}, remote=${summary.drift.remote}, matched=${summary.drift.matched}, near5s=${summary.drift.nearFiveSeconds}, near60s=${summary.drift.nearOneMinute}, oneToOne5s=${summary.drift.oneToOneNearFiveSeconds}, oneToOne60s=${summary.drift.oneToOneNearOneMinute}, unmatchedLocal=${summary.drift.unmatchedLocalAfterCandidates}, unmatchedRemote=${summary.drift.unmatchedRemoteAfterCandidates}, localAfterRemoteRange=${summary.drift.unmatchedLocalAfterRemoteRange}, sharedDays=${summary.drift.sharedDays}, remoteError=${summary.drift.remoteError ? "yes" : "no"}, generated=${summary.drift.generated}`
       : "- Last linked drift report: missing",
+    summary.drift
+      ? `- Pending local migration gates: createsTables=${summary.drift.pendingCreatesTables}, withoutRls=${summary.drift.pendingCreatesTablesWithoutRls}, withoutGrants=${summary.drift.pendingCreatesTablesWithoutGrants}, sequenceWithoutGrants=${summary.drift.pendingSequenceBackedIdsWithoutSequenceGrants}, definerWithoutSearchPath=${summary.drift.pendingSecurityDefinersWithoutSearchPath}, hardcodedUrls=${summary.drift.pendingHardcodedSupabaseUrls}, legacyAnonJwts=${summary.drift.pendingLegacyAnonJwts}`
+      : "- Pending local migration gates: unknown",
     `- Declared extensions: ${[...new Set(summary.extensions.map((item) => item.name))].sort().join(", ") || "none"}`,
     `- Postgres 17 unsupported extensions found: ${summary.unsupportedExtensions.length}`,
     `- Public tables created in migrations: ${summary.publicTables.created.length}`,
@@ -309,6 +462,13 @@ function renderReport(summary) {
     `- Recent public tables needing Data API grant review: ${summary.dataApiGrantReview.length}`,
     `- Views needing security_invoker review: ${summary.viewRisks.length}`,
     `- SECURITY DEFINER files needing search_path review: ${summary.securityDefinerWithoutSearchPath.length}`,
+    `- Hardcoded Supabase URLs in migrations: ${summary.hardcodedSupabaseUrls.length}`,
+    `- Hardcoded scheduled/function endpoint URLs: ${summary.scheduledFunctionUrls.length}`,
+    `- Cron function URL remediation migration present: ${summary.cronUrlRemediation ? "yes" : "no"}`,
+    `- Hardcoded legacy anon JWTs in migrations: ${summary.hardcodedAnonJwts.length}`,
+    `- Hardcoded legacy anon JWTs in scheduled/function SQL: ${summary.cronAnonJwts.length}`,
+    `- Cron anon-key remediation migration present: ${summary.cronAnonKeyRemediation ? "yes" : "no"}`,
+    `- Cron remediation regex issues: ${summary.cronRemediationRisks.length}`,
     "",
     "## Blockers",
     "",
@@ -360,6 +520,44 @@ function renderReport(summary) {
     "",
     renderList(summary.viewRisks, (item) => `- ${item.view}: ${item.file}`, 80),
     "",
+    "## Hardcoded Supabase URL Review",
+    "",
+    renderList(
+      summary.hardcodedSupabaseUrls,
+      (item) => `- ${item.category}: ${item.file}:${item.line} (${item.url})`,
+      120,
+    ),
+    "",
+    "For new cron/function SQL, prefer `current_setting('app.settings.supabase_url', true)` with a deploy-time setting instead of embedding a project URL.",
+    "",
+    "## Hardcoded Legacy Anon JWT Review",
+    "",
+    renderList(
+      summary.hardcodedAnonJwts,
+      (item) => `- ${item.inCronCommand ? "scheduled-function-auth" : "anon-jwt"}: ${item.file}:${item.line} (sha256:${item.tokenHash})`,
+      120,
+    ),
+    "",
+    "Token values are intentionally not printed. For new cron/function SQL, prefer `current_setting('app.settings.supabase_anon_key', true)` with a deploy-time setting.",
+    "",
+    "## Cron Remediation Regex Review",
+    "",
+    renderList(
+      summary.cronRemediationRisks,
+      (item) => `- ${item.file}: ${item.issue}`,
+      80,
+    ),
+    "",
+    "## Runtime Settings SQL",
+    "",
+    "Configure these per Supabase project after applying migrations. Generate guarded SQL with `npm run supabase:runtime-settings:sql`; see `docs/supabase-runtime-settings.md`.",
+    "",
+    "```sql",
+    "alter database postgres set \"app.settings.supabase_url\" = 'https://<project-ref>.supabase.co';",
+    "alter database postgres set \"app.settings.supabase_anon_key\" = '<legacy-anon-or-compatible-function-auth-key>';",
+    "select pg_reload_conf();",
+    "```",
+    "",
     "## Remote SQL To Run Before Upgrade",
     "",
     "```sql",
@@ -380,9 +578,9 @@ function renderReport(summary) {
     "",
     "## Upgrade Path",
     "",
-    "1. Install/authenticate Supabase CLI or MCP and refresh `docs/supabase-migration-drift-report.md`.",
-    "2. Reconcile duplicate local migration versions without rewriting already-applied production history.",
-    "3. Compare remote schema history to local migrations and decide whether this repo needs a baseline migration.",
+    "1. Install/authenticate Supabase CLI or MCP and refresh `docs/supabase-migration-drift-report.md` with `npm run supabase:migrations:report`.",
+    "2. Review `docs/supabase-migration-reconciliation-plan.md` and reconcile local/remote version ids without rewriting already-applied production history.",
+    "3. Run `npm run supabase:migrations:linked:strict`; it must pass before production schema push/pull.",
     "4. Confirm no Postgres 17-unsupported extensions are installed remotely.",
     "5. For every public table that must be reachable through REST/GraphQL, enable RLS and add explicit grants for `anon` and/or `authenticated`.",
     "6. Run Supabase advisors, type generation, API readiness, secret scan, and a production build.",
@@ -410,6 +608,22 @@ console.log(JSON.stringify({
   dataApiGrantReviewCandidates: summary.dataApiGrantReview.length,
   viewsNeedingSecurityInvokerReview: summary.viewRisks.length,
   securityDefinerFilesNeedingSearchPathReview: summary.securityDefinerWithoutSearchPath.length,
+  hardcodedSupabaseUrls: summary.hardcodedSupabaseUrls.length,
+  hardcodedScheduledFunctionUrls: summary.scheduledFunctionUrls.length,
+  cronFunctionUrlRemediation: summary.cronUrlRemediation,
+  hardcodedLegacyAnonJwts: summary.hardcodedAnonJwts.length,
+  hardcodedCronLegacyAnonJwts: summary.cronAnonJwts.length,
+  cronAnonKeyRemediation: summary.cronAnonKeyRemediation,
+  cronRemediationRegexIssues: summary.cronRemediationRisks.length,
+  pendingLocalMigrationGates: summary.drift ? {
+    createsTables: summary.drift.pendingCreatesTables,
+    withoutRls: summary.drift.pendingCreatesTablesWithoutRls,
+    withoutGrants: summary.drift.pendingCreatesTablesWithoutGrants,
+    sequenceWithoutGrants: summary.drift.pendingSequenceBackedIdsWithoutSequenceGrants,
+    definerWithoutSearchPath: summary.drift.pendingSecurityDefinersWithoutSearchPath,
+    hardcodedUrls: summary.drift.pendingHardcodedSupabaseUrls,
+    legacyAnonJwts: summary.drift.pendingLegacyAnonJwts,
+  } : null,
   supabaseCli: summary.cli.installed ? summary.cli.version : "missing",
   report: writeReport ? rel(reportPath) : undefined,
 }, null, 2));

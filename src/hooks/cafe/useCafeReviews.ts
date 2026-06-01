@@ -84,22 +84,22 @@ export function useCafeReviews(storeId: string | undefined): UseCafeReviewsResul
     if (!storeId) return null;
     setSaving(true);
     const payload = {
-      store_id: storeId,
       display_name: draft.display_name.trim(),
       rating_stars: draft.rating_stars,
       comment: draft.comment?.trim() || null,
       tags: draft.tags,
       is_visible: draft.is_visible,
     };
-    const { data, error: err } = await supabase
-      .from("cafe_reviews" as never).insert(payload as never).select("*").single();
+    const { data, error: err } = await supabase.functions.invoke("cafe-review-manage", {
+      body: { action: "create", store_id: storeId, review: payload },
+    });
     setSaving(false);
     if (err) {
       console.error("[useCafeReviews] create", err);
       setError("Couldn't save review.");
       return null;
     }
-    const created = data as unknown as CafeReview;
+    const created = data.review as unknown as CafeReview;
     setReviews((p) => [created, ...p]);
     return created;
   }, [storeId]);
@@ -109,29 +109,29 @@ export function useCafeReviews(storeId: string | undefined): UseCafeReviewsResul
     const trimmed = response.trim();
     // Setting/replacing a reply timestamps now; clearing it nulls both so
     // the unreplied badge correctly re-counts the row.
-    const { data, error: err } = await supabase
-      .from("cafe_reviews" as never)
-      .update({
-        owner_response: trimmed || null,
-        owner_response_at: trimmed ? new Date().toISOString() : null,
-      } as never)
-      .eq("id", id).select("*").single();
+    const { data, error: err } = await supabase.functions.invoke("cafe-review-manage", {
+      body: { action: "reply", review_id: id, response: trimmed },
+    });
     setSaving(false);
     if (err) { console.error("[useCafeReviews] reply", err); await load(); return; }
-    const updated = data as unknown as CafeReview;
+    const updated = data.review as unknown as CafeReview;
     setReviews((p) => p.map((r) => r.id === id ? updated : r));
   }, [load]);
 
   const setVisible = useCallback(async (id: string, visible: boolean) => {
     setReviews((p) => p.map((r) => r.id === id ? { ...r, is_visible: visible } : r));
-    const { error: err } = await supabase.from("cafe_reviews" as never).update({ is_visible: visible } as never).eq("id", id);
+    const { error: err } = await supabase.functions.invoke("cafe-review-manage", {
+      body: { action: "set_visible", review_id: id, is_visible: visible },
+    });
     if (err) { console.error("[useCafeReviews] setVisible", err); await load(); }
   }, [load]);
 
   const remove = useCallback(async (id: string) => {
     const prev = reviews;
     setReviews((p) => p.filter((r) => r.id !== id));
-    const { error: err } = await supabase.from("cafe_reviews" as never).delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("cafe-review-manage", {
+      body: { action: "delete", review_id: id },
+    });
     if (err) { console.error("[useCafeReviews] remove", err); setReviews(prev); }
   }, [reviews]);
 

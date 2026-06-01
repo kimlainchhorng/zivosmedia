@@ -2,9 +2,11 @@
 // signed in to the SAME account as the QR issuer. On success, the issuer
 // device's poll endpoint will report the link as claimed.
 import { createClient } from "../_shared/deps.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("device-link-claim", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -109,4 +111,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -149,8 +149,8 @@ export function GroceryPolicyFooter() {
           Prices and availability subject to change. Final price confirmed at checkout.
           By ordering, you agree to our{" "}
           <Link to="/grocery/terms" className="text-primary/60 hover:underline">Terms</Link>,{" "}
-          <Link to="/privacy" className="text-primary/60 hover:underline">Privacy Policy</Link>, and{" "}
-          <Link to="/cookies" className="text-primary/60 hover:underline">Cookie Policy</Link>.
+          <Link to="/legal/privacy" className="text-primary/60 hover:underline">Privacy Policy</Link>, and{" "}
+          <Link to="/legal/cookies" className="text-primary/60 hover:underline">Cookie Policy</Link>.
         </p>
         <p className="text-[9px] text-muted-foreground/40">© {new Date().getFullYear()} ZIVO Technologies · All rights reserved</p>
       </div>

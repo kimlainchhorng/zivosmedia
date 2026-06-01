@@ -7,21 +7,13 @@
  * larger functions when a deploy mysteriously fails.
  */
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Touch the import so tree-shaking can't drop it.
 const _sdkLoaded = typeof createClient === "function";
 
-Deno.serve((req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+Deno.serve(withSecurity("ping-canary", async (_req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   return new Response(
     JSON.stringify({
       ok: true,
@@ -34,4 +26,11 @@ Deno.serve((req) => {
       status: 200,
     },
   );
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["GET"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+  skipBotDetection: true,
+}));

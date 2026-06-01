@@ -124,23 +124,19 @@ export default function PublicCarDealershipReviewSubmitPage() {
 
     setSubmitting(true);
     const payload = {
-      store_id: store.id,
       sale_id: dealId,
       customer_name: name.trim(),
-      vehicle_label: deal.vehicle_label,
       rating,
       title: title.trim() || null,
       body: body.trim(),
-      is_visible: false, // moderated — RLS policy also enforces this
     };
-    const { error } = await supabase
-      .from("car_dealership_reviews")
-      .insert(payload as never);
+    const { error } = await supabase.functions.invoke("car-dealership-review-submit", { body: payload });
     setSubmitting(false);
 
     if (error) {
       console.error("[review-submit] insert failed", error);
-      if (error.code === "23505") {
+      const status = (error as { context?: { status?: number } }).context?.status;
+      if (status === 409 || error.message.toLowerCase().includes("already")) {
         toast.error("Looks like a review for this deal was already submitted.");
         setLoadState("already_reviewed");
       } else {
@@ -214,7 +210,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-2xl px-4 py-3 flex items-center gap-3">
           {store.logo_url ? (
-            <img src={store.logo_url} alt="" className="h-9 w-9 rounded-lg object-cover" />
+            <img src={store.logo_url} alt="" className="h-9 w-9 rounded-lg object-cover" loading="lazy" decoding="async" />
           ) : (
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
               <Car className="h-4 w-4" />

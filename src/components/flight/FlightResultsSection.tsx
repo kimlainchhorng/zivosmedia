@@ -95,7 +95,7 @@ export default function FlightResultsSection({
               <span className="font-semibold text-foreground">Book directly with ZIVO:</span>{" "}
               <span className="hidden sm:inline">Secure checkout, instant e-ticket, and full booking support — all handled by ZIVO. </span>
               No hidden fees. No redirects.{" "}
-              <Link to="/partner-disclosure" className="text-emerald-500 hover:underline">Learn more</Link>
+              <Link to="/legal/partner-disclosure" className="text-emerald-500 hover:underline">Learn more</Link>
             </p>
           </div>
         </div>

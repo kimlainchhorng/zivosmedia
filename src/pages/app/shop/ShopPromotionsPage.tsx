@@ -35,7 +35,7 @@ export default function ShopPromotionsPage() {
 
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
-  const [discountType, setDiscountType] = useState("percent");
+  const [discountType, setDiscountType] = useState("percentage");
   const [discountValue, setDiscountValue] = useState("");
   const [usageLimit, setUsageLimit] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -58,7 +58,7 @@ export default function ShopPromotionsPage() {
         id: p.id,
         code: p.code,
         name: p.name,
-        discountType: p.discount_type ?? "percent",
+        discountType: p.discount_type ?? "percentage",
         discountValue: p.discount_value,
         isActive: p.is_active ?? true,
         usageCount: p.usage_count ?? 0,
@@ -79,29 +79,30 @@ export default function ShopPromotionsPage() {
     const sid = storeId;
     if (!sid) { toast.error("No store found"); setSaving(false); return; }
 
-    const { data, error } = await supabase
-      .from("promotions")
-      .insert({
+    const { data, error } = await supabase.functions.invoke("promotion-manage", {
+      body: {
+        action: "create",
         merchant_id: sid,
-        code: code.trim().toUpperCase(),
-        name: name.trim(),
-        discount_type: discountType,
-        discount_value: parseFloat(discountValue),
-        usage_limit: usageLimit ? parseInt(usageLimit) : null,
-        ends_at: endsAt || null,
-        is_active: true,
-        created_by: user.id,
-      })
-      .select("id, code, name, discount_type, discount_value, is_active, usage_count, usage_limit, ends_at")
-      .single();
+        promotion: {
+          code: code.trim().toUpperCase(),
+          name: name.trim(),
+          discount_type: discountType,
+          discount_value: parseFloat(discountValue),
+          usage_limit: usageLimit ? parseInt(usageLimit) : null,
+          ends_at: endsAt || null,
+          is_active: true,
+        },
+      },
+    });
 
     if (error) { toast.error("Failed to create promotion"); }
-    else if (data) {
+    else if (data?.promotion) {
+      const promotion = data.promotion;
       setPromos(prev => [{
-        id: data.id, code: data.code, name: data.name,
-        discountType: data.discount_type ?? "percent", discountValue: data.discount_value,
-        isActive: data.is_active ?? true, usageCount: 0,
-        usageLimit: data.usage_limit, endsAt: data.ends_at,
+        id: promotion.id, code: promotion.code, name: promotion.name,
+        discountType: promotion.discount_type ?? "percentage", discountValue: promotion.discount_value,
+        isActive: promotion.is_active ?? true, usageCount: promotion.usage_count ?? 0,
+        usageLimit: promotion.usage_limit, endsAt: promotion.ends_at,
       }, ...prev]);
       toast.success("Promotion created");
       setCode(""); setName(""); setDiscountValue(""); setUsageLimit(""); setEndsAt("");
@@ -111,12 +112,18 @@ export default function ShopPromotionsPage() {
   };
 
   const toggleActive = async (id: string, current: boolean) => {
-    await supabase.from("promotions").update({ is_active: !current }).eq("id", id);
+    if (!storeId) return;
+    await supabase.functions.invoke("promotion-manage", {
+      body: { action: "set_active", promotion_id: id, is_active: !current },
+    });
     setPromos(prev => prev.map(p => p.id === id ? { ...p, isActive: !current } : p));
   };
 
   const deletePromo = async (id: string) => {
-    await supabase.from("promotions").delete().eq("id", id);
+    if (!storeId) return;
+    await supabase.functions.invoke("promotion-manage", {
+      body: { action: "delete", promotion_id: id },
+    });
     setPromos(prev => prev.filter(p => p.id !== id));
     toast.success("Promotion deleted");
   };
@@ -153,7 +160,7 @@ export default function ShopPromotionsPage() {
                 <Select value={discountType} onValueChange={setDiscountType}>
                   <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percent">Percent %</SelectItem>
+                    <SelectItem value="percentage">Percent %</SelectItem>
                     <SelectItem value="fixed">Fixed $</SelectItem>
                   </SelectContent>
                 </Select>
@@ -212,7 +219,7 @@ export default function ShopPromotionsPage() {
               <p className="text-sm font-medium text-foreground">{promo.name}</p>
               <div className="flex gap-2 mt-2 flex-wrap">
                 <Badge variant="outline" className="text-xs">
-                  {promo.discountType === "percent" ? `${promo.discountValue}% off` : `$${promo.discountValue} off`}
+                  {promo.discountType === "percentage" || promo.discountType === "percent" ? `${promo.discountValue}% off` : `$${promo.discountValue} off`}
                 </Badge>
                 <Badge variant="outline" className="text-xs">
                   {promo.usageCount} used{promo.usageLimit ? ` / ${promo.usageLimit}` : ""}

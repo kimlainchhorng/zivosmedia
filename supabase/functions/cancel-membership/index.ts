@@ -118,4 +118,4 @@ Deno.serve(withSecurity("cancel-membership", async (req, ctx) => {
     console.error("[cancel-membership]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious" }));

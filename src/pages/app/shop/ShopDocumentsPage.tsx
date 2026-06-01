@@ -88,10 +88,10 @@ export default function ShopDocumentsPage() {
         .from("shop-documents")
         .getPublicUrl(path);
 
-      await (supabase as any).from("feedback_submissions").insert({
-        user_id: user!.id,
+      const { error: recordError } = await supabase.functions.invoke("shop-ops-record-submit", { body: {
         category: "shop_document",
-        message: JSON.stringify({
+        subject: docName.trim(),
+        payload: {
           name: docName.trim(),
           category,
           employeeName: employeeName.trim() || null,
@@ -100,8 +100,10 @@ export default function ShopDocumentsPage() {
           fileName: pendingFile.name,
           fileSize: pendingFile.size,
           uploadedAt: new Date().toISOString().slice(0, 10),
-        }),
-      });
+        },
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (recordError) throw recordError;
 
       toast.success("Document uploaded");
       queryClient.invalidateQueries({ queryKey: ["shop-documents", user?.id] });
@@ -116,10 +118,10 @@ export default function ShopDocumentsPage() {
   const handleDelete = async (doc: any) => {
     if (!confirm(`Delete "${doc.name}"?`)) return;
     try {
-      if (doc.storagePath) {
-        await supabase.storage.from("shop-documents").remove([doc.storagePath]);
-      }
-      await (supabase as any).from("feedback_submissions").delete().eq("id", doc.id);
+      const { error } = await supabase.functions.invoke("shop-ops-record-manage", {
+        body: { action: "delete_document", record_id: doc.id },
+      });
+      if (error) throw error;
       toast.success("Deleted");
       queryClient.invalidateQueries({ queryKey: ["shop-documents", user?.id] });
     } catch (e: any) {

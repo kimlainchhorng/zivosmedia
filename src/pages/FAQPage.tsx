@@ -195,7 +195,7 @@ export default function FAQPage() {
                 Contact Support
               </Link>
               <Link 
-                to="/partner-disclosure" 
+                to="/legal/partner-disclosure" 
                 className="inline-flex items-center gap-2 px-6 py-3 border border-border rounded-xl font-medium hover:bg-muted/50 hover:border-primary/30 hover:shadow-sm transition-all duration-200"
               >
                 <Shield className="w-4 h-4" />

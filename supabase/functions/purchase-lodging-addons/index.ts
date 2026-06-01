@@ -1,11 +1,7 @@
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { notifyLodgingReservation } from "../_shared/lodging-notifications.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 type Addon = { id?: string; name?: string; label?: string; price_cents?: number; amount_cents?: number; unit?: string; pricing_unit?: string; disabled?: boolean; min_guests?: number; max_guests?: number; min_nights?: number; max_nights?: number; available_from?: string; available_until?: string; exclude_blocked_dates?: boolean; max_quantity?: number; requires_status?: string | string[] };
 type Selection = { id: string; quantity?: number };
@@ -43,7 +39,9 @@ async function recordFailed(admin: any, r: any, userId: string, selections: unkn
   }).then(() => null);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("purchase-lodging-addons", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -141,4 +139,4 @@ Deno.serve(async (req) => {
   } catch (err) {
     return new Response(JSON.stringify({ error: String((err as Error).message || err) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

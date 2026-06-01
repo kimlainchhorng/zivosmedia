@@ -66,37 +66,17 @@ export function useSessions() {
   const heartbeat = useCallback(async () => {
     if (!user) return;
     const existingId = localStorage.getItem(CURRENT_KEY);
-    if (existingId) {
-      await supabase
-        .from("user_sessions")
-        .update({ last_active_at: new Date().toISOString(), is_active: true })
-        .eq("id", existingId)
-        .eq("user_id", user.id);
-      return;
-    }
     const dev = detectDevice();
-    const { data } = await supabase
-      .from("user_sessions")
-      .insert({
-        user_id: user.id,
-        is_active: true,
-        last_active_at: new Date().toISOString(),
-        ...dev,
-      })
-      .select("id")
-      .maybeSingle();
-    if (data?.id) {
-      localStorage.setItem(CURRENT_KEY, data.id);
-      setCurrentId(data.id);
-      try {
-        await supabase.from("login_alerts").insert({
-          user_id: user.id,
-          event: "login",
-          device_name: dev.device_info,
-          platform: dev.device_type,
-          user_agent: navigator.userAgent,
-        });
-      } catch { /* non-blocking */ }
+    const { data } = await supabase.functions.invoke("user-session-presence", { body: {
+      action: "heartbeat",
+      session_id: existingId,
+      user_agent: navigator.userAgent,
+      ...dev,
+    } });
+    const nextId = (data as any)?.session_id;
+    if (nextId) {
+      localStorage.setItem(CURRENT_KEY, nextId);
+      setCurrentId(nextId);
     }
   }, [user]);
 
@@ -108,26 +88,19 @@ export function useSessions() {
 
   const revoke = useCallback(async (id: string) => {
     if (!user) return;
-    await supabase.from("user_sessions").update({ is_active: false }).eq("id", id).eq("user_id", user.id);
-    try {
-      await supabase.from("login_alerts").insert({
-        user_id: user.id, event: "session_revoked", metadata: { session_id: id },
-      });
-    } catch { /* non-blocking */ }
+    await supabase.functions.invoke("user-session-presence", { body: {
+      action: "revoke",
+      session_id: id,
+    } });
     await refresh();
   }, [user, refresh]);
 
   const revokeAllOthers = useCallback(async () => {
     if (!user) return;
-    const me = currentId;
-    let q = supabase.from("user_sessions").update({ is_active: false }).eq("user_id", user.id).eq("is_active", true);
-    if (me) q = q.neq("id", me);
-    await q;
-    try {
-      await supabase.from("login_alerts").insert({
-        user_id: user.id, event: "session_revoked", metadata: { all_others: true },
-      });
-    } catch { /* non-blocking */ }
+    await supabase.functions.invoke("user-session-presence", { body: {
+      action: "revoke_all_others",
+      current_session_id: currentId,
+    } });
     await refresh();
   }, [user, currentId, refresh]);
 

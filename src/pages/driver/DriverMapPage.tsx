@@ -426,7 +426,7 @@ export default function DriverMapPage() {
       toast.success("Trip completed! Great job.");
       setAcceptedJobId(null);
       setAcceptedJobFlight(null);
-      navigate("/driver");
+      navigate("/drive");
     } else {
       const labels: Record<string, string> = { arrived: "Marked as arrived at pickup", in_progress: "Trip started" };
       toast.success(labels[newStatus] || "Status updated");

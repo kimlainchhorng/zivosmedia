@@ -13,16 +13,18 @@ import { useI18n } from "@/hooks/useI18n";
 import SEOHead from "@/components/SEOHead";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
-import TrendingHashtags, { postHasHashtag } from "@/components/social/TrendingHashtags";
+import TrendingHashtags from "@/components/social/TrendingHashtags";
+import { postHasHashtag } from "@/lib/social/hashtags";
 import { EmptyState } from "@/components/ui/empty-state";
-import MentionPicker, { detectMention, applyMention } from "@/components/social/MentionPicker";
+import MentionPicker from "@/components/social/MentionPicker";
+import { applyMention, detectMention } from "@/lib/social/mentionText";
 import { usePostActions, type PostActionTarget } from "@/hooks/usePostActions";
 import { usePostReactions } from "@/hooks/usePostReactions";
 import { usePostReposts } from "@/hooks/usePostReposts";
 import { usePostViewTracking } from "@/hooks/usePostViewTracking";
 import { useHiddenPosts } from "@/hooks/useHiddenPosts";
 import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
-import type { ReactionEmoji } from "@/components/social/ReactionPicker";
+import type { ReactionEmoji } from "@/lib/social/reactions";
 import { topicForUserSync } from "@/lib/security/channelName";
 import { confirmContentSafe } from "@/lib/security/contentLinkValidation";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
@@ -45,6 +47,7 @@ import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import UserCircle from "lucide-react/dist/esm/icons/user-circle";
 import MoreHorizontal from "lucide-react/dist/esm/icons/more-horizontal";
 import Bookmark from "lucide-react/dist/esm/icons/bookmark";
+import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle";
 import Flag from "lucide-react/dist/esm/icons/flag";
 import EyeOff from "lucide-react/dist/esm/icons/eye-off";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
@@ -96,6 +99,7 @@ import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
 import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
 import { detectSensitiveContent, isSensitiveReportReason, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 // videoRepair is heavy (FFmpeg WASM) — dynamic import only when needed
 
 const FEED_STORE_PAGE_SIZE = 18;
@@ -711,6 +715,23 @@ function ReelCard({
   const currentSrc = blobSrc || sourceUrl;
   const renderSrc = blobSrc || (isBlobLoading ? "" : sourceUrl);
 
+  const tryBlobFallback = useCallback(async (url: string) => {
+    if (triedBlobFallback) return;
+    setTriedBlobFallback(true);
+    setIsBlobLoading(true);
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error("fetch failed");
+      const blob = await resp.blob();
+      setBlobSrc(URL.createObjectURL(new Blob([blob], { type: blob.type || "video/mp4" })));
+      setHasPlaybackError(false);
+    } catch {
+      // Keep quiet here; FFmpeg repair is attempted next.
+    } finally {
+      setIsBlobLoading(false);
+    }
+  }, [triedBlobFallback]);
+
   useEffect(() => {
     if (!showMoreMenu && !showSpeedPicker) return;
     document.body.dataset.reelSheetOpen = "true";
@@ -836,10 +857,10 @@ function ReelCard({
 
   // Cleanup: if the user unmounts mid-hold, kill the timer + reset speed.
   useEffect(() => {
+    const video = videoRef.current;
     return () => {
       if (fastForwardTimerRef.current) clearTimeout(fastForwardTimerRef.current);
-      const v = videoRef.current;
-      if (v) { try { v.playbackRate = 1.0; } catch {} }
+      if (video) { try { video.playbackRate = 1.0; } catch {} }
     };
   }, []);
 
@@ -1092,10 +1113,10 @@ function ReelCard({
     setTriedBlobFallback(false);
     setTriedFFmpegRepair(false);
     setHasLoadedFrame(false);
-    if (blobSrc) {
-      URL.revokeObjectURL(blobSrc);
-      setBlobSrc(null);
-    }
+    setBlobSrc((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
   }, [post.id, sourceUrl]);
 
   // Sync global mute toggle
@@ -1124,7 +1145,7 @@ function ReelCard({
 
     // Capacitor iOS WebView is more reliable with same-origin blob URLs for remote videos.
     void tryBlobFallback(sourceUrl);
-  }, [blobSrc, isVideoPost, sourceUrl, triedBlobFallback]);
+  }, [blobSrc, isVideoPost, sourceUrl, triedBlobFallback, tryBlobFallback]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -1174,23 +1195,6 @@ function ReelCard({
       if (err instanceof DOMException && err.name === "SecurityError") {
         void tryBlobFallback(blobSrc ?? sourceUrl ?? "");
       }
-    }
-  };
-
-  const tryBlobFallback = async (url: string) => {
-    if (triedBlobFallback) return;
-    setTriedBlobFallback(true);
-    setIsBlobLoading(true);
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error("fetch failed");
-      const blob = await resp.blob();
-      setBlobSrc(URL.createObjectURL(new Blob([blob], { type: blob.type || "video/mp4" })));
-      setHasPlaybackError(false);
-    } catch {
-      // Keep quiet here; FFmpeg repair is attempted next.
-    } finally {
-      setIsBlobLoading(false);
     }
   };
 
@@ -1284,7 +1288,7 @@ function ReelCard({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0 }}
             transition={{ type: "spring", damping: 22, stiffness: 280 }}
-            className="absolute left-3 right-3 z-50 flex items-center gap-2.5 bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2.5 shadow-xl"
+            className="zivo-feed-glass absolute left-3 right-3 z-50 flex items-center gap-2.5 rounded-2xl px-3 py-2.5"
             style={{ top: "calc(var(--zivo-safe-top,0px) + 56px)" }}
           >
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
@@ -1523,7 +1527,7 @@ function ReelCard({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85 }}
             transition={{ duration: 0.18 }}
-            className="absolute left-1/2 top-[calc(var(--zivo-safe-top,0px)+84px)] -translate-x-1/2 z-30 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-md flex items-center gap-1.5 pointer-events-none"
+            className="zivo-feed-glass absolute left-1/2 top-[calc(var(--zivo-safe-top,0px)+84px)] -translate-x-1/2 z-30 px-3 py-1.5 rounded-full flex items-center gap-1.5 pointer-events-none"
           >
             <span className="text-white text-sm font-bold tabular-nums">2×</span>
             <span className="text-white text-xs">▶▶</span>
@@ -1596,7 +1600,7 @@ function ReelCard({
           and hidden when offline (the top banner already explains it). */}
       {isVideoPost && isBuffering && isActive && cardIsOnline && !hasPlaybackError && !isRepairing && !isBlobLoading && hasLoadedFrame && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md">
+          <div className="zivo-feed-glass flex items-center gap-2 px-3 py-1.5 rounded-full">
             <Loader2 className="w-4 h-4 text-white animate-spin" />
             <span className="text-white text-[11px] font-semibold">Buffering…</span>
           </div>
@@ -1606,7 +1610,7 @@ function ReelCard({
       {/* Paused indicator */}
       {isVideoPost && !isPlaying && !hasPlaybackError && !isRepairing && !isBlobLoading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-          <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center">
+          <div className="zivo-feed-action-orb w-16 h-16 rounded-full flex items-center justify-center">
             <Play className="w-7 h-7 text-white ml-1" fill="white" />
           </div>
         </div>
@@ -1615,7 +1619,7 @@ function ReelCard({
       {/* Converting overlay */}
       {(isRepairing || isBlobLoading) && !hasLoadedFrame && (
         <div className="absolute inset-x-0 top-[45%] z-30 flex justify-center pointer-events-none">
-          <div className="flex items-center gap-2 rounded-full bg-black/45 px-3 py-2 backdrop-blur-md border border-white/10">
+          <div className="zivo-feed-glass flex items-center gap-2 rounded-full px-3 py-2">
             <RefreshCw className="w-4 h-4 text-white animate-spin" />
             <p className="text-[11px] text-white/90 font-semibold">{isBlobLoading ? "Loading..." : "Preparing..."}</p>
           </div>
@@ -1645,7 +1649,7 @@ function ReelCard({
             transition={{ duration: 0.2 }}
             className="absolute left-4 right-16 bottom-[calc(var(--zivo-safe-bottom,0px)+160px)] z-25 pointer-events-none"
           >
-            <div className="bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2">
+            <div className="zivo-feed-glass rounded-lg px-3 py-2">
               <p className="text-white text-[13px] sm:text-sm font-medium leading-snug text-center">
                 {post.caption}
               </p>
@@ -1953,7 +1957,7 @@ function ReelCard({
             (it's display-only) so the column fits a 568-px-tall viewport
             without clipping the avatar off the top.
           - tablet/desktop: all items, still grouped tightly */}
-      <div className="absolute right-5 sm:right-3 lg:right-4 bottom-[calc(var(--zivo-safe-bottom,0px)+128px)] z-30 flex flex-col items-center justify-end gap-1.5 sm:gap-2 lg:gap-2.5">
+      <div className="zivo-feed-action-rail absolute right-4 sm:right-3 lg:right-4 bottom-[calc(var(--zivo-safe-bottom,0px)+126px)] z-30 flex flex-col items-center justify-end gap-1.5 sm:gap-2 lg:gap-2.5 rounded-[2rem] px-1.5 py-2">
         {/* Like / Reaction (long-press for emoji picker) */}
         <div className="relative">
           {onSetReaction && (
@@ -1999,7 +2003,7 @@ function ReelCard({
             aria-label={currentReaction ? `Reacted ${currentReaction}` : "Like"}
             title="Like (L)"
           >
-            <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center shadow-[0_4px_14px_-4px_rgba(0,0,0,0.6)] transition-transform active:scale-90">
+            <div className="zivo-feed-action-orb w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center">
               {currentReaction ? (
                 <span className="text-2xl leading-none" aria-hidden>
                   {currentReaction}
@@ -2042,7 +2046,7 @@ function ReelCard({
           aria-label="Comment"
           title="Comments"
         >
-          <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center shadow-[0_4px_14px_-4px_rgba(0,0,0,0.6)] transition-transform active:scale-90">
+          <div className="zivo-feed-action-orb w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center">
             <MessageCircle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
           </div>
           {liveCommentsCount > 0 && (
@@ -2079,7 +2083,7 @@ function ReelCard({
             className="hidden sm:flex flex-col items-center gap-0.5 min-w-[44px] min-h-[44px]"
             aria-label={isReposted ? "Reposted" : "Repost"}
           >
-            <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center shadow-[0_4px_14px_-4px_rgba(0,0,0,0.6)] transition-transform active:scale-90">
+            <div className="zivo-feed-action-orb w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center">
               <Repeat2 className={cn(
                 "w-6 h-6 lg:w-7 lg:h-7",
                 isReposted ? "text-emerald-400 fill-emerald-400/20" : "text-white",
@@ -2101,7 +2105,7 @@ function ReelCard({
           aria-label="Share"
           title="Share"
         >
-          <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center shadow-[0_4px_14px_-4px_rgba(0,0,0,0.6)] transition-transform active:scale-90">
+          <div className="zivo-feed-action-orb w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center">
             <Send className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
           </div>
           {(post.shares_count || 0) > 0 && (
@@ -2119,7 +2123,7 @@ function ReelCard({
           aria-label={saved ? "Remove from saved" : "Save reel"}
           title={saved ? "Saved" : "Save"}
         >
-          <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center shadow-[0_4px_14px_-4px_rgba(0,0,0,0.6)] transition-transform active:scale-90">
+          <div className="zivo-feed-action-orb w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center">
             <Bookmark
               className={cn(
                 "w-6 h-6 lg:w-7 lg:h-7 transition-transform",
@@ -2140,7 +2144,7 @@ function ReelCard({
           aria-label={globalMuted ? "Unmute" : "Mute"}
           title={globalMuted ? "Tap to unmute" : "Tap to mute"}
         >
-          <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center shadow-[0_4px_14px_-4px_rgba(0,0,0,0.6)] transition-transform active:scale-90">
+          <div className="zivo-feed-action-orb w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center">
             {globalMuted
               ? <VolumeX className="w-6 h-6 lg:w-7 lg:h-7 text-white/80" />
               : <Volume2 className="w-6 h-6 lg:w-7 lg:h-7 text-white" />}
@@ -2160,8 +2164,8 @@ function ReelCard({
             <div className={cn(
               "w-11 h-11 rounded-full flex items-center justify-center border transition-all",
               showCaptions
-                ? "bg-white border-white"
-                : "bg-black/40 backdrop-blur-sm border-white/10",
+                ? "bg-white border-white zivo-feed-teal-ring"
+                : "zivo-feed-action-orb",
             )}>
               <span className={cn(
                 "text-[11px] font-black tracking-tight leading-none",
@@ -2222,7 +2226,7 @@ function ReelCard({
           aria-label="More options"
           title="More options"
         >
-          <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center border border-white/10">
+          <div className="zivo-feed-action-orb w-11 h-11 rounded-full flex items-center justify-center">
             <MoreHorizontal className="w-5 h-5 text-white" />
           </div>
         </button>
@@ -2241,7 +2245,7 @@ function ReelCard({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md flex items-baseline gap-1 pointer-events-none"
+            className="zivo-feed-glass absolute left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-2xl flex items-baseline gap-1 pointer-events-none"
             style={{ top: "40%" }}
           >
             <span className="text-white text-2xl font-bold tabular-nums">
@@ -2365,7 +2369,7 @@ function ReelCard({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowMoreMenu(false)}
-              className="fixed inset-0 z-[1499] bg-black/60"
+              className="zivo-social-sheet-backdrop fixed inset-0 z-[1499]"
             />
             <motion.div
               initial={{ y: "100%" }}
@@ -2385,7 +2389,7 @@ function ReelCard({
               role="dialog"
               aria-modal="true"
               aria-label="Reel actions"
-              className="fixed inset-x-0 bottom-0 z-[1500] max-h-[86dvh] bg-background rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
+              className="zivo-social-sheet-panel fixed inset-x-0 bottom-0 z-[1500] flex max-h-[86dvh] flex-col overflow-hidden rounded-t-[1.75rem]"
             >
               <div
                 onPointerDown={(e) => {
@@ -2402,11 +2406,20 @@ function ReelCard({
                   moreSheetPointerStartY.current = null;
                 }}
                 style={{ touchAction: "none" }}
-                className="flex shrink-0 cursor-grab active:cursor-grabbing justify-center pt-2 pb-1"
+                className="flex shrink-0 cursor-grab justify-center pb-1 pt-3 active:cursor-grabbing"
               >
-                <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+                <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
               </div>
-              <div className="px-2 py-2 pb-[max(0.75rem,var(--zivo-safe-bottom,0px))] space-y-0.5 overflow-y-auto overscroll-contain">
+              <div className="flex shrink-0 items-center justify-between border-b border-border/35 px-5 pb-3 pt-1">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Reel tools</p>
+                  <h3 className="text-base font-black tracking-tight text-foreground">Actions</h3>
+                </div>
+                <span className="rounded-full border border-white/45 bg-white/55 px-3 py-1 text-[11px] font-black text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+                  {playbackSpeed}×
+                </span>
+              </div>
+              <div className="space-y-1 overflow-y-auto overscroll-contain px-2 py-2 pb-[max(0.75rem,var(--zivo-safe-bottom,0px))] [&>button]:rounded-2xl [&>button]:transition-colors [&>button:hover]:bg-white/58 [&>button:hover]:shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
                 <button type="button"
                   onClick={() => {
                     setShowMoreMenu(false);
@@ -2626,7 +2639,7 @@ function ReelCard({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowSpeedPicker(false)}
-              className="fixed inset-0 z-[1499] bg-black/60"
+              className="zivo-social-sheet-backdrop fixed inset-0 z-[1499]"
             />
             <motion.div
               initial={{ y: "100%" }}
@@ -2646,7 +2659,7 @@ function ReelCard({
               role="dialog"
               aria-modal="true"
               aria-label="Playback speed"
-              className="fixed inset-x-0 bottom-0 z-[1500] max-h-[86dvh] bg-background rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
+              className="zivo-social-sheet-panel fixed inset-x-0 bottom-0 z-[1500] flex max-h-[86dvh] flex-col overflow-hidden rounded-t-[1.75rem]"
             >
               <div
                 onPointerDown={(e) => {
@@ -2663,12 +2676,20 @@ function ReelCard({
                   speedSheetPointerStartY.current = null;
                 }}
                 style={{ touchAction: "none" }}
-                className="flex shrink-0 cursor-grab active:cursor-grabbing justify-center pt-2 pb-1"
+                className="flex shrink-0 cursor-grab justify-center pb-1 pt-3 active:cursor-grabbing"
               >
-                <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+                <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
               </div>
-              <p className="shrink-0 px-5 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">Playback speed</p>
-              <div className="px-2 pb-2 grid grid-cols-4 gap-2 overflow-y-auto overscroll-contain">
+              <div className="flex shrink-0 items-center justify-between border-b border-border/35 px-5 pb-3 pt-1">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Playback</p>
+                  <h3 className="text-base font-black tracking-tight text-foreground">Speed control</h3>
+                </div>
+                <span className="rounded-full border border-white/45 bg-white/55 px-3 py-1 text-[11px] font-black text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+                  {playbackSpeed}× active
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 overflow-y-auto overscroll-contain px-3 py-3">
                 {[0.5, 1.0, 1.5, 2.0].map((rate) => {
                   const active = Math.abs(playbackSpeed - rate) < 0.01;
                   return (
@@ -2676,8 +2697,10 @@ function ReelCard({
                       key={rate}
                       onClick={() => { haptic("selection"); setPlaybackSpeed(rate); setShowSpeedPicker(false); }}
                       className={cn(
-                        "py-3 rounded-xl text-sm font-bold tabular-nums transition-all active:scale-95",
-                        active ? "bg-primary text-primary-foreground" : "bg-muted/40 text-foreground hover:bg-muted",
+                        "rounded-2xl py-3 text-sm font-black tabular-nums transition-all active:scale-95",
+                        active
+                          ? "bg-gradient-to-br from-cyan-400 via-primary to-fuchsia-500 text-white shadow-[0_18px_38px_hsl(189_94%_43%/0.22)]"
+                          : "zivo-social-module-tile text-foreground hover:scale-[1.01]",
                       )}
                     >
                       {rate}×
@@ -2685,9 +2708,11 @@ function ReelCard({
                   );
                 })}
               </div>
-              <p className="shrink-0 px-5 pb-[max(0.75rem,var(--zivo-safe-bottom,0px))] text-[11px] text-muted-foreground">
-                Tip: tap and hold the video for a quick 2× boost.
-              </p>
+              <div className="shrink-0 px-5 pb-[max(0.9rem,var(--zivo-safe-bottom,0px))]">
+                <p className="zivo-social-module-tile rounded-2xl px-3 py-2 text-[11px] font-semibold leading-5 text-muted-foreground">
+                  Tip: tap and hold the video for a quick 2× boost.
+                </p>
+              </div>
             </motion.div>
           </>
         )}
@@ -3009,42 +3034,45 @@ function CommentSheet({
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="zivo-social-sheet-backdrop absolute inset-0" />
 
       {/* Sheet */}
       <div
-        className="relative bg-background rounded-t-3xl max-h-[72vh] flex flex-col animate-in slide-in-from-bottom duration-300 [padding-top:var(--zivo-safe-top-sheet)] [padding-bottom:var(--zivo-safe-bottom,0px)]"
+        className="zivo-social-sheet-panel relative flex max-h-[72vh] flex-col overflow-hidden rounded-t-[1.75rem] animate-in slide-in-from-bottom duration-300 [padding-top:var(--zivo-safe-top-sheet)] [padding-bottom:var(--zivo-safe-bottom,0px)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center pt-2 pb-1" aria-hidden="true">
-          <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+          <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
         </div>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-1 pb-3 border-b border-border">
-          <span className="font-semibold text-foreground">Comments ({displayCommentCount})</span>
+        <div className="flex items-center justify-between border-b border-border/35 px-5 pb-3 pt-1">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Conversation</p>
+            <h3 className="text-base font-black tracking-tight text-foreground">Comments ({displayCommentCount})</h3>
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close comments"
             title="Close comments"
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted"
+            className="zivo-social-icon-button"
           >
-            <XIcon className="w-4 h-4 text-muted-foreground" />
+            <XIcon className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
         {/* Sort toggle (only shown when there are at least 2 top-level comments) */}
         {comments.filter((c: any) => !c.parent_id).length >= 2 && (
-          <div className="px-4 pt-2 flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground font-medium">Sort by:</span>
+          <div className="flex items-center gap-2 px-4 pt-3 text-xs">
+            <span className="font-black uppercase tracking-[0.16em] text-muted-foreground">Sort</span>
             <button
               type="button"
               onClick={() => setCommentSort("newest")}
               className={cn(
-                "rounded-full px-3 py-1 font-semibold transition-colors active:scale-95",
+                "rounded-full px-3 py-1 font-black transition-colors active:scale-95",
                 commentSort === "newest"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  ? "zivo-social-chip-active"
+                  : "zivo-social-chip",
               )}
             >
               Newest
@@ -3053,10 +3081,10 @@ function CommentSheet({
               type="button"
               onClick={() => setCommentSort("top")}
               className={cn(
-                "rounded-full px-3 py-1 font-semibold transition-colors active:scale-95",
+                "rounded-full px-3 py-1 font-black transition-colors active:scale-95",
                 commentSort === "top"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  ? "zivo-social-chip-active"
+                  : "zivo-social-chip",
               )}
             >
               Top
@@ -3068,12 +3096,18 @@ function CommentSheet({
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm font-black text-muted-foreground">Loading comments...</span>
+              </div>
             </div>
           ) : comments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
-              <MessageCircle className="w-8 h-8 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No comments yet. Start the conversation.</p>
+            <div className="zivo-social-module flex flex-col items-center justify-center gap-2 px-5 py-12 text-center">
+              <span className="zivo-social-share-orb h-14 w-14">
+                <MessageCircle className="h-6 w-6" />
+              </span>
+              <p className="text-sm font-black text-foreground">No comments yet</p>
+              <p className="text-xs font-semibold text-muted-foreground">Start the conversation.</p>
             </div>
           ) : (() => {
             // Group comments into top-level + replies-by-parent
@@ -3108,19 +3142,19 @@ function CommentSheet({
               const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
               const avatarSize = isReply ? "w-7 h-7" : "w-8 h-8";
               return (
-                <div key={c.id} className={`flex gap-2 ${isReply ? "ml-9" : ""}`}>
-                  <div className={`${avatarSize} rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5 overflow-hidden`}>
+                <div key={c.id} className={`zivo-social-comment-row flex gap-2 rounded-2xl p-2.5 ${isReply ? "ml-9" : ""}`}>
+                  <div className={`zivo-social-avatar-ring ${avatarSize} mt-0.5 flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full p-0.5`}>
                     {prof?.avatar_url ? (
-                      <img src={prof.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      <img src={prof.avatar_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
                     ) : (
-                      <span className="text-xs font-bold text-muted-foreground">{initials}</span>
+                      <span className="text-xs font-black text-muted-foreground">{initials}</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <p className="text-xs font-semibold text-foreground">{name}</p>
+                      <p className="text-xs font-black text-foreground">{name}</p>
                       {c.is_pinned && !isReply && (
-                        <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-primary">
                           📌 Pinned
                         </span>
                       )}
@@ -3134,13 +3168,13 @@ function CommentSheet({
                           rows={2}
                           aria-label="Edit comment"
                           placeholder="Edit your comment"
-                          className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+                          className="zivo-social-sheet-input w-full resize-none rounded-2xl px-3 py-2 text-sm text-foreground outline-none"
                         />
                         <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() => { setEditingId(null); setEditingText(""); }}
-                            className="rounded-lg px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted active:scale-95"
+                            className="rounded-full px-3 py-1 text-xs font-black text-muted-foreground hover:bg-white/60 active:scale-95"
                           >
                             Cancel
                           </button>
@@ -3148,7 +3182,7 @@ function CommentSheet({
                             type="button"
                             onClick={() => handleEditComment(c.id, editingText)}
                             disabled={!editingText.trim() || editingText.trim() === c.content || savingCommentIds.has(c.id)}
-                            className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-40 active:scale-95"
+                            className="rounded-full bg-primary px-3 py-1 text-xs font-black text-primary-foreground disabled:opacity-40 active:scale-95"
                           >
                             {savingCommentIds.has(c.id) ? "Saving..." : "Save"}
                           </button>
@@ -3156,13 +3190,13 @@ function CommentSheet({
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm text-foreground">
+                        <p className="text-sm font-medium text-foreground">
                           <Suspense fallback={<span>{c.content}</span>}>
                             <SafeCaption text={c.content} />
                           </Suspense>
                         </p>
                         <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>{new Date(c.created_at).toLocaleDateString()}</span>
+                          <span className="font-semibold">{new Date(c.created_at).toLocaleDateString()}</span>
                           {!isReply && userId && (
                             <button
                               type="button"
@@ -3171,7 +3205,7 @@ function CommentSheet({
                                 // eslint-disable-next-line react-hooks/refs
                                 requestAnimationFrame(() => inputRef.current?.focus());
                               }}
-                              className="font-semibold text-foreground/70 hover:text-foreground active:scale-95 transition-transform"
+                              className="font-black text-foreground/70 transition-transform hover:text-foreground active:scale-95"
                             >
                               Reply
                             </button>
@@ -3253,7 +3287,7 @@ function CommentSheet({
         </div>
 
         {/* Input */}
-        <div className="px-4 pt-3 pb-[calc(var(--zivo-safe-bottom,0px)+12px)] border-t border-border">
+        <div className="border-t border-border/35 px-4 pt-3 pb-[calc(var(--zivo-safe-bottom,0px)+12px)]">
           {!userId ? (
             <p className="text-center text-sm text-muted-foreground py-1">Sign in to comment</p>
           ) : !isVerified ? (
@@ -3265,8 +3299,8 @@ function CommentSheet({
             <>
               {/* "Replying to @name" badge */}
               {replyTo && (
-                <div className="mb-2 flex items-center justify-between rounded-full bg-primary/10 px-3 py-1.5">
-                  <span className="text-xs text-primary">
+                <div className="zivo-social-module-tile mb-2 flex items-center justify-between rounded-full px-3 py-1.5">
+                  <span className="text-xs font-semibold text-primary">
                     Replying to <span className="font-semibold">@{replyTo.authorName}</span>
                   </span>
                   <button
@@ -3314,14 +3348,14 @@ function CommentSheet({
                   if (e.key === "Enter" && mentionQuery == null) handleSubmit();
                 }}
                 placeholder={replyTo ? `Reply to @${replyTo.authorName}…` : "Add a comment..."}
-                className="flex-1 h-11 sm:h-10 rounded-full bg-muted px-4 text-base sm:text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
+                className="zivo-social-sheet-input h-11 flex-1 rounded-full px-4 text-base text-foreground placeholder:text-muted-foreground outline-none sm:h-10 sm:text-sm"
                 disabled={submitting}
               />
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={!commentText.trim() || submitting}
-                className="w-11 h-11 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center disabled:opacity-40 active:scale-95 transition-transform"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500 shadow-[0_14px_30px_hsl(189_94%_43%/0.2)] transition-transform disabled:opacity-40 active:scale-95 sm:h-10 sm:w-10"
                 aria-label="Send comment"
               >
                 <Send className="w-4 h-4 text-primary-foreground" />
@@ -3465,7 +3499,7 @@ function FeedQuickLaunchButton({
         onNavigate(launch.href);
         onClose();
       }}
-      className="flex items-center gap-3 rounded-lg border border-border/50 bg-card px-3 py-3 text-left active:scale-[0.98] transition-transform"
+      className="zivo-social-module-tile flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition-transform active:scale-[0.98]"
     >
       <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", launch.tone)}>
         <Icon className="h-5 w-5" />
@@ -3536,23 +3570,23 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
   const hasResults = quickLaunchResults.length > 0 || storeResults.length > 0 || profileResults.length > 0;
 
   return (
-    <div className="fixed inset-0 z-[1500] bg-background flex flex-col">
+    <div className="zivo-social-surface fixed inset-0 z-[1500] flex flex-col">
       {/* Search header */}
-      <div className="safe-area-top pt-2 px-3 pb-2.5 flex items-center gap-2 border-b border-border/50">
-        <button type="button" onClick={onClose} aria-label="Close search" title="Close search" className="p-2 rounded-full hover:bg-muted/50">
+      <div className="zivo-social-header-glass safe-area-top flex items-center gap-2 px-3 pb-2.5 pt-2">
+        <button type="button" onClick={onClose} aria-label="Close search" title="Close search" className="zivo-social-icon-button">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
-        <div className="flex-1 relative">
+        <div className="zivo-social-search relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search apps, rides, food, hotels, people..."
-            className="w-full h-11 pl-9 pr-9 rounded-full bg-muted/40 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="h-11 w-full bg-transparent pl-9 pr-9 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {query && (
-            <button type="button" onClick={() => setQuery("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2">
+            <button type="button" onClick={() => setQuery("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-white/60">
               <XIcon className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
@@ -3564,14 +3598,14 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
         {quickLaunchResults.length > 0 && (
           <div className="px-4 pt-4">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.18em]">
                 {hasQuery ? "ZIVO apps" : "Jump in"}
               </p>
               {!hasQuery && (
                 <button
                   type="button"
                   onClick={() => { onNavigate("/services"); onClose(); }}
-                  className="text-[11px] font-semibold text-foreground"
+                  className="rounded-full border border-white/45 bg-white/55 px-2.5 py-1 text-[11px] font-black text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
                 >
                   See all
                 </button>
@@ -3591,37 +3625,50 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
         )}
 
         {!hasQuery && (
-          <div className="px-8 py-8 text-center">
-            <Search className="mx-auto w-10 h-10 text-muted-foreground/25" />
-            <p className="mt-3 text-sm text-muted-foreground">Search people, shops, restaurants, or any ZIVO app.</p>
+          <div className="px-4 py-8">
+            <div className="zivo-social-module mx-auto flex max-w-sm flex-col items-center px-6 py-8 text-center">
+              <span className="zivo-social-share-orb mb-4 h-14 w-14">
+                <Search className="h-6 w-6" />
+              </span>
+              <p className="text-base font-black tracking-tight text-foreground">Search all of ZIVO</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">Find people, shops, restaurants, travel, rides, and apps in one place.</p>
+            </div>
           </div>
         )}
 
         {hasQuery && isLoading && (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm font-black text-muted-foreground">Searching...</span>
+            </div>
           </div>
         )}
 
         {hasQuery && !isLoading && !hasResults && (
-          <div className="flex flex-col items-center justify-center py-16 gap-2">
-            <Search className="w-10 h-10 text-muted-foreground/20" />
-            <p className="text-sm text-muted-foreground">No results for "{debouncedQuery}"</p>
+          <div className="px-4 py-12">
+            <div className="zivo-social-module mx-auto flex max-w-sm flex-col items-center gap-2 px-6 py-8 text-center">
+              <span className="zivo-social-share-orb h-14 w-14">
+                <Search className="h-6 w-6" />
+              </span>
+              <p className="text-sm font-black text-foreground">No results for "{debouncedQuery}"</p>
+              <p className="text-xs font-semibold text-muted-foreground">Try a person, shop, service, or app name.</p>
+            </div>
           </div>
         )}
 
         {storeResults.length > 0 && (
           <div className="px-4 pt-3">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Shops</p>
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.18em] mb-2">Shops</p>
             {storeResults.map((store: any) => (
               <button type="button"
                 key={store.id}
                 onClick={() => { onNavigate(`/grocery/shop/${store.slug}`); onClose(); }}
-                className="w-full flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-muted/40 transition-colors"
+                className="zivo-social-module-tile mb-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 transition-transform active:scale-[0.99]"
               >
-                <div className="w-11 h-11 rounded-full bg-muted/30 border border-border/30 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="zivo-social-avatar-ring w-11 h-11 rounded-full flex items-center justify-center overflow-hidden shrink-0 p-0.5">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    <img src={store.logo_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <Store className="w-5 h-5 text-muted-foreground" />
                   )}
@@ -3637,16 +3684,16 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
 
         {profileResults.length > 0 && (
           <div className="px-4 pt-3">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">People</p>
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.18em] mb-2">People</p>
             {profileResults.map((person: any) => (
               <button type="button"
                 key={person.id}
                 onClick={() => { onNavigate(`/user/${person.id}`); onClose(); }}
-                className="w-full flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-muted/40 transition-colors"
+                className="zivo-social-module-tile mb-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 transition-transform active:scale-[0.99]"
               >
-                <div className="w-11 h-11 rounded-full bg-muted/30 border border-border/30 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="zivo-social-avatar-ring w-11 h-11 rounded-full flex items-center justify-center overflow-hidden shrink-0 p-0.5">
                   {person.avatar_url ? (
-                    <img src={person.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    <img src={person.avatar_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <UserCircle className="w-6 h-6 text-muted-foreground" />
                   )}
@@ -3742,7 +3789,7 @@ function SoundOverlay({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-[1500] bg-black/60 backdrop-blur-sm"
+        className="zivo-social-sheet-backdrop fixed inset-0 z-[1500]"
       />
       {/* Centered modal — responsive */}
       <motion.div
@@ -3752,28 +3799,29 @@ function SoundOverlay({
         transition={{ type: "spring", damping: 28, stiffness: 320 }}
         className="fixed inset-0 z-[1501] flex items-center justify-center pointer-events-none p-4"
       >
-        <div className="pointer-events-auto flex flex-col bg-background rounded-3xl overflow-hidden shadow-2xl border border-border/30 w-[94%] max-w-[480px] max-h-[75vh]">
+        <div className="zivo-social-sheet-panel pointer-events-auto flex max-h-[75vh] w-[94%] max-w-[480px] flex-col overflow-hidden rounded-[1.75rem]">
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+            <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
           </div>
 
           {/* Sound info header */}
           <div className="px-5 pt-2 pb-3 flex items-center gap-3.5">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
+            <div className="zivo-social-share-orb h-14 w-14 shrink-0 rounded-2xl">
               <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
-                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-primary">
+                <svg viewBox="0 0 24 24" className="h-7 w-7 fill-current">
                   <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                 </svg>
               </motion.div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm text-foreground leading-tight line-clamp-2">{soundName}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Sound</p>
+              <p className="line-clamp-2 text-sm font-black leading-tight text-foreground">{soundName}</p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                 {reelCount} reel{reelCount !== 1 ? "s" : ""} • Tap to watch
               </p>
             </div>
-            <button type="button" onClick={onClose} aria-label="Close sound overlay" title="Close sound overlay" className="p-2 -mr-1 rounded-full hover:bg-muted/60 transition-colors">
+            <button type="button" onClick={onClose} aria-label="Close sound overlay" title="Close sound overlay" className="zivo-social-icon-button -mr-1">
               <XIcon className="h-5 w-5 text-muted-foreground" />
             </button>
           </div>
@@ -3785,7 +3833,7 @@ function SoundOverlay({
                 onClose();
                 onUseSound();
               }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500 py-2.5 text-sm font-black text-white shadow-[0_18px_38px_hsl(189_94%_43%/0.22)] transition-all hover:opacity-95 active:scale-[0.98]"
             >
               <Music className="h-4 w-4" />
               Use this sound
@@ -3793,20 +3841,24 @@ function SoundOverlay({
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-border/40 mx-5" />
+          <div className="mx-5 h-px bg-border/40" />
 
           {/* Reels grid */}
           <div className="flex-1 overflow-y-auto p-3 pb-safe">
             {isLoading && !isOriginalSound ? (
               <div className="flex justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm font-black text-muted-foreground">Loading reels...</span>
+                </div>
               </div>
             ) : reelCount === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <div className="w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center">
-                  <Play className="h-5 w-5 text-muted-foreground/50" />
-                </div>
-                <p className="text-sm text-muted-foreground">No reels with this sound yet</p>
+              <div className="zivo-social-module flex flex-col items-center justify-center gap-2 px-5 py-10 text-center">
+                <span className="zivo-social-share-orb h-14 w-14">
+                  <Play className="h-5 w-5" />
+                </span>
+                <p className="text-sm font-black text-foreground">No reels with this sound yet</p>
+                <p className="text-xs font-semibold text-muted-foreground">Be the first to create with this audio.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -3821,7 +3873,7 @@ function SoundOverlay({
                     <button type="button"
                       key={reel.id}
                       onClick={() => onNavigateToReel(reel.id)}
-                      className="relative aspect-[9/16] bg-muted/80 overflow-hidden group rounded-xl"
+                      className="zivo-social-module-tile group relative aspect-[9/16] overflow-hidden rounded-2xl bg-muted/80 p-0"
                     >
                       {thumb ? (
                         <>
@@ -3834,13 +3886,13 @@ function SoundOverlay({
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                            <div className="zivo-feed-action-orb flex h-10 w-10 items-center justify-center rounded-full">
                               <Play className="h-5 w-5 text-white fill-white ml-0.5" />
                             </div>
                           </div>
                         </>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
                           <Play className="h-5 w-5 text-muted-foreground/40" />
                         </div>
                       )}
@@ -3921,22 +3973,26 @@ function DiscoverPeopleOverlay({ onClose, onNavigate }: { onClose: () => void; o
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[1500] bg-background flex flex-col"
+      className="zivo-social-surface fixed inset-0 z-[1500] flex flex-col"
     >
-      <div data-testid="feed-discover-header" className="safe-area-top zivo-mobile-header-row flex items-center gap-3 border-b border-border/30">
-        <button type="button" onClick={onClose} aria-label="Close discover people" title="Close discover people" className="p-2 rounded-full hover:bg-muted/50">
+      <div data-testid="feed-discover-header" className="zivo-social-header-glass safe-area-top flex items-center gap-3 px-4 py-3">
+        <button type="button" onClick={onClose} aria-label="Close discover people" title="Close discover people" className="zivo-social-icon-button">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
         <div>
-          <h2 className="text-lg font-bold text-foreground">Discover People</h2>
-          <p className="text-xs text-muted-foreground">Find people to follow on ZIVO</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Social graph</p>
+          <h2 className="text-lg font-black tracking-tight text-foreground">Discover People</h2>
+          <p className="text-xs font-semibold text-muted-foreground">Find people to follow on ZIVO</p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav">
         {isLoading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm font-black text-muted-foreground">Finding people...</span>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -3945,32 +4001,32 @@ function DiscoverPeopleOverlay({ onClose, onNavigate }: { onClose: () => void; o
                 key={profile.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-card rounded-2xl border border-border/30 p-4 text-center"
+                className="zivo-social-module-tile p-4 text-center"
               >
                 <div onClick={() => { onClose(); onNavigate(`/user/${profile.id}`); }} className="cursor-pointer">
-                  <div className="w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden bg-muted ring-2 ring-primary/10">
+                  <div className="zivo-social-avatar-ring mx-auto mb-3 h-16 w-16 overflow-hidden rounded-full p-0.5">
                     {profile.avatar_url ? (
-                      <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-primary font-bold text-xl bg-primary/10">
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10 text-xl font-black text-primary">
                         {profile.full_name?.[0]?.toUpperCase() || "?"}
                       </div>
                     )}
                   </div>
-                  <h3 className="text-sm font-semibold text-foreground truncate">
+                  <h3 className="truncate text-sm font-black text-foreground">
                     {profile.full_name || "ZIVO user"}
                   </h3>
                   {profile.bio && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground line-clamp-2">{profile.bio}</p>
+                    <p className="mt-1 min-h-[2rem] text-[11px] font-semibold leading-4 text-muted-foreground line-clamp-2">{profile.bio}</p>
                   )}
                 </div>
                 <button type="button"
                   onClick={() => handleFollow(profile.id)}
                   disabled={followingIds.has(profile.id) || followingLoadingIds.has(profile.id)}
-                  className={`w-full mt-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`mt-3 w-full rounded-2xl py-2 text-xs font-black transition-all ${
                     followingIds.has(profile.id)
-                      ? "bg-muted text-muted-foreground"
-                      : "bg-primary text-primary-foreground"
+                      ? "zivo-social-module-tile text-muted-foreground"
+                      : "bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500 text-white shadow-[0_14px_30px_hsl(189_94%_43%/0.2)]"
                   }`}
                 >
                   {followingLoadingIds.has(profile.id) ? (
@@ -4027,13 +4083,12 @@ function ReelReportDialog({
       const rawId = postId.startsWith("u-") ? postId.slice(2) : postId;
       const postSource = postId.startsWith("u-") ? "user" : "store";
       const sensitiveReport = isSensitiveReportReason(reason);
-      const { error } = await (supabase as any).from("post_reports").insert({
+      await submitSafetyReport({
+        type: "post",
         post_id: rawId,
         post_source: postSource,
-        reporter_id: reporterId,
         reason,
       });
-      if (error) throw error;
       toast.success(sensitiveReport ? "We hid it and sent it for safety review." : "Report submitted. Thank you.");
       onReported();
     } catch (err) {
@@ -4050,50 +4105,59 @@ function ReelReportDialog({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={(e) => { e.stopPropagation(); onClose(); }}
-      className="fixed inset-0 z-[1500] flex items-end justify-center bg-black/60"
+      className="zivo-social-sheet-backdrop fixed inset-0 z-[1500] flex items-end justify-center"
     >
       <motion.div
         initial={{ y: 80 }}
         animate={{ y: 0 }}
         exit={{ y: 80 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-background rounded-t-2xl border-t border-border/30"
+        className="zivo-social-sheet-panel w-full max-w-md overflow-hidden rounded-t-[1.75rem]"
         style={{ paddingBottom: "calc(var(--zivo-safe-bottom,0px) + 16px)" }}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <span className="font-semibold text-foreground">Report post</span>
+        <div className="flex justify-center pb-1 pt-3" aria-hidden="true">
+          <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
+        </div>
+        <div className="flex items-center justify-between border-b border-border/35 px-5 pb-3 pt-1">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-destructive">Safety review</p>
+            <h3 className="text-base font-black tracking-tight text-foreground">Report post</h3>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted"
+            className="zivo-social-icon-button"
             aria-label="Close report dialog"
           >
-            <XIcon className="w-4 h-4 text-muted-foreground" />
+            <XIcon className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
-        <p className="px-4 pt-3 text-xs text-muted-foreground">
+        <p className="px-5 pt-3 text-xs font-semibold leading-5 text-muted-foreground">
           {reporterId ? "Why are you reporting this post?" : "Sign in to submit a report. You can still review the report reasons."}
         </p>
-        <div className="px-2 py-2">
+        <div className="space-y-1 px-2 py-2">
           {REPORT_REASONS.map((r) => (
             <button type="button"
               key={r}
               onClick={() => setReason(r)}
               className={cn(
-                "w-full text-left px-3 py-3 rounded-xl text-sm transition-colors",
-                reason === r ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-muted/40",
+                "flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-sm font-bold transition-all",
+                reason === r
+                  ? "border border-destructive/20 bg-destructive/10 text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+                  : "text-foreground hover:bg-white/58 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]",
               )}
             >
-              {r}
+              <span>{r}</span>
+              {reason === r && <span className="h-2 w-2 rounded-full bg-destructive shadow-[0_0_12px_hsl(var(--destructive)/0.45)]" />}
             </button>
           ))}
         </div>
-        <div className="px-4 pt-2 pb-3">
+        <div className="px-5 pt-2 pb-3">
           <button
             type="button"
             disabled={!reason || submitting || !reporterId}
             onClick={submit}
-            className="w-full h-11 rounded-xl bg-destructive text-destructive-foreground font-semibold disabled:opacity-40"
+            className="h-11 w-full rounded-2xl bg-destructive text-sm font-black text-destructive-foreground shadow-[0_16px_34px_hsl(var(--destructive)/0.22)] disabled:opacity-40"
           >
             {!reporterId ? "Sign in to report" : submitting ? "Submitting…" : "Submit report"}
           </button>
@@ -5308,7 +5372,7 @@ export default function FeedPage() {
             <button
               type="button"
               onClick={() => setFeedMode("foryou")}
-              className="px-5 py-2 rounded-full bg-white text-black text-sm font-bold active:scale-95 transition-transform"
+              className="zivo-social-sensitive-action px-5 py-2 text-sm font-black active:scale-95"
             >
               Back to For You
             </button>
@@ -5317,7 +5381,7 @@ export default function FeedPage() {
             <button
               type="button"
               onClick={() => setShowDiscover(true)}
-              className="px-5 py-2 rounded-full bg-white/10 text-white text-sm font-semibold ring-1 ring-white/15 backdrop-blur-md active:scale-95 transition-transform"
+              className="zivo-feed-action-orb px-5 py-2 text-sm font-black text-white active:scale-95"
             >
               Discover creators
             </button>
@@ -5345,7 +5409,7 @@ export default function FeedPage() {
             <button
               type="button"
               onClick={() => setFeedSource("all")}
-              className="px-5 py-2 rounded-full bg-white text-black text-sm font-bold active:scale-95 transition-transform"
+              className="zivo-social-sensitive-action px-5 py-2 text-sm font-black active:scale-95"
             >
               Show all reels
             </button>
@@ -5356,7 +5420,7 @@ export default function FeedPage() {
               onClick={() => {
                 void queryClient.invalidateQueries({ queryKey: ["customer-feed"] });
               }}
-              className="px-5 py-2 rounded-full bg-white/10 text-white text-sm font-semibold ring-1 ring-white/15 backdrop-blur-md active:scale-95 transition-transform"
+              className="zivo-feed-action-orb px-5 py-2 text-sm font-black text-white active:scale-95"
             >
               Refresh
             </button>
@@ -5432,7 +5496,7 @@ export default function FeedPage() {
       {userId && (
         <div
           className="absolute left-1/2 -translate-x-1/2 z-50"
-          style={{ top: "calc(var(--zivo-safe-top, 0px) + 8px)" }}
+          style={{ top: "calc(var(--zivo-safe-top-sticky, 64px) + 8px)" }}
         >
           <div
             className="relative flex items-center gap-6 px-2"
@@ -5548,7 +5612,7 @@ export default function FeedPage() {
           type="button"
           onClick={cycleSourceFilter}
           aria-label={`Showing ${activeSourceFilter.label}. Tap to change reel source.`}
-          className="pointer-events-auto inline-flex h-10 items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 text-xs font-bold text-white shadow-lg backdrop-blur-sm active:scale-95"
+          className="zivo-feed-action-orb pointer-events-auto inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-white"
         >
           {feedSource === "people" ? (
             <UserCircle className="h-4 w-4" />
@@ -5577,7 +5641,7 @@ export default function FeedPage() {
           onClick={() => navigate("/live")}
           aria-label="Watch live"
           title="Live"
-          className="pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 backdrop-blur-sm items-center justify-center active:scale-95 transition-transform border border-white/10"
+          className="zivo-feed-action-orb pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <Radio className="w-5 h-5 text-red-400" />
         </button>
@@ -5588,7 +5652,7 @@ export default function FeedPage() {
           onClick={() => setShowDiscover(true)}
           aria-label="Discover people"
           title="Discover people"
-          className="pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 backdrop-blur-sm items-center justify-center active:scale-95 transition-transform border border-white/10"
+          className="zivo-feed-action-orb pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <UserPlus className="w-5 h-5 text-white" />
         </button>
@@ -5597,7 +5661,7 @@ export default function FeedPage() {
           onClick={() => setShowSearch(true)}
           aria-label="Search"
           title="Search"
-          className="pointer-events-auto w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-transform border border-white/10"
+          className="zivo-feed-action-orb pointer-events-auto w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center"
         >
           <Search className="w-5 h-5 text-white" />
         </button>
@@ -5607,7 +5671,7 @@ export default function FeedPage() {
             onClick={() => openReelComposer({ mode: "reel" })}
             aria-label="Create post"
             title="Create"
-            className="pointer-events-auto w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-primary/90 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-transform border border-primary/40 shadow-lg shadow-primary/30"
+            className="zivo-feed-action-orb zivo-feed-primary-orb pointer-events-auto w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center"
           >
             <Plus className="w-5 h-5 text-primary-foreground" />
           </button>
@@ -5622,7 +5686,7 @@ export default function FeedPage() {
           onClick={() => window.dispatchEvent(new CustomEvent("zivo-reel-open-speed"))}
           aria-label="Playback speed"
           title="Playback speed"
-          className="pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 backdrop-blur-sm items-center justify-center active:scale-95 transition-transform border border-white/10"
+          className="zivo-feed-action-orb pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <Gauge className="w-5 h-5 text-white" />
         </button>
@@ -5633,7 +5697,7 @@ export default function FeedPage() {
           onClick={() => window.dispatchEvent(new CustomEvent("zivo-reel-toggle-pip"))}
           aria-label="Picture-in-picture"
           title="Picture-in-picture"
-          className="hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 backdrop-blur-sm items-center justify-center active:scale-95 transition-transform border border-white/10"
+          className="zivo-feed-action-orb hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <PictureInPicture className="w-5 h-5 text-white" />
         </button>
@@ -5659,7 +5723,7 @@ export default function FeedPage() {
         {/* Desktop LEFT rail — navigation + services.
             Hidden on `/reels` so the TikTok-style hero can fill the viewport. */}
         {!isReelsRoute && (
-          <aside className="hidden lg:flex lg:flex-col lg:w-[260px] xl:w-[300px] shrink-0 h-full overflow-y-auto py-6 pr-2 bg-background/40 backdrop-blur-sm border-r border-border/20 rounded-r-2xl">
+          <aside className="zivo-social-nav-glass hidden h-full shrink-0 overflow-y-auto rounded-r-[1.75rem] py-6 pr-2 lg:flex lg:w-[260px] lg:flex-col xl:w-[300px]">
             <Suspense fallback={<div className="h-32" />}>
               <FeedSidebar />
             </Suspense>
@@ -5689,7 +5753,7 @@ export default function FeedPage() {
               >
                 <motion.div
                   className={cn(
-                    "rounded-full bg-white/15 backdrop-blur-md p-2 transition-transform",
+                    "zivo-feed-action-orb p-2.5 transition-transform",
                     isRefreshing && "animate-spin",
                   )}
                   animate={{ rotate: !isRefreshing ? pullDelta * 3 : 0 }}
@@ -5707,15 +5771,17 @@ export default function FeedPage() {
 
             {/* Empty state when Following tab returns no results */}
             {visiblePosts.length === 0 && feedMode === "following" && userId && (
-              <div className="w-full h-full snap-start flex flex-col items-center justify-center px-8 text-center bg-black">
-                <div className="text-5xl mb-4">👥</div>
-                <p className="text-white font-semibold text-lg mb-1">Your following feed is empty</p>
-                <p className="text-white/60 text-sm max-w-xs">
+              <div className="w-full h-full snap-start flex flex-col items-center justify-center bg-black px-8 text-center">
+                <div className="zivo-feed-primary-orb mb-5 flex h-16 w-16 items-center justify-center">
+                  <UserPlus className="h-7 w-7 text-white" />
+                </div>
+                <p className="text-lg font-black text-white mb-1">Your following feed is empty</p>
+                <p className="max-w-xs text-sm font-semibold leading-relaxed text-white/60">
                   Follow some creators or shops and their posts will show up here.
                 </p>
                 <button type="button"
                   onClick={() => setShowDiscover(true)}
-                  className="mt-5 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white"
+                  className="zivo-social-sensitive-action mt-5 px-5 py-2 text-sm font-black active:scale-95"
                 >
                   Discover people
                 </button>
@@ -5766,19 +5832,19 @@ export default function FeedPage() {
                   {shouldRenderCard ? (
                   <ErrorBoundary
                     fallback={
-                      <div className="w-full h-full bg-black flex items-center justify-center px-6">
-                        <div className="text-center max-w-xs">
-                          <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 border border-white/15">
-                            <span className="text-2xl">⚠️</span>
+                      <div className="flex h-full w-full items-center justify-center bg-black px-6">
+                        <div className="zivo-social-module max-w-xs p-5 text-center">
+                          <div className="zivo-feed-action-orb mx-auto mb-4 flex h-14 w-14 items-center justify-center">
+                            <AlertTriangle className="h-6 w-6 text-amber-200" />
                           </div>
-                          <p className="text-white font-semibold mb-1">This reel couldn't load</p>
-                          <p className="text-white/60 text-sm mb-4">Something went wrong rendering this reel. Swipe to keep watching.</p>
+                          <p className="font-black text-foreground mb-1">This reel couldn't load</p>
+                          <p className="text-sm font-semibold text-muted-foreground mb-4">Something went wrong rendering this reel. Swipe to keep watching.</p>
                           <button
                             type="button"
                             onClick={() => {
                               cardRefs.current[index + 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
                             }}
-                            className="px-4 py-2 rounded-full bg-white text-black text-sm font-bold active:scale-95"
+                            className="zivo-social-sensitive-action px-4 py-2 text-sm font-black active:scale-95"
                           >
                             Skip to next
                           </button>
@@ -5876,38 +5942,40 @@ export default function FeedPage() {
             Hotel Admin / Run QA are operator tools — never shown on the
             consumer reels page; on `/feed` they only render for lodging owners. */}
         {!isReelsRoute && (
-          <aside className="hidden lg:flex lg:flex-col lg:w-[300px] xl:w-[340px] shrink-0 h-full overflow-y-auto py-6 px-3 bg-background/40 backdrop-blur-sm border-l border-border/20 rounded-l-2xl gap-4">
+          <aside className="zivo-social-nav-glass hidden h-full shrink-0 gap-4 overflow-y-auto rounded-l-[1.75rem] px-3 py-6 lg:flex lg:w-[300px] lg:flex-col xl:w-[340px]">
             {ownerStore?.isLodging && lodgingCompletion && (
-              <div className="rounded-xl border border-primary/30 bg-card/70 p-3">
-                <div className="flex items-start justify-between gap-2"><div><h3 className="text-sm font-semibold text-foreground">Hotel / Resort Admin</h3><p className="mt-0.5 text-xs text-muted-foreground truncate">{ownerStore.name}</p></div><span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{lodgingCompletion.percent}%</span></div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"><motion.div className="h-full rounded-full bg-primary" animate={{ width: `${lodgingCompletion.percent}%` }} transition={{ duration: 0.25, ease: "easeOut" }} /></div>
-                <p className="mt-2 text-[11px] text-muted-foreground">Next: {lodgingCompletion.nextBestAction.actionLabel}</p>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs"><button type="button" onClick={() => navigate(`/admin/stores/${ownerStore.id}?tab=lodge-overview`)} className="rounded-lg bg-primary px-2 py-2 font-semibold text-primary-foreground">Open Hotel Admin</button><button type="button" onClick={() => navigate("/admin/lodging/qa-checklist")} className="rounded-lg bg-muted px-2 py-2 font-semibold text-foreground">Run QA</button><button type="button" onClick={() => navigate("/admin/lodging/qa-checklist")} className="col-span-2 rounded-lg bg-muted px-2 py-2 font-semibold text-foreground">View QA Report</button></div>
+              <div className="zivo-social-module p-3">
+                <div className="flex items-start justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-500">Owner tools</p><h3 className="text-sm font-black text-foreground">Hotel / Resort Admin</h3><p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">{ownerStore.name}</p></div><span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">{lodgingCompletion.percent}%</span></div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/55"><motion.div className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500" animate={{ width: `${lodgingCompletion.percent}%` }} transition={{ duration: 0.25, ease: "easeOut" }} /></div>
+                <p className="mt-2 text-[11px] font-semibold text-muted-foreground">Next: {lodgingCompletion.nextBestAction.actionLabel}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs"><button type="button" onClick={() => navigate(`/admin/stores/${ownerStore.id}?tab=lodge-overview`)} className="rounded-2xl bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500 px-2 py-2 font-black text-white shadow-[0_14px_30px_hsl(189_94%_43%/0.18)]">Open Hotel Admin</button><button type="button" onClick={() => navigate("/admin/lodging/qa-checklist")} className="zivo-social-module-tile rounded-2xl px-2 py-2 font-black text-foreground">Run QA</button><button type="button" onClick={() => navigate("/admin/lodging/qa-checklist")} className="zivo-social-module-tile col-span-2 rounded-2xl px-2 py-2 font-black text-foreground">View QA Report</button></div>
               </div>
             )}
             <div className="px-1">
-              <h3 className="text-sm font-semibold text-foreground mb-2">Suggested for you</h3>
+              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-500">People</p>
+              <h3 className="mb-2 text-sm font-black text-foreground">Suggested for you</h3>
               <Suspense fallback={<div className="h-40" />}>
                 <SuggestedUsersCarousel variant="inline" />
               </Suspense>
             </div>
-            <div className="mt-2 rounded-xl border border-border/30 bg-card/40 p-3">
-              <h3 className="text-sm font-semibold text-foreground mb-2">Quick links</h3>
+            <div className="zivo-social-module mt-2 p-3">
+              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-500">Explore</p>
+              <h3 className="mb-2 text-sm font-black text-foreground">Quick links</h3>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <button type="button" onClick={() => navigate("/flights")} className="px-2 py-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground text-left flex items-center gap-2"><Plane className="w-4 h-4 text-primary shrink-0" /> Flights</button>
-                <button type="button" onClick={() => navigate("/hotels")} className="px-2 py-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground text-left flex items-center gap-2"><Building2 className="w-4 h-4 text-primary shrink-0" /> Hotels</button>
-                <button type="button" onClick={() => navigate("/eats")} className="px-2 py-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground text-left flex items-center gap-2"><UtensilsCrossed className="w-4 h-4 text-primary shrink-0" /> Eats</button>
-                <button type="button" onClick={() => navigate("/rides/hub")} className="px-2 py-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground text-left flex items-center gap-2"><Car className="w-4 h-4 text-primary shrink-0" /> Rides</button>
-                <button type="button" onClick={() => navigate("/jobs")} className="px-2 py-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground text-left flex items-center gap-2"><Briefcase className="w-4 h-4 text-primary shrink-0" /> Jobs</button>
-                <button type="button" onClick={() => navigate("/shop")} className="px-2 py-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground text-left flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-primary shrink-0" /> Shop</button>
+                <button type="button" onClick={() => navigate("/flights")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><Plane className="w-4 h-4 text-primary shrink-0" /> Flights</button>
+                <button type="button" onClick={() => navigate("/hotels")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><Building2 className="w-4 h-4 text-primary shrink-0" /> Hotels</button>
+                <button type="button" onClick={() => navigate("/eats")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><UtensilsCrossed className="w-4 h-4 text-primary shrink-0" /> Eats</button>
+                <button type="button" onClick={() => navigate("/rides/hub")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><Car className="w-4 h-4 text-primary shrink-0" /> Rides</button>
+                <button type="button" onClick={() => navigate("/jobs")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><Briefcase className="w-4 h-4 text-primary shrink-0" /> Jobs</button>
+                <button type="button" onClick={() => navigate("/shop")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><ShoppingBag className="w-4 h-4 text-primary shrink-0" /> Shop</button>
               </div>
             </div>
-            <p className="text-[11px] text-muted-foreground/70 mt-auto px-1 pt-4">© ZIVO LLC · hizivo.com</p>
+            <p className="mt-auto px-1 pt-4 text-[11px] font-semibold text-muted-foreground/70">© ZIVO LLC · hizivo.com</p>
           </aside>
         )}
 
         {/* Desktop up/down navigation buttons */}
-        <div className="hidden md:flex flex-col gap-3 absolute right-8 top-1/2 -translate-y-1/2 z-50">
+        <div className="zivo-feed-action-rail absolute right-8 top-1/2 z-50 hidden -translate-y-1/2 flex-col gap-3 p-2 md:flex">
           <button type="button"
             onClick={() => {
               if (activeIndex > 0) {
@@ -5915,7 +5983,7 @@ export default function FeedPage() {
               }
             }}
             disabled={activeIndex === 0}
-            className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="zivo-feed-action-orb flex h-12 w-12 items-center justify-center text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
             aria-label="Previous reel"
           >
             <ChevronUp className="w-6 h-6" />
@@ -5927,7 +5995,7 @@ export default function FeedPage() {
               }
             }}
             disabled={activeIndex >= visiblePosts.length - 1}
-            className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="zivo-feed-action-orb flex h-12 w-12 items-center justify-center text-white transition-all hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
             aria-label="Next reel"
           >
             <ChevronDown className="w-6 h-6" />
@@ -6193,11 +6261,11 @@ export default function FeedPage() {
             <motion.div
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-              className="w-12 h-12 rounded-full bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg"
+              className="zivo-feed-action-orb w-12 h-12 rounded-full flex items-center justify-center"
             >
               <ChevronUp className="w-7 h-7 text-white" strokeWidth={2.5} />
             </motion.div>
-            <span className="text-white text-xs font-semibold drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)] px-3 py-1 rounded-full bg-black/40 backdrop-blur-sm">
+            <span className="zivo-feed-glass text-white text-xs font-semibold drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)] px-3 py-1 rounded-full">
               Swipe up for more
             </span>
           </motion.div>

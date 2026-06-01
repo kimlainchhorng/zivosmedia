@@ -131,4 +131,4 @@ serve(withSecurity("unlock-media-checkout", async (req, ctx) => {
       status: 500,
     });
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

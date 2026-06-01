@@ -179,7 +179,7 @@ export default function StoreSetup() {
   useEffect(() => {
     if (myStore) {
       if (myStore.setup_complete) {
-        navigate(`/admin/stores/${myStore.id}`, { replace: true });
+        navigate("/shop-dashboard", { replace: true });
         return;
       }
       setStoreName(myStore.name || "");
@@ -209,19 +209,22 @@ export default function StoreSetup() {
 
   const uploadImage = async (file: File, type: "logo" | "banner") => {
     const isLogo = type === "logo";
-    isLogo ? setUploadingLogo(true) : setUploadingBanner(true);
+    if (isLogo) setUploadingLogo(true);
+    else setUploadingBanner(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `setup/${user!.id}/${type}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("store-assets").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
       const { data: urlData } = supabase.storage.from("store-assets").getPublicUrl(path);
-      isLogo ? setLogoUrl(urlData.publicUrl) : setBannerUrl(urlData.publicUrl);
+      if (isLogo) setLogoUrl(urlData.publicUrl);
+      else setBannerUrl(urlData.publicUrl);
       toast.success(`${isLogo ? "Logo" : "Banner"} uploaded`);
     } catch (e: any) {
       toast.error(e.message || "Upload failed");
     } finally {
-      isLogo ? setUploadingLogo(false) : setUploadingBanner(false);
+      if (isLogo) setUploadingLogo(false);
+      else setUploadingBanner(false);
     }
   };
 
@@ -266,9 +269,15 @@ export default function StoreSetup() {
       };
 
       if (myStore?.id) {
-        await supabase.from("store_profiles").update(storeData as any).eq("id", myStore.id);
+        const { data, error } = await supabase.functions.invoke("store-profile-manage", {
+          body: { action: "save", store_id: myStore.id, profile: storeData },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Could not save draft");
       } else {
-        const { data } = await supabase.from("store_profiles").insert(storeData as any).select("id").single();
+        const { data, error } = await supabase.functions.invoke("store-profile-manage", {
+          body: { action: "save", profile: storeData },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Could not save draft");
       }
 
       setLastSaved(new Date());
@@ -330,12 +339,16 @@ export default function StoreSetup() {
       let storeId = myStore?.id;
 
       if (storeId) {
-        const { error } = await supabase.from("store_profiles").update(storeData).eq("id", storeId);
-        if (error) throw error;
+        const { data, error } = await supabase.functions.invoke("store-profile-manage", {
+          body: { action: "save", store_id: storeId, profile: storeData },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to update store profile");
       } else {
-        const { data, error } = await supabase.from("store_profiles").insert(storeData).select("id").single();
-        if (error) throw error;
-        storeId = data.id;
+        const { data, error } = await supabase.functions.invoke("store-profile-manage", {
+          body: { action: "save", profile: storeData },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to create store profile");
+        storeId = data.store?.id;
       }
 
       if (abaAccount || wingAccount || acledaAccount) {
@@ -343,13 +356,14 @@ export default function StoreSetup() {
         if (abaAccount) payments.push({ store_id: storeId!, provider: "aba", account_number: abaAccount, account_holder_name: abaHolder, is_enabled: true, qr_code_url: "" });
         if (wingAccount) payments.push({ store_id: storeId!, provider: "wing", account_number: wingAccount, account_holder_name: wingHolder, is_enabled: true, qr_code_url: "" });
         if (acledaAccount) payments.push({ store_id: storeId!, provider: "acleda", account_number: acledaAccount, account_holder_name: acledaHolder, is_enabled: true, qr_code_url: "" });
-        for (const pm of payments) {
-          await supabase.from("store_payment_methods").upsert(pm, { onConflict: "store_id,provider" });
-        }
+        const { data, error } = await supabase.functions.invoke("store-payment-methods-update", {
+          body: { store_id: storeId, methods: payments },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to update payment methods");
       }
 
       toast.success("Store setup complete! 🎉");
-      navigate(`/admin/stores/${storeId}`, { replace: true });
+      navigate("/shop-dashboard", { replace: true });
     } catch (err: any) {
       console.error("Store setup error:", err);
       toast.error(err?.message || "Failed to complete setup");
@@ -524,7 +538,7 @@ export default function StoreSetup() {
                           <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, "logo"); e.target.value = ""; }} />
                           {logoUrl ? (
                             <div className="relative w-24 h-24 rounded-2xl border border-white/[0.12] overflow-hidden group bg-white/[0.04]">
-                              <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                              <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                 <button type="button" onClick={() => logoRef.current?.click()} className="h-7 w-7 rounded-full bg-white/90 flex items-center justify-center"><Upload className="h-3.5 w-3.5 text-zinc-800" /></button>
                                 <button type="button" onClick={() => setLogoUrl("")} className="h-7 w-7 rounded-full bg-red-500 text-white flex items-center justify-center"><X className="h-3.5 w-3.5" /></button>
@@ -541,7 +555,7 @@ export default function StoreSetup() {
                           <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, "banner"); e.target.value = ""; }} />
                           {bannerUrl ? (
                             <div className="relative w-full h-24 rounded-2xl border border-white/[0.12] overflow-hidden group bg-white/[0.04]">
-                              <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                              <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                 <button type="button" onClick={() => bannerRef.current?.click()} className="h-7 w-7 rounded-full bg-white/90 flex items-center justify-center"><Upload className="h-3.5 w-3.5 text-zinc-800" /></button>
                                 <button type="button" onClick={() => setBannerUrl("")} className="h-7 w-7 rounded-full bg-red-500 text-white flex items-center justify-center"><X className="h-3.5 w-3.5" /></button>
@@ -677,7 +691,7 @@ export default function StoreSetup() {
                       <div className="rounded-xl border border-white/[0.1] bg-white/[0.03] p-4">
                         <h3 className="text-white/50 text-[10px] uppercase tracking-widest font-semibold mb-2">Store</h3>
                         <div className="flex items-center gap-3 mb-2">
-                          {logoUrl && <img src={logoUrl} alt="Logo" className="w-12 h-12 rounded-xl object-cover border border-white/[0.1]" />}
+                          {logoUrl && <img src={logoUrl} alt="Logo" className="w-12 h-12 rounded-xl object-cover border border-white/[0.1]" loading="lazy" decoding="async" />}
                           <div>
                             <p className="text-white font-semibold text-[14px]">{storeName}</p>
                             <p className="text-white/40 text-[12px]">/{storeSlug} · {categoryLabel} · {storeMarket === "US" ? "🇺🇸" : "🇰🇭"}</p>

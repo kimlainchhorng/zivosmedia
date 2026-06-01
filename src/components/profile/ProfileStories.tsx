@@ -181,18 +181,18 @@ const ProfileStories = () => {
   return (
     <>
       {/* Horizontal ring carousel */}
-      <div className="-mx-2 overflow-x-auto scrollbar-hide">
-        <div className="flex items-start gap-3 px-2 py-1 snap-x snap-mandatory">
+      <div className="-mx-1 overflow-x-auto scrollbar-hide">
+        <div className="flex items-start gap-2 px-1 py-0.5 snap-x snap-mandatory">
           {/* Your story tile (Instagram-style) */}
           <button type="button"
             data-testid="profile-story-ring"
             onClick={() => (hasMyStory ? openViewer(user!.id) : setShowCreate(true))}
-            className="snap-start shrink-0 flex flex-col items-center gap-1 w-[72px]"
+            className="snap-start shrink-0 flex flex-col items-center gap-1 w-[64px]"
           >
             <motion.div whileTap={{ scale: 0.92 }} className="relative">
               <div
                 className={cn(
-                  "h-16 w-16 rounded-full p-[2.5px] box-border",
+                  "h-14 w-14 rounded-full p-[2.5px] box-border",
                   hasMyStory
                     ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_12px_-3px_hsl(160_84%_45%/0.55)]"
                     : "bg-muted-foreground/25"
@@ -229,7 +229,7 @@ const ProfileStories = () => {
                 </div>
               </div>
               {/* ZIVO Aurora badge — Sparkles when story exists, Plus to add */}
-              <div className="absolute -bottom-0.5 -right-0.5 h-[22px] w-[22px] rounded-full bg-gradient-to-br from-[hsl(160_84%_45%)] to-[hsl(174_72%_40%)] flex items-center justify-center border-[2.5px] border-background shadow-[0_2px_6px_-1px_hsl(160_84%_45%/0.6)]">
+              <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-gradient-to-br from-[hsl(160_84%_45%)] to-[hsl(174_72%_40%)] flex items-center justify-center border-2 border-background shadow-[0_2px_6px_-1px_hsl(160_84%_45%/0.6)]">
                 {hasMyStory ? (
                   <Sparkles className="h-3 w-3 text-white" strokeWidth={2.5} />
                 ) : (
@@ -238,12 +238,12 @@ const ProfileStories = () => {
               </div>
               {/* Segment count badge */}
               {hasMyStory && myGroup!.stories.length > 1 && (
-                <div className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full border-2 border-background bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                <div className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full border-2 border-background bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
                   {myGroup!.stories.length}
                 </div>
               )}
             </motion.div>
-            <span className="text-[11px] font-medium leading-tight text-foreground truncate max-w-[68px] text-center">
+            <span className="text-[10px] font-semibold leading-tight text-foreground truncate max-w-[62px] text-center">
               Your story
             </span>
           </button>
@@ -252,8 +252,8 @@ const ProfileStories = () => {
           {isLoading && friendGroups.length === 0 && (
             <>
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="snap-start shrink-0 flex flex-col items-center gap-1 w-[72px]">
-                  <div className="h-16 w-16 rounded-full bg-muted animate-pulse" />
+                <div key={i} className="snap-start shrink-0 flex flex-col items-center gap-1 w-[64px]">
+                  <div className="h-14 w-14 rounded-full bg-muted animate-pulse" />
                   <div className="h-2.5 w-12 rounded-full bg-muted animate-pulse" />
                 </div>
               ))}
@@ -267,12 +267,12 @@ const ProfileStories = () => {
               <button type="button"
                 key={g.userId}
                 onClick={() => openViewer(g.userId)}
-                className="snap-start shrink-0 flex flex-col items-center gap-1 w-[72px]"
+                className="snap-start shrink-0 flex flex-col items-center gap-1 w-[64px]"
               >
                 <motion.div whileTap={{ scale: 0.92 }} className="relative">
                   <div
                     className={cn(
-                      "h-16 w-16 rounded-full p-[2.5px]",
+                      "h-14 w-14 rounded-full p-[2.5px]",
                       fullyViewed
                         ? "bg-muted-foreground/25"
                         : "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_12px_-3px_hsl(160_84%_45%/0.55)]"
@@ -286,13 +286,13 @@ const ProfileStories = () => {
                     </Avatar>
                   </div>
                   {g.stories.length > 1 && (
-                    <div className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full border-2 border-background bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
+                    <div className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full border-2 border-background bg-foreground text-background text-[9px] font-bold flex items-center justify-center">
                       {g.stories.length}
                     </div>
                   )}
                 </motion.div>
                 <span className={cn(
-                  "text-[11px] leading-tight truncate max-w-[68px] text-center",
+                  "text-[10px] leading-tight truncate max-w-[62px] text-center",
                   fullyViewed ? "text-muted-foreground" : "font-semibold text-foreground"
                 )}>
                   {g.userName.split(" ")[0]}

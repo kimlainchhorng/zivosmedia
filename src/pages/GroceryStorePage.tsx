@@ -123,7 +123,7 @@ function SwipeableCartItem({
       >
         {item.image && (
           <div className="h-10 w-10 rounded-xl bg-background border border-border/20 flex items-center justify-center p-1 shrink-0">
-            <img src={item.image} alt="" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+            <img src={item.image} alt="" className="h-full w-full object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -176,7 +176,7 @@ function FeaturedProductRow({ products, onAdd, cart }: {
             >
               <div className="relative h-[120px] bg-gradient-to-br from-primary/[0.03] to-muted/20 flex items-center justify-center p-3.5 cursor-pointer" onClick={() => onAdd(p)}>
                 {p.image ? (
-                  <img src={p.image} alt={p.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300" loading="lazy" referrerPolicy="no-referrer" />
+                  <img src={p.image} alt={p.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                 ) : (
                   <Package className="h-10 w-10 text-muted-foreground/10" />
                 )}
@@ -399,7 +399,7 @@ export default function GroceryStorePage() {
           </motion.button>
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="relative h-10 w-10 rounded-2xl bg-background border border-border/30 flex items-center justify-center p-1.5 shadow-sm">
-              <img src={storeCfg.logo} alt={storeName} className="h-full w-full object-contain" />
+              <img src={storeCfg.logo} alt={storeName} className="h-full w-full object-contain" loading="lazy" decoding="async" />
               <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
                 {status.isOpen && (
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />

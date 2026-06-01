@@ -69,11 +69,13 @@ const AirportTransferBridge = ({
     if (!option) return;
     setBooking(true);
     try {
-      await supabase.from("feedback_submissions" as any).insert({
+      const { error } = await supabase.functions.invoke("ride-support-submit", { body: {
         category: "transfer_request",
-        message: JSON.stringify({ airport, destination, arrivalTime, passengers, transferType: option.name, priceUsd: option.price }),
-        status: "pending",
-      });
+        subject: `Airport transfer: ${option.name}`,
+        metadata: { airport, destination, arrivalTime, passengers, transferType: option.name, priceUsd: option.price },
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
       toast.success(`${option.name} booked! We'll confirm your transfer shortly.`);
       navigate("/request-ride");
     } catch {

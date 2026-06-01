@@ -175,7 +175,6 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
     if (!storeId) return null;
     setSaving(true);
     setError(null);
-    const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       store_id: storeId,
       vehicle_id: draft.vehicle_id,
@@ -204,17 +203,14 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
       source: draft.source ?? "admin",
       customer_notes: draft.customer_notes?.trim() || null,
       internal_notes: draft.internal_notes?.trim() || null,
-      created_by_user_id: user?.id ?? null,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_reservations")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-reservation-manage", {
+      body: { action: "create", store_id: storeId, reservation: payload },
+    });
     if (err) {
       console.error("[useCarRentalReservations] create failed", err);
       const message = (err as { message?: string }).message ?? "";
-      if ((err as any).code === "23P01") {
+      if ((err as any).context?.status === 409) {
         setError("That vehicle is already booked for the overlapping time. Pick another vehicle or change the dates.");
       } else if (message.startsWith("CUSTOMER_BLOCKED:")) {
         setError(message.replace(/^CUSTOMER_BLOCKED:\s*/, ""));
@@ -224,7 +220,7 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalReservation;
+    const created = data?.reservation as CarRentalReservation;
     setReservations((prev) => [...prev, created].sort((a, b) => a.pickup_at.localeCompare(b.pickup_at)));
     setSaving(false);
     return created;
@@ -234,13 +230,18 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
     setSaving(true);
     setError(null);
     setReservations((prev) => prev.map((r) => (r.id === id ? ({ ...r, ...patch } as CarRentalReservation) : r)));
-    const { error: err } = await supabase.from("car_rental_reservations").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-rental-reservation-manage", {
+      body: { action: "update", reservation_id: id, reservation: patch },
+    });
     if (err) {
       console.error("[useCarRentalReservations] update failed", err);
       const m = (err as { message?: string }).message ?? "";
       if (m.startsWith("CUSTOMER_BLOCKED:")) setError(m.replace(/^CUSTOMER_BLOCKED:\s*/, ""));
       else setError("Couldn't save changes — refreshing.");
       await load();
+    } else if (data?.reservation) {
+      const updated = data.reservation as CarRentalReservation;
+      setReservations((prev) => prev.map((r) => (r.id === id ? updated : r)));
     }
     setSaving(false);
   }, [load]);
@@ -262,7 +263,9 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
     setError(null);
     const prev = reservations;
     setReservations((p) => p.filter((r) => r.id !== id));
-    const { error: err } = await supabase.from("car_rental_reservations").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-reservation-manage", {
+      body: { action: "delete", reservation_id: id },
+    });
     if (err) {
       console.error("[useCarRentalReservations] delete failed", err);
       setError("Couldn't delete reservation.");

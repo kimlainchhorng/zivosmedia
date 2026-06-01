@@ -342,13 +342,13 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
             <Field label="License photo (front)" className="sm:col-span-2">
               <Input value={draft.driver_license_photo_url ?? ""} onChange={(e) => setDraft({ ...draft, driver_license_photo_url: e.target.value || null })} placeholder="https://example.com/front.jpg" />
               {draft.driver_license_photo_url && (
-                <img src={draft.driver_license_photo_url} alt="" className="mt-1 h-28 w-full rounded border border-border object-contain bg-muted/20" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                <img src={draft.driver_license_photo_url} alt="" className="mt-1 h-28 w-full rounded border border-border object-contain bg-muted/20" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
               )}
             </Field>
             <Field label="License photo (back)" className="sm:col-span-2">
               <Input value={draft.driver_license_photo_back_url ?? ""} onChange={(e) => setDraft({ ...draft, driver_license_photo_back_url: e.target.value || null })} placeholder="https://example.com/back.jpg" />
               {draft.driver_license_photo_back_url && (
-                <img src={draft.driver_license_photo_back_url} alt="" className="mt-1 h-28 w-full rounded border border-border object-contain bg-muted/20" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                <img src={draft.driver_license_photo_back_url} alt="" className="mt-1 h-28 w-full rounded border border-border object-contain bg-muted/20" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
               )}
             </Field>
             <Field label="Address" className="sm:col-span-2">

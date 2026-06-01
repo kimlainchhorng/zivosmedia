@@ -143,16 +143,21 @@ export default function ShopEmployeeSchedulePage() {
     }
     setSaving(true);
     try {
-      const { error } = await (supabase as any).from("employee_shifts").insert({
-        store_id: storeId,
-        employee_id: form.employee_id,
-        day_index: form.day_index,
-        start_time: form.start_time,
-        end_time: form.end_time,
-        role: form.role,
-        week_offset: weekOffset,
+      const { data, error } = await supabase.functions.invoke("employee-shift-manage", {
+        body: {
+          action: "create",
+          shift: {
+            store_id: storeId,
+            employee_id: form.employee_id,
+            day_index: form.day_index,
+            start_time: form.start_time,
+            end_time: form.end_time,
+            role: form.role,
+            week_offset: weekOffset,
+          },
+        },
       });
-      if (error) throw error;
+      if (error || !data?.ok) throw error || new Error(data?.error || "Could not add shift");
       const empName = employeesById.get(form.employee_id)?.name || "employee";
       toast.success(`Shift added for ${empName}`);
       setShowForm(false);
@@ -166,8 +171,10 @@ export default function ShopEmployeeSchedulePage() {
   };
 
   const removeShift = async (id: string) => {
-    const { error } = await (supabase as any).from("employee_shifts").delete().eq("id", id);
-    if (error) {
+    const { data, error } = await supabase.functions.invoke("employee-shift-manage", {
+      body: { action: "delete", shift_id: id },
+    });
+    if (error || !data?.ok) {
       toast.error("Could not remove shift.");
       return;
     }

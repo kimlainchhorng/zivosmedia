@@ -333,7 +333,7 @@ export default function PersonalNotificationsPage() {
   });
 
   const markRead = async (id: string) => {
-    await (supabase as any).from("notifications").update({ is_read: true }).eq("id", id);
+    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_id: id } });
     queryClient.invalidateQueries({ queryKey: ["personal-notifications-list"] });
     queryClient.invalidateQueries({ queryKey: ["personal-dashboard-recent-notifs"] });
     queryClient.invalidateQueries({ queryKey: ["personal-dashboard-stats"] });
@@ -343,7 +343,7 @@ export default function PersonalNotificationsPage() {
     if (!user) return;
     const unread = (notifs ?? []).filter((n) => !n.is_read).map((n) => n.id);
     if (unread.length === 0) return;
-    await (supabase as any).from("notifications").update({ is_read: true }).in("id", unread);
+    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_ids: unread } });
     queryClient.invalidateQueries({ queryKey: ["personal-notifications-list"] });
     queryClient.invalidateQueries({ queryKey: ["personal-dashboard-recent-notifs"] });
     queryClient.invalidateQueries({ queryKey: ["personal-dashboard-stats"] });

@@ -403,7 +403,7 @@ const DamagePolicy = () => {
                   Insurance & Protection
                 </Badge>
               </Link>
-              <Link to="/cancellation-policy">
+              <Link to="/legal/cancellation">
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted">
                   Cancellation Policy
                 </Badge>

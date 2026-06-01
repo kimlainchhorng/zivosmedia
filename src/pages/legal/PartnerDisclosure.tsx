@@ -167,7 +167,7 @@ const PartnerDisclosure = () => {
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
                   We do not sell your personal information. See our{" "}
-                  <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>{" "}
+                  <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>{" "}
                   for details.
                 </p>
               </CardContent>
@@ -219,28 +219,28 @@ const PartnerDisclosure = () => {
             {/* Related Links */}
             <div className="flex flex-wrap gap-4 justify-center pt-4 border-t border-border">
               <Link
-                to="/terms-of-service"
+                to="/legal/terms"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Terms of Service
               </Link>
               <span className="text-muted-foreground">•</span>
               <Link
-                to="/privacy-policy"
+                to="/legal/privacy"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Privacy Policy
               </Link>
               <span className="text-muted-foreground">•</span>
               <Link
-                to="/refund-policy"
+                to="/legal/refunds"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Refund Policy
               </Link>
               <span className="text-muted-foreground">•</span>
               <Link
-                to="/cookies"
+                to="/legal/cookies"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Cookie Policy

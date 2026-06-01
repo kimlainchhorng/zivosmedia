@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ComponentProps } from "react";
 import CreatePostModal from "./CreatePostModal";
@@ -53,17 +54,23 @@ const renderComposer = (
   initialMode: "photo" | "reel" | "poll" | "story" | "shop" | "live" = "reel",
   props: Partial<ComposerProps> = {},
 ) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+
   return render(
-    <MemoryRouter>
-      <CreatePostModal
-        userId="user-1"
-        userProfile={{ name: "Chhorng", avatar: null }}
-        onClose={vi.fn()}
-        onCreated={vi.fn()}
-        initialMode={initialMode}
-        {...props}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <CreatePostModal
+          userId="user-1"
+          userProfile={{ name: "Chhorng", avatar: null }}
+          onClose={vi.fn()}
+          onCreated={vi.fn()}
+          initialMode={initialMode}
+          {...props}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 };
 

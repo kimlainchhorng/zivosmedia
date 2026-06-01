@@ -122,7 +122,7 @@ export default function CafeBaristasSection({ storeId }: Props) {
               {baristas.map((b) => (
                 <li key={b.id} className="py-3 flex flex-wrap items-center gap-3">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-700 font-bold uppercase overflow-hidden">
-                    {b.photo_url ? <img src={b.photo_url} alt="" className="h-full w-full object-cover" /> : b.display_name.slice(0, 1)}
+                    {b.photo_url ? <img src={b.photo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" /> : b.display_name.slice(0, 1)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

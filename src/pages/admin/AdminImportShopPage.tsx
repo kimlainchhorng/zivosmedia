@@ -161,7 +161,7 @@ function ProductsAdmin() {
 
       {products.map((p: any) => (
         <div key={p.id} className="bg-card border rounded-2xl p-3 flex gap-2">
-          <img src={p.images?.[0] ?? "/placeholder.svg"} alt="" className="h-14 w-14 rounded-lg object-cover bg-muted" />
+          <img src={p.images?.[0] ?? "/placeholder.svg"} alt="" className="h-14 w-14 rounded-lg object-cover bg-muted" loading="lazy" decoding="async" />
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-semibold line-clamp-2">{p.title}</p>
             <p className="text-[11px] text-muted-foreground">${(p.final_price_cents / 100).toFixed(2)} · {p.source_platform}</p>

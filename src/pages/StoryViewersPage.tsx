@@ -150,7 +150,7 @@ export default function StoryViewersPage() {
               return (
                 <div key={s.id} className="rounded-2xl bg-card border border-border p-3.5">
                   <div className="flex items-start gap-3 mb-2">
-                    {s.media_url ? <img src={s.media_url} alt="" className="shrink-0 h-14 w-14 rounded-xl object-cover" loading="lazy" /> : <div className="shrink-0 h-14 w-14 rounded-xl bg-ig-gradient/10" />}
+                    {s.media_url ? <img src={s.media_url} alt="" className="shrink-0 h-14 w-14 rounded-xl object-cover" loading="lazy" decoding="async" /> : <div className="shrink-0 h-14 w-14 rounded-xl bg-ig-gradient/10" />}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-foreground line-clamp-1">{s.caption ?? "Story"}</p>
                       <p className="text-[11px] text-muted-foreground inline-flex items-center gap-0.5 mt-0.5"><Clock className="h-2.5 w-2.5" /> {formatRelative(s.created_at)} · {sViews.length} views</p>
@@ -161,7 +161,7 @@ export default function StoryViewersPage() {
                       {sViews.slice(0, 12).map((v) => {
                         const p = profileMap.get(v.viewer_id);
                         const name = p?.full_name?.trim() || "Viewer";
-                        return p?.avatar_url ? <img key={v.id} src={p.avatar_url} alt={name} title={name} className="h-8 w-8 rounded-full object-cover ring-1 ring-border" loading="lazy" /> : (
+                        return p?.avatar_url ? <img key={v.id} src={p.avatar_url} alt={name} title={name} className="h-8 w-8 rounded-full object-cover ring-1 ring-border" loading="lazy" decoding="async" /> : (
                           <div key={v.id} title={name} className="h-8 w-8 rounded-full bg-ig-gradient flex items-center justify-center text-white text-[10px] font-extrabold">{initials(name)}</div>
                         );
                       })}

@@ -151,6 +151,7 @@ export default function VehiclePhotoManager({ storeId, vehicleId, photos, onChan
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
                 loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   // Show a placeholder if the URL is broken
                   (e.currentTarget as HTMLImageElement).style.display = "none";

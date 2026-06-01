@@ -145,6 +145,8 @@ function PromoBanner({
           src={image}
           alt={alt}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          decoding="async"
           style={{ objectPosition }}
         />
         {/* Multi-layer gradient overlay */}
@@ -329,7 +331,7 @@ export default function ServicesPage() {
                 className="flex-shrink-0 flex flex-col items-center gap-2 touch-manipulation"
               >
                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center shadow-md`}>
-                  <img src={s.image} alt={s.label} className="w-9 h-9 object-contain" />
+                  <img src={s.image} alt={s.label} className="w-9 h-9 object-contain" loading="lazy" decoding="async" />
                 </div>
                 <span className="text-[10px] font-semibold text-foreground text-center leading-tight w-16">{s.label}</span>
               </motion.button>
@@ -353,7 +355,7 @@ export default function ServicesPage() {
               >
                 <div className="w-16 h-16 rounded-2xl bg-card border border-primary/20 flex items-center justify-center shadow-sm relative">
                   {s.image ? (
-                    <img src={s.image} alt={s.label} className="w-9 h-9 object-contain" />
+                    <img src={s.image} alt={s.label} className="w-9 h-9 object-contain" loading="lazy" decoding="async" />
                   ) : s.icon ? (
                     <s.icon className="w-6 h-6 text-primary" />
                   ) : null}
@@ -489,6 +491,8 @@ export default function ServicesPage() {
                             "w-9 h-9 object-contain transition-transform duration-200 group-hover:scale-110",
                             runningLabel === service.label && service.animClass
                           )}
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : service.icon ? (
                         <service.icon className="w-6 h-6 text-muted-foreground transition-colors duration-200 group-hover:text-primary" />
@@ -574,13 +578,17 @@ export default function ServicesPage() {
                   if (!waitlistEmail.trim()) return;
                   setWaitlistLoading(true);
                   try {
-                    await (supabase as any).from("feedback_submissions").insert({
-                      category: "service_waitlist",
-                      subject: `Waitlist: ${waitlistService}`,
-                      message: `User joined waitlist for: ${waitlistService}`,
-                      user_id: user?.id ?? null,
-                    });
-                  } catch {}
+                    const { error } = await supabase.functions.invoke("service-waitlist-submit", { body: {
+                      email: waitlistEmail,
+                      service: waitlistService,
+                      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+                    } });
+                    if (error) throw error;
+                  } catch {
+                    toast.error("Couldn't join waitlist. Please try again.");
+                    setWaitlistLoading(false);
+                    return;
+                  }
                   setWaitlistLoading(false);
                   setWaitlistSubmitted(true);
                 }}

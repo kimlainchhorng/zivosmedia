@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const ALLOWED_DOMAINS = [
   "cf.bstatic.com",
@@ -9,10 +10,11 @@ const ALLOWED_DOMAINS = [
 
 const CACHE_CONTROL = "public, max-age=31536000"; // 1 year for images
 
-serve(async (req) => {
+serve(withSecurity("proxy-image", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   // Only allow GET requests
   if (req.method !== "GET") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   // Extract the image URL from query parameter
@@ -20,7 +22,7 @@ serve(async (req) => {
   const imageUrl = url.searchParams.get("url");
 
   if (!imageUrl) {
-    return new Response("Missing url parameter", { status: 400 });
+    return new Response("Missing url parameter", { status: 400, headers: corsHeaders });
   }
 
   // Validate the URL
@@ -33,10 +35,10 @@ serve(async (req) => {
     );
 
     if (!isAllowed) {
-      return new Response("Domain not whitelisted", { status: 403 });
+      return new Response("Domain not whitelisted", { status: 403, headers: corsHeaders });
     }
   } catch {
-    return new Response("Invalid URL", { status: 400 });
+    return new Response("Invalid URL", { status: 400, headers: corsHeaders });
   }
 
   try {
@@ -50,7 +52,7 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      return new Response("Failed to fetch image", { status: response.status });
+      return new Response("Failed to fetch image", { status: response.status, headers: corsHeaders });
     }
 
     // Get content type
@@ -60,14 +62,20 @@ serve(async (req) => {
     return new Response(response.body, {
       status: 200,
       headers: {
+        ...corsHeaders,
         "Content-Type": contentType,
         "Cache-Control": CACHE_CONTROL,
-        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET",
       },
     });
   } catch (error) {
     console.error("Error proxying image:", error);
-    return new Response("Internal server error", { status: 500 });
+    return new Response("Internal server error", { status: 500, headers: corsHeaders });
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["GET"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

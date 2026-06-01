@@ -156,12 +156,12 @@ const TravelCompanionFinder = ({
         bio: "",
         interests: [],
       };
-      const { error } = await supabase.from("feedback_submissions" as any).insert({
+      const { error } = await supabase.functions.invoke("travel-support-submit", { body: {
         category: "flight_companion",
-        message: JSON.stringify(payload),
-        status: "pending",
-        user_id: user?.id,
-      });
+        subject: `Flight companion: ${flightNumber}`,
+        payload,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       setRegistered(true);
       toast.success("You're now visible to other travelers on this flight!");

@@ -6,17 +6,15 @@
  * profile (is_bot=true) → insert bots row → return token (one-time).
  */
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(withSecurity("bot-create", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const authz = req.headers.get("Authorization") ?? "";
-    if (!authz.startsWith("Bearer ")) return j({ error: "Missing auth" }, 401);
+    if (!authz.startsWith("Bearer ")) return j({ error: "Missing auth" }, 401, corsHeaders);
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -25,15 +23,15 @@ Deno.serve(async (req) => {
     );
     const { data: userRes } = await userClient.auth.getUser();
     const owner = userRes?.user;
-    if (!owner) return j({ error: "Not authenticated" }, 401);
+    if (!owner) return j({ error: "Not authenticated" }, 401, corsHeaders);
 
     const { username, display_name, description } = await req.json();
     const u = String(username ?? "").trim().toLowerCase();
     const dn = String(display_name ?? "").trim();
     if (!/^[a-z0-9_]{4,29}_bot$/.test(u)) {
-      return j({ error: "Username must end in _bot, 5-32 chars, lowercase a-z/0-9/_" }, 400);
+      return j({ error: "Username must end in _bot, 5-32 chars, lowercase a-z/0-9/_" }, 400, corsHeaders);
     }
-    if (!dn) return j({ error: "Display name required" }, 400);
+    if (!dn) return j({ error: "Display name required" }, 400, corsHeaders);
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -45,7 +43,7 @@ Deno.serve(async (req) => {
       sb.from("bots").select("id").eq("username", u).maybeSingle(),
       sb.from("usernames").select("username").ilike("username", u).maybeSingle(),
     ]);
-    if (ex1 || ex2) return j({ error: "Username taken" }, 409);
+    if (ex1 || ex2) return j({ error: "Username taken" }, 409, corsHeaders);
 
     // Create auth.users row for the bot
     const { data: created, error: cErr } = await sb.auth.admin.createUser({
@@ -53,7 +51,7 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: { is_bot: true, owner_id: owner.id, username: u, display_name: dn },
     });
-    if (cErr || !created.user) return j({ error: cErr?.message ?? "auth create failed" }, 500);
+    if (cErr || !created.user) return j({ error: cErr?.message ?? "auth create failed" }, 500, corsHeaders);
     const botUserId = created.user.id;
 
     // Profile row
@@ -75,17 +73,17 @@ Deno.serve(async (req) => {
     });
     if (rErr || !row) {
       await sb.auth.admin.deleteUser(botUserId).catch(() => {});
-      return j({ error: rErr?.message ?? "bot insert failed" }, 500);
+      return j({ error: rErr?.message ?? "bot insert failed" }, 500, corsHeaders);
     }
     const r = Array.isArray(row) ? row[0] : row;
 
-    return j({ ok: true, bot_id: r.bot_id, bot_user_id: botUserId, token: r.token });
+    return j({ ok: true, bot_id: r.bot_id, bot_user_id: botUserId, token: r.token }, 200, corsHeaders);
   } catch (e) {
-    return j({ error: String(e) }, 500);
+    return j({ error: String(e) }, 500, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
-function j(body: unknown, status = 200) {
+function j(body: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

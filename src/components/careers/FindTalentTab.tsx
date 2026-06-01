@@ -61,15 +61,8 @@ export default function FindTalentTab() {
     if (!user) return toast.error("You must be signed in.");
     if (inviting === t.user_id) return;
     setInviting(t.user_id);
-    const { error } = await (supabase as any).from("notifications").insert({
-      user_id: t.user_id,
-      title: "You've been invited to apply",
-      body: "An employer thinks you're a great fit. Check open jobs on Zivo Careers.",
-      category: "operational",
-      channel: "in_app",
-      template: "job_invite",
-      action_url: "/personal/find-employee",
-      status: "sent",
+    const { error } = await supabase.functions.invoke("talent-invite-notification", {
+      body: { target_user_id: t.user_id },
     });
     setInviting(null);
     if (error) return toast.error("Could not send invite.");

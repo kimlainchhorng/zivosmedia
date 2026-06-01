@@ -2,13 +2,9 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(withSecurity("wallet-summary", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(withSecurity("wallet-summary", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -80,4 +76,4 @@ Deno.serve(withSecurity("wallet-summary", async (req) => {
       }
     );
   }
-}, { rateLimit: "api_general" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

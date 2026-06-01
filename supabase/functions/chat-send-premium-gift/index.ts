@@ -122,7 +122,7 @@ Deno.serve(withSecurity("chat-send-premium-gift", async (req, ctx) => {
     const message = error instanceof Error ? error.message : String(error);
     return json({ error: message || "Internal error" }, 500, corsHeaders);
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 type DebitResult =
   | { ok: true; previousBalance: number; newBalance: number }

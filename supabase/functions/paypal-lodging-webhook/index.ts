@@ -299,4 +299,4 @@ Deno.serve(withSecurity("paypal-lodging-webhook", async (req) => {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
-}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

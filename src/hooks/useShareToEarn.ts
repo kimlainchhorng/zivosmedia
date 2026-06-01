@@ -30,37 +30,18 @@ export function useShareToEarn() {
       }
 
       try {
-        // Get or create user's referral code
-        const db = supabase as any;
-        const { data: existing } = await db
-          .from("user_referral_codes")
-          .select("referral_code")
-          .eq("user_id", user.id)
-          .maybeSingle();
+        const { data, error } = await supabase.functions.invoke("share-to-earn-manage", {
+          body: { action: "generate_share", post_id: postId, platform },
+        });
 
-        let referralCode = existing?.referral_code;
+        if (error) throw error;
 
-        if (!referralCode) {
-          // Generate unique 8-char code
-          referralCode = `Z${user.id.substring(0, 3).toUpperCase()}${Date.now().toString(36).slice(-4).toUpperCase()}`;
-          await db.from("user_referral_codes").insert({
-            user_id: user.id,
-            referral_code: referralCode,
-          });
-        }
+        const referralCode = typeof data?.referral_code === "string" ? data.referral_code : null;
+        if (!referralCode) throw new Error("Missing referral code");
 
         // Build share URL with tracking params
         const shareBase = buildReelDeepLink(postId);
         const shareUrl = `${shareBase}?ref=${referralCode}&utm_source=${platform}&utm_medium=share&utm_campaign=share_to_earn`;
-
-        // Log the share event
-        await db.from("referral_shares").insert({
-          referrer_id: user.id,
-          referral_code: referralCode,
-          post_id: postId,
-          platform,
-          shared_at: new Date().toISOString(),
-        });
 
         return { shareUrl, referralCode };
       } catch (err) {
@@ -101,59 +82,15 @@ export function useShareToEarn() {
   const creditReferralReward = useCallback(
     async (buyerUserId: string, orderId: string, orderAmountCents: number) => {
       try {
-        const db = supabase as any;
-
-        // Check if this buyer came from a referral
-        const { data: referralEntry } = await db
-          .from("referral_conversions")
-          .select("id, referrer_id, status")
-          .eq("buyer_id", buyerUserId)
-          .eq("status", "pending")
-          .maybeSingle();
-
-        if (!referralEntry) return; // Not a referral purchase
-
-        // Credit the referrer
-        await db.from("customer_wallet_transactions").insert({
-          user_id: referralEntry.referrer_id,
-          amount_cents: REWARD_CREDIT_CENTS,
-          type: "credit",
-          category: "referral_reward",
-          description: `Share-to-Earn reward — your friend made a purchase!`,
-          reference_id: orderId,
+        const { error } = await supabase.functions.invoke("share-to-earn-manage", {
+          body: {
+            action: "credit_reward",
+            buyer_user_id: buyerUserId,
+            order_id: orderId,
+            order_amount_cents: orderAmountCents,
+          },
         });
-
-        // Credit the buyer too
-        await db.from("customer_wallet_transactions").insert({
-          user_id: buyerUserId,
-          amount_cents: REWARD_CREDIT_CENTS,
-          type: "credit",
-          category: "referral_welcome",
-          description: `Welcome reward — $1.00 credit for your first purchase!`,
-          reference_id: orderId,
-        });
-
-        // Credit loyalty points to both
-        await Promise.all([
-          db.from("loyalty_points").insert({
-            user_id: referralEntry.referrer_id,
-            points: REWARD_POINTS,
-            reason: "referral_share",
-            reference_id: orderId,
-          }),
-          db.from("loyalty_points").insert({
-            user_id: buyerUserId,
-            points: REWARD_POINTS,
-            reason: "referral_welcome",
-            reference_id: orderId,
-          }),
-        ]);
-
-        // Mark conversion as credited
-        await db
-          .from("referral_conversions")
-          .update({ status: "credited", credited_at: new Date().toISOString(), order_id: orderId })
-          .eq("id", referralEntry.id);
+        if (error) throw error;
       } catch (err) {
         console.warn("[ShareToEarn] Credit error:", err);
       }

@@ -103,18 +103,16 @@ export function useCarRentalCustomers(storeId: string | undefined) {
       tags: draft.tags ?? [],
       is_blocked: draft.is_blocked ?? false,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_customers")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-customer-manage", {
+      body: { action: "create", store_id: storeId, customer: payload },
+    });
     if (err) {
       console.error("[useCarRentalCustomers] create failed", err);
       setError("Couldn't add renter.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalCustomer;
+    const created = data?.customer as CarRentalCustomer;
     setCustomers((prev) => [...prev, created].sort((a, b) => a.display_name.localeCompare(b.display_name)));
     setSaving(false);
     return created;
@@ -123,11 +121,16 @@ export function useCarRentalCustomers(storeId: string | undefined) {
   const update = useCallback(async (id: string, patch: Partial<CarRentalCustomerDraft>) => {
     setSaving(true);
     setCustomers((prev) => prev.map((c) => (c.id === id ? ({ ...c, ...patch } as CarRentalCustomer) : c)));
-    const { error: err } = await supabase.from("car_rental_customers").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-rental-customer-manage", {
+      body: { action: "update", customer_id: id, customer: patch },
+    });
     if (err) {
       console.error("[useCarRentalCustomers] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
+    } else if (data?.customer) {
+      const updated = data.customer as CarRentalCustomer;
+      setCustomers((prev) => prev.map((c) => (c.id === id ? updated : c)));
     }
     setSaving(false);
   }, [load]);
@@ -136,7 +139,9 @@ export function useCarRentalCustomers(storeId: string | undefined) {
     setSaving(true);
     const prev = customers;
     setCustomers((p) => p.filter((c) => c.id !== id));
-    const { error: err } = await supabase.from("car_rental_customers").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-customer-manage", {
+      body: { action: "delete", customer_id: id },
+    });
     if (err) {
       console.error("[useCarRentalCustomers] delete failed", err);
       setError("Couldn't delete renter.");

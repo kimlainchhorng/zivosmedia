@@ -329,15 +329,15 @@ export default function Help() {
 
           {/* Footer Links */}
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground border-t border-border/50 pt-8">
-            <Link to="/terms" className="hover:text-foreground transition-colors">
+            <Link to="/legal/terms" className="hover:text-foreground transition-colors">
               Terms of Service
             </Link>
             <span className="text-border">•</span>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">
+            <Link to="/legal/privacy" className="hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
             <span className="text-border">•</span>
-            <Link to="/partner-disclosure" className="hover:text-foreground transition-colors">
+            <Link to="/legal/partner-disclosure" className="hover:text-foreground transition-colors">
               Partner Disclosure
             </Link>
           </div>

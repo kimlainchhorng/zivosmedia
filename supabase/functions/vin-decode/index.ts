@@ -1,9 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 type VpicResult = {
   ErrorCode?: string;
@@ -79,11 +75,8 @@ const buildTransmission = (r: VpicResult) => {
   return [speeds, style].filter(Boolean).join(" ").trim();
 };
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+Deno.serve(withSecurity("vin-decode", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const { vin } = await req.json();
     const clean = typeof vin === "string" ? sanitizeVin(vin) : "";
@@ -166,4 +159,10 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

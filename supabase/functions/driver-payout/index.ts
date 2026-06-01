@@ -1,6 +1,7 @@
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { enforceAal2 } from "../_shared/aalCheck.ts";
 
 // Transfers the driver's share to their Stripe Connect account.
 // Bakong/KHR earnings are paid manually from the admin driver payout queue.
@@ -14,9 +15,31 @@ Deno.serve(withSecurity("driver-payout", async (req, ctx) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    const mfaErr = enforceAal2(authHeader, cors);
+    if (mfaErr) return mfaErr;
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" } as any);
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "admin role required" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
 
     const { ride_request_id } = await req.json();
     if (!ride_request_id) {
@@ -80,13 +103,16 @@ Deno.serve(withSecurity("driver-payout", async (req, ctx) => {
     const driverAmount = earning ? Math.max(0, Math.round(Number((earning as any).net_amount || 0) * 100)) : Math.max(0, fare - platformFee);
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")!;
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
+    const idempotencyKey = `driver-payout:${ride_request_id}`;
     const transfer = await stripe.transfers.create({
       amount: driverAmount,
       currency: "usd",
       destination: account.stripe_account_id,
       transfer_group: `ride_${ride_request_id}`,
-      metadata: { ride_request_id, driver_id: ride.assigned_driver_id, fare: String(fare), fee: String(platformFee) },
+      metadata: { ride_request_id, driver_id: ride.assigned_driver_id, admin_id: user.id, fare: String(fare), fee: String(platformFee) },
+    }, {
+      idempotencyKey,
     });
 
     if ((earning as any)?.id) {
@@ -97,6 +123,20 @@ Deno.serve(withSecurity("driver-payout", async (req, ctx) => {
         .then(() => null);
     }
 
+    await admin.from("admin_driver_actions").insert({
+      admin_id: user.id,
+      driver_id: ride.assigned_driver_id,
+      action_type: "driver_stripe_transfer_created",
+      reason: null,
+      metadata: {
+        ride_request_id,
+        transfer_id: transfer.id,
+        idempotency_key: idempotencyKey,
+        amount_cents: driverAmount,
+        platform_fee_cents: platformFee,
+      },
+    } as any).then(() => null);
+
     console.log(`[driver-payout] ride ${ride_request_id} to driver ${ride.assigned_driver_id} ${driverAmount}c (fee ${platformFee}c)`);
     return new Response(JSON.stringify({ ok: true, transfer_id: transfer.id, amount: driverAmount, platform_fee: platformFee }), {
       headers: { ...cors, "Content-Type": "application/json" },
@@ -105,4 +145,4 @@ Deno.serve(withSecurity("driver-payout", async (req, ctx) => {
     console.error("[driver-payout]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

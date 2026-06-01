@@ -19,23 +19,18 @@
  * with all other salon outbound SMS.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-twilio-signature",
-};
-
-const twimlEmpty = () =>
+const twimlEmpty = (headers: Record<string, string>) =>
   new Response("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response/>", {
     status: 200,
-    headers: { ...corsHeaders, "Content-Type": "text/xml" },
+    headers: { ...headers, "Content-Type": "text/xml" },
   });
 
-const twimlReject = (msg: string) =>
+const twimlReject = (msg: string, headers: Record<string, string>) =>
   new Response(JSON.stringify({ error: msg }), {
     status: 401,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 
 const constantTimeEquals = (a: string, b: string) => {
@@ -135,7 +130,9 @@ async function sendReplySms(to: string, body: string): Promise<{ sent: boolean; 
   }
 }
 
-serve(async (req: Request) => {
+serve(withSecurity("twilio-webhook", async (req: Request, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -154,7 +151,7 @@ serve(async (req: Request) => {
 
   // ---- Signature validation ------------------------------------------------
   const providedSig = req.headers.get("X-Twilio-Signature") ?? req.headers.get("x-twilio-signature");
-  if (!providedSig) return twimlReject("Missing X-Twilio-Signature");
+  if (!providedSig) return twimlReject("Missing X-Twilio-Signature", corsHeaders);
 
   // Twilio signs the EXACT URL the request was made to, including the path
   // and any query string. Edge functions are reached via the SUPABASE_URL
@@ -172,10 +169,10 @@ serve(async (req: Request) => {
       if (constantTimeEquals(expectedAlt, providedSig)) {
         // Match on the alt URL — fall through.
       } else {
-        return twimlReject("Signature mismatch");
+        return twimlReject("Signature mismatch", corsHeaders);
       }
     } else {
-      return twimlReject("Signature mismatch");
+      return twimlReject("Signature mismatch", corsHeaders);
     }
   }
 
@@ -188,7 +185,7 @@ serve(async (req: Request) => {
     raw: params,
   };
   if (!parsed.from || !parsed.messageSid) {
-    return twimlEmpty(); // bad request but Twilio retries forever on non-2xx
+    return twimlEmpty(corsHeaders); // bad request but Twilio retries forever on non-2xx
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
@@ -208,9 +205,9 @@ serve(async (req: Request) => {
     .maybeSingle();
   if (initialInsert.error) {
     // 23505 (unique violation) means we've already processed this message.
-    if ((initialInsert.error as any).code === "23505") return twimlEmpty();
+    if ((initialInsert.error as any).code === "23505") return twimlEmpty(corsHeaders);
     console.error("[twilio-webhook] failed to log inbound", initialInsert.error);
-    return twimlEmpty();
+    return twimlEmpty(corsHeaders);
   }
   const logId = (initialInsert.data as any)?.id as string;
 
@@ -235,7 +232,7 @@ serve(async (req: Request) => {
       .from("salon_sms_inbound_log")
       .update({ processed_action: "opt_out" })
       .eq("id", logId);
-    return twimlEmpty();
+    return twimlEmpty(corsHeaders);
   }
 
   // CONFIRM: customer replied YES / OK / CONFIRM to the 24h reminder.
@@ -266,7 +263,7 @@ serve(async (req: Request) => {
         .from("salon_sms_inbound_log")
         .update({ reply_sent: r.sent, reply_error: r.error ?? null })
         .eq("id", logId);
-      return twimlEmpty();
+      return twimlEmpty(corsHeaders);
     }
 
     const storeName = await (async () => {
@@ -294,7 +291,7 @@ serve(async (req: Request) => {
           reply_error: r.error ?? null,
         })
         .eq("id", logId);
-      return twimlEmpty();
+      return twimlEmpty(corsHeaders);
     }
 
     const confirmRes = await supabase.rpc("salon_public_confirm_booking", { p_id: (booking as any).id });
@@ -315,7 +312,7 @@ serve(async (req: Request) => {
       })
       .eq("id", logId);
 
-    return twimlEmpty();
+    return twimlEmpty(corsHeaders);
   }
 
   // CANCEL: find the most-imminent upcoming booking for this phone.
@@ -343,7 +340,7 @@ serve(async (req: Request) => {
         .from("salon_sms_inbound_log")
         .update({ reply_sent: r.sent, reply_error: r.error ?? null })
         .eq("id", logId);
-      return twimlEmpty();
+      return twimlEmpty(corsHeaders);
     }
 
     // Use the public cancellation RPC — it already checks the cancellation
@@ -445,7 +442,7 @@ serve(async (req: Request) => {
       }
     }
 
-    return twimlEmpty();
+    return twimlEmpty(corsHeaders);
   }
 
   // Unrecognized: log it, send one helpful reply.
@@ -462,5 +459,5 @@ serve(async (req: Request) => {
     })
     .eq("id", logId);
 
-  return twimlEmpty();
-});
+  return twimlEmpty(corsHeaders);
+}, { allowedMethods: ["POST"], strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

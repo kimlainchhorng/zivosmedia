@@ -186,7 +186,7 @@ export default function FriendRequestsPage() {
                     className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border"
                   >
                     {p?.avatar_url ? (
-                      <img src={p.avatar_url} alt="" className="shrink-0 h-10 w-10 rounded-full object-cover" loading="lazy" />
+                      <img src={p.avatar_url} alt="" className="shrink-0 h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="shrink-0 h-10 w-10 rounded-full bg-ig-gradient flex items-center justify-center text-white text-xs font-extrabold">{initials(name)}</div>
                     )}
@@ -226,7 +226,7 @@ export default function FriendRequestsPage() {
                     className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border"
                   >
                     {p?.avatar_url ? (
-                      <img src={p.avatar_url} alt="" className="shrink-0 h-10 w-10 rounded-full object-cover" loading="lazy" />
+                      <img src={p.avatar_url} alt="" className="shrink-0 h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="shrink-0 h-10 w-10 rounded-full bg-ig-gradient flex items-center justify-center text-white text-xs font-extrabold">{initials(name)}</div>
                     )}

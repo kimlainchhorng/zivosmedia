@@ -90,7 +90,9 @@ export function useSocialNotifications(limit = 30) {
   }, [fetch]);
 
   const markAsRead = async (ids: string[]) => {
-    await (supabase as any).from("user_notifications").update({ is_read: true }).in("id", ids);
+    await supabase.functions.invoke("social-notification-manage", {
+      body: { action: "mark_read", ids },
+    });
     setNotifications((prev) => prev.map((n) => ids.includes(n.id) ? { ...n, is_read: true } : n));
     setUnreadCount((prev) => Math.max(0, prev - ids.length));
   };
@@ -98,7 +100,9 @@ export function useSocialNotifications(limit = 30) {
   const markAllAsRead = async () => {
     const { data: session } = await supabase.auth.getSession();
     if (!session?.session?.user) return;
-    await (supabase as any).from("user_notifications").update({ is_read: true }).eq("user_id", session.session.user.id).eq("is_read", false);
+    await supabase.functions.invoke("social-notification-manage", {
+      body: { action: "mark_all_read" },
+    });
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setUnreadCount(0);
   };
@@ -117,12 +121,14 @@ export async function createSocialNotification(params: {
 }) {
   // Don't notify yourself
   if (params.userId === params.actorId) return;
-  await (supabase as any).from("user_notifications").insert({
-    user_id: params.userId,
-    actor_id: params.actorId,
-    type: params.type,
-    entity_id: params.entityId || null,
-    entity_type: params.entityType || null,
-    message: params.message,
+  await supabase.functions.invoke("social-notification-manage", {
+    body: {
+      action: "create",
+      user_id: params.userId,
+      type: params.type,
+      entity_id: params.entityId || null,
+      entity_type: params.entityType || null,
+      message: params.message,
+    },
   });
 }

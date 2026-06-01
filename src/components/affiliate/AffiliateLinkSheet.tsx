@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { validateExternalUrl } from "@/lib/urlSafety";
 import X from "lucide-react/dist/esm/icons/x";
 import Copy from "lucide-react/dist/esm/icons/copy";
 
@@ -42,9 +43,15 @@ export default function AffiliateLinkSheet() {
     if (!user?.id || !detail) return;
     setBusy(true);
     try {
+      const safeUrl = validateExternalUrl(detail.targetUrl);
+      if (!safeUrl) {
+        toast.error("Unsafe or invalid URL blocked");
+        setBusy(false);
+        return;
+      }
       const slug = slugify(user.email?.split("@")[0] || "u");
       const { error } = await (dbFrom("affiliate_links") as { insert: (p: unknown) => Promise<{ error: unknown }> }).insert({
-        owner_id: user.id, slug, target_url: detail.targetUrl, category: detail.category,
+        owner_id: user.id, slug, target_url: safeUrl, category: detail.category,
       });
       if (error) throw error;
       setShortUrl(`${window.location.origin}/r/${slug}`);

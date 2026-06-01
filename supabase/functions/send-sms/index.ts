@@ -15,17 +15,12 @@
  *   { to: "+14155552671", body: "...", user_id?: uuid, event_type?: string }
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const j = (status: number, body: unknown) =>
+const j = (headers: Record<string, string>, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 
 interface SmsRequest {
@@ -35,27 +30,29 @@ interface SmsRequest {
   event_type?: string;
 }
 
-serve(async (req) => {
+serve(withSecurity("send-sms", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return j(405, { error: "Method not allowed" });
+  if (req.method !== "POST") return j(corsHeaders, 405, { error: "Method not allowed" });
 
   const auth = req.headers.get("Authorization") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" });
-  if (auth !== `Bearer ${serviceKey}`) return j(401, { error: "Service-role only" });
+  if (!supabaseUrl || !serviceKey) return j(corsHeaders, 500, { error: "Server misconfigured" });
+  if (auth !== `Bearer ${serviceKey}`) return j(corsHeaders, 401, { error: "Service-role only" });
 
   let payload: SmsRequest;
   try {
     payload = await req.json();
   } catch {
-    return j(400, { error: "Invalid JSON body" });
+    return j(corsHeaders, 400, { error: "Invalid JSON body" });
   }
 
   const to = (payload.to || "").trim();
   const body = (payload.body || "").trim();
-  if (!to || !body) return j(400, { error: "Missing 'to' or 'body'" });
-  if (!/^\+[1-9]\d{6,14}$/.test(to)) return j(400, { error: "to must be E.164" });
+  if (!to || !body) return j(corsHeaders, 400, { error: "Missing 'to' or 'body'" });
+  if (!/^\+[1-9]\d{6,14}$/.test(to)) return j(corsHeaders, 400, { error: "to must be E.164" });
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -124,7 +121,7 @@ serve(async (req) => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         await finish(false, { error: JSON.stringify(data).slice(0, 500) });
-        return j(502, { success: false, error: data });
+        return j(corsHeaders, 502, { success: false, error: data });
       }
       providerId = data.sid;
     } else if (lovableKey && twilioConnKey && from) {
@@ -143,19 +140,19 @@ serve(async (req) => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         await finish(false, { error: JSON.stringify(data).slice(0, 500) });
-        return j(502, { success: false, error: data });
+        return j(corsHeaders, 502, { success: false, error: data });
       }
       providerId = data.sid;
     } else {
       await finish(false, { error: "sms_not_configured" });
-      return j(503, { success: false, error: "SMS provider not configured" });
+      return j(corsHeaders, 503, { success: false, error: "SMS provider not configured" });
     }
 
     await finish(true, { provider_id: providerId });
-    return j(200, { success: true, sid: providerId, to: masked });
+    return j(corsHeaders, 200, { success: true, sid: providerId, to: masked });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "send_failed";
     await finish(false, { error: msg });
-    return j(500, { success: false, error: msg });
+    return j(corsHeaders, 500, { success: false, error: msg });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

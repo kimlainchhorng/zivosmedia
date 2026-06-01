@@ -1,15 +1,20 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
+
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
 
 // Computes driver→pickup ETA via Google Distance Matrix and writes to ride_requests.
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
+Deno.serve(withSecurity("compute-eta", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   // Internal-only: require service role key
-  const authHeader = req.headers.get("Authorization");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!authHeader || !serviceKey || authHeader !== `Bearer ${serviceKey}`) {
+  if (!serviceKey || !isServiceRoleRequest(req, serviceKey)) {
     return new Response(JSON.stringify({ error: "Authentication required" }), {
       status: 401, headers: { ...cors, "Content-Type": "application/json" },
     });
@@ -81,6 +86,6 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("[compute-eta]", e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

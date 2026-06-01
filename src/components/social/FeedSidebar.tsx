@@ -144,20 +144,49 @@ export default function FeedSidebar() {
     : "/shop-dashboard";
 
   const hasDashboard = isAdmin || canOpenShopDashboard || isDriver || isRestaurantOwner || isHotelOwner || isSupport || isModerator || isOperations;
+  const commandCenterLabel = hasDashboard
+    ? "Dashboard ready"
+    : hasOwnedShopIdentity
+      ? "Shop tools ready"
+      : isMember
+        ? "Plus active"
+        : "Feed mode";
+  const commandCenterMeta = hasDashboard
+    ? "Tools and account shortcuts"
+    : hasOwnedShopIdentity
+      ? "Manage your business page"
+      : isMember
+        ? "Member benefits unlocked"
+        : "Explore ZIVO features";
+  const toolCount = [
+    isAdmin,
+    canOpenShopDashboard,
+    isDriver,
+    isRestaurantOwner,
+    isHotelOwner,
+    isSupport,
+    isModerator,
+    isOperations,
+  ].filter(Boolean).length;
+  const sidebarSignals = [
+    { label: "Live nav", value: NAV_ITEMS.length, Icon: Radio, tone: "text-red-500 bg-red-500/10" },
+    { label: "Services", value: SERVICE_ITEMS.length, Icon: Compass, tone: "text-primary bg-primary/10" },
+    { label: "Tools", value: toolCount || 1, Icon: LayoutDashboard, tone: "text-emerald-600 bg-emerald-500/10" },
+  ];
 
   return (
     <>
-    <aside className="hidden lg:flex flex-col w-60 shrink-0 sticky top-[4.5rem] h-[calc(100vh-4.5rem)] overflow-y-auto border-r border-border/30 bg-background/95">
+    <aside className="zivo-social-nav-glass hidden lg:flex flex-col w-60 shrink-0 sticky top-[4.5rem] h-[calc(100vh-4.5rem)] overflow-y-auto border-r border-border/30">
       <div className="flex flex-col gap-0.5 p-3">
         {/* Profile card — premium identity block */}
         {user && (
-          <div className="relative mb-3 overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
+          <div className="zivo-social-module relative mb-3 overflow-hidden rounded-2xl">
             <div className="px-3 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="relative shrink-0">
-                  <Avatar className="h-12 w-12 border-[3px] border-card shadow-md">
+                  <Avatar className="zivo-social-avatar-ring h-12 w-12 shadow-md">
                     <AvatarImage src={avatarUrl || undefined} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
+                    <AvatarFallback className="bg-transparent text-primary font-bold text-lg">
                       {displayName[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
@@ -181,7 +210,7 @@ export default function FeedSidebar() {
 
               <button type="button"
                 onClick={() => navigate("/profile")}
-                className="mt-3 flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-1.5 text-[12px] font-medium text-foreground hover:bg-muted transition-colors"
+                className="zivo-social-chip mt-3 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors"
               >
                 <span>View profile</span>
                 <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
@@ -189,13 +218,70 @@ export default function FeedSidebar() {
 
               <button type="button"
                 onClick={() => setShowSwitch(true)}
-                className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/50 bg-background/80 px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="zivo-social-chip mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Switch account or open dashboards"
                 title="Switch account or open dashboards"
               >
                 <ArrowLeftRight className="h-3.5 w-3.5" />
                 <span>Switch account</span>
               </button>
+
+              <div className="mt-3 grid grid-cols-3 gap-1.5">
+                <span className="zivo-social-module-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-center">
+                  <Crown className={cn("h-3.5 w-3.5", isMember ? "text-amber-500" : "text-muted-foreground")} aria-hidden="true" />
+                  <span className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-muted-foreground">
+                    {isMember ? "Plus" : "Basic"}
+                  </span>
+                </span>
+                <span className="zivo-social-module-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-center">
+                  <Store className={cn("h-3.5 w-3.5", hasOwnedShopIdentity ? "text-primary" : "text-muted-foreground")} aria-hidden="true" />
+                  <span className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-muted-foreground">
+                    {ownerStores.length || (hasOwnedShopIdentity ? 1 : 0)} Shop
+                  </span>
+                </span>
+                <span className="zivo-social-module-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-center">
+                  <LayoutDashboard className={cn("h-3.5 w-3.5", hasDashboard ? "text-emerald-600" : "text-muted-foreground")} aria-hidden="true" />
+                  <span className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-muted-foreground">
+                    {hasDashboard ? "Tools" : "Feed"}
+                  </span>
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSwitch(true)}
+                className="zivo-social-share-preview mt-3 flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2 text-left transition-transform active:scale-[0.99]"
+                aria-label={`Open command center, ${commandCenterLabel}`}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[10px] font-black uppercase tracking-[0.08em] text-muted-foreground">
+                      Command center
+                    </span>
+                    <span className="block truncate text-xs font-bold text-foreground">{commandCenterMeta}</span>
+                  </span>
+                </span>
+                <span className="zivo-social-chip-active shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black">
+                  {commandCenterLabel}
+                </span>
+              </button>
+
+              <div className="mt-3 grid grid-cols-3 gap-1.5">
+                {sidebarSignals.map(({ label, value, Icon, tone }) => (
+                  <span key={label} className="zivo-social-module-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-center">
+                    <span className={cn("flex h-6 w-6 items-center justify-center rounded-full", tone)}>
+                      <Icon className="h-3 w-3" aria-hidden="true" />
+                    </span>
+                    <span className="text-[10px] font-black leading-none text-foreground">{value}</span>
+                    <span className="truncate text-[8px] font-black uppercase tracking-[0.08em] text-muted-foreground">
+                      {label}
+                    </span>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -203,7 +289,7 @@ export default function FeedSidebar() {
         {/* Your Business Pages — placed at top, right under the profile card */}
         {user && (
           <>
-            <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 pt-2 pb-1">
+            <p className="px-3 pb-1 pt-2 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">
               Your Business Pages
             </p>
             {ownerStores.map((store) => {
@@ -219,11 +305,11 @@ export default function FeedSidebar() {
                 <button type="button"
                   key={store.id}
                   onClick={handleClick}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors group"
+                  className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
                 >
-                  <Avatar className="h-6 w-6 shrink-0">
+                  <Avatar className="zivo-social-avatar-ring h-6 w-6 shrink-0">
                     <AvatarImage src={store.logo_url || undefined} alt={store.name || "Business"} />
-                    <AvatarFallback className={cn("text-[10px]", placeholder ? "bg-amber-500/15 text-amber-600" : "bg-primary/10 text-primary")}>
+                    <AvatarFallback className={cn("bg-transparent text-[10px] font-bold", placeholder ? "text-amber-600" : "text-primary")}>
                       {placeholder ? "!" : (store.name || "B").charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -245,70 +331,82 @@ export default function FeedSidebar() {
             })}
             <button type="button"
               onClick={() => navigate("/business/new?new=1")}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              className="zivo-social-sheet-row flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
             >
-              <Building2 className="h-5 w-5 text-foreground" />
+              <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-primary">
+                <Building2 className="h-4 w-4" />
+              </span>
               <span>Create new Business</span>
             </button>
           </>
         )}
 
         {/* Main nav */}
-        <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 pt-4 pb-1">Navigate</p>
+        <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">Navigate</p>
         {NAV_ITEMS.map((item) => (
           <button type="button"
             key={item.label}
             onClick={() => navigate(item.path)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors group"
+            className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
           >
-            <item.icon className={cn("h-5 w-5", item.color)} />
+            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl">
+              <item.icon className={cn("h-4 w-4", item.color)} />
+            </span>
             <span>{item.label}</span>
           </button>
         ))}
         {/* Chat button — opens slide panel */}
         <button type="button"
           onClick={() => user ? setShowChat(true) : navigate(`/login?redirect=${encodeURIComponent("/chat")}`)}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors group"
+          className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
         >
-          <MessageCircle className="h-5 w-5 text-foreground" />
+          <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-primary">
+            <MessageCircle className="h-4 w-4" />
+          </span>
           <span>Chat</span>
         </button>
 
         {/* Social */}
-        <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 pt-4 pb-1">Social</p>
+        <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">Social</p>
         {SOCIAL_ITEMS.map((item) => (
           <button type="button"
             key={item.label}
             onClick={() => goToItem(item.path, item.authRequired)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors group"
+            className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
           >
-            <item.icon className="h-5 w-5 text-foreground" />
+            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-primary">
+              <item.icon className="h-4 w-4" />
+            </span>
             <span>{item.label}</span>
           </button>
         ))}
 
         {/* Services */}
-        <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 pt-4 pb-1">Services</p>
+        <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">Services</p>
         {SERVICE_ITEMS.map((item) => (
           <button type="button"
             key={item.label}
             onClick={() => goToItem(item.path, item.authRequired)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors group"
+            className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
           >
-            <item.icon className={cn("h-5 w-5", item.color)} />
+            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl">
+              <item.icon className={cn("h-4 w-4", item.color)} />
+            </span>
             <span>{item.label}</span>
           </button>
         ))}
 
         {/* More */}
-        <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 pt-4 pb-1">More</p>
+        <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">More</p>
         {MORE_ITEMS.map((item) => (
           <button type="button"
             key={item.label}
             onClick={() => navigate(item.path)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted/50 transition-colors"
+            className="zivo-social-sheet-row flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground/80 transition-all active:scale-[0.99]"
           >
-            <item.icon className="h-4.5 w-4.5 text-muted-foreground" />
+            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-muted-foreground">
+              <item.icon className="h-4 w-4" />
+            </span>
             <span>{item.label}</span>
           </button>
         ))}
@@ -319,7 +417,7 @@ export default function FeedSidebar() {
             {isMember ? (
               <button type="button"
                 onClick={() => navigate("/account/membership")}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors w-full"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-white/55 transition-colors w-full"
               >
                 <Crown className="h-5 w-5 text-amber-500" />
                 <span>Membership</span>
@@ -346,16 +444,16 @@ export default function FeedSidebar() {
 
       {/* Switch Account Sheet */}
       <Sheet open={showSwitch} onOpenChange={setShowSwitch}>
-        <SheetContent side="left" className="w-80 p-0">
-          <SheetHeader className="p-4 border-b border-border/30">
+        <SheetContent side="left" className="zivo-social-surface w-80 p-0">
+          <SheetHeader className="zivo-social-header-glass m-2 rounded-[1.25rem] p-4">
             <SheetTitle className="text-base">Switch Account</SheetTitle>
           </SheetHeader>
           <div className="p-3 space-y-1">
             {/* Current account */}
-            <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-primary/5 border border-primary/10">
-              <Avatar className="h-11 w-11 border-2 border-primary/30">
+            <div className="zivo-social-module flex items-center gap-3 rounded-[1.25rem] px-3 py-3">
+              <Avatar className="zivo-social-avatar-ring h-11 w-11">
                 <AvatarImage src={avatarUrl || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                <AvatarFallback className="bg-transparent text-primary font-bold">
                   {displayName[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -374,7 +472,7 @@ export default function FeedSidebar() {
                 {isAdmin && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/admin/analytics"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <Shield className="h-5 w-5 text-red-500" />
                     <span>Admin Dashboard</span>
@@ -387,7 +485,7 @@ export default function FeedSidebar() {
                       setShowSwitch(false);
                       navigate(shopDashboardPath);
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <Store className="h-5 w-5 text-emerald-500" />
                     <span>Shop Dashboard</span>
@@ -397,7 +495,7 @@ export default function FeedSidebar() {
                 {isDriver && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/driver/home"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <CarTaxiFront className="h-5 w-5 text-foreground" />
                     <span>Driver Dashboard</span>
@@ -407,7 +505,7 @@ export default function FeedSidebar() {
                 {isRestaurantOwner && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/eats/restaurant-dashboard"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <ChefHat className="h-5 w-5 text-orange-500" />
                     <span>Restaurant Dashboard</span>
@@ -417,7 +515,7 @@ export default function FeedSidebar() {
                 {isSupport && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/admin/support"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <Headphones className="h-5 w-5 text-blue-500" />
                     <span>Support Dashboard</span>
@@ -427,7 +525,7 @@ export default function FeedSidebar() {
                 {isModerator && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/admin/moderation"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <Eye className="h-5 w-5 text-foreground" />
                     <span>Moderator Dashboard</span>
@@ -437,7 +535,7 @@ export default function FeedSidebar() {
                 {isOperations && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/admin/operations"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <Wrench className="h-5 w-5 text-slate-500" />
                     <span>Operations Dashboard</span>
@@ -447,16 +545,26 @@ export default function FeedSidebar() {
                 {isHotelOwner && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/hotel/dashboard"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <Building2 className="h-5 w-5 text-amber-500" />
                     <span>Hotel Dashboard</span>
                   </button>
                 )}
 
+                {(isAdmin || isSupport) && (
+                  <button type="button"
+                    onClick={() => { setShowSwitch(false); navigate("/admin/employees"); }}
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
+                  >
+                    <Users className="h-5 w-5 text-indigo-500" />
+                    <span>Employees</span>
+                  </button>
+                )}
+
                 <button type="button"
                   onClick={() => { setShowSwitch(false); navigate("/more"); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                  className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                 >
                   <LayoutDashboard className="h-5 w-5 text-primary" />
                   <span>Account Hub</span>
@@ -472,7 +580,7 @@ export default function FeedSidebar() {
                 {!hasOwnedShopIdentity && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/partner-with-zivo"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <Handshake className="h-5 w-5 text-emerald-500" />
                     <span>Become Shop Partner</span>
@@ -482,7 +590,7 @@ export default function FeedSidebar() {
                 {!isDriver && (
                   <button type="button"
                     onClick={() => { setShowSwitch(false); navigate("/partner-with-zivo"); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
                     <CarTaxiFront className="h-5 w-5 text-foreground" />
                     <span>Become Driver</span>
@@ -497,7 +605,7 @@ export default function FeedSidebar() {
                 <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 pb-1">Account</p>
                 <button type="button"
                   onClick={() => { setShowSwitch(false); navigate("/more"); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                  className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                 >
                   <LayoutDashboard className="h-5 w-5 text-primary" />
                   <span>Account Hub</span>
@@ -516,17 +624,19 @@ export default function FeedSidebar() {
             className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[1290] lg:hidden"
             onClick={() => setChatOpen(false)}
           />
-          <div className="fixed right-0 top-0 bottom-0 z-[1300] flex w-full flex-col overflow-hidden bg-background shadow-2xl sm:w-[420px] md:w-[440px] lg:top-[4.5rem] lg:bottom-0 lg:w-[400px] lg:border-l lg:border-border/20 xl:w-[420px] 2xl:w-[440px] rounded-l-2xl sm:rounded-l-2xl lg:rounded-none">
+          <div className="zivo-social-composer-panel fixed right-0 top-0 bottom-0 z-[1300] flex w-full flex-col overflow-hidden sm:w-[420px] md:w-[440px] lg:top-[4.5rem] lg:bottom-0 lg:w-[400px] lg:border-l lg:border-border/20 xl:w-[420px] 2xl:w-[440px] rounded-l-2xl sm:rounded-l-2xl lg:rounded-none">
             {/* Close / Back header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/95 backdrop-blur-sm shrink-0">
+            <div className="zivo-social-header-glass m-2 flex shrink-0 items-center justify-between rounded-[1.25rem] px-4 py-3">
               <div className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-primary" />
+                <span className="zivo-social-share-orb flex h-8 w-8 items-center justify-center rounded-full">
+                  <MessageCircle className="h-5 w-5 text-primary" />
+                </span>
                 <h2 className="text-base font-semibold text-foreground">Messages</h2>
               </div>
               <div className="flex items-center gap-1">
                 <button type="button"
                   onClick={() => window.dispatchEvent(new CustomEvent("zivo-chat-new-group"))}
-                  className="relative flex items-center justify-center h-8 w-8 rounded-full hover:bg-muted/80 active:scale-90 transition-all"
+                  className="zivo-social-icon-button relative flex h-8 w-8 items-center justify-center rounded-full active:scale-90 transition-all"
                   aria-label="New group"
                   title="New group"
                 >
@@ -535,7 +645,7 @@ export default function FeedSidebar() {
                 </button>
                 <button type="button"
                   onClick={() => setChatOpen(false)}
-                  className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-muted/80 active:scale-90 transition-all"
+                  className="zivo-social-icon-button flex h-8 w-8 items-center justify-center rounded-full active:scale-90 transition-all"
                   aria-label="Close chat"
                 >
                   <XIcon className="h-4.5 w-4.5 text-muted-foreground" />

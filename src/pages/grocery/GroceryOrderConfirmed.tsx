@@ -49,15 +49,23 @@ export default function GroceryOrderConfirmed() {
 
     const confirmOrder = async () => {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setUpdating(false);
+          return;
+        }
+
         await supabase
           .from("shopping_orders")
           .update({ status: "pending" } as any)
-          .eq("id", orderId);
+          .eq("id", orderId)
+          .eq("user_id", user.id);
 
         const { data } = await supabase
           .from("shopping_orders")
           .select("store, total_amount, delivery_fee, items, delivery_address, customer_name, payment_provider, payment_method")
           .eq("id", orderId)
+          .eq("user_id", user.id)
           .single();
 
         if (data) setOrder(data as unknown as OrderSummary);
@@ -203,7 +211,7 @@ export default function GroceryOrderConfirmed() {
               {order.items.slice(0, 6).map((item, i) => (
                 <div key={i} className="shrink-0 flex flex-col items-center w-14">
                   {item.image ? (
-                    <img src={item.image} alt="" className="h-11 w-11 rounded-xl object-contain bg-muted/20 border border-border/15 p-0.5" referrerPolicy="no-referrer" />
+                    <img src={item.image} alt="" className="h-11 w-11 rounded-xl object-contain bg-muted/20 border border-border/15 p-0.5" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                   ) : (
                     <div className="h-11 w-11 rounded-xl bg-muted/20 border border-border/15 flex items-center justify-center">
                       <Package className="h-4 w-4 text-muted-foreground/20" />

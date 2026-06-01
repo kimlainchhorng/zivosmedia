@@ -51,8 +51,9 @@ export function useDealershipReviews(storeId: string | undefined) {
     setSaving(true); setError(null);
     const patch = { owner_response: response, owner_responded_at: new Date().toISOString() };
     setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-    const { error: err } = await supabase
-      .from("car_dealership_reviews").update(patch as never).eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-dealership-review-manage", {
+      body: { action: "respond", review_id: id, response },
+    });
     if (err) { setError("Couldn't save response."); setSaving(false); void load(); return false; }
     setSaving(false);
     return true;
@@ -61,8 +62,9 @@ export function useDealershipReviews(storeId: string | undefined) {
   const toggleVisible = useCallback(async (id: string, is_visible: boolean) => {
     setSaving(true);
     setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, is_visible } : r)));
-    const { error: err } = await supabase
-      .from("car_dealership_reviews").update({ is_visible } as never).eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-dealership-review-manage", {
+      body: { action: "set_visible", review_id: id, is_visible },
+    });
     if (err) { setSaving(false); void load(); return false; }
     setSaving(false);
     return true;

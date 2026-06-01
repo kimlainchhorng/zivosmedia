@@ -422,10 +422,9 @@ export default function WalletPage() {
   const addPayoutMethod = useMutation({
     mutationFn: async (form: typeof payoutForm) => {
       if (!user) throw new Error("Not authenticated");
-      const { error } = await (supabase as any)
-        .from("customer_payout_methods")
-        .insert({
-          user_id: user.id,
+      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
+        body: {
+          action: "create",
           method_type: form.method_type,
           label: form.label || (form.method_type === "aba" ? "ABA Account" : "Bank Account"),
           bank_name: form.bank_name || null,
@@ -433,8 +432,14 @@ export default function WalletPage() {
           account_holder_name: form.account_holder_name || null,
           aba_account_id: form.aba_account_id || null,
           is_default: payoutMethods.length === 0,
-        });
-      if (error) throw error;
+        },
+        headers: {
+          "Idempotency-Key": `payout-method-${user.id}-${form.method_type}-${crypto.randomUUID()}`,
+        },
+      });
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Failed to add payout method");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payout-methods"] });
@@ -447,11 +452,12 @@ export default function WalletPage() {
 
   const deletePayoutMethod = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from("customer_payout_methods")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
+        body: { action: "delete", method_id: id },
+      });
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Failed to delete payout method");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payout-methods"] });
@@ -1126,7 +1132,9 @@ export default function WalletPage() {
                       try {
                         const amountCents = Math.round(Number(cashoutAmount) * 100);
                         const selectedPayout = payoutMethods.find((p: any) => p.id === selectedPayoutId);
+                        const idempotencyKey = `withdrawal-${crypto.randomUUID()}`;
                         const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+                          headers: { "Idempotency-Key": idempotencyKey },
                           body: {
                             amount_cents: amountCents,
                             method: selectedPayout?.method_type || cashoutMethod,
@@ -1326,18 +1334,14 @@ export default function WalletPage() {
                           onClick={async () => {
                             if (!refundTx) return;
                             setRefundSubmitting(true);
-                            const refundDetails = [
-                              refundReason,
-                              refundNote,
-                              `TX: ${refundTx.id}`,
-                              `Amount: $${Math.abs(Number(refundTx.amount)).toFixed(2)}`,
-                              refundTx.description ? `Service: ${refundTx.description}` : null,
-                            ].filter(Boolean).join(" | ");
-                            const { error } = await (supabase as any).from("feedback_submissions").insert({
-                              user_id: user?.id ?? null,
-                              category: "refund_request",
-                              message: refundDetails,
-                            });
+                            const { error } = await supabase.functions.invoke("refund-request-submit", { body: {
+                              reason: refundReason,
+                              note: refundNote,
+                              transaction_id: refundTx.id,
+                              amount: Math.abs(Number(refundTx.amount)),
+                              description: refundTx.description || null,
+                              user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+                            } });
                             setRefundSubmitting(false);
                             if (error) { toast.error("Failed to submit"); return; }
                             setRefundDone(true);

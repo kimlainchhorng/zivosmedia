@@ -1,5 +1,5 @@
 /**
- * Salon payment settings — fetch + upsert for the USA flow.
+ * Salon payment settings — fetch + server-gated save for the USA flow.
  * Returns sensible defaults until a row exists; the first save writes the row.
  */
 import { useEffect, useState, useCallback } from "react";
@@ -44,6 +44,26 @@ export const DEFAULT_SALON_PAYMENT_SETTINGS: SalonPaymentSettings = {
   cancellation_window_hours: 24,
 };
 
+function fromRow(row: any): SalonPaymentSettings {
+  return {
+    id: row.id,
+    market: "us",
+    stripe_account_id: row.stripe_account_id,
+    stripe_status: row.stripe_status,
+    accept_card: row.accept_card,
+    accept_cash: row.accept_cash,
+    tips_enabled: row.tips_enabled,
+    tip_presets: row.tip_presets ?? [15, 18, 20],
+    tip_applies_pre_tax: row.tip_applies_pre_tax,
+    tax_enabled: row.tax_enabled,
+    tax_rate: Number(row.tax_rate ?? 0),
+    tax_label: row.tax_label ?? "Sales tax",
+    deposit_percent: row.deposit_percent,
+    no_show_fee_cents: row.no_show_fee_cents,
+    cancellation_window_hours: row.cancellation_window_hours,
+  };
+}
+
 interface UseSalonPaymentSettingsResult {
   settings: SalonPaymentSettings;
   loading: boolean;
@@ -78,25 +98,7 @@ export function useSalonPaymentSettings(storeId: string | undefined): UseSalonPa
       setLoading(false);
       return;
     }
-    if (data) {
-      setSettings({
-        id: (data as any).id,
-        market: "us",
-        stripe_account_id: (data as any).stripe_account_id,
-        stripe_status: (data as any).stripe_status,
-        accept_card: (data as any).accept_card,
-        accept_cash: (data as any).accept_cash,
-        tips_enabled: (data as any).tips_enabled,
-        tip_presets: (data as any).tip_presets ?? [15, 18, 20],
-        tip_applies_pre_tax: (data as any).tip_applies_pre_tax,
-        tax_enabled: (data as any).tax_enabled,
-        tax_rate: Number((data as any).tax_rate ?? 0),
-        tax_label: (data as any).tax_label ?? "Sales tax",
-        deposit_percent: (data as any).deposit_percent,
-        no_show_fee_cents: (data as any).no_show_fee_cents,
-        cancellation_window_hours: (data as any).cancellation_window_hours,
-      });
-    }
+    if (data) setSettings(fromRow(data));
     setLoading(false);
   }, [storeId]);
 
@@ -110,10 +112,6 @@ export function useSalonPaymentSettings(storeId: string | undefined): UseSalonPa
     setError(null);
     const merged = { ...settings, ...next };
     const payload: Record<string, unknown> = {
-      store_id: storeId,
-      market: "us",
-      stripe_account_id: merged.stripe_account_id,
-      stripe_status: merged.stripe_status,
       accept_card: merged.accept_card,
       accept_cash: merged.accept_cash,
       tips_enabled: merged.tips_enabled,
@@ -126,18 +124,16 @@ export function useSalonPaymentSettings(storeId: string | undefined): UseSalonPa
       no_show_fee_cents: merged.no_show_fee_cents,
       cancellation_window_hours: merged.cancellation_window_hours,
     };
-    const { data, error: err } = await supabase
-      .from("store_payment_settings")
-      .upsert(payload as never, { onConflict: "store_id,market" })
-      .select("id")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("store-payment-settings-update", {
+      body: { store_id: storeId, settings: payload },
+    });
     if (err) {
       console.error("[useSalonPaymentSettings] save failed", err);
       setError("Couldn't save changes — try again.");
       setSaving(false);
       return;
     }
-    setSettings({ ...merged, id: (data as any).id });
+    setSettings(data?.settings ? fromRow(data.settings) : merged);
     setSaving(false);
   }, [storeId, settings]);
 

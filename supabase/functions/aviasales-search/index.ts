@@ -1,10 +1,6 @@
 import { serve, createClient } from "../_shared/deps.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SEARCH_START_URL = 'https://tickets-api.travelpayouts.com/search/affiliate/start';
 
@@ -38,11 +34,8 @@ async function generateSignature(token: string, params: Record<string, any>): Pr
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(withSecurity("aviasales-search", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
@@ -329,4 +322,10 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "search",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

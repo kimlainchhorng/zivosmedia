@@ -5,15 +5,9 @@
  * The caller's JWT must own the store associated with the employee row.
  */
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(status: number, body: unknown) {
+function json(status: number, body: unknown, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -26,9 +20,12 @@ function generateToken(): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+Deno.serve(withSecurity("send-employee-sms-invite", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const inviteHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "POST, OPTIONS" };
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: inviteHeaders });
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" }, inviteHeaders);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -39,20 +36,20 @@ Deno.serve(async (req) => {
     const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
     const TWILIO_FROM_NUMBER = Deno.env.get("TWILIO_FROM_NUMBER");
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
-      return json(500, { error: "twilio_not_configured" });
+      return json(500, { error: "twilio_not_configured" }, inviteHeaders);
     }
 
     // Validate caller JWT
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
-    if (!token) return json(401, { error: "unauthenticated" });
+    if (!token) return json(401, { error: "unauthenticated" }, inviteHeaders);
 
     const userClient = createClient(supabaseUrl, anon, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
     const { data: userRes } = await userClient.auth.getUser();
     const user = userRes?.user;
-    if (!user) return json(401, { error: "unauthenticated" });
+    if (!user) return json(401, { error: "unauthenticated" }, inviteHeaders);
 
     const body = await req.json().catch(() => ({}));
     const storeEmployeeId: string | undefined = body.storeEmployeeId;
@@ -61,10 +58,10 @@ Deno.serve(async (req) => {
     const role: string = (body.role || "staff").toString().slice(0, 40);
 
     if (!storeEmployeeId || !phone) {
-      return json(400, { error: "missing_fields" });
+      return json(400, { error: "missing_fields" }, inviteHeaders);
     }
     if (!/^\+\d{6,16}$/.test(phone)) {
-      return json(400, { error: "invalid_phone_e164" });
+      return json(400, { error: "invalid_phone_e164" }, inviteHeaders);
     }
 
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -77,7 +74,7 @@ Deno.serve(async (req) => {
       .select("id, store_id, name")
       .eq("id", storeEmployeeId)
       .maybeSingle();
-    if (empErr || !emp) return json(404, { error: "employee_not_found" });
+    if (empErr || !emp) return json(404, { error: "employee_not_found" }, inviteHeaders);
 
     const { data: store } = await admin
       .from("store_profiles")
@@ -85,7 +82,7 @@ Deno.serve(async (req) => {
       .eq("id", emp.store_id)
       .maybeSingle();
     if (!store || store.owner_id !== user.id) {
-      return json(403, { error: "not_store_owner" });
+      return json(403, { error: "not_store_owner" }, inviteHeaders);
     }
 
     // Rate limit: max 5 SMS invites per phone per day
@@ -97,7 +94,7 @@ Deno.serve(async (req) => {
       .eq("channel", "sms")
       .gte("sent_at", oneDayAgo);
     if ((count ?? 0) >= 5) {
-      return json(429, { error: "rate_limited", message: "Too many SMS invites today." });
+      return json(429, { error: "rate_limited", message: "Too many SMS invites today." }, inviteHeaders);
     }
 
     // Create invite token
@@ -110,7 +107,7 @@ Deno.serve(async (req) => {
       token: inviteToken,
       sent_by: user.id,
     });
-    if (insErr) return json(500, { error: "invite_insert_failed", detail: insErr.message });
+    if (insErr) return json(500, { error: "invite_insert_failed", detail: insErr.message }, inviteHeaders);
 
     const link = `https://hizivo.com/auth/accept-invite?token=${inviteToken}`;
     const messageBody = `You're invited to join ${store.name || storeName} on ZIVO as ${role}. Set up your account: ${link}`;
@@ -134,12 +131,12 @@ Deno.serve(async (req) => {
     const twilioData = await twilioRes.json();
     if (!twilioRes.ok) {
       console.error("Twilio error", twilioData);
-      return json(502, { error: "twilio_send_failed", detail: twilioData?.message });
+      return json(502, { error: "twilio_send_failed", detail: twilioData?.message }, inviteHeaders);
     }
 
-    return json(200, { ok: true, sid: twilioData.sid });
+    return json(200, { ok: true, sid: twilioData.sid }, inviteHeaders);
   } catch (e) {
     console.error("send-employee-sms-invite error", e);
-    return json(500, { error: "internal_error", detail: String(e) });
+    return json(500, { error: "internal_error", detail: String(e) }, inviteHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

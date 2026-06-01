@@ -408,4 +408,4 @@ Deno.serve(withSecurity("stripe-lodging-webhook", async (req) => {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
-}, { rateLimit: "payment", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));

@@ -1,0 +1,1285 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+const root = process.cwd();
+
+function source(relativePath: string) {
+  return readFileSync(path.join(root, relativePath), "utf8");
+}
+
+describe("shop owner workflow", () => {
+  it("keeps shop owner, catalog, staff, promotion, review, and rental mutations POST-gated", () => {
+    for (const route of [
+      "store-profile-manage",
+      "store-product-manage",
+      "store-order-state-update",
+      "store-employee-manage",
+      "employee-shift-manage",
+      "employee-rule-manage",
+      "promotion-manage",
+      "store-promotion-manage",
+      "cafe-promotion-manage",
+      "car-rental-promotion-manage",
+      "car-dealership-promotion-manage",
+      "review-manage",
+      "marketplace-review-submit",
+      "cafe-review-manage",
+      "salon-review-manage",
+      "salon-gift-card-manage",
+      "salon-blockout-manage",
+      "salon-waitlist-manage",
+      "salon-booking-manage",
+      "salon-retail-product-manage",
+      "salon-loyalty-manage",
+      "salon-package-manage",
+      "salon-stylist-schedule-manage",
+      "salon-expense-manage",
+      "salon-store-closure-manage",
+      "salon-booking-retail-manage",
+      "salon-booking-addon-manage",
+      "salon-membership-tier-manage",
+      "salon-reminder-settings-update",
+      "salon-reminder-template-manage",
+      "salon-service-manage",
+      "salon-stylist-manage",
+      "salon-time-entry-manage",
+      "salon-client-manage",
+      "lodging-review-manage",
+      "lodging-review-submit",
+      "car-rental-review-manage",
+      "car-rental-review-submit",
+      "car-dealership-review-manage",
+      "car-dealership-review-submit",
+      "car-rental-expense-manage",
+      "car-rental-maintenance-manage",
+      "car-rental-vehicle-manage",
+      "car-rental-addon-manage",
+      "car-rental-location-manage",
+      "car-rental-customer-manage",
+      "car-rental-reservation-manage",
+      "car-rental-blackout-manage",
+      "car-rental-settings-update",
+    ]) {
+      const fn = source(`supabase/functions/${route}/index.ts`);
+      expect(fn).toContain(`withSecurity("${route}"`);
+      expect(fn).toContain("strictCors: true");
+      expect(fn).toContain('allowedMethods: ["POST"]');
+      expect(fn).toContain('trackNetwork: "suspicious"');
+      expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
+    }
+  });
+
+  it("wires the owner/admin contract gate into platform audit", () => {
+    const contract = source("scripts/qa/shop-owner-contracts.mjs");
+    const workflowCoverage = source("scripts/qa/workflow-coverage.mjs");
+    const packageJson = source("package.json");
+
+    for (const contractId of [
+      "owner-self-service-setup-route",
+      "owner-dashboard-routes-and-tabs",
+      "owner-scoped-operations",
+      "owner-rls-and-data-api-grants",
+    ]) {
+      expect(contract).toContain(contractId);
+    }
+
+    expect(workflowCoverage).toContain("qa:shop-owner-contracts");
+    expect(packageJson).toContain('"qa:shop-owner-contracts": "node scripts/qa/shop-owner-contracts.mjs"');
+    expect(packageJson).toContain("npm run qa:shop-owner-contracts");
+  });
+
+  it("routes completed self-service setup into the owner dashboard", () => {
+    const setup = source("src/pages/store/StoreSetup.tsx");
+
+    expect(setup).toContain('queryKey: ["my-store", user?.id]');
+    expect(setup).toContain('.from("store_profiles")');
+    expect(setup).toContain('.eq("owner_id", user!.id)');
+    expect(setup).toContain("owner_id: user.id");
+    expect(setup).toContain("setup_complete: true");
+    expect(setup).toContain("is_active: true");
+    expect(setup).toContain('navigate("/shop-dashboard", { replace: true })');
+    expect(setup).not.toContain("navigate(`/admin/stores/${storeId}`");
+    expect(setup).not.toContain("navigate(`/admin/stores/${myStore.id}`");
+  });
+
+  it("renders the expected owner operational routes and dashboard tabs", () => {
+    const appRoutes = source("src/App.tsx");
+    const dashboard = source("src/pages/app/ShopDashboard.tsx");
+    const layout = source("src/components/admin/StoreOwnerLayout.tsx");
+
+    for (const route of [
+      'path="/shop-dashboard"',
+      'path="/shop-dashboard/products"',
+      'path="/shop-dashboard/orders"',
+      'path="/shop-dashboard/settings"',
+      'path="/shop-dashboard/promotions"',
+      'path="/shop-dashboard/analytics"',
+      'path="/shop-dashboard/payments"',
+      'path="/shop-dashboard/employees"',
+      'path="/shop-dashboard/payroll"',
+      'path="/shop-dashboard/employee-schedule"',
+    ]) {
+      expect(appRoutes).toContain(route);
+    }
+
+    for (const action of ["Edit shop", "Products", "Orders", "Analytics", "Payments"]) {
+      expect(dashboard).toContain(`label: "${action}"`);
+    }
+
+    for (const tab of [
+      "Payment & Payouts",
+      "Employees",
+      "Payroll",
+      "Schedule",
+      "Products",
+      "Orders",
+      "Profile",
+    ]) {
+      expect(layout).toContain(tab);
+    }
+  });
+
+  it("scopes owner-facing reads and writes by owner or store id", () => {
+    const settings = source("src/pages/app/shop/ShopSettingsPage.tsx");
+    const setup = source("src/pages/store/StoreSetup.tsx");
+    const profileManage = source("supabase/functions/store-profile-manage/index.ts");
+    const profileGate = source("supabase/migrations/20260601140000_store_profiles_server_gate.sql");
+    const adminStores = source("src/pages/admin/AdminStoresPage.tsx");
+    const products = source("src/pages/app/shop/ShopProductsPage.tsx");
+    const adminStoreEdit = source("src/pages/admin/AdminStoreEditPage.tsx");
+    const productManage = source("supabase/functions/store-product-manage/index.ts");
+    const productGate = source("supabase/migrations/20260601134500_store_products_server_gate.sql");
+    const orders = source("src/pages/app/shop/ShopOrdersPage.tsx");
+    const adminOrders = source("src/components/admin/StoreOrdersSection.tsx");
+    const orderState = source("supabase/functions/store-order-state-update/index.ts");
+    const orderGate = source("supabase/migrations/20260601131500_store_order_state_server_gate.sql");
+    const paymentMethodsUpdate = source("supabase/functions/store-payment-methods-update/index.ts");
+    const paymentMethodsGate = source("supabase/migrations/20260601133000_store_payment_methods_server_gate.sql");
+    const promotions = source("src/pages/app/shop/ShopPromotionsPage.tsx");
+    const marketing = source("src/components/admin/StoreMarketingSection.tsx");
+    const payments = source("src/pages/app/shop/ShopPaymentsPage.tsx");
+    const paymentSection = source("src/components/admin/StorePaymentSection.tsx");
+    const merchantWallet = source("src/pages/app/shop/MerchantWalletPage.tsx");
+    const promotionManage = source("supabase/functions/promotion-manage/index.ts");
+    const promotionGate = source("supabase/migrations/20260601151500_promotions_server_gate.sql");
+    const cafePromotionsHook = source("src/hooks/cafe/useCafePromotions.ts");
+    const cafePromotionManage = source("supabase/functions/cafe-promotion-manage/index.ts");
+    const cafePromotionGate = source("supabase/migrations/20260601153000_cafe_promotions_server_gate.sql");
+    const cafeReviewsHook = source("src/hooks/cafe/useCafeReviews.ts");
+    const cafeReviewManage = source("supabase/functions/cafe-review-manage/index.ts");
+    const cafeReviewGate = source("supabase/migrations/20260601171500_cafe_reviews_server_gate.sql");
+    const carRentalPromotionsHook = source("src/hooks/car-rental/useCarRentalPromotions.ts");
+    const carRentalPromotionManage = source("supabase/functions/car-rental-promotion-manage/index.ts");
+    const carRentalPromotionGate = source("supabase/migrations/20260601154500_car_rental_promotions_server_gate.sql");
+    const dealershipPromotionsHook = source("src/hooks/car-dealership/useDealershipPromotions.ts");
+    const dealershipPromotionManage = source("supabase/functions/car-dealership-promotion-manage/index.ts");
+    const dealershipPromotionGate = source("supabase/migrations/20260601160000_car_dealership_promotions_server_gate.sql");
+    const autoRepairPromos = source("src/components/admin/store/autorepair/AutoRepairPromosSection.tsx");
+    const heatmapPromos = source("src/components/shop/MerchantViewerHeatmap.tsx");
+    const storePromotionManage = source("supabase/functions/store-promotion-manage/index.ts");
+    const storePromotionGate = source("supabase/migrations/20260601161500_store_promotions_server_gate.sql");
+    const salonReviewsSection = source("src/components/admin/store/salon/SalonReviewsSection.tsx");
+    const salonReviewManage = source("supabase/functions/salon-review-manage/index.ts");
+    const salonReviewGate = source("supabase/migrations/20260601173000_salon_reviews_server_gate.sql");
+    const salonGiftCardsHook = source("src/hooks/salon/useSalonGiftCards.ts");
+    const salonGiftCardManage = source("supabase/functions/salon-gift-card-manage/index.ts");
+    const salonGiftCardGate = source("supabase/migrations/20260601241500_salon_gift_cards_server_gate.sql");
+    const salonBlockoutDialog = source("src/components/admin/store/salon/SalonBlockoutDialog.tsx");
+    const salonBlockoutManage = source("supabase/functions/salon-blockout-manage/index.ts");
+    const salonBlockoutGate = source("supabase/migrations/20260601243000_salon_blockouts_server_gate.sql");
+    const salonWaitlistSection = source("src/components/admin/store/salon/SalonWaitlistSection.tsx");
+    const salonBookingsSection = source("src/components/admin/store/salon/SalonBookingsSection.tsx");
+    const salonBookingsHook = source("src/hooks/salon/useSalonBookings.ts");
+    const salonWalkinsSection = source("src/components/admin/store/salon/SalonWalkinsSection.tsx");
+    const salonServiceHistorySection = source("src/components/admin/store/salon/SalonServiceHistorySection.tsx");
+    const salonBookingManage = source("supabase/functions/salon-booking-manage/index.ts");
+    const salonBookingGate = source("supabase/migrations/20260601284500_salon_bookings_owner_server_gate.sql");
+    const salonWaitlistManage = source("supabase/functions/salon-waitlist-manage/index.ts");
+    const salonWaitlistGate = source("supabase/migrations/20260601244500_salon_waitlist_server_gate.sql");
+    const salonRetailProductsSection = source("src/components/admin/store/salon/SalonRetailProductsSection.tsx");
+    const salonRetailProductManage = source("supabase/functions/salon-retail-product-manage/index.ts");
+    const salonRetailProductGate = source("supabase/migrations/20260601250000_salon_retail_products_server_gate.sql");
+    const salonLoyaltySection = source("src/components/admin/store/salon/SalonLoyaltySection.tsx");
+    const salonLoyaltyManage = source("supabase/functions/salon-loyalty-manage/index.ts");
+    const salonLoyaltyGate = source("supabase/migrations/20260601251500_salon_loyalty_server_gate.sql");
+    const salonPackagesSection = source("src/components/admin/store/salon/SalonPackagesSection.tsx");
+    const salonPackageManage = source("supabase/functions/salon-package-manage/index.ts");
+    const salonPackageGate = source("supabase/migrations/20260601253000_salon_packages_server_gate.sql");
+    const salonSchedulesSection = source("src/components/admin/store/salon/SalonStylistSchedulesSection.tsx");
+    const salonScheduleManage = source("supabase/functions/salon-stylist-schedule-manage/index.ts");
+    const salonScheduleGate = source("supabase/migrations/20260601254500_salon_stylist_schedules_server_gate.sql");
+    const salonExpensesSection = source("src/components/admin/store/salon/SalonExpensesSection.tsx");
+    const salonExpenseManage = source("supabase/functions/salon-expense-manage/index.ts");
+    const salonExpenseGate = source("supabase/migrations/20260601260000_salon_expenses_server_gate.sql");
+    const salonStoreClosuresHook = source("src/hooks/salon/useSalonStoreClosures.ts");
+    const salonStoreClosureManage = source("supabase/functions/salon-store-closure-manage/index.ts");
+    const salonStoreClosureGate = source("supabase/migrations/20260601261500_salon_store_closures_server_gate.sql");
+    const salonBookingRetailDialog = source("src/components/admin/store/salon/SalonBookingRetailDialog.tsx");
+    const salonBookingRetailManage = source("supabase/functions/salon-booking-retail-manage/index.ts");
+    const salonBookingRetailGate = source("supabase/migrations/20260601263000_salon_booking_retail_items_server_gate.sql");
+    const salonBookingAddonManage = source("supabase/functions/salon-booking-addon-manage/index.ts");
+    const salonBookingAddonGate = source("supabase/migrations/20260601264500_salon_booking_addons_server_gate.sql");
+    const salonMembershipsSection = source("src/components/admin/store/salon/SalonMembershipsSection.tsx");
+    const salonMembershipTierManage = source("supabase/functions/salon-membership-tier-manage/index.ts");
+    const salonMembershipTierGate = source("supabase/migrations/20260601270000_salon_membership_tiers_server_gate.sql");
+    const salonReminderSettingsHook = source("src/hooks/salon/useSalonReminderSettings.ts");
+    const salonReminderSettingsUpdate = source("supabase/functions/salon-reminder-settings-update/index.ts");
+    const salonReminderSettingsGate = source("supabase/migrations/20260601271500_salon_reminder_settings_server_gate.sql");
+    const salonReminderTemplatesHook = source("src/hooks/salon/useSalonReminderTemplates.ts");
+    const salonReminderTemplateManage = source("supabase/functions/salon-reminder-template-manage/index.ts");
+    const salonReminderTemplateGate = source("supabase/migrations/20260601273000_salon_notification_template_overrides_server_gate.sql");
+    const salonServicesHook = source("src/hooks/salon/useSalonServices.ts");
+    const salonServiceManage = source("supabase/functions/salon-service-manage/index.ts");
+    const salonServiceGate = source("supabase/migrations/20260601274500_salon_services_server_gate.sql");
+    const salonStylistsHook = source("src/hooks/salon/useSalonStylists.ts");
+    const salonStylistManage = source("supabase/functions/salon-stylist-manage/index.ts");
+    const salonStylistGate = source("supabase/migrations/20260601283000_salon_stylists_server_gate.sql");
+    const salonTimeEntriesHook = source("src/hooks/salon/useSalonTimeEntries.ts");
+    const salonTimeEntryManage = source("supabase/functions/salon-time-entry-manage/index.ts");
+    const salonTimeEntryGate = source("supabase/migrations/20260601280000_salon_time_entries_server_gate.sql");
+    const salonStylistSelfService = source("supabase/migrations/20260531000000_salon_stylist_self_service.sql");
+    const salonClientsHook = source("src/hooks/salon/useSalonClients.ts");
+    const salonMyAreaPage = source("src/pages/salon/SalonMyAreaPage.tsx");
+    const salonClientManage = source("supabase/functions/salon-client-manage/index.ts");
+    const salonClientGate = source("supabase/migrations/20260601281500_salon_clients_server_gate.sql");
+    const carRentalReviewsHook = source("src/hooks/car-rental/useCarRentalReviews.ts");
+    const carRentalReviewPage = source("src/pages/car-rental/PublicCarRentalReviewSubmitPage.tsx");
+    const carRentalReviewManage = source("supabase/functions/car-rental-review-manage/index.ts");
+    const carRentalReviewSubmit = source("supabase/functions/car-rental-review-submit/index.ts");
+    const carRentalReviewGate = source("supabase/migrations/20260601163000_car_rental_reviews_server_gate.sql");
+    const dealershipReviewsHook = source("src/hooks/car-dealership/useDealershipReviews.ts");
+    const dealershipReviewPage = source("src/pages/car-dealership/PublicCarDealershipReviewSubmitPage.tsx");
+    const dealershipReviewManage = source("supabase/functions/car-dealership-review-manage/index.ts");
+    const dealershipReviewSubmit = source("supabase/functions/car-dealership-review-submit/index.ts");
+    const dealershipReviewGate = source("supabase/migrations/20260601164500_car_dealership_reviews_server_gate.sql");
+    const dealershipTradeInsHook = source("src/hooks/car-dealership/useDealershipTradeIns.ts");
+    const dealershipTradeInManage = source("supabase/functions/car-dealership-trade-in-manage/index.ts");
+    const dealershipTradeInGate = source("supabase/migrations/20260601204500_car_dealership_trade_ins_server_gate.sql");
+    const dealershipExpensesHook = source("src/hooks/car-dealership/useDealershipExpenses.ts");
+    const dealershipExpenseManage = source("supabase/functions/car-dealership-expense-manage/index.ts");
+    const dealershipExpenseGate = source("supabase/migrations/20260601210000_car_dealership_expenses_server_gate.sql");
+    const dealershipFinancingHook = source("src/hooks/car-dealership/useDealershipFinancing.ts");
+    const dealershipFinancingManage = source("supabase/functions/car-dealership-financing-manage/index.ts");
+    const dealershipFinancingGate = source("supabase/migrations/20260601211500_car_dealership_financing_server_gate.sql");
+    const dealershipLeadActivitiesHook = source("src/hooks/car-dealership/useDealershipLeadActivities.ts");
+    const dealershipLeadActivityManage = source("supabase/functions/car-dealership-lead-activity-manage/index.ts");
+    const dealershipLeadActivityGate = source("supabase/migrations/20260601213000_car_dealership_lead_activities_server_gate.sql");
+    const lodgingReviewSheet = source("src/components/reviews/LodgingReviewSheet.tsx");
+    const lodgingReviewsSection = source("src/components/admin/store/lodging/LodgingReviewsSection.tsx");
+    const lodgingReviewManage = source("supabase/functions/lodging-review-manage/index.ts");
+    const lodgingReviewSubmit = source("supabase/functions/lodging-review-submit/index.ts");
+    const lodgingReviewGate = source("supabase/migrations/20260601170000_lodging_reviews_server_gate.sql");
+    const carRentalExpensesHook = source("src/hooks/car-rental/useCarRentalExpenses.ts");
+    const carRentalExpenseManage = source("supabase/functions/car-rental-expense-manage/index.ts");
+    const carRentalExpenseGate = source("supabase/migrations/20260601181500_car_rental_expenses_server_gate.sql");
+    const carRentalMaintenanceSection = source("src/components/admin/store/car-rental/CarRentalMaintenanceSection.tsx");
+    const carRentalMaintenanceHook = source("src/hooks/car-rental/useCarRentalMaintenance.ts");
+    const carRentalMaintenanceManage = source("supabase/functions/car-rental-maintenance-manage/index.ts");
+    const carRentalMaintenanceGate = source("supabase/migrations/20260601183000_car_rental_maintenance_server_gate.sql");
+    const carRentalVehiclesHook = source("src/hooks/car-rental/useCarRentalVehicles.ts");
+    const carRentalSeedDemo = source("src/components/admin/store/car-rental/CarRentalSeedDemoButton.tsx");
+    const carRentalVehicleManage = source("supabase/functions/car-rental-vehicle-manage/index.ts");
+    const carRentalVehicleGate = source("supabase/migrations/20260601184500_car_rental_vehicles_server_gate.sql");
+    const carRentalAddonsHook = source("src/hooks/car-rental/useCarRentalAddons.ts");
+    const carRentalAddonManage = source("supabase/functions/car-rental-addon-manage/index.ts");
+    const carRentalAddonGate = source("supabase/migrations/20260601190000_car_rental_addons_server_gate.sql");
+    const carRentalLocationsHook = source("src/hooks/car-rental/useCarRentalLocations.ts");
+    const carRentalLocationManage = source("supabase/functions/car-rental-location-manage/index.ts");
+    const carRentalLocationGate = source("supabase/migrations/20260601191500_car_rental_locations_server_gate.sql");
+    const carRentalCustomersHook = source("src/hooks/car-rental/useCarRentalCustomers.ts");
+    const carRentalCustomerManage = source("supabase/functions/car-rental-customer-manage/index.ts");
+    const carRentalCustomerGate = source("supabase/migrations/20260601193000_car_rental_customers_server_gate.sql");
+    const carRentalReservationsHook = source("src/hooks/car-rental/useCarRentalReservations.ts");
+    const carRentalReservationManage = source("supabase/functions/car-rental-reservation-manage/index.ts");
+    const carRentalReservationGate = source("supabase/migrations/20260601194500_car_rental_reservations_server_gate.sql");
+    const carRentalBlackoutsHook = source("src/hooks/car-rental/useCarRentalBlackouts.ts");
+    const carRentalBlackoutManage = source("supabase/functions/car-rental-blackout-manage/index.ts");
+    const carRentalBlackoutGate = source("supabase/migrations/20260601200000_car_rental_blackouts_server_gate.sql");
+    const carRentalSettingsHook = source("src/hooks/car-rental/useCarRentalSettings.ts");
+    const carRentalSettingsUpdate = source("supabase/functions/car-rental-settings-update/index.ts");
+    const carRentalSettingsGate = source("supabase/migrations/20260601201500_car_rental_store_settings_server_gate.sql");
+
+    expect(settings).toContain('.eq("owner_id", user!.id)');
+    expect(settings).toContain('.eq("id", store.id)');
+    expect(settings).toContain('.eq("owner_id", user.id)');
+    expect(setup).toContain('functions.invoke("store-profile-manage"');
+    expect(setup).not.toMatch(/from\("store_profiles"\)[\s\S]{0,420}\.(insert|update|delete)\(/);
+    expect(adminStores).toContain('functions.invoke("store-profile-manage"');
+    expect(adminStores).not.toContain('from("store_profiles").update');
+    expect(adminStores).not.toContain('from("store_profiles").insert');
+    expect(adminStores).not.toContain('from("store_profiles").delete');
+    expect(adminStoreEdit).toContain('functions.invoke("store-profile-manage"');
+    expect(adminStoreEdit).not.toContain('from("store_profiles").update');
+    expect(adminStoreEdit).not.toContain('from("store_profiles").insert');
+    expect(adminStoreEdit).not.toContain('from("store_profiles").delete');
+    expect(profileManage).toContain('withSecurity("store-profile-manage"');
+    expect(profileManage).toContain("strictCors: true");
+    expect(profileManage).toContain('rateLimit: "api_general"');
+    expect(profileManage).toContain("admin.auth.getUser(token)");
+    expect(profileManage).toContain('.from("store_profiles")');
+    expect(profileManage).toContain('rpc("has_role"');
+    expect(profileGate).toContain("Store profile updates require trusted server-side validation");
+    expect(profileGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_profiles FROM authenticated");
+
+    expect(products).toContain('.from("store_products")');
+    expect(products).toContain('.eq("store_id", store!.id)');
+    expect(products).toContain('functions.invoke("store-product-manage"');
+    expect(products).not.toMatch(/from\("store_products"\)[\s\S]{0,320}\.(insert|update|delete)\(/);
+    expect(adminStoreEdit).toContain('functions.invoke("store-product-manage"');
+    expect(adminStoreEdit).not.toMatch(/from\("store_products"\)[\s\S]{0,320}\.(insert|update|delete)\(/);
+    expect(productManage).toContain('withSecurity("store-product-manage"');
+    expect(productManage).toContain("strictCors: true");
+    expect(productManage).toContain('rateLimit: "api_general"');
+    expect(productManage).toContain("admin.auth.getUser(token)");
+    expect(productManage).toContain('.from("store_products")');
+    expect(productManage).toContain('.from("store_profiles")');
+    expect(productManage).toContain('rpc("has_role"');
+    expect(productGate).toContain("Store product updates require trusted server-side validation");
+    expect(productGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_products FROM authenticated");
+
+    expect(orders).toContain('.from("store_orders")');
+    expect(orders).toContain('.eq("store_id", store!.id)');
+    expect(orders).toContain('functions.invoke("store-order-state-update"');
+    expect(orders).not.toMatch(/from\("store_orders"\)[\s\S]{0,260}\.update\(/);
+    expect(adminOrders).toContain('functions.invoke("store-order-state-update"');
+    expect(adminOrders).not.toMatch(/from\("store_orders"\)[\s\S]{0,260}\.update\(/);
+    expect(orderState).toContain('withSecurity("store-order-state-update"');
+    expect(orderState).toContain("strictCors: true");
+    expect(orderState).toContain('rateLimit: "api_general"');
+    expect(orderState).toContain("admin.auth.getUser(token)");
+    expect(orderState).toContain('.from("store_orders")');
+    expect(orderState).toContain('.from("store_profiles")');
+    expect(orderState).toContain('rpc("has_role"');
+    expect(orderGate).toContain("store_order_state_server_gate");
+    expect(orderGate).toContain("auth.role() = 'service_role'");
+    expect(orderGate).toContain("NEW.status IS DISTINCT FROM OLD.status");
+    expect(orderGate).toContain("NEW.payment_confirmed_at IS DISTINCT FROM OLD.payment_confirmed_at");
+    expect(orderGate).toContain("trusted server-side validation");
+
+    expect(promotions).toContain('.eq("merchant_id", sid)');
+    expect(promotions).toContain('functions.invoke("promotion-manage"');
+    expect(promotions).not.toMatch(/from\("promotions"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+
+    expect(marketing).toContain('queryKey: ["store-promotions", storeId]');
+    expect(marketing).toContain('.eq("merchant_id", storeId)');
+    expect(marketing).toContain('functions.invoke("promotion-manage"');
+    expect(marketing).not.toMatch(/from\("promotions"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(marketing).toContain('queryKey: ["store-posts", storeId]');
+    expect(marketing).toContain('.eq("store_id", storeId)');
+    expect(promotionManage).toContain('withSecurity("promotion-manage"');
+    expect(promotionManage).toContain("strictCors: true");
+    expect(promotionManage).toContain('rateLimit: "api_general"');
+    expect(promotionManage).toContain("admin.auth.getUser(token)");
+    expect(promotionManage).toContain('.from("promotions")');
+    expect(promotionManage).toContain('.from("store_profiles")');
+    expect(promotionManage).toContain('.from("restaurants")');
+    expect(promotionManage).toContain('rpc("has_role"');
+    expect(promotionGate).toContain("Promotions inserts require trusted server-side validation");
+    expect(promotionGate).toContain("Promotions updates require trusted server-side validation");
+    expect(promotionGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.promotions FROM authenticated");
+    expect(cafePromotionsHook).toContain('functions.invoke("cafe-promotion-manage"');
+    expect(cafePromotionsHook).not.toMatch(/from\("cafe_promotions" as never\)[\s\S]{0,260}\.(insert|update|delete|upsert)/);
+    expect(cafePromotionManage).toContain('withSecurity("cafe-promotion-manage"');
+    expect(cafePromotionManage).toContain("strictCors: true");
+    expect(cafePromotionManage).toContain('rateLimit: "api_general"');
+    expect(cafePromotionManage).toContain("admin.auth.getUser(token)");
+    expect(cafePromotionManage).toContain('.from("cafe_promotions")');
+    expect(cafePromotionManage).toContain('.from("store_profiles")');
+    expect(cafePromotionManage).toContain('rpc("has_role"');
+    expect(cafePromotionGate).toContain("Cafe promotion inserts require trusted server-side validation");
+    expect(cafePromotionGate).toContain("Cafe promotion updates require trusted server-side validation");
+    expect(cafePromotionGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.cafe_promotions FROM authenticated");
+    expect(cafeReviewsHook).toContain('functions.invoke("cafe-review-manage"');
+    expect(cafeReviewsHook).not.toMatch(/from\("cafe_reviews" as never\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(cafeReviewManage).toContain('withSecurity("cafe-review-manage"');
+    expect(cafeReviewManage).toContain("strictCors: true");
+    expect(cafeReviewManage).toContain("admin.auth.getUser(token)");
+    expect(cafeReviewManage).toContain('.from("cafe_reviews")');
+    expect(cafeReviewManage).toContain('.from("store_profiles")');
+    expect(cafeReviewManage).toContain('rpc("has_role"');
+    expect(cafeReviewGate).toContain("Cafe review inserts require trusted server-side validation");
+    expect(cafeReviewGate).toContain("Cafe review updates require trusted server-side validation");
+    expect(cafeReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.cafe_reviews FROM anon, authenticated");
+    expect(carRentalPromotionsHook).toContain('functions.invoke("car-rental-promotion-manage"');
+    expect(carRentalPromotionsHook).not.toMatch(/from\("car_rental_promotions"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalPromotionManage).toContain('withSecurity("car-rental-promotion-manage"');
+    expect(carRentalPromotionManage).toContain("strictCors: true");
+    expect(carRentalPromotionManage).toContain('rateLimit: "api_general"');
+    expect(carRentalPromotionManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalPromotionManage).toContain('.from("car_rental_promotions")');
+    expect(carRentalPromotionManage).toContain('.from("store_profiles")');
+    expect(carRentalPromotionManage).toContain('rpc("has_role"');
+    expect(carRentalPromotionGate).toContain("Car rental promotion inserts require trusted server-side validation");
+    expect(carRentalPromotionGate).toContain("Car rental promotion updates require trusted server-side validation");
+    expect(carRentalPromotionGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_promotions FROM authenticated");
+    expect(dealershipPromotionsHook).toContain('functions.invoke("car-dealership-promotion-manage"');
+    expect(dealershipPromotionsHook).not.toMatch(/from\("car_dealership_promotions"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(dealershipPromotionManage).toContain('withSecurity("car-dealership-promotion-manage"');
+    expect(dealershipPromotionManage).toContain("strictCors: true");
+    expect(dealershipPromotionManage).toContain('rateLimit: "api_general"');
+    expect(dealershipPromotionManage).toContain("admin.auth.getUser(token)");
+    expect(dealershipPromotionManage).toContain('.from("car_dealership_promotions")');
+    expect(dealershipPromotionManage).toContain('.from("store_profiles")');
+    expect(dealershipPromotionManage).toContain('rpc("has_role"');
+    expect(dealershipPromotionGate).toContain("Car dealership promotion inserts require trusted server-side validation");
+    expect(dealershipPromotionGate).toContain("Car dealership promotion updates require trusted server-side validation");
+    expect(dealershipPromotionGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_promotions FROM authenticated");
+    for (const client of [autoRepairPromos, heatmapPromos]) {
+      expect(client).toContain('functions.invoke("store-promotion-manage"');
+      expect(client).not.toMatch(/from\("store_promotions"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    }
+    expect(storePromotionManage).toContain('withSecurity("store-promotion-manage"');
+    expect(storePromotionManage).toContain("strictCors: true");
+    expect(storePromotionManage).toContain('rateLimit: "api_general"');
+    expect(storePromotionManage).toContain("admin.auth.getUser(token)");
+    expect(storePromotionManage).toContain('.from("store_promotions")');
+    expect(storePromotionManage).toContain('.from("restaurants")');
+    expect(storePromotionManage).toContain('rpc("has_role"');
+    expect(storePromotionGate).toContain("Store promotion inserts require trusted server-side validation");
+    expect(storePromotionGate).toContain("Store promotion updates require trusted server-side validation");
+    expect(storePromotionGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_promotions FROM authenticated");
+    expect(salonReviewsSection).toContain('functions.invoke("salon-review-manage"');
+    expect(salonReviewsSection).not.toMatch(/from\("salon_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(salonReviewManage).toContain('withSecurity("salon-review-manage"');
+    expect(salonReviewManage).toContain("strictCors: true");
+    expect(salonReviewManage).toContain("admin.auth.getUser(token)");
+    expect(salonReviewManage).toContain('.from("salon_reviews")');
+    expect(salonReviewManage).toContain('.from("store_profiles")');
+    expect(salonReviewManage).toContain('rpc("has_role"');
+    expect(salonReviewGate).toContain("Salon review inserts require trusted server-side validation");
+    expect(salonReviewGate).toContain("Salon review updates require trusted server-side validation");
+    expect(salonReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_reviews FROM anon, authenticated");
+    expect(salonGiftCardsHook).toContain('functions.invoke("salon-gift-card-manage"');
+    expect(salonGiftCardsHook).not.toMatch(/from\("salon_gift_cards"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonGiftCardsHook).not.toMatch(/from\("salon_gift_card_redemptions"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonGiftCardManage).toContain('withSecurity("salon-gift-card-manage"');
+    expect(salonGiftCardManage).toContain("strictCors: true");
+    expect(salonGiftCardManage).toContain('rateLimit: "api_general"');
+    expect(salonGiftCardManage).toContain("admin.auth.getUser(token)");
+    expect(salonGiftCardManage).toContain("crypto.getRandomValues");
+    expect(salonGiftCardManage).toContain('.from("salon_gift_cards")');
+    expect(salonGiftCardManage).toContain('.from("salon_gift_card_redemptions")');
+    expect(salonGiftCardManage).toContain('.from("store_profiles")');
+    expect(salonGiftCardManage).toContain('rpc("has_role"');
+    expect(salonGiftCardGate).toContain("Salon gift card inserts require trusted server-side validation");
+    expect(salonGiftCardGate).toContain("Salon gift card updates require trusted server-side validation");
+    expect(salonGiftCardGate).toContain("Salon gift card deletes require trusted server-side validation");
+    expect(salonGiftCardGate).toContain("Salon gift card redemption inserts require trusted server-side validation");
+    expect(salonGiftCardGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_gift_cards FROM anon, authenticated");
+    expect(salonGiftCardGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_gift_card_redemptions FROM anon, authenticated");
+    expect(salonBlockoutDialog).toContain('functions.invoke("salon-blockout-manage"');
+    expect(salonBlockoutDialog).not.toMatch(/from\("salon_blockouts"\)[\s\S]{0,320}\.(insert|delete|update|upsert)/);
+    expect(salonBlockoutManage).toContain('withSecurity("salon-blockout-manage"');
+    expect(salonBlockoutManage).toContain("strictCors: true");
+    expect(salonBlockoutManage).toContain('rateLimit: "api_general"');
+    expect(salonBlockoutManage).toContain("admin.auth.getUser(token)");
+    expect(salonBlockoutManage).toContain('.from("salon_blockouts")');
+    expect(salonBlockoutManage).toContain('.from("salon_stylists")');
+    expect(salonBlockoutManage).toContain('.from("store_profiles")');
+    expect(salonBlockoutManage).toContain('rpc("has_role"');
+    expect(salonBlockoutGate).toContain("Owners read blockouts");
+    expect(salonBlockoutGate).toContain("Salon blockout inserts require trusted server-side validation");
+    expect(salonBlockoutGate).toContain("Salon blockout deletes require trusted server-side validation");
+    expect(salonBlockoutGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_blockouts FROM anon, authenticated");
+    expect(salonWaitlistSection).toContain('functions.invoke("salon-waitlist-manage"');
+    expect(salonBookingsSection).toContain('functions.invoke("salon-waitlist-manage"');
+    for (const client of [salonWaitlistSection, salonBookingsSection]) {
+      expect(client).not.toMatch(/from\("salon_waitlist"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    }
+    expect(salonWaitlistManage).toContain('withSecurity("salon-waitlist-manage"');
+    expect(salonWaitlistManage).toContain("strictCors: true");
+    expect(salonWaitlistManage).toContain('rateLimit: "api_general"');
+    expect(salonWaitlistManage).toContain("admin.auth.getUser(token)");
+    expect(salonWaitlistManage).toContain('.from("salon_waitlist")');
+    expect(salonWaitlistManage).toContain('"salon_clients"');
+    expect(salonWaitlistManage).toContain('"salon_services"');
+    expect(salonWaitlistManage).toContain('"salon_stylists"');
+    expect(salonWaitlistManage).toContain('.from("store_profiles")');
+    expect(salonWaitlistManage).toContain('rpc("has_role"');
+    expect(salonWaitlistGate).toContain("Owners read waitlist");
+    expect(salonWaitlistGate).toContain("Salon waitlist inserts require trusted server-side validation");
+    expect(salonWaitlistGate).toContain("Salon waitlist updates require trusted server-side validation");
+    expect(salonWaitlistGate).toContain("Salon waitlist deletes require trusted server-side validation");
+    expect(salonWaitlistGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_waitlist FROM anon, authenticated");
+    for (const client of [salonBookingsHook, salonWalkinsSection, salonServiceHistorySection, salonBookingsSection]) {
+      expect(client).toContain('functions.invoke("salon-booking-manage"');
+      expect(client).not.toMatch(/from\("salon_bookings"\)[\s\S]{0,420}\.(insert|update|delete|upsert)/);
+    }
+    expect(salonBookingManage).toContain('withSecurity("salon-booking-manage"');
+    expect(salonBookingManage).toContain("strictCors: true");
+    expect(salonBookingManage).toContain('rateLimit: "api_general"');
+    expect(salonBookingManage).toContain("admin.auth.getUser(token)");
+    expect(salonBookingManage).toContain('.from("salon_bookings")');
+    expect(salonBookingManage).toContain('.from("salon_clients")');
+    expect(salonBookingManage).toContain('.from("salon_stylists")');
+    expect(salonBookingManage).toContain('.from("salon_services")');
+    expect(salonBookingManage).toContain('.from("store_profiles")');
+    expect(salonBookingManage).toContain('rpc("has_role"');
+    expect(salonBookingManage).toContain('"slot_conflict"');
+    expect(salonBookingGate).toContain("Public/customer booking intake already flows through salon-booking-submit");
+    expect(salonBookingGate).toContain("Salon booking owner inserts require trusted server-side validation");
+    expect(salonBookingGate).toContain("Salon booking owner updates require trusted server-side validation");
+    expect(salonBookingGate).toContain("Salon booking owner deletes require trusted server-side validation");
+    expect(salonBookingGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_bookings FROM authenticated");
+    expect(salonRetailProductsSection).toContain('functions.invoke("salon-retail-product-manage"');
+    expect(salonRetailProductsSection).not.toMatch(/from\("salon_retail_products"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonRetailProductManage).toContain('withSecurity("salon-retail-product-manage"');
+    expect(salonRetailProductManage).toContain("strictCors: true");
+    expect(salonRetailProductManage).toContain('rateLimit: "api_general"');
+    expect(salonRetailProductManage).toContain("admin.auth.getUser(token)");
+    expect(salonRetailProductManage).toContain('.from("salon_retail_products")');
+    expect(salonRetailProductManage).toContain('.from("store_profiles")');
+    expect(salonRetailProductManage).toContain('rpc("has_role"');
+    expect(salonRetailProductGate).toContain("Public active-product reads remain available");
+    expect(salonRetailProductGate).toContain("Owners read retail products");
+    expect(salonRetailProductGate).toContain("Salon retail product inserts require trusted server-side validation");
+    expect(salonRetailProductGate).toContain("Salon retail product updates require trusted server-side validation");
+    expect(salonRetailProductGate).toContain("Salon retail product deletes require trusted server-side validation");
+    expect(salonRetailProductGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_retail_products FROM anon, authenticated");
+    expect(salonLoyaltySection).toContain('functions.invoke("salon-loyalty-manage"');
+    expect(salonLoyaltySection).not.toMatch(/from\("salon_loyalty_settings"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonLoyaltySection).not.toMatch(/from\("salon_loyalty_events"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonLoyaltyManage).toContain('withSecurity("salon-loyalty-manage"');
+    expect(salonLoyaltyManage).toContain("strictCors: true");
+    expect(salonLoyaltyManage).toContain('rateLimit: "api_general"');
+    expect(salonLoyaltyManage).toContain("admin.auth.getUser(token)");
+    expect(salonLoyaltyManage).toContain('.from("salon_loyalty_settings")');
+    expect(salonLoyaltyManage).toContain('.from("salon_loyalty_events")');
+    expect(salonLoyaltyManage).toContain('.from("salon_clients")');
+    expect(salonLoyaltyManage).toContain('.from("store_profiles")');
+    expect(salonLoyaltyManage).toContain('rpc("has_role"');
+    expect(salonLoyaltyGate).toContain("Client self-read of their own loyalty events remains");
+    expect(salonLoyaltyGate).toContain("Owners read loyalty settings");
+    expect(salonLoyaltyGate).toContain("Owners read loyalty events");
+    expect(salonLoyaltyGate).toContain("Salon loyalty settings updates require trusted server-side validation");
+    expect(salonLoyaltyGate).toContain("Salon loyalty event inserts require trusted server-side validation");
+    expect(salonLoyaltyGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_loyalty_settings FROM anon, authenticated");
+    expect(salonLoyaltyGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_loyalty_events FROM anon, authenticated");
+    expect(salonPackagesSection).toContain('functions.invoke("salon-package-manage"');
+    expect(salonPackagesSection).not.toMatch(/from\("salon_packages"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonPackagesSection).not.toMatch(/from\("salon_package_services"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonPackageManage).toContain('withSecurity("salon-package-manage"');
+    expect(salonPackageManage).toContain("strictCors: true");
+    expect(salonPackageManage).toContain('rateLimit: "api_general"');
+    expect(salonPackageManage).toContain("admin.auth.getUser(token)");
+    expect(salonPackageManage).toContain('.from("salon_packages")');
+    expect(salonPackageManage).toContain('.from("salon_package_services")');
+    expect(salonPackageManage).toContain('.from("salon_services")');
+    expect(salonPackageManage).toContain('.from("store_profiles")');
+    expect(salonPackageManage).toContain('rpc("has_role"');
+    expect(salonPackageGate).toContain("Public active-package reads remain available");
+    expect(salonPackageGate).toContain("Owners read packages");
+    expect(salonPackageGate).toContain("Owners read package services");
+    expect(salonPackageGate).toContain("Salon package inserts require trusted server-side validation");
+    expect(salonPackageGate).toContain("Salon package service inserts require trusted server-side validation");
+    expect(salonPackageGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_packages FROM anon, authenticated");
+    expect(salonPackageGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_package_services FROM anon, authenticated");
+    expect(salonSchedulesSection).toContain('functions.invoke("salon-stylist-schedule-manage"');
+    expect(salonSchedulesSection).not.toMatch(/from\("salon_stylist_schedules"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonScheduleManage).toContain('withSecurity("salon-stylist-schedule-manage"');
+    expect(salonScheduleManage).toContain("strictCors: true");
+    expect(salonScheduleManage).toContain('rateLimit: "api_general"');
+    expect(salonScheduleManage).toContain("admin.auth.getUser(token)");
+    expect(salonScheduleManage).toContain('.from("salon_stylist_schedules")');
+    expect(salonScheduleManage).toContain('.from("salon_stylists")');
+    expect(salonScheduleManage).toContain('.from("store_profiles")');
+    expect(salonScheduleManage).toContain('rpc("has_role"');
+    expect(salonScheduleGate).toContain("Public SELECT remains available");
+    expect(salonScheduleGate).toContain("Owners read stylist schedules");
+    expect(salonScheduleGate).toContain("Salon stylist schedule inserts require trusted server-side validation");
+    expect(salonScheduleGate).toContain("Salon stylist schedule updates require trusted server-side validation");
+    expect(salonScheduleGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_stylist_schedules FROM anon, authenticated");
+    expect(salonExpensesSection).toContain('functions.invoke("salon-expense-manage"');
+    expect(salonExpensesSection).not.toMatch(/from\("salon_expenses"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonExpenseManage).toContain('withSecurity("salon-expense-manage"');
+    expect(salonExpenseManage).toContain("strictCors: true");
+    expect(salonExpenseManage).toContain('rateLimit: "api_general"');
+    expect(salonExpenseManage).toContain("admin.auth.getUser(token)");
+    expect(salonExpenseManage).toContain('.from("salon_expenses")');
+    expect(salonExpenseManage).toContain('.from("store_profiles")');
+    expect(salonExpenseManage).toContain('rpc("has_role"');
+    expect(salonExpenseGate).toContain("Owners read salon expenses");
+    expect(salonExpenseGate).toContain("Salon expense inserts require trusted server-side validation");
+    expect(salonExpenseGate).toContain("Salon expense updates require trusted server-side validation");
+    expect(salonExpenseGate).toContain("Salon expense deletes require trusted server-side validation");
+    expect(salonExpenseGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_expenses FROM anon, authenticated");
+    expect(salonStoreClosuresHook).toContain('functions.invoke("salon-store-closure-manage"');
+    expect(salonStoreClosuresHook).not.toMatch(/from\("salon_store_closures"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonStoreClosureManage).toContain('withSecurity("salon-store-closure-manage"');
+    expect(salonStoreClosureManage).toContain("strictCors: true");
+    expect(salonStoreClosureManage).toContain('rateLimit: "api_general"');
+    expect(salonStoreClosureManage).toContain("admin.auth.getUser(token)");
+    expect(salonStoreClosureManage).toContain('.from("salon_store_closures")');
+    expect(salonStoreClosureManage).toContain('.from("store_profiles")');
+    expect(salonStoreClosureManage).toContain('rpc("has_role"');
+    expect(salonStoreClosureGate).toContain("Owners read store closures");
+    expect(salonStoreClosureGate).toContain("Salon store closure inserts require trusted server-side validation");
+    expect(salonStoreClosureGate).toContain("Salon store closure deletes require trusted server-side validation");
+    expect(salonStoreClosureGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_store_closures FROM anon, authenticated");
+    expect(salonBookingRetailDialog).toContain('functions.invoke("salon-booking-retail-manage"');
+    expect(salonBookingRetailDialog).not.toMatch(/from\("salon_booking_retail_items"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonBookingRetailManage).toContain('withSecurity("salon-booking-retail-manage"');
+    expect(salonBookingRetailManage).toContain("strictCors: true");
+    expect(salonBookingRetailManage).toContain('rateLimit: "api_general"');
+    expect(salonBookingRetailManage).toContain("admin.auth.getUser(token)");
+    expect(salonBookingRetailManage).toContain('.from("salon_booking_retail_items")');
+    expect(salonBookingRetailManage).toContain('.from("salon_bookings")');
+    expect(salonBookingRetailManage).toContain('.from("salon_retail_products")');
+    expect(salonBookingRetailManage).toContain('.from("store_profiles")');
+    expect(salonBookingRetailManage).toContain('rpc("has_role"');
+    expect(salonBookingRetailManage).toContain('booking.status === "completed"');
+    expect(salonBookingRetailGate).toContain("Owners read booking retail items");
+    expect(salonBookingRetailGate).toContain("Salon booking retail item inserts require trusted server-side validation");
+    expect(salonBookingRetailGate).toContain("Salon booking retail item updates require trusted server-side validation");
+    expect(salonBookingRetailGate).toContain("Salon booking retail item deletes require trusted server-side validation");
+    expect(salonBookingRetailGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_booking_retail_items FROM anon, authenticated");
+    expect(salonBookingsSection).toContain('functions.invoke("salon-booking-addon-manage"');
+    expect(salonBookingsSection).not.toMatch(/from\("salon_booking_addons"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonBookingAddonManage).toContain('withSecurity("salon-booking-addon-manage"');
+    expect(salonBookingAddonManage).toContain("strictCors: true");
+    expect(salonBookingAddonManage).toContain('rateLimit: "api_general"');
+    expect(salonBookingAddonManage).toContain("admin.auth.getUser(token)");
+    expect(salonBookingAddonManage).toContain('.from("salon_booking_addons")');
+    expect(salonBookingAddonManage).toContain('.from("salon_bookings")');
+    expect(salonBookingAddonManage).toContain('.from("salon_services")');
+    expect(salonBookingAddonManage).toContain('.from("store_profiles")');
+    expect(salonBookingAddonManage).toContain('rpc("has_role"');
+    expect(salonBookingAddonManage).toContain("attach_many");
+    expect(salonBookingAddonGate).toContain("Owners read booking addons");
+    expect(salonBookingAddonGate).toContain("Salon booking add-on inserts require trusted server-side validation");
+    expect(salonBookingAddonGate).toContain("Salon booking add-on updates require trusted server-side validation");
+    expect(salonBookingAddonGate).toContain("Salon booking add-on deletes require trusted server-side validation");
+    expect(salonBookingAddonGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_booking_addons FROM anon, authenticated");
+    expect(salonMembershipsSection).toContain('functions.invoke("salon-membership-tier-manage"');
+    expect(salonMembershipsSection).toContain('functions.invoke("sync-salon-membership-tier"');
+    expect(salonMembershipsSection).not.toMatch(/from\("salon_membership_tiers"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonMembershipTierManage).toContain('withSecurity("salon-membership-tier-manage"');
+    expect(salonMembershipTierManage).toContain("strictCors: true");
+    expect(salonMembershipTierManage).toContain('rateLimit: "payment"');
+    expect(salonMembershipTierManage).toContain("admin.auth.getUser(token)");
+    expect(salonMembershipTierManage).toContain('.from("salon_membership_tiers")');
+    expect(salonMembershipTierManage).toContain('.from("store_profiles")');
+    expect(salonMembershipTierManage).toContain('rpc("has_role"');
+    expect(salonMembershipTierManage).toContain("patch.stripe_price_id = null");
+    expect(salonMembershipTierGate).toContain("Owners read membership tiers");
+    expect(salonMembershipTierGate).toContain("Salon membership tier inserts require trusted server-side validation");
+    expect(salonMembershipTierGate).toContain("Salon membership tier updates require trusted server-side validation");
+    expect(salonMembershipTierGate).toContain("Salon membership tier deletes require trusted server-side validation");
+    expect(salonMembershipTierGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_membership_tiers FROM anon, authenticated");
+    expect(salonReminderSettingsHook).toContain('functions.invoke("salon-reminder-settings-update"');
+    expect(salonReminderSettingsHook).not.toMatch(/from\("salon_reminder_settings"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonReminderSettingsUpdate).toContain('withSecurity("salon-reminder-settings-update"');
+    expect(salonReminderSettingsUpdate).toContain("strictCors: true");
+    expect(salonReminderSettingsUpdate).toContain('rateLimit: "api_general"');
+    expect(salonReminderSettingsUpdate).toContain("admin.auth.getUser(token)");
+    expect(salonReminderSettingsUpdate).toContain('.from("salon_reminder_settings")');
+    expect(salonReminderSettingsUpdate).toContain('.from("store_profiles")');
+    expect(salonReminderSettingsUpdate).toContain('rpc("has_role"');
+    expect(salonReminderSettingsUpdate).toContain("cleanLeadHours");
+    expect(salonReminderSettingsGate).toContain("Owners read reminder settings");
+    expect(salonReminderSettingsGate).toContain("Salon reminder settings inserts require trusted server-side validation");
+    expect(salonReminderSettingsGate).toContain("Salon reminder settings updates require trusted server-side validation");
+    expect(salonReminderSettingsGate).toContain("Salon reminder settings deletes require trusted server-side validation");
+    expect(salonReminderSettingsGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_reminder_settings FROM anon, authenticated");
+    expect(salonReminderTemplatesHook).toContain('functions.invoke("salon-reminder-template-manage"');
+    expect(salonReminderTemplatesHook).not.toMatch(/from\("salon_notification_template_overrides"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonReminderTemplateManage).toContain('withSecurity("salon-reminder-template-manage"');
+    expect(salonReminderTemplateManage).toContain("strictCors: true");
+    expect(salonReminderTemplateManage).toContain('rateLimit: "api_general"');
+    expect(salonReminderTemplateManage).toContain("admin.auth.getUser(token)");
+    expect(salonReminderTemplateManage).toContain('.from("salon_notification_template_overrides")');
+    expect(salonReminderTemplateManage).toContain('.from("store_profiles")');
+    expect(salonReminderTemplateManage).toContain('rpc("has_role"');
+    expect(salonReminderTemplateManage).toContain("TEMPLATE_KEYS");
+    expect(salonReminderTemplateGate).toContain("Owners read notification template overrides");
+    expect(salonReminderTemplateGate).toContain("Salon notification template override inserts require trusted server-side validation");
+    expect(salonReminderTemplateGate).toContain("Salon notification template override updates require trusted server-side validation");
+    expect(salonReminderTemplateGate).toContain("Salon notification template override deletes require trusted server-side validation");
+    expect(salonReminderTemplateGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_notification_template_overrides FROM anon, authenticated");
+    expect(salonServicesHook).toContain('functions.invoke("salon-service-manage"');
+    expect(salonServicesHook).not.toMatch(/from\("salon_services"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonServiceManage).toContain('withSecurity("salon-service-manage"');
+    expect(salonServiceManage).toContain("strictCors: true");
+    expect(salonServiceManage).toContain('rateLimit: "api_general"');
+    expect(salonServiceManage).toContain("admin.auth.getUser(token)");
+    expect(salonServiceManage).toContain('.from("salon_services")');
+    expect(salonServiceManage).toContain('.from("store_profiles")');
+    expect(salonServiceManage).toContain('rpc("has_role"');
+    expect(salonServiceManage).toContain("nextSortOrder");
+    expect(salonServiceGate).toContain("Public active-service reads remain available");
+    expect(salonServiceGate).toContain("Salon service inserts require trusted server-side validation");
+    expect(salonServiceGate).toContain("Salon service updates require trusted server-side validation");
+    expect(salonServiceGate).toContain("Salon service deletes require trusted server-side validation");
+    expect(salonServiceGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_services FROM anon, authenticated");
+    expect(salonStylistsHook).toContain('functions.invoke("salon-stylist-manage"');
+    expect(salonStylistsHook).not.toMatch(/from\("salon_stylists"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonStylistsHook).not.toMatch(/from\("salon_stylist_services"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonStylistManage).toContain('withSecurity("salon-stylist-manage"');
+    expect(salonStylistManage).toContain("strictCors: true");
+    expect(salonStylistManage).toContain('rateLimit: "api_general"');
+    expect(salonStylistManage).toContain("admin.auth.getUser(token)");
+    expect(salonStylistManage).toContain('.from("salon_stylists")');
+    expect(salonStylistManage).toContain('.from("salon_stylist_services")');
+    expect(salonStylistManage).toContain('.from("salon_services")');
+    expect(salonStylistManage).toContain('.from("store_profiles")');
+    expect(salonStylistManage).toContain('rpc("has_role"');
+    expect(salonStylistManage).toContain("replaceStylistServices");
+    expect(salonStylistGate).toContain("Public active-stylist and stylist-service reads remain available");
+    expect(salonStylistGate).toContain("Salon stylist inserts require trusted server-side validation");
+    expect(salonStylistGate).toContain("Salon stylist updates require trusted server-side validation");
+    expect(salonStylistGate).toContain("Salon stylist deletes require trusted server-side validation");
+    expect(salonStylistGate).toContain("Salon stylist service inserts require trusted server-side validation");
+    expect(salonStylistGate).toContain("Salon stylist service updates require trusted server-side validation");
+    expect(salonStylistGate).toContain("Salon stylist service deletes require trusted server-side validation");
+    expect(salonStylistGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_stylists FROM anon, authenticated");
+    expect(salonStylistGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_stylist_services FROM anon, authenticated");
+    expect(salonTimeEntriesHook).toContain('functions.invoke("salon-time-entry-manage"');
+    expect(salonTimeEntriesHook).not.toMatch(/from\("salon_time_entries"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonTimeEntryManage).toContain('withSecurity("salon-time-entry-manage"');
+    expect(salonTimeEntryManage).toContain("strictCors: true");
+    expect(salonTimeEntryManage).toContain('rateLimit: "api_general"');
+    expect(salonTimeEntryManage).toContain("admin.auth.getUser(token)");
+    expect(salonTimeEntryManage).toContain('.from("salon_time_entries")');
+    expect(salonTimeEntryManage).toContain('.from("salon_stylists")');
+    expect(salonTimeEntryManage).toContain('.from("store_profiles")');
+    expect(salonTimeEntryManage).toContain('rpc("has_role"');
+    expect(salonTimeEntryManage).toContain('"23505"');
+    expect(salonTimeEntryGate).toContain("Owners read time entries");
+    expect(salonTimeEntryGate).toContain("salon_public_stylist_clock_in");
+    expect(salonTimeEntryGate).toContain("Salon time entry inserts require trusted server-side validation");
+    expect(salonTimeEntryGate).toContain("Salon time entry updates require trusted server-side validation");
+    expect(salonTimeEntryGate).toContain("Salon time entry deletes require trusted server-side validation");
+    expect(salonTimeEntryGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_time_entries FROM anon, authenticated");
+    expect(salonStylistSelfService).toContain("salon_public_stylist_clock_in");
+    expect(salonStylistSelfService).toContain("salon_public_stylist_clock_out");
+    expect(salonClientsHook).toContain('functions.invoke("salon-client-manage"');
+    expect(salonMyAreaPage).toContain('functions.invoke("salon-client-manage"');
+    expect(salonClientsHook).not.toMatch(/from\("salon_clients"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonMyAreaPage).not.toMatch(/from\("salon_clients"\)[\s\S]{0,360}\.(insert|update|delete|upsert)/);
+    expect(salonClientManage).toContain('withSecurity("salon-client-manage"');
+    expect(salonClientManage).toContain("strictCors: true");
+    expect(salonClientManage).toContain('rateLimit: "api_general"');
+    expect(salonClientManage).toContain("admin.auth.getUser(token)");
+    expect(salonClientManage).toContain('.from("salon_clients")');
+    expect(salonClientManage).toContain('.from("salon_stylists")');
+    expect(salonClientManage).toContain('.from("store_profiles")');
+    expect(salonClientManage).toContain('rpc("has_role"');
+    expect(salonClientManage).toContain("self_update_preferences");
+    expect(salonClientGate).toContain("Salon client inserts require trusted server-side validation");
+    expect(salonClientGate).toContain("Salon client updates require trusted server-side validation");
+    expect(salonClientGate).toContain("Salon client deletes require trusted server-side validation");
+    expect(salonClientGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_clients FROM anon, authenticated");
+    expect(carRentalReviewsHook).toContain('functions.invoke("car-rental-review-manage"');
+    expect(carRentalReviewsHook).not.toMatch(/from\("car_rental_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalReviewPage).toContain('functions.invoke("car-rental-review-submit"');
+    expect(carRentalReviewPage).not.toMatch(/from\("car_rental_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalReviewManage).toContain('withSecurity("car-rental-review-manage"');
+    expect(carRentalReviewManage).toContain("strictCors: true");
+    expect(carRentalReviewManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalReviewManage).toContain('.from("car_rental_reviews")');
+    expect(carRentalReviewManage).toContain('.from("store_profiles")');
+    expect(carRentalReviewManage).toContain('rpc("has_role"');
+    expect(carRentalReviewSubmit).toContain('withSecurity("car-rental-review-submit"');
+    expect(carRentalReviewSubmit).toContain("REVIEWABLE_STATUSES");
+    expect(carRentalReviewSubmit).toContain('.from("car_rental_reservations")');
+    expect(carRentalReviewSubmit).toContain('.from("car_rental_reviews")');
+    expect(carRentalReviewGate).toContain("Car rental review inserts require trusted server-side validation");
+    expect(carRentalReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_reviews FROM anon, authenticated");
+    expect(dealershipReviewsHook).toContain('functions.invoke("car-dealership-review-manage"');
+    expect(dealershipReviewsHook).not.toMatch(/from\("car_dealership_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(dealershipReviewPage).toContain('functions.invoke("car-dealership-review-submit"');
+    expect(dealershipReviewPage).not.toMatch(/from\("car_dealership_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(dealershipReviewManage).toContain('withSecurity("car-dealership-review-manage"');
+    expect(dealershipReviewManage).toContain("strictCors: true");
+    expect(dealershipReviewManage).toContain("admin.auth.getUser(token)");
+    expect(dealershipReviewManage).toContain('.from("car_dealership_reviews")');
+    expect(dealershipReviewManage).toContain('.from("store_profiles")');
+    expect(dealershipReviewManage).toContain('rpc("has_role"');
+    expect(dealershipReviewSubmit).toContain('withSecurity("car-dealership-review-submit"');
+    expect(dealershipReviewSubmit).toContain("REVIEWABLE_STATUSES");
+    expect(dealershipReviewSubmit).toContain('.from("car_dealership_sales")');
+    expect(dealershipReviewSubmit).toContain('.from("car_dealership_reviews")');
+    expect(dealershipReviewGate).toContain("Car dealership review inserts require trusted server-side validation");
+    expect(dealershipReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_reviews FROM anon, authenticated");
+    expect(dealershipTradeInsHook).toContain('functions.invoke("car-dealership-trade-in-manage"');
+    expect(dealershipTradeInsHook).not.toMatch(/from\("car_dealership_trade_ins"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(dealershipTradeInManage).toContain('withSecurity("car-dealership-trade-in-manage"');
+    expect(dealershipTradeInManage).toContain('allowedMethods: ["POST"]');
+    expect(dealershipTradeInManage).toContain("strictCors: true");
+    expect(dealershipTradeInManage).toContain("admin.auth.getUser(token)");
+    expect(dealershipTradeInManage).toContain('.from("car_dealership_trade_ins")');
+    expect(dealershipTradeInManage).toContain('.from("store_profiles")');
+    expect(dealershipTradeInManage).toContain("car_dealership_sales");
+    expect(dealershipTradeInManage).toContain("car_dealership_customers");
+    expect(dealershipTradeInManage).toContain('rpc("has_role"');
+    expect(dealershipTradeInGate).toContain("Car dealership trade-in inserts require trusted server-side validation");
+    expect(dealershipTradeInGate).toContain("Car dealership trade-in updates require trusted server-side validation");
+    expect(dealershipTradeInGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_trade_ins FROM authenticated");
+    expect(dealershipExpensesHook).toContain('functions.invoke("car-dealership-expense-manage"');
+    expect(dealershipExpensesHook).not.toMatch(/from\("car_dealership_expenses"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(dealershipExpenseManage).toContain('withSecurity("car-dealership-expense-manage"');
+    expect(dealershipExpenseManage).toContain('allowedMethods: ["POST"]');
+    expect(dealershipExpenseManage).toContain("strictCors: true");
+    expect(dealershipExpenseManage).toContain("admin.auth.getUser(token)");
+    expect(dealershipExpenseManage).toContain('.from("car_dealership_expenses")');
+    expect(dealershipExpenseManage).toContain('.from("car_dealership_vehicles")');
+    expect(dealershipExpenseManage).toContain('.from("store_profiles")');
+    expect(dealershipExpenseManage).toContain('rpc("has_role"');
+    expect(dealershipExpenseGate).toContain("Car dealership expense inserts require trusted server-side validation");
+    expect(dealershipExpenseGate).toContain("Car dealership expense updates require trusted server-side validation");
+    expect(dealershipExpenseGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_expenses FROM authenticated");
+    expect(dealershipFinancingHook).toContain('functions.invoke("car-dealership-financing-manage"');
+    expect(dealershipFinancingHook).not.toMatch(/from\("car_dealership_financing"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(dealershipFinancingManage).toContain('withSecurity("car-dealership-financing-manage"');
+    expect(dealershipFinancingManage).toContain('allowedMethods: ["POST"]');
+    expect(dealershipFinancingManage).toContain("strictCors: true");
+    expect(dealershipFinancingManage).toContain("admin.auth.getUser(token)");
+    expect(dealershipFinancingManage).toContain('.from("car_dealership_financing")');
+    expect(dealershipFinancingManage).toContain("car_dealership_sales");
+    expect(dealershipFinancingManage).toContain("car_dealership_customers");
+    expect(dealershipFinancingManage).toContain('.from("store_profiles")');
+    expect(dealershipFinancingManage).toContain('rpc("has_role"');
+    expect(dealershipFinancingGate).toContain("Car dealership financing inserts require trusted server-side validation");
+    expect(dealershipFinancingGate).toContain("Car dealership financing updates require trusted server-side validation");
+    expect(dealershipFinancingGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_financing FROM authenticated");
+    expect(dealershipLeadActivitiesHook).toContain('functions.invoke("car-dealership-lead-activity-manage"');
+    expect(dealershipLeadActivitiesHook).not.toMatch(/from\("car_dealership_lead_activities"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(dealershipLeadActivityManage).toContain('withSecurity("car-dealership-lead-activity-manage"');
+    expect(dealershipLeadActivityManage).toContain('allowedMethods: ["POST"]');
+    expect(dealershipLeadActivityManage).toContain("strictCors: true");
+    expect(dealershipLeadActivityManage).toContain("admin.auth.getUser(token)");
+    expect(dealershipLeadActivityManage).toContain('.from("car_dealership_lead_activities")');
+    expect(dealershipLeadActivityManage).toContain('.from("car_dealership_leads")');
+    expect(dealershipLeadActivityManage).toContain('.from("store_profiles")');
+    expect(dealershipLeadActivityManage).toContain("user_id: user.id");
+    expect(dealershipLeadActivityManage).toContain('rpc("has_role"');
+    expect(dealershipLeadActivityGate).toContain("Car dealership lead activity inserts require trusted server-side validation");
+    expect(dealershipLeadActivityGate).toContain("Car dealership lead activity updates require trusted server-side validation");
+    expect(dealershipLeadActivityGate).toContain("offer_made");
+    expect(dealershipLeadActivityGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_lead_activities FROM authenticated");
+    expect(lodgingReviewSheet).toContain('functions.invoke("lodging-review-submit"');
+    expect(lodgingReviewSheet).not.toMatch(/from\("lodging_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(lodgingReviewsSection).toContain('functions.invoke("lodging-review-manage"');
+    expect(lodgingReviewsSection).not.toMatch(/from\("lodging_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(lodgingReviewManage).toContain('withSecurity("lodging-review-manage"');
+    expect(lodgingReviewManage).toContain("strictCors: true");
+    expect(lodgingReviewManage).toContain("admin.auth.getUser(token)");
+    expect(lodgingReviewManage).toContain('.from("lodging_reviews")');
+    expect(lodgingReviewManage).toContain('.from("store_profiles")');
+    expect(lodgingReviewManage).toContain('rpc("has_role"');
+    expect(lodgingReviewSubmit).toContain('withSecurity("lodging-review-submit"');
+    expect(lodgingReviewSubmit).toContain("REVIEWABLE_STATUSES");
+    expect(lodgingReviewSubmit).toContain('.from("lodge_reservations")');
+    expect(lodgingReviewSubmit).toContain('.from("lodging_reviews")');
+    expect(lodgingReviewGate).toContain("Lodging review inserts require trusted server-side validation");
+    expect(lodgingReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.lodging_reviews FROM anon, authenticated");
+    expect(carRentalExpensesHook).toContain('functions.invoke("car-rental-expense-manage"');
+    expect(carRentalExpensesHook).not.toMatch(/from\("car_rental_expenses"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalExpenseManage).toContain('withSecurity("car-rental-expense-manage"');
+    expect(carRentalExpenseManage).toContain("strictCors: true");
+    expect(carRentalExpenseManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalExpenseManage).toContain('.from("car_rental_expenses")');
+    expect(carRentalExpenseManage).toContain('.from("store_profiles")');
+    expect(carRentalExpenseManage).toContain('.from("car_rental_vehicles")');
+    expect(carRentalExpenseManage).toContain('rpc("has_role"');
+    expect(carRentalExpenseGate).toContain("Car rental expense inserts require trusted server-side validation");
+    expect(carRentalExpenseGate).toContain("Car rental expense updates require trusted server-side validation");
+    expect(carRentalExpenseGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_expenses FROM anon, authenticated");
+    expect(carRentalMaintenanceHook).toContain('functions.invoke("car-rental-maintenance-manage"');
+    expect(carRentalMaintenanceHook).not.toMatch(/from\("car_rental_maintenance"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalMaintenanceSection).not.toMatch(/from\("car_rental_vehicles"\)[\s\S]{0,320}\.update\(\{ status: "maintenance" \}/);
+    expect(carRentalMaintenanceManage).toContain('withSecurity("car-rental-maintenance-manage"');
+    expect(carRentalMaintenanceManage).toContain("strictCors: true");
+    expect(carRentalMaintenanceManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalMaintenanceManage).toContain('.from("car_rental_maintenance")');
+    expect(carRentalMaintenanceManage).toContain('.from("store_profiles")');
+    expect(carRentalMaintenanceManage).toContain('.from("car_rental_vehicles")');
+    expect(carRentalMaintenanceManage).toContain('rpc("has_role"');
+    expect(carRentalMaintenanceManage).toContain('update({ status: "maintenance" })');
+    expect(carRentalMaintenanceGate).toContain("Car rental maintenance inserts require trusted server-side validation");
+    expect(carRentalMaintenanceGate).toContain("Car rental maintenance updates require trusted server-side validation");
+    expect(carRentalMaintenanceGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_maintenance FROM anon, authenticated");
+    expect(carRentalVehiclesHook).toContain('functions.invoke("car-rental-vehicle-manage"');
+    expect(carRentalVehiclesHook).not.toMatch(/from\("car_rental_vehicles"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalSeedDemo).toContain('functions.invoke("car-rental-vehicle-manage"');
+    expect(carRentalSeedDemo).not.toMatch(/from\("car_rental_vehicles"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalVehicleManage).toContain('withSecurity("car-rental-vehicle-manage"');
+    expect(carRentalVehicleManage).toContain("strictCors: true");
+    expect(carRentalVehicleManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalVehicleManage).toContain('.from("car_rental_vehicles")');
+    expect(carRentalVehicleManage).toContain('.from("store_profiles")');
+    expect(carRentalVehicleManage).toContain('.from("car_rental_locations")');
+    expect(carRentalVehicleManage).toContain('rpc("has_role"');
+    expect(carRentalVehicleManage).toContain("create_many");
+    expect(carRentalVehicleGate).toContain("Car rental vehicle inserts require trusted server-side validation");
+    expect(carRentalVehicleGate).toContain("Car rental vehicle updates require trusted server-side validation");
+    expect(carRentalVehicleGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_vehicles FROM anon, authenticated");
+    expect(carRentalAddonsHook).toContain('functions.invoke("car-rental-addon-manage"');
+    expect(carRentalAddonsHook).not.toMatch(/from\("car_rental_addons"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalSeedDemo).toContain('functions.invoke("car-rental-addon-manage"');
+    expect(carRentalSeedDemo).not.toMatch(/from\("car_rental_addons"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalAddonManage).toContain('withSecurity("car-rental-addon-manage"');
+    expect(carRentalAddonManage).toContain("strictCors: true");
+    expect(carRentalAddonManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalAddonManage).toContain('.from("car_rental_addons")');
+    expect(carRentalAddonManage).toContain('.from("store_profiles")');
+    expect(carRentalAddonManage).toContain('rpc("has_role"');
+    expect(carRentalAddonManage).toContain("create_many");
+    expect(carRentalAddonGate).toContain("Car rental add-on inserts require trusted server-side validation");
+    expect(carRentalAddonGate).toContain("Car rental add-on updates require trusted server-side validation");
+    expect(carRentalAddonGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_addons FROM anon, authenticated");
+    expect(carRentalLocationsHook).toContain('functions.invoke("car-rental-location-manage"');
+    expect(carRentalLocationsHook).not.toMatch(/from\("car_rental_locations"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalSeedDemo).toContain('functions.invoke("car-rental-location-manage"');
+    expect(carRentalSeedDemo).not.toMatch(/from\("car_rental_locations"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalLocationManage).toContain('withSecurity("car-rental-location-manage"');
+    expect(carRentalLocationManage).toContain("strictCors: true");
+    expect(carRentalLocationManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalLocationManage).toContain('.from("car_rental_locations")');
+    expect(carRentalLocationManage).toContain('.from("store_profiles")');
+    expect(carRentalLocationManage).toContain('rpc("has_role"');
+    expect(carRentalLocationGate).toContain("Car rental location inserts require trusted server-side validation");
+    expect(carRentalLocationGate).toContain("Car rental location updates require trusted server-side validation");
+    expect(carRentalLocationGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_locations FROM anon, authenticated");
+    expect(carRentalCustomersHook).toContain('functions.invoke("car-rental-customer-manage"');
+    expect(carRentalCustomersHook).not.toMatch(/from\("car_rental_customers"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalCustomerManage).toContain('withSecurity("car-rental-customer-manage"');
+    expect(carRentalCustomerManage).toContain("strictCors: true");
+    expect(carRentalCustomerManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalCustomerManage).toContain('.from("car_rental_customers")');
+    expect(carRentalCustomerManage).toContain('.from("store_profiles")');
+    expect(carRentalCustomerManage).toContain('rpc("has_role"');
+    expect(carRentalCustomerGate).toContain("Car rental customer inserts require trusted server-side validation");
+    expect(carRentalCustomerGate).toContain("Car rental customer updates require trusted server-side validation");
+    expect(carRentalCustomerGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_customers FROM authenticated");
+    expect(carRentalReservationsHook).toContain('functions.invoke("car-rental-reservation-manage"');
+    expect(carRentalReservationsHook).not.toMatch(/from\("car_rental_reservations"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalReservationManage).toContain('withSecurity("car-rental-reservation-manage"');
+    expect(carRentalReservationManage).toContain("strictCors: true");
+    expect(carRentalReservationManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalReservationManage).toContain('.from("car_rental_reservations")');
+    expect(carRentalReservationManage).toContain('.from("store_profiles")');
+    expect(carRentalReservationManage).toContain('"car_rental_vehicles"');
+    expect(carRentalReservationManage).toContain('"car_rental_customers"');
+    expect(carRentalReservationManage).toContain('"car_rental_locations"');
+    expect(carRentalReservationManage).toContain('rpc("has_role"');
+    expect(carRentalReservationGate).toContain("Car rental reservation inserts require trusted server-side validation");
+    expect(carRentalReservationGate).toContain("Car rental reservation updates require trusted server-side validation");
+    expect(carRentalReservationGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_reservations FROM authenticated");
+    expect(carRentalBlackoutsHook).toContain('functions.invoke("car-rental-blackout-manage"');
+    expect(carRentalBlackoutsHook).not.toMatch(/from\("car_rental_vehicle_blackouts"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalBlackoutManage).toContain('withSecurity("car-rental-blackout-manage"');
+    expect(carRentalBlackoutManage).toContain("strictCors: true");
+    expect(carRentalBlackoutManage).toContain("admin.auth.getUser(token)");
+    expect(carRentalBlackoutManage).toContain('.from("car_rental_vehicle_blackouts")');
+    expect(carRentalBlackoutManage).toContain('.from("car_rental_vehicles")');
+    expect(carRentalBlackoutManage).toContain('.from("store_profiles")');
+    expect(carRentalBlackoutManage).toContain('rpc("has_role"');
+    expect(carRentalBlackoutGate).toContain("Car rental blackout inserts require trusted server-side validation");
+    expect(carRentalBlackoutGate).toContain("Car rental blackout deletes require trusted server-side validation");
+    expect(carRentalBlackoutGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_vehicle_blackouts FROM authenticated");
+    expect(carRentalSettingsHook).toContain('functions.invoke("car-rental-settings-update"');
+    expect(carRentalSettingsHook).not.toMatch(/from\("car_rental_store_settings"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalSeedDemo).toContain('functions.invoke("car-rental-settings-update"');
+    expect(carRentalSeedDemo).not.toMatch(/from\("car_rental_store_settings"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(carRentalSettingsUpdate).toContain('withSecurity("car-rental-settings-update"');
+    expect(carRentalSettingsUpdate).toContain("strictCors: true");
+    expect(carRentalSettingsUpdate).toContain("admin.auth.getUser(token)");
+    expect(carRentalSettingsUpdate).toContain('.from("car_rental_store_settings")');
+    expect(carRentalSettingsUpdate).toContain('.from("store_profiles")');
+    expect(carRentalSettingsUpdate).toContain('rpc("has_role"');
+    expect(carRentalSettingsGate).toContain("Car rental store settings inserts require trusted server-side validation");
+    expect(carRentalSettingsGate).toContain("Car rental store settings updates require trusted server-side validation");
+    expect(carRentalSettingsGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_store_settings FROM authenticated");
+
+    expect(payments).toContain('.eq("owner_id", user!.id)');
+    expect(payments).toContain("<StorePaymentSection storeId={store.id}");
+    expect(setup).toContain('functions.invoke("store-payment-methods-update"');
+    expect(setup).not.toMatch(/from\("store_payment_methods"\)[\s\S]{0,260}\.upsert\(/);
+    expect(paymentMethodsUpdate).toContain('withSecurity("store-payment-methods-update"');
+    expect(paymentMethodsUpdate).toContain("strictCors: true");
+    expect(paymentMethodsUpdate).toContain('allowedMethods: ["POST"]');
+    expect(paymentMethodsUpdate).toContain('rateLimit: "payment"');
+    expect(paymentMethodsUpdate).toContain("admin.auth.getUser(token)");
+    expect(paymentMethodsUpdate).toContain('.from("store_payment_methods")');
+    expect(paymentMethodsUpdate).toContain('.from("store_profiles")');
+    expect(paymentMethodsUpdate).toContain('rpc("has_role"');
+    expect(paymentMethodsGate).toContain("Store owners and admins can read store payment methods");
+    expect(paymentMethodsGate).toContain("Store payment methods updates require trusted server-side validation");
+    expect(paymentMethodsGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_payment_methods FROM authenticated");
+    expect(paymentSection).toContain('queryKey: ["store-payment-methods", storeId]');
+    expect(paymentSection).toContain('.from("store_payment_methods")');
+    expect(paymentSection).toContain('.eq("store_id", storeId)');
+    expect(paymentSection).toContain('store_id: storeId');
+    expect(merchantWallet).toContain('.eq("owner_id", user.id)');
+    expect(merchantWallet).toContain('.eq("store_id", store.id)');
+    expect(merchantWallet).toContain('supabase.functions.invoke("merchant-payout-request"');
+    expect(merchantWallet).not.toContain('.from("merchant_payouts").insert');
+  });
+
+  it("routes shop ops metadata and digital product review requests server-side", () => {
+    const shopOps = source("supabase/functions/shop-ops-record-submit/index.ts");
+    const shopOpsManage = source("supabase/functions/shop-ops-record-manage/index.ts");
+    const shopOpsGate = source("supabase/migrations/20260601044500_shop_ops_records_server_gate.sql");
+    const shopOpsManageGate = source("supabase/migrations/20260601234500_shop_ops_records_manage_gate.sql");
+    const documents = source("src/pages/app/shop/ShopDocumentsPage.tsx");
+    const training = source("src/pages/app/shop/ShopTrainingPage.tsx");
+    const digitalProducts = source("src/pages/DigitalProductsPage.tsx");
+
+    expect(shopOps).toContain('withSecurity(\n    "shop-ops-record-submit"');
+    expect(shopOps).toContain('allowedMethods: ["POST"]');
+    expect(shopOps).toContain("requireUser(req)");
+    expect(shopOps).toContain("requireUserNotBlocked(userId)");
+    expect(shopOps).toContain("getServiceRoleClient()");
+    expect(shopOps).toContain('.from("feedback_submissions")');
+    expect(shopOps).toContain("cleanPayload(body.payload)");
+    expect(shopOps).toContain("blockNetworkRiskAt: 80");
+    expect(shopOpsManage).toContain('withSecurity(\n    "shop-ops-record-manage"');
+    expect(shopOpsManage).toContain('allowedMethods: ["POST"]');
+    expect(shopOpsManage).toContain("requireUser(req)");
+    expect(shopOpsManage).toContain("requireUserNotBlocked(userId)");
+    expect(shopOpsManage).toContain("getServiceRoleClient()");
+    expect(shopOpsManage).toContain('.from("feedback_submissions")');
+    expect(shopOpsManage).toContain('.delete()');
+    expect(shopOpsManage).toContain('.eq("user_id", userId)');
+    expect(shopOpsManage).toContain('storage.from(BUCKET).remove([storagePath])');
+
+    for (const category of ["shop_document", "shop_training", "digital_product"]) {
+      expect(shopOps).toContain(category);
+      expect(shopOpsGate).toContain(category);
+    }
+    expect(shopOpsGate).toContain("AS RESTRICTIVE");
+    expect(shopOpsGate).toContain("trusted server-side ingestion");
+    expect(shopOpsManageGate).toContain("feedback_submissions_block_shop_ops_delete_direct");
+    expect(shopOpsManageGate).toContain("FOR DELETE");
+    expect(shopOpsManageGate).toContain("COALESCE(category, 'general') <> 'shop_document'");
+
+    for (const client of [documents, training, digitalProducts]) {
+      expect(client).toContain('functions.invoke("shop-ops-record-submit"');
+      expect(client).not.toMatch(/from\("feedback_submissions"\)\.insert/);
+    }
+    expect(documents).toContain('functions.invoke("shop-ops-record-manage"');
+    expect(documents).not.toMatch(/from\("feedback_submissions"\)[\s\S]{0,240}\.delete/);
+  });
+
+  it("keeps RLS and grants in place for owner setup, payments, catalog, orders, staff, and marketing", () => {
+    const profileGate = source("supabase/migrations/20260601140000_store_profiles_server_gate.sql");
+    const productGate = source("supabase/migrations/20260601134500_store_products_server_gate.sql");
+    const orders = source("supabase/migrations/20260406093000_launch_security_deeplink_pulse.sql");
+    const employees = source("supabase/migrations/20260404231528_4aae40a5-6228-4f6b-b334-430bc3ddda58.sql");
+    const employeeGate = source("supabase/migrations/20260601141500_store_employees_server_gate.sql");
+    const invites = source("supabase/migrations/20260428032513_d1827e5d-276e-4738-bf5f-7cbfee35c8a4.sql");
+    const paymentSettings = source("supabase/migrations/20260524010000_store_payment_settings.sql");
+    const paymentSettingsGate = source("supabase/migrations/20260601150000_store_payment_settings_server_gate.sql");
+    const salonPaymentSettings = source("src/hooks/salon/useSalonPaymentSettings.ts");
+    const paymentMethods = source("supabase/migrations/20260601133000_store_payment_methods_server_gate.sql");
+    const promoRls = source("supabase/migrations/20260207203234_cc9a3dcc-d44f-42c3-92d2-d27719d0371b.sql");
+    const grants = source("supabase/migrations/20260531142721_data_api_grants_recent_public_tables.sql");
+
+    expect(profileGate).toContain("Store profile inserts require trusted server-side validation");
+    expect(profileGate).toContain("Store profile updates require trusted server-side validation");
+    expect(profileGate).toContain("Store profile deletes require trusted server-side validation");
+    expect(profileGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_profiles FROM authenticated");
+    expect(profileGate).toContain("GRANT SELECT ON TABLE public.store_profiles TO anon, authenticated");
+
+    expect(productGate).toContain("Store product inserts require trusted server-side validation");
+    expect(productGate).toContain("Store product updates require trusted server-side validation");
+    expect(productGate).toContain("Store product deletes require trusted server-side validation");
+    expect(productGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_products FROM authenticated");
+
+    expect(orders).toContain("Store owners can view store orders");
+    expect(orders).toContain("Store owners can update store orders");
+    expect(orders).toContain("sp.owner_id = auth.uid()");
+
+    expect(employees).toContain("Store owners can view their employees");
+    expect(employeeGate).toContain("Store employees inserts require trusted server-side validation");
+    expect(employeeGate).toContain("Store employees updates require trusted server-side validation");
+    expect(employeeGate).toContain("Store employees deletes require trusted server-side validation");
+    expect(employeeGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_employees FROM authenticated");
+    expect(invites).toContain("CREATE OR REPLACE FUNCTION public.claim_employee_invite");
+
+    expect(paymentSettings).toContain("ALTER TABLE public.store_payment_settings ENABLE ROW LEVEL SECURITY");
+    expect(paymentSettings).toContain("Owners can read their payment settings");
+    expect(paymentSettingsGate).toContain("Store payment settings inserts require trusted server-side validation");
+    expect(paymentSettingsGate).toContain("Store payment settings updates require trusted server-side validation");
+    expect(paymentSettingsGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_payment_settings FROM authenticated");
+    expect(salonPaymentSettings).toContain('functions.invoke("store-payment-settings-update"');
+    expect(salonPaymentSettings).not.toMatch(/from\("store_payment_settings"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(source("supabase/functions/store-payment-settings-update/index.ts")).toContain('allowedMethods: ["POST"]');
+    expect(paymentMethods).toContain("Store owners and admins can read store payment methods");
+    expect(paymentMethods).toContain("sp.id = store_payment_methods.store_id");
+    expect(paymentMethods).toContain("sp.owner_id = (SELECT auth.uid())");
+    expect(paymentMethods).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_payment_methods FROM authenticated");
+    expect(paymentMethods).toContain("GRANT SELECT ON TABLE public.store_payment_methods TO authenticated");
+
+    expect(promoRls).toContain("Merchants can manage own promotions");
+    const promotionGate = source("supabase/migrations/20260601151500_promotions_server_gate.sql");
+    const cafePromotionGate = source("supabase/migrations/20260601153000_cafe_promotions_server_gate.sql");
+    const cafeReviewGate = source("supabase/migrations/20260601171500_cafe_reviews_server_gate.sql");
+    const carRentalPromotionGate = source("supabase/migrations/20260601154500_car_rental_promotions_server_gate.sql");
+    const dealershipPromotionGate = source("supabase/migrations/20260601160000_car_dealership_promotions_server_gate.sql");
+    const storePromotionGate = source("supabase/migrations/20260601161500_store_promotions_server_gate.sql");
+    const salonReviewGate = source("supabase/migrations/20260601173000_salon_reviews_server_gate.sql");
+    const salonBookingGate = source("supabase/migrations/20260601284500_salon_bookings_owner_server_gate.sql");
+    const salonGiftCardGate = source("supabase/migrations/20260601241500_salon_gift_cards_server_gate.sql");
+    const salonBlockoutGate = source("supabase/migrations/20260601243000_salon_blockouts_server_gate.sql");
+    const salonWaitlistGate = source("supabase/migrations/20260601244500_salon_waitlist_server_gate.sql");
+    const salonRetailProductGate = source("supabase/migrations/20260601250000_salon_retail_products_server_gate.sql");
+    const salonLoyaltyGate = source("supabase/migrations/20260601251500_salon_loyalty_server_gate.sql");
+    const salonPackageGate = source("supabase/migrations/20260601253000_salon_packages_server_gate.sql");
+    const salonScheduleGate = source("supabase/migrations/20260601254500_salon_stylist_schedules_server_gate.sql");
+    const salonExpenseGate = source("supabase/migrations/20260601260000_salon_expenses_server_gate.sql");
+    const salonStoreClosureGate = source("supabase/migrations/20260601261500_salon_store_closures_server_gate.sql");
+    const salonBookingRetailGate = source("supabase/migrations/20260601263000_salon_booking_retail_items_server_gate.sql");
+    const salonBookingAddonGate = source("supabase/migrations/20260601264500_salon_booking_addons_server_gate.sql");
+    const salonMembershipTierGate = source("supabase/migrations/20260601270000_salon_membership_tiers_server_gate.sql");
+    const salonReminderSettingsGate = source("supabase/migrations/20260601271500_salon_reminder_settings_server_gate.sql");
+    const salonReminderTemplateGate = source("supabase/migrations/20260601273000_salon_notification_template_overrides_server_gate.sql");
+    const salonServiceGate = source("supabase/migrations/20260601274500_salon_services_server_gate.sql");
+    const salonTimeEntryGate = source("supabase/migrations/20260601280000_salon_time_entries_server_gate.sql");
+    const salonClientGate = source("supabase/migrations/20260601281500_salon_clients_server_gate.sql");
+    const salonStylistGate = source("supabase/migrations/20260601283000_salon_stylists_server_gate.sql");
+    const carRentalReviewGate = source("supabase/migrations/20260601163000_car_rental_reviews_server_gate.sql");
+    const dealershipReviewGate = source("supabase/migrations/20260601164500_car_dealership_reviews_server_gate.sql");
+    const lodgingReviewGate = source("supabase/migrations/20260601170000_lodging_reviews_server_gate.sql");
+    const carRentalExpenseGate = source("supabase/migrations/20260601181500_car_rental_expenses_server_gate.sql");
+    const carRentalMaintenanceGate = source("supabase/migrations/20260601183000_car_rental_maintenance_server_gate.sql");
+    const carRentalVehicleGate = source("supabase/migrations/20260601184500_car_rental_vehicles_server_gate.sql");
+    const carRentalAddonGate = source("supabase/migrations/20260601190000_car_rental_addons_server_gate.sql");
+    const carRentalLocationGate = source("supabase/migrations/20260601191500_car_rental_locations_server_gate.sql");
+    const carRentalCustomerGate = source("supabase/migrations/20260601193000_car_rental_customers_server_gate.sql");
+    const carRentalReservationGate = source("supabase/migrations/20260601194500_car_rental_reservations_server_gate.sql");
+    const carRentalBlackoutGate = source("supabase/migrations/20260601200000_car_rental_blackouts_server_gate.sql");
+    const carRentalSettingsGate = source("supabase/migrations/20260601201500_car_rental_store_settings_server_gate.sql");
+    expect(promotionGate).toContain("Promotions inserts require trusted server-side validation");
+    expect(promotionGate).toContain("Promotions updates require trusted server-side validation");
+    expect(promotionGate).toContain("Promotions deletes require trusted server-side validation");
+    expect(promotionGate).toContain("GRANT SELECT ON TABLE public.promotions TO anon, authenticated");
+    expect(cafePromotionGate).toContain("Cafe promotion inserts require trusted server-side validation");
+    expect(cafePromotionGate).toContain("Cafe promotion updates require trusted server-side validation");
+    expect(cafePromotionGate).toContain("Cafe promotion deletes require trusted server-side validation");
+    expect(cafePromotionGate).toContain("GRANT SELECT ON TABLE public.cafe_promotions TO anon, authenticated");
+    expect(cafeReviewGate).toContain("Cafe review inserts require trusted server-side validation");
+    expect(cafeReviewGate).toContain("Cafe review updates require trusted server-side validation");
+    expect(cafeReviewGate).toContain("Cafe review deletes require trusted server-side validation");
+    expect(cafeReviewGate).toContain("GRANT SELECT ON TABLE public.cafe_reviews TO anon, authenticated");
+    expect(carRentalPromotionGate).toContain("Car rental promotion inserts require trusted server-side validation");
+    expect(carRentalPromotionGate).toContain("Car rental promotion updates require trusted server-side validation");
+    expect(carRentalPromotionGate).toContain("Car rental promotion deletes require trusted server-side validation");
+    expect(carRentalPromotionGate).toContain("GRANT SELECT ON TABLE public.car_rental_promotions TO anon, authenticated");
+    expect(dealershipPromotionGate).toContain("Car dealership promotion inserts require trusted server-side validation");
+    expect(dealershipPromotionGate).toContain("Car dealership promotion updates require trusted server-side validation");
+    expect(dealershipPromotionGate).toContain("Car dealership promotion deletes require trusted server-side validation");
+    expect(dealershipPromotionGate).toContain("GRANT SELECT ON TABLE public.car_dealership_promotions TO anon, authenticated");
+    expect(storePromotionGate).toContain("Store promotion inserts require trusted server-side validation");
+    expect(storePromotionGate).toContain("Store promotion updates require trusted server-side validation");
+    expect(storePromotionGate).toContain("Store promotion deletes require trusted server-side validation");
+    expect(storePromotionGate).toContain("GRANT SELECT ON TABLE public.store_promotions TO authenticated");
+    expect(salonReviewGate).toContain("Salon review inserts require trusted server-side validation");
+    expect(salonReviewGate).toContain("Salon review updates require trusted server-side validation");
+    expect(salonReviewGate).toContain("Salon review deletes require trusted server-side validation");
+    expect(salonReviewGate).toContain("GRANT SELECT ON TABLE public.salon_reviews TO anon, authenticated");
+    expect(salonBookingGate).toContain("GRANT SELECT ON TABLE public.salon_bookings TO authenticated");
+    expect(salonBookingGate).toContain("GRANT ALL ON TABLE public.salon_bookings TO service_role");
+    expect(salonGiftCardGate).toContain("Owners read gift cards");
+    expect(salonGiftCardGate).toContain("Owners read gift card redemptions");
+    expect(salonGiftCardGate).toContain("Salon gift card deletes require trusted server-side validation");
+    expect(salonGiftCardGate).toContain("Salon gift card redemption deletes require trusted server-side validation");
+    expect(salonGiftCardGate).toContain("GRANT SELECT ON TABLE public.salon_gift_cards TO authenticated");
+    expect(salonGiftCardGate).toContain("GRANT SELECT ON TABLE public.salon_gift_card_redemptions TO authenticated");
+    expect(salonBlockoutGate).toContain("Owners read blockouts");
+    expect(salonBlockoutGate).toContain("Salon blockout updates require trusted server-side validation");
+    expect(salonBlockoutGate).toContain("GRANT SELECT ON TABLE public.salon_blockouts TO authenticated");
+    expect(salonWaitlistGate).toContain("Owners read waitlist");
+    expect(salonWaitlistGate).toContain("Salon waitlist updates require trusted server-side validation");
+    expect(salonWaitlistGate).toContain("GRANT SELECT ON TABLE public.salon_waitlist TO authenticated");
+    expect(salonRetailProductGate).toContain("Owners read retail products");
+    expect(salonRetailProductGate).toContain("Salon retail product updates require trusted server-side validation");
+    expect(salonRetailProductGate).toContain("GRANT SELECT ON TABLE public.salon_retail_products TO anon, authenticated");
+    expect(salonLoyaltyGate).toContain("Owners read loyalty settings");
+    expect(salonLoyaltyGate).toContain("Owners read loyalty events");
+    expect(salonLoyaltyGate).toContain("GRANT SELECT ON TABLE public.salon_loyalty_settings TO authenticated");
+    expect(salonLoyaltyGate).toContain("GRANT SELECT ON TABLE public.salon_loyalty_events TO authenticated");
+    expect(salonPackageGate).toContain("Owners read packages");
+    expect(salonPackageGate).toContain("Owners read package services");
+    expect(salonPackageGate).toContain("GRANT SELECT ON TABLE public.salon_packages TO anon, authenticated");
+    expect(salonPackageGate).toContain("GRANT SELECT ON TABLE public.salon_package_services TO anon, authenticated");
+    expect(salonScheduleGate).toContain("Owners read stylist schedules");
+    expect(salonScheduleGate).toContain("GRANT SELECT ON TABLE public.salon_stylist_schedules TO anon, authenticated");
+    expect(salonExpenseGate).toContain("Owners read salon expenses");
+    expect(salonExpenseGate).toContain("GRANT SELECT ON TABLE public.salon_expenses TO authenticated");
+    expect(salonStoreClosureGate).toContain("Owners read store closures");
+    expect(salonStoreClosureGate).toContain("GRANT SELECT ON TABLE public.salon_store_closures TO authenticated");
+    expect(salonBookingRetailGate).toContain("Owners read booking retail items");
+    expect(salonBookingRetailGate).toContain("GRANT SELECT ON TABLE public.salon_booking_retail_items TO authenticated");
+    expect(salonBookingAddonGate).toContain("Owners read booking addons");
+    expect(salonBookingAddonGate).toContain("GRANT SELECT ON TABLE public.salon_booking_addons TO authenticated");
+    expect(salonMembershipTierGate).toContain("Owners read membership tiers");
+    expect(salonMembershipTierGate).toContain("GRANT SELECT ON TABLE public.salon_membership_tiers TO anon, authenticated");
+    expect(salonReminderSettingsGate).toContain("Owners read reminder settings");
+    expect(salonReminderSettingsGate).toContain("GRANT SELECT ON TABLE public.salon_reminder_settings TO authenticated");
+    expect(salonReminderTemplateGate).toContain("Owners read notification template overrides");
+    expect(salonReminderTemplateGate).toContain("GRANT SELECT ON TABLE public.salon_notification_template_overrides TO authenticated");
+    expect(salonServiceGate).toContain("GRANT SELECT ON TABLE public.salon_services TO anon, authenticated");
+    expect(salonTimeEntryGate).toContain("Owners read time entries");
+    expect(salonTimeEntryGate).toContain("GRANT SELECT ON TABLE public.salon_time_entries TO authenticated");
+    expect(salonClientGate).toContain("GRANT SELECT ON TABLE public.salon_clients TO authenticated");
+    expect(salonStylistGate).toContain("GRANT SELECT ON TABLE public.salon_stylists TO anon, authenticated");
+    expect(salonStylistGate).toContain("GRANT SELECT ON TABLE public.salon_stylist_services TO anon, authenticated");
+    expect(carRentalReviewGate).toContain("Car rental review inserts require trusted server-side validation");
+    expect(carRentalReviewGate).toContain("Car rental review updates require trusted server-side validation");
+    expect(carRentalReviewGate).toContain("Car rental review deletes require trusted server-side validation");
+    expect(carRentalReviewGate).toContain("GRANT SELECT ON TABLE public.car_rental_reviews TO anon, authenticated");
+    expect(dealershipReviewGate).toContain("Car dealership review inserts require trusted server-side validation");
+    expect(dealershipReviewGate).toContain("Car dealership review updates require trusted server-side validation");
+    expect(dealershipReviewGate).toContain("Car dealership review deletes require trusted server-side validation");
+    expect(dealershipReviewGate).toContain("GRANT SELECT ON TABLE public.car_dealership_reviews TO anon, authenticated");
+    expect(lodgingReviewGate).toContain("Lodging review inserts require trusted server-side validation");
+    expect(lodgingReviewGate).toContain("Lodging review updates require trusted server-side validation");
+    expect(lodgingReviewGate).toContain("Lodging review deletes require trusted server-side validation");
+    expect(lodgingReviewGate).toContain("GRANT SELECT ON TABLE public.lodging_reviews TO anon, authenticated");
+    expect(carRentalExpenseGate).toContain("Car rental expense inserts require trusted server-side validation");
+    expect(carRentalExpenseGate).toContain("Car rental expense updates require trusted server-side validation");
+    expect(carRentalExpenseGate).toContain("Car rental expense deletes require trusted server-side validation");
+    expect(carRentalExpenseGate).toContain("GRANT SELECT ON TABLE public.car_rental_expenses TO authenticated");
+    expect(carRentalMaintenanceGate).toContain("Car rental maintenance inserts require trusted server-side validation");
+    expect(carRentalMaintenanceGate).toContain("Car rental maintenance updates require trusted server-side validation");
+    expect(carRentalMaintenanceGate).toContain("Car rental maintenance deletes require trusted server-side validation");
+    expect(carRentalMaintenanceGate).toContain("GRANT SELECT ON TABLE public.car_rental_maintenance TO authenticated");
+    expect(carRentalVehicleGate).toContain("Car rental vehicle inserts require trusted server-side validation");
+    expect(carRentalVehicleGate).toContain("Car rental vehicle updates require trusted server-side validation");
+    expect(carRentalVehicleGate).toContain("Car rental vehicle deletes require trusted server-side validation");
+    expect(carRentalVehicleGate).toContain("GRANT SELECT ON TABLE public.car_rental_vehicles TO anon, authenticated");
+    expect(carRentalAddonGate).toContain("Car rental add-on inserts require trusted server-side validation");
+    expect(carRentalAddonGate).toContain("Car rental add-on updates require trusted server-side validation");
+    expect(carRentalAddonGate).toContain("Car rental add-on deletes require trusted server-side validation");
+    expect(carRentalAddonGate).toContain("GRANT SELECT ON TABLE public.car_rental_addons TO anon, authenticated");
+    expect(carRentalLocationGate).toContain("Car rental location inserts require trusted server-side validation");
+    expect(carRentalLocationGate).toContain("Car rental location updates require trusted server-side validation");
+    expect(carRentalLocationGate).toContain("Car rental location deletes require trusted server-side validation");
+    expect(carRentalLocationGate).toContain("GRANT SELECT ON TABLE public.car_rental_locations TO anon, authenticated");
+    expect(carRentalCustomerGate).toContain("Car rental customer inserts require trusted server-side validation");
+    expect(carRentalCustomerGate).toContain("Car rental customer updates require trusted server-side validation");
+    expect(carRentalCustomerGate).toContain("Car rental customer deletes require trusted server-side validation");
+    expect(carRentalCustomerGate).toContain("GRANT SELECT ON TABLE public.car_rental_customers TO authenticated");
+    expect(carRentalReservationGate).toContain("Car rental reservation inserts require trusted server-side validation");
+    expect(carRentalReservationGate).toContain("Car rental reservation updates require trusted server-side validation");
+    expect(carRentalReservationGate).toContain("Car rental reservation deletes require trusted server-side validation");
+    expect(carRentalReservationGate).toContain("GRANT SELECT ON TABLE public.car_rental_reservations TO authenticated");
+    expect(carRentalBlackoutGate).toContain("Car rental blackout inserts require trusted server-side validation");
+    expect(carRentalBlackoutGate).toContain("Car rental blackout updates require trusted server-side validation");
+    expect(carRentalBlackoutGate).toContain("Car rental blackout deletes require trusted server-side validation");
+    expect(carRentalBlackoutGate).toContain("GRANT SELECT ON TABLE public.car_rental_vehicle_blackouts TO anon, authenticated");
+    expect(carRentalSettingsGate).toContain("Car rental store settings inserts require trusted server-side validation");
+    expect(carRentalSettingsGate).toContain("Car rental store settings updates require trusted server-side validation");
+    expect(carRentalSettingsGate).toContain("Car rental store settings deletes require trusted server-side validation");
+    expect(carRentalSettingsGate).toContain("GRANT SELECT ON TABLE public.car_rental_store_settings TO anon, authenticated");
+    expect(promoRls).toContain("merchant_id IN");
+
+    for (const tableName of [
+    ]) {
+      expect(grants).toContain(`grant select, insert, update, delete on table public.${tableName} to authenticated;`);
+    }
+  });
+});

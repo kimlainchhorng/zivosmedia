@@ -15,8 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
-import Heart from "lucide-react/dist/esm/icons/heart";
-import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
+import { BarChart3, ChevronRight, Gauge, Heart, MessageCircle, Sparkles, Trophy, UsersRound } from "lucide-react";
 
 const WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const COMMENT_WEIGHT = 3;
@@ -136,17 +135,125 @@ export default function TopFans({ creatorId, title = "Top fans this month", limi
   });
 
   if (fans.length === 0) return null;
+  const totalLikes = fans.reduce((sum, fan) => sum + fan.likes, 0);
+  const totalComments = fans.reduce((sum, fan) => sum + fan.comments, 0);
+  const topScore = fans[0]?.score ?? 0;
+  const champion = fans[0] ?? null;
+  const championName = champion?.fullName || "Fan";
+  const championSignal = champion
+    ? champion.comments > 0
+      ? `${champion.comments} comment${champion.comments === 1 ? "" : "s"}`
+      : `${champion.likes} like${champion.likes === 1 ? "" : "s"}`
+    : "";
+  const totalSignal = totalLikes + totalComments * COMMENT_WEIGHT;
+  const conversationShare = totalSignal > 0 ? Math.round(((totalComments * COMMENT_WEIGHT) / totalSignal) * 100) : 0;
+  const fanPulse = conversationShare >= 50
+    ? "Conversation-led"
+    : totalLikes > totalComments
+      ? "Like-led"
+      : "Balanced";
 
   return (
     <section
       aria-label={title}
-      className={"bg-card border border-border/40 rounded-2xl px-3 py-3 " + (className ?? "")}
+      className={"zivo-social-top-fans rounded-[1.25rem] px-3 py-3 " + (className ?? "")}
     >
-      <div className="flex items-center justify-between mb-2.5">
-        <h3 className="text-[13px] font-bold text-foreground flex items-center gap-1.5">
-          <Heart className="h-4 w-4 text-foreground" aria-hidden="true" fill="currentColor" />
-          {title}
-        </h3>
+      <div className="zivo-social-header-glass mb-2.5 flex items-center justify-between gap-3 rounded-[1.15rem] px-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="zivo-social-top-fans-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl">
+            <Trophy className="h-4 w-4 text-primary" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-[13px] font-extrabold text-foreground">{title}</h3>
+            <p className="truncate text-[11px] font-medium text-muted-foreground">Likes and comments from the last 30 days</p>
+          </div>
+        </div>
+        <span className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-primary">
+          {fans.length}
+          <ChevronRight className="h-3 w-3" aria-hidden="true" />
+        </span>
+      </div>
+      <div className="mb-2.5 grid grid-cols-3 gap-2">
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
+            <Trophy className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black tabular-nums text-foreground">{topScore}</span>
+            <span className="block truncate text-[10px] font-semibold text-muted-foreground">Top score</span>
+          </span>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
+            <Heart className="h-3.5 w-3.5" fill="currentColor" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black tabular-nums text-foreground">{totalLikes}</span>
+            <span className="block truncate text-[10px] font-semibold text-muted-foreground">Likes</span>
+          </span>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <MessageCircle className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black tabular-nums text-foreground">{totalComments}</span>
+            <span className="block truncate text-[10px] font-semibold text-muted-foreground">Comments</span>
+          </span>
+        </div>
+      </div>
+      {champion && (
+        <button
+          type="button"
+          onClick={() => navigate(`/user/${champion.id}`)}
+          aria-label={`Open top fan ${championName}, ${champion.score} points`}
+          className="zivo-social-share-preview mb-2.5 flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2 text-left transition-transform active:scale-[0.99]"
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Avatar className="zivo-social-avatar-ring h-9 w-9 shrink-0">
+              <AvatarImage src={optimizeAvatar(champion.avatarUrl, 40)} alt="" loading="lazy" />
+              <AvatarFallback className="bg-transparent text-xs font-bold text-primary">
+                {initialsOf(champion.fullName)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="min-w-0">
+              <span className="block truncate text-[10px] font-black uppercase tracking-[0.08em] text-muted-foreground">
+                Fan champion
+              </span>
+              <span className="flex min-w-0 items-center gap-1 text-sm font-bold text-foreground">
+                <span className="truncate">{championName}</span>
+                {isBlueVerified(champion.isVerified) && <VerifiedBadge size={11} interactive={false} />}
+              </span>
+            </span>
+          </div>
+          <span className="zivo-social-chip-active shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black">
+            {championSignal || `${champion.score} pts`}
+          </span>
+        </button>
+      )}
+      <div className="zivo-social-module-tile mb-2.5 grid grid-cols-2 gap-2 rounded-2xl px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500">
+            <Gauge className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+              Fan pulse
+            </span>
+            <span className="block truncate text-xs font-black text-foreground">{fanPulse}</span>
+          </span>
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+            <UsersRound className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+              Conversation
+            </span>
+            <span className="block truncate text-xs font-black text-foreground">{conversationShare}% weighted</span>
+          </span>
+        </div>
       </div>
       <ul className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
         {fans.map((f, idx) => {
@@ -158,15 +265,16 @@ export default function TopFans({ creatorId, title = "Top fans this month", limi
               ? `${f.comments} comment${f.comments === 1 ? "" : "s"}`
               : `${f.likes} like${f.likes === 1 ? "" : "s"}`;
           return (
-            <li key={f.id} className="shrink-0 w-[88px]">
+            <li key={f.id} className="w-[106px] shrink-0">
               <button
                 type="button"
                 onClick={() => navigate(`/user/${f.id}`)}
-                className="w-full flex flex-col items-center gap-1 active:opacity-70 transition-opacity"
-                aria-label={`${name} — ${engagementLabel}`}
+                className="zivo-social-top-fan-card group relative flex min-h-[150px] w-full flex-col items-center justify-between gap-1 overflow-hidden rounded-2xl px-2 py-2.5 transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+                aria-label={`${name} — ${engagementLabel}, score ${f.score}`}
               >
+                <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
                 <div className="relative">
-                  <Avatar className="h-12 w-12 border-2 border-border">
+                  <Avatar className="zivo-social-avatar-ring h-12 w-12">
                     <AvatarImage src={optimizeAvatar(f.avatarUrl, 48)} alt="" loading="lazy" />
                     <AvatarFallback className="text-white text-sm font-bold bg-foreground">
                       {initialsOf(f.fullName)}
@@ -175,12 +283,17 @@ export default function TopFans({ creatorId, title = "Top fans this month", limi
                   {idx < 3 && (
                     <span
                       className={
-                        "absolute -top-1 -right-1 h-5 w-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-card " +
-                        (idx === 0 ? "bg-amber-500" : idx === 1 ? "bg-slate-400" : "bg-orange-700")
+                        "zivo-social-top-rank absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-extrabold text-white " +
+                        (idx === 0 ? "zivo-social-top-rank-gold" : idx === 1 ? "zivo-social-top-rank-silver" : "zivo-social-top-rank-bronze")
                       }
                       aria-hidden="true"
                     >
                       {idx + 1}
+                    </span>
+                  )}
+                  {idx === 0 && (
+                    <span className="absolute -bottom-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full border border-white/70 bg-primary text-white shadow-lg shadow-primary/20" aria-hidden="true">
+                      <Sparkles className="h-3 w-3" />
                     </span>
                   )}
                 </div>
@@ -188,7 +301,7 @@ export default function TopFans({ creatorId, title = "Top fans this month", limi
                   <span className="truncate">{name.split(/\s+/)[0]}</span>
                   {isBlueVerified(f.isVerified) && <VerifiedBadge size={10} interactive={false} />}
                 </p>
-                <p className="text-[9px] text-muted-foreground inline-flex items-center gap-1 leading-tight">
+                <p className="zivo-social-top-fan-metrics inline-flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-bold leading-tight text-muted-foreground">
                   {f.likes > 0 && (
                     <span className="inline-flex items-center gap-0.5">
                       <Heart className="h-2.5 w-2.5" aria-hidden="true" /> {f.likes}
@@ -200,6 +313,10 @@ export default function TopFans({ creatorId, title = "Top fans this month", limi
                     </span>
                   )}
                 </p>
+                <span className="zivo-social-chip inline-flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-black text-primary">
+                  <BarChart3 className="h-2.5 w-2.5" aria-hidden="true" />
+                  {f.score} pts
+                </span>
               </button>
             </li>
           );

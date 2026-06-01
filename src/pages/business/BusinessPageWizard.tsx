@@ -97,8 +97,11 @@ export default function BusinessPageWizard() {
   /** Latches once the user has confirmed Leave / completed setup so guard short-circuits. */
   const isLeavingRef = useRef(false);
   const completedRef = useRef(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [completed, setCompleted] = useState(false);
   /** Snapshot of fields that we treat as "saved" — used as baseline for dirty detection. */
   const baselineRef = useRef<string>("");
+  const [baselineSnapshot, setBaselineSnapshot] = useState("");
   const [baselineReady, setBaselineReady] = useState(false);
 
   // Step 1
@@ -154,9 +157,9 @@ export default function BusinessPageWizard() {
 
   const isDirty =
     baselineReady &&
-    !completedRef.current &&
-    !isLeavingRef.current &&
-    fieldsSnapshot !== baselineRef.current;
+    !completed &&
+    !isLeaving &&
+    fieldsSnapshot !== baselineSnapshot;
 
   // Auth gate + redirect already-completed owners; resume partial setups.
   useEffect(() => {
@@ -176,6 +179,7 @@ export default function BusinessPageWizard() {
 
       if ((data as any)?.setup_complete) {
         completedRef.current = true;
+        setCompleted(true);
         const { path } = resolveBusinessDashboardRoute((data as any).category, (data as any).id);
         navigate(path, { replace: true });
         return;
@@ -220,6 +224,7 @@ export default function BusinessPageWizard() {
   useEffect(() => {
     if (checking || baselineReady) return;
     baselineRef.current = fieldsSnapshot;
+    setBaselineSnapshot(fieldsSnapshot);
     setBaselineReady(true);
   }, [checking, baselineReady, fieldsSnapshot]);
 
@@ -336,13 +341,17 @@ export default function BusinessPageWizard() {
       });
       if (res.id) {
         setStoreId(res.id);
-        baselineRef.current = JSON.stringify(snap);
+        const nextBaseline = JSON.stringify(snap);
+        baselineRef.current = nextBaseline;
+        setBaselineSnapshot(nextBaseline);
       }
       return res;
     },
     [
       user, storeId, bizName, bizPhone, bizEmail, category,
       firstName, lastName, contactPhone, contactEmail, logoUrl, bannerUrl,
+      bizDescription, address, paymentTypes, facebookUrl, instagramUrl,
+      tiktokUrl, telegramUrl,
     ]
   );
 
@@ -400,6 +409,7 @@ export default function BusinessPageWizard() {
   /** User confirmed Leave. Discard unsaved edits on this step and navigate away. */
   const confirmLeave = () => {
     isLeavingRef.current = true;
+    setIsLeaving(true);
     setLeaveOpen(false);
     if (leaveSourceRef.current === "popstate") {
       // The sentinel is currently on top — popping it lands on the original prior page.
@@ -427,6 +437,7 @@ export default function BusinessPageWizard() {
       }
       toast.success("Setup saved", { description: "Pick up here later." });
       isLeavingRef.current = true;
+      setIsLeaving(true);
       setLeaveOpen(false);
       if (leaveSourceRef.current === "popstate") {
         window.history.go(-1);
@@ -442,11 +453,13 @@ export default function BusinessPageWizard() {
     if (!user || !category) return;
     // Disarm guard immediately so popstate during the save is silent.
     completedRef.current = true;
+    setCompleted(true);
     setSubmitting(true);
     try {
       const partial = await persist({ persistProfile: true });
       if (partial.error || !partial.id) {
         completedRef.current = false; // re-arm — completion didn't happen
+        setCompleted(false);
         setNameError(partial.error || "Could not save");
         toast.error(partial.error || "Could not save");
         setStep(1);
@@ -490,6 +503,7 @@ export default function BusinessPageWizard() {
       navigate(path, { replace: true });
     } catch (e: any) {
       completedRef.current = false;
+      setCompleted(false);
       toast.error(e.message || "Could not save your business page");
     } finally {
       setSubmitting(false);
@@ -763,7 +777,7 @@ export default function BusinessPageWizard() {
                   <div className="relative">
                     <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-muted">
                       {logoUrl ? (
-                        <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
+                        <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                       ) : uploadingLogo ? (
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       ) : (
@@ -817,7 +831,7 @@ export default function BusinessPageWizard() {
                 <div className="space-y-4 py-2">
                   <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted">
                     {bannerUrl ? (
-                      <img src={bannerUrl} alt="Cover" className="h-full w-full object-cover" />
+                      <img src={bannerUrl} alt="Cover" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         {uploadingBanner ? (

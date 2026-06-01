@@ -1,7 +1,6 @@
 import { createClient } from "../_shared/deps.ts";
 import { notifyLodgingReservation } from "../_shared/lodging-notifications.ts";
-
-const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 function money(cents: number | null | undefined) { return `$${((cents || 0) / 100).toFixed(2)}`; }
 function escPdf(value: unknown) { return String(value ?? "").replace(/[\\()]/g, "\\$&").replace(/[\r\n]+/g, " "); }
@@ -23,7 +22,9 @@ function linesFromSnapshot(s: any) { return [`Property: ${s.propertyName || "ZIV
 async function sha256Hex(text: string) { const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)); return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join(""); }
 function randomToken() { const b = new Uint8Array(32); crypto.getRandomValues(b); return Array.from(b).map((x) => x.toString(16).padStart(2, "0")).join(""); }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("share-lodging-receipt", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
   try {
@@ -61,4 +62,4 @@ Deno.serve(async (req) => {
   } catch (err) {
     return new Response(JSON.stringify({ error: String((err as Error).message || err) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

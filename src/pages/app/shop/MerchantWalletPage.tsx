@@ -96,14 +96,23 @@ export default function MerchantWalletPage() {
       if (isNaN(amount) || amount < 5) throw new Error("Minimum payout is $5.00");
       if (amount > availableBalance) throw new Error("Insufficient balance");
       if (!bankName.trim()) throw new Error("Enter bank name");
+      if (!store?.id) throw new Error("Store not found");
 
-      await (supabase as any).from("merchant_payouts").insert({
-        store_id: store.id,
-        merchant_id: user!.id,
-        amount_cents: Math.round(amount * 100),
-        bank_name: bankName.trim(),
-        status: "pending",
+      const amountCents = Math.round(amount * 100);
+      const { data, error } = await supabase.functions.invoke("merchant-payout-request", {
+        body: {
+          store_id: store.id,
+          amount_cents: amountCents,
+          bank_name: bankName.trim(),
+        },
+        headers: {
+          "Idempotency-Key": `merchant-payout-${store.id}-${amountCents}-${crypto.randomUUID()}`,
+        },
       });
+
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Payout request failed");
+      }
     },
     onSuccess: () => {
       toast.success("Payout requested! Processing in 1-3 business days.");

@@ -226,7 +226,7 @@ export default function StoryArchivePage() {
                   ) : isVideo ? (
                     <video src={s.media_url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                   ) : (
-                    <img src={s.media_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <img src={s.media_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   )}
                   {isVideo && <Film className="absolute top-1.5 right-1.5 h-3.5 w-3.5 text-white drop-shadow-md" />}
                   {isText && <Type className="absolute top-1.5 right-1.5 h-3.5 w-3.5 text-white drop-shadow-md" />}
@@ -265,9 +265,9 @@ export default function StoryArchivePage() {
                   <p className="text-white text-xl font-bold text-center">{selected.text_overlay ?? "Text story"}</p>
                 </div>
               ) : selected.media_type?.startsWith("video") ? (
-                <video src={selected.media_url} className="w-full h-full object-cover" controls autoPlay />
+                <video src={selected.media_url} className="w-full h-full object-cover" controls autoPlay preload="metadata" />
               ) : (
-                <img src={selected.media_url} alt="" className="w-full h-full object-cover" />
+                <img src={selected.media_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               )}
               <div className="absolute top-3 inset-x-3 flex items-center justify-between text-white text-xs font-semibold">
                 <span className="bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1">{formatDate(selected.created_at)}</span>

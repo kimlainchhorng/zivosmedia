@@ -82,18 +82,16 @@ export function useCarRentalLocations(storeId: string | undefined) {
       is_default: draft.is_default ?? false,
       is_active: draft.is_active ?? true,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_locations")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-location-manage", {
+      body: { action: "create", store_id: storeId, location: payload },
+    });
     if (err) {
       console.error("[useCarRentalLocations] create failed", err);
       setError("Couldn't add location.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalLocation;
+    const created = data?.location as CarRentalLocation;
     setLocations((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -102,11 +100,16 @@ export function useCarRentalLocations(storeId: string | undefined) {
   const update = useCallback(async (id: string, patch: Partial<CarRentalLocationDraft>) => {
     setSaving(true);
     setLocations((prev) => prev.map((l) => (l.id === id ? ({ ...l, ...patch } as CarRentalLocation) : l)));
-    const { error: err } = await supabase.from("car_rental_locations").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-rental-location-manage", {
+      body: { action: "update", location_id: id, location: patch },
+    });
     if (err) {
       console.error("[useCarRentalLocations] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
+    } else if (data?.location) {
+      const updated = data.location as CarRentalLocation;
+      setLocations((prev) => prev.map((l) => (l.id === id ? updated : l)));
     }
     setSaving(false);
   }, [load]);
@@ -115,7 +118,9 @@ export function useCarRentalLocations(storeId: string | undefined) {
     setSaving(true);
     const prev = locations;
     setLocations((p) => p.filter((l) => l.id !== id));
-    const { error: err } = await supabase.from("car_rental_locations").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-location-manage", {
+      body: { action: "delete", location_id: id },
+    });
     if (err) {
       console.error("[useCarRentalLocations] delete failed", err);
       setError("Couldn't delete location.");

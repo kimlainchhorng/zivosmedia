@@ -121,8 +121,10 @@ export default function InviteFriendsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
+      <SheetContent side="bottom" className="zivo-chat-popover-glass max-h-[85vh] overflow-y-auto rounded-t-[1.75rem]">
+        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
         <SheetHeader className="text-left">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Grow your circle</p>
           <SheetTitle className="flex items-center gap-2">
             <Share2 className="w-5 h-5 text-emerald-500" /> Invite friends
           </SheetTitle>
@@ -131,15 +133,15 @@ export default function InviteFriendsSheet({
 
         <div className="mt-5 space-y-5">
           {/* Link card */}
-          <div className="flex items-center gap-2 p-3 rounded-2xl border bg-muted/40">
+          <div className="zivo-chat-card flex items-center gap-2 rounded-2xl p-3">
             <div className="flex-1 min-w-0 text-sm font-mono truncate">{inviteLink}</div>
-            <Button size="sm" variant="outline" onClick={copyLink} className="gap-1">
+            <Button size="sm" variant="outline" onClick={copyLink} className="zivo-chat-chip gap-1 rounded-full font-bold">
               {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
 
-          <Button onClick={nativeShare} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white gap-2">
+          <Button onClick={nativeShare} className="zivo-chat-chip-active w-full gap-2 rounded-2xl font-black text-white">
             <Share2 className="w-4 h-4" /> Share via…
           </Button>
 
@@ -154,8 +156,9 @@ export default function InviteFriendsSheet({
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+1 555 123 4567 (optional)"
                 inputMode="tel"
+                className="zivo-chat-search"
               />
-              <Button onClick={sendSms} variant="outline" className="gap-1">
+              <Button onClick={sendSms} variant="outline" className="zivo-chat-chip gap-1 rounded-xl font-bold">
                 <Send className="w-4 h-4" /> SMS
               </Button>
             </div>
@@ -173,15 +176,16 @@ export default function InviteFriendsSheet({
                 placeholder="friend@example.com"
                 type="email"
                 inputMode="email"
+                className="zivo-chat-search"
               />
-              <Button onClick={sendEmail} variant="outline" className="gap-1">
+              <Button onClick={sendEmail} variant="outline" className="zivo-chat-chip gap-1 rounded-xl font-bold">
                 <Send className="w-4 h-4" /> Email
               </Button>
             </div>
           </div>
 
           {/* Existing user — send contact request */}
-          <div className="space-y-2 pt-1 border-t">
+          <div className="space-y-2 pt-1 border-t border-border/30">
             <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 pt-3">
               <AtSign className="w-3.5 h-3.5" /> Invite an existing ZIVO user
             </label>
@@ -192,11 +196,12 @@ export default function InviteFriendsSheet({
                 placeholder="@username"
                 aria-label="ZIVO username"
                 onKeyDown={(e) => { if (e.key === "Enter") void sendInviteRequest(); }}
+                className="zivo-chat-search"
               />
               <Button
                 onClick={() => void sendInviteRequest()}
                 disabled={sending}
-                className="gap-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+                className="zivo-chat-chip-active gap-1 rounded-xl font-black text-white"
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                 Send request

@@ -66,9 +66,9 @@ Download ZIVO and run your whole day in one app.
 ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory. Some premium features and creator subscriptions may have a price.
 
 Support:  support@hizivo.com
-Website:  https://www.zivollc.com
-Privacy:  https://www.zivollc.com/privacy-policy
-Terms:    https://www.zivollc.com/terms-of-service
+Website:  https://hizivo.com
+Privacy:  https://hizivo.com/legal/privacy
+Terms:    https://hizivo.com/legal/terms
 ```
 
 ## 4. What's New / Release Notes  (max 500 characters — UPDATE EVERY RELEASE)
@@ -96,14 +96,14 @@ In-app purchases: Yes (creator subscriptions, premium features)
 
 ```
 Email:    support@hizivo.com
-Website:  https://www.zivollc.com
+Website:  https://hizivo.com
 Phone:    (optional — leave blank if not used)
 ```
 
 ## 7. Privacy Policy URL
 
 ```
-https://www.zivollc.com/privacy-policy
+https://hizivo.com/legal/privacy
 ```
 
 ## 8. Account Deletion URL
@@ -111,10 +111,18 @@ https://www.zivollc.com/privacy-policy
 Use this in Play Console -> App content -> Data safety -> Account deletion.
 
 ```
-https://www.zivollc.com/account-deletion
+https://hizivo.com/delete-account
 ```
 
-## 9. Graphic Assets (sizes Google requires — replace files, do NOT change names)
+## 9. Release Metadata
+
+```
+Version: 1.3.0
+Version code: 2026053101
+Package name: com.hizovo.app
+```
+
+## 10. Graphic Assets (sizes Google requires — replace files, do NOT change names)
 
 ```
 Icon:               512 × 512 PNG (32-bit, no alpha background)
@@ -127,7 +135,7 @@ Tablet screenshots: optional but recommended for 7" and 10"
 
 ### How to publish
 1. Bump `versionCode` and `versionName` in `android/app/build.gradle`
-2. Run `bun run build && npx cap sync android`
+2. Run `npm run android:sync`
 3. Open Android Studio → **Build → Generate Signed App Bundle**
 4. Play Console → Production → **Create new release** → upload `.aab`
 5. Paste fields above into matching boxes → Save → Review → Roll out

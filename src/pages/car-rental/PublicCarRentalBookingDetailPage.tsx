@@ -338,7 +338,7 @@ export default function PublicCarRentalBookingDetailPage() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-2xl px-4 py-3 flex items-center gap-3">
           {store?.logo_url ? (
-            <img src={store.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+            <img src={store.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" />
           ) : (
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
               <Car className="h-5 w-5" />

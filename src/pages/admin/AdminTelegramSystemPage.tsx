@@ -222,7 +222,7 @@ export default function AdminTelegramSystemPage() {
     setTestDraft("");
 
     window.setTimeout(() => {
-      appendTestMessage("incoming", `Auto-reply (test): received \"${payload}\"`);
+      appendTestMessage("incoming", `Auto-reply (test): received "${payload}"`);
     }, 400);
   };
 

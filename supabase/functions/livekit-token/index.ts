@@ -127,7 +127,7 @@ Deno.serve(withSecurity("livekit-token", async (req, ctx) => {
     const msg = e instanceof Error ? e.message : String(e);
     return respond({ error: msg }, 500);
   }
-}, { rateLimit: "admin_action", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { allowedMethods: ["POST"], rateLimit: "admin_action", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {

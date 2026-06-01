@@ -58,17 +58,21 @@ export function useDealershipExpenses(storeId: string | undefined) {
   const create = useCallback(async (draft: DealershipExpenseDraft) => {
     if (!storeId) return null;
     setSaving(true); setError(null);
-    const { data, error: err } = await supabase
-      .from("car_dealership_expenses")
-      .insert({ store_id: storeId, ...draft } as never)
-      .select("*").single();
+    const { data, error: err } = await supabase.functions.invoke("car-dealership-expense-manage", {
+      body: { action: "create", store_id: storeId, expense: draft },
+    });
     if (err) {
       console.error("[useDealershipExpenses] create failed", err);
       setError(err.message || "Couldn't add expense.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as DealershipExpense;
+    const created = (data as { expense?: DealershipExpense } | null)?.expense;
+    if (!created) {
+      setError("Couldn't add expense.");
+      setSaving(false);
+      return null;
+    }
     setExpenses((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -77,9 +81,12 @@ export function useDealershipExpenses(storeId: string | undefined) {
   const update = useCallback(async (id: string, patch: Partial<DealershipExpenseDraft>) => {
     setSaving(true); setError(null);
     setExpenses((prev) => prev.map((e) => (e.id === id ? ({ ...e, ...patch } as DealershipExpense) : e)));
-    const { error: err } = await supabase
-      .from("car_dealership_expenses").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-dealership-expense-manage", {
+      body: { action: "update", expense_id: id, expense: patch },
+    });
     if (err) { setError("Couldn't update."); setSaving(false); void load(); return false; }
+    const updated = (data as { expense?: DealershipExpense } | null)?.expense;
+    if (updated) setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)));
     setSaving(false);
     return true;
   }, [load]);
@@ -88,7 +95,9 @@ export function useDealershipExpenses(storeId: string | undefined) {
     setSaving(true); setError(null);
     const prev = expenses;
     setExpenses((p) => p.filter((e) => e.id !== id));
-    const { error: err } = await supabase.from("car_dealership_expenses").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-dealership-expense-manage", {
+      body: { action: "delete", expense_id: id },
+    });
     if (err) { setError("Couldn't delete."); setExpenses(prev); setSaving(false); return false; }
     setSaving(false);
     return true;

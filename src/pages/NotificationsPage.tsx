@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCheck, Bell, Package, Gift, Headphones, Clock, ArrowLeft, UserPlus, Check, X, Heart, MessageCircle as MessageCircleIcon, Share2, AtSign, Flame, Settings2, Trash2, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimationControls } from 'framer-motion';
 import { useNotifications } from '@/hooks/useNotifications';
 import NotificationItem from '@/components/notifications/NotificationItem';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
@@ -155,6 +155,8 @@ const SwipeableNotificationRow = ({
   onDelete: () => void;
 }) => {
   const [dragging, setDragging] = useState(false);
+  const [activeSwipe, setActiveSwipe] = useState<'read' | 'delete' | null>(null);
+  const controls = useAnimationControls();
 
   return (
     <motion.div
@@ -165,30 +167,56 @@ const SwipeableNotificationRow = ({
       transition={{ delay: index * 0.025, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       className="relative overflow-hidden rounded-2xl"
     >
-      <div className="absolute inset-0 flex items-stretch justify-between rounded-2xl">
-        <div className="flex w-28 items-center justify-start gap-2 bg-emerald-500 px-4 text-white">
-          <CheckCheck className="h-4 w-4" />
-          <span className="text-xs font-bold">Read</span>
-        </div>
-        <div className="flex w-28 items-center justify-end gap-2 bg-destructive px-4 text-destructive-foreground">
-          <span className="text-xs font-bold">Delete</span>
-          <Trash2 className="h-4 w-4" />
-        </div>
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 flex items-stretch justify-between rounded-2xl transition-opacity duration-150",
+          dragging && activeSwipe ? "opacity-100" : "opacity-0"
+        )}
+        aria-hidden="true"
+      >
+        {activeSwipe === 'read' ? (
+          <div className="flex w-28 items-center justify-start gap-2 rounded-2xl bg-emerald-500 px-4 text-white shadow-inner">
+            <CheckCheck className="h-4 w-4" />
+            <span className="text-xs font-bold">Read</span>
+          </div>
+        ) : (
+          <div />
+        )}
+        {activeSwipe === 'delete' ? (
+          <div className="flex w-28 items-center justify-end gap-2 rounded-2xl bg-destructive px-4 text-destructive-foreground shadow-inner">
+            <span className="text-xs font-bold">Delete</span>
+            <Trash2 className="h-4 w-4" />
+          </div>
+        ) : (
+          <div />
+        )}
       </div>
       <motion.div
+        animate={controls}
         drag="x"
         dragConstraints={{ left: -112, right: 96 }}
         dragElastic={0.04}
-        onDragStart={() => setDragging(true)}
+        onDragStart={() => {
+          setDragging(true);
+          setActiveSwipe(null);
+        }}
+        onDrag={(_event, info) => {
+          if (info.offset.x < -8) setActiveSwipe('delete');
+          else if (info.offset.x > 8) setActiveSwipe('read');
+          else setActiveSwipe(null);
+        }}
         onDragEnd={(_event, info) => {
           if (info.offset.x < -82 || info.velocity.x < -520) {
             onDelete();
           } else if (info.offset.x > 76 || info.velocity.x > 520) {
             onMarkAsRead();
           }
-          window.setTimeout(() => setDragging(false), 40);
+          void controls.start({ x: 0, transition: { type: "spring", stiffness: 520, damping: 38 } });
+          window.setTimeout(() => {
+            setDragging(false);
+            setActiveSwipe(null);
+          }, 80);
         }}
-        whileTap={{ scale: 0.992 }}
         className="relative"
       >
         <NotificationItem
@@ -691,7 +719,7 @@ const NotificationsPage = () => {
                   </GlassCard3D>
                 </motion.div>
               ) : filteredNotifications.length > 0 ? (
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   <AnimatePresence mode="popLayout">
                     {filteredNotifications.map((notification, i) => (
                       <SwipeableNotificationRow

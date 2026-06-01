@@ -177,17 +177,15 @@ export default function PrivacyControls() {
   const handleRequestSubmit = async () => {
     if (!selectedRequest || !user) return;
     try {
-      await (supabase as any).from("feedback_submissions").insert({
-        user_id: user.id,
-        category: "dsar_request",
-        message: JSON.stringify({
-          request_type: selectedRequest.id,
-          request_title: selectedRequest.title,
-          reason: requestReason,
-          submitted_at: new Date().toISOString(),
-        }),
+      const { error } = await supabase.functions.invoke("privacy-request-submit", { body: {
+        kind: "dsar_request",
+        request_type: selectedRequest.id,
+        request_title: selectedRequest.title,
+        reason: requestReason,
         email: user.email,
-      });
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
       setPendingRequests(prev => [...prev, selectedRequest.id]);
       setRequestDialogOpen(false);
       setRequestReason("");
@@ -202,16 +200,14 @@ export default function PrivacyControls() {
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== "DELETE" || !user) return;
     try {
-      await (supabase as any).from("feedback_submissions").insert({
-        user_id: user.id,
-        category: "dsar_request",
-        message: JSON.stringify({
-          request_type: "delete",
-          request_title: "Delete My Data",
-          submitted_at: new Date().toISOString(),
-        }),
+      const { error } = await supabase.functions.invoke("privacy-request-submit", { body: {
+        kind: "dsar_request",
+        request_type: "delete",
+        request_title: "Delete My Data",
         email: user.email,
-      });
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
       setPendingRequests(prev => [...prev, "delete_account"]);
       setDeleteConfirmOpen(false);
       setDeleteConfirmText("");
@@ -226,12 +222,14 @@ export default function PrivacyControls() {
   const handleConsentChange = async (category: string, enabled: boolean) => {
     setConsentState(prev => ({ ...prev, [category]: enabled }));
     try {
-      await (supabase as any).from("feedback_submissions").insert({
-        user_id: user?.id,
-        category: "consent_change",
-        message: JSON.stringify({ category, enabled, changed_at: new Date().toISOString() }),
+      const { error } = await supabase.functions.invoke("privacy-request-submit", { body: {
+        kind: "consent_change",
+        consent_category: category,
+        enabled,
         email: user?.email,
-      });
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
       toast.success(`${enabled ? "Enabled" : "Disabled"} ${category.replace(/_/g, " ")}`);
     } catch {
       setConsentState(prev => ({ ...prev, [category]: !enabled }));
@@ -627,10 +625,10 @@ export default function PrivacyControls() {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button variant="outline" size="sm" asChild>
-                <Link to="/privacy">Privacy Policy</Link>
+                <Link to="/legal/privacy">Privacy Policy</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/cookies">Cookie Policy</Link>
+                <Link to="/legal/cookies">Cookie Policy</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link to="/security/data-protection">Data Protection</Link>

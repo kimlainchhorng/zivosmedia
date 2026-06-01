@@ -1114,6 +1114,7 @@ function MapFallbackCanvas({
                   src={imageUrl}
                   alt=""
                   loading="lazy"
+                  decoding="async"
                   className="absolute inset-0 h-full w-full object-cover"
                   onError={(event) => {
                     event.currentTarget.style.display = "none";
@@ -1180,6 +1181,7 @@ function StoreLogo({ store, size = "md", className = "" }: { store: StorePin; si
           src={optimizeImage(imageUrl, size === "xs" ? 64 : size === "sm" ? 120 : 160, "square")}
           alt={`${store.name} photo`}
           loading="lazy"
+          decoding="async"
           className="absolute inset-0 h-full w-full object-cover"
           onError={() => setImageIndex((idx) => Math.min(idx + 1, imageCandidates.length))}
         />
@@ -3802,6 +3804,7 @@ export default function StoreMapPage() {
                       src={selectedStoreGallery[0]}
                       alt={`${selectedStore.name} — photo`}
                       loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />

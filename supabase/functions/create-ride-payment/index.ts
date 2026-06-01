@@ -105,4 +105,4 @@ Deno.serve(withSecurity("create-ride-payment", async (req, ctx) => {
     console.error("[create-ride-payment]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-}, { rateLimit: "payment", strictCors: true }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

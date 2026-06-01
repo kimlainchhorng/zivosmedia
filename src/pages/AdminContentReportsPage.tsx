@@ -3,7 +3,7 @@
  *
  * Lists user-submitted reports of PPV posts, paid DMs, or creator profiles.
  * Admins can review the original content, mark a report as reviewing, resolve
- * it, or dismiss it. RLS scopes reads/updates to admins only.
+ * it, or dismiss it. Status changes are verified server-side.
  */
 import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -124,13 +124,12 @@ export default function AdminContentReportsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: ReportStatus }) => {
-      const { error } = await (supabase as any)
-        .from("content_reports")
-        .update({
+      const { error } = await supabase.functions.invoke("admin-content-report-status", {
+        body: {
+          report_id: id,
           status,
-          reviewed_at: status === "pending" ? null : new Date().toISOString(),
-        })
-        .eq("id", id);
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => {

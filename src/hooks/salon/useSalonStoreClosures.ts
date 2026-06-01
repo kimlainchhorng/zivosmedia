@@ -48,25 +48,27 @@ export function useSalonStoreClosures(storeId: string | undefined): Result {
 
   const add = useCallback(async (input: { start_at: string; end_at: string; reason?: string | null }) => {
     if (!storeId) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error: err } = await supabase
-      .from("salon_store_closures")
-      .insert({
+    const { error: err } = await supabase.functions.invoke("salon-store-closure-manage", {
+      body: {
+        action: "create",
         store_id: storeId,
-        start_at: input.start_at,
-        end_at: input.end_at,
-        reason: input.reason?.trim() || null,
-        created_by_user_id: user?.id ?? null,
-      } as never);
+        closure: {
+          start_at: input.start_at,
+          end_at: input.end_at,
+          reason: input.reason?.trim() || null,
+        },
+      },
+    });
     if (err) {
-      if ((err as any).code === "23P01") throw new Error("That overlaps an existing closure.");
       throw new Error(err.message);
     }
     await refresh();
   }, [storeId, refresh]);
 
   const remove = useCallback(async (id: string) => {
-    const { error: err } = await supabase.from("salon_store_closures").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("salon-store-closure-manage", {
+      body: { action: "delete", closure_id: id },
+    });
     if (err) throw new Error(err.message);
     await refresh();
   }, [refresh]);

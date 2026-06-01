@@ -126,6 +126,7 @@ export default function DestinationActivitiesPage() {
                 alt={photo.alt}
                 className="absolute inset-0 w-full h-full object-cover"
                 loading="eager"
+                decoding="async"
               />
             ) : (
               <div className="absolute inset-0 bg-secondary" />

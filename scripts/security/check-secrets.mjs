@@ -7,6 +7,9 @@
  *  - Stripe live keys           (sk_live_..., rk_live_...)
  *  - AWS access keys            (AKIA[0-9A-Z]{16})
  *  - Google API keys            (AIza[0-9A-Za-z-_]{35})
+ *  - Supabase publishable keys  (sb_publishable_...)
+ *  - Supabase secret keys       (sb_secret_...)
+ *  - Supabase access tokens     (sbp_...)
  *  - Supabase service-role JWTs (eyJhbGciOi... with role:"service_role")
  *  - Generic high-entropy hex   (40+ char hex strings outside lock files)
  *  - Private RSA / EC keys      (-----BEGIN ... PRIVATE KEY-----)
@@ -15,15 +18,19 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
 const ROOT = process.cwd();
+const args = new Set(process.argv.slice(2));
+const includeLocalEnv = args.has("--include-local-env");
 const SKIP_DIRS = new Set([
   "node_modules", ".git", "dist", "dist-ssr", "build",
   "android/build", "ios/build", "ios/Pods",
+  "android/app/src/main/assets/public", "ios/App/App/public",
   "supabase/.branches", "supabase/.temp",
 ]);
 const SKIP_FILES = new Set([
   "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb",
   ".env.example", "check-secrets.mjs",
 ]);
+const ALLOWED_DOT_DIRS = new Set([".github"]);
 const SCAN_EXTENSIONS = new Set([
   ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
   ".json", ".toml", ".yml", ".yaml", ".env", ".sh", ".md", ".sql",
@@ -34,6 +41,10 @@ const PATTERNS = [
   { name: "Stripe restricted key",   re: /rk_live_[0-9a-zA-Z]{24,}/ },
   { name: "AWS access key",          re: /AKIA[0-9A-Z]{16}/ },
   { name: "Google API key",          re: /AIza[0-9A-Za-z\-_]{35}/ },
+  { name: "Supabase publishable key", re: /sb_publishable_[0-9A-Za-z_-]{20,}/ },
+  { name: "Supabase secret key",     re: /sb_secret_[0-9A-Za-z_-]{20,}/ },
+  { name: "Supabase access token",   re: /sbp_[0-9A-Za-z]{40,}/ },
+  { name: "Supabase service-role JWT", re: /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*InNlcnZpY2Vfcm9sZSI[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+/ },
   // Real PEM-encoded private key — must have BEGIN marker, at least one line
   // of base64 key bytes, then END marker. Avoids false positives where the
   // BEGIN string appears as a string-replace literal in source code.
@@ -45,24 +56,42 @@ const PATTERNS = [
 
 let findings = 0;
 
+function redactedMatchSummary(value) {
+  const knownPrefix = value.match(/^(sb_publishable_|sb_secret_|sbp_|sk_live_|rk_live_|sk-|AKIA|AIza|gh[oprsu]_|xox[baprs]-)/)?.[1];
+  return `${knownPrefix ?? ""}[redacted ${value.length} chars]`;
+}
+
+function allMatches(content, re) {
+  const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`;
+  return content.matchAll(new RegExp(re.source, flags));
+}
+
+function isEnvFile(name) {
+  return name === ".env" || name.startsWith(".env.");
+}
+
+function isLocalEnvFile(name) {
+  return name === ".env.local" || (name.startsWith(".env.") && name.endsWith(".local"));
+}
+
 function walk(dir) {
   for (const name of readdirSync(dir)) {
-    if (SKIP_DIRS.has(name) || name.startsWith(".") && name !== ".env" && name !== ".env.example") {
-      // Allow .env, .env.example through the dir filter; block other dotfiles
-      if (!(name === ".env" || name === ".env.example")) continue;
-    }
     const full = join(dir, name);
     const rel = full.slice(ROOT.length + 1);
     let stats;
     try { stats = statSync(full); } catch { continue; }
     if (stats.isDirectory()) {
+      if (SKIP_DIRS.has(name) || SKIP_DIRS.has(rel)) continue;
+      if (name.startsWith(".") && !ALLOWED_DOT_DIRS.has(name)) continue;
       if (!SKIP_DIRS.has(rel)) walk(full);
       continue;
     }
+    if (name.startsWith(".") && !isEnvFile(name)) continue;
     if (SKIP_FILES.has(name)) continue;
+    if (!includeLocalEnv && isLocalEnvFile(name)) continue;
 
     const ext = extname(name).toLowerCase();
-    const isEnv = name === ".env" || name.startsWith(".env.");
+    const isEnv = isEnvFile(name);
     if (!isEnv && !SCAN_EXTENSIONS.has(ext)) continue;
 
     let content;
@@ -72,13 +101,12 @@ function walk(dir) {
     } catch { continue; }
 
     for (const { name: patternName, re } of PATTERNS) {
-      const match = content.match(re);
-      if (match) {
+      for (const match of allMatches(content, re)) {
         // Skip the .env.example placeholder we ship intentionally
         if (rel.endsWith(".env.example")) continue;
         const lineNo = content.slice(0, match.index).split("\n").length;
         console.error(`✖  ${patternName} in ${rel}:${lineNo}`);
-        console.error(`   ${match[0].slice(0, 40)}…`);
+        console.error(`   ${redactedMatchSummary(match[0])}`);
         findings += 1;
       }
     }

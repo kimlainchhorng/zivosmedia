@@ -3,20 +3,18 @@
 // so admins can review and tune the policy before switching to enforce mode.
 
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+Deno.serve(withSecurity("csp-report", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const reportHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "POST, OPTIONS" };
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: reportHeaders });
   }
 
   if (req.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
+    return new Response("Method Not Allowed", { status: 405, headers: reportHeaders });
   }
 
   try {
@@ -42,5 +40,5 @@ Deno.serve(async (req) => {
   }
 
   // Always return 204 — never give attackers signal.
-  return new Response(null, { status: 204, headers: corsHeaders });
-});
+  return new Response(null, { status: 204, headers: reportHeaders });
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

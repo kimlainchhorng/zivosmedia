@@ -55,45 +55,28 @@ export function useStoreEmployeeRules(storeId: string) {
 
   const upsert = useMutation({
     mutationFn: async (draft: RuleDraft) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
-      if (!uid) throw new Error("Not signed in");
-
-      if (draft.id) {
-        const { error } = await supabase
-          .from("store_employee_rules")
-          .update({
-            title: draft.title,
-            category: draft.category,
-            description: draft.description,
-            severity: draft.severity,
-            applies_to: draft.applies_to,
-            ...(draft.is_active !== undefined ? { is_active: draft.is_active } : {}),
-            ...(draft.position !== undefined ? { position: draft.position } : {}),
-          })
-          .eq("id", draft.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("store_employee_rules").insert({
+      const { error } = await supabase.functions.invoke("employee-rule-manage", {
+        body: {
+          action: draft.id ? "update" : "create",
+          rulebook: "store_employee_rules",
           store_id: storeId,
-          title: draft.title,
-          category: draft.category,
-          description: draft.description,
-          severity: draft.severity,
-          applies_to: draft.applies_to,
-          is_active: draft.is_active ?? true,
-          position: draft.position ?? 0,
-          created_by: uid,
-        });
-        if (error) throw error;
-      }
+          rule: draft,
+        },
+      });
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(storeId) }),
   });
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("store_employee_rules").delete().eq("id", id);
+      const { error } = await supabase.functions.invoke("employee-rule-manage", {
+        body: {
+          action: "delete",
+          rulebook: "store_employee_rules",
+          rule_id: id,
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(storeId) }),
@@ -101,10 +84,14 @@ export function useStoreEmployeeRules(storeId: string) {
 
   const toggleActive = useMutation({
     mutationFn: async (rule: Pick<StoreEmployeeRule, "id" | "is_active">) => {
-      const { error } = await supabase
-        .from("store_employee_rules")
-        .update({ is_active: !rule.is_active })
-        .eq("id", rule.id);
+      const { error } = await supabase.functions.invoke("employee-rule-manage", {
+        body: {
+          action: "set_active",
+          rulebook: "store_employee_rules",
+          rule_id: rule.id,
+          active: !rule.is_active,
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(storeId) }),
@@ -112,21 +99,14 @@ export function useStoreEmployeeRules(storeId: string) {
 
   const seedDefaults = useMutation({
     mutationFn: async (defaults: RuleDraft[]) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
-      if (!uid) throw new Error("Not signed in");
-      const rows = defaults.map((d, i) => ({
-        store_id: storeId,
-        title: d.title,
-        category: d.category,
-        description: d.description,
-        severity: d.severity,
-        applies_to: d.applies_to,
-        is_active: d.is_active ?? true,
-        position: d.position ?? i,
-        created_by: uid,
-      }));
-      const { error } = await supabase.from("store_employee_rules").insert(rows);
+      const { error } = await supabase.functions.invoke("employee-rule-manage", {
+        body: {
+          action: "seed_defaults",
+          rulebook: "store_employee_rules",
+          store_id: storeId,
+          rules: defaults.map((d, i) => ({ ...d, position: d.position ?? i })),
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(storeId) }),

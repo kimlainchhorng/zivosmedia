@@ -75,12 +75,6 @@ export default function SalonBookingRetailDialog({
     return () => { cancelled = true; };
   }, [storeId, bookingId]);
 
-  const itemsByProductId = useMemo(() => {
-    const m = new Map<string, BookingRetailItem>();
-    items.forEach((it) => { if (it.product_id) m.set(it.product_id, it); });
-    return m;
-  }, [items]);
-
   const filteredProducts = useMemo(() => {
     const active = products.filter((p) => p.is_active);
     if (!search) return active;
@@ -90,41 +84,28 @@ export default function SalonBookingRetailDialog({
 
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.unit_price_cents * it.quantity, 0), [items]);
 
+  const mutateRetail = async (body: Record<string, unknown>) => {
+    if (!bookingId) return false;
+    const { data, error } = await supabase.functions.invoke("salon-booking-retail-manage", {
+      body: { store_id: storeId, booking_id: bookingId, ...body },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Couldn't update retail items.");
+      return false;
+    }
+    setItems((data?.items ?? []) as BookingRetailItem[]);
+    if (bookingStatus === "completed") await reloadProducts();
+    onChanged?.();
+    return true;
+  };
+
   const addProduct = async (productId: string) => {
     if (!bookingId) return;
     const product = products.find((p) => p.id === productId);
     if (!product) return;
-    const existing = itemsByProductId.get(productId);
     setSaving(true);
-    if (existing) {
-      // Bump quantity. The stock-sync trigger only fires on INSERT/DELETE, not UPDATE — so we
-      // delete and re-insert to keep stock accurate when the booking is already completed.
-      const newQty = Math.min(99, existing.quantity + 1);
-      if (bookingStatus === "completed") {
-        const { error: dErr } = await supabase.from("salon_booking_retail_items").delete().eq("id", existing.id);
-        if (dErr) { toast.error("Couldn't update."); setSaving(false); return; }
-        const { data, error: iErr } = await supabase
-          .from("salon_booking_retail_items")
-          .insert({ booking_id: bookingId, product_id: productId, product_name: product.name, unit_price_cents: product.price_cents, quantity: newQty } as never)
-          .select("*").single();
-        if (iErr || !data) { toast.error("Couldn't update."); setSaving(false); return; }
-        setItems((prev) => prev.filter((x) => x.id !== existing.id).concat(data as unknown as BookingRetailItem));
-      } else {
-        const { error: uErr } = await supabase.from("salon_booking_retail_items").update({ quantity: newQty } as never).eq("id", existing.id);
-        if (uErr) { toast.error("Couldn't update."); setSaving(false); return; }
-        setItems((prev) => prev.map((x) => x.id === existing.id ? { ...x, quantity: newQty } : x));
-      }
-    } else {
-      const { data, error } = await supabase
-        .from("salon_booking_retail_items")
-        .insert({ booking_id: bookingId, product_id: productId, product_name: product.name, unit_price_cents: product.price_cents, quantity: 1 } as never)
-        .select("*").single();
-      if (error || !data) { toast.error("Couldn't add product."); setSaving(false); return; }
-      setItems((prev) => [...prev, data as unknown as BookingRetailItem]);
-    }
-    if (bookingStatus === "completed") await reloadProducts();
+    await mutateRetail({ action: "add_product", product_id: productId });
     setSaving(false);
-    onChanged?.();
   };
 
   const adjustQty = async (item: BookingRetailItem, delta: number) => {
@@ -135,34 +116,14 @@ export default function SalonBookingRetailDialog({
       return;
     }
     setSaving(true);
-    if (bookingStatus === "completed") {
-      // Replace via delete+insert so stock tracks correctly.
-      const { error: dErr } = await supabase.from("salon_booking_retail_items").delete().eq("id", item.id);
-      if (dErr) { toast.error("Couldn't update."); setSaving(false); return; }
-      const { data, error: iErr } = await supabase
-        .from("salon_booking_retail_items")
-        .insert({ booking_id: bookingId, product_id: item.product_id, product_name: item.product_name, unit_price_cents: item.unit_price_cents, quantity: next } as never)
-        .select("*").single();
-      if (iErr || !data) { toast.error("Couldn't update."); setSaving(false); return; }
-      setItems((prev) => prev.filter((x) => x.id !== item.id).concat(data as unknown as BookingRetailItem));
-    } else {
-      const { error } = await supabase.from("salon_booking_retail_items").update({ quantity: next } as never).eq("id", item.id);
-      if (error) { toast.error("Couldn't update."); setSaving(false); return; }
-      setItems((prev) => prev.map((x) => x.id === item.id ? { ...x, quantity: next } : x));
-    }
-    if (bookingStatus === "completed") await reloadProducts();
+    await mutateRetail({ action: "set_item_quantity", item_id: item.id, quantity: next });
     setSaving(false);
-    onChanged?.();
   };
 
   const removeItem = async (item: BookingRetailItem) => {
     setSaving(true);
-    const { error } = await supabase.from("salon_booking_retail_items").delete().eq("id", item.id);
-    if (error) { toast.error("Couldn't remove."); setSaving(false); return; }
-    setItems((prev) => prev.filter((x) => x.id !== item.id));
-    if (bookingStatus === "completed") await reloadProducts();
+    await mutateRetail({ action: "remove_item", item_id: item.id });
     setSaving(false);
-    onChanged?.();
   };
 
   return (

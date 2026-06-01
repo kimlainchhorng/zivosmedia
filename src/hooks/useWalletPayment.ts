@@ -18,59 +18,26 @@ export async function deductWalletBalance(
   description: string = "Eats order payment"
 ): Promise<WalletPaymentResult> {
   try {
-    // 1. Get current wallet balance
-    const { data: wallet, error: walletError } = await supabase
-      .from("customer_wallets")
-      .select("id, balance_cents")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (walletError || !wallet) {
-      toast.error("Wallet not found. Please add funds first.");
-      return { success: false };
-    }
-
-    const currentBalance = wallet.balance_cents || 0;
-    if (currentBalance < amountCents) {
-      toast.error(`Insufficient wallet balance. You have $${(currentBalance / 100).toFixed(2)} but need $${(amountCents / 100).toFixed(2)}.`);
-      return { success: false };
-    }
-
-    // 2. Deduct balance
-    const newBalance = currentBalance - amountCents;
-    const { error: updateError } = await supabase
-      .from("customer_wallets")
-      .update({ balance_cents: newBalance, updated_at: new Date().toISOString() })
-      .eq("id", wallet.id);
-
-    if (updateError) {
-      console.error("[WalletPayment] Balance update error:", updateError);
-      toast.error("Failed to deduct wallet balance");
-      return { success: false };
-    }
-
-    // 3. Record transaction
-    const { data: txn, error: txnError } = await supabase
-      .from("customer_wallet_transactions")
-      .insert({
-        wallet_id: wallet.id,
-        amount_cents: -amountCents,
-        type: "payment",
-        description,
+    const { data, error } = await supabase.functions.invoke("wallet-payment-deduct", {
+      body: {
+        user_id: userId,
+        amount_cents: amountCents,
         order_id: orderId,
-      } as any)
-      .select("id")
-      .single();
+        description,
+      },
+    });
 
-    if (txnError) {
-      console.error("[WalletPayment] Transaction record error:", txnError);
-      // Balance already deducted, don't fail the payment
+    if (error || !data?.ok) {
+      const message = data?.error || error?.message || "Wallet payment failed";
+      console.error("[WalletPayment] Deduct error:", message);
+      toast.error(message);
+      return { success: false };
     }
 
     return {
       success: true,
-      newBalance,
-      transactionId: txn?.id,
+      newBalance: data.newBalance,
+      transactionId: data.transactionId,
     };
   } catch (err: any) {
     console.error("[WalletPayment] Error:", err);

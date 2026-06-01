@@ -6,19 +6,16 @@
  * Returns: { ok: true, bot_id, bot_user_id, token }
  */
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(withSecurity("bot-clone", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const authz = req.headers.get("Authorization") ?? "";
-    if (!authz.startsWith("Bearer ")) return json({ error: "Missing auth" }, 401);
+    if (!authz.startsWith("Bearer ")) return json({ error: "Missing auth" }, 401, corsHeaders);
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -27,17 +24,17 @@ Deno.serve(async (req) => {
     );
     const { data: userRes } = await userClient.auth.getUser();
     const owner = userRes?.user;
-    if (!owner) return json({ error: "Not authenticated" }, 401);
+    if (!owner) return json({ error: "Not authenticated" }, 401, corsHeaders);
 
     const { source_bot_id, new_username, new_display_name } = await req.json();
-    if (!source_bot_id) return json({ error: "source_bot_id required" }, 400);
+    if (!source_bot_id) return json({ error: "source_bot_id required" }, 400, corsHeaders);
 
     const u = String(new_username ?? "").trim().toLowerCase();
     const dn = String(new_display_name ?? "").trim();
     if (!/^[a-z0-9_]{4,29}_bot$/.test(u)) {
-      return json({ error: "Username must end in _bot, 5-32 chars, lowercase a-z/0-9/_" }, 400);
+      return json({ error: "Username must end in _bot, 5-32 chars, lowercase a-z/0-9/_" }, 400, corsHeaders);
     }
-    if (!dn) return json({ error: "Display name required" }, 400);
+    if (!dn) return json({ error: "Display name required" }, 400, corsHeaders);
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -50,16 +47,16 @@ Deno.serve(async (req) => {
       .select("id, owner_id, description, avatar_url, webhook_url")
       .eq("id", source_bot_id)
       .maybeSingle();
-    if (srcErr) return json({ error: srcErr.message }, 500);
-    if (!src) return json({ error: "Source bot not found" }, 404);
-    if (src.owner_id !== owner.id) return json({ error: "Not owner of source bot" }, 403);
+    if (srcErr) return json({ error: srcErr.message }, 500, corsHeaders);
+    if (!src) return json({ error: "Source bot not found" }, 404, corsHeaders);
+    if (src.owner_id !== owner.id) return json({ error: "Not owner of source bot" }, 403, corsHeaders);
 
     // Uniqueness checks for new username
     const [{ data: ex1 }, { data: ex2 }] = await Promise.all([
       sb.from("bots").select("id").eq("username", u).maybeSingle(),
       sb.from("usernames").select("username").ilike("username", u).maybeSingle(),
     ]);
-    if (ex1 || ex2) return json({ error: "Username taken" }, 409);
+    if (ex1 || ex2) return json({ error: "Username taken" }, 409, corsHeaders);
 
     // Create the underlying auth user for the new bot
     const { data: created, error: cErr } = await sb.auth.admin.createUser({
@@ -67,7 +64,7 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: { is_bot: true, owner_id: owner.id, username: u, display_name: dn },
     });
-    if (cErr || !created.user) return json({ error: cErr?.message ?? "auth create failed" }, 500);
+    if (cErr || !created.user) return json({ error: cErr?.message ?? "auth create failed" }, 500, corsHeaders);
     const botUserId = created.user.id;
 
     // Profile row (chat UI requires this)
@@ -90,7 +87,7 @@ Deno.serve(async (req) => {
     });
     if (rErr || !row) {
       await sb.auth.admin.deleteUser(botUserId).catch(() => {});
-      return json({ error: rErr?.message ?? "bot insert failed" }, 500);
+      return json({ error: rErr?.message ?? "bot insert failed" }, 500, corsHeaders);
     }
     const r = Array.isArray(row) ? row[0] : row;
     const newBotId = r.bot_id as string;
@@ -118,13 +115,13 @@ Deno.serve(async (req) => {
       await sb.from("bot_commands").insert(cmdRows);
     }
 
-    return json({ ok: true, bot_id: newBotId, bot_user_id: botUserId, token: r.token });
+    return json({ ok: true, bot_id: newBotId, bot_user_id: botUserId, token: r.token }, 200, corsHeaders);
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    return json({ error: String(e) }, 500, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

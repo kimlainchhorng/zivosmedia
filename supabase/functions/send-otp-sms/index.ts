@@ -96,6 +96,7 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
 
 serve(withSecurity("send-otp-sms", handler, {
   strictCors: true,
+  allowedMethods: ["POST"],
   rateLimit: "auth_otp",
   trackNetwork: "suspicious",
   blockNetworkRiskAt: 90,

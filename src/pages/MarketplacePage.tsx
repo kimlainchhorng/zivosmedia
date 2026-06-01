@@ -1044,7 +1044,7 @@ export default function MarketplacePage() {
                 >
                   <div className="relative aspect-square bg-muted/30 overflow-hidden">
                     {img ? (
-                      <img src={img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                      <img src={img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-7 w-7 text-muted-foreground/30" /></div>
                     )}
@@ -1107,7 +1107,7 @@ export default function MarketplacePage() {
                 >
                   <span className="absolute top-1.5 left-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 text-white text-xs font-extrabold flex items-center justify-center shadow">{i + 1}</span>
                   <div className="aspect-square bg-muted/30 overflow-hidden">
-                    {img ? <img src={img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
+                    {img ? <img src={img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
                   </div>
                   <div className="p-2">
                     <p className="text-xs font-semibold line-clamp-1">{item.title}</p>
@@ -1139,7 +1139,7 @@ export default function MarketplacePage() {
                   className="group shrink-0 w-32 rounded-2xl overflow-hidden bg-card border border-border/30 text-left hover:shadow-md hover:border-primary/40 transition-all"
                 >
                   <div className="aspect-square bg-muted/30 overflow-hidden">
-                    {img ? <img src={img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
+                    {img ? <img src={img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
                   </div>
                   <div className="p-2">
                     <p className="text-xs font-semibold line-clamp-1">{item.title}</p>
@@ -1171,7 +1171,7 @@ export default function MarketplacePage() {
                   className="group shrink-0 w-28 rounded-xl overflow-hidden bg-card border border-border/30 text-left hover:shadow-md transition-all"
                 >
                   <div className="aspect-square bg-muted/30 overflow-hidden">
-                    {img ? <img src={img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-5 w-5 text-muted-foreground/30" /></div>}
+                    {img ? <img src={img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" decoding="async" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-5 w-5 text-muted-foreground/30" /></div>}
                   </div>
                   <div className="p-2">
                     <p className="text-[11px] font-semibold line-clamp-1">{item.title}</p>
@@ -1476,7 +1476,7 @@ export default function MarketplacePage() {
                 {/* Image */}
                 <div className={`relative bg-muted/30 ${viewMode === "grid" ? "aspect-square" : "w-32 shrink-0"}`}>
                   {firstImage ? (
-                    <img src={firstImage} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                    <img src={firstImage} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10">
                       <ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
@@ -1995,7 +1995,7 @@ export default function MarketplacePage() {
                         return (
                           <div key={it.id} className="rounded-2xl overflow-hidden border border-border/30 bg-card">
                             <div className="aspect-square bg-muted/30">
-                              {img ? <img src={img} alt={it.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
+                              {img ? <img src={img} alt={it.title} className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
                             </div>
                             <div className="p-2 space-y-1">
                               <p className="text-xs font-bold line-clamp-2">{it.title}</p>
@@ -2409,7 +2409,7 @@ function ListingDetail({
         <div className="relative aspect-square bg-muted/30 mx-5 rounded-2xl overflow-hidden">
           {images.length > 0 ? (
             <>
-              <img src={images[imageIdx]} alt={listing.title} onClick={() => setLightbox(true)} className="w-full h-full object-cover cursor-zoom-in" />
+              <img src={images[imageIdx]} alt={listing.title} onClick={() => setLightbox(true)} className="w-full h-full object-cover cursor-zoom-in" loading="lazy" decoding="async" />
               {images.length > 1 && (
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
                   {images.map((_, i) => (
@@ -2449,7 +2449,7 @@ function ListingDetail({
                   i === imageIdx ? "border-primary scale-105" : "border-transparent opacity-70"
                 }`}
               >
-                <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               </button>
             ))}
           </div>
@@ -2899,7 +2899,7 @@ function ListingDetail({
                       className="group shrink-0 w-32 rounded-xl overflow-hidden bg-card border border-border/30 text-left hover:shadow-md hover:border-border/60 transition-all"
                     >
                       <div className="aspect-square bg-muted/30 overflow-hidden">
-                        {img ? <img src={img} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
+                        {img ? <img src={img} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
                       </div>
                       <div className="p-2">
                         <p className="text-[11px] font-semibold line-clamp-1">{s.title}</p>
@@ -2993,13 +2993,21 @@ function ListingDetail({
                       if (isSubmittingReport) return;
                       setIsSubmittingReport(true);
                       try {
-                        await (supabase as any).from("bug_reports").insert({
-                          user_id: currentUserId || null,
-                          title: `Marketplace report: ${reportReason}`,
+                        const { error } = await supabase.functions.invoke("bug-report-submit", { body: {
                           description: `Listing: ${listing.id}\nSeller: ${listing.seller_id}\nNote: ${reportNote || "(none)"}`,
+                          page_url: typeof window !== "undefined" ? window.location.href : null,
+                          title: `Marketplace report: ${reportReason}`,
                           category: "marketplace",
                           severity: "low",
-                        });
+                          metadata: {
+                            source: "marketplace_listing_report",
+                            listing_id: listing.id,
+                            seller_id: listing.seller_id,
+                            reason: reportReason,
+                            note: reportNote || null,
+                          },
+                        } });
+                        if (error) throw error;
                       } catch {/* table optional */}
                       toast.success("Report submitted. Thank you.");
                       setShowReport(false); setReportReason(""); setReportNote("");

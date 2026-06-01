@@ -17,17 +17,12 @@
  * trigger also enforces this at the DB level.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const j = (status: number, body: unknown) =>
+const j = (headers: Record<string, string>, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 
 // Lightweight {{merge_tag}} interpolation; reused from send-transactional-email.
@@ -52,20 +47,22 @@ interface Recipient {
 const firstNameOf = (full: string): string =>
   (full?.trim().split(/\s+/)[0] ?? "").trim() || "there";
 
-serve(async (req: Request) => {
+serve(withSecurity("salon-send-campaign", async (req: Request, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" });
+  if (!supabaseUrl || !serviceKey) return j(corsHeaders, 500, { error: "Server misconfigured" });
 
   // Pull the caller's auth header to identify the user. Then use a service-
   // role client for downstream writes (cohort expansion + recipient inserts).
   const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) return j(401, { error: "Unauthorized" });
+  if (!auth.startsWith("Bearer ")) return j(corsHeaders, 401, { error: "Unauthorized" });
   const callerClient = createClient(supabaseUrl, auth.slice(7));
   const { data: userData, error: userErr } = await callerClient.auth.getUser();
-  if (userErr || !userData?.user) return j(401, { error: "Unauthorized" });
+  if (userErr || !userData?.user) return j(corsHeaders, 401, { error: "Unauthorized" });
   const userId = userData.user.id;
 
   const supabase = createClient(supabaseUrl, serviceKey);
@@ -75,9 +72,9 @@ serve(async (req: Request) => {
     const body = await req.json();
     campaignId = body.campaign_id ?? body.campaignId;
   } catch {
-    return j(400, { error: "campaign_id required" });
+    return j(corsHeaders, 400, { error: "campaign_id required" });
   }
-  if (!campaignId) return j(400, { error: "campaign_id required" });
+  if (!campaignId) return j(corsHeaders, 400, { error: "campaign_id required" });
 
   // ---- Load + authorize -----------------------------------------------------
   const { data: campaign, error: cErr } = await supabase
@@ -85,14 +82,14 @@ serve(async (req: Request) => {
     .select("*")
     .eq("id", campaignId)
     .maybeSingle();
-  if (cErr || !campaign) return j(404, { error: "Campaign not found" });
+  if (cErr || !campaign) return j(corsHeaders, 404, { error: "Campaign not found" });
 
   const { data: store } = await supabase
     .from("store_profiles")
     .select("id, name, slug, phone, owner_id")
     .eq("id", (campaign as any).store_id)
     .maybeSingle();
-  if (!store) return j(404, { error: "Store not found" });
+  if (!store) return j(corsHeaders, 404, { error: "Store not found" });
 
   // Authorize: owner OR admin.
   if ((store as any).owner_id !== userId) {
@@ -102,11 +99,11 @@ serve(async (req: Request) => {
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
-    if (!adminRole) return j(403, { error: "Not authorized for this store" });
+    if (!adminRole) return j(corsHeaders, 403, { error: "Not authorized for this store" });
   }
 
   if ((campaign as any).status !== "draft") {
-    return j(409, { error: `Campaign is ${(campaign as any).status}, only draft campaigns can be sent.` });
+    return j(corsHeaders, 409, { error: `Campaign is ${(campaign as any).status}, only draft campaigns can be sent.` });
   }
 
   // ---- Resolve cohort -------------------------------------------------------
@@ -122,7 +119,7 @@ serve(async (req: Request) => {
       .from("salon_campaigns")
       .update({ status: "failed", error: `cohort_resolve: ${cohortErr.message}`.slice(0, 500), updated_at: new Date().toISOString() })
       .eq("id", campaignId);
-    return j(500, { error: cohortErr.message });
+    return j(corsHeaders, 500, { error: cohortErr.message });
   }
   const recipients = (cohort ?? []) as Recipient[];
 
@@ -132,7 +129,7 @@ serve(async (req: Request) => {
       .from("salon_campaigns")
       .update({ status: "sent", sent_at: new Date().toISOString(), recipient_count: 0, sent_count: 0, failed_count: 0, skipped_count: 0, updated_at: new Date().toISOString() })
       .eq("id", campaignId);
-    return j(200, { ok: true, recipients: 0 });
+    return j(corsHeaders, 200, { ok: true, recipients: 0 });
   }
 
   // ---- Flip to 'sending' (also runs the status guard for body validation) --
@@ -140,7 +137,7 @@ serve(async (req: Request) => {
     .from("salon_campaigns")
     .update({ status: "sending", recipient_count: recipients.length, updated_at: new Date().toISOString() })
     .eq("id", campaignId);
-  if (flipErr) return j(400, { error: flipErr.message });
+  if (flipErr) return j(corsHeaders, 400, { error: flipErr.message });
 
   // ---- Bulk insert per-recipient rows -------------------------------------
   // Use a per-row idempotency_key keyed to (campaign, client) so even if this
@@ -298,5 +295,5 @@ serve(async (req: Request) => {
     })
     .eq("id", campaignId);
 
-  return j(200, { ok: true, recipients: recipients.length, sent: cSent, failed: cFailed, skipped: cSkipped });
-});
+  return j(corsHeaders, 200, { ok: true, recipients: recipients.length, sent: cSent, failed: cFailed, skipped: cSkipped });
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

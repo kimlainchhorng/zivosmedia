@@ -115,7 +115,7 @@ export default function SoundsPage() {
                     className="shrink-0 w-[150px]"
                   >
                     <div className="relative w-[150px] h-[150px] rounded-2xl overflow-hidden bg-muted shadow-md">
-                      <img src={sound.cover} alt={sound.title} className="w-full h-full object-cover" loading="lazy" />
+                      <img src={sound.cover} alt={sound.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
                       <button
                         type="button"
@@ -164,7 +164,7 @@ export default function SoundsPage() {
                     onClick={() => setPlayingId(isPlaying ? null : sound.id)}
                     className="shrink-0 relative active:scale-95 transition-transform"
                   >
-                    <img src={sound.cover} alt={sound.title} className="w-12 h-12 rounded-lg object-cover" loading="lazy" />
+                    <img src={sound.cover} alt={sound.title} className="w-12 h-12 rounded-lg object-cover" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/55 rounded-lg transition-colors">
                       {isPlaying ? (
                         <Pause className="h-4 w-4 text-white" fill="currentColor" />

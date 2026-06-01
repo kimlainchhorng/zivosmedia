@@ -6,7 +6,7 @@
 //  3. strictCorsHeaders() — validates Origin against allowlist; 403 for unknown origins
 
 const ALLOWED_HEADERS =
-  "authorization, x-client-info, apikey, content-type, x-application-name, x-request-id";
+  "authorization, x-client-info, apikey, content-type, stripe-signature, x-lovable-signature, x-lovable-timestamp, idempotency-key, x-application-name, x-device-fingerprint, x-request-id, x-cron-secret, x-pair-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
 
 declare const Deno:
   | {
@@ -38,6 +38,9 @@ const ALLOWED_ORIGINS = new Set<string>([
   "https://app.zivollc.com",
   "https://preview.zivollc.com",
   "https://zivo-web.myzivo.workers.dev",
+  "https://hizivo.com",
+  "https://www.hizivo.com",
+  "https://app.hizivo.com",
   "https://myzivo.com",
   "https://www.myzivo.com",
   "https://app.myzivo.com",
@@ -49,6 +52,7 @@ const ALLOWED_ORIGINS = new Set<string>([
 // Domains whose origin prefixes are allowed (e.g. branch previews).
 const ALLOWED_ORIGIN_SUFFIXES = [
   ".zivollc.com",
+  ".hizivo.com",
   ".myzivo.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];

@@ -57,7 +57,6 @@ export function useCarRentalBlackouts(storeId: string | undefined) {
     if (!storeId) return null;
     setSaving(true);
     setError(null);
-    const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       store_id: storeId,
       vehicle_id: draft.vehicle_id,
@@ -65,16 +64,13 @@ export function useCarRentalBlackouts(storeId: string | undefined) {
       ends_at: draft.ends_at,
       reason: draft.reason?.trim() || null,
       category: draft.category ?? "other",
-      created_by_user_id: user?.id ?? null,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_vehicle_blackouts")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-blackout-manage", {
+      body: { action: "create", store_id: storeId, blackout: payload },
+    });
     if (err) {
       console.error("[useCarRentalBlackouts] create failed", err);
-      if ((err as any).code === "23P01") {
+      if ((err as any).context?.status === 409) {
         setError("That blackout overlaps an existing one for this vehicle.");
       } else {
         setError("Couldn't add blackout.");
@@ -82,7 +78,7 @@ export function useCarRentalBlackouts(storeId: string | undefined) {
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalBlackout;
+    const created = data?.blackout as CarRentalBlackout;
     setBlackouts((prev) => [...prev, created].sort((a, b) => a.starts_at.localeCompare(b.starts_at)));
     setSaving(false);
     return created;
@@ -92,7 +88,9 @@ export function useCarRentalBlackouts(storeId: string | undefined) {
     setSaving(true);
     const prev = blackouts;
     setBlackouts((p) => p.filter((b) => b.id !== id));
-    const { error: err } = await supabase.from("car_rental_vehicle_blackouts").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-blackout-manage", {
+      body: { action: "delete", blackout_id: id },
+    });
     if (err) {
       console.error("[useCarRentalBlackouts] delete failed", err);
       setError("Couldn't delete blackout.");

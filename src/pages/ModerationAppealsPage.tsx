@@ -1,7 +1,7 @@
 /**
  * ModerationAppealsPage — Moderation actions taken against you + your appeals.
  * Backed by `moderation_actions` (RLS: target_user_id or moderator_id) and
- * `appeal_requests` (RLS: user_id). Both orphan.
+ * `appeal_requests` (server-gated insert, RLS: user_id read).
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -135,16 +135,11 @@ export default function ModerationAppealsPage() {
       return;
     }
     setSubmitting(true);
-    const sb = supabase as unknown as {
-      from: (t: string) => {
-        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
-      };
-    };
-    const { error } = await sb.from("appeal_requests").insert({
-      user_id: user.id,
-      action_id: actionId,
-      appeal_text: text,
-      status: "pending",
+    const { error } = await supabase.functions.invoke("moderation-appeal-submit", {
+      body: {
+        action_id: actionId,
+        appeal_text: text,
+      },
     });
     setSubmitting(false);
     if (error) {

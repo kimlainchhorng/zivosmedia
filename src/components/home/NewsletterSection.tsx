@@ -110,7 +110,7 @@ export default function NewsletterSection() {
 
                   <p className="text-xs text-muted-foreground/60 mt-4 text-center">
                     No spam, unsubscribe anytime. Read our{" "}
-                    <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                    <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
                   </p>
                 </div>
               </div>

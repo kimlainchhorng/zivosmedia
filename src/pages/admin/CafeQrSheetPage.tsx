@@ -102,6 +102,8 @@ export default function CafeQrSheetPage() {
                 src={qrImage(buildQrUrl(store.slug, t.qr_token), 320)}
                 alt={`QR for table ${t.label}`}
                 className="w-40 h-40"
+                loading="lazy"
+                decoding="async"
               />
               <p className="mt-2 text-[10px] text-gray-500 text-center">
                 Scan to order at this table

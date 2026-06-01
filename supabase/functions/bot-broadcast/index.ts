@@ -6,19 +6,16 @@
  * Returns: { ok: true, sent: number }
  */
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(withSecurity("bot-broadcast", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const authz = req.headers.get("Authorization") ?? "";
-    if (!authz.startsWith("Bearer ")) return json({ error: "Missing auth" }, 401);
+    if (!authz.startsWith("Bearer ")) return json({ error: "Missing auth" }, 401, corsHeaders);
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -27,13 +24,13 @@ Deno.serve(async (req) => {
     );
     const { data: userRes } = await userClient.auth.getUser();
     const owner = userRes?.user;
-    if (!owner) return json({ error: "Not authenticated" }, 401);
+    if (!owner) return json({ error: "Not authenticated" }, 401, corsHeaders);
 
     const { bot_id, text } = await req.json();
-    if (!bot_id || typeof bot_id !== "string") return json({ error: "bot_id required" }, 400);
+    if (!bot_id || typeof bot_id !== "string") return json({ error: "bot_id required" }, 400, corsHeaders);
     const msg = String(text ?? "").trim();
-    if (!msg) return json({ error: "text required" }, 400);
-    if (msg.length > 4000) return json({ error: "text too long (max 4000 chars)" }, 400);
+    if (!msg) return json({ error: "text required" }, 400, corsHeaders);
+    if (msg.length > 4000) return json({ error: "text too long (max 4000 chars)" }, 400, corsHeaders);
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -46,23 +43,23 @@ Deno.serve(async (req) => {
       .select("id, bot_user_id, owner_id, is_active")
       .eq("id", bot_id)
       .maybeSingle();
-    if (bErr) return json({ error: bErr.message }, 500);
-    if (!bot) return json({ error: "Bot not found" }, 404);
-    if (bot.owner_id !== owner.id) return json({ error: "Not owner of bot" }, 403);
-    if (!bot.is_active) return json({ error: "Bot is inactive" }, 403);
+    if (bErr) return json({ error: bErr.message }, 500, corsHeaders);
+    if (!bot) return json({ error: "Bot not found" }, 404, corsHeaders);
+    if (bot.owner_id !== owner.id) return json({ error: "Not owner of bot" }, 403, corsHeaders);
+    if (!bot.is_active) return json({ error: "Bot is inactive" }, 403, corsHeaders);
 
     // Distinct senders who have DMd this bot
     const { data: senders, error: sErr } = await sb
       .from("direct_messages")
       .select("sender_id")
       .eq("receiver_id", bot.bot_user_id);
-    if (sErr) return json({ error: sErr.message }, 500);
+    if (sErr) return json({ error: sErr.message }, 500, corsHeaders);
 
     const recipientIds = Array.from(
       new Set((senders ?? []).map((r: any) => r.sender_id).filter(Boolean)),
     ) as string[];
 
-    if (recipientIds.length === 0) return json({ ok: true, sent: 0 });
+    if (recipientIds.length === 0) return json({ ok: true, sent: 0 }, 200, corsHeaders);
 
     // Insert one DM per recipient. Use chunked inserts to stay under
     // Postgres single-statement parameter limits on very large lists.
@@ -78,17 +75,17 @@ Deno.serve(async (req) => {
     for (let i = 0; i < rows.length; i += CHUNK) {
       const slice = rows.slice(i, i + CHUNK);
       const { error: iErr } = await sb.from("direct_messages").insert(slice);
-      if (iErr) return json({ error: iErr.message, sent }, 500);
+      if (iErr) return json({ error: iErr.message, sent }, 500, corsHeaders);
       sent += slice.length;
     }
 
-    return json({ ok: true, sent });
+    return json({ ok: true, sent }, 200, corsHeaders);
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    return json({ error: String(e) }, 500, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

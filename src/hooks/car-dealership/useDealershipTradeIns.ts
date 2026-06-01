@@ -67,17 +67,21 @@ export function useDealershipTradeIns(storeId: string | undefined) {
   const create = useCallback(async (draft: DealershipTradeInDraft) => {
     if (!storeId) return null;
     setSaving(true); setError(null);
-    const { data, error: err } = await supabase
-      .from("car_dealership_trade_ins")
-      .insert({ store_id: storeId, ...draft } as never)
-      .select("*").single();
+    const { data, error: err } = await supabase.functions.invoke("car-dealership-trade-in-manage", {
+      body: { action: "create", store_id: storeId, trade_in: draft },
+    });
     if (err) {
       console.error("[useDealershipTradeIns] create failed", err);
       setError(err.message || "Couldn't add trade-in.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as DealershipTradeIn;
+    const created = (data as { trade_in?: DealershipTradeIn } | null)?.trade_in;
+    if (!created) {
+      setError("Couldn't add trade-in.");
+      setSaving(false);
+      return null;
+    }
     setTradeIns((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -86,9 +90,12 @@ export function useDealershipTradeIns(storeId: string | undefined) {
   const update = useCallback(async (id: string, patch: Partial<DealershipTradeInDraft>) => {
     setSaving(true); setError(null);
     setTradeIns((prev) => prev.map((t) => (t.id === id ? ({ ...t, ...patch } as DealershipTradeIn) : t)));
-    const { error: err } = await supabase
-      .from("car_dealership_trade_ins").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-dealership-trade-in-manage", {
+      body: { action: "update", trade_in_id: id, trade_in: patch },
+    });
     if (err) { setError("Couldn't update."); setSaving(false); void load(); return false; }
+    const updated = (data as { trade_in?: DealershipTradeIn } | null)?.trade_in;
+    if (updated) setTradeIns((prev) => prev.map((t) => (t.id === id ? updated : t)));
     setSaving(false);
     return true;
   }, [load]);
@@ -97,7 +104,9 @@ export function useDealershipTradeIns(storeId: string | undefined) {
     setSaving(true); setError(null);
     const prev = tradeIns;
     setTradeIns((p) => p.filter((t) => t.id !== id));
-    const { error: err } = await supabase.from("car_dealership_trade_ins").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-dealership-trade-in-manage", {
+      body: { action: "delete", trade_in_id: id },
+    });
     if (err) { setError("Couldn't delete."); setTradeIns(prev); setSaving(false); return false; }
     setSaving(false);
     return true;

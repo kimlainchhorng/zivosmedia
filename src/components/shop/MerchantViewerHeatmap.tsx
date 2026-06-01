@@ -106,18 +106,19 @@ export default function MerchantViewerHeatmap({ storeId }: Props) {
     }
     setIsSending(true);
     try {
-      const db = supabase as any;
-
-      // Create a promotion
-      await db.from("store_promotions").insert({
-        store_id: storeId,
-        code: couponCode.toUpperCase(),
-        discount_type: "percentage",
-        discount_value: parseInt(couponDiscount),
-        usage_limit: selectedCluster.viewerCount * 2,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        is_active: true,
-        description: `Flash deal for ${selectedCluster.areaName} viewers`,
+      await supabase.functions.invoke("store-promotion-manage", {
+        body: {
+          action: "create",
+          store_id: storeId,
+          promotion: {
+            code: couponCode.toUpperCase(),
+            discount_type: "percentage",
+            discount_value: parseInt(couponDiscount),
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            is_active: true,
+            description: `Flash deal for ${selectedCluster.areaName} viewers`,
+          },
+        },
       });
 
       // In production: trigger push notification to users in the geo-area

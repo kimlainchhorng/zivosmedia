@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { rmSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import { createRequire } from "module";
@@ -86,6 +87,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8081,
+    headers: {
+      "Cache-Control": "no-store, max-age=0",
+      "Pragma": "no-cache",
+      "Expires": "0",
+    },
     watch: {
       ignored: [
         "**/android/**",
@@ -128,7 +134,10 @@ export default defineConfig(({ mode }) => ({
       devOptions: { enabled: false },
       registerType: "autoUpdate",
       strategies: "injectManifest",
-      srcDir: "public",
+      // Keep the custom service worker outside public/. Vite copies public
+      // files into dist before PWA injection, so public/sw.js can collide with
+      // the generated dist/sw.js on repeat builds.
+      srcDir: "src",
       filename: "sw.js",
       injectManifest: {
         rollupFormat: "iife",
@@ -138,6 +147,14 @@ export default defineConfig(({ mode }) => ({
         globPatterns: pwaPrecacheGlobPatterns,
         globIgnores: pwaPrecacheGlobIgnores,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      },
+      integration: {
+        beforeBuildServiceWorker({ swDest }) {
+          // Repeat local/CI builds can leave an already-injected dist/sw.js.
+          // Remove only the generated output so Workbox always injects into a
+          // freshly built service worker containing self.__WB_MANIFEST.
+          rmSync(swDest, { force: true });
+        },
       },
       includeAssets: ["favicon.ico", "robots.txt", "pwa-icons/*.png"],
       manifest: {

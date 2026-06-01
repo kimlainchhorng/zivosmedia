@@ -28,9 +28,9 @@ const sections: PolicySection[] = [
     iconColor: "text-slate-500",
     bgColor: "bg-slate-500/10",
     items: [
-      { icon: FileText, label: "Terms & Conditions", href: "/terms", color: "bg-slate-500/15", iconColor: "text-slate-500" },
-      { icon: Scale, label: "Privacy Policy", href: "/privacy", color: "bg-cyan-500/15", iconColor: "text-cyan-500" },
-      { icon: Cookie, label: "Cookie Policy", href: "/cookies", color: "bg-amber-500/15", iconColor: "text-amber-500" },
+      { icon: FileText, label: "Terms & Conditions", href: "/legal/terms", color: "bg-slate-500/15", iconColor: "text-slate-500" },
+      { icon: Scale, label: "Privacy Policy", href: "/legal/privacy", color: "bg-cyan-500/15", iconColor: "text-cyan-500" },
+      { icon: Cookie, label: "Cookie Policy", href: "/legal/cookies", color: "bg-amber-500/15", iconColor: "text-amber-500" },
       { icon: Shield, label: "Partner Disclosure", href: "/legal/partner-disclosure", color: "bg-rose-500/15", iconColor: "text-rose-500" },
       { icon: FileCheck, label: "User Agreement", href: "/legal/user-agreement", color: "bg-slate-500/15", iconColor: "text-slate-500" },
       { icon: Handshake, label: "Community Guidelines", href: "/legal/community-guidelines", color: "bg-emerald-500/15", iconColor: "text-emerald-500" },
@@ -136,7 +136,7 @@ const sections: PolicySection[] = [
     bgColor: "bg-sky-500/10",
     items: [
       { icon: Plane, label: "Flight Booking Terms", href: "/legal/flight-terms", color: "bg-sky-500/15", iconColor: "text-sky-500" },
-      { icon: Undo2, label: "Refund Policy", href: "/refunds", color: "bg-emerald-500/15", iconColor: "text-emerald-500" },
+      { icon: Undo2, label: "Refund Policy", href: "/legal/refunds", color: "bg-emerald-500/15", iconColor: "text-emerald-500" },
       { icon: XCircle, label: "Cancellation Policy", href: "/legal/cancellation", color: "bg-red-500/15", iconColor: "text-red-500" },
       { icon: Globe, label: "Seller of Travel", href: "/legal/seller-of-travel", color: "bg-teal-500/15", iconColor: "text-teal-500" },
       { icon: Clock, label: "24-Hour Cancellation Rule", href: "/legal/24hr-cancellation", color: "bg-sky-500/15", iconColor: "text-sky-500" },

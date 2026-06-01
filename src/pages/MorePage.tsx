@@ -2,7 +2,7 @@
  * MorePage — ZIVO Signature Design (2026)
  * Full hub with real user profile, quick actions, 70+ links, and organic design.
  */
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +19,7 @@ import {
   Camera, Video, Megaphone, Gift, Crown, Zap, Star, Calendar, MessageCircle,
   BookOpen, Plane, Coffee, Radio, BadgeCheck, Smartphone, Download,
   TrendingUp, Target, Lightbulb, PenTool, Share2, Compass, ArrowRight,
-  Gem, Rocket, Layers, CircleDot, User, CreditCard, Map, Package,
+  Gem, Rocket, Layers, CircleDot, User, CreditCard, Map as MapIcon, Package,
   Clock, Receipt, Ticket, ShieldCheck, Flame, AlertCircle, Inbox,
   Search, Vote, Clapperboard, GraduationCap, Trophy, Banknote, ArrowLeft,
   Sun, Moon, Trash2, X, Phone, Hash, Tv, Mic, Activity, Dumbbell, Brain,
@@ -56,67 +56,44 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { Badge } from "@/components/ui/badge";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
-
-/* ============================================= */
-/*  DAILY CHALLENGES (gamification)               */
-/* ============================================= */
-const dailyChallenges: { id: string; icon: any; label: string; href: string; reward: number }[] = [
-  { id: "visit_explore", icon: Compass, label: "Browse Explore", href: "/explore", reward: 5 },
-  { id: "watch_reel", icon: Camera, label: "Watch a reel", href: "/reels", reward: 5 },
-  { id: "send_message", icon: MessageCircle, label: "Send a message", href: "/chat", reward: 10 },
-  { id: "check_deals", icon: Flame, label: "View today's deals", href: "/deals", reward: 5 },
-];
-
-/* ============================================= */
-/*  WHAT'S NEW (release notes for the dialog)     */
-/* ============================================= */
-const whatsNew: { date: string; title: string; items: string[] }[] = [
-  {
-    date: "May 2026",
-    title: "More page redesign",
-    items: [
-      "12 quick actions, 11 spotlight cards, 14 sections (306 features)",
-      "Pinned favorites with localStorage",
-      "Recently used row + section jump-chips",
-      "Density toggle (compact 2-col grid view)",
-      "Surprise me discovery button",
-      "Profile completion meter",
-    ],
-  },
-  {
-    date: "Apr 2026",
-    title: "AI Tools section",
-    items: [
-      "AI Trip Planner & Smart Search",
-      "AI Content Studio + AI Creative for shops",
-      "Auto-translate, AI Telehealth, Mindfulness AI",
-      "Boost Engine for sellers (auto-promote posts)",
-    ],
-  },
-  {
-    date: "Mar 2026",
-    title: "Money Hub",
-    items: [
-      "Wallet, Coins, Rewards centralized",
-      "Driver & Shop earnings + payouts",
-      "Tax reports, Pay stubs, Invoices",
-      "Gift cards, Promo codes, Refer & earn",
-    ],
-  },
-  {
-    date: "Feb 2026",
-    title: "Security & Trust",
-    items: [
-      "Service Status, Trust Hub, Scam Center",
-      "Zero Trust architecture page",
-      "Vulnerability Disclosure Program",
-      "Compliance Center (SOC 2, GDPR, CCPA)",
-    ],
-  },
-];
+import { toast } from "sonner";
 
 const formatNotificationText = (text: string | null | undefined) =>
   (text ?? "").replace(/\$(\d+(?:,\d{3})*)\.(\d{2})0{3,}\b/g, "$$$1.$2");
+
+type MoreNotificationPreview = {
+  id: string;
+  title: string | null;
+  body: string | null;
+  action_url: string | null;
+  created_at: string;
+};
+
+type MoreActivityRow = {
+  id: string;
+  source: string | null;
+  path: string | null;
+  region_code: string | null;
+  device_kind: string | null;
+  platform: string | null;
+  created_at: string;
+};
+
+type MoreActivityResult = {
+  rows: MoreActivityRow[];
+  syncAvailable: boolean;
+};
+
+const isMoreChatNotification = (notification: Pick<MoreNotificationPreview, "title" | "body" | "action_url">) => {
+  const haystack = [
+    notification.title,
+    notification.body,
+    notification.action_url,
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  return /(^|\/)(chat|messages|conversation|inbox)(\/|$|\?)/.test(haystack)
+    || /\b(message|chat|conversation|dm)\b/.test(haystack);
+};
 
 /* ============================================= */
 /*  PARTNER OPTIONS                              */
@@ -141,6 +118,7 @@ const quickActions = [
   { icon: UserPlus, label: "Friends", href: "/notifications?tab=requests", accent: "hsl(263 70% 58%)" },
   { icon: Ticket, label: "Support", href: "/support/tickets", accent: "hsl(38 92% 50%)" },
   { icon: QrCode, label: "QR Code", href: "/qr-profile", accent: "hsl(263 70% 58%)" },
+  { icon: History, label: "Activity", href: "/account/activity-log?filter=account_hub", accent: "hsl(198 93% 59%)" },
   { icon: Gift, label: "Invite", href: "/referrals", accent: "hsl(199 89% 48%)" },
   { icon: Plane, label: "Trips", href: "/my-trips", accent: "hsl(199 89% 48%)" },
   { icon: Bell, label: "Alerts", href: "/notification-center", accent: "hsl(45 93% 58%)" },
@@ -180,10 +158,64 @@ type QuickLink = {
   badge?: string;
 };
 
+type MoreSearchResult = {
+  link: QuickLink;
+  sectionTitle: string;
+  sectionIcon: any;
+};
+
+const sanitizeStoredStringList = (items: unknown[], maxItems: number) => {
+  const seen = new Set<string>();
+  return items.reduce<string[]>((cleaned, item) => {
+    if (typeof item !== "string") return cleaned;
+    const value = item.trim();
+    if (!value || seen.has(value) || cleaned.length >= maxItems) return cleaned;
+    seen.add(value);
+    cleaned.push(value);
+    return cleaned;
+  }, []);
+};
+
+const readStoredStringList = (key: string, maxItems: number) => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return sanitizeStoredStringList(parsed, maxItems);
+  } catch {
+    return [];
+  }
+};
+
+const persistStoredStringList = (key: string, items: string[], maxItems = items.length) => {
+  if (typeof window === "undefined") return;
+  try {
+    const cleaned = sanitizeStoredStringList(items, maxItems);
+    if (cleaned.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(cleaned));
+  } catch {}
+};
+
+const sameStringList = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((item, index) => item === b[index]);
+
+const normalizeInternalHref = (href: string) => {
+  const value = href.trim();
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+};
+
+const formatToolCount = (count: number) => `${count} ${count === 1 ? "tool" : "tools"}`;
+const formatSectionCount = (count: number) => `${count} ${count === 1 ? "section" : "sections"}`;
+const formatMatchCount = (count: number) => `${count} ${count === 1 ? "match" : "matches"}`;
+const formatShortcutCount = (count: number, label: "pinned" | "recent") => `${count} ${label}`;
+const formatSearchCount = (count: number) => `${count} saved ${count === 1 ? "search" : "searches"}`;
+
 const quickLinksMain: QuickLink[] = [
   { icon: User, label: "My Profile", href: "/profile", description: "View & edit", accent: "hsl(199 89% 48%)" },
   { icon: Gift, label: "Refer a Friend", href: "/referrals", description: "Earn rewards", accent: "hsl(142 71% 45%)", badge: "Earn" },
-  { icon: Clock, label: "Activity Log", href: "/activity", description: "Recent actions", accent: "hsl(198 93% 59%)" },
+  { icon: Clock, label: "Account Activity", href: "/account/activity-log", description: "Logins & changes", accent: "hsl(198 93% 59%)" },
   { icon: Users, label: "Switch Account", href: "#switch-account", description: "Add or change", accent: "hsl(263 70% 58%)" },
   { icon: Settings, label: "Settings", href: "/account/settings", description: "App preferences", accent: "hsl(var(--muted-foreground))" },
   { icon: ShoppingBag, label: "My Orders", href: "/grocery/orders", description: "Order history", accent: "hsl(221 83% 53%)" },
@@ -245,7 +277,7 @@ const quickLinksTravel: QuickLink[] = [
   { icon: Compass, label: "Explore Nearby", href: "/nearby", description: "Around you", accent: "hsl(0 84% 60%)" },
   { icon: Globe, label: "AI Trip Planner", href: "/ai-trip-planner", description: "AI-powered", accent: "hsl(263 70% 58%)", badge: "AI" },
   { icon: Smartphone, label: "Booking Mgmt", href: "/booking-management", description: "Manage trips", accent: "hsl(198 93% 59%)" },
-  { icon: Map, label: "City Guides", href: "/guides", description: "Expert tips", accent: "hsl(172 66% 50%)" },
+  { icon: MapIcon, label: "City Guides", href: "/guides", description: "Expert tips", accent: "hsl(172 66% 50%)" },
   { icon: Package, label: "Delivery", href: "/delivery", description: "Send packages", accent: "hsl(215 16% 47%)" },
   { icon: Flame, label: "Deals", href: "/deals", description: "Hot offers", accent: "hsl(0 84% 60%)", badge: "Hot" },
   { icon: Plane, label: "Book Flight", href: "/flights", description: "Search flights", accent: "hsl(199 89% 48%)" },
@@ -257,7 +289,7 @@ const quickLinksTravel: QuickLink[] = [
   { icon: Receipt, label: "Marketplace Orders", href: "/marketplace/orders", description: "Item orders", accent: "hsl(215 16% 47%)" },
   { icon: Pin, label: "Saved Addresses", href: "/account/addresses", description: "Home & work", accent: "hsl(0 84% 60%)" },
   { icon: ExternalLink, label: "Track Package", href: "/track", description: "Live tracking", accent: "hsl(199 89% 48%)" },
-  { icon: Map, label: "Multi-City Builder", href: "/multi-city-builder", description: "Plan multi-stop trip", accent: "hsl(199 89% 48%)" },
+  { icon: MapIcon, label: "Multi-City Builder", href: "/multi-city-builder", description: "Plan multi-stop trip", accent: "hsl(199 89% 48%)" },
   { icon: Plane, label: "Flight Tracker", href: "/flights/live", description: "Live flight status", accent: "hsl(199 89% 48%)", badge: "Live" },
   { icon: Receipt, label: "Flight Bookings", href: "/flights/bookings", description: "All flight orders", accent: "hsl(263 70% 58%)" },
   { icon: ShieldCheck, label: "Travel Insurance", href: "/travel-insurance", description: "Protect your trip", accent: "hsl(142 71% 45%)" },
@@ -326,7 +358,7 @@ const quickLinksBusiness: QuickLink[] = [
   { icon: Activity, label: "Driver Performance", href: "/driver/performance", description: "Stats", accent: "hsl(263 70% 58%)" },
   { icon: FileSignature, label: "Driver Onboarding", href: "/driver/onboarding/documents", description: "Submit docs", accent: "hsl(38 92% 50%)" },
   { icon: UtensilsCrossed, label: "Eats Driver", href: "/eats/driver-deliveries", description: "Food delivery", accent: "hsl(25 95% 53%)" },
-  { icon: Map, label: "Driver Map", href: "/driver/map", description: "Live trip map", accent: "hsl(221 83% 53%)" },
+  { icon: MapIcon, label: "Driver Map", href: "/driver/map", description: "Live trip map", accent: "hsl(221 83% 53%)" },
   { icon: Compass, label: "Driver Home", href: "/driver/home", description: "Start driving", accent: "hsl(199 89% 48%)" },
   { icon: Sparkles, label: "AI Content Studio", href: "/shop-dashboard/ai-content", description: "Auto-write copy", accent: "hsl(263 70% 58%)", badge: "AI" },
   { icon: Palette, label: "AI Creative", href: "/shop-dashboard/ai-creative", description: "Visual generator", accent: "hsl(340 75% 55%)", badge: "AI" },
@@ -363,7 +395,7 @@ const quickLinksAccount: QuickLink[] = [
   { icon: Users, label: "Blocked Users", href: "/account/privacy#blocked", description: "Manage blocks", accent: "hsl(0 84% 60%)" },
   { icon: Trash2, label: "Delete Account", href: "/profile/delete-account", description: "Permanently remove", accent: "hsl(0 84% 60%)" },
   { icon: BarChart3, label: "Account Analytics", href: "/account/analytics", description: "Your stats", accent: "hsl(198 93% 59%)" },
-  { icon: History, label: "Activity Log", href: "/account/activity-log", description: "Detailed history", accent: "hsl(215 16% 47%)" },
+  { icon: History, label: "Account Activity", href: "/account/activity-log", description: "Full audit trail", accent: "hsl(215 16% 47%)" },
   { icon: ArrowDownToLine, label: "Export Data", href: "/account/export", description: "Download your data", accent: "hsl(199 89% 48%)" },
   { icon: Database, label: "Storage", href: "/chat/settings/storage", description: "Manage space", accent: "hsl(263 70% 58%)" },
   { icon: KeyRound, label: "Passcode", href: "/chat/settings/passcode", description: "Lock app", accent: "hsl(142 71% 45%)" },
@@ -468,8 +500,8 @@ const quickLinksMoney: QuickLink[] = [
   { icon: TrendingUp, label: "Merchant ROI", href: "/shop-dashboard/roi", description: "Performance", accent: "hsl(198 93% 59%)" },
   { icon: FileSignature, label: "Tax Reports", href: "/shop-dashboard/tax-reports", description: "1099 & filings", accent: "hsl(142 71% 45%)" },
   { icon: Banknote, label: "Pay Stubs", href: "/personal/pay-stubs", description: "Job payments", accent: "hsl(142 71% 45%)" },
-  { icon: AlertCircle, label: "Refunds", href: "/refunds", description: "Request refund", accent: "hsl(0 84% 60%)" },
-  { icon: FileBadge, label: "Refund Policy", href: "/refund-policy", description: "Money-back rules", accent: "hsl(215 16% 47%)" },
+  { icon: AlertCircle, label: "Refunds", href: "/legal/refunds", description: "Request refund", accent: "hsl(0 84% 60%)" },
+  { icon: FileBadge, label: "Refund Policy", href: "/legal/refunds", description: "Money-back rules", accent: "hsl(215 16% 47%)" },
 ];
 
 const quickLinksDiscover: QuickLink[] = [
@@ -479,7 +511,7 @@ const quickLinksDiscover: QuickLink[] = [
   { icon: History, label: "View History", href: "/history", description: "Recently viewed", accent: "hsl(215 16% 47%)" },
   { icon: Bell, label: "Alerts", href: "/alerts", description: "Price & deal drops", accent: "hsl(45 93% 58%)" },
   { icon: Activity, label: "Activities", href: "/activities", description: "Local events", accent: "hsl(199 89% 48%)" },
-  { icon: Map, label: "City Guides", href: "/guides", description: "Travel tips", accent: "hsl(172 66% 50%)" },
+  { icon: MapIcon, label: "City Guides", href: "/guides", description: "Travel tips", accent: "hsl(172 66% 50%)" },
   { icon: Clock, label: "Best Time to Book", href: "/guides/best-time-to-book", description: "Smart timing", accent: "hsl(45 93% 58%)" },
   { icon: Plane, label: "Cheap Flights Guide", href: "/guides/cheap-flights", description: "Save big", accent: "hsl(199 89% 48%)" },
   { icon: Star, label: "Brand Showcase", href: "/brand", description: "ZIVO brand kit", accent: "hsl(263 70% 58%)" },
@@ -519,29 +551,29 @@ const quickLinksCompany: QuickLink[] = [
   { icon: Code, label: "Developers", href: "/developers", description: "API & SDKs", accent: "hsl(215 16% 47%)" },
   { icon: Network, label: "API Partners", href: "/api-partners", description: "Integrations", accent: "hsl(199 89% 48%)" },
   { icon: Building, label: "Corporate", href: "/corporate", description: "Enterprise hub", accent: "hsl(215 16% 47%)" },
-  { icon: FileText, label: "Terms of Service", href: "/terms", description: "Legal terms", accent: "hsl(215 16% 47%)" },
-  { icon: Lock, label: "Privacy Policy", href: "/privacy", description: "How we handle data", accent: "hsl(263 70% 58%)" },
-  { icon: Cookie, label: "Cookies Policy", href: "/cookies", description: "Tracking notice", accent: "hsl(38 92% 50%)" },
-  { icon: Banknote, label: "Refund Policy", href: "/refund-policy", description: "Money back rules", accent: "hsl(142 71% 45%)" },
-  { icon: AlertCircle, label: "Cancellation Policy", href: "/cancellation-policy", description: "Cancel rules", accent: "hsl(0 84% 60%)" },
+  { icon: FileText, label: "Terms of Service", href: "/legal/terms", description: "Legal terms", accent: "hsl(215 16% 47%)" },
+  { icon: Lock, label: "Privacy Policy", href: "/legal/privacy", description: "How we handle data", accent: "hsl(263 70% 58%)" },
+  { icon: Cookie, label: "Cookies Policy", href: "/legal/cookies", description: "Tracking notice", accent: "hsl(38 92% 50%)" },
+  { icon: Banknote, label: "Refund Policy", href: "/legal/refunds", description: "Money back rules", accent: "hsl(142 71% 45%)" },
+  { icon: AlertCircle, label: "Cancellation Policy", href: "/legal/cancellation", description: "Cancel rules", accent: "hsl(0 84% 60%)" },
   { icon: Mail, label: "Unsubscribe", href: "/unsubscribe", description: "Stop emails", accent: "hsl(215 16% 47%)" },
 ];
 
 const sections = [
-  { title: "Essentials", icon: Layers, links: quickLinksMain },
-  { title: "Creator Studio", icon: Sparkles, links: quickLinksCreator },
-  { title: "Travel & Orders", icon: Plane, links: quickLinksTravel },
-  { title: "Social", icon: Users, links: quickLinksSocial },
-  { title: "Live & Streaming", icon: Tv, links: quickLinksLive },
-  { title: "Workplace & Jobs", icon: Briefcase, links: quickLinksJobs },
-  { title: "Business", icon: Building2, links: quickLinksBusiness },
-  { title: "Health & Wellness", icon: Heart, links: quickLinksWellness },
-  { title: "Money & Earnings", icon: Wallet, links: quickLinksMoney },
-  { title: "AI & Tools", icon: Sparkles, links: quickLinksAI },
-  { title: "Discover", icon: Compass, links: quickLinksDiscover },
-  { title: "Security & Trust", icon: Shield, links: quickLinksSecurity },
-  { title: "Account & Support", icon: Settings, links: quickLinksAccount },
-  { title: "Company & Legal", icon: Info, links: quickLinksCompany },
+  { title: "Essentials", description: "Profile, orders, wallet, rewards, and daily account tasks.", icon: Layers, links: quickLinksMain },
+  { title: "Creator Studio", description: "Content, analytics, monetization, and creator growth tools.", icon: Sparkles, links: quickLinksCreator },
+  { title: "Travel & Orders", description: "Trips, bookings, rides, groceries, marketplace, and delivery.", icon: Plane, links: quickLinksTravel },
+  { title: "Social", description: "Friends, chat, communities, channels, bookmarks, and discovery.", icon: Users, links: quickLinksSocial },
+  { title: "Live & Streaming", description: "Live video, spaces, watch parties, reels, and channels.", icon: Tv, links: quickLinksLive },
+  { title: "Workplace & Jobs", description: "Jobs, schedules, timesheets, applications, and employee tools.", icon: Briefcase, links: quickLinksJobs },
+  { title: "Business", description: "Shop, driver, restaurant, hotel, payroll, and merchant tools.", icon: Building2, links: quickLinksBusiness },
+  { title: "Health & Wellness", description: "Activity, workouts, health, mindfulness, nutrition, and care.", icon: Heart, links: quickLinksWellness },
+  { title: "Money & Earnings", description: "Payments, rewards, subscriptions, payouts, taxes, and refunds.", icon: Wallet, links: quickLinksMoney },
+  { title: "AI & Tools", description: "Smart search, planning, creative tools, translation, and insights.", icon: Sparkles, links: quickLinksAI },
+  { title: "Discover", description: "Trending pages, guides, promotions, roadmap, and local activity.", icon: Compass, links: quickLinksDiscover },
+  { title: "Security & Trust", description: "Status, safety, scam reporting, compliance, and trust resources.", icon: Shield, links: quickLinksSecurity },
+  { title: "Account & Support", description: "Preferences, privacy, devices, accessibility, and help channels.", icon: Settings, links: quickLinksAccount },
+  { title: "Company & Legal", description: "About ZIVO, mission, careers, policies, developers, and press.", icon: Info, links: quickLinksCompany },
 ];
 
 /* ============================================= */
@@ -555,9 +587,9 @@ export default function MorePage() {
   const { user, signOut, isAdmin } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [showPartnerSheet, setShowPartnerSheet] = useState(false);
-  const [showWhatsNew, setShowWhatsNew] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>("Essentials");
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const directorySearchRef = useRef<HTMLInputElement | null>(null);
   const [confirmAction, setConfirmAction] = useState<null | "signout" | "switch">(null);
 
   // App version (from package.json via Vite define, falls back gracefully)
@@ -570,11 +602,11 @@ export default function MorePage() {
     return window.localStorage.getItem(PRIVACY_KEY) === "1";
   });
   const togglePrivacy = () => {
-    setPrivacyMode((p) => {
-      const n = !p;
-      try { window.localStorage.setItem(PRIVACY_KEY, n ? "1" : "0"); } catch {}
-      return n;
-    });
+    const next = !privacyMode;
+    setPrivacyMode(next);
+    try { window.localStorage.setItem(PRIVACY_KEY, next ? "1" : "0"); } catch {}
+    void logAccountHubActivity("more_preference_privacy", `${location.pathname}${location.search}#privacy-${next ? "on" : "off"}`);
+    toast.message(next ? "Privacy mode on" : "Privacy mode off");
   };
   const blurClass = privacyMode ? "blur-sm select-none" : "";
 
@@ -586,33 +618,6 @@ export default function MorePage() {
   // which is computed further below — they're declared after `handle` to avoid
   // a temporal-dead-zone access via the useMemo deps array.
   const [showShareProfile, setShowShareProfile] = useState(false);
-
-  // Today's date (YYYY-MM-DD) — used by daily challenges and daily check-in,
-  // both of which read it from useState initializers on first render.
-  const todayStr = new Date().toISOString().slice(0, 10);
-
-  // ===== Daily challenges (localStorage, resets per day) =====
-  const CHALLENGES_KEY = "zivo:more:challenges";
-  const [completedChallenges, setCompletedChallenges] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = window.localStorage.getItem(CHALLENGES_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw) as { date: string; ids: string[] };
-      return parsed.date === todayStr ? parsed.ids : [];
-    } catch {
-      return [];
-    }
-  });
-  const completeChallenge = (id: string) => {
-    if (completedChallenges.includes(id)) return;
-    const next = [...completedChallenges, id];
-    setCompletedChallenges(next);
-    try {
-      window.localStorage.setItem(CHALLENGES_KEY, JSON.stringify({ date: todayStr, ids: next }));
-    } catch {}
-  };
-  const challengeProgress = Math.round((completedChallenges.length / dailyChallenges.length) * 100);
 
   // ===== Scroll-to-top button visibility =====
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -643,27 +648,6 @@ export default function MorePage() {
     return { kind, platform: browser };
   }, []);
 
-  // ===== Beta / Labs opt-in =====
-  const BETA_KEY = "zivo:more:beta";
-  const [betaOptIn, setBetaOptIn] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(BETA_KEY) === "1";
-  });
-  const toggleBeta = () => {
-    setBetaOptIn((p) => {
-      const n = !p;
-      try { window.localStorage.setItem(BETA_KEY, n ? "1" : "0"); } catch {}
-      return n;
-    });
-  };
-  const betaFeatures = [
-    { icon: Sparkles, label: "AI Smart Search v2" },
-    { icon: Brain, label: "Context-aware suggestions" },
-    { icon: Camera, label: "AR Reels recorder" },
-    { icon: Mic, label: "Voice commands" },
-    { icon: Map, label: "3D city maps" },
-  ];
-
   // ===== Region / Country switcher (localStorage) =====
   const REGION_KEY = "zivo:more:region";
   const [region, setRegion] = useState<string>(() => {
@@ -671,8 +655,12 @@ export default function MorePage() {
     return window.localStorage.getItem(REGION_KEY) || "US";
   });
   const setRegionCode = (code: string) => {
+    if (code === region) return;
     setRegion(code);
     try { window.localStorage.setItem(REGION_KEY, code); } catch {}
+    const label = regions.find((r) => r.code === code)?.label ?? code;
+    void logAccountHubActivity("more_preference_region", `${location.pathname}${location.search}#region-${code.toLowerCase()}`);
+    toast.success(`Region set to ${label}`);
   };
   const regions = [
     { code: "US", flag: "🇺🇸", label: "United States" },
@@ -744,47 +732,54 @@ export default function MorePage() {
     if (!installPrompt) return;
     try {
       installPrompt.prompt();
-      await installPrompt.userChoice;
+      const choice = await installPrompt.userChoice;
+      const accepted = choice?.outcome === "accepted";
+      void logAccountHubActivity(
+        accepted ? "more_install_accepted" : "more_install_dismissed",
+        `${location.pathname}${location.search}#install-app`,
+      );
+      toast[accepted ? "success" : "message"](accepted ? "ZIVO install started" : "Install dismissed");
       setInstallPrompt(null);
     } catch { /* user cancelled */ }
   };
   const dismissInstall = () => {
     setInstallDismissed(true);
     try { window.localStorage.setItem("zivo:more:install-dismissed", "1"); } catch {}
-  };
-
-  // ===== Daily check-in (localStorage) =====
-  const CHECKIN_KEY = "zivo:more:checkin";
-  const [checkinDate, setCheckinDate] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return window.localStorage.getItem(CHECKIN_KEY) || "";
-  });
-  const claimedToday = checkinDate === todayStr;
-  const claimCheckin = () => {
-    setCheckinDate(todayStr);
-    try { window.localStorage.setItem(CHECKIN_KEY, todayStr); } catch {}
+    void logAccountHubActivity("more_install_dismissed", `${location.pathname}${location.search}#install-dismissed`);
+    toast.message("Install prompt hidden");
   };
 
   // ===== Recent searches (localStorage) =====
   const SEARCH_HISTORY_KEY = "zivo:more:searches";
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = window.localStorage.getItem(SEARCH_HISTORY_KEY);
-      return raw ? (JSON.parse(raw) as string[]) : [];
-    } catch {
-      return [];
-    }
+    return readStoredStringList(SEARCH_HISTORY_KEY, 5);
   });
+  useEffect(() => {
+    const cleaned = searchHistory.slice(0, 5);
+    persistStoredStringList(SEARCH_HISTORY_KEY, cleaned, 5);
+  }, [searchHistory]);
   const recordSearch = (q: string) => {
     const v = q.trim();
     if (v.length < 2) return;
     setSearchHistory((prev) => {
       const next = [v, ...prev.filter((s) => s.toLowerCase() !== v.toLowerCase())].slice(0, 5);
-      try { window.localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next)); } catch {}
+      persistStoredStringList(SEARCH_HISTORY_KEY, next, 5);
       return next;
     });
   };
+
+  const focusDirectorySearch = useCallback(() => {
+    setExpandedSection(null);
+    setAllExpanded(false);
+    requestAnimationFrame(() => {
+      document.getElementById("more-directory")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(() => directorySearchRef.current?.focus(), 260);
+    });
+  }, []);
+  const clearDirectorySearch = useCallback(() => {
+    setSearch("");
+    requestAnimationFrame(() => directorySearchRef.current?.focus());
+  }, []);
 
   // ===== Online / offline status =====
   const [isOnline, setIsOnline] = useState<boolean>(() =>
@@ -865,18 +860,18 @@ export default function MorePage() {
     return window.localStorage.getItem(SOUND_KEY) !== "0";
   });
   const toggleDnd = () => {
-    setDndOn((p) => {
-      const n = !p;
-      try { window.localStorage.setItem(DND_KEY, n ? "1" : "0"); } catch {}
-      return n;
-    });
+    const next = !dndOn;
+    setDndOn(next);
+    try { window.localStorage.setItem(DND_KEY, next ? "1" : "0"); } catch {}
+    void logAccountHubActivity("more_preference_dnd", `${location.pathname}${location.search}#dnd-${next ? "on" : "off"}`);
+    toast.message(next ? "Do Not Disturb on" : "Do Not Disturb off");
   };
   const toggleSound = () => {
-    setSoundOn((p) => {
-      const n = !p;
-      try { window.localStorage.setItem(SOUND_KEY, n ? "1" : "0"); } catch {}
-      return n;
-    });
+    const next = !soundOn;
+    setSoundOn(next);
+    try { window.localStorage.setItem(SOUND_KEY, next ? "1" : "0"); } catch {}
+    void logAccountHubActivity("more_preference_sound", `${location.pathname}${location.search}#sound-${next ? "on" : "off"}`);
+    toast.message(next ? "App sounds on" : "App sounds muted");
   };
 
   // ===== Density preference (localStorage) =====
@@ -893,18 +888,14 @@ export default function MorePage() {
   // ===== Recently Used (localStorage) =====
   const RECENT_KEY = "zivo:more:recent";
   const [recentHrefs, setRecentHrefs] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = window.localStorage.getItem(RECENT_KEY);
-      return raw ? (JSON.parse(raw) as string[]) : [];
-    } catch {
-      return [];
-    }
+    return readStoredStringList(RECENT_KEY, 8);
   });
   const trackRecent = (href: string) => {
+    const normalizedHref = normalizeInternalHref(href);
+    if (!normalizedHref) return;
     setRecentHrefs((prev) => {
-      const next = [href, ...prev.filter((h) => h !== href)].slice(0, 8);
-      try { window.localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {}
+      const next = [normalizedHref, ...prev.filter((h) => h !== normalizedHref)].slice(0, 8);
+      persistStoredStringList(RECENT_KEY, next, 8);
       return next;
     });
   };
@@ -912,18 +903,16 @@ export default function MorePage() {
   // ===== Pinned / Favorites (localStorage) =====
   const PIN_KEY = "zivo:more:pinned";
   const [pinnedHrefs, setPinnedHrefs] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = window.localStorage.getItem(PIN_KEY);
-      return raw ? (JSON.parse(raw) as string[]) : [];
-    } catch {
-      return [];
-    }
+    return readStoredStringList(PIN_KEY, 12);
   });
   const togglePin = (href: string) => {
+    const normalizedHref = normalizeInternalHref(href);
+    if (!normalizedHref) return;
     setPinnedHrefs((prev) => {
-      const next = prev.includes(href) ? prev.filter((h) => h !== href) : [href, ...prev].slice(0, 12);
-      try { window.localStorage.setItem(PIN_KEY, JSON.stringify(next)); } catch {}
+      const next = prev.includes(normalizedHref)
+        ? prev.filter((h) => h !== normalizedHref)
+        : [normalizedHref, ...prev.filter((h) => h !== normalizedHref)].slice(0, 12);
+      persistStoredStringList(PIN_KEY, next, 12);
       return next;
     });
   };
@@ -977,12 +966,14 @@ export default function MorePage() {
   const { data: unreadNotifCount = 0, isError: hasUnreadNotifError, isLoading: isUnreadNotifLoading } = useQuery({
     queryKey: ["more-unread-notifs", user?.id],
     queryFn: async () => {
-      const { count } = await (supabase as any)
+      const { data } = await (supabase as any)
         .from("notifications")
-        .select("id", { count: "exact", head: true })
+        .select("id, title, body, action_url")
         .eq("user_id", user!.id)
-        .eq("is_read", false);
-      return count || 0;
+        .eq("is_read", false)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return ((data || []) as MoreNotificationPreview[]).filter((notification) => !isMoreChatNotification(notification)).length;
     },
     enabled: !!user,
     staleTime: 30_000,
@@ -1023,7 +1014,7 @@ export default function MorePage() {
     data: notifPreview = [],
     isError: hasNotifPreviewError,
     isLoading: isNotifPreviewLoading,
-  } = useQuery<Array<{ id: string; title: string; body: string; action_url: string | null; created_at: string }>>({
+  } = useQuery<MoreNotificationPreview[]>({
     queryKey: ["more-notif-preview", user?.id],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -1032,8 +1023,10 @@ export default function MorePage() {
         .eq("user_id", user!.id)
         .eq("is_read", false)
         .order("created_at", { ascending: false })
-        .limit(3);
-      return data || [];
+        .limit(20);
+      return ((data || []) as MoreNotificationPreview[])
+        .filter((notification) => !isMoreChatNotification(notification))
+        .slice(0, 3);
     },
     enabled: !!user,
     staleTime: 30_000,
@@ -1076,7 +1069,7 @@ export default function MorePage() {
     queryKey: ["more-followers", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
-        .from("followers")
+        .from("user_followers")
         .select("id", { count: "exact", head: true })
         .eq("following_id", user!.id);
       return count || 0;
@@ -1090,7 +1083,7 @@ export default function MorePage() {
     queryKey: ["more-following", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
-        .from("followers")
+        .from("user_followers")
         .select("id", { count: "exact", head: true })
         .eq("follower_id", user!.id);
       return count || 0;
@@ -1111,14 +1104,96 @@ export default function MorePage() {
         .toLowerCase()
         .replace(/\s+/g, "");
 
-  // Profile-share URL + copy helper — depend on `handle` above.
+  // Profile-share URL + copy/share helpers — depend on `handle` above.
   const profileShareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/c/${handle}`;
-  }, [handle]);
+    const profileId = user?.id;
+    return profileId
+      ? `${window.location.origin}/user/${profileId}?from=more`
+      : `${window.location.origin}/u/${handle}`;
+  }, [handle, user?.id]);
+  const logAccountHubActivity = useCallback(async (source = "more", pathOverride?: string) => {
+    if (!user?.id || typeof window === "undefined") return;
+    const path = pathOverride || `${location.pathname}${location.search}`;
+    try {
+      const { error } = await (supabase as any)
+        .from("account_hub_activity")
+        .insert({
+          user_id: user.id,
+          source,
+          path,
+          region_code: region,
+          device_kind: deviceInfo.kind,
+          platform: deviceInfo.platform,
+        });
+      if (error) return;
+      void queryClient.invalidateQueries({ queryKey: ["more-account-hub-activity", user.id] });
+      void queryClient.invalidateQueries({ queryKey: ["activity-log", user.id] });
+    } catch {
+      /* activity tracking is best effort */
+    }
+  }, [deviceInfo.kind, deviceInfo.platform, location.pathname, location.search, queryClient, region, user?.id]);
   const copyProfileLink = async () => {
-    try { await navigator.clipboard?.writeText(profileShareUrl); } catch {}
+    try {
+      await navigator.clipboard?.writeText(profileShareUrl);
+      void logAccountHubActivity("more_profile_copy", `${location.pathname}${location.search}#copy-profile`);
+      toast.success("Profile link copied");
+    } catch {
+      toast.error("Couldn't copy profile link");
+    }
   };
+  const shareProfile = async () => {
+    const data = {
+      title: `${displayName} on ZIVO`,
+      text: `View ${displayName}'s ZIVO profile`,
+      url: profileShareUrl,
+    };
+    try {
+      if (typeof navigator !== "undefined" && (navigator as any).share) {
+        await (navigator as any).share(data);
+        void logAccountHubActivity("more_profile_share", `${location.pathname}${location.search}#share-profile`);
+        return;
+      }
+      await navigator.clipboard?.writeText(profileShareUrl);
+      void logAccountHubActivity("more_profile_share", `${location.pathname}${location.search}#share-profile`);
+      toast.success("Profile link copied");
+    } catch {
+      /* user cancelled */
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.id || typeof window === "undefined") return;
+
+    const path = `${location.pathname}${location.search}`;
+    const eventKey = `zivo:account-hub-open:${user.id}:${path}`;
+    if (window.sessionStorage.getItem(eventKey)) return;
+    window.sessionStorage.setItem(eventKey, "1");
+
+    void logAccountHubActivity("more", path);
+  }, [location.pathname, location.search, logAccountHubActivity, user?.id]);
+
+  const {
+    data: hubActivityResult = { rows: [], syncAvailable: true },
+    isLoading: hubActivityLoading,
+  } = useQuery<MoreActivityResult>({
+    queryKey: ["more-account-hub-activity", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("account_hub_activity")
+        .select("id, source, path, region_code, device_kind, platform, created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (error) return { rows: [], syncAvailable: false };
+      return { rows: (data || []) as MoreActivityRow[], syncAvailable: true };
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const hubActivity = hubActivityResult.rows;
+  const hubActivitySyncAvailable = hubActivityResult.syncAvailable;
 
   // Email verification status (Supabase auth user has email_confirmed_at)
   const isEmailVerified = !!(user as any)?.email_confirmed_at || !!(user as any)?.confirmed_at;
@@ -1189,12 +1264,12 @@ export default function MorePage() {
       queryClient.invalidateQueries({ queryKey: ["more-pending-friends", user.id] }),
       queryClient.invalidateQueries({ queryKey: ["more-followers", user.id] }),
       queryClient.invalidateQueries({ queryKey: ["more-following", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["more-account-hub-activity", user.id] }),
     ]);
   }, [queryClient, user?.id]);
 
   // ===== Suggested next action (computed from user state) =====
-  // Declared here (not earlier) because it depends on isEmailVerified,
-  // completion, claimedToday, streak, isPlus, and pinnedHrefs — all defined above.
+  // Declared here (not earlier) because it depends on account state and query counts.
   const suggestedAction = useMemo(() => {
     if (!user) return null;
     if (!isEmailVerified) {
@@ -1203,290 +1278,371 @@ export default function MorePage() {
     if (completion < 50) {
       return { icon: User, title: "Complete your profile", desc: "Add photo, bio, and more", href: "/account/profile-edit", accent: "hsl(263 70% 58%)" };
     }
-    if (!claimedToday) {
-      return { icon: Gift, title: "Claim your daily 10 coins", desc: `${streak.days} day streak active`, href: "#checkin", accent: "hsl(38 92% 50%)" };
+    if (activeOrdersCount > 0) {
+      return { icon: Package, title: "Track active orders", desc: `${activeOrdersCount} order${activeOrdersCount === 1 ? "" : "s"} in progress`, href: "/grocery/orders", accent: "hsl(38 92% 50%)" };
+    }
+    if (upcomingFlightCount > 0) {
+      return { icon: Plane, title: "Review upcoming trips", desc: `${upcomingFlightCount} trip${upcomingFlightCount === 1 ? "" : "s"} on your calendar`, href: "/my-trips", accent: "hsl(199 89% 48%)" };
+    }
+    if (unreadNotifCount > 0) {
+      return { icon: Bell, title: "Review account alerts", desc: `${unreadNotifCount > 99 ? "99+" : unreadNotifCount} unread update${unreadNotifCount === 1 ? "" : "s"}`, href: "/notification-center", accent: "hsl(45 93% 58%)" };
     }
     if (!isPlus) {
-      return { icon: Crown, title: "Try ZIVO Plus free for 30 days", desc: "Unlock 2× coins & more", href: "/zivo-plus", accent: "hsl(45 93% 58%)" };
+      return { icon: Crown, title: "Review ZIVO Plus", desc: "Compare membership benefits", href: "/zivo-plus", accent: "hsl(45 93% 58%)" };
     }
     if (pinnedHrefs.length === 0) {
-      return { icon: Pin, title: "Pin your favorites", desc: "Tap the ★ next to any link", href: "#", accent: "hsl(263 70% 58%)" };
+      return { icon: Pin, title: "Pin important tools", desc: "Keep your best links near the top", href: "#", accent: "hsl(263 70% 58%)" };
     }
     return { icon: Sparkles, title: "Try the AI Trip Planner", desc: "Plan a full itinerary in 30s", href: "/ai-trip-planner", accent: "hsl(199 89% 48%)" };
-  }, [user, isEmailVerified, completion, claimedToday, streak.days, isPlus, pinnedHrefs.length]);
+  }, [user, isEmailVerified, completion, activeOrdersCount, upcomingFlightCount, unreadNotifCount, isPlus, pinnedHrefs.length]);
 
   const VerifiedCheck = ({ size = 18 }: { size?: number }) => (
     <VerifiedBadge size={size} />
   );
 
-  /* --- Profile Card --- */
+  const accountHubStats = [
+    { label: "Followers", value: formatCount(followerCount) ?? "0" },
+    { label: "Following", value: formatCount(followingCount) ?? "0" },
+    { label: "Posts", value: formatCount(postsCount) ?? "0" },
+    { label: "Friends", value: formatCount(friendCount) ?? "0" },
+  ];
+
+  const toggleThemePreference = () => {
+    const next = (resolvedTheme ?? theme) === "dark" ? "light" : "dark";
+    setTheme(next);
+    void logAccountHubActivity("more_preference_theme", `${location.pathname}${location.search}#theme-${next}`);
+    toast.message(`${next === "dark" ? "Dark" : "Light"} theme on`);
+  };
+
+  const formatActivityTime = (createdAt: string) => {
+    const timestamp = new Date(createdAt).getTime();
+    if (!Number.isFinite(timestamp)) return "Recently";
+    const minutes = Math.max(0, Math.round((Date.now() - timestamp) / 60_000));
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.round(hours / 24);
+    return `${days}d ago`;
+  };
+
+  const formatActivityPath = (path: string | null) => {
+    if (!path) return "Account hub";
+    const cleanPath = path.split("?")[0];
+    const labels: Record<string, string> = {
+      "/more": "Account hub",
+      "/profile": "Profile",
+      "/account/activity-log": "Activity log",
+      "/account/security": "Security center",
+      "/account/settings": "Account settings",
+    };
+    if (labels[cleanPath]) return labels[cleanPath];
+    return cleanPath
+      .replace(/^\//, "")
+      .split("/")
+      .filter(Boolean)
+      .map((part) => part.replace(/-/g, " "))
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" / ") || "Account hub";
+  };
+  const formatActivityEventLabel = (activity: MoreActivityRow) => {
+    const labels: Record<string, string> = {
+      more: "Opened account hub",
+      more_profile_copy: "Profile link copied",
+      more_profile_share: "Profile shared",
+      more_install_accepted: "App install started",
+      more_install_dismissed: "App install dismissed",
+      more_preference_theme: "Theme changed",
+      more_preference_dnd: "Alert preference changed",
+      more_preference_sound: "Sound preference changed",
+      more_preference_region: "Region changed",
+      more_preference_privacy: "Privacy mode changed",
+      more_preference_density: "Directory view changed",
+    };
+    return labels[activity.source || ""] || formatActivityPath(activity.path);
+  };
+  const getActivityEventMeta = (source: string | null) => {
+    const meta = {
+      more_profile_copy: { icon: ExternalLink, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+      more_profile_share: { icon: Share2, className: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
+      more_install_accepted: { icon: Download, className: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+      more_install_dismissed: { icon: X, className: "bg-muted text-muted-foreground" },
+      more_preference_theme: { icon: Palette, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+      more_preference_dnd: { icon: Bell, className: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+      more_preference_sound: { icon: Volume2, className: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
+      more_preference_region: { icon: Globe, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+      more_preference_privacy: { icon: Eye, className: "bg-slate-500/10 text-slate-600 dark:text-slate-300" },
+      more_preference_density: { icon: Layers, className: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+      more: { icon: Clock, className: "bg-muted text-muted-foreground" },
+    } as const;
+    return meta[(source || "more") as keyof typeof meta] || meta.more;
+  };
+  const latestHubActivityLabel = hubActivity[0]?.created_at
+    ? formatActivityTime(hubActivity[0].created_at)
+    : null;
+  const hubStatusItems = [
+    {
+      label: "Security",
+      value: isEmailVerified ? "Protected" : "Verify",
+      href: isEmailVerified ? "/account/security" : "/account/contact",
+      ariaLabel: isEmailVerified ? "Open account security" : "Open email verification",
+      icon: isEmailVerified ? ShieldCheck : AlertCircle,
+      className: isEmailVerified
+        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    },
+    {
+      label: "Activity",
+      value: hubActivitySyncAvailable ? latestHubActivityLabel || "Ready" : "Retry",
+      href: "/account/activity-log?filter=account_hub",
+      ariaLabel: "Open account hub activity log",
+      icon: hubActivitySyncAvailable ? History : AlertCircle,
+      className: hubActivitySyncAvailable
+        ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+        : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    },
+    {
+      label: "Support",
+      value: isOnline ? "Online" : "Offline",
+      href: "/support/tickets",
+      ariaLabel: "Open support tickets",
+      icon: Headset,
+      className: isOnline
+        ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+        : "bg-muted text-muted-foreground",
+    },
+  ];
+
+  /* --- Account Hub Card --- */
   const renderProfileCard = () => (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="zivo-card-organic p-4 mb-3"
+      role="region"
+      aria-labelledby="more-profile-card-title"
+      className="mb-4 overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-sm"
     >
-      {/* Email verification banner */}
-      {!isEmailVerified && (
-        <Link
-          to="/account/contact"
-          className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 active:scale-[0.99] transition-transform"
-        >
-          <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold text-amber-600 dark:text-amber-400 truncate">
-              Verify your email
+      <div className="bg-secondary/45 px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Account hub
             </p>
-            <p className="text-[10px] text-muted-foreground truncate">
-              Secure your account & unlock all features
-            </p>
+            <h2 id="more-profile-card-title" className="truncate text-xl font-extrabold leading-tight">
+              {greeting}, {displayName.split(" ")[0]}
+            </h2>
           </div>
-          <ChevronRight className="w-4 h-4 text-amber-500 shrink-0" />
-        </Link>
-      )}
-      <p className="text-[11px] text-muted-foreground/80 font-medium mb-2">
-        {greeting}, <span className="text-foreground/80 font-semibold">{displayName.split(" ")[0]}</span> 👋
-      </p>
-      <div className="flex items-center gap-3.5">
-        <Link to="/profile" className="shrink-0">
-          <Avatar className="h-14 w-14 ring-2 ring-primary/20">
-            {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-            <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
-              {displayName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </Link>
-        <Link to="/profile" className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="font-bold text-[15px] truncate">{displayName}</p>
-            {isVerified && <VerifiedCheck size={18} />}
-          </div>
-          <p className="text-[11px] text-muted-foreground truncate mt-0.5">@{handle}</p>
-          {isPlus && (
-            <Badge className="mt-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-500 border-amber-500/30 font-semibold rounded-full px-2 py-0.5 text-[10px] w-fit">
-              <Crown className="w-2.5 h-2.5 mr-1" /> ZIVO+ {plan === "annual" ? "Annual" : "Monthly"}
-            </Badge>
-          )}
-          <div className="flex gap-4 mt-1.5">
-            <div className="text-center">
-              <p className={cn("text-xs font-bold", blurClass)}>{formatCount(followerCount) ?? "0"}</p>
-              <p className="text-[9px] text-muted-foreground">Followers</p>
-            </div>
-            <div className="text-center">
-              <p className={cn("text-xs font-bold", blurClass)}>{formatCount(followingCount) ?? "0"}</p>
-              <p className="text-[9px] text-muted-foreground">Following</p>
-            </div>
-            <div className="text-center">
-              <p className={cn("text-xs font-bold", blurClass)}>{formatCount(postsCount) ?? "0"}</p>
-              <p className="text-[9px] text-muted-foreground">Posts</p>
-            </div>
-            <div className="text-center">
-              <p className={cn("text-xs font-bold", blurClass)}>{formatCount(friendCount) ?? "0"}</p>
-              <p className="text-[9px] text-muted-foreground">Friends</p>
-            </div>
-          </div>
-        </Link>
-        <div className="flex flex-col gap-1.5 shrink-0">
           <Link
-            to="/account/profile-edit"
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary active:scale-95 transition-transform text-center"
+            to="/account/settings"
+            onClick={() => trackRecent("/account/settings")}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm active:scale-95 transition-transform"
+            aria-label="Open account settings"
           >
-            Edit profile
-          </Link>
-          <Link
-            to="/profile"
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-full border border-border/50 text-muted-foreground active:scale-95 transition-transform text-center"
-          >
-            View
+            <Settings className="h-4 w-4" />
           </Link>
         </div>
       </div>
 
-      {/* Mini stats strip — hidden in OF mode (gamification not relevant) */}
-      {!zivoOFMode && (
-        <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 text-amber-400" />
-            <span className={cn("font-semibold text-foreground/80", blurClass)}>{formatCount(coinBalance) || "0"}</span>
-            <span>coins</span>
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <Link to="/profile" aria-label={`Open ${displayName}'s profile`} onClick={() => trackRecent("/profile")} className="shrink-0">
+            <Avatar className="h-16 w-16 ring-4 ring-background shadow-md">
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
+              <AvatarFallback className="bg-primary/10 text-lg font-bold text-primary">
+                {displayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <p className="truncate text-[17px] font-extrabold leading-tight">{displayName}</p>
+              {isVerified && <VerifiedCheck size={18} />}
+            </div>
+            <p className="mt-0.5 truncate text-[12px] font-medium text-muted-foreground">@{handle}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Badge className={cn(
+                "rounded-full border px-2 py-0.5 text-[10px] font-bold",
+                isEmailVerified
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+              )}>
+                {isEmailVerified ? "Email secured" : "Verify email"}
+              </Badge>
+              <Badge className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                {(profile as any)?.tier ?? "Explorer"}
+              </Badge>
+              {isPlus && (
+                <Badge className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-500">
+                  <Crown className="mr-1 h-2.5 w-2.5" /> ZIVO+ {plan === "annual" ? "Annual" : "Monthly"}
+                </Badge>
+              )}
+            </div>
           </div>
-          <span className="text-muted-foreground/30">•</span>
-          <div className="flex items-center gap-1">
-            <Award className="w-3 h-3 text-primary" />
-            <span className="font-semibold text-foreground/80 capitalize">{(profile as any)?.tier ?? "Explorer"}</span>
-            <span>tier</span>
-          </div>
-          <span className="text-muted-foreground/30">•</span>
-          <div className="flex items-center gap-1">
-            <Flame className="w-3 h-3 text-orange-500" />
-            <span className="font-semibold text-foreground/80">{streak.days}</span>
-            <span>day streak</span>
-          </div>
-          {pinnedHrefs.length > 0 && (
-            <>
-              <span className="text-muted-foreground/30">•</span>
-              <div className="flex items-center gap-1">
-                <Pin className="w-3 h-3 text-foreground" />
-                <span className="font-semibold text-foreground/80">{pinnedHrefs.length}</span>
-                <span>pinned</span>
-              </div>
-            </>
-          )}
         </div>
-      )}
 
-      {/* Connected providers strip */}
-      {connectedProviders.length > 0 && (
-        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          <span className="text-[10px] font-medium text-muted-foreground">Signed in via</span>
-          {connectedProviders.map((p) => (
-            <span
-              key={p}
-              className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary"
-            >
-              {p}
-            </span>
+        <div className="mt-4 grid grid-cols-4 gap-2 rounded-2xl bg-muted/35 p-2">
+          {accountHubStats.map((stat) => (
+            <div key={stat.label} className="min-w-0 text-center">
+              <p className={cn("truncate text-[13px] font-extrabold leading-tight", blurClass)}>{stat.value}</p>
+              <p className="truncate text-[9px] font-semibold text-muted-foreground">{stat.label}</p>
+            </div>
           ))}
         </div>
-      )}
 
-      {/* Profile completion meter + checklist — hidden in OF mode */}
-      {!zivoOFMode && completion < 100 && (
-        <div className="mt-3">
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
-              <ListChecks className="h-3 w-3" /> Profile {completion}% complete
-            </p>
-          </div>
-          <div className="h-1.5 bg-muted/60 rounded-full overflow-hidden mb-2.5">
-            <motion.div
-              className="h-full bg-gradient-to-r from-primary to-primary/70"
-              initial={{ width: 0 }}
-              animate={{ width: `${completion}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {[
-              { label: "Profile photo", done: !!profile?.avatar_url, href: "/account/profile-edit" },
-              { label: "Display name", done: !!profile?.full_name?.trim(), href: "/account/profile-edit" },
-              { label: "Username", done: !!claimedUsername, href: "/account/username" },
-              { label: "Verified", done: !!isVerified, href: "/account/verification" },
-              { label: "Bio", done: !!(profile as any)?.bio, href: "/account/profile-edit" },
-              { label: "Phone", done: !!(profile as any)?.phone, href: "/account/contact" },
-            ].map(({ label, done, href }) => (
-              <Link key={label} to={done ? "#" : href}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10.5px] font-medium border transition-colors",
-                  done
-                    ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 pointer-events-none"
-                    : "border-border/40 bg-muted/30 text-muted-foreground hover:bg-muted/60"
-                )}>
-                <span className={cn("w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0",
-                  done ? "border-emerald-500 bg-emerald-500" : "border-muted-foreground/40"
-                )}>
-                  {done && <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                </span>
-                {label}
-                {!done && <ArrowRight className="h-2.5 w-2.5 ml-auto opacity-50" />}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-    </motion.div>
-  );
+        {!zivoOFMode && completion < 100 && (
+          <Link
+            to="/account/profile-edit"
+            aria-label={`Complete profile setup, ${completion}% done`}
+            onClick={() => trackRecent("/account/profile-edit")}
+            className="mt-3 block rounded-2xl border border-primary/15 bg-primary/5 p-3 active:scale-[0.99] transition-transform"
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-primary" />
+                <p className="text-[12px] font-bold">Profile setup</p>
+              </div>
+              <p className="text-[12px] font-extrabold text-primary">{completion}%</p>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-background">
+              <motion.div
+                className="h-full rounded-full bg-primary"
+                initial={{ width: 0 }}
+                animate={{ width: `${completion}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </div>
+          </Link>
+        )}
 
-  /* --- Account Status Strip (verified / membership / wallet) --- */
-  const renderAccountStatus = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.04 }}
-      className="grid grid-cols-2 gap-2 mb-5"
-    >
-      <Link
-        to={isVerified ? "/profile" : "/account/verification"}
-        className="zivo-card-organic flex items-center gap-2 px-3 py-2.5 active:scale-[0.97] transition-transform"
-      >
-        <VerifiedCheck size={20} />
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold leading-tight truncate">
-            {isVerified ? "Verified" : "Get verified"}
-          </p>
-          <p className="text-[9px] text-muted-foreground truncate">Account</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link
+            to="/profile"
+            aria-label={`View ${displayName}'s profile`}
+            onClick={() => trackRecent("/profile")}
+            className="flex items-center justify-center gap-2 rounded-2xl bg-foreground px-3 py-3 text-[13px] font-bold text-background active:scale-[0.98] transition-transform"
+          >
+            <User className="h-4 w-4" />
+            View profile
+          </Link>
+          <Link
+            to="/account/profile-edit"
+            aria-label={`Edit ${displayName}'s profile`}
+            onClick={() => trackRecent("/account/profile-edit")}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-border/70 bg-background px-3 py-3 text-[13px] font-bold text-foreground active:scale-[0.98] transition-transform"
+          >
+            <Pencil className="h-4 w-4" />
+            Edit
+          </Link>
         </div>
-      </Link>
-      <Link
-        to="/membership"
-        className="zivo-card-organic flex items-center gap-2 px-3 py-2.5 active:scale-[0.97] transition-transform"
-      >
-        <Crown className="w-4 h-4 text-amber-500 shrink-0" />
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold leading-tight truncate capitalize">{(profile as any)?.tier ?? "Explorer"}</p>
-          <p className="text-[9px] text-muted-foreground truncate">Membership tier</p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+          <span className="flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1">
+            <Wallet className="h-3.5 w-3.5 text-emerald-500" />
+            <span className={blurClass}>{formatCount(coinBalance) || "0"} coins</span>
+          </span>
+          <span className="flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1">
+            <Pin className="h-3.5 w-3.5 text-primary" />
+            {formatShortcutCount(pinnedHrefs.length, "pinned")}
+          </span>
+          {connectedProviders.length > 0 && (
+            <span className="min-w-0 truncate rounded-full bg-muted/50 px-2.5 py-1">
+              {connectedProviders.slice(0, 2).join(" + ")}
+            </span>
+          )}
         </div>
-      </Link>
-      <Link
-        to="/wallet"
-        className="zivo-card-organic flex items-center gap-2 px-3 py-2.5 active:scale-[0.97] transition-transform"
-      >
-        <Wallet className="w-4 h-4 text-emerald-500 shrink-0" />
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold leading-tight truncate">Wallet</p>
-          <p className="text-[9px] text-muted-foreground truncate">View balance</p>
-        </div>
-      </Link>
-      {zivoOFMode ? (
-        <Link
-          to="/monetization"
-          className="zivo-card-organic flex items-center gap-2 px-3 py-2.5 active:scale-[0.97] transition-transform"
-        >
-          <Crown className="w-4 h-4 text-[#00AEEF] shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold leading-tight truncate">Subscribers</p>
-            <p className="text-[9px] text-muted-foreground truncate">ZIVO OF</p>
-          </div>
-        </Link>
-      ) : (
-        <Link
-          to="/rewards"
-          className="zivo-card-organic flex items-center gap-2 px-3 py-2.5 active:scale-[0.97] transition-transform"
-        >
-          <Star className="w-4 h-4 text-amber-400 shrink-0" />
-          <div className="min-w-0">
-            <p className={cn("text-[11px] font-bold leading-tight truncate", blurClass)}>{coinBalance > 0 ? formatCount(coinBalance) : "0"} coins</p>
-            <p className="text-[9px] text-muted-foreground truncate">ZIVO coins</p>
-          </div>
-        </Link>
-      )}
+
+        {!isEmailVerified && (
+          <Link
+            to="/account/contact"
+            aria-label="Verify email to protect payments, bookings, and account recovery"
+            onClick={() => trackRecent("/account/contact")}
+            className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 active:scale-[0.99] transition-transform"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-bold text-amber-600 dark:text-amber-400">Verify your email</p>
+              <p className="truncate text-[10px] text-muted-foreground">Protect payments, bookings, and account recovery.</p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-amber-500" />
+          </Link>
+        )}
+      </div>
     </motion.div>
   );
 
   /* --- Quick Actions Row --- */
-  const renderQuickActions = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.05 }}
-      className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-5"
-    >
-      {quickActions.map((action, i) => (
-        <Link key={action.label} to={action.href} className="flex flex-col items-center gap-1.5 flex-shrink-0">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: i * 0.04, type: "spring", stiffness: 300, damping: 22 }}
-            className="w-12 h-12 rounded-2xl flex items-center justify-center active:scale-90 transition-transform touch-manipulation"
-            style={{ background: `${action.accent}12`, color: action.accent }}
+  const renderQuickActions = () => {
+    const priorityActions = [
+      quickActions.find((action) => action.href === "/wallet"),
+      quickActions.find((action) => action.href === "/grocery/orders"),
+      quickActions.find((action) => action.href === "/saved"),
+      quickActions.find((action) => action.href === "/qr-profile"),
+      quickActions.find((action) => action.href === "/account/activity-log?filter=account_hub"),
+      quickActions.find((action) => action.href === "/support/tickets"),
+    ].filter(Boolean) as typeof quickActions;
+
+    const getActionBadge = (href: string) => {
+      if (href === "/grocery/orders" && activeOrdersCount > 0) return activeOrdersCount > 99 ? "99+" : String(activeOrdersCount);
+      if (href === "/account/activity-log?filter=account_hub" && latestHubActivityLabel) return latestHubActivityLabel;
+      return dynamicBadges[href];
+    };
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        role="region"
+        aria-labelledby="more-quick-actions-title"
+        className="mb-5 rounded-[1.5rem] border border-border/55 bg-card/70 p-3"
+      >
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 id="more-quick-actions-title" className="text-[14px] font-extrabold">Quick actions</h2>
+            <p className="text-[10px] font-semibold text-muted-foreground">Common account tasks.</p>
+          </div>
+          <button
+            type="button"
+            onClick={focusDirectorySearch}
+            aria-label="Search More tools"
+            className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-foreground active:scale-95 transition-transform"
           >
-            <action.icon className="w-5 h-5" />
-          </motion.div>
-          <span className="text-[10px] font-medium text-muted-foreground text-center leading-tight w-14">{action.label}</span>
-        </Link>
-      ))}
-    </motion.div>
-  );
+            Search tools
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {priorityActions.map((action, i) => {
+            const badge = getActionBadge(action.href);
+            return (
+              <Link
+                key={action.label}
+                to={action.href}
+                aria-label={badge ? `Open ${action.label}, ${badge}` : `Open ${action.label}`}
+                onClick={() => trackRecent(action.href)}
+                className="group relative rounded-2xl bg-muted/35 p-3 active:scale-[0.97] transition-transform"
+              >
+                {badge && (
+                  <span className="absolute right-2 top-2 max-w-[54px] truncate rounded-full bg-foreground px-1.5 py-0.5 text-center text-[9px] font-bold leading-none text-background">
+                    {badge}
+                  </span>
+                )}
+                <motion.div
+                  initial={{ scale: 0.86, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: i * 0.03, type: "spring", stiffness: 300, damping: 22 }}
+                  className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl"
+                  style={{ background: `${action.accent}14`, color: action.accent }}
+                >
+                  <action.icon className="h-[18px] w-[18px]" />
+                </motion.div>
+                <span className="block truncate text-[11px] font-extrabold leading-tight">{action.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+  };
 
   /* --- Link Row --- */
   const renderLink = (link: QuickLink, i: number) => {
@@ -1496,14 +1652,13 @@ export default function MorePage() {
     const isAction = isPartner || isSwitch || isTheme;
     const canPin = !isAction && !link.href.startsWith("#");
     const isPinned = canPin && pinnedHrefs.includes(link.href);
+    const accent = getAccentClasses(link.accent);
+    const isDestructive = /delete|report|scam|refund/i.test(`${link.label} ${link.description}`);
 
     const handleAction = () => {
       if (isPartner) setShowPartnerSheet(true);
       else if (isSwitch) setConfirmAction("switch");
-      else if (isTheme) {
-        const next = (resolvedTheme ?? theme) === "dark" ? "light" : "dark";
-        setTheme(next);
-      }
+      else if (isTheme) toggleThemePreference();
     };
 
     // Dynamic right-side content: theme row shows current theme label
@@ -1521,23 +1676,45 @@ export default function MorePage() {
         whileTap={{ scale: 0.97 }}
         onClick={isAction ? handleAction : undefined}
         className={cn(
-          "zivo-card-organic flex items-center cursor-pointer",
-          density === "compact" ? "gap-2 p-2" : "gap-3.5 p-3",
+          "group relative flex cursor-pointer items-center overflow-hidden border border-border/45 bg-background/70 shadow-sm transition hover:border-border/80 hover:bg-card hover:shadow-md",
+          density === "compact" ? "gap-2 rounded-2xl p-2" : "gap-3 rounded-[1.15rem] p-3",
         )}
       >
-          <div className={cn("zivo-icon-pill", getAccentClasses(link.accent).text, getAccentClasses(link.accent).bg)}>
+        <span
+          className={cn(
+            "absolute bottom-3 left-0 top-3 w-0.5 rounded-r-full opacity-70",
+            isDestructive && "bg-rose-500",
+          )}
+          style={isDestructive ? undefined : { backgroundColor: link.accent }}
+        />
+        <div className={cn(
+          "flex shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-background/60",
+          density === "compact" ? "h-8 w-8" : "h-10 w-10",
+          isDestructive ? "bg-rose-500/10 text-rose-600 dark:text-rose-400" : accent.text,
+          isDestructive ? "" : accent.bg,
+        )}>
           {isTheme ? (
             (resolvedTheme ?? theme) === "dark"
-              ? <Moon className={cn("w-[18px] h-[18px]", getAccentClasses(link.accent).text)} />
-              : <Sun className={cn("w-[18px] h-[18px]", getAccentClasses(link.accent).text)} />
+              ? <Moon className={cn("h-[18px] w-[18px]", isDestructive ? "text-rose-500" : accent.text)} />
+              : <Sun className={cn("h-[18px] w-[18px]", isDestructive ? "text-rose-500" : accent.text)} />
           ) : (
-            <link.icon className={cn("w-[18px] h-[18px]", getAccentClasses(link.accent).text)} />
+            <link.icon className={cn("h-[18px] w-[18px]", isDestructive ? "text-rose-500" : accent.text)} />
           )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className={cn("font-semibold leading-tight truncate", density === "compact" ? "text-[12px]" : "text-[13px]")}>{link.label}</p>
-            {link.badge && <span className="zivo-badge">{link.badge}</span>}
+            <p className={cn(
+              "truncate font-bold leading-tight",
+              density === "compact" ? "text-[12px]" : "text-[13px]",
+              isDestructive && "text-rose-600 dark:text-rose-400",
+            )}>
+              {link.label}
+            </p>
+            {link.badge && (
+              <span className="rounded-full bg-foreground px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wide text-background">
+                {link.badge}
+              </span>
+            )}
             {dynamicBadges[link.href] && (
               <span className="text-[9px] font-bold text-white bg-foreground rounded-full px-1.5 py-0.5 leading-none min-w-[18px] text-center">
                 {dynamicBadges[link.href]}
@@ -1545,26 +1722,35 @@ export default function MorePage() {
             )}
           </div>
           {density !== "compact" && (
-            <p className="text-[11px] text-muted-foreground truncate mt-0.5">{link.description}</p>
+            <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">{link.description}</p>
           )}
         </div>
         {rightSlot}
         {canPin && (
           <button
             type="button"
-            aria-label={isPinned ? "Unpin" : "Pin to favorites"}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(link.href); }}
-            className="p-1 -mr-1 rounded-full hover:bg-muted/60 active:scale-90 transition-transform shrink-0"
+            aria-label={isPinned ? `Unpin ${link.label}` : `Pin ${link.label} to shortcuts`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!normalizeInternalHref(link.href)) return;
+              togglePin(link.href);
+              toast.success(isPinned ? `${link.label} removed from shortcuts` : `${link.label} pinned`);
+            }}
+            className={cn(
+              "rounded-full p-1.5 active:scale-90 transition",
+              isPinned ? "bg-amber-400/15" : "opacity-50 hover:bg-muted/70 group-hover:opacity-100",
+            )}
           >
             <Star
               className={cn(
-                "w-4 h-4",
+                "h-3.5 w-3.5",
                 isPinned ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30",
               )}
             />
           </button>
         )}
-        <ChevronRight className="w-4 h-4 text-muted-foreground/30 shrink-0" />
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/25 transition-transform group-hover:translate-x-0.5" />
       </motion.div>
     );
 
@@ -1586,6 +1772,10 @@ export default function MorePage() {
     const isOpen = expandedSection === "__all__" || expandedSection === section.title;
     const SectionIcon = section.icon;
     const sectionId = `more-section-${section.title.replace(/\s+/g, "-").toLowerCase()}`;
+    const panelId = `${sectionId}-panel`;
+    const pinnedInSection = section.links.filter((link) => pinnedHrefs.includes(link.href)).length;
+    const previewLinks = section.links.slice(0, 3);
+    const remainingPreviewCount = Math.max(0, section.links.length - previewLinks.length);
 
     return (
       <motion.div
@@ -1594,44 +1784,82 @@ export default function MorePage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: si * 0.04, duration: 0.3 }}
-        className="[scroll-margin-top:88px]"
+        className="mb-3 overflow-hidden rounded-[1.5rem] border border-border/55 bg-card/70 shadow-sm [scroll-margin-top:88px]"
       >
         <button type="button"
           onClick={() => setExpandedSection(isOpen ? null : section.title)}
-          className="w-full flex items-center justify-between py-3 touch-manipulation"
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+          className={cn(
+            "w-full touch-manipulation px-3 py-3 text-left transition-colors",
+            isOpen ? "bg-muted/30" : "hover:bg-muted/20",
+          )}
         >
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center">
-              <SectionIcon className="w-3.5 h-3.5 text-primary" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                isOpen ? "bg-foreground text-background" : "bg-muted text-foreground",
+              )}>
+                <SectionIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  <h2 className="truncate text-[14px] font-extrabold leading-tight">{section.title}</h2>
+                  {pinnedInSection > 0 && (
+                    <span className="shrink-0 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
+                      {formatShortcutCount(pinnedInSection, "pinned")}
+                    </span>
+                  )}
+                </div>
+                <p className="truncate text-[10px] font-semibold text-muted-foreground">
+                  {formatToolCount(section.links.length)} · {section.description}
+                </p>
+              </div>
             </div>
-            <h2 className="font-bold text-[15px]">{section.title}</h2>
-            <span className="text-[10px] text-muted-foreground/60 font-medium bg-muted/40 px-1.5 py-0.5 rounded-full">{section.links.length}</span>
+            <motion.div
+              animate={{ rotate: isOpen ? 90 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="shrink-0"
+            >
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+            </motion.div>
           </div>
-          <motion.div
-            animate={{ rotate: isOpen ? 90 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
-          </motion.div>
+          {!isOpen && (
+            <div className="mt-2 flex gap-1.5 overflow-hidden pl-11">
+              {previewLinks.map((link) => (
+                <span
+                  key={link.href}
+                  className="max-w-[32%] truncate rounded-full bg-background/75 px-2 py-0.5 text-[10px] font-bold text-muted-foreground"
+                >
+                  {link.label}
+                </span>
+              ))}
+              {remainingPreviewCount > 0 && (
+                <span className="shrink-0 rounded-full bg-foreground/8 px-2 py-0.5 text-[10px] font-extrabold text-muted-foreground">
+                  +{remainingPreviewCount}
+                </span>
+              )}
+            </div>
+          )}
         </button>
 
         <AnimatePresence initial={false}>
           {isOpen && (
             <motion.div
+              id={panelId}
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden"
             >
-              <div className={cn("pb-2", density === "compact" ? "grid grid-cols-2 gap-1.5" : "space-y-1.5")}>
+              <div className={cn("px-2 pb-2 pt-2", density === "compact" ? "grid grid-cols-2 gap-1.5" : "space-y-1.5")}>
                 {section.links.map((link, i) => renderLink(link, i))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {si < sections.length - 1 && <div className="h-px bg-border/30 my-1" />}
       </motion.div>
     );
   };
@@ -1639,48 +1867,170 @@ export default function MorePage() {
   /* --- Total link count --- */
   const totalLinks = sections.reduce((sum, s) => sum + s.links.length, 0);
 
+  const recentCatalogLinks = useMemo(() => {
+    const sectionLinks = sections.flatMap((s) => s.links);
+    const sectionHrefs = new Set(sectionLinks.map((link) => link.href));
+    const quickActionOnlyLinks: QuickLink[] = quickActions
+      .filter((action) => !sectionHrefs.has(action.href))
+      .map((action) => ({
+        icon: action.icon,
+        label: action.label,
+        href: action.href,
+        description: "Quick action",
+        accent: action.accent,
+      }));
+    const extras: QuickLink[] = [
+      ...quickActionOnlyLinks,
+      ...partnerOptions.map((opt) => ({ ...opt })),
+      ...(isAdmin ? [{
+        icon: Shield,
+        label: "Admin dashboard",
+        href: "/admin/god-view",
+        description: "Moderation, reports, and system tools",
+        accent: "hsl(var(--primary))",
+      }] : []),
+    ];
+    const byHref = new Map<string, QuickLink>();
+    [...sectionLinks, ...extras].forEach((link) => {
+      const href = normalizeInternalHref(link.href);
+      if (!href || byHref.has(href)) return;
+      byHref.set(href, { ...link, href });
+    });
+    return Array.from(byHref.values());
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!recentHrefs.length || typeof window === "undefined") return;
+    const validHrefs = new Set(recentCatalogLinks.map((link) => link.href));
+    const cleaned = recentHrefs.filter((href) => validHrefs.has(href)).slice(0, 8);
+    if (sameStringList(cleaned, recentHrefs)) return;
+    setRecentHrefs(cleaned);
+    persistStoredStringList(RECENT_KEY, cleaned, 8);
+  }, [recentCatalogLinks, recentHrefs]);
+
+  useEffect(() => {
+    if (!pinnedHrefs.length || typeof window === "undefined") return;
+    const validHrefs = new Set(recentCatalogLinks.map((link) => link.href));
+    const cleaned = pinnedHrefs.filter((href) => validHrefs.has(href)).slice(0, 12);
+    if (sameStringList(cleaned, pinnedHrefs)) return;
+    setPinnedHrefs(cleaned);
+    persistStoredStringList(PIN_KEY, cleaned, 12);
+  }, [pinnedHrefs, recentCatalogLinks]);
+
   /* --- Pinned links resolved against all sections --- */
   const pinnedLinks = useMemo(() => {
     if (!pinnedHrefs.length) return [];
-    const all = sections.flatMap((s) => s.links);
-    const byHref: Map<string, QuickLink> = new (globalThis as any).Map(all.map((l) => [l.href, l]));
+    const byHref = new Map<string, QuickLink>(recentCatalogLinks.map((l) => [l.href, l]));
     return pinnedHrefs.map((h) => byHref.get(h)).filter(Boolean) as QuickLink[];
-  }, [pinnedHrefs]);
+  }, [pinnedHrefs, recentCatalogLinks]);
 
   /* --- Recent links (last 8 clicks, dedup against pinned) --- */
   const recentLinks = useMemo(() => {
     if (!recentHrefs.length) return [];
-    const all = sections.flatMap((s) => s.links);
-    const byHref: Map<string, QuickLink> = new (globalThis as any).Map(all.map((l) => [l.href, l]));
+    const byHref = new Map<string, QuickLink>(recentCatalogLinks.map((l) => [l.href, l]));
     const pinnedSet = new Set(pinnedHrefs);
     return recentHrefs
       .filter((h) => !pinnedSet.has(h))
       .map((h) => byHref.get(h))
       .filter(Boolean)
       .slice(0, 6) as QuickLink[];
-  }, [recentHrefs, pinnedHrefs]);
+  }, [recentHrefs, pinnedHrefs, recentCatalogLinks]);
 
-  /* --- Flat search across all sections --- */
-  const searchResults = useMemo(() => {
+  const recommendedShortcutLinks = useMemo(() => {
+    const wanted = ["/wallet", "/account/security", "/support/tickets", "/qr-profile", "/saved", "/my-trips"];
+    return wanted
+      .map((href) => recentCatalogLinks.find((link) => link.href === href))
+      .filter(Boolean)
+      .slice(0, 6) as QuickLink[];
+  }, [recentCatalogLinks]);
+
+  const shortcutLinks = useMemo(() => {
+    const seen = new Set<string>();
+    const combined = [...pinnedLinks, ...recentLinks].filter((link) => {
+      if (seen.has(link.href)) return false;
+      seen.add(link.href);
+      return true;
+    });
+    return combined.length > 0 ? combined.slice(0, 6) : recommendedShortcutLinks;
+  }, [pinnedLinks, recentLinks, recommendedShortcutLinks]);
+
+  const hasSavedShortcuts = pinnedLinks.length > 0 || recentLinks.length > 0;
+  const shortcutSourceLabel = (href: string) => {
+    if (pinnedHrefs.includes(href)) return "Pinned";
+    if (recentHrefs.includes(href)) return "Recent";
+    return "Suggested";
+  };
+
+  /* --- Search across all sections with category context --- */
+  const searchResults = useMemo<MoreSearchResult[] | null>(() => {
     const q = search.trim().toLowerCase();
     if (!q) return null;
-    const all = sections.flatMap((s) => s.links);
-    return all.filter(
-      (l) =>
-        l.label.toLowerCase().includes(q) ||
-        l.description.toLowerCase().includes(q),
+    return sections.flatMap((section) =>
+      section.links
+        .filter(
+          (link) =>
+            link.label.toLowerCase().includes(q) ||
+            link.description.toLowerCase().includes(q) ||
+            section.title.toLowerCase().includes(q),
+        )
+        .map((link) => ({
+          link,
+          sectionTitle: section.title,
+          sectionIcon: section.icon,
+        })),
     );
   }, [search]);
+
+  const searchResultGroups = useMemo(() => {
+    if (!searchResults) return null;
+    return sections
+      .map((section) => ({
+        title: section.title,
+        icon: section.icon,
+        results: searchResults.filter((result) => result.sectionTitle === section.title),
+      }))
+      .filter((group) => group.results.length > 0);
+  }, [searchResults]);
+  const searchSummary = searchResults
+    ? `${formatMatchCount(searchResults.length)} for "${search.trim()}"${searchResultGroups?.length ? ` in ${formatSectionCount(searchResultGroups.length)}` : ""}`
+    : "";
+
+  const searchSuggestions = ["wallet", "orders", "support", "security", "travel", "business"];
+
+  const openDirectoryResult = (link: QuickLink) => {
+    if (link.href === "#partner") {
+      setShowPartnerSheet(true);
+      return;
+    }
+    if (link.href === "#switch-account") {
+      setConfirmAction("switch");
+      return;
+    }
+    if (link.href === "#theme-toggle") {
+      toggleThemePreference();
+      return;
+    }
+    trackRecent(link.href);
+    navigate(link.href);
+  };
 
   // Expand-all toggle: store array of expanded titles when "all" is chosen
   const [allExpanded, setAllExpanded] = useState(false);
   const toggleAll = () => {
     setAllExpanded((prev) => {
       const next = !prev;
-      setExpandedSection(next ? "__all__" : "Essentials");
+      setExpandedSection(next ? "__all__" : null);
       return next;
     });
   };
+  const isDirectoryChipActive = (title: string) => allExpanded || expandedSection === title;
+  const activeDirectorySection = sections.find((section) => section.title === expandedSection);
+  const activeDirectoryLabel = allExpanded
+    ? `Showing all ${formatSectionCount(sections.length)}`
+    : activeDirectorySection
+      ? `Showing ${activeDirectorySection.title}`
+      : "Choose a section";
+  const activeDirectoryCount = allExpanded ? totalLinks : activeDirectorySection?.links.length ?? 0;
 
   const handleConfirm = () => {
     if (confirmAction === "switch") {
@@ -1691,6 +2041,16 @@ export default function MorePage() {
     }
     setConfirmAction(null);
   };
+  const rawReturnTarget = new URLSearchParams(location.search).get("from") || "profile";
+  const returnTarget = rawReturnTarget
+    .replace(/^\/+/, "")
+    .replace(/[^a-z0-9/_-]/gi, "")
+    .split("/")
+    .filter(Boolean)
+    .join("/") || "profile";
+  const returnLabel = returnTarget.split("/").pop()!
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background safe-area-bottom">
@@ -1698,31 +2058,36 @@ export default function MorePage() {
 
       <div className="hidden lg:block"><NavBar /></div>
 
-      {/* Mobile sticky header with back button (or scroll-aware search) */}
+      {/* Mobile sticky header */}
       <header
-        className="zivo-pt-safe-sticky lg:hidden sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/40 flex items-center gap-2 px-3 pb-2 pt-safe"
+        className="zivo-pt-safe-sticky sticky top-0 z-30 flex items-center gap-3 border-b border-border/40 bg-background/90 px-3 pb-2 pt-safe backdrop-blur-xl lg:hidden"
       >
         <button type="button"
           onClick={() => {
-            const params = new URLSearchParams(location.search);
-            const from = params.get("from");
-            if (from) navigate(`/${from}`);
-            else navigate("/profile");
+            navigate(`/${returnTarget}`);
           }}
-          aria-label="Go back"
-          className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted/60 active:scale-90 transition-transform text-foreground"
+          aria-label={`Back to ${returnLabel}`}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/55 text-foreground transition-transform hover:bg-muted active:scale-90"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        {/* Always show title — the labeled "Search account, settings, links…"
-            field below is the canonical search. Previously this swapped to a
-            second search bar after 400px of scroll, which left two visually
-            competing search inputs on screen at the same time. */}
-        <h1 className="font-bold text-[17px] flex-1">More</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[16px] font-extrabold leading-tight">Account hub</h1>
+          <p className="truncate text-[10px] font-semibold text-muted-foreground">
+            Tools, settings, support
+          </p>
+        </div>
+        <button type="button"
+          onClick={() => user ? setShowShareProfile(true) : shareApp()}
+          aria-label={user ? "Share your profile" : "Share ZIVO"}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/55 text-foreground transition-transform hover:bg-muted active:scale-90"
+        >
+          <Share2 className="h-[18px] w-[18px]" />
+        </button>
         <button type="button"
           onClick={() => setShowHelpSheet(true)}
-          aria-label="Open help"
-          className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted/60 active:scale-90 transition-transform text-foreground"
+          aria-label="Open More help"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-transform active:scale-90"
         >
           <HelpCircle className="h-5 w-5" />
         </button>
@@ -1760,11 +2125,40 @@ export default function MorePage() {
           {/* Profile Card */}
           {user && renderProfileCard()}
 
+          {user && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              role="region"
+              aria-labelledby="more-status-summary-title"
+              className="mb-4 grid grid-cols-3 gap-2"
+            >
+              <h2 id="more-status-summary-title" className="sr-only">Account status summary</h2>
+              {hubStatusItems.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  aria-label={`${item.ariaLabel}: ${item.value}`}
+                  onClick={() => trackRecent(item.href)}
+                  className="min-w-0 rounded-[1.25rem] border border-border/55 bg-card/75 px-2.5 py-3 shadow-sm active:scale-[0.97] transition-transform hover:bg-card"
+                >
+                  <div className={cn("mb-2 flex h-8 w-8 items-center justify-center rounded-xl", item.className)}>
+                    <item.icon className="h-4 w-4" />
+                  </div>
+                  <p className="truncate text-[12px] font-extrabold leading-tight">{item.value}</p>
+                  <p className="truncate text-[9px] font-semibold text-muted-foreground">{item.label}</p>
+                </Link>
+              ))}
+            </motion.div>
+          )}
+
           {/* Guest empty state */}
           {!user && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
+              role="region"
+              aria-labelledby="more-guest-title"
               className="zivo-card-organic p-5 mb-5 relative overflow-hidden"
             >
               <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 blur-2xl" />
@@ -1772,7 +2166,7 @@ export default function MorePage() {
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary flex items-center justify-center mb-3">
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
-                <h2 className="font-bold text-[18px] mb-1">Welcome to ZIVO</h2>
+                <h2 id="more-guest-title" className="font-bold text-[18px] mb-1">Welcome to ZIVO</h2>
                 <p className="text-[12px] text-muted-foreground mb-4 leading-relaxed">
                   Sign in to access {totalLinks} features — book travel, earn coins, manage orders,
                   and more.
@@ -1780,12 +2174,14 @@ export default function MorePage() {
                 <div className="flex gap-2">
                   <Link
                     to="/login"
+                    aria-label="Sign in to ZIVO"
                     className="flex-1 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-[13px] text-center active:scale-95 transition-transform"
                   >
                     Sign in
                   </Link>
                   <Link
                     to="/signup"
+                    aria-label="Create a ZIVO account"
                     className="flex-1 py-2.5 rounded-full border border-border bg-card text-foreground font-bold text-[13px] text-center active:scale-95 transition-transform"
                   >
                     Create account
@@ -1793,6 +2189,7 @@ export default function MorePage() {
                 </div>
                 <Link
                   to="/install"
+                  aria-label="Download the ZIVO app"
                   className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -1802,259 +2199,175 @@ export default function MorePage() {
             </motion.div>
           )}
 
-          {/* Suggested next action (logged-in only) — hidden in OF mode */}
-          {user && suggestedAction && !zivoOFMode && (
-            <Link
-              to={suggestedAction.href.startsWith("/") ? suggestedAction.href : "#"}
-              className="block mb-4"
-              onClick={(e) => {
-                if (suggestedAction.href === "#checkin" && !claimedToday) {
-                  e.preventDefault();
-                  claimCheckin();
-                } else if (suggestedAction.href === "#") {
-                  e.preventDefault();
-                }
-              }}
+          {/* Action center */}
+          {user && (suggestedAction || upcomingFlightCount > 0 || activeOrdersCount > 0) && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              role="region"
+              aria-labelledby="more-action-center-title"
+              className="mb-4 rounded-[1.5rem] border border-border/55 bg-card/70 p-3"
             >
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileTap={{ scale: 0.98 }}
-                className={cn("zivo-card-organic flex items-center gap-3 p-3 active:scale-[0.99] transition-transform border-l-4", getAccentClasses(suggestedAction.accent).border)}
-              >
-                <div
-                  className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", getAccentClasses(suggestedAction.accent).bg, getAccentClasses(suggestedAction.accent).text)}
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h2 id="more-action-center-title" className="text-[14px] font-extrabold">Action center</h2>
+                  <p className="text-[10px] font-semibold text-muted-foreground">What needs attention now.</p>
+                </div>
+                {(upcomingFlightCount > 0 || activeOrdersCount > 0) && (
+                  <span className="rounded-full bg-muted/60 px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+                    {upcomingFlightCount + activeOrdersCount} active
+                  </span>
+                )}
+              </div>
+
+              {suggestedAction && !zivoOFMode && (
+                <Link
+                  to={suggestedAction.href.startsWith("/") ? suggestedAction.href : "#"}
+                  aria-label={`Open suggested action: ${suggestedAction.title}`}
+                  className="block"
+	                  onClick={(e) => {
+	                    if (suggestedAction.href === "#") {
+	                      e.preventDefault();
+	                      setExpandedSection(null);
+	                      setAllExpanded(false);
+	                      requestAnimationFrame(() => {
+	                        document.getElementById("more-directory")?.scrollIntoView({ behavior: "smooth", block: "start" });
+	                      });
+                    } else {
+                      trackRecent(suggestedAction.href);
+                    }
+                  }}
                 >
-                  <suggestedAction.icon className={cn("w-5 h-5", getAccentClasses(suggestedAction.accent).text)} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Suggested next
-                  </p>
-                  <p className="font-bold text-[14px] truncate">{suggestedAction.title}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{suggestedAction.desc}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/30 shrink-0" />
-              </motion.div>
-            </Link>
-          )}
+                  <div className={cn(
+                    "flex items-center gap-3 rounded-[1.15rem] border-l-4 bg-muted/35 p-3 active:scale-[0.99] transition-transform",
+                    getAccentClasses(suggestedAction.accent).border,
+                  )}>
+                    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", getAccentClasses(suggestedAction.accent).bg)}>
+                      <suggestedAction.icon className={cn("h-5 w-5", getAccentClasses(suggestedAction.accent).text)} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-extrabold">{suggestedAction.title}</p>
+                      <p className="truncate text-[11px] font-medium text-muted-foreground">{suggestedAction.desc}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
+                  </div>
+                </Link>
+              )}
 
-          {/* Active trips & orders widget */}
-          {user && (upcomingFlightCount > 0 || activeOrdersCount > 0) && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-2 gap-2 mb-4"
-            >
-              <Link
-                to="/my-trips"
-                className="zivo-card-organic p-3 active:scale-[0.97] transition-transform border-border bg-secondary"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Plane className="w-4 h-4 text-foreground" />
-                  <p className="text-[10px] font-bold text-foreground uppercase tracking-wider">Trips</p>
+              {(upcomingFlightCount > 0 || activeOrdersCount > 0) && (
+                <div className={cn("grid gap-2", suggestedAction && !zivoOFMode ? "mt-2 grid-cols-2" : "grid-cols-2")}>
+                  <Link
+                    to="/my-trips"
+                    aria-label={`Open trips, ${upcomingFlightCount} upcoming`}
+                    onClick={() => trackRecent("/my-trips")}
+                    className="rounded-[1.15rem] bg-muted/35 p-3 active:scale-[0.97] transition-transform"
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <Plane className="h-4 w-4 text-sky-500" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trips</p>
+                    </div>
+                    <p className="text-2xl font-extrabold leading-none">{upcomingFlightCount}</p>
+                    <p className="mt-1 truncate text-[10px] font-medium text-muted-foreground">Upcoming</p>
+                  </Link>
+                  <Link
+                    to="/grocery/orders"
+                    aria-label={`Open orders, ${activeOrdersCount} in progress`}
+                    onClick={() => trackRecent("/grocery/orders")}
+                    className="rounded-[1.15rem] bg-amber-500/10 p-3 active:scale-[0.97] transition-transform"
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <Package className="h-4 w-4 text-amber-500" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Orders</p>
+                    </div>
+                    <p className="text-2xl font-extrabold leading-none">{activeOrdersCount}</p>
+                    <p className="mt-1 truncate text-[10px] font-medium text-muted-foreground">In progress</p>
+                  </Link>
                 </div>
-                <p className="text-2xl font-extrabold leading-none">{upcomingFlightCount}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Upcoming • Tap to view
-                </p>
-              </Link>
-              <Link
-                to="/grocery/orders"
-                className="zivo-card-organic p-3 active:scale-[0.97] transition-transform bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Package className="w-4 h-4 text-amber-500" />
-                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Orders</p>
-                </div>
-                <p className="text-2xl font-extrabold leading-none">{activeOrdersCount}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  In progress • Tap to track
-                </p>
-              </Link>
+              )}
             </motion.div>
           )}
-
-          {/* Daily Challenges — hidden in OF mode (gamification not relevant) */}
-          {user && !zivoOFMode && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="zivo-card-organic p-3.5 mb-4"
-            >
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                    <Trophy className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-[13px]">Daily challenges</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {completedChallenges.length}/{dailyChallenges.length} done • +{dailyChallenges.reduce((s, c) => s + c.reward, 0)} coins
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[11px] font-bold text-primary">{challengeProgress}%</span>
-              </div>
-              <div className="h-1.5 bg-muted/60 rounded-full overflow-hidden mb-2.5">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${challengeProgress}%` }}
-                  transition={{ duration: 0.6 }}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {dailyChallenges.map((c) => {
-                  const done = completedChallenges.includes(c.id);
-                  return (
-                    <Link
-                      key={c.id}
-                      to={c.href}
-                      onClick={() => { completeChallenge(c.id); trackRecent(c.href); }}
-                      className={cn(
-                        "flex items-center gap-2 p-2 rounded-xl border transition active:scale-[0.97]",
-                        done
-                          ? "bg-emerald-500/10 border-emerald-500/30"
-                          : "bg-muted/40 border-border/50 hover:bg-muted/60",
-                      )}
-                    >
-                      <div className={cn(
-                        "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-                        done ? "bg-emerald-500/20" : "bg-primary/15",
-                      )}>
-                        {done
-                          ? <BadgeCheck className="w-3.5 h-3.5 text-emerald-500" />
-                          : <c.icon className="w-3.5 h-3.5 text-primary" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          "text-[11px] font-semibold leading-tight truncate",
-                          done && "line-through text-muted-foreground",
-                        )}>
-                          {c.label}
-                        </p>
-                        <p className="text-[9px] text-amber-500 font-bold">+{c.reward} coins</p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Account Status Strip (verified / tier / wallet) */}
-          {user && renderAccountStatus()}
 
           {/* Quick Actions */}
           {user && renderQuickActions()}
 
-          {/* Quick Toggles row */}
+          {/* Preferences panel */}
           {user && (
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-3 gap-2 mb-5"
+              role="region"
+              aria-labelledby="more-preferences-title"
+              className="mb-5 rounded-[1.75rem] border border-border/60 bg-card p-3 shadow-sm"
             >
-              <button type="button"
-                onClick={() => {
-                  const next = (resolvedTheme ?? theme) === "dark" ? "light" : "dark";
-                  setTheme(next);
-                }}
-                className="zivo-card-organic flex items-center gap-2 px-3 py-2.5 active:scale-[0.97] transition-transform"
-              >
-                {(resolvedTheme ?? theme) === "dark"
-                  ? <Moon className="w-4 h-4 text-amber-400 shrink-0" />
-                  : <Sun className="w-4 h-4 text-amber-500 shrink-0" />}
-                <div className="text-left min-w-0">
-                  <p className="text-[11px] font-bold leading-tight truncate capitalize">
-                    {resolvedTheme ?? theme ?? "auto"}
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 id="more-preferences-title" className="text-[15px] font-extrabold">Preferences</h2>
+                  <p className="truncate text-[11px] font-medium text-muted-foreground">
+                    {deviceInfo.kind} • {deviceInfo.platform} • {regions.find((r) => r.code === region)?.label ?? region}
                   </p>
-                  <p className="text-[9px] text-muted-foreground truncate">Theme</p>
                 </div>
-              </button>
-              <button type="button"
-                onClick={toggleDnd}
-                className="zivo-card-organic flex items-center gap-2 px-3 py-2.5 active:scale-[0.97] transition-transform"
-              >
-                <Bell className={cn("w-4 h-4 shrink-0", dndOn ? "text-rose-500" : "text-emerald-500")} />
-                <div className="text-left min-w-0">
-                  <p className="text-[11px] font-bold leading-tight truncate">
-                    {dndOn ? "DnD on" : "DnD off"}
-                  </p>
-                  <p className="text-[9px] text-muted-foreground truncate">Notifications</p>
-                </div>
-              </button>
-              <button type="button"
-                onClick={toggleSound}
-                className="zivo-card-organic flex items-center gap-2 px-3 py-2.5 active:scale-[0.97] transition-transform"
-              >
-                <Volume2 className={cn("w-4 h-4 shrink-0", soundOn ? "text-sky-500" : "text-muted-foreground")} />
-                <div className="text-left min-w-0">
-                  <p className="text-[11px] font-bold leading-tight truncate">
-                    {soundOn ? "Sound on" : "Muted"}
-                  </p>
-                  <p className="text-[9px] text-muted-foreground truncate">App sounds</p>
-                </div>
-              </button>
-            </motion.div>
-          )}
-
-          {/* Country / Region switcher chips */}
-          {user && (
-            <div className="flex items-center gap-1.5 mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
-              <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider shrink-0">
-                <Globe className="w-3 h-3 inline mr-1 -mt-0.5" />
-                Region
-              </span>
-              {regions.map((r) => (
-                <button type="button"
-                  key={r.code}
-                  onClick={() => setRegionCode(r.code)}
-                  className={cn(
-                    "shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-semibold transition active:scale-95",
-                    region === r.code
-                      ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30"
-                      : "bg-muted/50 text-foreground/70 hover:bg-muted",
-                  )}
-                  aria-label={`Switch to ${r.label}`}
+                <Link
+                  to="/account/preferences"
+                  aria-label="Manage account preferences"
+                  className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-foreground active:scale-95 transition-transform"
                 >
-                  <span className="text-base leading-none">{r.flag}</span>
-                  <span>{r.code}</span>
-                </button>
-              ))}
-            </div>
-          )}
+                  Manage
+                </Link>
+              </div>
 
-          {/* PWA install banner (only when installable & not dismissed) */}
-          {installPrompt && !installDismissed && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="zivo-card-organic flex items-center gap-3 p-3 mb-4 bg-gradient-to-r from-primary/10 border-primary/20"
-            >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary flex items-center justify-center shrink-0">
-                <Download className="w-5 h-5 text-white" />
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button"
+                  onClick={toggleThemePreference}
+                  aria-label={`Theme is ${resolvedTheme ?? theme ?? "auto"}. Switch to ${(resolvedTheme ?? theme) === "dark" ? "light" : "dark"} theme`}
+                  className="rounded-2xl bg-muted/45 px-3 py-3 text-left active:scale-[0.97] transition-transform"
+                >
+                  {(resolvedTheme ?? theme) === "dark"
+                    ? <Moon className="mb-2 h-4 w-4 text-amber-400" />
+                    : <Sun className="mb-2 h-4 w-4 text-amber-500" />}
+                  <p className="truncate text-[11px] font-extrabold capitalize">{resolvedTheme ?? theme ?? "auto"}</p>
+                  <p className="truncate text-[9px] font-medium text-muted-foreground">Theme</p>
+                </button>
+                <button type="button"
+                  onClick={toggleDnd}
+                  aria-pressed={dndOn}
+                  aria-label={dndOn ? "Turn do not disturb off" : "Turn do not disturb on"}
+                  className="rounded-2xl bg-muted/45 px-3 py-3 text-left active:scale-[0.97] transition-transform"
+                >
+                  <Bell className={cn("mb-2 h-4 w-4", dndOn ? "text-rose-500" : "text-emerald-500")} />
+                  <p className="truncate text-[11px] font-extrabold">{dndOn ? "DnD on" : "DnD off"}</p>
+                  <p className="truncate text-[9px] font-medium text-muted-foreground">Alerts</p>
+                </button>
+                <button type="button"
+                  onClick={toggleSound}
+                  aria-pressed={soundOn}
+                  aria-label={soundOn ? "Mute app sounds" : "Turn app sounds on"}
+                  className="rounded-2xl bg-muted/45 px-3 py-3 text-left active:scale-[0.97] transition-transform"
+                >
+                  <Volume2 className={cn("mb-2 h-4 w-4", soundOn ? "text-sky-500" : "text-muted-foreground")} />
+                  <p className="truncate text-[11px] font-extrabold">{soundOn ? "Sound on" : "Muted"}</p>
+                  <p className="truncate text-[9px] font-medium text-muted-foreground">Audio</p>
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-[13px]">Install ZIVO</p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  Add to home screen for instant access
-                </p>
+
+              <div className="mt-3 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+                {regions.slice(0, 6).map((r) => (
+                  <button type="button"
+                    key={r.code}
+                    onClick={() => setRegionCode(r.code)}
+                    aria-pressed={region === r.code}
+                    aria-current={region === r.code ? "true" : undefined}
+                    aria-label={region === r.code ? `Current region ${r.label}` : `Switch to ${r.label}`}
+                    className={cn(
+                      "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold transition active:scale-95",
+                      region === r.code
+                        ? "bg-foreground text-background"
+                        : "bg-muted/60 text-muted-foreground",
+                    )}
+                  >
+                    {r.flag} {r.code}
+                  </button>
+                ))}
               </div>
-              <button type="button"
-                onClick={triggerInstall}
-                className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground font-bold text-[11px] active:scale-95 transition-transform"
-              >
-                Install
-              </button>
-              <button type="button"
-                onClick={dismissInstall}
-                aria-label="Dismiss"
-                className="p-1 -mr-1 rounded-full hover:bg-muted/60 active:scale-90 transition-transform"
-              >
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
             </motion.div>
           )}
 
@@ -2063,6 +2376,8 @@ export default function MorePage() {
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
+              role="region"
+              aria-labelledby="more-latest-alerts-title"
               className="mb-5"
             >
               <div className="flex items-center justify-between mb-2.5">
@@ -2070,12 +2385,12 @@ export default function MorePage() {
                   <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
                     <Bell className="w-3.5 h-3.5 text-foreground" strokeWidth={1.8} />
                   </div>
-                  <h2 className="font-bold text-[15px]">Latest alerts</h2>
+                  <h2 id="more-latest-alerts-title" className="font-bold text-[15px]">Latest alerts</h2>
                   <span className="text-[10px] text-muted-foreground/60 font-medium bg-muted/40 px-1.5 py-0.5 rounded-full">
                     {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
                   </span>
                 </div>
-                <Link to="/notification-center" className="text-[11px] font-semibold text-primary">
+                <Link to="/notification-center" aria-label="See all latest alerts" className="text-[11px] font-semibold text-primary">
                   See all
                 </Link>
               </div>
@@ -2084,6 +2399,7 @@ export default function MorePage() {
                   <Link
                     key={n.id}
                     to={n.action_url || "/notification-center"}
+                    aria-label={`Open alert: ${formatNotificationText(n.title) || "Notification"}`}
                     className="zivo-card-organic flex items-start gap-2.5 p-3 active:scale-[0.98] transition-transform"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-foreground mt-1.5 shrink-0" />
@@ -2100,537 +2416,765 @@ export default function MorePage() {
             </motion.div>
           )}
 
-          {/* Search */}
-          <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search account, settings, links…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onBlur={() => recordSearch(search)}
-              onKeyDown={(e) => { if (e.key === "Enter") recordSearch(search); }}
-              className="pl-9 pr-16 h-10 rounded-xl bg-muted/50 border-border/40 text-sm"
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {search && (
-                <button type="button"
-                  onClick={() => setSearch("")}
-                  aria-label="Clear search"
-                  className="p-1 rounded-full hover:bg-muted active:scale-90 transition-transform"
-                >
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              )}
-              {speechRef && (
-                <button type="button"
-                  onClick={startVoiceSearch}
-                  aria-label="Voice search"
-                  className={cn(
-                    "p-1.5 rounded-full active:scale-90 transition-transform",
-                    isListening ? "bg-rose-500/15" : "hover:bg-muted",
-                  )}
-                >
-                  <Mic className={cn(
-                    "h-4 w-4",
-                    isListening ? "text-rose-500 animate-pulse" : "text-muted-foreground",
-                  )} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Recent searches chips */}
-          {!search && searchHistory.length > 0 && (
-            <div className="flex items-center gap-1.5 mb-4 flex-wrap">
-              <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
-                Recent:
-              </span>
-              {searchHistory.map((q) => (
-                <button type="button"
-                  key={q}
-                  onClick={() => setSearch(q)}
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-muted/60 hover:bg-muted text-foreground/80 active:scale-95 transition"
-                >
-                  {q}
-                </button>
-              ))}
-              <button type="button"
-                onClick={() => {
-                  setSearchHistory([]);
-                  try { window.localStorage.removeItem(SEARCH_HISTORY_KEY); } catch {}
-                }}
-                aria-label="Clear search history"
-                className="text-[10px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors ml-1"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-          {!search && searchHistory.length === 0 && <div className="mb-2" />}
-
-          {/* Section jump-chips */}
-          {!searchResults && (
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-3">
-              {sections.map((s) => (
-                <button type="button"
-                  key={s.title}
-                  onClick={() => {
-                    setExpandedSection(s.title);
-                    setAllExpanded(false);
-                    requestAnimationFrame(() => {
-                      const el = document.getElementById(`more-section-${s.title.replace(/\s+/g, "-").toLowerCase()}`);
-                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    });
-                  }}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted active:scale-95 transition text-[11px] font-semibold text-foreground/80"
-                >
-                  <s.icon className="w-3 h-3" />
-                  {s.title}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Toolbar: Expand all + Privacy + Share */}
-          {!searchResults && (
-            <div className="flex items-center justify-between mb-3 px-1">
-              <div className="flex items-center gap-3">
-                <button type="button"
-                  onClick={toggleAll}
-                  className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  {allExpanded ? "Collapse all" : "Expand all"}
-                </button>
-                <button type="button"
-                  onClick={togglePrivacy}
-                  className={cn(
-                    "flex items-center gap-1.5 text-[12px] font-semibold transition-colors",
-                    privacyMode ? "text-rose-500" : "text-muted-foreground hover:text-foreground",
-                  )}
-                  aria-label="Toggle privacy mode"
-                  title={privacyMode ? "Privacy mode enabled" : "Privacy mode disabled"}
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  {privacyMode ? "Private" : "Privacy"}
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <button type="button"
-                  onClick={() => user ? setShowShareProfile(true) : shareApp()}
-                  className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Share"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  Share
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Recently Used (only when search empty and we have items) */}
-          {!searchResults && recentLinks.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4"
-            >
-              <div className="flex items-center justify-between mb-2 mt-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center">
-                    <Clock className="w-3.5 h-3.5 text-foreground" />
-                  </div>
-                  <h2 className="font-bold text-[15px]">Recently Used</h2>
-                  <span className="text-[10px] text-muted-foreground/60 font-medium bg-muted/40 px-1.5 py-0.5 rounded-full">
-                    {recentLinks.length}
+          {/* Directory */}
+          <section
+            id="more-directory"
+            role="region"
+            aria-labelledby="more-directory-title"
+            className="mb-4 rounded-[1.75rem] border border-border/60 bg-card p-3 shadow-sm [scroll-margin-top:88px]"
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  <h2 id="more-directory-title" className="truncate text-[15px] font-extrabold">Directory</h2>
+                  <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-extrabold text-background">
+                    {formatToolCount(totalLinks)}
                   </span>
                 </div>
+                <p className="truncate text-[11px] font-medium text-muted-foreground">
+                  Search settings, support, orders, travel, and account tools.
+                </p>
+              </div>
+              {!searchResults && (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="rounded-full bg-muted/55 px-2 py-1 text-[10px] font-bold text-muted-foreground">
+                    {formatSectionCount(sections.length)}
+                  </span>
+                  <button type="button"
+                    onClick={toggleAll}
+                    aria-pressed={allExpanded}
+                    aria-label={allExpanded ? "Collapse all directory sections" : "Expand all directory sections"}
+                    className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-foreground active:scale-95 transition-transform"
+                  >
+                    {allExpanded ? "Collapse" : "All"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div role="search" aria-label="More directory search" className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={directorySearchRef}
+                type="search"
+                aria-label="Search More tools"
+                placeholder="Search More"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onBlur={() => recordSearch(search)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    recordSearch(search);
+                    if (searchResults?.length === 1) {
+                      e.preventDefault();
+                      openDirectoryResult(searchResults[0].link);
+                    }
+                  }
+                  if (e.key === "Escape") clearDirectorySearch();
+                }}
+                className="h-11 rounded-2xl border-border/50 bg-muted/45 pl-9 pr-16 text-sm"
+              />
+              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                {search && (
+                  <button type="button"
+                    onClick={clearDirectorySearch}
+                    aria-label={`Clear search for ${search}`}
+                    className="rounded-full p-1 hover:bg-muted active:scale-90 transition-transform"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                )}
+                {speechRef && (
+                  <button type="button"
+                    onClick={startVoiceSearch}
+                    aria-label="Voice search"
+                    className={cn(
+                      "rounded-full p-1.5 active:scale-90 transition-transform",
+                      isListening ? "bg-rose-500/15" : "hover:bg-muted",
+                    )}
+                  >
+                    <Mic className={cn(
+                      "h-4 w-4",
+                      isListening ? "text-rose-500 animate-pulse" : "text-muted-foreground",
+                    )} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {!search && searchHistory.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span
+                  title={formatSearchCount(searchHistory.length)}
+                  className="mr-0.5 max-w-[8.5rem] truncate text-[10px] font-bold uppercase tracking-wide text-muted-foreground/70"
+                >
+                  {formatSearchCount(searchHistory.length)}
+                </span>
+                {searchHistory.slice(0, 4).map((q) => (
+                  <button type="button"
+                    key={q}
+                    aria-label={`Search for ${q}`}
+                    title={q}
+                    onClick={() => {
+                      setSearch(q);
+                      recordSearch(q);
+                      requestAnimationFrame(() => directorySearchRef.current?.focus());
+                    }}
+                    className="max-w-[9rem] truncate rounded-full bg-muted/60 px-2.5 py-1 text-[11px] font-semibold text-foreground/80 active:scale-95 transition"
+                  >
+                    {q}
+                  </button>
+                ))}
                 <button type="button"
                   onClick={() => {
-                    setRecentHrefs([]);
-                    try { window.localStorage.removeItem(RECENT_KEY); } catch {}
+                    setSearchHistory([]);
+                    persistStoredStringList(SEARCH_HISTORY_KEY, [], 5);
+                    toast.success("Search history cleared");
                   }}
-                  className="text-[11px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+                  aria-label={`Clear ${formatSearchCount(searchHistory.length)}`}
+                  className="px-1 text-[10px] font-bold text-muted-foreground/70 hover:text-foreground transition-colors"
                 >
                   Clear
                 </button>
               </div>
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
-                {recentLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    to={link.href}
-                    onClick={() => trackRecent(link.href)}
-                    className="zivo-card-organic flex items-center gap-2 px-3 py-2 shrink-0 active:scale-[0.97] transition-transform"
+            )}
+
+            {!searchResults && (
+              <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                {sections.map((s) => (
+                  <button type="button"
+                    key={s.title}
+                    aria-pressed={isDirectoryChipActive(s.title)}
+                    aria-label={`${isDirectoryChipActive(s.title) ? "Showing" : "Open"} ${s.title}, ${formatToolCount(s.links.length)}`}
+                    title={`${s.title} · ${formatToolCount(s.links.length)}`}
+                    onClick={() => {
+                      setExpandedSection(s.title);
+                      setAllExpanded(false);
+                      requestAnimationFrame(() => {
+                        const el = document.getElementById(`more-section-${s.title.replace(/\s+/g, "-").toLowerCase()}`);
+                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      });
+                    }}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-95",
+                      isDirectoryChipActive(s.title)
+                        ? "bg-foreground text-background"
+                        : "bg-muted/60 text-muted-foreground",
+                    )}
                   >
-                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", getAccentClasses(link.accent).bg, getAccentClasses(link.accent).text)}>
-                      <link.icon className={cn("w-3.5 h-3.5", getAccentClasses(link.accent).text)} />
-                    </div>
-                    <p className="text-[12px] font-semibold whitespace-nowrap">{link.label}</p>
-                  </Link>
+                    <s.icon className="h-3 w-3" />
+                    <span className="max-w-[8.5rem] truncate">{s.title}</span>
+                    <span className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[9px] leading-none",
+                      isDirectoryChipActive(s.title)
+                        ? "bg-background/20 text-background"
+                        : "bg-background/70 text-muted-foreground",
+                    )}>
+                      {s.links.length}
+                    </span>
+                  </button>
                 ))}
               </div>
-              <div className="h-px bg-border/30 my-3" />
-            </motion.div>
-          )}
+            )}
 
-          {/* Pinned (only when search empty) */}
-          {!searchResults && pinnedLinks.length > 0 && (
+            {!searchResults && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="mt-2 flex items-center justify-between gap-2 rounded-2xl bg-muted/30 px-3 py-2"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <Compass className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <p className="truncate text-[11px] font-extrabold text-foreground">
+                    {activeDirectoryLabel}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-background/75 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                  {formatToolCount(activeDirectoryCount)}
+                </span>
+              </div>
+            )}
+
+            {!searchResults && (
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-3">
+                <div className="flex items-center gap-2">
+                  <button type="button"
+                    onClick={() => {
+                      const next = density === "compact" ? "comfortable" : "compact";
+                      setDensity(next);
+                      try { window.localStorage.setItem(DENSITY_KEY, next); } catch {}
+                      void logAccountHubActivity("more_preference_density", `${location.pathname}${location.search}#density-${next}`);
+                      toast.message(`Directory set to ${next}`);
+                    }}
+                    aria-pressed={density === "compact"}
+                    aria-label={`Directory density is ${density}. Switch to ${density === "compact" ? "comfortable" : "compact"} view`}
+                    className="flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    {density === "compact" ? "Compact" : "Comfort"}
+                  </button>
+                  <button type="button"
+                    onClick={togglePrivacy}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold active:scale-95 transition-transform",
+                      privacyMode ? "bg-rose-500/10 text-rose-500" : "bg-muted/50 text-muted-foreground",
+                    )}
+                    aria-pressed={privacyMode}
+                    aria-label={privacyMode ? "Turn privacy mode off" : "Turn privacy mode on"}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    {privacyMode ? "Private" : "Privacy"}
+                  </button>
+                </div>
+                <button type="button"
+                  onClick={() => user ? setShowShareProfile(true) : shareApp()}
+                  className="flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
+                  aria-label={user ? "Share your profile" : "Share ZIVO"}
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  {user ? "Profile" : "Share"}
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* Shortcuts */}
+          {!searchResults && shortcutLinks.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-4"
+              role="region"
+              aria-labelledby="more-shortcuts-title"
+              className="mb-4 rounded-[1.5rem] border border-border/55 bg-card/70 p-3"
             >
-              <div className="flex items-center justify-between mb-2 mt-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-amber-400/15 flex items-center justify-center">
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+                    {hasSavedShortcuts ? (
+                      <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+                    ) : (
+                      <Compass className="h-3.5 w-3.5" />
+                    )}
                   </div>
-                  <h2 className="font-bold text-[15px]">Pinned</h2>
-                  <span className="text-[10px] text-muted-foreground/60 font-medium bg-muted/40 px-1.5 py-0.5 rounded-full">
-                    {pinnedLinks.length}
-                  </span>
+                  <div className="min-w-0">
+                    <h2 id="more-shortcuts-title" className="truncate text-[14px] font-extrabold">
+                      {hasSavedShortcuts ? "Your shortcuts" : "Recommended"}
+                    </h2>
+                    <p className="truncate text-[10px] font-semibold text-muted-foreground">
+                      {hasSavedShortcuts ? "Pinned and recently used tools." : "Good places to start."}
+                    </p>
+                    {hasSavedShortcuts && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
+                          {formatShortcutCount(pinnedLinks.length, "pinned")}
+                        </span>
+                        <span className="rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-extrabold text-sky-600 dark:text-sky-400">
+                          {formatShortcutCount(recentLinks.length, "recent")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <button type="button"
-                  onClick={() => {
-                    setPinnedHrefs([]);
-                    try { window.localStorage.removeItem(PIN_KEY); } catch {}
-                  }}
-                  className="text-[11px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
-                >
-                  Clear
-                </button>
+                {hasSavedShortcuts && (
+                  <button type="button"
+                    aria-label="Reset saved shortcuts"
+                    onClick={() => {
+                      setPinnedHrefs([]);
+                      setRecentHrefs([]);
+                      persistStoredStringList(PIN_KEY, [], 12);
+                      persistStoredStringList(RECENT_KEY, [], 8);
+                      toast.success("Shortcuts reset");
+                    }}
+                    className="shrink-0 rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
-              <div className="space-y-1.5">
-                {pinnedLinks.map((link, i) => renderLink(link, i))}
+              <div className="grid grid-cols-3 gap-2">
+                {shortcutLinks.map((link) => {
+                  const Icon = link.icon;
+                  const isPinnedShortcut = pinnedHrefs.includes(link.href);
+                  const sourceLabel = shortcutSourceLabel(link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      to={link.href}
+                      onClick={() => trackRecent(link.href)}
+                      aria-label={`Open ${link.label} shortcut, ${sourceLabel}`}
+                      className="group relative rounded-2xl bg-muted/35 px-3 py-3 active:scale-[0.97] transition-transform hover:bg-muted/55"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl", getAccentClasses(link.accent).bg)}>
+                          <Icon className={cn("h-4 w-4", getAccentClasses(link.accent).text)} />
+                        </div>
+                        <span className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wide",
+                          isPinnedShortcut
+                            ? "bg-amber-400/15 text-amber-600 dark:text-amber-400"
+                            : "bg-background/75 text-muted-foreground",
+                        )}>
+                          {sourceLabel}
+                        </span>
+                      </div>
+                      <p className="truncate text-[11px] font-extrabold leading-tight">{link.label}</p>
+                      <p className="mt-0.5 truncate text-[9px] font-medium text-muted-foreground">{link.description}</p>
+                      {hasSavedShortcuts && (
+                        <button
+                          type="button"
+                          aria-label={`Remove ${link.label} from shortcuts`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setPinnedHrefs((prev) => {
+                              const next = prev.filter((href) => href !== link.href);
+                              persistStoredStringList(PIN_KEY, next, 12);
+                              return next;
+                            });
+                            setRecentHrefs((prev) => {
+                              const next = prev.filter((href) => href !== link.href);
+                              persistStoredStringList(RECENT_KEY, next, 8);
+                              return next;
+                            });
+                            toast.success(`${link.label} removed from shortcuts`);
+                          }}
+                          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-background/95 text-muted-foreground shadow-sm ring-1 ring-border/50 transition hover:text-foreground active:scale-90 sm:opacity-0 sm:group-hover:opacity-100"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
-              <div className="h-px bg-border/30 my-3" />
             </motion.div>
           )}
 
-          {/* All Sections OR flat search results */}
+          {/* All Sections OR categorized search results */}
           {searchResults ? (
-            <div className="space-y-1.5">
+            <div className="rounded-[1.5rem] border border-border/55 bg-card/70 p-2">
+              <div className="flex items-center justify-between px-2 pb-2 pt-1">
+                <div>
+                  <h2 className="text-[14px] font-extrabold">Search results</h2>
+                  <p aria-live="polite" className="text-[10px] font-semibold text-muted-foreground">
+                    {searchSummary}
+                  </p>
+                  {searchResults.length === 1 && (
+                    <p className="mt-0.5 text-[10px] font-bold text-primary">
+                      Press Enter to open {searchResults[0].link.label}.
+                    </p>
+                  )}
+                </div>
+                {search && (
+                  <button
+                    type="button"
+                    onClick={clearDirectorySearch}
+                    aria-label={`Clear search for ${search}`}
+                    className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               {searchResults.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-8">
-                  No results for "{search}"
-                </p>
+                <div className="rounded-[1.25rem] bg-muted/35 px-4 py-7 text-center">
+                  <Search className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
+                  <p className="text-sm font-bold">No results</p>
+                  <p className="mt-1 text-[12px] font-medium text-muted-foreground">
+                    Try a different account, order, travel, or support keyword.
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+                    {searchSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        aria-label={`Search for ${suggestion}`}
+                        onClick={() => {
+                          setSearch(suggestion);
+                          recordSearch(suggestion);
+                          requestAnimationFrame(() => directorySearchRef.current?.focus());
+                        }}
+                        className="rounded-full bg-background px-3 py-1.5 text-[11px] font-bold text-foreground shadow-sm active:scale-95 transition-transform"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : (
-                searchResults.map((link, i) => renderLink(link, i))
+                <div className="space-y-2">
+                  {searchResultGroups?.map((group, groupIndex) => {
+                    const GroupIcon = group.icon;
+                    return (
+                      <div
+                        key={group.title}
+                        className="rounded-[1.25rem] border border-border/45 bg-background/55 p-2"
+                      >
+                        <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+                              <GroupIcon className="h-3.5 w-3.5" />
+                            </div>
+                            <p className="truncate text-[12px] font-extrabold">{group.title}</p>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                            {group.results.length}
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {group.results.map((result, resultIndex) =>
+                            renderLink(result.link, groupIndex * 10 + resultIndex),
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           ) : (
             sections.map((section, si) => renderSection(section, si))
           )}
 
-          {/* Current device info */}
-          {user && !searchResults && (
+          {/* Account access */}
+          {user && (
             <motion.div
-              initial={{ opacity: 0, y: 4 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-5 zivo-card-organic p-4 flex items-center gap-3"
+              transition={{ delay: 0.2 }}
+              role="region"
+              aria-labelledby="more-account-access-title"
+              className="mt-5 rounded-[1.5rem] border border-border/55 bg-card/70 p-3"
             >
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
-                <Smartphone className="w-5 h-5 text-emerald-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-bold text-[13px]">{deviceInfo.kind}</p>
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Active
-                  </span>
-                </div>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  This session • {deviceInfo.platform}
-                </p>
-              </div>
-              <Link
-                to="/account/security"
-                className="text-[11px] font-semibold text-primary px-3 py-1.5 rounded-full bg-primary/10 active:scale-95 transition-transform"
-              >
-                Manage
-              </Link>
-            </motion.div>
-          )}
-
-          {/* Beta / Labs opt-in */}
-          {user && !searchResults && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-5 zivo-card-organic p-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                  <Cpu className="w-5 h-5 text-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-bold text-[14px]">ZIVO Labs</p>
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-secondary text-foreground">
-                      Beta
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mb-3">
-                    Try experimental features early. Things may break — that's the fun.
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 id="more-account-access-title" className="text-[14px] font-extrabold">Account access</h2>
+                  <p className="truncate text-[10px] font-semibold text-muted-foreground">
+                    Security, admin tools, and session controls.
                   </p>
-                  {betaOptIn && (
-                    <ul className="space-y-1 mb-3">
-                      {betaFeatures.map((f) => (
-                        <li key={f.label} className="flex items-center gap-2 text-[11px] text-foreground/80">
-                          <f.icon className="w-3 h-3 text-foreground" />
-                          {f.label}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <button type="button"
-                    onClick={toggleBeta}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-[11px] font-bold active:scale-95 transition-transform",
-                      betaOptIn
-                        ? "bg-fuchsia-500/15 text-fuchsia-500 border border-fuchsia-500/30"
-                        : "bg-primary text-primary-foreground",
-                    )}
+                </div>
+                <span
+                  role="status"
+                  aria-label={isEmailVerified ? "Account access protected" : "Email verification needed"}
+                  className={cn(
+                  "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold",
+                  isEmailVerified
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                )}>
+                  <span className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    isEmailVerified ? "bg-emerald-500" : "bg-amber-500",
+                  )} />
+                  {isEmailVerified ? "Protected" : "Verify email"}
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-3 gap-2 pb-1">
+                  {[
+                    {
+                      label: "Email",
+                      value: isEmailVerified ? "Secured" : "Action",
+                      icon: Mail,
+                      href: "/account/contact",
+                      ariaLabel: "Open email and phone settings",
+                      className: isEmailVerified
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                    },
+                    {
+                      label: "Activity",
+                      value: latestHubActivityLabel || "Ready",
+                      icon: History,
+                      href: "/account/activity-log?filter=account_hub",
+                      ariaLabel: "Open account hub activity log",
+                      className: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+                    },
+                    {
+                      label: "Device",
+                      value: deviceInfo.kind,
+                      icon: Smartphone,
+                      href: "/account/security",
+                      ariaLabel: "Open account security and devices",
+                      className: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+                    },
+                  ].map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      aria-label={`${item.ariaLabel}: ${item.label} ${item.value}`}
+                      onClick={() => trackRecent(item.href)}
+                      className="min-w-0 rounded-2xl bg-muted/35 px-2.5 py-2.5 active:scale-[0.97] transition-transform hover:bg-muted/55"
+                    >
+                      <div className={cn("mb-1.5 flex h-7 w-7 items-center justify-center rounded-xl", item.className)}>
+                        <item.icon className="h-3.5 w-3.5" />
+                      </div>
+                      <p className="truncate text-[11px] font-extrabold">{item.value}</p>
+                      <p className="truncate text-[9px] font-semibold text-muted-foreground">{item.label}</p>
+                    </Link>
+                  ))}
+                </div>
+
+                <Link
+                  to="/account/security"
+                  aria-label="Open security center for password, devices, privacy, and recovery"
+                  onClick={() => trackRecent("/account/security")}
+                  className="flex items-center gap-3 rounded-[1.15rem] bg-muted/35 px-3 py-3 active:scale-[0.98] transition-transform"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-bold">Security center</p>
+                    <p className="truncate text-[10px] font-medium text-muted-foreground">Password, devices, privacy, and recovery</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
+                </Link>
+
+                <Link
+                  to="/account/activity-log?filter=account_hub"
+                  aria-label={latestHubActivityLabel ? `Open account activity log, latest hub activity ${latestHubActivityLabel}` : "Open account activity log"}
+                  onClick={() => trackRecent("/account/activity-log?filter=account_hub")}
+                  className="flex items-center gap-3 rounded-[1.15rem] bg-muted/35 px-3 py-3 active:scale-[0.98] transition-transform"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                    <History className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="truncate text-[13px] font-bold">Activity log</p>
+                      {latestHubActivityLabel && (
+                        <span className="shrink-0 rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-extrabold text-sky-600 dark:text-sky-400">
+                          {latestHubActivityLabel}
+                        </span>
+                      )}
+                    </div>
+                    <p className="truncate text-[10px] font-medium text-muted-foreground">
+                      {latestHubActivityLabel
+                        ? `Latest hub activity ${latestHubActivityLabel}`
+                        : "Hub opens, security events, and account history"}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
+                </Link>
+
+                {!isEmailVerified && (
+                  <Link
+                    to="/account/contact"
+                    aria-label="Verify email to protect login, payouts, bookings, and recovery"
+                    onClick={() => trackRecent("/account/contact")}
+                    className="flex items-center gap-3 rounded-[1.15rem] border border-amber-500/20 bg-amber-500/10 px-3 py-3 active:scale-[0.98] transition-transform"
                   >
-                    {betaOptIn ? "✓ Enrolled — opt out" : "Join the beta"}
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                      <Mail className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-bold text-amber-700 dark:text-amber-300">Verify email</p>
+                      <p className="truncate text-[10px] font-medium text-muted-foreground">Protect login, payouts, bookings, and recovery</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-amber-500/70" />
+                  </Link>
+                )}
+
+                {isAdmin && (
+                  <Link
+                    to="/admin/god-view"
+                    aria-label="Open admin dashboard for moderation, reports, and system tools"
+                    onClick={() => trackRecent("/admin/god-view")}
+                    className="flex items-center gap-3 rounded-[1.15rem] bg-primary/8 px-3 py-3 active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Shield className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-bold">Admin dashboard</p>
+                      <p className="truncate text-[10px] font-medium text-muted-foreground">Moderation, reports, and system tools</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
+                  </Link>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button type="button"
+                    onClick={() => setConfirmAction("switch")}
+                    aria-label="Switch account"
+                    className="flex items-center justify-center gap-2 rounded-2xl border border-border/55 bg-background px-3 py-3 text-[12px] font-bold active:scale-[0.98] transition-transform"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Switch
+                  </button>
+                  <button type="button"
+                    onClick={() => setConfirmAction("signout")}
+                    aria-label="Sign out of this account"
+                    className="flex items-center justify-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3 py-3 text-[12px] font-bold text-rose-600 dark:text-rose-400 active:scale-[0.98] transition-transform"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign out
                   </button>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* Admin */}
-          {isAdmin && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-4">
-              <Link to="/admin/god-view" className="contents">
-                <div className="w-full py-3 rounded-2xl zivo-ribbon bg-primary/5 border border-primary/15 text-primary font-bold text-sm touch-manipulation active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Admin Dashboard
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </div>
-              </Link>
-            </motion.div>
-          )}
-
-          {/* Sign Out */}
-          {user && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-4">
-              <button type="button"
-                onClick={() => setConfirmAction("signout")}
-                className="w-full py-3 rounded-2xl border border-border/50 bg-card text-foreground font-semibold text-sm touch-manipulation active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          {/* Footer */}
+          <div
+            role="region"
+            aria-labelledby="more-support-title"
+            className="mt-8 rounded-[1.5rem] border border-border/50 bg-card/70 px-4 py-4"
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p id="more-support-title" className="text-[13px] font-extrabold">ZIVO support</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Help, safety, and account policies.</p>
+              </div>
+              <Link
+                to="/support"
+                aria-label="Open ZIVO support"
+                onClick={() => trackRecent("/support")}
+                className="rounded-full bg-foreground px-3 py-1.5 text-[11px] font-bold text-background active:scale-95 transition-transform"
               >
-                <LogOut className="w-4 h-4" />
-                Sign out
-              </button>
-            </motion.div>
-          )}
-
-          {/* Footer: legal mini-links + app links */}
-          <div className="mt-8 pt-6 border-t border-border/30">
-            <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5 mb-4">
+                Support
+              </Link>
+            </div>
+            {installPrompt && !installDismissed && (
+              <div className="mb-3 flex items-center gap-3 rounded-[1.15rem] border border-primary/15 bg-primary/8 p-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                  <Download className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-extrabold">Install ZIVO</p>
+                  <p className="truncate text-[10px] font-medium text-muted-foreground">Add the app to your home screen.</p>
+                </div>
+                <button type="button"
+                  onClick={triggerInstall}
+                  aria-label="Install ZIVO app"
+                  className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-[11px] font-bold text-background active:scale-95 transition-transform"
+                >
+                  Install
+                </button>
+                <button type="button"
+                  onClick={dismissInstall}
+                  aria-label="Dismiss install prompt"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-90 transition-transform"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
               {[
-                { label: "Terms", href: "/terms" },
-                { label: "Privacy", href: "/privacy" },
-                { label: "Cookies", href: "/cookies" },
-                { label: "Refund", href: "/refund-policy" },
-                { label: "Cancellation", href: "/cancellation-policy" },
+                { label: "Terms", href: "/legal/terms" },
+                { label: "Privacy", href: "/legal/privacy" },
+                { label: "Cookies", href: "/legal/cookies" },
+                { label: "Refunds", href: "/legal/refunds" },
                 { label: "Safety", href: "/safety" },
                 { label: "Status", href: "/status" },
-                { label: "Help", href: "/help" },
-                { label: "About", href: "/about" },
-                { label: "Careers", href: "/careers" },
-                { label: "Press", href: "/press" },
                 { label: "Contact", href: "/account/contact" },
               ].map((l) => (
                 <Link
                   key={l.href}
                   to={l.href}
-                  className="text-[11px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+                  aria-label={`Open ${l.label}`}
+                  onClick={() => trackRecent(l.href)}
+                  className="text-[11px] font-bold text-muted-foreground/80 hover:text-foreground transition-colors"
                 >
                   {l.label}
                 </Link>
               ))}
             </div>
-
-            {/* App store CTAs */}
-            <div className="flex justify-center gap-2 mb-3">
-              <Link
-                to="/install"
-                className="zivo-card-organic flex items-center gap-2 px-3 py-2 active:scale-[0.97] transition-transform"
-              >
-                <Smartphone className="w-4 h-4 text-foreground/80" />
-                <div className="text-left">
-                  <p className="text-[8px] text-muted-foreground leading-none">Get the</p>
-                  <p className="text-[12px] font-bold leading-tight">iOS app</p>
-                </div>
-              </Link>
-              <Link
-                to="/install"
-                className="zivo-card-organic flex items-center gap-2 px-3 py-2 active:scale-[0.97] transition-transform"
-              >
-                <Smartphone className="w-4 h-4 text-foreground/80" />
-                <div className="text-left">
-                  <p className="text-[8px] text-muted-foreground leading-none">Get on</p>
-                  <p className="text-[12px] font-bold leading-tight">Google Play</p>
-                </div>
-              </Link>
-            </div>
-
-            {/* Social row */}
-            <div className="flex justify-center gap-2 mb-3">
-              <button type="button"
-                onClick={shareApp}
-                aria-label="Share ZIVO"
-                className="w-9 h-9 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center active:scale-90 transition-transform"
-              >
-                <Share2 className="w-4 h-4 text-foreground/70" />
-              </button>
-              <Link
-                to="/qr-profile"
-                aria-label="Show QR"
-                className="w-9 h-9 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center active:scale-90 transition-transform"
-              >
-                <QrCode className="w-4 h-4 text-foreground/70" />
-              </Link>
-              <Link
-                to="/feedback"
-                aria-label="Send feedback"
-                className="w-9 h-9 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center active:scale-90 transition-transform"
-              >
-                <Lightbulb className="w-4 h-4 text-foreground/70" />
-              </Link>
-              <Link
-                to="/support"
-                aria-label="Contact support"
-                className="w-9 h-9 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center active:scale-90 transition-transform"
-              >
-                <Headset className="w-4 h-4 text-foreground/70" />
-              </Link>
-            </div>
           </div>
 
-          {/* ZIVO Watermark */}
-          <div className="relative mt-2 flex flex-col items-center gap-1">
-            <span className="text-[10px] text-muted-foreground/30 font-semibold tracking-widest uppercase">ZIVO • 2026</span>
-            <span className="text-[9px] text-muted-foreground/20">{totalLinks} features across {sections.length} sections</span>
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] text-muted-foreground/20">v{appVersion}</span>
-              <span className="text-muted-foreground/20">•</span>
-              <span className="flex items-center gap-1 text-[9px] text-muted-foreground/40">
-                <span
-                  className={cn(
-                    "inline-block w-1.5 h-1.5 rounded-full",
-                    isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500",
-                  )}
-                />
-                {isOnline ? "Online" : "Offline"}
-              </span>
-            </div>
-            <button type="button"
-              onClick={() => setShowWhatsNew(true)}
-              className="mt-1 text-[10px] font-semibold text-primary/70 hover:text-primary transition-colors flex items-center gap-1"
-            >
-              <Sparkle className="w-3 h-3" />
-              What's new
-            </button>
+          <div className="mt-3 flex items-center justify-center gap-2 text-[10px] font-semibold text-muted-foreground/45">
+            <span>v{appVersion}</span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <span
+                className={cn(
+                  "inline-block h-1.5 w-1.5 rounded-full",
+                  isOnline ? "bg-emerald-500" : "bg-rose-500",
+                )}
+              />
+              {isOnline ? "Online" : "Offline"}
+            </span>
           </div>
         </main>
       </div>
 
       {/* Partner Sheet */}
       <Sheet open={showPartnerSheet} onOpenChange={setShowPartnerSheet}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85dvh] overflow-auto pb-10">
+        <SheetContent side="bottom" className="rounded-t-[2rem] max-h-[85dvh] overflow-auto border-border/60 bg-background px-4 pb-10">
           <SheetHeader className="pb-4">
-            <SheetTitle className="text-lg font-bold">Become a Partner</SheetTitle>
+            <SheetTitle className="text-left text-lg font-extrabold">Become a Partner</SheetTitle>
           </SheetHeader>
-          <div className="space-y-2">
+          <div className="mb-3 rounded-[1.5rem] border border-border/55 bg-card/70 p-4">
+            <p className="text-[13px] font-bold">Build with ZIVO</p>
+            <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+              Choose the partner path that matches your business.
+            </p>
+          </div>
+          <div className="grid gap-2">
             {partnerOptions.map((opt) => (
               <Link
                 key={opt.label}
                 to={opt.href}
-                onClick={() => setShowPartnerSheet(false)}
-                className="zivo-card-organic flex items-center gap-3 p-3 touch-manipulation"
+                aria-label={`Open ${opt.label}: ${opt.description}`}
+                onClick={() => {
+                  trackRecent(opt.href);
+                  setShowPartnerSheet(false);
+                }}
+                className="flex items-center gap-3 rounded-[1.25rem] border border-border/50 bg-card/80 p-3 active:scale-[0.98] transition-transform"
               >
-                <div className={cn("zivo-icon-pill", getAccentClasses(opt.accent).text, getAccentClasses(opt.accent).bg)}>
-                  <opt.icon className={cn("w-5 h-5", getAccentClasses(opt.accent).text)} />
+                <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", getAccentClasses(opt.accent).text, getAccentClasses(opt.accent).bg)}>
+                  <opt.icon className={cn("h-5 w-5", getAccentClasses(opt.accent).text)} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">{opt.label}</p>
-                  <p className="text-[11px] text-muted-foreground">{opt.description}</p>
+                  <p className="truncate text-[13px] font-bold">{opt.label}</p>
+                  <p className="truncate text-[11px] font-medium text-muted-foreground">{opt.description}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
               </Link>
             ))}
           </div>
         </SheetContent>
       </Sheet>
 
-      {/* What's New sheet */}
-      <Sheet open={showWhatsNew} onOpenChange={setShowWhatsNew}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85dvh] overflow-auto pb-10">
-          <SheetHeader className="pb-4">
-            <SheetTitle className="text-lg font-bold flex items-center gap-2">
-              <Sparkle className="w-5 h-5 text-primary" />
-              What's new in ZIVO
-            </SheetTitle>
-          </SheetHeader>
-          <div className="space-y-5">
-            {whatsNew.map((release) => (
-              <div key={release.date} className="zivo-card-organic p-4">
-                <div className="flex items-baseline justify-between mb-2">
-                  <h3 className="font-bold text-[15px]">{release.title}</h3>
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    {release.date}
-                  </span>
-                </div>
-                <ul className="space-y-1.5">
-                  {release.items.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-[12px] text-muted-foreground">
-                      <CircleDot className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-            <Link
-              to="/roadmap"
-              onClick={() => setShowWhatsNew(false)}
-              className="zivo-card-organic flex items-center justify-between p-4 active:scale-[0.98] transition-transform"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <GitBranch className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-bold text-[14px]">See full roadmap</p>
-                  <p className="text-[11px] text-muted-foreground">What's coming next</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
-            </Link>
-          </div>
-        </SheetContent>
-      </Sheet>
-
       {/* Sign Out / Switch Account confirm */}
       <AlertDialog open={!!confirmAction} onOpenChange={(o) => !o && setConfirmAction(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] rounded-[1.75rem] border-border/60 bg-background p-4 shadow-2xl sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmAction === "switch" ? "Switch account?" : "Sign out?"}
+            <div className={cn(
+              "mb-2 flex h-12 w-12 items-center justify-center rounded-2xl",
+              confirmAction === "switch" ? "bg-sky-500/10 text-sky-600 dark:text-sky-400" : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+            )}>
+              {confirmAction === "switch" ? <RefreshCw className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
+            </div>
+            <AlertDialogTitle className="text-left text-[18px] font-extrabold">
+              {confirmAction === "switch" ? "Switch account" : "Sign out"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-left text-[13px] font-medium leading-relaxed text-muted-foreground">
               {confirmAction === "switch"
                 ? "You'll be signed out and taken to the login screen so you can sign in with a different account."
                 : "You'll need to sign in again to access your account."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>
+          <AlertDialogFooter className="mt-4 grid grid-cols-2 gap-2 sm:flex">
+            <AlertDialogCancel
+              aria-label={confirmAction === "switch" ? "Cancel switching account" : "Cancel sign out"}
+              className="mt-0 rounded-2xl border-border/60 bg-muted/45 px-4 py-3 text-[13px] font-bold"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              aria-label={confirmAction === "switch" ? "Confirm switch account" : "Confirm sign out"}
+              className={cn(
+                "rounded-2xl px-4 py-3 text-[13px] font-bold",
+                confirmAction === "switch"
+                  ? "bg-foreground text-background hover:bg-foreground/90"
+                  : "bg-rose-600 text-white hover:bg-rose-700",
+              )}
+            >
               {confirmAction === "switch" ? "Switch" : "Sign out"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -2656,7 +3200,7 @@ export default function MorePage() {
       {/* Floating Help FAB */}
       <button type="button"
         onClick={() => setShowHelpSheet(true)}
-        aria-label="Open help"
+        aria-label="Open More help"
         className="fixed bottom-[calc(var(--zivo-safe-bottom,0px)+6rem)] lg:bottom-8 right-5 z-30 hidden w-12 h-12 rounded-full bg-gradient-to-br from-primary shadow-lg shadow-primary/30 lg:flex items-center justify-center active:scale-90 transition-transform"
       >
         <HelpCircle className="w-5 h-5 text-white" />
@@ -2664,61 +3208,72 @@ export default function MorePage() {
 
       {/* Share profile sheet */}
       <Sheet open={showShareProfile} onOpenChange={setShowShareProfile}>
-        <SheetContent side="bottom" className="rounded-t-3xl pb-10">
+        <SheetContent side="bottom" className="rounded-t-[2rem] border-border/60 bg-background px-4 pb-10">
           <SheetHeader className="pb-4">
-            <SheetTitle className="text-lg font-bold flex items-center gap-2">
+            <SheetTitle className="flex items-center gap-2 text-left text-lg font-extrabold">
               <Share2 className="w-5 h-5 text-primary" />
               Share your profile
             </SheetTitle>
           </SheetHeader>
-          <div className="zivo-card-organic p-4 mb-3 flex items-center gap-3">
-            <Avatar className="h-12 w-12 ring-2 ring-primary/20 shrink-0">
-              {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-              <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                {displayName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-[14px] truncate">{displayName}</p>
-              <p className="text-[11px] text-muted-foreground truncate">@{handle}</p>
+          <div className="mb-3 overflow-hidden rounded-[1.5rem] border border-border/55 bg-card/80">
+            <div className="flex items-center gap-3 p-4">
+              <Avatar className="h-12 w-12 shrink-0 ring-2 ring-background shadow-sm">
+                {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
+                <AvatarFallback className="bg-primary/10 font-bold text-primary">
+                  {displayName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-[14px] font-extrabold">{displayName}</p>
+                <p className="truncate text-[11px] font-medium text-muted-foreground">@{handle}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 mb-3 px-3 py-2.5 bg-muted/50 rounded-xl">
-            <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
-            <p className="flex-1 text-[12px] font-mono text-foreground/80 truncate">
-              {profileShareUrl}
-            </p>
-            <button type="button"
-              onClick={copyProfileLink}
-              className="text-[11px] font-bold text-primary px-2 py-1 rounded-lg bg-primary/10 active:scale-95 transition-transform shrink-0"
-            >
-              Copy
-            </button>
+            <div className="border-t border-border/45 p-3">
+              <div className="flex items-center gap-2 rounded-2xl bg-muted/45 px-3 py-2.5">
+                <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <p className="flex-1 truncate font-mono text-[12px] text-foreground/80">
+                  {profileShareUrl}
+                </p>
+                <button type="button"
+                  onClick={copyProfileLink}
+                  aria-label="Copy profile link"
+                  className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-[11px] font-bold text-background active:scale-95 transition-transform"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <button type="button"
+              aria-label="Share profile with system share"
               onClick={() => {
                 setShowShareProfile(false);
-                shareApp();
+                shareProfile();
               }}
-              className="zivo-card-organic flex flex-col items-center gap-1.5 p-3 active:scale-[0.95] transition-transform"
+              className="flex flex-col items-center gap-1.5 rounded-[1.25rem] border border-border/55 bg-card/80 p-3 active:scale-[0.95] transition-transform"
             >
-              <Share2 className="w-5 h-5 text-primary" />
+              <Share2 className="h-5 w-5 text-primary" />
               <span className="text-[11px] font-bold">System share</span>
             </button>
             <Link
               to="/qr-profile"
-              onClick={() => setShowShareProfile(false)}
-              className="zivo-card-organic flex flex-col items-center gap-1.5 p-3 active:scale-[0.95] transition-transform"
+              aria-label="Open profile QR code"
+              onClick={() => {
+                trackRecent("/qr-profile");
+                setShowShareProfile(false);
+              }}
+              className="flex flex-col items-center gap-1.5 rounded-[1.25rem] border border-border/55 bg-card/80 p-3 active:scale-[0.95] transition-transform"
             >
-              <QrCode className="w-5 h-5 text-foreground" />
+              <QrCode className="h-5 w-5 text-foreground" />
               <span className="text-[11px] font-bold">QR code</span>
             </Link>
             <button type="button"
               onClick={copyProfileLink}
-              className="zivo-card-organic flex flex-col items-center gap-1.5 p-3 active:scale-[0.95] transition-transform"
+              aria-label="Copy profile link"
+              className="flex flex-col items-center gap-1.5 rounded-[1.25rem] border border-border/55 bg-card/80 p-3 active:scale-[0.95] transition-transform"
             >
-              <ExternalLink className="w-5 h-5 text-emerald-500" />
+              <ExternalLink className="h-5 w-5 text-emerald-500" />
               <span className="text-[11px] font-bold">Copy link</span>
             </button>
           </div>
@@ -2727,39 +3282,69 @@ export default function MorePage() {
 
       {/* Help sheet */}
       <Sheet open={showHelpSheet} onOpenChange={setShowHelpSheet}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[80dvh] overflow-auto pb-10">
+        <SheetContent side="bottom" className="rounded-t-[2rem] max-h-[80dvh] overflow-auto border-border/60 bg-background px-4 pb-10">
           <SheetHeader className="pb-4">
-            <SheetTitle className="text-lg font-bold flex items-center gap-2">
+            <SheetTitle className="flex items-center gap-2 text-left text-lg font-extrabold">
               <HelpCircle className="w-5 h-5 text-primary" />
               How can we help?
             </SheetTitle>
           </SheetHeader>
-          <div className="space-y-2">
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            <Link
+              to="/support"
+              aria-label="Contact ZIVO support now"
+              onClick={() => {
+                trackRecent("/support");
+                setShowHelpSheet(false);
+              }}
+              className="rounded-[1.25rem] bg-foreground px-4 py-3 text-background active:scale-[0.98] transition-transform"
+            >
+              <Headset className="mb-2 h-5 w-5" />
+              <p className="text-[13px] font-extrabold">Contact support</p>
+              <p className="text-[10px] font-medium text-background/70">Get help now</p>
+            </Link>
+            <Link
+              to="/status"
+              aria-label="Open ZIVO system status"
+              onClick={() => {
+                trackRecent("/status");
+                setShowHelpSheet(false);
+              }}
+              className="rounded-[1.25rem] border border-border/55 bg-card/80 px-4 py-3 active:scale-[0.98] transition-transform"
+            >
+              <Server className="mb-2 h-5 w-5 text-emerald-500" />
+              <p className="text-[13px] font-extrabold">System status</p>
+              <p className="text-[10px] font-medium text-muted-foreground">Check uptime</p>
+            </Link>
+          </div>
+          <div className="grid gap-2">
             {[
               { icon: HelpCircle, label: "Help Center", desc: "Browse articles & guides", href: "/help-center", accent: "hsl(199 89% 48%)" },
               { icon: BookOpen, label: "FAQ", desc: "Common questions answered", href: "/faq", accent: "hsl(38 92% 50%)" },
-              { icon: Headset, label: "Live chat support", desc: "Talk to a real human", href: "/support", accent: "hsl(221 83% 53%)" },
               { icon: Ticket, label: "Open a ticket", desc: "Track your issue", href: "/support/tickets", accent: "hsl(38 92% 50%)" },
               { icon: Bug, label: "Report a problem", desc: "Bug or site issue", href: "/support/site-issues", accent: "hsl(0 84% 60%)" },
               { icon: Plane, label: "Travel booking help", desc: "Flight/hotel/car issues", href: "/support/travel-bookings", accent: "hsl(199 89% 48%)" },
               { icon: ShieldAlert, label: "Report a scam", desc: "Fraud / suspicious activity", href: "/security/scams", accent: "hsl(0 84% 60%)" },
               { icon: Lightbulb, label: "Send feedback", desc: "Ideas & suggestions", href: "/feedback", accent: "hsl(45 93% 58%)" },
-              { icon: Server, label: "Service status", desc: "System health & uptime", href: "/status", accent: "hsl(142 71% 45%)" },
             ].map((opt) => (
               <Link
                 key={opt.label}
                 to={opt.href}
-                onClick={() => setShowHelpSheet(false)}
-                className="zivo-card-organic flex items-center gap-3 p-3 active:scale-[0.98] transition-transform"
+                aria-label={`Open ${opt.label}: ${opt.desc}`}
+                onClick={() => {
+                  trackRecent(opt.href);
+                  setShowHelpSheet(false);
+                }}
+                className="flex items-center gap-3 rounded-[1.15rem] border border-border/50 bg-card/80 p-3 active:scale-[0.98] transition-transform"
               >
-                <div className={cn("zivo-icon-pill", getAccentClasses(opt.accent).text, getAccentClasses(opt.accent).bg)}>
-                  <opt.icon className={cn("w-5 h-5", getAccentClasses(opt.accent).text)} />
+                <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", getAccentClasses(opt.accent).text, getAccentClasses(opt.accent).bg)}>
+                  <opt.icon className={cn("h-5 w-5", getAccentClasses(opt.accent).text)} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">{opt.label}</p>
-                  <p className="text-[11px] text-muted-foreground">{opt.desc}</p>
+                  <p className="truncate text-[13px] font-bold">{opt.label}</p>
+                  <p className="truncate text-[11px] font-medium text-muted-foreground">{opt.desc}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
               </Link>
             ))}
           </div>

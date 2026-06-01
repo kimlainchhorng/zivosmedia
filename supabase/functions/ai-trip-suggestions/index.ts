@@ -1,10 +1,6 @@
 import { serve, createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface TripPreferences {
   budget?: 'budget' | 'mid' | 'luxury';
@@ -15,11 +11,8 @@ interface TripPreferences {
   dislikedDestinations?: string[];
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(withSecurity("ai-trip-suggestions", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -148,4 +141,10 @@ Return ONLY a valid JSON array with the destination objects. No additional text.
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

@@ -65,12 +65,13 @@ export default function TwoStepAuthPage() {
     setToggling(true);
     const next = !row.enabled;
     qc.setQueryData<TwoStepRow | null>(["two-step-auth", user.id], (old) => old ? { ...old, enabled: next } : old);
-    const sb = supabase as unknown as {
-      from: (t: string) => {
-        update: (v: Record<string, unknown>) => { eq: (k: string, v: string) => Promise<{ error: unknown }> };
-      };
-    };
-    const { error } = await sb.from("two_step_auth").update({ enabled: next, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+    const { error } = await supabase.functions.invoke("account-security-settings", {
+      body: {
+        resource: "two_step",
+        action: "update",
+        enabled: next,
+      },
+    });
     setToggling(false);
     if (error) { toast.error("Couldn't update"); qc.invalidateQueries({ queryKey: ["two-step-auth", user.id] }); }
     else toast.success(next ? "2-step enabled" : "2-step disabled");

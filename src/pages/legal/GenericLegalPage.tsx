@@ -2,7 +2,264 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, FileText, Shield, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const policyContent: Record<string, { badge: string; intro: string; sections: { title: string; content: string }[] }> = {};
+const policyContent: Record<string, { badge: string; intro: string; sections: { title: string; content: string }[] }> = {
+  "/legal/automated-decisions": {
+    badge: "AI Governance",
+    intro:
+      "This policy explains how ZIVO uses automated signals, AI, and machine learning to support ranking, recommendations, fraud review, moderation, pricing estimates, and safety decisions.",
+    sections: [
+      {
+        title: "1. Automated Decision Uses",
+        content:
+          "ZIVO may use automated systems for search ranking, feed and reels recommendations, fraud detection, spam and abuse prevention, content moderation, safety review, ad relevance, pricing estimates, support routing, and account protection.",
+      },
+      {
+        title: "2. Significant Decisions",
+        content:
+          "Significant decisions such as account suspension, payout holds, content removal, booking risk review, payment risk review, live-stream restrictions, or marketplace risk controls may include automated signals and human reviewer input.",
+      },
+      {
+        title: "3. Human Review & Appeals",
+        content:
+          "You can request information about automated decisions affecting you and request human review or submit an appeal where available. Moderation appeals are submitted through the ZIVO appeal flow and reviewed under our safety procedures.",
+      },
+      {
+        title: "4. User Responsibilities",
+        content:
+          "You may not scrape, reverse-engineer, manipulate, test, bypass, or interfere with ZIVO ranking, recommendation, fraud, safety, moderation, advertising, or pricing systems.",
+      },
+      {
+        title: "5. Related Policies",
+        content:
+          "This policy works with our Privacy Policy, Terms of Service, Data Retention Policy, GDPR Compliance page, and Automated Data Collection Disclosure.",
+      },
+    ],
+  },
+  "/legal/automated-data-collection": {
+    badge: "Data Collection",
+    intro:
+      "This disclosure explains how ZIVO collects device, usage, location, transaction, content, and security signals automatically when you use our websites, apps, and platform services.",
+    sections: [
+      {
+        title: "1. Automatically Collected Data",
+        content:
+          "ZIVO may collect device identifiers, IP address, app events, page views, search queries, booking activity, payment and payout events, approximate or precise location where permitted, content interactions, crash logs, security logs, cookie choices, and ad attribution signals where you consent.",
+      },
+      {
+        title: "2. Why We Collect It",
+        content:
+          "We use automated collection to operate the service, keep accounts secure, prevent fraud and abuse, personalize recommendations, measure performance, process bookings and payments, improve accessibility, debug errors, and honor privacy and cookie preferences.",
+      },
+      {
+        title: "3. Consent & Controls",
+        content:
+          "Essential collection is required for security and service delivery. Optional analytics and marketing collection depends on your cookie and privacy choices, including Do Not Sell or Share controls where applicable.",
+      },
+      {
+        title: "4. Retention & De-Identification",
+        content:
+          "Automated collection records are retained according to the Data Retention Policy. Some data may be aggregated, anonymized, or de-identified for analytics, service improvement, fraud prevention, and AI system improvement where permitted.",
+      },
+      {
+        title: "5. Your Rights",
+        content:
+          "You may request access, correction, deletion, portability, opt-out, restriction, or information about automated processing through account privacy controls or by contacting privacy@hizivo.com.",
+      },
+    ],
+  },
+  "/legal/data-portability": {
+    badge: "Data Rights",
+    intro:
+      "This policy explains how ZIVO supports your right to receive a portable copy of personal data associated with your account.",
+    sections: [
+      {
+        title: "1. Portable Export Scope",
+        content:
+          "Your portable export may include profile data, messages, media metadata, comments, saved locations, trips, bookings, wallet transactions, devices, consent records, legal acceptance records, support records, and auth user information where available.",
+      },
+      {
+        title: "2. Authoritative Export",
+        content:
+          "The authoritative account export is generated through the account-export Edge Function, requires re-authentication with TOTP where configured, and records a compliance audit log for GDPR Article 15 and CCPA portability evidence.",
+      },
+      {
+        title: "3. Formats & Limits",
+        content:
+          "Exports are generally provided as structured JSON and may include CSV-style category exports in account tools. Some partner, fraud, security, legal hold, and third-party records may be withheld, redacted, or summarized where required by law or to protect other users.",
+      },
+      {
+        title: "4. How to Request",
+        content:
+          "Use Account Settings, Account Data Rights, or contact privacy@hizivo.com to request access, download, or portability. We may verify your identity before fulfilling your request.",
+      },
+      {
+        title: "5. Related Policies",
+        content:
+          "This policy works with the Privacy Policy, Data Retention Policy, DSAR policy, Right to Be Forgotten policy, and Terms of Service.",
+      },
+    ],
+  },
+  "/legal/right-to-be-forgotten": {
+    badge: "Deletion Rights",
+    intro:
+      "This policy explains how ZIVO handles account deletion and right-to-erasure requests, including the limits that apply when records must be retained.",
+    sections: [
+      {
+        title: "1. Deletion Request Options",
+        content:
+          "You may request deletion from inside the app, from Account Data Rights, or from the public delete-account page. ZIVO schedules account deletion with a 30-day grace period so you can sign back in and cancel if the request was accidental.",
+      },
+      {
+        title: "2. Self-Service Erasure",
+        content:
+          "The account-delete-self Edge Function enforces re-authentication with AAL2/TOTP where configured, requires the confirmation phrase DELETE MY ACCOUNT, deletes user-owned records where permitted, removes storage where applicable, and deletes the auth user.",
+      },
+      {
+        title: "3. Records We May Retain",
+        content:
+          "Some records may be retained or anonymized where required for legal, tax, fraud prevention, payment, dispute, chargeback, safety, regulatory, or audit obligations, as described in the Data Retention Policy.",
+      },
+      {
+        title: "4. Irreversible Deletion",
+        content:
+          "After the grace period and completion of deletion, your account cannot be recovered. Backup copies may remain for a limited period before automatic purge according to backup retention controls.",
+      },
+      {
+        title: "5. Help With Deletion",
+        content:
+          "If you cannot access your account, email privacy@hizivo.com or support@hizivo.com from the address connected to your ZIVO account with the subject Delete my ZIVO account.",
+      },
+    ],
+  },
+  "/legal/dsar": {
+    badge: "Privacy Requests",
+    intro:
+      "This policy explains how ZIVO receives, verifies, tracks, and responds to data subject access requests and related privacy rights requests.",
+    sections: [
+      {
+        title: "1. Request Types",
+        content:
+          "You may request access, download, correction, deletion, opt-out of sale or sharing, portability, restriction, objection, consent withdrawal, or information about automated decisions affecting you.",
+      },
+      {
+        title: "2. Server-Side Intake",
+        content:
+          "Privacy requests and consent-change requests are submitted through the privacy-request-submit Edge Function, categorized as dsar_request or consent_change, protected by authenticated user checks, and recorded for compliance review.",
+      },
+      {
+        title: "3. Verification & Timing",
+        content:
+          "We may verify your identity before responding. GDPR requests are generally handled within 30 days, and CCPA requests follow applicable legal timeframes, with extensions where allowed for complex requests.",
+      },
+      {
+        title: "4. Request Outcomes",
+        content:
+          "Depending on the request, we may provide access, download, correction, deletion, restriction, opt-out confirmation, portability files, or an explanation when a request cannot be fully completed because of legal, safety, fraud, payment, or rights-of-others limits.",
+      },
+      {
+        title: "5. How to Submit",
+        content:
+          "Use Account Data Rights, Account Security, or email privacy@hizivo.com. Do not send sensitive documents unless requested through a secure verification workflow.",
+      },
+    ],
+  },
+  "/legal/location-data": {
+    badge: "Location Privacy",
+    intro:
+      "This policy explains how ZIVO collects, uses, shares, and protects location data for rides, delivery, travel, discovery, safety, fraud prevention, and nearby services.",
+    sections: [
+      {
+        title: "1. Location Data We Use",
+        content:
+          "ZIVO may use precise GPS location during active rides, deliveries, maps, nearby discovery, live sharing, check-ins, safety features, and support investigations. We may use approximate location from IP address or device settings for localization, fraud prevention, taxes, availability, and regional compliance.",
+      },
+      {
+        title: "2. Consent & Device Controls",
+        content:
+          "Precise location is collected only when you grant device permission or actively use a feature that needs it. You can disable location access in iOS or Android settings, but rides, delivery tracking, nearby search, and safety features may stop working or become less accurate.",
+      },
+      {
+        title: "3. Sharing Location",
+        content:
+          "We share only the location data needed to fulfill the service, such as pickup and drop-off locations with drivers, delivery addresses with merchants and couriers, booking locations with travel partners, and live trip status with people you choose.",
+      },
+      {
+        title: "4. Retention & Safety",
+        content:
+          "Trip, delivery, booking, fraud, and safety location records are retained according to the Data Retention Policy. Some location records may be anonymized or aggregated for analytics, safety, demand planning, fraud prevention, and service improvement.",
+      },
+      {
+        title: "5. Your Rights",
+        content:
+          "You may request access, deletion, correction, portability, or restriction of location data through Account Data Rights or privacy@hizivo.com, subject to legal, safety, fraud, payment, dispute, and regulatory retention limits.",
+      },
+    ],
+  },
+  "/legal/biometric-data": {
+    badge: "Biometric Privacy",
+    intro:
+      "This policy explains how ZIVO treats biometric identifiers and biometric information, including face geometry, liveness checks, voiceprints, identity verification signals, and similar sensitive data.",
+    sections: [
+      {
+        title: "1. Limited Biometric Use",
+        content:
+          "ZIVO may process biometric-related data for identity verification, liveness detection, account security, fraud prevention, creator or partner verification, camera effects, accessibility, and safety. We do not sell biometric identifiers or biometric information.",
+      },
+      {
+        title: "2. Consent & Alternatives",
+        content:
+          "Where required by law, ZIVO obtains consent before collecting or processing biometric identifiers. If a feature requires biometric verification, we may offer an alternative verification path where reasonably available.",
+      },
+      {
+        title: "3. Storage & Providers",
+        content:
+          "Biometric templates or verification results may be processed by vetted service providers under written data protection terms. ZIVO uses encryption, access controls, audit logging, and least-privilege access for sensitive verification records.",
+      },
+      {
+        title: "4. Retention & Deletion",
+        content:
+          "Biometric identifiers are retained only as long as needed for verification, fraud prevention, security, legal claims, or regulatory obligations, then deleted or de-identified according to the Data Retention Policy and applicable law.",
+      },
+      {
+        title: "5. Your Rights",
+        content:
+          "You may request access, deletion, correction, or information about biometric processing through Account Data Rights or privacy@hizivo.com. Some requests may be limited by security, fraud, legal, or identity-verification obligations.",
+      },
+    ],
+  },
+  "/legal/facial-recognition": {
+    badge: "Face Data",
+    intro:
+      "This policy explains how ZIVO handles facial recognition, face detection, face geometry, liveness detection, and camera-based features.",
+    sections: [
+      {
+        title: "1. Face Detection vs. Recognition",
+        content:
+          "Some ZIVO camera features may detect a face on-device to place filters, effects, or framing overlays without identifying you. Facial recognition or face geometry used for identity verification is treated as sensitive data and is subject to stricter consent, security, retention, and access controls.",
+      },
+      {
+        title: "2. Identity & Safety Uses",
+        content:
+          "ZIVO may use facial recognition or liveness detection for driver, merchant, creator, payout, account recovery, anti-fraud, underage-access prevention, and safety verification where permitted by law.",
+      },
+      {
+        title: "3. Restrictions",
+        content:
+          "ZIVO does not use facial recognition to identify people in public posts, scan private messages for identity matching, or sell face geometry. We do not permit users or partners to upload face data to identify another person without lawful authority and consent.",
+      },
+      {
+        title: "4. Notice, Consent & Controls",
+        content:
+          "Where facial recognition is required or optional, ZIVO provides notice and obtains consent where required. You may disable camera permissions in device settings, though live, story, verification, and camera-effect features may be unavailable.",
+      },
+      {
+        title: "5. Retention & Rights",
+        content:
+          "Face verification records are retained according to the Data Retention Policy and may be deleted, de-identified, or retained for fraud, security, legal, payout, or regulatory obligations. Contact privacy@hizivo.com to exercise applicable rights.",
+      },
+    ],
+  },
+};
 
 function slugToTitle(slug: string): string {
   return slug

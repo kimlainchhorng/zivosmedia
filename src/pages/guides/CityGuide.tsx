@@ -170,6 +170,7 @@ export default function CityGuide() {
                 alt={photo.alt}
                 className="absolute inset-0 w-full h-full object-cover"
                 loading="eager"
+                decoding="async"
               />
             ) : null;
           })()}

@@ -311,7 +311,7 @@ const AccessibilityStatement = () => {
           <Link to="/help">
             <Button variant="outline">Help Center</Button>
           </Link>
-          <Link to="/terms-of-service">
+          <Link to="/legal/terms">
             <Button variant="outline">Terms of Service</Button>
           </Link>
           <Link to="/community-guidelines">

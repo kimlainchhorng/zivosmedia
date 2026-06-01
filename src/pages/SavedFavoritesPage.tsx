@@ -214,7 +214,7 @@ function RestaurantCard({
         className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation"
       >
         <div className="relative aspect-[16/10] overflow-hidden">
-          <img src={cover} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
+          <img src={cover} alt={r.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
           <PartnerBadge size="xs" className="absolute top-2 left-2 shadow-sm" />
           <button type="button"
@@ -298,7 +298,7 @@ function HotelCard({
         className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation"
       >
         <div className="relative aspect-[16/10] overflow-hidden">
-          <img src={cover} alt={h.name} className="w-full h-full object-cover" loading="lazy" />
+          <img src={cover} alt={h.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
           <PartnerBadge size="xs" className="absolute top-2 left-2 shadow-sm" />
           <button type="button"

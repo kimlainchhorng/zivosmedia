@@ -9,7 +9,7 @@
  * popover detached from any trigger.
  */
 import { lazy, Suspense, useMemo, useState } from "react";
-import { Plus, Sparkles } from "lucide-react";
+import { Clock3, Eye, Plus, Radio, ShieldCheck, Sparkles, UserRoundPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import { invalidateAllStoryCaches } from "@/lib/storiesCache";
 import { useMyStoryViews } from "@/hooks/useMyStoryViews";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
+import { useHaptic } from "@/hooks/useHaptic";
 
 const CreateStorySheet = lazy(() => import("@/components/profile/CreateStorySheet"));
 
@@ -52,6 +53,7 @@ export default function FeedStoryRing() {
   const [showOwnSheet, setShowOwnSheet] = useState(false);
   const { activeStoryId, openStory, closeStory, updateStory } = useStoryDeepLink({ source: "feed" });
   const { data: myProfile } = useUserProfile();
+  const haptic = useHaptic();
 
   const { data: rawStories = [] } = useQuery({
     queryKey: ["feed-story-users"],
@@ -146,6 +148,7 @@ export default function FeedStoryRing() {
 
   const handleRingClick = (group: StoryGroup) => {
     if (group.stories.length === 0) return;
+    haptic("light");
     openStory(group.stories[0].id);
   };
 
@@ -161,8 +164,20 @@ export default function FeedStoryRing() {
 
   const myGroup = groups.find((g) => g.userId === user.id);
   const myLatestStory = myGroup?.stories[myGroup.stories.length - 1];
+  const otherGroups = groups.filter((g) => g.userId !== user.id);
+  const unseenStoryCount = otherGroups.reduce(
+    (sum, group) => sum + group.stories.filter((story) => !viewedIds.has(story.id)).length,
+    0
+  );
+  const totalStoryCount = groups.reduce((sum, group) => sum + group.stories.length, 0);
+  const freshStoryCount = rawStories.filter((story) => {
+    const createdAt = new Date(story.created_at).getTime();
+    return Number.isFinite(createdAt) && Date.now() - createdAt < 60 * 60_000;
+  }).length;
+  const radarStatus = unseenStoryCount > 0 ? "New drops" : "All caught up";
 
   const handleOwnRingClick = () => {
+    haptic("light");
     if (myGroup && myGroup.stories.length > 0) {
       setShowOwnSheet(true);
     } else {
@@ -172,32 +187,33 @@ export default function FeedStoryRing() {
 
   return (
     <>
-      <div className="flex gap-3 px-3 py-2 overflow-x-auto scrollbar-none border-b border-border/20 lg:gap-2 lg:py-1.5">
+      <div className="zivo-feed-story-strip mx-2 mt-3 flex gap-3 overflow-x-auto px-1.5 py-1.5 scrollbar-none lg:gap-2 lg:px-1 lg:py-1">
         {/* Your story (Instagram-style) */}
         <button type="button"
           onClick={handleOwnRingClick}
-          className="flex flex-col items-center gap-1 shrink-0 w-[72px] lg:w-[64px]"
+          className="group flex w-[76px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 transition-transform active:scale-95 lg:w-[66px]"
+          aria-label={hasMyStory ? "View or add to your story" : "Create your story"}
         >
           <div className="relative">
             <div className={cn(
               "h-[64px] w-[64px] rounded-full p-[2.5px] box-border lg:h-14 lg:w-14",
               hasMyStory
                 ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_14px_-3px_hsl(160_84%_45%/0.6)]"
-                : "bg-muted-foreground/20"
+                : "zivo-social-nav-pill"
             )}>
-              <div className="h-full w-full rounded-full overflow-hidden border-2 border-card bg-card relative flex items-center justify-center">
+              <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-card bg-card shadow-inner">
                 {myLatestStory && myLatestStory.mediaType === "image" && myLatestStory.mediaUrl ? (
                   <img
                     src={myLatestStory.mediaUrl}
-	                    alt="Your story"
-	                    className="h-full w-full object-cover"
-	                    loading="lazy"
-	                    decoding="async"
-	                  />
+                    alt="Your story"
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 ) : myLatestStory && myLatestStory.mediaType === "video" && myLatestStory.mediaUrl ? (
                   <video
                     src={myLatestStory.mediaUrl}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
                     muted
                     playsInline
                     preload="metadata"
@@ -214,57 +230,86 @@ export default function FeedStoryRing() {
                 )}
               </div>
             </div>
-            <div className={cn(
-              "absolute -bottom-0.5 -right-0.5 h-[22px] w-[22px] rounded-full flex items-center justify-center border-[2.5px] border-card shadow-[0_2px_6px_-1px_hsl(160_84%_45%/0.6)] lg:h-5 lg:w-5",
-              hasMyStory
-                ? "bg-gradient-to-br from-[hsl(160_84%_45%)] to-[hsl(174_72%_40%)]"
-                : "bg-gradient-to-br from-[hsl(160_84%_45%)] to-[hsl(174_72%_40%)]"
-            )}>
+            <div className="absolute -bottom-0.5 -right-0.5 flex h-[22px] w-[22px] items-center justify-center rounded-full border-[2.5px] border-card bg-gradient-to-br from-[hsl(160_84%_45%)] to-[hsl(174_72%_40%)] shadow-[0_2px_10px_-1px_hsl(160_84%_45%/0.75)] lg:h-5 lg:w-5">
               {hasMyStory ? (
                 <Sparkles className="h-3 w-3 text-white" strokeWidth={2.5} />
               ) : (
                 <Plus className="h-3 w-3 text-white" strokeWidth={3} />
               )}
             </div>
+            <span className="zivo-social-chip absolute -left-1 -top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-primary">
+              {hasMyStory ? "Live" : "Add"}
+            </span>
           </div>
-          <span className="text-[11px] font-medium text-foreground max-w-[68px] truncate lg:max-w-[60px] lg:text-[10px]">
+          <span className="max-w-[72px] truncate text-[11px] font-bold text-foreground lg:max-w-[62px] lg:text-[10px]">
             Your story
           </span>
         </button>
 
+        {totalStoryCount > 0 && (
+          <div
+            className="zivo-social-module-tile flex w-[132px] shrink-0 flex-col justify-center rounded-2xl px-3 py-2 text-left lg:w-[118px]"
+            aria-label={`${unseenStoryCount} unseen ${unseenStoryCount === 1 ? "story" : "stories"} across ${otherGroups.length} creators. ${freshStoryCount} fresh this hour.`}
+          >
+            <span className="mb-1 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-primary">
+              <Radio className="h-3 w-3" aria-hidden="true" />
+              Story radar
+            </span>
+            <span className="text-sm font-black leading-none text-foreground lg:text-xs">
+              {radarStatus}
+            </span>
+            <span className="mt-1 truncate text-[10px] font-bold text-muted-foreground">
+              {totalStoryCount} live {totalStoryCount === 1 ? "moment" : "moments"}
+            </span>
+            <span className="mt-2 grid grid-cols-2 gap-1.5">
+              <span className="zivo-social-chip flex items-center gap-1 rounded-full px-1.5 py-1 text-[9px] font-black text-muted-foreground">
+                <Clock3 className="h-2.5 w-2.5 text-primary" aria-hidden="true" />
+                {freshStoryCount} fresh
+              </span>
+              <span className="zivo-social-chip flex items-center gap-1 rounded-full px-1.5 py-1 text-[9px] font-black text-muted-foreground">
+                <ShieldCheck className="h-2.5 w-2.5 text-emerald-500" aria-hidden="true" />
+                {otherGroups.length} people
+              </span>
+            </span>
+          </div>
+        )}
+
         {/* Empty hint — when nobody you follow has posted a story today */}
-        {groups.filter((g) => g.userId !== user.id).length === 0 && (
+        {otherGroups.length === 0 && (
           <a
             href="/explore"
-            className="flex flex-col items-center gap-1 shrink-0 w-[80px] active:scale-95 transition-transform lg:w-[68px]"
+            className="group flex w-[92px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 text-center transition-transform active:scale-95 lg:w-[76px]"
+            aria-label="Find creators with stories"
           >
-            <div className="h-[64px] w-[64px] rounded-full p-[2.5px] bg-gradient-to-br from-primary/40 to-emerald-400/30 box-border flex items-center justify-center lg:h-14 lg:w-14">
-              <div className="h-full w-full rounded-full bg-card flex items-center justify-center text-primary">
-                <Sparkles className="h-5 w-5" strokeWidth={2.25} />
+            <div className="zivo-social-nav-pill relative flex h-[64px] w-[64px] items-center justify-center rounded-full p-[2.5px] transition-transform group-hover:-translate-y-0.5 lg:h-14 lg:w-14">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-card text-primary">
+                <UserRoundPlus className="h-5 w-5" strokeWidth={2.25} />
               </div>
             </div>
-            <span className="text-[11px] font-semibold text-primary text-center leading-tight lg:text-[10px]">
-              Discover people →
+            <span className="max-w-[82px] text-[11px] font-bold leading-tight text-primary lg:max-w-[68px] lg:text-[10px]">
+              Find stories
             </span>
           </a>
         )}
 
         {/* Other users' stories */}
-        {groups.filter((g) => g.userId !== user.id).map((g) => {
+        {otherGroups.map((g) => {
           const hasUnviewed = groupHasUnviewed(g);
+          const storyCount = g.stories.length;
           return (
             <button type="button"
               key={g.userId}
-              className="flex flex-col items-center gap-1 shrink-0 w-[72px] lg:w-[64px]"
+              className="group flex w-[76px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 transition-transform active:scale-95 lg:w-[66px]"
               onClick={() => handleRingClick(g)}
+              aria-label={`${g.userName}'s ${storyCount === 1 ? "story" : `${storyCount} stories`}${hasUnviewed ? ", new" : ""}`}
             >
               <div className={cn(
-                "h-[64px] w-[64px] rounded-full p-[2.5px] lg:h-14 lg:w-14",
+                "relative h-[64px] w-[64px] rounded-full p-[2.5px] lg:h-14 lg:w-14",
                 hasUnviewed
                   ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_12px_-3px_hsl(160_84%_45%/0.55)]"
-                  : "bg-muted-foreground/20"
+                  : "zivo-social-nav-pill"
               )}>
-                <div className="h-full w-full rounded-full overflow-hidden border-2 border-card bg-card">
+                <div className="h-full w-full overflow-hidden rounded-full border-2 border-card bg-card shadow-inner">
                   <Avatar className="h-full w-full">
                     <AvatarImage src={optimizeAvatar(g.avatarUrl, 64)} loading="lazy" />
                     <AvatarFallback
@@ -277,6 +322,16 @@ export default function FeedStoryRing() {
                     </AvatarFallback>
                   </Avatar>
                 </div>
+                {hasUnviewed && (
+                  <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-primary-foreground shadow-lg">
+                    New
+                  </span>
+                )}
+                {storyCount > 1 && (
+                  <span className="absolute -bottom-1 -left-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-card bg-card px-1 text-[8px] font-black text-primary shadow-lg">
+                    {storyCount}
+                  </span>
+                )}
               </div>
               <span className={cn(
                 "text-[11px] max-w-[68px] truncate lg:max-w-[60px] lg:text-[10px]",
@@ -291,27 +346,36 @@ export default function FeedStoryRing() {
 
       {/* Own-ring action sheet: View or Add */}
       <Sheet open={showOwnSheet} onOpenChange={setShowOwnSheet}>
-        <SheetContent side="bottom" className="rounded-t-2xl pb-[var(--zivo-safe-bottom,16px)]">
+        <SheetContent side="bottom" className="zivo-social-sheet-panel rounded-t-[1.5rem] border-0 pb-[var(--zivo-safe-bottom,16px)]">
           <SheetHeader>
-            <SheetTitle className="text-left">Your story</SheetTitle>
+            <SheetTitle className="text-left text-base font-extrabold">Your story</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-2 pt-3">
             <button type="button"
-              className="w-full text-left px-4 py-3 rounded-xl bg-muted/40 hover:bg-muted/60 active:scale-[0.99] transition font-medium"
+              className="zivo-social-sheet-row flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition active:scale-[0.99]"
               onClick={() => {
+                haptic("light");
                 setShowOwnSheet(false);
                 if (myGroup) handleRingClick(myGroup);
               }}
             >
-              View your story
+              <span className="zivo-social-share-orb flex h-9 w-9 items-center justify-center rounded-2xl text-primary">
+                <Eye className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-foreground">View your story</span>
+                <span className="block truncate text-xs font-medium text-muted-foreground">Open your latest story moments</span>
+              </span>
             </button>
             <button type="button"
-              className="w-full text-left px-4 py-3 rounded-xl bg-primary text-primary-foreground hover:opacity-95 active:scale-[0.99] transition font-medium"
+              className="zivo-social-chip-active flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold transition active:scale-[0.99]"
               onClick={() => {
+                haptic("medium");
                 setShowOwnSheet(false);
                 setShowCreate(true);
               }}
             >
+              <Plus className="h-4 w-4" />
               Add to your story
             </button>
           </div>

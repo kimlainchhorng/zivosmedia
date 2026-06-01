@@ -58,7 +58,7 @@ function PreviewThumb({ path }: { path: string | null }) {
   return (
     <>
       {url ? (
-        <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
       ) : (
         <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
@@ -364,7 +364,7 @@ export default function PPVPostsPage() {
               >
                 <div className="h-12 w-12 rounded-full bg-muted overflow-hidden shrink-0">
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-rose-500/25 to-pink-500/15" />
                   )}

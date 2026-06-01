@@ -145,28 +145,31 @@ export default function ChatNotificationSettings({ open, onClose, chatPartnerId,
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999] flex items-end justify-center"
+        className="fixed inset-0 z-[9999] flex items-end justify-center px-2 sm:px-4"
         onClick={onClose}
       >
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/45 backdrop-blur-md" />
         <motion.div
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative bg-background rounded-t-3xl w-full max-w-md max-h-[80vh] overflow-y-auto"
+          className="zivo-chat-popover-glass relative w-full max-w-md max-h-[82vh] overflow-y-auto rounded-t-[1.75rem] shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-background/95 backdrop-blur-xl z-10 px-5 pt-5 pb-3 border-b border-border/30 pt-safe">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-4" />
+          <div className="zivo-chat-header-glass sticky top-0 z-10 px-5 pt-5 pb-4 pt-safe">
+            <div className="mx-auto mb-4 h-1 w-11 rounded-full bg-foreground/20" />
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground">Notification Settings</h3>
-              <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <X className="w-4 h-4 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Sound & silence</p>
+                <h3 className="truncate text-lg font-black text-foreground">Notification Settings</h3>
+              </div>
+              <button type="button" onClick={onClose} className="zivo-chat-icon-button h-9 w-9" aria-label="Close notification settings">
+                <X className="h-4 w-4 text-muted-foreground" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{chatPartnerName}</p>
+            <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">{chatPartnerName}</p>
           </div>
 
           <div className="p-5 space-y-6">
@@ -178,14 +181,14 @@ export default function ChatNotificationSettings({ open, onClose, chatPartnerId,
               </h4>
               {isMuted ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Muted</p>
-                      <p className="text-[10px] text-muted-foreground">
+                  <div className="zivo-chat-card flex items-center justify-between gap-3 p-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-foreground">Muted</p>
+                      <p className="truncate text-[10px] font-semibold text-muted-foreground">
                         {muteUntil ? `Until ${new Date(muteUntil).toLocaleString()}` : "Forever"}
                       </p>
                     </div>
-                    <button type="button" onClick={handleUnmute} className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                    <button type="button" onClick={handleUnmute} className="zivo-chat-chip-active shrink-0 px-4 py-2 text-xs font-black">
                       Unmute
                     </button>
                   </div>
@@ -194,9 +197,10 @@ export default function ChatNotificationSettings({ open, onClose, chatPartnerId,
                 <div>
                   <button type="button"
                     onClick={() => setShowMuteOptions(!showMuteOptions)}
-                    className="w-full p-3 rounded-xl border border-border/40 text-sm text-foreground text-left hover:bg-muted/30 transition-colors"
+                    className="zivo-chat-row w-full justify-between p-4 text-left text-sm font-bold text-foreground"
                   >
-                    Tap to mute this chat
+                    <span>Tap to mute this chat</span>
+                    <BellOff className="h-4 w-4 text-muted-foreground" />
                   </button>
                   <AnimatePresence>
                     {showMuteOptions && (
@@ -206,12 +210,12 @@ export default function ChatNotificationSettings({ open, onClose, chatPartnerId,
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="mt-3 grid grid-cols-2 gap-2">
                           {MUTE_OPTIONS.map((opt) => (
                             <button type="button"
                               key={opt.hours}
                               onClick={() => handleMute(opt.hours)}
-                              className="p-2.5 rounded-xl border border-border/40 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/30 transition-colors"
+                              className="zivo-chat-chip justify-center px-3 py-3 text-xs font-black text-foreground"
                             >
                               {opt.label}
                             </button>
@@ -235,13 +239,13 @@ export default function ChatNotificationSettings({ open, onClose, chatPartnerId,
                   <button type="button"
                     key={t.id}
                     onClick={() => handleToneChange(t.id)}
-                    className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-colors ${
-                      tone === t.id ? "border-primary bg-primary/10" : "border-border/40 hover:bg-muted/30"
+                    className={`relative flex min-h-[86px] flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-3 transition-all ${
+                      tone === t.id ? "zivo-chat-row-unread border-primary/45 text-primary shadow-lg" : "border-border/40 bg-background/35 hover:bg-muted/30"
                     }`}
                   >
                     <span className="text-xl">{t.emoji}</span>
-                    <span className="text-[9px] font-medium text-foreground">{t.label}</span>
-                    {tone === t.id && <Check className="w-3 h-3 text-primary" />}
+                    <span className="text-[9px] font-black text-foreground">{t.label}</span>
+                    {tone === t.id && <Check className="absolute right-2 top-2 h-3 w-3 text-primary" />}
                   </button>
                 ))}
               </div>
@@ -253,29 +257,29 @@ export default function ChatNotificationSettings({ open, onClose, chatPartnerId,
                 <Clock className="w-4 h-4 text-primary" />
                 Do Not Disturb Schedule
               </h4>
-              <div className="flex items-center gap-3">
+              <div className="zivo-chat-card flex items-center gap-3 p-3">
                 <div className="flex-1">
-                  <label className="text-[10px] text-muted-foreground mb-1 block">Start</label>
+                  <label className="text-[10px] text-muted-foreground mb-1 block font-bold uppercase tracking-[0.14em]">Start</label>
                   <input
                     type="time"
                     value={dndStart}
                     onChange={(e) => setDndStart(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground"
                   />
                 </div>
-                <span className="text-muted-foreground mt-4">to</span>
+                <span className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">to</span>
                 <div className="flex-1">
-                  <label className="text-[10px] text-muted-foreground mb-1 block">End</label>
+                  <label className="text-[10px] text-muted-foreground mb-1 block font-bold uppercase tracking-[0.14em]">End</label>
                   <input
                     type="time"
                     value={dndEnd}
                     onChange={(e) => setDndEnd(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-border/40 bg-muted/30 text-sm text-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground"
                   />
                 </div>
               </div>
               {(dndStart || dndEnd) && (
-                <button type="button" onClick={handleDndSave} className="mt-3 w-full h-10 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">
+                <button type="button" onClick={handleDndSave} className="zivo-chat-chip-active mt-3 h-11 w-full justify-center text-sm font-black">
                   Save Schedule
                 </button>
               )}

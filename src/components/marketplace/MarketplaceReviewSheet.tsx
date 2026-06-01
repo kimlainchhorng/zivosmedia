@@ -29,15 +29,15 @@ export default function MarketplaceReviewSheet({ open, onClose, sellerId, listin
     if (!confirmContentSafe(`${title}\n${content}`, "review")) return;
     setSubmitting(true);
     try {
-      const { error } = await (supabase as any).from("marketplace_reviews").insert({
-        reviewer_id: user.id,
+      const { error } = await supabase.functions.invoke("marketplace-review-submit", {
+        body: {
         seller_id: sellerId,
         listing_id: listingId || null,
         order_id: orderId || null,
         rating,
         title: title || null,
         content: content || null,
-        is_verified_purchase: !!orderId,
+        },
       });
       if (error) throw error;
       toast.success("Review submitted!");

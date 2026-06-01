@@ -75,13 +75,14 @@ export default function Feedback() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("feedback_submissions").insert({
+      const { error } = await supabase.functions.invoke("feedback-submit", { body: {
         category: selectedType,
         rating: selectedType === "rating" ? rating : null,
         message: feedback,
         subject: feedbackTypes.find(t => t.id === selectedType)?.label ?? selectedType,
-        user_id: user?.id ?? null,
-      });
+        email: user?.email ?? (email || null),
+        device_info: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       setIsSubmitted(true);
     } catch {

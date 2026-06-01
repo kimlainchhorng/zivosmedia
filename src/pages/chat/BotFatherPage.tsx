@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSmartBack } from "@/lib/smartBack";
 import { ArrowLeft, Bot, Plus, Copy, RefreshCw, Trash2, ChevronRight, Compass, Sparkles, MessageSquare, HelpCircle, Quote, Info, Shield, Inbox } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-const AI_HANDLER_BASE = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/bot-ai-handler";
+const AI_HANDLER_BASE = `${SUPABASE_URL}/functions/v1/bot-ai-handler`;
 
 type Template = {
   id: string;
@@ -292,7 +292,7 @@ export default function BotFatherPage() {
               >
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                   {b.avatar_url
-                    ? <img src={b.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ? <img src={b.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     : <Bot className="w-5 h-5 text-primary" />}
                 </div>
                 <div className="flex-1 min-w-0">

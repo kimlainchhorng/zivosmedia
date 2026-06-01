@@ -168,44 +168,31 @@ export function useCafeTips(storeId: string | undefined, windowDays = 1) {
     setPaying(true);
     const windowEnd = new Date().toISOString();
     const windowStart = new Date(Date.now() - windowDays * 86_400_000).toISOString();
-    const { data: userData } = await supabase.auth.getUser();
-    const { data: headerData, error: headerErr } = await supabase
-      .from("cafe_tip_payouts" as never)
-      .insert({
-        store_id: storeId,
-        window_start: windowStart,
-        window_end: windowEnd,
-        mode,
-        total_cents: poolCents,
-        paid_by_user_id: userData.user?.id ?? null,
-        notes: notes && notes.trim() ? notes.trim() : null,
-      } as never)
-      .select("id")
-      .single();
-    if (headerErr || !headerData) {
-      console.error("[useCafeTips] payOut header", headerErr);
-      setError("Couldn't record payout.");
-      setPaying(false);
-      return false;
-    }
-    const payoutId = (headerData as { id: string }).id;
     const lineRows = distribution.map((l) => ({
-      payout_id: payoutId,
       barista_id: l.barista_id,
       display_name: l.display_name,
       minutes_worked: l.minutes_worked,
       weight: l.weight,
       payout_cents: l.payout_cents,
     }));
-    const { error: linesErr } = await supabase
-      .from("cafe_tip_payout_lines" as never)
-      .insert(lineRows as never);
+    const { data, error: payoutErr } = await supabase.functions.invoke("cafe-tip-payout-record", {
+      body: {
+        store_id: storeId,
+        window_start: windowStart,
+        window_end: windowEnd,
+        mode,
+        total_cents: poolCents,
+        notes: notes && notes.trim() ? notes.trim() : null,
+        lines: lineRows,
+      },
+      headers: {
+        "Idempotency-Key": `cafe-tip-payout-${storeId}-${windowStart}-${poolCents}`,
+      },
+    });
     setPaying(false);
-    if (linesErr) {
-      console.error("[useCafeTips] payOut lines", linesErr);
-      setError("Couldn't record payout lines.");
-      // Best-effort cleanup of the orphan header.
-      void supabase.from("cafe_tip_payouts" as never).delete().eq("id", payoutId);
+    if (payoutErr || data?.error) {
+      console.error("[useCafeTips] payOut", payoutErr || data?.error);
+      setError(data?.error || payoutErr?.message || "Couldn't record payout.");
       return false;
     }
     await load();

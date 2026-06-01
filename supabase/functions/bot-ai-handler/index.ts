@@ -10,36 +10,34 @@
  * every turn explicitly.
  */
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("bot-ai-handler", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const url = new URL(req.url);
     const token = url.searchParams.get("bot_token") ?? "";
     const systemPrompt = url.searchParams.get("system") ?? "You are a helpful assistant in a chat app called Zivo. Keep replies short and friendly.";
-    if (!token) return j({ error: "bot_token required as query param" }, 401);
+    if (!token) return j({ error: "bot_token required as query param" }, 401, corsHeaders);
 
     const update = await req.json();
     const userText = update?.message?.text?.trim();
     const chatId = update?.chat?.id ?? update?.from?.id;
-    if (!userText || !chatId) return j({ ok: true, skipped: true });
+    if (!userText || !chatId) return j({ ok: true, skipped: true }, 200, corsHeaders);
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) return j({ error: "ANTHROPIC_API_KEY not set" }, 500);
+    if (!apiKey) return j({ error: "ANTHROPIC_API_KEY not set" }, 500, corsHeaders);
 
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Verify token & get bot
     const { data: vrows } = await sb.rpc("verify_bot_token", { p_token: token });
     const auth = Array.isArray(vrows) ? vrows[0] : vrows;
-    if (!auth) return j({ error: "invalid token" }, 401);
+    if (!auth) return j({ error: "invalid token" }, 401, corsHeaders);
 
     // Pull recent context: last 10 DMs between this user and the bot
     const { data: recent } = await sb.from("direct_messages")
@@ -77,13 +75,13 @@ Deno.serve(async (req) => {
       message_type: "text",
     });
 
-    return j({ ok: true });
+    return j({ ok: true }, 200, corsHeaders);
   } catch (e) {
-    return j({ error: String(e) }, 500);
+    return j({ error: String(e) }, 500, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));
 
-function j(body: unknown, status = 200) {
+function j(body: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

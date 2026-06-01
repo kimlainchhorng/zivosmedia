@@ -9,6 +9,7 @@ import { createClient } from "../_shared/deps.ts";
 import { withErrorHandling, HttpError } from "../_shared/errors.ts";
 import { parseBody, v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const Body = v.object({
   email: v.email,
@@ -131,4 +132,10 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
   return ok(req, { success: true, userId });
 }, "public-signup");
 
-Deno.serve(handler);
+Deno.serve(withSecurity("public-signup", handler, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "auth_register",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

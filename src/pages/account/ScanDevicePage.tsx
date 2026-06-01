@@ -129,6 +129,7 @@ export default function ScanDevicePage() {
                 autoPlay
                 playsInline
                 muted
+                preload="metadata"
                 className="h-full w-full object-cover"
               />
               {status === "idle" && (

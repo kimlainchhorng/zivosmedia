@@ -11,11 +11,14 @@
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "../_shared/deps.ts";
+import { enforceAal2 } from "../_shared/aalCheck.ts";
+import { withIdempotency } from "../_shared/idempotency.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
 serve(withSecurity("creator-payout-request", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
-  const json = (body: unknown, status = 200) => jsonResponse(body, status, corsHeaders);
+  const json = (body: unknown, status = 200, extraHeaders: Record<string, string> = {}) =>
+    jsonResponse(body, status, corsHeaders, extraHeaders);
 
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
@@ -28,6 +31,8 @@ serve(withSecurity("creator-payout-request", async (req, ctx) => {
 
     const auth = req.headers.get("Authorization");
     if (!auth) return json({ error: "Not authenticated" }, 401);
+    const mfaErr = enforceAal2(auth, corsHeaders);
+    if (mfaErr) return mfaErr;
 
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: auth } },
@@ -46,83 +51,97 @@ serve(withSecurity("creator-payout-request", async (req, ctx) => {
       return json({ error: "Minimum withdrawal is $10.00" }, 400);
     }
 
-    // Call the existing validated RPC under the user's session. It enforces
-    // amount, available balance, and inserts the creator_payouts row.
-    const { data: payoutId, error: rpcErr } = await userClient.rpc(
-      "request_live_earnings_payout",
-      { p_amount_cents: amount_cents, p_method: method, p_reference_id: reference_id },
-    );
-    if (rpcErr) {
-      const msg = rpcErr.message || "Withdrawal failed";
-      console.error("[creator-payout-request] RPC error:", msg);
-      return json({ error: msg }, 400);
-    }
-
-    // Hydrate creator info for the alert.
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("full_name, email")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    const { data: creator } = await admin
-      .from("creator_profiles")
-      .select("display_name, payout_method, payout_details")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const displayName = (creator as any)?.display_name || (profile as any)?.full_name || user.email || user.id;
-    const payoutMethod = (creator as any)?.payout_method || method;
-    const payoutDetails = (creator as any)?.payout_details ?? null;
-
-    // Notify finance via Telegram so the request actually gets processed.
-    try {
-      const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
-      const chat = Deno.env.get("TELEGRAM_ADMIN_CHAT_ID");
-      if (token && chat) {
-        const detailsLine = payoutDetails
-          ? `Details: ${JSON.stringify(payoutDetails).slice(0, 200)}`
-          : "Details: none on file";
-        const text = [
-          "🎬 *New creator payout request*",
-          `Creator: ${displayName}`,
-          `User ID: ${user.id}`,
-          `Amount: $${(amount_cents / 100).toFixed(2)}`,
-          `Method: ${method}`,
-          `Saved payout method: ${payoutMethod ?? "—"}`,
-          detailsLine,
-          reference_id ? `Reference: ${reference_id}` : "",
-          `Payout ID: ${payoutId}`,
-        ].filter(Boolean).join("\n");
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: chat, text, parse_mode: "Markdown" }),
-        });
-      } else {
-        console.warn("[creator-payout-request] Telegram not configured — manual processing only");
+    const result = await withIdempotency(req, "creator-payout-request", user.id, async () => {
+      // Call the existing validated RPC under the user's session. It enforces
+      // amount, available balance, and inserts the creator_payouts row.
+      const { data: payoutId, error: rpcErr } = await userClient.rpc(
+        "request_live_earnings_payout",
+        { p_amount_cents: amount_cents, p_method: method, p_reference_id: reference_id },
+      );
+      if (rpcErr) {
+        const msg = rpcErr.message || "Withdrawal failed";
+        console.error("[creator-payout-request] RPC error:", msg);
+        return { status: 400, body: { error: msg } };
       }
-    } catch (e) {
-      console.warn("[creator-payout-request] Telegram alert failed:", e);
-      // Don't fail the request — ops can still see the row in the dashboard.
-    }
 
-    return json({
-      ok: true,
-      payout_id: payoutId,
-      status: "pending",
-      message: "Withdrawal requested",
+      // Hydrate creator info for the alert.
+      const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const { data: creator } = await admin
+        .from("creator_profiles")
+        .select("display_name, payout_method, payout_details")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const displayName = (creator as any)?.display_name || (profile as any)?.full_name || user.email || user.id;
+      const payoutMethod = (creator as any)?.payout_method || method;
+      const payoutDetails = (creator as any)?.payout_details ?? null;
+
+      // Notify finance via Telegram so the request actually gets processed.
+      try {
+        const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
+        const chat = Deno.env.get("TELEGRAM_ADMIN_CHAT_ID");
+        if (token && chat) {
+          const detailsLine = payoutDetails
+            ? `Details: ${JSON.stringify(payoutDetails).slice(0, 200)}`
+            : "Details: none on file";
+          const text = [
+            "New creator payout request",
+            `Creator: ${displayName}`,
+            `User ID: ${user.id}`,
+            `Amount: $${(amount_cents / 100).toFixed(2)}`,
+            `Method: ${method}`,
+            `Saved payout method: ${payoutMethod ?? "-"}`,
+            detailsLine,
+            reference_id ? `Reference: ${reference_id}` : "",
+            `Payout ID: ${payoutId}`,
+          ].filter(Boolean).join("\n");
+          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chat, text }),
+          });
+        } else {
+          console.warn("[creator-payout-request] Telegram not configured - manual processing only");
+        }
+      } catch (e) {
+        console.warn("[creator-payout-request] Telegram alert failed:", e);
+        // Don't fail the request - ops can still see the row in the dashboard.
+      }
+
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          payout_id: payoutId,
+          status: "pending",
+          message: "Withdrawal requested",
+        },
+      };
+    });
+
+    return json(result.body, result.status, {
+      "X-Idempotency-Cache": result.cached ? "HIT" : "MISS",
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Request failed";
     console.error("[creator-payout-request]", msg);
     return json({ error: msg }, 500);
   }
-}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
 
-function jsonResponse(body: unknown, status: number, corsHeaders: Record<string, string>) {
+function jsonResponse(
+  body: unknown,
+  status: number,
+  corsHeaders: Record<string, string>,
+  extraHeaders: Record<string, string> = {},
+) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, ...extraHeaders, "Content-Type": "application/json" },
   });
 }

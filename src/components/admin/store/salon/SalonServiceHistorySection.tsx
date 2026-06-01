@@ -55,10 +55,13 @@ export default function SalonServiceHistorySection({ storeId }: SalonServiceHist
     if (!editingId) return;
     setSaving(true);
     const value = draft.trim() || null;
-    const { error: err } = await supabase
-      .from("salon_bookings")
-      .update({ internal_notes: value })
-      .eq("id", editingId);
+    const { error: err } = await supabase.functions.invoke("salon-booking-manage", {
+      body: {
+        action: "update",
+        booking_id: editingId,
+        patch: { internal_notes: value },
+      },
+    });
     setSaving(false);
     if (err) { toast.error(err.message); return; }
     setRows((prev) => prev.map((r) => r.id === editingId ? { ...r, internal_notes: value } : r));

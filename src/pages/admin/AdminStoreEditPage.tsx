@@ -68,89 +68,90 @@ import { cn } from "@/lib/utils";
 import { STORE_CATEGORY_OPTIONS } from "@/config/groceryStores";
 import StoreMapPicker from "@/components/admin/StoreMapPicker";
 import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
-import SalonComingSoonSection from "@/components/admin/store/salon/SalonComingSoonSection";
-import SalonPaymentUsSection from "@/components/admin/store/salon/SalonPaymentUsSection";
-import SalonServiceMenuSection from "@/components/admin/store/salon/SalonServiceMenuSection";
-import SalonStylistsSection from "@/components/admin/store/salon/SalonStylistsSection";
-import SalonClientsSection from "@/components/admin/store/salon/SalonClientsSection";
-import SalonBookingsSection from "@/components/admin/store/salon/SalonBookingsSection";
-import SalonDashboardSection from "@/components/admin/store/salon/SalonDashboardSection";
-import SalonServiceHistorySection from "@/components/admin/store/salon/SalonServiceHistorySection";
-import SalonCommissionsSection from "@/components/admin/store/salon/SalonCommissionsSection";
-import SalonWalkinsSection from "@/components/admin/store/salon/SalonWalkinsSection";
-import SalonReportsSection from "@/components/admin/store/salon/SalonReportsSection";
-import SalonExpensesSection from "@/components/admin/store/salon/SalonExpensesSection";
-import SalonWaitlistSection from "@/components/admin/store/salon/SalonWaitlistSection";
-import SalonIncomeSection from "@/components/admin/store/salon/SalonIncomeSection";
-import SalonStylistSchedulesSection from "@/components/admin/store/salon/SalonStylistSchedulesSection";
-import SalonPackagesSection from "@/components/admin/store/salon/SalonPackagesSection";
-import SalonRetailProductsSection from "@/components/admin/store/salon/SalonRetailProductsSection";
-import SalonLoyaltySection from "@/components/admin/store/salon/SalonLoyaltySection";
-import SalonReviewsSection from "@/components/admin/store/salon/SalonReviewsSection";
-import SalonTimeClockSection from "@/components/admin/store/salon/SalonTimeClockSection";
-import SalonGiftCardsSection from "@/components/admin/store/salon/SalonGiftCardsSection";
-import SalonRemindersSection from "@/components/admin/store/salon/SalonRemindersSection";
-import SalonCampaignsSection from "@/components/admin/store/salon/SalonCampaignsSection";
-import SalonMembershipsSection from "@/components/admin/store/salon/SalonMembershipsSection";
 import { SALON_TAB_META, SALON_TAB_IDS } from "@/components/admin/store/salon/salonTabConfig";
-import CarRentalComingSoonSection from "@/components/admin/store/car-rental/CarRentalComingSoonSection";
-import CarRentalDashboardSection from "@/components/admin/store/car-rental/CarRentalDashboardSection";
-import CarRentalReservationsSection from "@/components/admin/store/car-rental/CarRentalReservationsSection";
-import CarRentalFleetSection from "@/components/admin/store/car-rental/CarRentalFleetSection";
-import CarRentalLocationsSection from "@/components/admin/store/car-rental/CarRentalLocationsSection";
-import CarRentalAddonsSection from "@/components/admin/store/car-rental/CarRentalAddonsSection";
-import CarRentalCustomersSection from "@/components/admin/store/car-rental/CarRentalCustomersSection";
-import CarRentalCheckoutSection from "@/components/admin/store/car-rental/CarRentalCheckoutSection";
-import CarRentalReturnsSection from "@/components/admin/store/car-rental/CarRentalReturnsSection";
-import CarRentalMaintenanceSection from "@/components/admin/store/car-rental/CarRentalMaintenanceSection";
-import CarRentalIncomeSection from "@/components/admin/store/car-rental/CarRentalIncomeSection";
-import CarRentalExpensesSection from "@/components/admin/store/car-rental/CarRentalExpensesSection";
-import CarRentalReportsSection from "@/components/admin/store/car-rental/CarRentalReportsSection";
-import CarRentalReviewsSection from "@/components/admin/store/car-rental/CarRentalReviewsSection";
-import CarRentalPromotionsSection from "@/components/admin/store/car-rental/CarRentalPromotionsSection";
-import CarRentalRatesSection from "@/components/admin/store/car-rental/CarRentalRatesSection";
-import CarRentalCommandPalette from "@/components/admin/store/car-rental/CarRentalCommandPalette";
 import { CAR_RENTAL_TAB_META, CAR_RENTAL_TAB_IDS } from "@/components/admin/store/car-rental/carRentalTabConfig";
-import CarDealershipComingSoonSection from "@/components/admin/store/car-dealership/CarDealershipComingSoonSection";
-import CarDealershipDashboardSection from "@/components/admin/store/car-dealership/CarDealershipDashboardSection";
-import CarDealershipInventorySection from "@/components/admin/store/car-dealership/CarDealershipInventorySection";
-import CarDealershipLeadsSection from "@/components/admin/store/car-dealership/CarDealershipLeadsSection";
-import CarDealershipCustomersSection from "@/components/admin/store/car-dealership/CarDealershipCustomersSection";
-import CarDealershipTestDrivesSection from "@/components/admin/store/car-dealership/CarDealershipTestDrivesSection";
-import CarDealershipSalesSection from "@/components/admin/store/car-dealership/CarDealershipSalesSection";
-import CarDealershipFinancingSection from "@/components/admin/store/car-dealership/CarDealershipFinancingSection";
-import CarDealershipTradeInsSection from "@/components/admin/store/car-dealership/CarDealershipTradeInsSection";
-import CarDealershipReviewsSection from "@/components/admin/store/car-dealership/CarDealershipReviewsSection";
-import CarDealershipExpensesSection from "@/components/admin/store/car-dealership/CarDealershipExpensesSection";
-import CarDealershipIncomeSection from "@/components/admin/store/car-dealership/CarDealershipIncomeSection";
-import CarDealershipReportsSection from "@/components/admin/store/car-dealership/CarDealershipReportsSection";
-import CarDealershipPromotionsSection from "@/components/admin/store/car-dealership/CarDealershipPromotionsSection";
 import { CAR_DEALERSHIP_TAB_META, CAR_DEALERSHIP_TAB_IDS } from "@/components/admin/store/car-dealership/carDealershipTabConfig";
-import CafeComingSoonSection from "@/components/admin/store/cafe/CafeComingSoonSection";
-import CafeDashboardSection from "@/components/admin/store/cafe/CafeDashboardSection";
-import CafeMenuSection from "@/components/admin/store/cafe/CafeMenuSection";
-import CafeModifiersSection from "@/components/admin/store/cafe/CafeModifiersSection";
-import CafeOrdersSection from "@/components/admin/store/cafe/CafeOrdersSection";
-import CafeKdsSection from "@/components/admin/store/cafe/CafeKdsSection";
-import CafeTablesSection from "@/components/admin/store/cafe/CafeTablesSection";
-import CafePaymentSection from "@/components/admin/store/cafe/CafePaymentSection";
-import CafeCustomersSection from "@/components/admin/store/cafe/CafeCustomersSection";
-import CafeGiftCardsSection from "@/components/admin/store/cafe/CafeGiftCardsSection";
-import CafeIncomeSection from "@/components/admin/store/cafe/CafeIncomeSection";
-import CafeReportsSection from "@/components/admin/store/cafe/CafeReportsSection";
-import CafeExpensesSection from "@/components/admin/store/cafe/CafeExpensesSection";
-import CafeBaristasSection from "@/components/admin/store/cafe/CafeBaristasSection";
-import CafeTimeClockSection from "@/components/admin/store/cafe/CafeTimeClockSection";
-import CafeReviewsSection from "@/components/admin/store/cafe/CafeReviewsSection";
-import CafePromotionsSection from "@/components/admin/store/cafe/CafePromotionsSection";
-import CafeInventorySection from "@/components/admin/store/cafe/CafeInventorySection";
-import CafeRecipesSection from "@/components/admin/store/cafe/CafeRecipesSection";
-import CafeTipsSection from "@/components/admin/store/cafe/CafeTipsSection";
-import CafePurchasingSection from "@/components/admin/store/cafe/CafePurchasingSection";
-import CafeLoyaltySection from "@/components/admin/store/cafe/CafeLoyaltySection";
-import CafeShiftsSection from "@/components/admin/store/cafe/CafeShiftsSection";
 import { CAFE_TAB_META, CAFE_TAB_IDS } from "@/components/admin/store/cafe/cafeTabConfig";
 import { toast } from "sonner";
+
+const SalonComingSoonSection = React.lazy(() => import("@/components/admin/store/salon/SalonComingSoonSection"));
+const SalonPaymentUsSection = React.lazy(() => import("@/components/admin/store/salon/SalonPaymentUsSection"));
+const SalonServiceMenuSection = React.lazy(() => import("@/components/admin/store/salon/SalonServiceMenuSection"));
+const SalonStylistsSection = React.lazy(() => import("@/components/admin/store/salon/SalonStylistsSection"));
+const SalonClientsSection = React.lazy(() => import("@/components/admin/store/salon/SalonClientsSection"));
+const SalonBookingsSection = React.lazy(() => import("@/components/admin/store/salon/SalonBookingsSection"));
+const SalonDashboardSection = React.lazy(() => import("@/components/admin/store/salon/SalonDashboardSection"));
+const SalonServiceHistorySection = React.lazy(() => import("@/components/admin/store/salon/SalonServiceHistorySection"));
+const SalonCommissionsSection = React.lazy(() => import("@/components/admin/store/salon/SalonCommissionsSection"));
+const SalonWalkinsSection = React.lazy(() => import("@/components/admin/store/salon/SalonWalkinsSection"));
+const SalonReportsSection = React.lazy(() => import("@/components/admin/store/salon/SalonReportsSection"));
+const SalonExpensesSection = React.lazy(() => import("@/components/admin/store/salon/SalonExpensesSection"));
+const SalonWaitlistSection = React.lazy(() => import("@/components/admin/store/salon/SalonWaitlistSection"));
+const SalonIncomeSection = React.lazy(() => import("@/components/admin/store/salon/SalonIncomeSection"));
+const SalonStylistSchedulesSection = React.lazy(() => import("@/components/admin/store/salon/SalonStylistSchedulesSection"));
+const SalonPackagesSection = React.lazy(() => import("@/components/admin/store/salon/SalonPackagesSection"));
+const SalonRetailProductsSection = React.lazy(() => import("@/components/admin/store/salon/SalonRetailProductsSection"));
+const SalonLoyaltySection = React.lazy(() => import("@/components/admin/store/salon/SalonLoyaltySection"));
+const SalonReviewsSection = React.lazy(() => import("@/components/admin/store/salon/SalonReviewsSection"));
+const SalonTimeClockSection = React.lazy(() => import("@/components/admin/store/salon/SalonTimeClockSection"));
+const SalonGiftCardsSection = React.lazy(() => import("@/components/admin/store/salon/SalonGiftCardsSection"));
+const SalonRemindersSection = React.lazy(() => import("@/components/admin/store/salon/SalonRemindersSection"));
+const SalonCampaignsSection = React.lazy(() => import("@/components/admin/store/salon/SalonCampaignsSection"));
+const SalonMembershipsSection = React.lazy(() => import("@/components/admin/store/salon/SalonMembershipsSection"));
+const CarRentalComingSoonSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalComingSoonSection"));
+const CarRentalDashboardSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalDashboardSection"));
+const CarRentalReservationsSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalReservationsSection"));
+const CarRentalFleetSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalFleetSection"));
+const CarRentalLocationsSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalLocationsSection"));
+const CarRentalAddonsSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalAddonsSection"));
+const CarRentalCustomersSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalCustomersSection"));
+const CarRentalCheckoutSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalCheckoutSection"));
+const CarRentalReturnsSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalReturnsSection"));
+const CarRentalMaintenanceSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalMaintenanceSection"));
+const CarRentalIncomeSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalIncomeSection"));
+const CarRentalExpensesSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalExpensesSection"));
+const CarRentalReportsSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalReportsSection"));
+const CarRentalReviewsSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalReviewsSection"));
+const CarRentalPromotionsSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalPromotionsSection"));
+const CarRentalRatesSection = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalRatesSection"));
+const CarRentalCommandPalette = React.lazy(() => import("@/components/admin/store/car-rental/CarRentalCommandPalette"));
+const CarDealershipComingSoonSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipComingSoonSection"));
+const CarDealershipDashboardSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipDashboardSection"));
+const CarDealershipInventorySection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipInventorySection"));
+const CarDealershipLeadsSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipLeadsSection"));
+const CarDealershipCustomersSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipCustomersSection"));
+const CarDealershipTestDrivesSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipTestDrivesSection"));
+const CarDealershipSalesSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipSalesSection"));
+const CarDealershipFinancingSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipFinancingSection"));
+const CarDealershipTradeInsSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipTradeInsSection"));
+const CarDealershipReviewsSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipReviewsSection"));
+const CarDealershipExpensesSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipExpensesSection"));
+const CarDealershipIncomeSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipIncomeSection"));
+const CarDealershipReportsSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipReportsSection"));
+const CarDealershipPromotionsSection = React.lazy(() => import("@/components/admin/store/car-dealership/CarDealershipPromotionsSection"));
+const CafeComingSoonSection = React.lazy(() => import("@/components/admin/store/cafe/CafeComingSoonSection"));
+const CafeDashboardSection = React.lazy(() => import("@/components/admin/store/cafe/CafeDashboardSection"));
+const CafeMenuSection = React.lazy(() => import("@/components/admin/store/cafe/CafeMenuSection"));
+const CafeModifiersSection = React.lazy(() => import("@/components/admin/store/cafe/CafeModifiersSection"));
+const CafeOrdersSection = React.lazy(() => import("@/components/admin/store/cafe/CafeOrdersSection"));
+const CafeKdsSection = React.lazy(() => import("@/components/admin/store/cafe/CafeKdsSection"));
+const CafeTablesSection = React.lazy(() => import("@/components/admin/store/cafe/CafeTablesSection"));
+const CafePaymentSection = React.lazy(() => import("@/components/admin/store/cafe/CafePaymentSection"));
+const CafeCustomersSection = React.lazy(() => import("@/components/admin/store/cafe/CafeCustomersSection"));
+const CafeGiftCardsSection = React.lazy(() => import("@/components/admin/store/cafe/CafeGiftCardsSection"));
+const CafeIncomeSection = React.lazy(() => import("@/components/admin/store/cafe/CafeIncomeSection"));
+const CafeReportsSection = React.lazy(() => import("@/components/admin/store/cafe/CafeReportsSection"));
+const CafeExpensesSection = React.lazy(() => import("@/components/admin/store/cafe/CafeExpensesSection"));
+const CafeBaristasSection = React.lazy(() => import("@/components/admin/store/cafe/CafeBaristasSection"));
+const CafeTimeClockSection = React.lazy(() => import("@/components/admin/store/cafe/CafeTimeClockSection"));
+const CafeReviewsSection = React.lazy(() => import("@/components/admin/store/cafe/CafeReviewsSection"));
+const CafePromotionsSection = React.lazy(() => import("@/components/admin/store/cafe/CafePromotionsSection"));
+const CafeInventorySection = React.lazy(() => import("@/components/admin/store/cafe/CafeInventorySection"));
+const CafeRecipesSection = React.lazy(() => import("@/components/admin/store/cafe/CafeRecipesSection"));
+const CafeTipsSection = React.lazy(() => import("@/components/admin/store/cafe/CafeTipsSection"));
+const CafePurchasingSection = React.lazy(() => import("@/components/admin/store/cafe/CafePurchasingSection"));
+const CafeLoyaltySection = React.lazy(() => import("@/components/admin/store/cafe/CafeLoyaltySection"));
+const CafeShiftsSection = React.lazy(() => import("@/components/admin/store/cafe/CafeShiftsSection"));
 
 const StorePaymentSection = React.lazy(() => import("@/components/admin/StorePaymentSection"));
 const StoreCustomersSection = React.lazy(() => import("@/components/admin/StoreCustomersSection"));
@@ -1962,19 +1963,16 @@ export default function AdminStoreEditPage() {
       };
 
       if (editingProduct) {
-        const { error } = await supabase
-          .from("store_products")
-          .update(productPayload as any)
-          .eq("id", editingProduct.id);
-        if (error) throw error;
+        const { data, error } = await supabase.functions.invoke("store-product-manage", {
+          body: { action: "update", product_id: editingProduct.id, product: productPayload },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to update product");
       } else {
-        const { data, error } = await supabase
-          .from("store_products")
-          .insert({ ...(productPayload as any), store_id: storeId! })
-          .select()
-          .single();
-        if (error) throw error;
-        if (data) setEditingProduct(data);
+        const { data, error } = await supabase.functions.invoke("store-product-manage", {
+          body: { action: "create", store_id: storeId, product: productPayload },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to add product");
+        if (data.product) setEditingProduct(data.product);
       }
       return keepOpen;
     },
@@ -1993,8 +1991,10 @@ export default function AdminStoreEditPage() {
 
   const deleteProduct = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("store_products").delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("store-product-manage", {
+        body: { action: "delete", product_id: id },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to delete product");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-store-products", storeId] });
@@ -2007,6 +2007,13 @@ export default function AdminStoreEditPage() {
   const updateField = (field: string, value: any) => setForm((p) => ({ ...p, [field]: value }));
   const updateArSettings = (key: string, value: any) => setForm((p) => ({ ...p, ar_settings: { ...p.ar_settings, [key]: value } }));
   const updateProductField = (field: string, value: any) => setProductForm((p) => ({ ...p, [field]: value }));
+  const saveStoreProfilePatch = async (profile: Record<string, any>) => {
+    const { data, error } = await supabase.functions.invoke("store-profile-manage", {
+      body: { action: "update", store_id: storeId, profile },
+    });
+    if (error || !data?.ok) throw error || new Error(data?.error || "Failed to save store profile");
+    return data.store;
+  };
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -2028,11 +2035,7 @@ export default function AdminStoreEditPage() {
       });
       const newImages = [...galleryImages, publicUrl];
       setGalleryImages(newImages);
-      const { error: saveErr } = await supabase
-        .from("store_profiles")
-        .update({ gallery_images: newImages } as any)
-        .eq("id", storeId!);
-      if (saveErr) throw saveErr;
+      await saveStoreProfilePatch({ gallery_images: newImages });
       // Verify persistence
       const persisted = await verifyStoreProfileGallery(storeId!, newImages);
       if (!persisted) {
@@ -2084,11 +2087,7 @@ export default function AdminStoreEditPage() {
         toast.loading(`Uploading ${i + 1}/${queue.length}...`, { id: toastId });
       }
       if (success > 0) {
-        const { error: saveErr } = await supabase
-          .from("store_profiles")
-          .update({ gallery_images: current } as any)
-          .eq("id", storeId!);
-        if (saveErr) throw saveErr;
+        await saveStoreProfilePatch({ gallery_images: current });
         const persisted = await verifyStoreProfileGallery(storeId!, current);
         if (!persisted) {
           setGalleryImages(prev);
@@ -2115,11 +2114,7 @@ export default function AdminStoreEditPage() {
     const newImages = galleryImages.filter((_, i) => i !== index);
     setGalleryImages(newImages);
     try {
-      const { error } = await supabase
-        .from("store_profiles")
-        .update({ gallery_images: newImages } as any)
-        .eq("id", storeId!);
-      if (error) throw error;
+      await saveStoreProfilePatch({ gallery_images: newImages });
       queryClient.invalidateQueries({ queryKey: ["admin-store", storeId] });
       toast.success("Gallery image removed");
     } catch (e: any) {
@@ -2138,11 +2133,7 @@ export default function AdminStoreEditPage() {
     next.splice(to, 0, moved);
     setGalleryImages(next);
     try {
-      const { error } = await supabase
-        .from("store_profiles")
-        .update({ gallery_images: next } as any)
-        .eq("id", storeId!);
-      if (error) throw error;
+      await saveStoreProfilePatch({ gallery_images: next });
       queryClient.invalidateQueries({ queryKey: ["admin-store", storeId] });
       toast.success("Order saved");
     } catch (e: any) {
@@ -2164,11 +2155,7 @@ export default function AdminStoreEditPage() {
       });
       updateField(field, publicUrl);
       // Auto-save immediately
-      const { error: saveErr } = await supabase
-        .from("store_profiles")
-        .update({ [field]: publicUrl } as any)
-        .eq("id", storeId!);
-      if (saveErr) throw saveErr;
+      await saveStoreProfilePatch({ [field]: publicUrl });
       // Verify persistence
       const persisted = await verifyStoreProfileUrl(storeId!, field, publicUrl);
       if (!persisted) {
@@ -2376,6 +2363,8 @@ export default function AdminStoreEditPage() {
                 src={form.banner_url}
                 alt="Banner"
                 className="w-full h-full object-cover select-none"
+                loading="lazy"
+                decoding="async"
                 draggable={false}
                 style={{ objectPosition: `center ${form.banner_position}%` }}
               />
@@ -2396,9 +2385,12 @@ export default function AdminStoreEditPage() {
                 <>
                   <Button size="sm" variant="secondary" className="h-8 px-2.5 gap-1 bg-background/90 backdrop-blur-sm text-xs" onClick={async () => {
                     setIsRepositioning(false);
-                    const { error } = await supabase.from("store_profiles").update({ banner_position: form.banner_position } as any).eq("id", storeId!);
-                    if (error) toast.error(error.message);
-                    else toast.success("Cover position saved");
+                    try {
+                      await saveStoreProfilePatch({ banner_position: form.banner_position });
+                      toast.success("Cover position saved");
+                    } catch (error: any) {
+                      toast.error(error.message);
+                    }
                   }}>
                     <Check className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Save Position</span><span className="sm:hidden">Save</span>
                   </Button>
@@ -2434,7 +2426,7 @@ export default function AdminStoreEditPage() {
                     className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-xl bg-background border-2 border-background shadow-lg overflow-hidden flex items-center justify-center shrink-0 group cursor-pointer hover:opacity-90 transition-opacity"
                   >
                     {form.logo_url ? (
-                      <img src={form.logo_url} alt="Logo" className="h-full w-full object-cover" />
+                      <img src={form.logo_url} alt="Logo" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <Store className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground/30" />
                     )}
@@ -2480,7 +2472,7 @@ export default function AdminStoreEditPage() {
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-10 justify-start gap-2 rounded-xl px-3 lg:min-w-[132px]">
                   {currentLangData?.flag_svg ? (
-                    <img src={currentLangData.flag_svg} alt="" className="w-5 h-3.5 rounded-[2px] object-cover shadow-sm border border-foreground/10" />
+                    <img src={currentLangData.flag_svg} alt="" className="w-5 h-3.5 rounded-[2px] object-cover shadow-sm border border-foreground/10" loading="lazy" decoding="async" />
                   ) : (
                     <Globe className="h-4 w-4" />
                   )}
@@ -2491,7 +2483,7 @@ export default function AdminStoreEditPage() {
                 {/* Header with background flag watermark */}
                 <div className="relative p-3 border-b border-border/50 bg-muted/30 overflow-hidden">
                   {currentLangData?.flag_svg && (
-                    <img src={currentLangData.flag_svg} alt="" className="absolute -right-4 -top-4 w-32 h-32 opacity-[0.07] pointer-events-none blur-[1px]" style={{ transform: "rotate(-12deg) scale(1.3)" }} />
+                    <img src={currentLangData.flag_svg} alt="" className="absolute -right-4 -top-4 w-32 h-32 opacity-[0.07] pointer-events-none blur-[1px]" loading="lazy" decoding="async" style={{ transform: "rotate(-12deg) scale(1.3)" }} />
                   )}
                   <div className="flex items-center gap-2 relative z-10">
                     <Globe className="w-4 h-4 text-muted-foreground" />
@@ -2510,10 +2502,10 @@ export default function AdminStoreEditPage() {
                     >
                       {/* Hover background flag watermark */}
                       {lang.flag_svg && (
-                        <img src={lang.flag_svg} alt="" className="absolute right-1 top-1/2 -translate-y-1/2 w-16 h-16 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
+                        <img src={lang.flag_svg} alt="" className="absolute right-1 top-1/2 -translate-y-1/2 w-16 h-16 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" loading="lazy" decoding="async" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
                       )}
                       {lang.flag_svg ? (
-                        <img src={lang.flag_svg} alt={lang.name} className="w-6 h-[17px] rounded-[3px] object-cover shadow-sm border border-black/10 shrink-0 relative z-10" />
+                        <img src={lang.flag_svg} alt={lang.name} className="w-6 h-[17px] rounded-[3px] object-cover shadow-sm border border-black/10 shrink-0 relative z-10" loading="lazy" decoding="async" />
                       ) : (
                         <span className="text-lg">{lang.flag_emoji}</span>
                       )}
@@ -2592,7 +2584,7 @@ export default function AdminStoreEditPage() {
                   } : undefined}
                   onTouchEnd={isRepos ? () => setGalleryDragStartY(null) : undefined}
                 >
-                  <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover select-none pointer-events-none" draggable={false} style={{ objectPosition: `center ${pos}%` }} />
+                  <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover select-none pointer-events-none" loading="lazy" decoding="async" draggable={false} style={{ objectPosition: `center ${pos}%` }} />
                   <div className="absolute top-1.5 left-1.5 h-6 px-1.5 rounded-full bg-background/90 backdrop-blur-sm text-foreground flex items-center gap-1 shadow border border-border text-[10px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
                     <GripVertical className="h-3 w-3" />{i + 1}
                   </div>
@@ -2608,9 +2600,12 @@ export default function AdminStoreEditPage() {
                       <button type="button"
                         onClick={async () => {
                           setRepositioningGalleryIdx(null);
-                          const { error } = await supabase.from("store_profiles").update({ gallery_positions: galleryPositions } as any).eq("id", storeId!);
-                          if (error) toast.error(error.message);
-                          else toast.success("Position saved");
+                          try {
+                            await saveStoreProfilePatch({ gallery_positions: galleryPositions });
+                            toast.success("Position saved");
+                          } catch (error: any) {
+                            toast.error(error.message);
+                          }
                         }}
                         className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg"
                       >
@@ -2747,7 +2742,7 @@ export default function AdminStoreEditPage() {
                               onRepair={repairVideoPreviewSource}
                             />
                           ) : firstUrl ? (
-                            <img src={normalizeStorePostMediaUrl(firstUrl)} alt="" className="w-full h-full object-cover" />
+                            <img src={normalizeStorePostMediaUrl(firstUrl)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-muted">
                               <ImagePlus className="h-5 w-5 text-muted-foreground" />
@@ -2843,7 +2838,9 @@ export default function AdminStoreEditPage() {
         </>)}
 
         {isCarRental && storeId && (
-          <CarRentalCommandPalette storeId={storeId} onJump={(id) => handleTabChange(id)} />
+          <Suspense fallback={null}>
+            <CarRentalCommandPalette storeId={storeId} onJump={(id) => handleTabChange(id)} />
+          </Suspense>
         )}
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
@@ -2982,7 +2979,7 @@ export default function AdminStoreEditPage() {
                       } : undefined}
                       onTouchEnd={isRepos ? () => setGalleryDragStartY(null) : undefined}
                     >
-                      <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover select-none pointer-events-none" draggable={false} style={{ objectPosition: `center ${pos}%` }} />
+                      <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover select-none pointer-events-none" loading="lazy" decoding="async" draggable={false} style={{ objectPosition: `center ${pos}%` }} />
                       <div className="absolute top-1.5 left-1.5 h-6 px-1.5 rounded-full bg-background/90 backdrop-blur-sm text-foreground flex items-center gap-1 shadow border border-border text-[10px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
                         <GripVertical className="h-3 w-3" />{i + 1}
                       </div>
@@ -2998,9 +2995,12 @@ export default function AdminStoreEditPage() {
                           <button type="button"
                             onClick={async () => {
                               setRepositioningGalleryIdx(null);
-                              const { error } = await supabase.from("store_profiles").update({ gallery_positions: galleryPositions } as any).eq("id", storeId!);
-                              if (error) toast.error(error.message);
-                              else toast.success("Position saved");
+                              try {
+                                await saveStoreProfilePatch({ gallery_positions: galleryPositions });
+                                toast.success("Position saved");
+                              } catch (error: any) {
+                                toast.error(error.message);
+                              }
                             }}
                             className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg"
                           >
@@ -3107,7 +3107,7 @@ export default function AdminStoreEditPage() {
                                     onRepair={repairVideoPreviewSource}
                                   />
                                 ) : firstUrl ? (
-                                  <img src={normalizeStorePostMediaUrl(firstUrl)} alt="" className="h-full w-full object-cover" />
+                                  <img src={normalizeStorePostMediaUrl(firstUrl)} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center bg-muted">
                                     <ImagePlus className="h-5 w-5 text-muted-foreground" />
@@ -4067,7 +4067,7 @@ export default function AdminStoreEditPage() {
                               const autoImg = form.category === "auto-repair" ? getServiceImage(product.name) : "";
                               const imgSrc = autoImg || product.image_url;
                               return imgSrc ? (
-                                <img src={imgSrc} alt={product.name} className="w-12 h-12 rounded-lg object-cover bg-muted" />
+                                <img src={imgSrc} alt={product.name} className="w-12 h-12 rounded-lg object-cover bg-muted" loading="lazy" decoding="async" />
                               ) : (
                                 <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
                                   <Package className="h-5 w-5 text-muted-foreground/30" />
@@ -4759,7 +4759,7 @@ export default function AdminStoreEditPage() {
                   <div className="flex flex-wrap gap-2">
                     {(productForm.image_urls || []).map((url: string, idx: number) => (
                       <div key={idx} className="relative group shrink-0">
-                        <img src={url} alt={`Product ${idx + 1}`} className="w-20 h-20 rounded-xl object-cover border border-border" />
+                        <img src={url} alt={`Product ${idx + 1}`} className="w-20 h-20 rounded-xl object-cover border border-border" loading="lazy" decoding="async" />
                         <button
                           type="button"
                           onClick={() => removeProductImage(idx)}
@@ -5266,7 +5266,7 @@ export default function AdminStoreEditPage() {
                   <div className="flex flex-wrap gap-2">
                     {(productForm.image_urls || []).map((url: string, idx: number) => (
                       <div key={idx} className="relative group shrink-0">
-                        <img src={url} alt={`Service ${idx + 1}`} className="w-20 h-20 rounded-xl object-cover border border-border" />
+                        <img src={url} alt={`Service ${idx + 1}`} className="w-20 h-20 rounded-xl object-cover border border-border" loading="lazy" decoding="async" />
                         <button type="button" onClick={() => removeProductImage(idx)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs shadow-sm">×</button>
                       </div>
                     ))}
@@ -5842,6 +5842,8 @@ export default function AdminStoreEditPage() {
                           src={preview.previewUrl}
                           alt="Post preview"
                           className="w-full rounded-lg object-cover"
+                          loading="lazy"
+                          decoding="async"
                           style={{ aspectRatio: "1 / 1" }}
                         />
                       )}
@@ -6055,7 +6057,7 @@ export default function AdminStoreEditPage() {
                         onRepair={repairVideoPreviewSource}
                       />
                     ) : firstUrl ? (
-                      <img src={normalizeStorePostMediaUrl(firstUrl)} alt="" className="w-full max-h-80 object-contain" />
+                      <img src={normalizeStorePostMediaUrl(firstUrl)} alt="" className="w-full max-h-80 object-contain" loading="lazy" decoding="async" />
                     ) : null}
                   </div>
                   {/* Post info */}

@@ -26,9 +26,9 @@ const services = [
   { id: "ride", name: "Ride", icon: Car, gradient: "from-emerald-500 to-green-600", link: "/rides/hub", enabled: true },
   { id: "eats", name: "Eats", icon: UtensilsCrossed, gradient: "from-orange-500 to-red-500", link: "/eats", enabled: true },
   { id: "delivery", name: "Delivery", icon: Package, gradient: "from-muted to-muted", link: "/delivery", enabled: false },
-  { id: "flights", name: "Flights", icon: Plane, gradient: "from-muted to-muted", link: "/flights", enabled: false },
+  { id: "flights", name: "Flights", icon: Plane, gradient: "from-sky-500 to-blue-600", link: "/flights", enabled: true },
   { id: "hotels", name: "Hotels", icon: Hotel, gradient: "from-amber-500 to-orange-500", link: "/hotels", enabled: true },
-  { id: "rentals", name: "Rentals", icon: Car, gradient: "from-muted to-muted", link: "/rent-car", enabled: false },
+  { id: "rentals", name: "Rentals", icon: Car, gradient: "from-teal-500 to-emerald-600", link: "/car-rental", enabled: true },
 ];
 
 const tripIconMap: Record<string, LucideIcon> = {

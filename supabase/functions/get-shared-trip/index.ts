@@ -1,12 +1,10 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Public endpoint — resolves a share_token to limited ride info.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "content-type",
-};
+Deno.serve(withSecurity("get-shared-trip", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -51,4 +49,4 @@ Deno.serve(async (req) => {
     console.error("[get-shared-trip]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: corsHeaders });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

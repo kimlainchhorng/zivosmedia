@@ -57,11 +57,9 @@ export default function BlockedUsersPage() {
   async function unblock(id: string) {
     if (!user) return;
     setBusy(id);
-    const { error } = await (supabase as any)
-      .from("blocked_users")
-      .delete()
-      .eq("blocker_id", user.id)
-      .eq("blocked_id", id);
+    const { error } = await supabase.functions.invoke("block-user-manage", {
+      body: { action: "unblock", blocked_id: id },
+    });
     setBusy(null);
     if (error) { toast.error(error.message); return; }
     toast.success("User unblocked");

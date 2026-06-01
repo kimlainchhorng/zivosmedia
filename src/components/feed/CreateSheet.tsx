@@ -27,6 +27,7 @@ import {
   Rocket,
   Search,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   Sparkles,
   Store,
@@ -139,6 +140,12 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
     if (!q) return SHORTCUT_ITEMS;
     return SHORTCUT_ITEMS.filter((item) => item.label.toLowerCase().includes(q));
   }, [query]);
+  const selectedMode = STUDIO_MODES.find((mode) => mode.id === studioMode);
+  const visibleToolCount = query ? studioItems.length : studioItems.length + FEATURED_CREATE_ITEMS.length;
+  const lockedToolCount = studioItems.filter((item) => item.requiresAuth && !user).length;
+  const studioStatus = query
+    ? `${studioItems.length} ${studioItems.length === 1 ? "match" : "matches"}`
+    : selectedMode?.description ?? "Ready";
 
   const go = (path: string, requiresAuth?: boolean) => {
     onOpenChange(false);
@@ -153,20 +160,20 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[91%] max-w-[440px] p-0 flex flex-col gap-0 overflow-hidden bg-background"
+        className="zivo-chat-surface flex w-[91%] max-w-[440px] flex-col gap-0 overflow-hidden border-r border-white/10 bg-background p-0"
       >
-        <div className="border-b border-border/40 bg-background/95 px-4 pb-3 backdrop-blur-xl" style={{ paddingTop: "max(var(--zivo-safe-top,0px), 16px)" }}>
+        <div className="zivo-chat-header-glass px-4 pb-3" style={{ paddingTop: "max(var(--zivo-safe-top,0px), 16px)" }}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="mb-1 flex w-fit items-center gap-1.5 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              <div className="zivo-chat-chip mb-1 flex w-fit items-center gap-1.5 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
                 <Sparkles className="h-3 w-3 text-primary" />
                 ZIVO Studio
               </div>
-              <SheetTitle className="text-2xl font-extrabold tracking-tight">Create</SheetTitle>
+              <SheetTitle className="text-2xl font-black tracking-tight">Create</SheetTitle>
               <SheetDescription className="sr-only">
                 Choose what to create in ZIVO, including posts, reels, stories, live streams, events, listings, jobs, and voice rooms.
               </SheetDescription>
-              <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
+              <p className="mt-0.5 text-[12px] font-semibold text-muted-foreground">
                 Launch content, commerce, and community from one place.
               </p>
             </div>
@@ -174,7 +181,7 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
               <button
                 type="button"
                 onClick={() => go("/explore")}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-muted/60 px-3 text-[12px] font-bold text-muted-foreground transition-colors hover:text-foreground active:opacity-70"
+                className="zivo-chat-chip inline-flex h-9 items-center gap-1.5 px-3 text-[12px] font-black text-muted-foreground transition-colors hover:text-foreground active:opacity-70"
               >
                 See all
                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -184,17 +191,17 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
         </div>
 
         <div className="flex-1 overflow-y-auto pb-[max(var(--zivo-safe-bottom,0px),16px)]">
-          <div className="sticky top-0 z-10 border-b border-border/30 bg-background/92 px-3 py-3 backdrop-blur-xl">
+          <div className="zivo-chat-header-glass sticky top-0 z-10 px-3 py-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search create tools"
-                className="h-11 w-full rounded-2xl border border-border/50 bg-muted/35 pl-9 pr-3 text-[14px] font-medium outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/40 focus:bg-background"
+                className="zivo-chat-search h-11 w-full pl-9 pr-3 text-[14px] font-semibold outline-none placeholder:text-muted-foreground"
               />
             </div>
-            <div className="mt-2 grid grid-cols-3 gap-1 rounded-2xl bg-muted/45 p-1">
+            <div className="zivo-chat-chip mt-2 grid grid-cols-3 gap-1 rounded-2xl p-1">
               {STUDIO_MODES.map((mode) => (
                 <button
                   key={mode.id}
@@ -203,28 +210,44 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
                   className={cn(
                     "min-h-10 rounded-xl px-2 text-center transition-all active:scale-[0.98]",
                     studioMode === mode.id
-                      ? "bg-background text-foreground shadow-sm"
+                      ? "bg-background/85 text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                   aria-pressed={studioMode === mode.id}
                 >
-                  <span className="block text-[12px] font-extrabold leading-tight">{mode.label}</span>
+                  <span className="block text-[12px] font-black leading-tight">{mode.label}</span>
                   <span className="mt-0.5 hidden truncate text-[9px] font-semibold leading-tight opacity-70 min-[390px]:block">
                     {mode.description}
                   </span>
                 </button>
               ))}
             </div>
+            <div className="zivo-social-share-preview mt-2 flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-primary">
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                    Studio status
+                  </span>
+                  <span className="block truncate text-xs font-black text-foreground">{studioStatus}</span>
+                </span>
+              </span>
+              <span className="zivo-chat-chip-active shrink-0 px-2.5 py-1 text-[10px] font-black">
+                {user ? `${visibleToolCount} ready` : `${lockedToolCount} locked`}
+              </span>
+            </div>
           </div>
 
-          <div className="mx-3 mb-4 mt-3 overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm">
+          <div className="zivo-chat-card mx-3 mb-4 mt-3 overflow-hidden p-0">
             <div className="bg-gradient-to-r from-foreground to-foreground/80 p-4 text-background">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wide text-background/70">
                     Quick launch
                   </p>
-                  <p className="mt-1 text-lg font-extrabold tracking-tight">
+                  <p className="mt-1 text-lg font-black tracking-tight">
                     Pick a format, keep the momentum.
                   </p>
                 </div>
@@ -233,7 +256,7 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
                 </span>
               </div>
             </div>
-            <div className="border-b border-border/40 bg-muted/20 px-3 py-2">
+            <div className="border-b border-white/10 bg-background/30 px-3 py-2">
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {GOAL_CARDS.map((goal) => {
                   const Icon = goal.icon;
@@ -242,14 +265,14 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
                       key={goal.id}
                       type="button"
                       onClick={() => go(goal.path, goal.requiresAuth)}
-                      className="flex min-w-[184px] items-center gap-2 rounded-2xl border border-border/50 bg-background px-3 py-2 text-left shadow-sm transition-transform active:scale-[0.98]"
+                      className="flex min-w-[184px] items-center gap-2 rounded-2xl border border-white/10 bg-background/70 px-3 py-2 text-left shadow-sm transition-transform active:scale-[0.98]"
                     >
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
                         <Icon className="h-[18px] w-[18px]" />
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-[12px] font-extrabold">{goal.label}</span>
-                        <span className="block truncate text-[10px] text-muted-foreground">{goal.description}</span>
+                        <span className="block truncate text-[12px] font-black">{goal.label}</span>
+                        <span className="block truncate text-[10px] font-semibold text-muted-foreground">{goal.description}</span>
                       </span>
                     </button>
                   );
@@ -268,7 +291,7 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
               <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground/80">
                 {query ? "Search results" : `${STUDIO_MODES.find((mode) => mode.id === studioMode)?.label} studio`}
               </p>
-              <span className="rounded-full bg-muted/60 px-2 py-1 text-[10px] font-bold text-muted-foreground">
+              <span className="zivo-chat-chip px-2 py-1 text-[10px] font-black text-muted-foreground">
                 {studioItems.length} tools
               </span>
             </div>
@@ -277,22 +300,22 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
                 <CreateToolButton key={item.id} item={item} onClick={() => go(item.path, item.requiresAuth)} />
               ))}
               {studioItems.length === 0 && (
-                <div className="col-span-2 rounded-3xl border border-dashed border-border/60 bg-muted/20 p-5 text-center">
+                <div className="zivo-chat-card col-span-2 border-dashed p-5 text-center">
                   <Wand2 className="mx-auto h-6 w-6 text-muted-foreground" />
-                  <p className="mt-2 text-[13px] font-bold">No matching tools</p>
-                  <p className="mt-1 text-[12px] text-muted-foreground">Try post, story, live, market, job, or event.</p>
+                  <p className="mt-2 text-[13px] font-black">No matching tools</p>
+                  <p className="mt-1 text-[12px] font-semibold text-muted-foreground">Try post, story, live, market, job, or event.</p>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="mx-3 mb-4 rounded-3xl border border-border/50 bg-card/70 p-3">
+          <div className="zivo-chat-card mx-3 mb-4 p-3">
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground/80">
+                <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground/80">
                   Smart templates
                 </p>
-                <p className="mt-0.5 text-[12px] text-muted-foreground">Start with copy that already fits the format.</p>
+                <p className="mt-0.5 text-[12px] font-semibold text-muted-foreground">Start with copy that already fits the format.</p>
               </div>
               <Wand2 className="h-5 w-5 text-primary" />
             </div>
@@ -302,14 +325,14 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
                   key={template.id}
                   type="button"
                   onClick={() => go(template.path, true)}
-                  className="flex items-center gap-3 rounded-2xl bg-muted/30 px-3 py-3 text-left transition-colors hover:bg-muted/50 active:scale-[0.99]"
+                  className="zivo-chat-row flex items-center gap-3 px-3 py-3 text-left active:scale-[0.99]"
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-background text-primary shadow-sm">
                     <Sparkles className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-extrabold">{template.label}</span>
-                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{template.copy}</span>
+                    <span className="block text-[13px] font-black">{template.label}</span>
+                    <span className="mt-0.5 block truncate text-[11px] font-semibold text-muted-foreground">{template.copy}</span>
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </button>
@@ -317,11 +340,11 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
             </div>
           </div>
 
-          <div className="mx-3 mb-4 rounded-3xl border border-border/50 bg-card/70">
-            <p className="px-4 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+          <div className="zivo-chat-card mx-3 mb-4 p-1">
+            <p className="px-4 pb-2 pt-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground/80">
               Shortcuts
             </p>
-            <div className="divide-y divide-border/40">
+            <div>
               {filteredShortcuts.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -329,12 +352,12 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
                     key={item.id}
                     type="button"
                     onClick={() => go(item.path, item.requiresAuth)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 active:bg-muted/40"
+                    className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-muted/20 active:bg-muted/30"
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted/50">
+                    <span className="zivo-chat-avatar-ring grid h-9 w-9 shrink-0 place-items-center rounded-full">
                       <Icon className="h-[18px] w-[18px] text-foreground/80" />
                     </span>
-                    <span className="flex-1 text-[15px] font-medium">{item.label}</span>
+                    <span className="flex-1 text-[15px] font-bold">{item.label}</span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </button>
                 );
@@ -343,15 +366,15 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
           </div>
 
           {!user && (
-            <div className="mx-3 mb-4 rounded-3xl border border-primary/25 bg-primary/5 p-4 text-center">
-              <p className="text-[13px] font-bold">Sign in to publish</p>
-              <p className="mx-auto mt-1 max-w-[260px] text-[12px] text-muted-foreground">
+            <div className="zivo-chat-card mx-3 mb-4 p-4 text-center">
+              <p className="text-[13px] font-black">Sign in to publish</p>
+              <p className="mx-auto mt-1 max-w-[260px] text-[12px] font-semibold text-muted-foreground">
                 You need an account to post, go live, and use shortcuts.
               </p>
               <button
                 type="button"
                 onClick={() => go(`/login?redirect=${encodeURIComponent(authRedirectPath || "/feed")}`, false)}
-                className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground active:opacity-80"
+                className="zivo-chat-chip-active mt-3 inline-flex h-10 items-center justify-center px-5 text-[13px] font-black active:opacity-80"
               >
                 Sign in
               </button>
@@ -380,8 +403,8 @@ function CreateToolButton({
       aria-label={`Create ${item.label}`}
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-border/50 bg-background p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]",
-        featured ? "min-h-[112px]" : "flex min-h-[76px] items-center gap-3 bg-card/70",
+        "group relative overflow-hidden rounded-2xl border border-white/10 bg-background/55 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]",
+        featured ? "min-h-[112px]" : "flex min-h-[76px] items-center gap-3",
       )}
     >
       {featured && <span className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", item.accentClass)} />}
@@ -389,10 +412,10 @@ function CreateToolButton({
         <Icon className={cn("h-5 w-5", item.iconClass)} />
       </span>
       <span className={cn("min-w-0", featured && "mt-3 block")}>
-        <span className={cn("block font-extrabold leading-tight", featured ? "text-[15px]" : "truncate text-[14px]")}>
+        <span className={cn("block font-black leading-tight", featured ? "text-[15px]" : "truncate text-[14px]")}>
           {item.label}
         </span>
-        <span className={cn("mt-1 block text-muted-foreground", featured ? "text-[12px] leading-snug" : "truncate text-[11px]")}>
+        <span className={cn("mt-1 block font-semibold text-muted-foreground", featured ? "text-[12px] leading-snug" : "truncate text-[11px]")}>
           {item.sublabel}
         </span>
       </span>

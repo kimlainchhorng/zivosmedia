@@ -171,4 +171,4 @@ Deno.serve(withSecurity("capture-lodging-paypal-order", async (req, ctx) => {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

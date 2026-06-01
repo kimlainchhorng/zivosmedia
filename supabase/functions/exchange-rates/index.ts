@@ -1,4 +1,4 @@
-import { publicCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 /**
  * exchange-rates – Returns cached USD-based exchange rates.
@@ -36,20 +36,23 @@ const STATIC_RATES: Record<string, number> = {
   MXN: 17.2,
 };
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: { ...publicCorsHeaders, "Access-Control-Allow-Methods": "GET, OPTIONS" } });
-  }
-
+Deno.serve(withSecurity("exchange-rates", async (_req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     return new Response(
       JSON.stringify({ rates: STATIC_RATES, source: "static", updated_at: new Date().toISOString() }),
-      { status: 200, headers: { ...publicCorsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } },
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } },
     );
   } catch (err) {
     return new Response(
       JSON.stringify({ error: "internal", rates: STATIC_RATES }),
-      { status: 200, headers: { ...publicCorsHeaders, "Content-Type": "application/json" } },
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["GET"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

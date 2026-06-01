@@ -80,18 +80,16 @@ export function useCarRentalReviews(storeId: string | undefined) {
       value: draft.value ?? null,
       comment: draft.comment?.trim() || null,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_reviews")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-review-manage", {
+      body: { action: "create", store_id: storeId, review: payload },
+    });
     if (err) {
       console.error("[useCarRentalReviews] create failed", err);
       setError("Couldn't add review.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalReview;
+    const created = data?.review as CarRentalReview;
     setReviews((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -101,7 +99,9 @@ export function useCarRentalReviews(storeId: string | undefined) {
     setSaving(true);
     const patch = { reply: reply.trim() || null, reply_at: reply.trim() ? new Date().toISOString() : null, is_acknowledged: true };
     setReviews((prev) => prev.map((r) => r.id === id ? { ...r, ...patch } as CarRentalReview : r));
-    const { error: err } = await supabase.from("car_rental_reviews").update(patch as never).eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-review-manage", {
+      body: { action: "reply", review_id: id, reply },
+    });
     if (err) {
       console.error("[useCarRentalReviews] reply failed", err);
       setError("Couldn't save reply — refreshing.");
@@ -112,19 +112,25 @@ export function useCarRentalReviews(storeId: string | undefined) {
 
   const acknowledge = useCallback(async (id: string) => {
     setReviews((prev) => prev.map((r) => r.id === id ? { ...r, is_acknowledged: true } : r));
-    await supabase.from("car_rental_reviews").update({ is_acknowledged: true } as never).eq("id", id);
+    await supabase.functions.invoke("car-rental-review-manage", {
+      body: { action: "acknowledge", review_id: id },
+    });
   }, []);
 
   const togglePublished = useCallback(async (id: string, isPublished: boolean) => {
     setReviews((prev) => prev.map((r) => r.id === id ? { ...r, is_published: isPublished } : r));
-    await supabase.from("car_rental_reviews").update({ is_published: isPublished } as never).eq("id", id);
+    await supabase.functions.invoke("car-rental-review-manage", {
+      body: { action: "set_published", review_id: id, is_published: isPublished },
+    });
   }, []);
 
   const remove = useCallback(async (id: string) => {
     setSaving(true);
     const prev = reviews;
     setReviews((p) => p.filter((r) => r.id !== id));
-    const { error: err } = await supabase.from("car_rental_reviews").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-review-manage", {
+      body: { action: "delete", review_id: id },
+    });
     if (err) {
       console.error("[useCarRentalReviews] delete failed", err);
       setError("Couldn't delete review.");

@@ -76,7 +76,7 @@ function SubscribeForm({ creatorId, creatorName, tier, onClose }: Omit<Props, "o
 
       // Recording the row goes through confirm-tier-subscription, which
       // re-fetches the PaymentIntent / Subscription from Stripe to verify
-      // status server-side before writing via service_role. The client-side
+      // status server-side before writing with elevated backend privileges. The client-side
       // INSERT path no longer works — cs_ins is now restricted to free tiers
       // (see migration 20260528000010).
       const { data: confirmData, error: confirmErr } = await supabase.functions.invoke(

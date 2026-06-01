@@ -22,14 +22,9 @@
  * next run — acceptable for the v1.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-cron-secret",
-};
-
-const j = (status: number, body: unknown) =>
+const j = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -42,12 +37,14 @@ const escapeHtml = (s: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-serve(async (req) => {
+serve(withSecurity("salon-low-stock-digest", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" });
+  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" }, corsHeaders);
 
   const cronSecretExpected = Deno.env.get("CRON_SECRET") ?? "";
   const url = new URL(req.url);
@@ -56,7 +53,7 @@ serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
   const isService = auth === `Bearer ${serviceKey}`;
   const cronOk = !!cronSecretExpected && providedSecret === cronSecretExpected;
-  if (!isService && !cronOk) return j(401, { error: "Unauthorized" });
+  if (!isService && !cronOk) return j(401, { error: "Unauthorized" }, corsHeaders);
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -70,7 +67,7 @@ serve(async (req) => {
     .eq("is_active", true);
   if (storesErr) {
     console.error("[salon-low-stock-digest] stores load failed", storesErr);
-    return j(500, { error: storesErr.message });
+    return j(500, { error: storesErr.message }, corsHeaders);
   }
 
   let storesProcessed = 0;
@@ -186,5 +183,5 @@ serve(async (req) => {
     stores_processed: storesProcessed,
     emails_sent: emailsSent,
     products_alerted: productsAlerted,
-  });
-});
+  }, corsHeaders);
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

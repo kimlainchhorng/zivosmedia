@@ -401,7 +401,7 @@ export default function CreatorAnalyticsPage() {
                         </div>
                         <div className="h-9 w-9 rounded-full bg-muted overflow-hidden shrink-0">
                           {prof?.avatar_url ? (
-                            <img src={prof.avatar_url} alt="" className="w-full h-full object-cover" />
+                            <img src={prof.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           ) : (
                             <div className="w-full h-full bg-gradient-to-br from-amber-500/30 to-orange-500/15" />
                           )}

@@ -22,8 +22,8 @@ const RefundPolicy = () => {
     <div className="min-h-screen bg-background">
       <SEOHead 
         title="Refund Policy – ZIVO Travel"
-        description="Understand refund terms for Hotels, Car Rentals (processed by ZIVO?), and Flights (handled by airline partners)."
-        canonical="https://hizivo.com/refund-policy"
+        description="Understand refund terms for hotels, car rentals processed by ZIVO, and flights handled by airline partners."
+        canonical="https://hizivo.com/legal/refunds"
       />
       <NavBar />
       
@@ -348,7 +348,7 @@ const RefundPolicy = () => {
                   support@hizivo.com
                 </Button>
               </a>
-              <Link to="/cancellation-policy">
+              <Link to="/legal/cancellation">
                 <Button variant="outline">Cancellation Policy</Button>
               </Link>
             </div>
@@ -357,15 +357,15 @@ const RefundPolicy = () => {
 
         {/* Related Links */}
         <div className="flex flex-wrap gap-4 justify-center pt-8 border-t border-border mt-8">
-          <Link to="/cancellation-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+          <Link to="/legal/cancellation" className="text-sm text-muted-foreground hover:text-primary transition-colors">
             Cancellation Policy
           </Link>
           <span className="text-muted-foreground">•</span>
-          <Link to="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+          <Link to="/legal/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
             Terms of Service
           </Link>
           <span className="text-muted-foreground">•</span>
-          <Link to="/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+          <Link to="/legal/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
             Partner Disclosure
           </Link>
         </div>

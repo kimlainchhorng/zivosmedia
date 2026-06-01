@@ -9,11 +9,7 @@
  */
 import { serve, createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PRICE_CENTS: Record<string, number> = {
   copy: 25,
@@ -36,7 +32,9 @@ type Body = {
   reference_image_url?: string | null;
 };
 
-serve(async (req) => {
+serve(withSecurity("ads-studio-generate", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -48,7 +46,7 @@ serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return jsonResp({ error: "missing auth" }, 401);
+    if (!authHeader) return jsonResp({ error: "missing auth" }, 401, corsHeaders);
 
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
@@ -57,15 +55,15 @@ serve(async (req) => {
 
     const { data: userData } = await userClient.auth.getUser();
     const user = userData?.user;
-    if (!user) return jsonResp({ error: "unauthenticated" }, 401);
+    if (!user) return jsonResp({ error: "unauthenticated" }, 401, corsHeaders);
 
     const rl = await rateLimitDb(user.id, "api_general", { max: 10, windowSec: 60 });
     if (!rl.allowed) {
-      return jsonResp({ error: "Too many requests. Please wait before generating again." }, 429);
+      return jsonResp({ error: "Too many requests. Please wait before generating again." }, 429, corsHeaders);
     }
 
     const body = (await req.json()) as Body;
-    if (!body?.store_id) return jsonResp({ error: "store_id required" }, 400);
+    if (!body?.store_id) return jsonResp({ error: "store_id required" }, 400, corsHeaders);
 
     // Sanitize and cap user-supplied text to prevent prompt injection
     if (typeof body.service_summary === "string") body.service_summary = body.service_summary.slice(0, 500);
@@ -79,7 +77,7 @@ serve(async (req) => {
       .select("id, owner_id, name, city")
       .eq("id", body.store_id)
       .maybeSingle();
-    if (!store || store.owner_id !== user.id) return jsonResp({ error: "forbidden" }, 403);
+    if (!store || store.owner_id !== user.id) return jsonResp({ error: "forbidden" }, 403, corsHeaders);
 
     // ------- Wallet guard -------
     const imageCountReq = Math.min(Math.max(body.generate.images ?? 0, 0), 4);
@@ -101,7 +99,7 @@ serve(async (req) => {
         balance_cents: balance,
         required_cents: estCost,
         auto_recharge: wallet?.auto_recharge_enabled ?? false,
-      }, 402);
+      }, 402, corsHeaders);
     }
 
     const platforms = body.platforms?.length ? body.platforms : ["google", "meta", "tiktok"];
@@ -147,8 +145,8 @@ Return JSON shape:
       });
       if (!aiResp.ok) {
         const t = await aiResp.text();
-        if (aiResp.status === 429) return jsonResp({ error: "Rate limited, please try again." }, 429);
-        if (aiResp.status === 402) return jsonResp({ error: "AI credits exhausted in workspace." }, 402);
+        if (aiResp.status === 429) return jsonResp({ error: "Rate limited, please try again." }, 429, corsHeaders);
+        if (aiResp.status === 402) return jsonResp({ error: "AI credits exhausted in workspace." }, 402, corsHeaders);
         throw new Error(`AI copy failed [${aiResp.status}]: ${t.slice(0, 200)}`);
       }
       const aiData = await aiResp.json();
@@ -191,8 +189,8 @@ Aspect: ${aspect}.`;
           }),
         });
         if (!resp.ok) {
-          if (resp.status === 429) return jsonResp({ error: "Rate limited on image gen." }, 429);
-          if (resp.status === 402) return jsonResp({ error: "AI credits exhausted." }, 402);
+          if (resp.status === 429) return jsonResp({ error: "Rate limited on image gen." }, 429, corsHeaders);
+          if (resp.status === 402) return jsonResp({ error: "AI credits exhausted." }, 402, corsHeaders);
           continue;
         }
         const j = await resp.json();
@@ -278,14 +276,14 @@ Return:
       copy: copyResult,
       images: imageUrls,
       video_scripts: videoScripts,
-    });
+    }, 200, corsHeaders);
   } catch (err) {
     console.error("ads-studio-generate error", err);
-    return jsonResp({ error: err instanceof Error ? err.message : "unknown error" }, 500);
+    return jsonResp({ error: err instanceof Error ? err.message : "unknown error" }, 500, corsHeaders);
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
-function jsonResp(payload: unknown, status = 200) {
+function jsonResp(payload: unknown, status = 200, corsHeaders: Record<string, string>) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

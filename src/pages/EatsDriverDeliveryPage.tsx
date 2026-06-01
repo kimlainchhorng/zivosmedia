@@ -157,10 +157,9 @@ export default function EatsDriverDeliveryPage() {
       const jobNotes = offer?.job?.notes || "";
       const foodOrderIdMatch = jobNotes.match(/Food order:\s*(.+)/);
       if (foodOrderIdMatch?.[1]) {
-        await supabase
-          .from("food_orders")
-          .update({ driver_id: driverId, status: "confirmed" } as any)
-          .eq("id", foodOrderIdMatch[1].trim());
+        await supabase.functions.invoke("eats-order-state-update", {
+          body: { order_id: foodOrderIdMatch[1].trim(), action: "driver_status", job_status: "assigned" },
+        });
       }
 
       toast.success("Delivery accepted!");
@@ -200,9 +199,9 @@ export default function EatsDriverDeliveryPage() {
         };
         const foodStatus = statusMap[newStatus];
         if (foodStatus) {
-          const updateData: any = { status: foodStatus };
-          if (foodStatus === "delivered") updateData.delivered_at = new Date().toISOString();
-          await supabase.from("food_orders").update(updateData).eq("id", foodOrderId);
+          await supabase.functions.invoke("eats-order-state-update", {
+            body: { order_id: foodOrderId, action: "driver_status", job_status: newStatus },
+          });
         }
       }
       toast.success(`Status updated to ${newStatus.replace(/_/g, " ")}`);

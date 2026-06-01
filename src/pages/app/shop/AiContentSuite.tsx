@@ -121,7 +121,7 @@ export default function AiContentSuite() {
             <div className="grid grid-cols-3 gap-2">
               {photos.map((url, i) => (
                 <div key={i} className="relative rounded-xl overflow-hidden aspect-square">
-                  <img src={url} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
+                  <img src={url} alt={`Product ${i + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   <button type="button"
                     onClick={() => removePhoto(i)}
                     className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center"
@@ -226,7 +226,7 @@ export default function AiContentSuite() {
                   <div className="grid grid-cols-3 h-52">
                     {photos.map((url, i) => (
                       <div key={i} className="relative overflow-hidden">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         <div className="absolute inset-0 bg-black/20" />
                         <span className="absolute top-1 left-1 text-[9px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">
                           Scene {i + 1}

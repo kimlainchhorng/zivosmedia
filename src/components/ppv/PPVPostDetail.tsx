@@ -527,7 +527,7 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
             >
               <div className="h-9 w-9 rounded-full bg-muted overflow-hidden shrink-0">
                 {creator.avatar_url ? (
-                  <img src={creator.avatar_url} alt="" className="w-full h-full object-cover" />
+                  <img src={creator.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-rose-500/30 to-pink-500/15" />
                 )}
@@ -592,9 +592,9 @@ export default function PPVPostDetail({ postId, onBack }: Props) {
                   >
                     {url ? (
                       isVideo ? (
-                        <video src={url} controls={canViewFullEffective} muted playsInline className="w-full" />
+                        <video src={url} controls={canViewFullEffective} muted playsInline preload="metadata" className="w-full" />
                       ) : (
-                        <img src={url} alt="" className="w-full" />
+                        <img src={url} alt="" className="w-full" loading="lazy" decoding="async" />
                       )
                     ) : (
                       <div className="aspect-square animate-pulse" />

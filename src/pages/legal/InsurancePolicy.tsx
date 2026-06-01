@@ -573,7 +573,7 @@ const InsurancePolicy = () => {
 
         {/* Footer Links */}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link to="/terms-of-service">
+          <Link to="/legal/terms">
             <Button variant="outline">Terms of Service</Button>
           </Link>
           <Link to="/help">

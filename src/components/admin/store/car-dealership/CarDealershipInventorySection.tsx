@@ -143,6 +143,8 @@ function Lightbox({ photos, initialIndex, onClose }: LightboxProps) {
         src={photos[idx]}
         alt=""
         className="max-h-[90vh] max-w-[90vw] object-contain"
+        loading="lazy"
+        decoding="async"
         onClick={(e) => e.stopPropagation()}
       />
 
@@ -227,6 +229,8 @@ function VehicleDetailSheet({ storeId, storeName, vehicle, open, onOpenChange, o
                     src={photos[0]}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                   {photos.length > 1 && (
                     <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 py-0.5 text-[9px] font-bold text-white">
@@ -298,7 +302,7 @@ function VehicleDetailSheet({ storeId, storeName, vehicle, open, onOpenChange, o
                         i === 0 && "ring-1 ring-primary/30",
                       )}
                     >
-                      <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+                      <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" />
                     </button>
                   ))}
                 </div>
@@ -753,6 +757,7 @@ function CarDealershipInventorySectionInner({ storeId, storeName }: Props) {
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="absolute inset-0 grid place-items-center">

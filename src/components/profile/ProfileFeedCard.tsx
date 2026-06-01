@@ -172,28 +172,31 @@ export default function ProfileFeedCard({
   };
 
   return (
-    <div className="bg-card" data-testid={testId}>
+    <article
+      className="overflow-hidden rounded-[24px] border border-border/70 bg-card shadow-sm shadow-black/[0.04]"
+      data-testid={testId}
+    >
       {item.isShared && item.sharedOrigin ? (
         <>
           {/* Sharer header */}
-          <div className="flex items-center">
+          <div className="flex items-start border-b border-border/35 bg-card/95">
             <button
               type="button"
               onClick={() => navigateToAuthor(item.userId || profileOwnerId)}
-              className="flex items-center gap-3 px-3 py-2.5 flex-1 min-w-0 active:opacity-70"
+              className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-3 text-left active:opacity-70"
             >
-              <Avatar className="h-9 w-9 shrink-0">
+              <Avatar className="h-10 w-10 shrink-0 border border-border/50">
                 <AvatarImage src={item.user.avatar || undefined} />
                 <AvatarFallback className="text-xs font-bold">{item.user.name?.[0]?.toUpperCase() || "Z"}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-[13px] font-semibold text-foreground truncate inline-flex items-center gap-1">
+              <div className="min-w-0 flex-1">
+                <p className="inline-flex max-w-full items-center gap-1 text-[13px] font-extrabold text-foreground">
                   <span className="truncate">{item.user.name}</span>
                   {isBlueVerified(item.user.isVerified) && <VerifiedBadge size={14} interactive={false} />}
                 </p>
-                <div className="flex items-center gap-1 leading-none mt-0.5">
-                  <p className="text-[10px] text-muted-foreground">{timeAgo}</p>
-                  <span className="text-[10px] text-muted-foreground leading-none">·</span>
+                <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] font-medium leading-none text-muted-foreground">
+                  <span className="shrink-0">{timeAgo}</span>
+                  <span className="shrink-0">·</span>
                   <Globe className="h-2.5 w-2.5 text-muted-foreground" />
                 </div>
               </div>
@@ -205,14 +208,14 @@ export default function ProfileFeedCard({
 
           {/* Sharer's own caption */}
           {item.caption && item.caption !== item.sharedOrigin.caption && (
-            <div className="px-3 pb-2">
-              <CollapsibleCaption text={item.caption} lines={3} className="text-[13px]" />
+            <div className="px-3.5 pb-3 pt-1">
+              <CollapsibleCaption text={item.caption} lines={3} className="text-[13px] leading-5" />
             </div>
           )}
 
           {/* Embedded original post card */}
-          <div className="mb-2 border-y border-border/50 overflow-hidden bg-card">
-           <div className="flex items-center px-3 py-2.5">
+          <div className="mx-3 mb-3 overflow-hidden rounded-[20px] border border-border/60 bg-muted/20">
+            <div className="flex items-center border-b border-border/35 px-3 py-2.5">
               <button
                 type="button"
                 onClick={() => {
@@ -250,8 +253,8 @@ export default function ProfileFeedCard({
             </div>
 
             {item.sharedOrigin.caption && (
-              <div className="px-3 pb-2">
-                <CollapsibleCaption text={item.sharedOrigin.caption} lines={3} className="text-[13px]" />
+              <div className="px-3 pb-2 pt-1">
+                <CollapsibleCaption text={item.sharedOrigin.caption} lines={3} className="text-[13px] leading-5" />
               </div>
             )}
 
@@ -277,8 +280,8 @@ export default function ProfileFeedCard({
                     </button>
                   </>
                 ) : (
-	                  <img src={item.url!} alt="" className="block w-full h-auto cursor-pointer"
-	                    style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => onSelectPost(item)} />
+                  <img src={item.url!} alt="" className="block h-auto max-h-[560px] w-full cursor-pointer object-contain"
+                    style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => onSelectPost(item)} />
                 )}
                 {/* Double-tap heart */}
                 <AnimatePresence>
@@ -297,33 +300,31 @@ export default function ProfileFeedCard({
       ) : (
         <>
           {/* Normal post header */}
-          <div className="flex items-center">
+          <div className="flex items-start border-b border-border/35 bg-card/95">
             <button
               type="button"
               onClick={() => navigateToAuthor(item.userId || profileOwnerId)}
-              className="flex items-center gap-3 px-3 py-2.5 flex-1 min-w-0 active:opacity-70"
+              className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-3 text-left active:opacity-70"
             >
-              <Avatar className="h-9 w-9 shrink-0">
+              <Avatar className="h-10 w-10 shrink-0 border border-border/50">
                 <AvatarImage src={item.user.avatar || undefined} />
                 <AvatarFallback className="text-xs font-bold">{item.user.name?.[0]?.toUpperCase() || "Z"}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-[13px] font-semibold text-foreground truncate inline-flex items-center gap-1">
+              <div className="min-w-0 flex-1">
+                <p className="inline-flex max-w-full items-center gap-1 text-[13px] font-extrabold text-foreground">
                   <span className="truncate">{item.user.name}</span>
                   {isBlueVerified(item.user.isVerified) && <VerifiedBadge size={14} interactive={false} />}
+                </p>
+                <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] font-medium leading-none text-muted-foreground">
+                  <span className="shrink-0">{timeAgo}</span>
+                  <span className="shrink-0">·</span>
                   {item.location && (
                     <>
-                      <span className="text-[10px] text-muted-foreground font-normal"> is in </span>
-                      <span className="text-[12px] text-foreground font-semibold truncate">{item.location}</span>
+                      <MapPin className="h-2.5 w-2.5 shrink-0" />
+                      <span className="truncate">{item.location}</span>
                     </>
                   )}
-                </p>
-                <div className="flex items-center gap-1">
-                  <p className="text-[10px] text-muted-foreground">{timeAgo}</p>
-                  <span className="text-[10px] text-muted-foreground">·</span>
-                  {item.location ? (
-                    <MapPin className="h-2.5 w-2.5 text-muted-foreground" />
-                  ) : (
+                  {!item.location && (
                     <Globe className="h-2.5 w-2.5 text-muted-foreground" />
                   )}
                 </div>
@@ -336,11 +337,11 @@ export default function ProfileFeedCard({
 
           {/* Caption */}
           {item.caption && (
-            <div className="px-3 pb-2">
+            <div className="px-3.5 pb-3 pt-1">
               <CollapsibleCaption
                 text={item.caption}
                 lines={3}
-                className="text-[13px]"
+                className="text-[13px] leading-5"
                 prefix={<span className="font-semibold mr-1">{item.user.name}</span>}
               />
             </div>
@@ -368,8 +369,8 @@ export default function ProfileFeedCard({
                   </button>
                 </>
               ) : (
-	                <img src={item.url!} alt="" className="block w-full h-auto cursor-pointer"
-	                  style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => onSelectPost(item)} />
+                <img src={item.url!} alt="" className="block h-auto max-h-[560px] w-full cursor-pointer object-contain"
+                  style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => onSelectPost(item)} />
               )}
               {/* Double-tap heart */}
               <AnimatePresence>
@@ -510,6 +511,6 @@ export default function ProfileFeedCard({
         currentUserId={currentUserId || null}
         commentsCount={item.comments}
       />
-    </div>
+    </article>
   );
 }

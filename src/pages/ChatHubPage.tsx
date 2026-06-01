@@ -32,6 +32,18 @@ import Settings from "lucide-react/dist/esm/icons/settings";
 import AtSign from "lucide-react/dist/esm/icons/at-sign";
 import CheckSquare from "lucide-react/dist/esm/icons/check-square";
 import Square from "lucide-react/dist/esm/icons/square";
+import Hash from "lucide-react/dist/esm/icons/hash";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
+import Lock from "lucide-react/dist/esm/icons/lock";
+import ScanLine from "lucide-react/dist/esm/icons/scan-line";
+import Film from "lucide-react/dist/esm/icons/film";
+import ScreenShare from "lucide-react/dist/esm/icons/screen-share";
+import Palette from "lucide-react/dist/esm/icons/palette";
+import KeyRound from "lucide-react/dist/esm/icons/key-round";
+import Zap from "lucide-react/dist/esm/icons/zap";
+import Wifi from "lucide-react/dist/esm/icons/wifi";
+import Cloud from "lucide-react/dist/esm/icons/cloud";
+import Activity from "lucide-react/dist/esm/icons/activity";
 
 import Check from "lucide-react/dist/esm/icons/check";
 import SquarePen from "lucide-react/dist/esm/icons/square-pen";
@@ -57,6 +69,7 @@ import ChatErrorBoundary from "@/components/chat/ChatErrorBoundary";
 import ChatRowActionsSheet, { type ChatRowActionsTarget } from "@/components/chat/ChatRowActionsSheet";
 import NewChatFab from "@/components/chat/NewChatFab";
 import AddContactSheet from "@/components/chat/AddContactSheet";
+import ChatStories from "@/components/chat/ChatStories";
 import MyChannelsStrip from "@/components/chat/MyChannelsStrip";
 import GlobalChatSearch from "@/components/chat/GlobalChatSearch";
 import SuggestedContactsRow from "@/components/chat/SuggestedContactsRow";
@@ -218,6 +231,12 @@ const builtInFolders: FolderTab[] = [
 const FOLDER_STORAGE_KEY = "zivo:chat-folder";
 const LAST_OPEN_CHAT_KEY = "zivo:last-open-chat";
 const CHAT_LAST_SEEN_KEY_PREFIX = "zivo:chat-last-seen";
+const COMMAND_PANELS_STORAGE_KEY = "zivo:chat-command-panels";
+const COMMAND_TOOLS_REGION_ID = "zivo-chat-command-tools";
+const COMMAND_TOOLS_SUMMARY_ID = "zivo-chat-command-tools-summary";
+const ADVANCED_COMMAND_TOOLS_SUMMARY_ID = "zivo-chat-advanced-command-tools-summary";
+const CONVERSATION_LIST_REGION_ID = "zivo-chat-conversation-list";
+const CONVERSATION_LIST_SUMMARY_ID = "zivo-chat-conversation-list-summary";
 
 function BodyPortal({ children }: { children: ReactNode }) {
   if (typeof document === "undefined") return <>{children}</>;
@@ -431,8 +450,66 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const active: ChatCategory = builtInActiveFolder?.category || "personal";
   const setActive = (c: ChatCategory) => setFolder(c);
   const [search, setSearch] = useState("");
+  const [showCommandPanels, setShowCommandPanelsState] = useState(() => {
+    try {
+      return localStorage.getItem(COMMAND_PANELS_STORAGE_KEY) === "expanded";
+    } catch {
+      return false;
+    }
+  });
+  const setShowCommandPanels = useCallback((visible: boolean | ((value: boolean) => boolean)) => {
+    setShowCommandPanelsState((previous) => {
+      const next = typeof visible === "function" ? visible(previous) : visible;
+      try {
+        localStorage.setItem(COMMAND_PANELS_STORAGE_KEY, next ? "expanded" : "collapsed");
+      } catch {}
+      return next;
+    });
+  }, []);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
+  const conversationListRef = useRef<HTMLDivElement>(null);
+  const [conversationListScrollRequest, setConversationListScrollRequest] = useState(0);
+  const [conversationListFocusPulse, setConversationListFocusPulse] = useState(false);
+  const [chatStatusAnnouncement, setChatStatusAnnouncement] = useState("");
+  const [chatRefreshPending, setChatRefreshPending] = useState(false);
+  const chatStatusSpeakTimeoutRef = useRef<number | null>(null);
+  const chatStatusClearTimeoutRef = useRef<number | null>(null);
+  const announceChatStatus = useCallback((message: string) => {
+    if (chatStatusSpeakTimeoutRef.current) window.clearTimeout(chatStatusSpeakTimeoutRef.current);
+    if (chatStatusClearTimeoutRef.current) window.clearTimeout(chatStatusClearTimeoutRef.current);
+    setChatStatusAnnouncement("");
+    chatStatusSpeakTimeoutRef.current = window.setTimeout(() => {
+      setChatStatusAnnouncement(message);
+      chatStatusClearTimeoutRef.current = window.setTimeout(() => setChatStatusAnnouncement(""), 1800);
+    }, 25);
+  }, []);
+  const scrollToConversationList = useCallback(() => {
+    setConversationListScrollRequest((value) => value + 1);
+  }, []);
+  const toggleCommandPanelFocus = useCallback(() => {
+    if (showCommandPanels) {
+      setShowCommandPanels(false);
+      announceChatStatus("Focus mode enabled");
+      scrollToConversationList();
+      return;
+    }
+    setShowCommandPanels(true);
+    announceChatStatus("Command tools expanded");
+  }, [announceChatStatus, scrollToConversationList, setShowCommandPanels, showCommandPanels]);
+  useEffect(() => {
+    if (conversationListScrollRequest === 0) return;
+    const node = conversationListRef.current;
+    node?.scrollIntoView({ behavior: "smooth", block: "start" });
+    node?.focus({ preventScroll: true });
+    setConversationListFocusPulse(true);
+    announceChatStatus("Conversation list focused");
+    const pulseTimeout = window.setTimeout(() => setConversationListFocusPulse(false), 1200);
+    return () => window.clearTimeout(pulseTimeout);
+  }, [announceChatStatus, conversationListScrollRequest]);
+  useEffect(() => () => {
+    if (chatStatusSpeakTimeoutRef.current) window.clearTimeout(chatStatusSpeakTimeoutRef.current);
+    if (chatStatusClearTimeoutRef.current) window.clearTimeout(chatStatusClearTimeoutRef.current);
+  }, []);
   // Telegram-style: pressing "/" anywhere on the chat hub focuses the search input.
   // Skips when the user is already typing in another input/textarea or with a modifier key.
   useEffect(() => {
@@ -448,6 +525,19 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "t" || !e.shiftKey) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      e.preventDefault();
+      toggleCommandPanelFocus();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [toggleCommandPanelFocus]);
   const [searchFilter, setSearchFilter] = useState<"chats" | "media" | "links" | "files">("chats");
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   // Pre-warm lazy chat chunks so first open is instant (no visible loading delay).
@@ -1313,8 +1403,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       hasGroupChatsError);
 
   const retryChatHubLists = useCallback(() => {
-    if (!user?.id) return;
-    void Promise.all([
+    if (!user?.id) return Promise.resolve();
+    return Promise.all([
       queryClient.invalidateQueries({ queryKey: ["chat-hub-personal", user.id] }),
       queryClient.invalidateQueries({ queryKey: ["chat-hub-groups", user.id] }),
       queryClient.invalidateQueries({ queryKey: ["chat-hub-shop", user.id] }),
@@ -1322,8 +1412,77 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       queryClient.invalidateQueries({ queryKey: ["chat-hub-support", user.id] }),
       queryClient.invalidateQueries({ queryKey: ["chat-folders", user.id] }),
       queryClient.invalidateQueries({ queryKey: ["chat-folder-members", user.id] }),
-    ]);
+    ]).then(() => undefined);
   }, [queryClient, user?.id]);
+  const handleRefreshChatLists = useCallback(() => {
+    if (chatRefreshPending) {
+      announceChatStatus("Refresh already in progress");
+      return;
+    }
+    announceChatStatus("Refreshing chat lists");
+    setChatRefreshPending(true);
+    void retryChatHubLists()
+      .then(() => announceChatStatus("Chat lists refreshed"))
+      .finally(() => setChatRefreshPending(false));
+  }, [announceChatStatus, chatRefreshPending, retryChatHubLists]);
+  const showUnreadChats = useCallback(() => {
+    setFolder("unread");
+    announceChatStatus("Unread chats shown");
+  }, [announceChatStatus]);
+  const openSavedMessages = () => {
+    announceChatStatus("Opening saved messages");
+    setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false });
+  };
+  const runChatCommandAction = useCallback((action: string) => {
+    switch (action) {
+      case "new":
+      case "search":
+        announceChatStatus(action === "new" ? "Starting a new chat" : "Opening chat search");
+        setGlobalSearchOpen(true);
+        break;
+      case "list":
+        scrollToConversationList();
+        break;
+      case "group":
+        announceChatStatus("Opening group creation");
+        setShowCreateGroup(true);
+        break;
+      case "channel":
+        announceChatStatus("Opening channel creation");
+        navigate("/channels/new");
+        break;
+      case "media":
+        announceChatStatus("Opening chat media");
+        navigate("/chat-media");
+        break;
+      case "privacy":
+        announceChatStatus("Opening privacy settings");
+        navigate("/chat/settings/privacy-hub");
+        break;
+      case "refresh":
+        handleRefreshChatLists();
+        break;
+      case "unread":
+        showUnreadChats();
+        break;
+      case "online":
+        setFolder("personal");
+        announceChatStatus("Online contacts focused");
+        scrollToConversationList();
+        break;
+      case "pinned":
+        setFolder("all");
+        announceChatStatus("Pinned chats focused");
+        scrollToConversationList();
+        break;
+      case "requests":
+        announceChatStatus("Opening contact requests");
+        navigate("/chat/contacts/requests");
+        break;
+      default:
+        break;
+    }
+  }, [announceChatStatus, handleRefreshChatLists, navigate, scrollToConversationList, showUnreadChats]);
 
   const { isOFMode: zivoOFMode } = useZivoOFMode();
 
@@ -1394,6 +1553,35 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   // Incoming contact requests — shown as a notification row at the top
   const { incoming: allIncomingRequests } = useContactRequests();
   const pendingRequests = useMemo(() => allIncomingRequests.filter((r) => r.status === "pending"), [allIncomingRequests]);
+
+  const commandCenterStats = useMemo(() => {
+    const allRows = [
+      ...(personalChats as any[]),
+      ...(groupChats as any[]),
+      ...(shopChats as any[]),
+      ...(supportChats as any[]),
+      ...(rideChats as any[]),
+    ];
+    const unreadThreads = allRows.filter((chat) => (chat.unread || 0) > 0).length;
+    const totalUnread = allRows.reduce((sum, chat) => sum + (chat.unread || 0), 0);
+    const pinnedThreads = allRows.filter((chat) => isPinned(chat.id)).length;
+    const activeFolderLabel = folderTabs.find((item) => item.id === folder)?.label || "All";
+    const attentionLabel = pendingRequests.length > 0
+      ? `${pendingRequests.length} request${pendingRequests.length === 1 ? "" : "s"}`
+      : totalUnread > 0
+        ? `${totalUnread} unread`
+        : "All clear";
+
+    return {
+      activeFolderLabel,
+      attentionLabel,
+      openThreads: allRows.length,
+      onlineCount: onlineIds.size,
+      pinnedThreads,
+      totalUnread,
+      unreadThreads,
+    };
+  }, [folder, folderTabs, groupChats, isPinned, onlineIds.size, pendingRequests.length, personalChats, rideChats, shopChats, supportChats]);
 
   // Compute unread counts per tab
   const {
@@ -1469,6 +1657,337 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
   const hasOverlayChatOpen = Boolean(openShopChat || openPersonalChat || openGroupChat || openRideChat || openSupportChat);
   const showListShell = !embedded || !hasOverlayChatOpen;
+  // Keep the expanded command suite available for design/dev review without shipping the extra density by default.
+  const showAdvancedCommandCenter = import.meta.env.MODE === "advanced-chat-tools";
+
+  const chatWorkflowSections = [
+    {
+      title: "Create & connect",
+      items: [
+        { label: "Channels", detail: "Build, post, share", icon: Hash, action: () => navigate("/channels") },
+        { label: "New group", detail: "Private team chat", icon: Users, action: () => setShowCreateGroup(true) },
+        { label: "Contacts", detail: "People, requests", icon: UserPlus, action: () => navigate("/chat/contacts") },
+        { label: "Bots", detail: "Automations, inbox", icon: BotIcon, action: () => navigate("/chat/bots/discover") },
+      ],
+    },
+    {
+      title: "Send & share",
+      items: [
+        { label: "Media", detail: "Photos, videos, files", icon: Film, action: () => navigate("/chat-media") },
+        { label: "Stickers", detail: "Packs, reactions", icon: ImageIcon, action: () => navigate("/stickers") },
+        { label: "Broadcast", detail: "Share at scale", icon: Radio, action: () => navigate("/chat/broadcasts") },
+        { label: "Screen share", detail: "Calls and rooms", icon: ScreenShare, action: () => setShowGroupCallPicker(true) },
+      ],
+    },
+    {
+      title: "Protect & recover",
+      items: [
+        { label: "Privacy", detail: "Locks, visibility", icon: ShieldCheck, action: () => navigate("/chat/settings/privacy-hub") },
+        { label: "Passcode", detail: "App lock", icon: Lock, action: () => navigate("/chat/settings/passcode") },
+        { label: "Two-step", detail: "Hacker protection", icon: KeyRound, action: () => navigate("/chat/settings/two-step") },
+        { label: "Sessions", detail: "Devices, alerts", icon: Bell, action: () => navigate("/chat/settings/sessions") },
+      ],
+    },
+    {
+      title: "Storage & polish",
+      items: [
+        { label: "Storage", detail: "Cache, cleanup", icon: HardDrive, action: () => navigate("/chat/settings/storage") },
+        { label: "Themes", detail: "Chat colors", icon: Palette, action: () => navigate("/chat-themes") },
+        { label: "Wallpapers", detail: "Private style", icon: ImageIcon, action: () => navigate("/chat-wallpapers") },
+        { label: "Scan", detail: "QR profile", icon: ScanLine, action: () => navigate("/qr-profile") },
+      ],
+    },
+  ];
+
+  const protectionStack = [
+    {
+      label: "Realtime",
+      detail: syncMode === "live" ? "Live channel active" : "Fallback refresh running",
+      value: syncMode === "live" ? "Live" : "Fallback",
+      icon: Wifi,
+      tone: syncMode === "live" ? "emerald" : "amber",
+    },
+    {
+      label: "Backend",
+      detail: hasChatListRefreshError ? "Cached lists visible" : "Chat lists responding",
+      value: hasChatListRefreshError ? "Retry" : "Ready",
+      icon: Cloud,
+      tone: hasChatListRefreshError ? "amber" : "emerald",
+    },
+    {
+      label: "Privacy",
+      detail: "Passcode, sessions, two-step",
+      value: "Guarded",
+      icon: ShieldCheck,
+      tone: "blue",
+    },
+    {
+      label: "Speed",
+      detail: `${commandCenterStats.openThreads} threads indexed`,
+      value: "Fast",
+      icon: Zap,
+      tone: "violet",
+    },
+  ];
+  const runProtectionStackAction = useCallback((label: string) => {
+    if (label === "Realtime" || label === "Backend") {
+      handleRefreshChatLists();
+      return;
+    }
+    if (label === "Privacy") {
+      announceChatStatus("Opening privacy settings");
+      navigate("/chat/settings/privacy-hub");
+      return;
+    }
+    if (label === "Speed") {
+      announceChatStatus("Opening storage cleanup");
+      navigate("/chat/settings/storage");
+    }
+  }, [announceChatStatus, handleRefreshChatLists, navigate]);
+
+  const handleShareZivoInvite = useCallback(async () => {
+    const url = `${window.location.origin}/chat`;
+    const title = "Join me on ZIVO";
+    const text = "Chat, channels, groups, calls, stickers, and private sharing are live on ZIVO.";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast.success("Chat invite link copied");
+    } catch {
+      toast.info("Share canceled");
+    }
+  }, []);
+
+  const chatComposerStudioItems = [
+    { label: "Pictures", detail: "Shared gallery", icon: ImageIcon, action: () => navigate("/chat-media") },
+    { label: "Videos", detail: "Clips and albums", icon: Film, action: () => navigate("/chat-media") },
+    { label: "Locked", detail: "Paid unlocks", icon: Lock, action: () => navigate("/my-unlocks") },
+    { label: "Scan", detail: "QR connect", icon: ScanLine, action: () => navigate("/qr-profile") },
+    { label: "Stickers", detail: "Packs and reactions", icon: ImageIcon, action: () => navigate("/stickers") },
+    { label: "Voice", detail: "Voice notes", icon: Mic, action: () => navigate("/voice-notes") },
+    { label: "Location", detail: "Places nearby", icon: MapPin, action: () => navigate("/places") },
+    { label: "Saved", detail: "Private notes", icon: Bookmark, action: () => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false }) },
+  ];
+
+  const chatSafetyOperations = [
+    { label: "Select chats", detail: "Bulk delete, mute, archive", icon: CheckSquare, action: () => setSelectionMode(true) },
+    { label: "Archive", detail: `${archivedList.length} hidden`, icon: Archive, action: () => setShowArchived((value) => !value) },
+    { label: "Blocked users", detail: "Stop unwanted contact", icon: BellOff, action: () => navigate("/chat/blocked") },
+    { label: "Login alerts", detail: "New-device warnings", icon: ShieldCheck, action: () => navigate("/chat/settings/login-alerts") },
+    { label: "Sessions", detail: "Remove old devices", icon: KeyRound, action: () => navigate("/chat/settings/sessions") },
+    { label: "Storage", detail: "Clean media cache", icon: HardDrive, action: () => navigate("/chat/settings/storage") },
+  ];
+
+  const automationOpsItems = [
+    { label: "Bot discover", detail: "Find helpers", icon: BotIcon, action: () => navigate("/chat/bots/discover") },
+    { label: "Bot inbox", detail: "Automation alerts", icon: Bell, action: () => navigate("/chat/bots/inbox") },
+    { label: "Bot admin", detail: "Manage bots", icon: Settings, action: () => navigate("/chat/bots/admin") },
+    { label: "Support", detail: "Open help chat", icon: Headphones, action: () => setFolder("support") },
+    { label: "Requests", detail: "Filtered messages", icon: UserPlus, action: () => navigate("/chat/message-requests") },
+    { label: "Broadcasts", detail: "One-to-many send", icon: Radio, action: () => navigate("/chat/broadcasts") },
+    { label: "Folders", detail: "Organize inbox", icon: Archive, action: () => navigate("/chat/folders") },
+    { label: "Search all", detail: "Messages and media", icon: Search, action: () => navigate("/chat/search") },
+  ];
+
+  const callCenterItems = [
+    { label: "Voice call", detail: "Open a DM first", icon: Phone, action: () => setGlobalSearchOpen(true) },
+    { label: "Video call", detail: "Face-to-face", icon: Video, action: () => setGlobalSearchOpen(true) },
+    { label: "Group room", detail: "Start meeting", icon: Users, action: () => { setFolder("groups"); setShowGroupCallPicker(true); } },
+    { label: "Screen share", detail: "Room workflow", icon: ScreenShare, action: () => { setFolder("groups"); setShowGroupCallPicker(true); } },
+    { label: "Recordings", detail: "Past calls", icon: Radio, action: () => navigate("/chat/recordings") },
+    { label: "Call privacy", detail: "Who can reach you", icon: ShieldCheck, action: () => navigate("/chat/settings/privacy-hub") },
+  ];
+
+  const trustVaultItems = [
+    { label: "Unlocks", detail: "Locked media history", icon: Lock, action: () => navigate("/my-unlocks") },
+    { label: "Trust score", detail: "Account reputation", icon: ShieldCheck, action: () => navigate("/trust-score") },
+    { label: "Warnings", detail: "Safety notices", icon: Bell, action: () => navigate("/warnings") },
+    { label: "Spam", detail: "Detection center", icon: Radar, action: () => navigate("/spam-detections") },
+    { label: "Appeals", detail: "Review decisions", icon: CheckSquare, action: () => navigate("/moderation-appeals") },
+    { label: "Privacy hub", detail: "Data and locks", icon: KeyRound, action: () => navigate("/chat/settings/privacy-hub") },
+  ];
+
+  const personalizationItems = [
+    { label: "Themes", detail: "Color system", icon: Palette, action: () => navigate("/chat-themes") },
+    { label: "Wallpapers", detail: "Chat backgrounds", icon: ImageIcon, action: () => navigate("/chat-wallpapers") },
+    { label: "Folders", detail: "Inbox layout", icon: Archive, action: () => navigate("/chat/folders") },
+    { label: "Notifications", detail: "Quiet control", icon: Bell, action: () => navigate("/notifications/preferences") },
+    { label: "Storage", detail: "Media cache", icon: HardDrive, action: () => navigate("/chat/settings/storage") },
+    { label: "QR profile", detail: "Share identity", icon: ScanLine, action: () => navigate("/qr-profile") },
+  ];
+
+  const readinessItems = [
+    { label: "Identity", detail: chatMenuUsername === "Set username" ? "Set username" : chatMenuUsername, icon: AtSign, ready: chatMenuUsername !== "Set username", action: () => navigate("/account/username") },
+    { label: "Privacy", detail: "Review locks", icon: ShieldCheck, ready: true, action: () => navigate("/chat/settings/privacy-hub") },
+    { label: "Media", detail: "Gallery ready", icon: ImageIcon, ready: true, action: () => navigate("/chat-media") },
+    { label: "Sharing", detail: "Invite and QR", icon: Share2, ready: true, action: () => void handleShareZivoInvite() },
+    { label: "Bots", detail: "Automation", icon: BotIcon, ready: true, action: () => navigate("/chat/bots/discover") },
+    { label: "Storage", detail: "Cleanup tools", icon: HardDrive, ready: true, action: () => navigate("/chat/settings/storage") },
+  ];
+  const readinessScore = Math.round((readinessItems.filter((item) => item.ready).length / readinessItems.length) * 100);
+
+  const guidedWorkflowItems = [
+    {
+      title: "Private DM",
+      detail: "Find a contact, send media, then lock privacy.",
+      icon: MessageCircleIcon,
+      actions: [
+        { label: "Find", action: () => setGlobalSearchOpen(true) },
+        { label: "Privacy", action: () => navigate("/chat/settings/privacy-hub") },
+      ],
+    },
+    {
+      title: "Creator channel",
+      detail: "Create a channel, post updates, and broadcast links.",
+      icon: Hash,
+      actions: [
+        { label: "Create", action: () => navigate("/channels/new") },
+        { label: "Broadcast", action: () => navigate("/chat/broadcasts/new") },
+      ],
+    },
+    {
+      title: "Secure group",
+      detail: "Start a group, open calls, and manage sessions.",
+      icon: Users,
+      actions: [
+        { label: "Group", action: () => setShowCreateGroup(true) },
+        { label: "Calls", action: () => { setFolder("groups"); setShowGroupCallPicker(true); } },
+      ],
+    },
+    {
+      title: "Support desk",
+      detail: "Use bots, support chats, and message requests.",
+      icon: Headphones,
+      actions: [
+        { label: "Support", action: () => setFolder("support") },
+        { label: "Bots", action: () => navigate("/chat/bots/discover") },
+      ],
+    },
+  ];
+
+  const inboxIntelligenceItems = [
+    { label: "Unread", detail: `${commandCenterStats.totalUnread} waiting`, icon: Bell, action: () => setFolder("unread") },
+    { label: "Groups", detail: `${groupChats.length} spaces`, icon: Users, action: () => setFolder("groups") },
+    { label: "Channels", detail: "Subscriptions", icon: Hash, action: () => navigate("/channels") },
+    { label: "Media", detail: "Photos and files", icon: ImageIcon, action: () => navigate("/chat-media") },
+    { label: "Locked", detail: "Unlock history", icon: Lock, action: () => navigate("/my-unlocks") },
+    { label: "Requests", detail: `${pendingRequests.length} contact`, icon: UserPlus, action: () => navigate("/chat/contacts/requests") },
+  ];
+
+  const deliveryPipelineItems = [
+    { label: "Compose", detail: "Text, media, voice", icon: SquarePen, action: () => setGlobalSearchOpen(true) },
+    { label: "Scan", detail: "Risk and links", icon: ShieldCheck, action: () => navigate("/chat/settings/privacy-hub") },
+    { label: "Store", detail: "Private media cache", icon: HardDrive, action: () => navigate("/chat/settings/storage") },
+    { label: "Sync", detail: syncMode === "live" ? "Realtime active" : "Fallback active", icon: Cloud, action: () => retryChatHubLists() },
+    { label: "Deliver", detail: "Unread routing", icon: CheckCheck, action: () => setFolder("unread") },
+    { label: "Recover", detail: "Sessions and alerts", icon: KeyRound, action: () => navigate("/chat/settings/sessions") },
+  ];
+
+  const externalShareItems = [
+    { label: "Copy invite", detail: "Share chat link", icon: Share2, action: () => void handleShareZivoInvite() },
+    { label: "QR profile", detail: "Scan in person", icon: ScanLine, action: () => navigate("/qr-profile") },
+    { label: "Channel link", detail: "Public audience", icon: Hash, action: () => navigate("/channels") },
+    { label: "Group invite", detail: "Invite workflow", icon: Users, action: () => setShowCreateGroup(true) },
+    { label: "Broadcast", detail: "Many recipients", icon: Radio, action: () => navigate("/chat/broadcasts/new") },
+    { label: "Saved draft", detail: "Stage privately", icon: Bookmark, action: () => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false }) },
+  ];
+
+  const privateDataItems = [
+    { label: "Data rights", detail: "Privacy controls", icon: ShieldCheck, action: () => navigate("/account/data-rights") },
+    { label: "Export", detail: "Download account data", icon: HardDrive, action: () => navigate("/account/export") },
+    { label: "Security", detail: "Account hardening", icon: KeyRound, action: () => navigate("/account/security") },
+    { label: "Login activity", detail: "Recent access", icon: Activity, action: () => navigate("/login-activity") },
+    { label: "Devices", detail: "Linked devices", icon: ScreenShare, action: () => navigate("/account/linked-devices") },
+    { label: "Legal", detail: "Policies and terms", icon: CheckSquare, action: () => navigate("/account/legal") },
+  ];
+
+  const monetizationItems = [
+    { label: "Locked media", detail: "Paid unlock flow", icon: Lock, action: () => navigate("/my-unlocks") },
+    { label: "Tips", detail: "Creator support", icon: DollarSign, action: () => navigate("/account/tips") },
+    { label: "Wallet", detail: "Payments and balance", icon: HardDrive, action: () => navigate("/account/wallet") },
+    { label: "Earnings", detail: "Creator payouts", icon: Activity, action: () => navigate("/creator/earnings") },
+    { label: "Gift history", detail: "Premium sends", icon: Share2, action: () => navigate("/gift-history") },
+    { label: "Subscriptions", detail: "Account plans", icon: CheckSquare, action: () => navigate("/account/subscriptions") },
+  ];
+
+  const securityOpsItems = [
+    { label: "Status", detail: "Security posture", icon: ShieldCheck, action: () => navigate("/security-status") },
+    { label: "Monitoring", detail: "Realtime defense", icon: Activity, action: () => navigate("/security/monitoring") },
+    { label: "Scams", detail: "Fraud prevention", icon: Radar, action: () => navigate("/security/scams") },
+    { label: "Report", detail: "Vulnerability flow", icon: Bell, action: () => navigate("/security/report") },
+    { label: "Scale", detail: "Traffic protection", icon: Cloud, action: () => navigate("/security/scale-protection") },
+    { label: "Recovery", detail: "Disaster plan", icon: HardDrive, action: () => navigate("/security/disaster-recovery") },
+  ];
+
+  const discoveryGrowthItems = [
+    { label: "Find contacts", detail: "Phone and profile search", icon: Search, action: () => navigate("/chat/find-contacts") },
+    { label: "Username", detail: "Search by handle", icon: AtSign, action: () => navigate("/chat/find-username") },
+    { label: "Nearby", detail: "People around you", icon: MapPinned, action: () => navigate("/chat/nearby") },
+    { label: "Requests", detail: `${pendingRequests.length} pending`, icon: UserPlus, action: () => navigate("/chat/contacts/requests") },
+    { label: "Referrals", detail: "Invite rewards", icon: Share2, action: () => navigate("/account/referrals") },
+    { label: "Channels", detail: "Discover audiences", icon: Hash, action: () => navigate("/channels") },
+  ];
+
+  const maintenanceItems = [
+    { label: "Refresh", detail: "Reload chat lists", icon: Activity, action: () => retryChatHubLists() },
+    { label: "Unread triage", detail: `${commandCenterStats.totalUnread} unread`, icon: Bell, action: () => setFolder("unread") },
+    { label: "Archived", detail: `${archivedList.length} hidden`, icon: Archive, action: () => setShowArchived((value) => !value) },
+    { label: "Storage cleanup", detail: "Cache and files", icon: HardDrive, action: () => navigate("/chat/settings/storage") },
+    { label: "Sessions", detail: "Active devices", icon: KeyRound, action: () => navigate("/chat/settings/sessions") },
+    { label: "Export", detail: "Account backup", icon: Cloud, action: () => navigate("/account/export") },
+  ];
+
+  const serviceLaneItems = [
+    { label: "Personal", detail: `${personalChats.length} DMs`, icon: MessageCircleIcon, action: () => setFolder("personal") },
+    { label: "Groups", detail: `${groupChats.length} spaces`, icon: Users, action: () => setFolder("groups") },
+    { label: "Shop", detail: `${shopChats.length} store chats`, icon: StoreIcon, action: () => setFolder("shop") },
+    { label: "Support", detail: `${supportChats.length} tickets`, icon: Headphones, action: () => setFolder("support") },
+    { label: "Ride", detail: `${rideChats.length} trips`, icon: Car, action: () => setFolder("ride") },
+    { label: "Saved", detail: "Private notes", icon: Bookmark, action: () => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false }) },
+  ];
+
+  const messageFormatItems = [
+    { label: "Text", detail: "Start a message", icon: SquarePen, action: () => setGlobalSearchOpen(true) },
+    { label: "Pictures", detail: "Image gallery", icon: ImageIcon, action: () => navigate("/chat-media") },
+    { label: "Videos", detail: "Shared clips", icon: Film, action: () => navigate("/chat-media") },
+    { label: "Voice", detail: "Audio notes", icon: Mic, action: () => navigate("/voice-notes") },
+    { label: "Locked", detail: "Unlock media", icon: Lock, action: () => navigate("/my-unlocks") },
+    { label: "Location", detail: "Places and maps", icon: MapPin, action: () => navigate("/places") },
+    { label: "Stickers", detail: "Reaction packs", icon: ImageIcon, action: () => navigate("/stickers") },
+    { label: "Saved", detail: "Private stash", icon: Bookmark, action: () => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false }) },
+  ];
+
+  const notificationControlItems = [
+    { label: "Inbox alerts", detail: "All notifications", icon: Bell, action: () => navigate("/notifications") },
+    { label: "Preferences", detail: "Push, email, SMS", icon: Settings, action: () => navigate("/notifications/preferences") },
+    { label: "Muted chats", detail: "Quiet threads", icon: BellOff, action: () => navigate("/muted-chats") },
+    { label: "Login alerts", detail: "New device warning", icon: ShieldCheck, action: () => navigate("/chat/settings/login-alerts") },
+    { label: "Requests", detail: `${pendingRequests.length} contacts`, icon: UserPlus, action: () => navigate("/chat/contacts/requests") },
+    { label: "Account alerts", detail: "Channel settings", icon: AtSign, action: () => navigate("/account/notifications") },
+  ];
+
+  const helpFeedbackItems = [
+    { label: "Support", detail: "Help center", icon: Headphones, action: () => navigate("/support") },
+    { label: "New ticket", detail: "Contact support", icon: SquarePen, action: () => navigate("/support/new") },
+    { label: "My tickets", detail: "Track replies", icon: CheckSquare, action: () => navigate("/support/tickets") },
+    { label: "Bug reports", detail: "Report issues", icon: Bell, action: () => navigate("/bug-reports") },
+    { label: "Feedback", detail: "Send ideas", icon: MessageCircleIcon, action: () => navigate("/feedback") },
+    { label: "Security report", detail: "Report risk", icon: ShieldCheck, action: () => navigate("/security/report") },
+  ];
+
+  const quickLaunchItems = [
+    { label: "New chat", hint: "Start a new chat", icon: SquarePen, action: "new", shortcut: "/" },
+    { label: "List", hint: "Focus conversation list", icon: MessageCircleIcon, action: "list", controls: CONVERSATION_LIST_REGION_ID },
+    { label: "Group", hint: "Create a group chat", icon: Users, action: "group" },
+    { label: "Channel", hint: "Create a channel", icon: Hash, action: "channel" },
+    { label: "Media", hint: "Open chat media", icon: ImageIcon, action: "media" },
+    { label: "Privacy", hint: "Open privacy settings", icon: ShieldCheck, action: "privacy" },
+    { label: chatRefreshPending ? "Syncing" : "Refresh", hint: chatRefreshPending ? "Syncing chat lists" : "Refresh chat lists", icon: Activity, action: "refresh", active: chatRefreshPending, pressable: true, busy: chatRefreshPending },
+  ];
 
   useEffect(() => {
     if (!import.meta.env.DEV || !user?.id) return;
@@ -1590,7 +2109,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         await supabase.from("store_chats").delete().eq("id", chatId).eq("user_id", user!.id);
         queryClient.invalidateQueries({ queryKey: ["chat-hub-shop"] });
       } else if (category === "support") {
-        await supabase.from("support_tickets").delete().eq("id", chatId).eq("user_id", user!.id);
+        const { error } = await supabase.functions.invoke("support-ticket-manage", {
+          body: { action: "delete", ticket_id: chatId },
+        });
+        if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ["chat-hub-support"] });
       } else if (category === "ride") {
         await (supabase as any).from("trip_messages").delete().eq("ride_request_id", chatId).eq("sender_id", user!.id);
@@ -1922,6 +2444,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         // sidebar instead of letting it span the rest of the viewport.
         // Top offset 60px = NavBar height, so the global header stays visible.
         desktopTwoColumn && "mx-auto md:max-w-2xl lg:fixed lg:top-[60px] lg:bottom-0 lg:left-0 lg:z-40 lg:mx-0 lg:max-w-none lg:w-[var(--chat-sidebar-w,360px)] lg:border-r lg:border-border/30 lg:bg-background lg:overflow-hidden lg:transition-[width] lg:duration-200",
+        !embedded && "zivo-chat-surface",
       )}
     >
       {showListShell && (
@@ -1932,7 +2455,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               embedded
                 ? "border-b border-border/15 bg-background/95 backdrop-blur-2xl"
                 : cn(
-                    "bg-background/95 backdrop-blur-2xl border-b border-border/15 shadow-[0_1px_0_rgba(15,23,42,0.03)]",
+                    "zivo-chat-header-glass",
                     desktopTwoColumn
                       ? "pt-safe"
                       : "zivo-sticky-mobile-header zivo-pt-safe-sticky lg:top-[60px]"
@@ -1951,7 +2474,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   {selectionMode ? (
                     <button type="button"
                       onClick={clearSelectionMode}
-                      className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                      className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all"
                       aria-label="Exit selection"
                       title="Exit selection"
                     >
@@ -1962,22 +2485,22 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <input id="chat-hub-menu-toggle" type="checkbox" className="peer sr-only" />
                       <label
                         htmlFor="chat-hub-menu-toggle"
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                        className="zivo-chat-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded-full active:scale-90 transition-all"
                         aria-label="Chat menu"
                         title="Chat menu"
                       >
                         <Menu className="w-5 h-5 text-foreground" />
                       </label>
-                      <div className="absolute left-0 top-full z-[2200] mt-2 hidden max-h-[75vh] w-[min(86vw,340px)] flex-col overflow-hidden rounded-3xl border border-border/20 bg-background shadow-2xl peer-checked:flex">
-                        <div className="border-b border-border/20 px-5 py-3">
+                      <div className="absolute left-0 top-full z-[2200] mt-2 hidden max-h-[75vh] w-[min(92vw,420px)] flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white text-zinc-950 shadow-2xl shadow-black/20 backdrop-blur-0 peer-checked:flex dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50">
+                        <div className="border-b border-zinc-200 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-950">
                           <div className="flex items-center justify-between">
-                            <label htmlFor="chat-hub-menu-toggle" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-muted/70 active:scale-95" aria-label="Close chat menu" title="Close">
+                            <label htmlFor="chat-hub-menu-toggle" className="zivo-chat-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded-full active:scale-95" aria-label="Close chat menu" title="Close">
                               <X className="h-5 w-5" />
                             </label>
                             <button
                               type="button"
                               onClick={() => navigate("/account/settings")}
-                              className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
+                              className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full active:scale-95"
                               aria-label="Open account settings"
                               title="Settings"
                             >
@@ -1987,9 +2510,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           <button
                             type="button"
                             onClick={() => navigate("/account/profile-edit")}
-                            className="mt-4 flex w-full items-center gap-3 rounded-2xl p-1 text-left active:scale-[0.99]"
+                            className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-2 text-left shadow-sm active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900"
                           >
-                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-lg font-bold text-primary">
+                            <div className="zivo-chat-avatar-ring flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-lg font-bold text-primary">
                               {chatMenuAvatar ? (
                                 <img src={chatMenuAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                               ) : (
@@ -2006,7 +2529,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           </button>
                           <div className="mt-3 grid gap-1.5">
                             {chatMenuPhone && (
-                              <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2 text-sm">
+                              <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900">
                                 <Phone className="h-4 w-4 text-muted-foreground" />
                                 <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuPhone}</span>
                                 <span className="text-xs text-muted-foreground">Phone</span>
@@ -2015,7 +2538,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             <button
                               type="button"
                               onClick={() => navigate("/account/username")}
-                              className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2 text-left text-sm active:scale-[0.99]"
+                              className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-left text-sm active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900"
                             >
                               <AtSign className="h-4 w-4 text-muted-foreground" />
                               <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuUsername}</span>
@@ -2023,42 +2546,42 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             </button>
                           </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto px-3 py-3">
+                        <div className="flex-1 overflow-y-auto bg-white px-3 py-3 dark:bg-zinc-950">
                           {active === "personal" && !search && (
-                            <button type="button" onClick={() => setShowAddContact(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                            <button type="button" onClick={() => setShowAddContact(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
                               <SquarePen className="h-5 w-5 text-muted-foreground" />
                               <span>New message</span>
                             </button>
                           )}
                           {active === "personal" && user && !zivoOFMode && (
-                            <button type="button" onClick={() => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false })} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                            <button type="button" onClick={() => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false })} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
                               <Bookmark className="h-5 w-5 text-muted-foreground" />
                               <span>Saved Messages</span>
                             </button>
                           )}
                           {active === "personal" && !search && !zivoOFMode && (
-                            <button type="button" onClick={() => setSelectionMode(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                            <button type="button" onClick={() => setSelectionMode(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
                               <CheckSquare className="h-5 w-5 text-muted-foreground" />
                               <span>Select chats</span>
                             </button>
                           )}
                           {active === "personal" && !zivoOFMode && (
                             <>
-                              <button type="button" onClick={() => void handleMarkAllPersonalRead()} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <button type="button" onClick={() => void handleMarkAllPersonalRead()} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
                                 <CheckCheck className="h-5 w-5 text-muted-foreground" />
                                 <span>Mark all as read</span>
                               </button>
-                              <button type="button" onClick={() => navigate("/chat/contacts")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <button type="button" onClick={() => navigate("/chat/contacts")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
                                 <UserPlus className="h-5 w-5 text-muted-foreground" />
                                 <span>Contacts</span>
                               </button>
-                              <button type="button" onClick={() => setShowCreateGroup(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                              <button type="button" onClick={() => setShowCreateGroup(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
                                 <Users className="h-5 w-5 text-muted-foreground" />
                                 <span>New group</span>
                               </button>
                               <div className="my-2 h-px bg-border/25" />
                               {personalHubMenu.map((item) => (
-                                <button key={item.action} type="button" onClick={() => handlePersonalHubMenuAction(item.action)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                                <button key={item.action} type="button" onClick={() => handlePersonalHubMenuAction(item.action)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
                                   <item.icon className="h-5 w-5 text-muted-foreground" />
                                   <span>{item.label}</span>
                                 </button>
@@ -2066,7 +2589,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             </>
                           )}
                           <div className="my-2 h-px bg-border/25" />
-                          <button type="button" onClick={() => navigate("/notifications")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/70">
+                          <button type="button" onClick={() => navigate("/notifications")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
                             <Bell className="h-5 w-5 text-muted-foreground" />
                             <span>Notifications</span>
                           </button>
@@ -2080,7 +2603,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   {desktopTwoColumn && (
                     <button type="button"
                       onClick={() => setSidebarCollapsed((v) => !v)}
-                      className="hidden lg:flex w-9 h-9 items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                      className="zivo-chat-icon-button hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all lg:flex"
                       aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                       title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                     >
@@ -2103,7 +2626,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     placeholder="Search conversations..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-10 bg-muted/60 rounded-2xl py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground transition-all"
+                    className="zivo-chat-search w-full rounded-2xl py-2.5 pl-9 pr-10 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
                   />
                   {search ? (
                     <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Clear search" title="Clear search">
@@ -2128,7 +2651,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   {active === "personal" && !selectionMode && !search && (
                     <button type="button"
                       onClick={() => setShowAddContact(true)}
-                      className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                      className="zivo-chat-icon-button relative flex h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all"
                       aria-label="New message"
                       title="New message"
                     >
@@ -2138,7 +2661,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   {active === "personal" && !selectionMode && !search && !zivoOFMode && (
                     <button type="button"
                       onClick={() => setSelectionMode(true)}
-                      className="relative w-9 h-9 hidden sm:flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                      className="zivo-chat-icon-button relative hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all sm:flex"
                       aria-label="Select chats"
                       title="Select chats"
                     >
@@ -2148,7 +2671,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   {active === "personal" && !selectionMode && !zivoOFMode && (
                     <button type="button"
                       onClick={() => void handleMarkAllPersonalRead()}
-                      className="relative w-9 h-9 hidden sm:flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                      className="zivo-chat-icon-button relative hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all sm:flex"
                       aria-label="Mark all as read"
                       title="Mark all as read"
                     >
@@ -2158,7 +2681,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   {active === "personal" && !selectionMode && !zivoOFMode && (
                     <button type="button"
                       onClick={() => navigate('/chat/contacts')}
-                      className="relative w-9 h-9 hidden sm:flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                      className="zivo-chat-icon-button relative hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all sm:flex"
                       aria-label="Contacts"
                       title="Contacts"
                     >
@@ -2169,7 +2692,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button type="button"
-                          className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                          className="zivo-chat-icon-button relative flex h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all"
                           aria-label="Chat tools"
                           title="Chat tools"
                         >
@@ -2203,7 +2726,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   {active === "personal" && !selectionMode && !zivoOFMode && (
                     <button type="button"
                       onClick={() => setShowCreateGroup(true)}
-                      className="relative w-9 h-9 hidden sm:flex items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-all"
+                      className="zivo-chat-icon-button relative hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all sm:flex"
                       aria-label="New group"
                       title="New group"
                     >
@@ -2220,7 +2743,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   {!selectionMode && (
                     <div
                       className={cn(
-                        "flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 rounded-full border text-[10px] font-semibold",
+                        "zivo-chat-chip flex items-center gap-1 px-2 py-1 text-[10px] font-bold sm:gap-1.5",
                         syncMode === "live"
                           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
                           : "border-amber-500/30 bg-amber-500/10 text-amber-700"
@@ -2240,8 +2763,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           {/* Start a group call entry — shown only on the Groups folder */}
           {folder === "groups" && active === "personal" && !zivoOFMode && !selectionMode && (
             <div className={cn("px-5 pt-3 pb-3 border-b border-border/20", embedded && "px-3 pt-2 pb-2", collapsedRail && "lg:hidden")}>
-              <div className="p-3 rounded-2xl bg-primary/8 border border-primary/15 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <div className="zivo-chat-card flex items-center gap-3 rounded-2xl p-3">
+                <div className="zivo-chat-icon-button flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl">
                   <Video className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -2251,7 +2774,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 <button
                   type="button"
                   onClick={() => setShowGroupCallPicker(true)}
-                  className="px-3 h-9 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-transform shrink-0"
+                  className="zivo-chat-chip-active flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-black active:scale-95 transition-transform"
                   aria-label="Start a group call"
                   title="Start a group call"
                 >
@@ -2264,8 +2787,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
           {sharePayload && (
             <div className={cn("px-5 pt-3", embedded && "px-4 pt-3")}>
-              <div className="p-3.5 rounded-2xl bg-primary/8 border border-primary/15 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <div className="zivo-chat-card flex items-center gap-3 rounded-2xl p-3.5">
+                <div className="zivo-chat-icon-button flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl">
                   <MessageCircleIcon className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -2274,7 +2797,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 </div>
                 <button type="button"
                   onClick={() => setSharePayload(null)}
-                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
+                  className="zivo-chat-icon-button flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full active:scale-90 transition-transform"
                   aria-label="Cancel share"
                   title="Cancel share"
                 >
@@ -2293,9 +2816,1048 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
             />
           )}
 
-          
+          {showAdvancedCommandCenter && !embedded && !search && !selectionMode && !collapsedRail && (
+            <div
+              id={`${COMMAND_TOOLS_REGION_ID}-advanced`}
+              role="region"
+              aria-label="Advanced chat command tools"
+              aria-describedby={ADVANCED_COMMAND_TOOLS_SUMMARY_ID}
+              className="px-4 pt-3"
+            >
+              <div className="zivo-chat-card overflow-hidden rounded-3xl border border-white/45 bg-white/60 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/45">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="zivo-chat-chip-active inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide">
+                        <Radio aria-hidden="true" className="h-3 w-3" />
+                        Command center
+                      </span>
+	                      <span className="zivo-chat-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+	                        <span className={cn("h-1.5 w-1.5 rounded-full", syncMode === "live" ? "bg-emerald-500" : "bg-amber-500")} />
+	                        {syncMode === "live" ? "Realtime" : "Fallback"}
+	                      </span>
+	                      <button
+	                        type="button"
+	                        aria-controls={`${COMMAND_TOOLS_REGION_ID} ${CONVERSATION_LIST_REGION_ID}`}
+	                        aria-expanded={showCommandPanels}
+	                        aria-keyshortcuts="Shift+T"
+	                        aria-label={showCommandPanels ? "Focus conversation list" : "Show command tools"}
+	                        title={showCommandPanels ? "Focus conversation list" : "Show command tools"}
+	                        onClick={toggleCommandPanelFocus}
+	                        className="zivo-chat-chip inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black text-foreground active:scale-95"
+	                      >
+	                        {showCommandPanels ? "Focus list" : "Show tools"}
+	                      </button>
+	                    </div>
+                    <div id={ADVANCED_COMMAND_TOOLS_SUMMARY_ID}>
+                      <p className="mt-2 text-lg font-black leading-tight text-foreground">
+                        {commandCenterStats.attentionLabel}
+                      </p>
+                      <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                        {commandCenterStats.activeFolderLabel} view with {commandCenterStats.openThreads} thread{commandCenterStats.openThreads === 1 ? "" : "s"} ready.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="zivo-chat-icon-button flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">
+                    <MessageCircleIcon aria-hidden="true" className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
 
-          <div className={cn("flex-1 min-h-0", (embedded || desktopTwoColumn) ? "overflow-y-auto" : "") }>
+                <div
+                  role="toolbar"
+                  aria-label="Chat status shortcuts"
+                  aria-orientation="horizontal"
+                  className="mt-3 grid grid-cols-4 gap-2"
+                >
+                  {[
+                    { label: "Unread", value: commandCenterStats.unreadThreads, hint: "Show unread chats", icon: Bell, active: folder === "unread", pressable: true, empty: commandCenterStats.unreadThreads === 0, action: "unread" },
+                    { label: "Online", value: commandCenterStats.onlineCount, hint: "Focus online contacts", icon: Radar, active: false, empty: commandCenterStats.onlineCount === 0, action: "online" },
+                    { label: "Pinned", value: commandCenterStats.pinnedThreads, hint: "Jump to pinned chats", icon: Pin, active: false, empty: commandCenterStats.pinnedThreads === 0, action: "pinned" },
+                    { label: "Requests", value: pendingRequests.length, hint: "Open contact requests", icon: UserPlus, active: false, empty: pendingRequests.length === 0, action: "requests" },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      aria-label={`${item.hint}: ${item.value}`}
+                      aria-current={item.active ? "page" : undefined}
+                      aria-pressed={item.pressable ? item.active : undefined}
+                      title={`${item.hint}: ${item.value}`}
+                      onClick={() => runChatCommandAction(item.action)}
+                      className={cn(
+                        "rounded-2xl border border-white/45 bg-white/50 px-2 py-2 text-center transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
+                        item.active && "zivo-chat-chip-active border-primary/30 bg-primary/10",
+                        item.empty && !item.active && "opacity-65 hover:opacity-100",
+                      )}
+                    >
+                      <item.icon aria-hidden="true" className={cn("mx-auto mb-1 h-3.5 w-3.5", item.empty ? "text-muted-foreground/60" : "text-muted-foreground")} />
+                      <p className="text-sm font-black leading-none text-foreground">{item.value}</p>
+                      <p className="mt-1 truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                    </button>
+                  ))}
+                </div>
+
+                <div
+                  role="toolbar"
+                  aria-label="Primary chat actions"
+                  aria-orientation="horizontal"
+                  className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4"
+                >
+                  <button type="button" aria-label="Search chats" aria-keyshortcuts="/" title="Search chats" onClick={() => runChatCommandAction("search")} className="zivo-chat-chip flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-black text-foreground active:scale-95">
+                    <Search aria-hidden="true" className="h-3.5 w-3.5" />
+                    Search
+                  </button>
+                  <button type="button" aria-label="Show unread chats" aria-current={folder === "unread" ? "page" : undefined} aria-pressed={folder === "unread"} title="Show unread chats" onClick={showUnreadChats} className={cn("zivo-chat-chip flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-black text-foreground active:scale-95", folder === "unread" && "zivo-chat-chip-active")}>
+                    <CheckCheck aria-hidden="true" className="h-3.5 w-3.5" />
+                    Unread
+                  </button>
+                  <button type="button" aria-label="Open contact requests" title="Open contact requests" onClick={() => runChatCommandAction("requests")} className="zivo-chat-chip flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-black text-foreground active:scale-95">
+                    <UserPlus aria-hidden="true" className="h-3.5 w-3.5" />
+                    Requests
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Open saved messages"
+                    title="Open saved messages"
+                    onClick={openSavedMessages}
+                    className="zivo-chat-chip flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-black text-foreground active:scale-95"
+                  >
+                    <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
+                    Saved
+                  </button>
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-2.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div
+                  role="toolbar"
+                  aria-label="Chat shortcut actions"
+                  aria-orientation="horizontal"
+                  className="flex gap-2 overflow-x-auto overscroll-x-contain scrollbar-hide"
+                >
+                  {quickLaunchItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+	                      aria-label={item.hint}
+	                      aria-controls={item.controls}
+	                      aria-busy={item.busy}
+	                      aria-pressed={item.pressable ? item.active : undefined}
+	                      aria-keyshortcuts={item.shortcut}
+                      title={item.hint}
+                      disabled={item.busy}
+                      onClick={() => runChatCommandAction(item.action)}
+                      className={cn(
+                        "group flex min-w-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/45 bg-white/45 px-2 py-2.5 text-center transition-all hover:bg-white/75 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
+                        item.active && "zivo-chat-chip-active border-primary/30 bg-primary/10",
+                      )}
+                    >
+                      <span className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon aria-hidden="true" className={cn("h-4 w-4 text-primary", item.busy && "animate-spin motion-reduce:animate-none")} />
+                      </span>
+                      <span className="max-w-full truncate text-[10px] font-black leading-tight text-foreground">{item.label}</span>
+                    </button>
+                  ))}
+	                </div>
+	              </div>
+
+	              {showCommandPanels ? (
+	                <>
+	              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+	                <div className="mb-3 flex items-center justify-between gap-3">
+	                  <div className="min-w-0">
+	                    <p className="text-sm font-black text-foreground">Chat launch readiness</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Identity, privacy, media, sharing, bots, and storage setup in one pass.</p>
+                  </div>
+                  <span className="zivo-chat-chip-active inline-flex h-8 shrink-0 items-center rounded-full px-3 text-[10px] font-black">
+                    {readinessScore}%
+                  </span>
+                </div>
+
+                <div className="mb-3 h-2 overflow-hidden rounded-full bg-muted/50">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width] duration-500"
+                    style={{ width: `${readinessScore}%` }}
+                  />
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {readinessItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[62px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                      {item.ready ? (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Guided workflows</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Launch the most common chat jobs with a clean two-step path.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <CheckSquare className="h-3 w-3" />
+                    Steps
+                  </span>
+                </div>
+
+                <div className="grid gap-2 md:grid-cols-2">
+                  {guidedWorkflowItems.map((item) => (
+                    <div key={item.title} className="rounded-2xl border border-white/45 bg-white/45 p-3 dark:border-white/10 dark:bg-white/5">
+                      <div className="flex items-start gap-3">
+                        <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                          <item.icon className="h-4 w-4 text-primary" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-black leading-tight text-foreground">{item.title}</p>
+                          <p className="mt-1 line-clamp-2 text-[10px] font-medium leading-snug text-muted-foreground">{item.detail}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {item.actions.map((action) => (
+                          <button
+                            key={action.label}
+                            type="button"
+                            onClick={action.action}
+                            className="zivo-chat-chip flex h-9 items-center justify-center rounded-xl px-3 text-[11px] font-black text-foreground active:scale-95"
+                          >
+                            {action.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Inbox intelligence</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Jump to the right work stream fast: unread, groups, channels, media, locked items, and requests.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Radar className="h-3 w-3" />
+                    Smart
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {inboxIntelligenceItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Delivery pipeline</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Compose, scan, store, sync, deliver, and recover messages from one backend-aware path.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Cloud className="h-3 w-3" />
+                    Backend
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {deliveryPipelineItems.map((item, index) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group relative flex min-h-[70px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-chip absolute right-2 top-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[9px] font-black text-muted-foreground">
+                        {index + 1}
+                      </span>
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0 pr-5">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">External sharing rail</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Copy, QR, channel, group, broadcast, and saved-draft paths for sharing outside chat.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Share2 className="h-3 w-3" />
+                    Outbound
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {externalShareItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Private data controls</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Manage account data, exports, security, login activity, devices, and legal privacy details.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-emerald-700">
+                    <ShieldCheck className="h-3 w-3" />
+                    Private
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {privateDataItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Monetization vault</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Locked media, tips, wallet, earnings, gifts, and subscriptions for paid chat workflows.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <DollarSign className="h-3 w-3" />
+                    Paid
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {monetizationItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Security ops center</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Security status, realtime monitoring, scam defense, reporting, scale protection, and recovery.</p>
+                  </div>
+                  <span className="zivo-chat-chip-active inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black">
+                    <ShieldCheck className="h-3 w-3" />
+                    Hardened
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {securityOpsItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Discovery growth</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Find people, search usernames, connect nearby, manage requests, invite friends, and grow channels.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <UserPlus className="h-3 w-3" />
+                    Grow
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {discoveryGrowthItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Chat maintenance</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Refresh live data, triage unread work, review archived chats, clean storage, check sessions, and export data.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Activity className="h-3 w-3" />
+                    Healthy
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {maintenanceItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Service lanes</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Switch between DMs, groups, stores, support, ride chats, and saved private notes.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <StoreIcon className="h-3 w-3" />
+                    Lanes
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {serviceLaneItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Message formats</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Text, pictures, videos, voice, locked media, location, stickers, and saved notes.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Mic className="h-3 w-3" />
+                    Send
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  {messageFormatItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[76px] flex-col items-center justify-center rounded-2xl border border-white/45 bg-white/45 px-1.5 py-2 text-center transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button mb-1.5 flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="block max-w-full truncate text-[11px] font-black leading-tight text-foreground">{item.label}</span>
+                      <span className="mt-0.5 block max-w-full truncate text-[9px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Notification control</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Manage inbox alerts, preferences, muted chats, login warnings, requests, and account channels.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Bell className="h-3 w-3" />
+                    Alerts
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {notificationControlItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Help and feedback</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Support, tickets, bug reports, feedback, and security reporting connected to chat.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Headphones className="h-3 w-3" />
+                    Help
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {helpFeedbackItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">End-to-end workflow</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Channels, groups, calls, sharing, media, bots, locks, storage, and recovery.</p>
+                  </div>
+                  <div className="zivo-chat-chip inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                    <ShieldCheck className="h-3 w-3" />
+                    Protected
+                  </div>
+                </div>
+
+                <div className="grid gap-2 md:grid-cols-2">
+                  {chatWorkflowSections.map((section) => (
+                    <div key={section.title} className="rounded-2xl border border-white/45 bg-white/45 p-2 dark:border-white/10 dark:bg-white/5">
+                      <p className="px-1 pb-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">{section.title}</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {section.items.map((item) => (
+                          <button
+                            key={item.label}
+                            type="button"
+                            onClick={item.action}
+                            className="group flex min-h-[64px] items-center gap-2 rounded-xl px-2.5 py-2 text-left transition-all hover:bg-white/70 active:scale-[0.98] dark:hover:bg-white/10"
+                          >
+                            <span className="zivo-chat-icon-button flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                              <item.icon className="h-4 w-4 text-primary" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                              <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Realtime protection stack</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Backend health, hacker protection, cache cleanup, private sessions, and fast delivery.</p>
+                  </div>
+                  <span className="zivo-chat-chip-active inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black">
+                    <Activity className="h-3 w-3" />
+                    Monitor
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {protectionStack.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      aria-label={`${item.label}: ${item.detail}`}
+                      aria-busy={(item.label === "Realtime" || item.label === "Backend") && chatRefreshPending ? true : undefined}
+                      title={`${item.label}: ${item.detail}`}
+                      disabled={(item.label === "Realtime" || item.label === "Backend") && chatRefreshPending}
+                      onClick={() => runProtectionStackAction(item.label)}
+                      className="group rounded-2xl border border-white/45 bg-white/45 p-3 text-left transition-all hover:bg-white/75 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-xl",
+                          item.tone === "emerald" && "bg-emerald-500/10 text-emerald-600",
+                          item.tone === "amber" && "bg-amber-500/10 text-amber-700",
+                          item.tone === "blue" && "bg-blue-500/10 text-blue-600",
+                          item.tone === "violet" && "bg-violet-500/10 text-violet-600",
+                        )}>
+                          <item.icon aria-hidden="true" className={cn("h-4 w-4", chatRefreshPending && (item.label === "Realtime" || item.label === "Backend") && "animate-spin motion-reduce:animate-none")} />
+                        </span>
+                        <span className={cn(
+                          "rounded-full px-2 py-0.5 text-[10px] font-black",
+                          item.tone === "emerald" && "bg-emerald-500/10 text-emerald-700",
+                          item.tone === "amber" && "bg-amber-500/10 text-amber-700",
+                          item.tone === "blue" && "bg-blue-500/10 text-blue-700",
+                          item.tone === "violet" && "bg-violet-500/10 text-violet-700",
+                        )}>
+                          {item.value}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-[12px] font-black leading-tight text-foreground">{item.label}</p>
+                      <p className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground">{item.detail}</p>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <button type="button" onClick={() => navigate("/chat/settings/two-step")} className="zivo-chat-chip flex h-9 items-center justify-center gap-1.5 rounded-xl px-2 text-[11px] font-black text-foreground active:scale-95">
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Two-step
+                  </button>
+                  <button type="button" onClick={() => navigate("/chat/settings/passcode")} className="zivo-chat-chip flex h-9 items-center justify-center gap-1.5 rounded-xl px-2 text-[11px] font-black text-foreground active:scale-95">
+                    <Lock className="h-3.5 w-3.5" />
+                    Lock
+                  </button>
+                  <button type="button" onClick={() => navigate("/chat/settings/sessions")} className="zivo-chat-chip flex h-9 items-center justify-center gap-1.5 rounded-xl px-2 text-[11px] font-black text-foreground active:scale-95">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Sessions
+                  </button>
+                  <button type="button" onClick={() => navigate("/chat/settings/storage")} className="zivo-chat-chip flex h-9 items-center justify-center gap-1.5 rounded-xl px-2 text-[11px] font-black text-foreground active:scale-95">
+                    <HardDrive className="h-3.5 w-3.5" />
+                    Cleanup
+                  </button>
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Share bridge</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Move chats, channels, groups, and invites across apps with fewer taps.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Share2 className="h-3 w-3" />
+                    Cross-app
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <button type="button" onClick={() => void handleShareZivoInvite()} className="group rounded-2xl border border-white/45 bg-white/45 p-3 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                    <span className="zivo-chat-icon-button mb-2 flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                      <Share2 className="h-4 w-4 text-primary" />
+                    </span>
+                    <span className="block truncate text-[12px] font-black text-foreground">Invite link</span>
+                    <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Share to any app</span>
+                  </button>
+                  <button type="button" onClick={() => navigate("/channels")} className="group rounded-2xl border border-white/45 bg-white/45 p-3 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                    <span className="zivo-chat-icon-button mb-2 flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                      <Hash className="h-4 w-4 text-primary" />
+                    </span>
+                    <span className="block truncate text-[12px] font-black text-foreground">Channels</span>
+                    <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Post and forward</span>
+                  </button>
+                  <button type="button" onClick={() => { setFolder("groups"); setShowGroupCallPicker(true); }} className="group rounded-2xl border border-white/45 bg-white/45 p-3 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                    <span className="zivo-chat-icon-button mb-2 flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                      <Users className="h-4 w-4 text-primary" />
+                    </span>
+                    <span className="block truncate text-[12px] font-black text-foreground">Groups</span>
+                    <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Call or share room</span>
+                  </button>
+                  <button type="button" onClick={() => navigate("/qr-profile")} className="group rounded-2xl border border-white/45 bg-white/45 p-3 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                    <span className="zivo-chat-icon-button mb-2 flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                      <ScanLine className="h-4 w-4 text-primary" />
+                    </span>
+                    <span className="block truncate text-[12px] font-black text-foreground">QR profile</span>
+                    <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Scan to connect</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Media composer studio</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Send pictures, videos, locked unlocks, scans, stickers, voice, locations, and saved notes.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <ImageIcon className="h-3 w-3" />
+                    Ready
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  {chatComposerStudioItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[76px] flex-col items-center justify-center rounded-2xl border border-white/45 bg-white/45 px-1.5 py-2 text-center transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button mb-1.5 flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="block max-w-full truncate text-[11px] font-black leading-tight text-foreground">{item.label}</span>
+                      <span className="mt-0.5 block max-w-full truncate text-[9px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Safety operations</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Delete, archive, block, protect sessions, and clean private chat media.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-destructive">
+                    <Trash2 className="h-3 w-3" />
+                    Control
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {chatSafetyOperations.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[68px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Automation ops</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Bots, support, requests, broadcasts, folders, and global search for heavier workflows.</p>
+                  </div>
+                  <span className="zivo-chat-chip-active inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black">
+                    <BotIcon className="h-3 w-3" />
+                    Ops
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {automationOpsItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[70px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-2.5 py-2 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Call center</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Voice, video, group rooms, screen share, recordings, and call privacy.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Video className="h-3 w-3" />
+                    Live
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {callCenterItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[68px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Trust vault</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Locked unlocks, trust score, warnings, spam, appeals, and private account controls.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-emerald-700">
+                    <Lock className="h-3 w-3" />
+                    Vault
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {trustVaultItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[68px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground">Personalization lab</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Make chat feel yours with themes, wallpapers, folders, notifications, cache, and QR identity.</p>
+                  </div>
+                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
+                    <Palette className="h-3 w-3" />
+                    Style
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {personalizationItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="group flex min-h-[68px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                        <item.icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
+                      </span>
+                    </button>
+	                  ))}
+	                </div>
+	              </div>
+	                </>
+	              ) : (
+	                <div className="zivo-chat-card mt-3 rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
+	                  <div className="flex items-center justify-between gap-3">
+	                    <div className="min-w-0">
+	                      <p className="text-sm font-black text-foreground">Focus mode</p>
+	                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Core chat actions stay ready while deeper tools are hidden.</p>
+	                    </div>
+	                    <button
+	                      type="button"
+	                      aria-controls={COMMAND_TOOLS_REGION_ID}
+	                      aria-expanded={false}
+	                      aria-keyshortcuts="Shift+T"
+	                      aria-label="Show command tools"
+	                      title="Show command tools"
+	                      onClick={() => {
+	                        setShowCommandPanels(true);
+	                        announceChatStatus("Command tools expanded");
+	                      }}
+	                      className="zivo-chat-chip-active h-9 shrink-0 rounded-full px-4 text-[11px] font-black active:scale-95"
+	                    >
+	                      Show tools
+	                    </button>
+	                  </div>
+	                  <div
+	                    role="toolbar"
+	                    aria-label="Focus mode chat actions"
+	                    aria-orientation="horizontal"
+	                    className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-6"
+	                  >
+	                      {[
+	                        { label: "Search", hint: "Search chats", icon: Search, action: "search", active: false, shortcut: "/" },
+	                        { label: "Unread", hint: "Show unread chats", icon: Bell, action: "unread", active: folder === "unread", current: folder === "unread", pressable: true },
+	                        { label: "New", hint: "Start a new chat", icon: SquarePen, action: "new", active: false },
+	                        { label: "List", hint: "Focus conversation list", icon: MessageCircleIcon, action: "list", active: false, controls: CONVERSATION_LIST_REGION_ID },
+	                        { label: "Privacy", hint: "Open privacy settings", icon: ShieldCheck, action: "privacy", active: false },
+	                        { label: chatRefreshPending ? "Syncing" : "Refresh", hint: chatRefreshPending ? "Syncing chat lists" : "Refresh chat lists", icon: Activity, action: "refresh", active: chatRefreshPending, pressable: true, busy: chatRefreshPending },
+	                      ].map((item) => (
+	                      <button
+	                        key={item.label}
+	                        type="button"
+	                        aria-label={item.hint}
+	                        aria-controls={item.controls}
+	                        aria-busy={item.busy}
+	                        aria-current={item.current ? "page" : undefined}
+	                        aria-pressed={item.pressable ? item.active : undefined}
+	                        aria-keyshortcuts={item.shortcut}
+	                        title={item.hint}
+	                        disabled={item.busy}
+	                        onClick={() => runChatCommandAction(item.action)}
+	                        className={cn(
+	                          "group flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-2xl border border-white/45 bg-white/45 px-1.5 py-2 text-center transition-all hover:bg-white/75 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
+	                          item.active && "zivo-chat-chip-active border-primary/30 bg-primary/10",
+	                        )}
+	                      >
+	                        <item.icon aria-hidden="true" className={cn("h-4 w-4 text-primary transition-transform group-hover:scale-105", item.busy && "animate-spin motion-reduce:animate-none")} />
+	                        <span className="max-w-full truncate text-[9px] font-black leading-tight text-foreground">{item.label}</span>
+	                      </button>
+	                    ))}
+	                  </div>
+	                </div>
+	              )}
+	            </div>
+	          )}
+
+	          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+	            {chatStatusAnnouncement}
+	          </div>
+	          <p id={CONVERSATION_LIST_SUMMARY_ID} className="sr-only">
+	            {commandCenterStats.activeFolderLabel} conversation list with {commandCenterStats.openThreads} thread{commandCenterStats.openThreads === 1 ? "" : "s"}.
+	          </p>
+
+	          <div
+	            ref={conversationListRef}
+	            id={CONVERSATION_LIST_REGION_ID}
+	            role="region"
+	            tabIndex={-1}
+	            aria-label="Conversation list"
+	            aria-describedby={CONVERSATION_LIST_SUMMARY_ID}
+	            className={cn(
+	              "flex-1 min-h-0 scroll-mt-4 rounded-[1.75rem] outline-none transition-[box-shadow] duration-300",
+	              (embedded || desktopTwoColumn) ? "overflow-y-auto" : "",
+	              conversationListFocusPulse && "shadow-[0_0_0_3px_hsl(var(--primary)/0.22),0_20px_60px_rgba(15,23,42,0.12)]",
+	            )}
+	          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={active}
@@ -2315,7 +3877,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         placeholder="Search conversations..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-10 bg-muted/60 rounded-2xl py-2 text-xs outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground transition-all"
+                        className="zivo-chat-search w-full rounded-2xl py-2 pl-9 pr-10 text-xs text-foreground outline-none transition-all placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
                       />
                       {search ? (
                         <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-[calc(50%+0.375rem)]" aria-label="Clear search" title="Clear search">
@@ -2337,9 +3899,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             className={cn(
                               "px-3 py-1 text-[11px] font-semibold rounded-full whitespace-nowrap capitalize transition-all",
                               isActiveFilter
-                                ? "bg-primary/15 text-primary"
+                                ? "zivo-chat-chip-active"
                                 : enabled
-                                  ? "bg-muted/60 text-muted-foreground hover:bg-muted"
+                                  ? "zivo-chat-chip text-muted-foreground hover:text-foreground"
                                   : "bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
                             )}
                           >
@@ -2351,9 +3913,13 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   )}
                 </div>
 
+                {!embedded && !search && active === "personal" && !selectionMode && !zivoOFMode && !desktopTwoColumn && (
+                  <ChatStories />
+                )}
+
                 {/* Active Now strip — online contacts */}
                 {!embedded && !search && active === "personal" && onlineIds.size > 0 && !zivoOFMode && (
-                  <div className="pb-3">
+                  <div className="zivo-chat-card mb-3 rounded-3xl p-3">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">Active Now</span>
@@ -2363,10 +3929,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         <button type="button"
                           key={c.id}
                           onClick={() => setOpenPersonalChat({ id: c.id, name: c.name, avatar: c.avatar, isVerified: c.isVerified === true })}
-                          className="flex flex-col items-center gap-1 w-[58px] shrink-0 rounded-xl outline-none active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-primary/30"
+                          className="flex w-[58px] shrink-0 flex-col items-center gap-1 rounded-xl outline-none transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/30"
                         >
                           <div className="relative">
-                            <div className="w-12 h-12 rounded-full bg-muted overflow-hidden ring-2 ring-emerald-500/40">
+                            <div className="zivo-chat-avatar-ring h-12 w-12 overflow-hidden rounded-full bg-muted">
                               {c.avatar ? (
                                 <img src={c.avatar} alt={c.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                               ) : (
@@ -2392,7 +3958,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   <button type="button"
                     onClick={() => navigate('/chat/folders')}
                     className={cn(
-                      "flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full bg-muted/40 text-muted-foreground hover:bg-muted whitespace-nowrap active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                      "zivo-chat-chip flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold text-muted-foreground whitespace-nowrap active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                       embedded && "px-2.5 py-1.5 text-[11px]"
                     )}
                     aria-label="Edit folders"
@@ -2411,8 +3977,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         className={cn(
                           "flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                           isActiveFolder
-                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                            : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                            ? "zivo-chat-chip-active"
+                            : "zivo-chat-chip text-muted-foreground hover:text-foreground",
                           embedded && "px-3 py-1.5 text-[11px]"
                         )}
                       >
@@ -2420,7 +3986,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         {unread > 0 && (
                           <span className={cn(
                             "min-w-[16px] h-[16px] px-1 text-[9px] font-bold rounded-full flex items-center justify-center",
-                            isActiveFolder ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                            isActiveFolder ? "bg-white text-primary" : "bg-primary text-primary-foreground"
                           )}>
                             {unread > 99 ? "99+" : unread}
                           </span>
@@ -2440,7 +4006,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     "flex flex-col items-center text-center",
                     embedded ? "py-8" : "py-10"
                   )}>
-                    <div className="text-5xl mb-3">{currentCategory.emptyIcon}</div>
+                    <div className="zivo-chat-card mb-3 flex h-20 w-20 items-center justify-center rounded-[1.75rem] text-4xl">{currentCategory.emptyIcon}</div>
                     <p className="text-base font-bold text-foreground mb-1">
                       {active === "personal" && search.trim().length >= 2 ? "No conversations found" : currentCategory.emptyTitle}
                     </p>
@@ -2452,7 +4018,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     {active === "support" && (
                       <button type="button"
                         onClick={() => navigate("/support")}
-                        className="px-6 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold active:scale-95 transition-transform"
+                        className="zivo-chat-chip-active rounded-full px-6 py-2.5 text-sm font-black active:scale-95 transition-transform"
                       >
                         Contact Support
                       </button>
@@ -2473,9 +4039,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           }}
                           disabled={isInviteSharing}
                           aria-label="Invite friends to ZIVO"
-                          className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-card border border-border/40 shadow-sm active:scale-95 transition-transform disabled:opacity-50"
+                          className="zivo-chat-card flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 transition-transform active:scale-95 disabled:opacity-50"
                         >
-                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                          <div className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full">
                             <Share2 className="w-4 h-4 text-primary" />
                           </div>
                           <span className="text-[11px] font-semibold text-foreground leading-tight">{isInviteSharing ? "Sharing..." : "Invite friends"}</span>
@@ -2485,9 +4051,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             <button type="button"
                               onClick={() => navigate("/chat/nearby")}
                               aria-label="Find people nearby"
-                              className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-card border border-border/40 shadow-sm active:scale-95 transition-transform"
+                              className="zivo-chat-card flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 transition-transform active:scale-95"
                             >
-                              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                              <div className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full">
                                 <MapPinned className="w-4 h-4 text-primary" />
                               </div>
                               <span className="text-[11px] font-semibold text-foreground leading-tight">People nearby</span>
@@ -2495,9 +4061,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             <button type="button"
                               onClick={() => setShowCreateGroup(true)}
                               aria-label="Create new group from empty chat list"
-                              className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-card border border-border/40 shadow-sm active:scale-95 transition-transform"
+                              className="zivo-chat-card flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 transition-transform active:scale-95"
                             >
-                              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                              <div className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full">
                                 <Users className="w-4 h-4 text-primary" />
                               </div>
                               <span className="text-[11px] font-semibold text-foreground leading-tight">New group</span>
@@ -2508,16 +4074,16 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     )}
                   </div>
                 ) : (
-                  <div className={cn("divide-y divide-border/20", embedded && "px-1")}>
+                  <div className={cn("space-y-1.5", embedded && "px-1")}>
                     {/* Contact Requests notification row */}
                     {!search && active === "personal" && pendingRequests.length > 0 && (
                       <button type="button"
                         onClick={() => navigate("/chat/contacts/requests")}
-                        className="w-full flex items-center gap-3 px-4 py-3 active:bg-muted/60 active:scale-[0.99] transition-all"
+                        className="zivo-chat-row flex w-full items-center gap-3 px-4 py-3 transition-all active:scale-[0.99]"
                       >
-                        <div className="w-[52px] h-[52px] rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm relative">
+                        <div className="zivo-chat-chip-active relative flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-full">
                           <UserPlus className="w-5 h-5 text-white" />
-                          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
+                          <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-background bg-red-500 px-1 text-[10px] font-bold text-white">
                             {pendingRequests.length > 9 ? "9+" : pendingRequests.length}
                           </span>
                         </div>
@@ -2539,9 +4105,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     {!search && archivedList.length > 0 && active === "personal" && (
                       <button type="button"
                         onClick={() => setShowArchived((v) => !v)}
-                        className="w-full flex items-center gap-3 px-4 py-3 active:bg-muted/50 transition-colors"
+                        className="zivo-chat-row flex w-full items-center gap-3 px-4 py-3 transition-all active:scale-[0.99]"
                       >
-                        <div className="w-[52px] h-[52px] rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <div className="zivo-chat-icon-button flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-full">
                           <Archive className="w-4 h-4 text-muted-foreground" />
                         </div>
                         <div className="flex-1 text-left">
@@ -2549,7 +4115,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           <p className="text-[11px] text-muted-foreground">{archivedList.length} conversation{archivedList.length === 1 ? "" : "s"}</p>
                         </div>
                         {archivedUnread > 0 && (
-                          <span className="min-w-[22px] h-[22px] px-1.5 bg-muted-foreground/30 text-foreground text-[11px] font-bold rounded-full flex items-center justify-center">
+                          <span className="zivo-chat-chip flex h-[22px] min-w-[22px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-foreground">
                             {archivedUnread > 99 ? "99+" : archivedUnread}
                           </span>
                         )}
@@ -2659,10 +4225,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                               <div
                                 data-testid={(chat as any).isGroup ? "group-conversation-row" : "conversation-row"}
                                 className={cn(
-                                  "w-full flex items-center gap-3 text-left transition-all",
+                                  "zivo-chat-row w-full flex items-center gap-3 text-left transition-all",
                                   embedded ? "px-3 py-2.5" : "px-4 py-3",
-                                  "cursor-pointer active:bg-muted/60 active:scale-[0.99]",
-                                  chat.unread > 0 && !muted && "bg-primary/[0.02]",
+                                  "cursor-pointer active:scale-[0.99]",
+                                  chat.unread > 0 && !muted && "zivo-chat-row-unread",
                                   collapsedRail && "lg:px-2 lg:py-1.5 lg:justify-center lg:gap-0"
                                 )}
                                 title={chat.name}
@@ -2753,7 +4319,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                                 setPendingCall("voice");
                                                 setOpenPersonalChat({ id: chat.id, name: chat.name, avatar: chat.avatar, isVerified: (chat as any).isVerified === true });
                                               }}
-                                              className="ml-0.5 w-6 h-6 rounded-full hover:bg-muted flex items-center justify-center cursor-pointer"
+                                              className="zivo-chat-icon-button ml-0.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full"
                                             >
                                               <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                                             </button>
@@ -2775,7 +4341,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                                 isMarkedUnread: isMarkedUnread(chat.id),
                                               });
                                             }}
-                                            className="ml-0.5 w-6 h-6 rounded-full hover:bg-muted flex items-center justify-center cursor-pointer"
+                                            className="zivo-chat-icon-button ml-0.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full"
                                           >
                                             <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />
                                           </button>
@@ -2863,8 +4429,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                     </div>
                                     {chat.unread > 0 ? (
                                       <span className={cn(
-                                        "min-w-[22px] h-[22px] px-1.5 text-[11px] font-bold rounded-full flex items-center justify-center flex-shrink-0 shadow-sm",
-                                        muted ? "bg-muted-foreground/30 text-foreground" : "bg-primary text-primary-foreground"
+                                        "flex h-[22px] min-w-[22px] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold shadow-sm",
+                                        muted ? "zivo-chat-chip text-foreground" : "zivo-chat-chip-active"
                                       )}>
                                         {chat.unread > 99 ? "99+" : chat.unread}
                                       </span>
@@ -2889,7 +4455,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
                     {/* Expanded archived chats list */}
                     {showArchived && archivedList.length > 0 && active === "personal" && (
-                      <div className="space-y-2 px-1 pt-2 border-t border-border/30 mt-2">
+                      <div className="mt-2 space-y-2 border-t border-border/30 px-1 pt-2">
                         <div className="flex items-center gap-1.5 px-2 pt-1">
                           <Archive className="w-3 h-3 text-muted-foreground" />
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Archived</span>
@@ -2904,7 +4470,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                 setOpenPersonalChat({ id: chat.id, name: chat.name, avatar: chat.avatar, isVerified: (chat as any).isVerified === true });
                               }
                             }}
-                            className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-card/60 border border-border/30 active:scale-[0.98] transition-all"
+                            className="zivo-chat-row flex w-full items-center gap-3 rounded-2xl p-2.5 transition-all active:scale-[0.98]"
                           >
                             <ChatRowAvatar
                               avatar={chat.avatar}
@@ -2919,7 +4485,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             </div>
                             <button type="button"
                               onClick={(e) => { e.stopPropagation(); toggleArchive(chat.id); toast.success("Unarchived"); }}
-                              className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-90"
+                              className="zivo-chat-icon-button flex h-8 w-8 items-center justify-center rounded-full active:scale-90"
                               aria-label="Unarchive"
                               title="Unarchive"
                             >
@@ -2939,20 +4505,20 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
                     {selectionMode && active === "personal" && (
                       <div className="sticky bottom-[calc(var(--zivo-safe-bottom,0px)+5.3rem)] z-30 px-1 pt-2">
-                        <div className="rounded-2xl border border-border/40 bg-card/95 backdrop-blur-xl shadow-lg p-2">
+                        <div className="zivo-chat-popover-glass rounded-3xl p-2">
                           <div className="mb-2 px-1 text-[11px] text-muted-foreground">
                             {selectedSummary.count} selected{selectedSummary.unread > 0 ? ` · ${selectedSummary.unread} unread` : ""}
                           </div>
                           <div className="flex items-center gap-2 mb-2">
                             <button type="button"
                               onClick={() => void selectAllVisible()}
-                              className="flex-1 h-8 rounded-lg bg-muted text-foreground text-[11px] font-semibold"
+                              className="zivo-chat-chip h-8 flex-1 rounded-xl text-[11px] font-bold text-foreground"
                             >
                               Select All Visible
                             </button>
                             <button type="button"
                               onClick={() => void selectUnreadVisible()}
-                              className="flex-1 h-8 rounded-lg bg-muted text-foreground text-[11px] font-semibold"
+                              className="zivo-chat-chip h-8 flex-1 rounded-xl text-[11px] font-bold text-foreground"
                             >
                               Select Unread
                             </button>
@@ -2975,21 +4541,21 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             <button type="button"
                               onClick={() => void handleBulkMarkRead()}
                               disabled={selectedChatIds.size === 0}
-                              className="flex-1 h-10 rounded-xl bg-muted text-foreground text-xs font-semibold disabled:opacity-40"
+                              className="zivo-chat-chip h-10 flex-1 rounded-xl text-xs font-bold text-foreground disabled:opacity-40"
                             >
                               Mark Read
                             </button>
                             <button type="button"
                               onClick={() => handleBulkSetPinned(true)}
                               disabled={selectedChatIds.size === 0}
-                              className="flex-1 h-10 rounded-xl bg-secondary text-foreground text-xs font-semibold disabled:opacity-40"
+                              className="zivo-chat-chip h-10 flex-1 rounded-xl text-xs font-bold text-foreground disabled:opacity-40"
                             >
                               Pin
                             </button>
                             <button type="button"
                               onClick={() => handleBulkSetPinned(false)}
                               disabled={selectedChatIds.size === 0}
-                              className="flex-1 h-10 rounded-xl bg-secondary text-foreground text-xs font-semibold disabled:opacity-40"
+                              className="zivo-chat-chip h-10 flex-1 rounded-xl text-xs font-bold text-foreground disabled:opacity-40"
                             >
                               Unpin
                             </button>
@@ -3017,7 +4583,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             <button type="button"
                               onClick={() => handleBulkSetArchive(false)}
                               disabled={selectedChatIds.size === 0}
-                              className="flex-1 h-10 rounded-xl bg-secondary text-foreground text-xs font-semibold disabled:opacity-40"
+                              className="zivo-chat-chip h-10 flex-1 rounded-xl text-xs font-bold text-foreground disabled:opacity-40"
                             >
                               Unarchive
                             </button>
@@ -3032,7 +4598,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           <div className="mt-2">
                             <button type="button"
                               onClick={clearSelectionMode}
-                              className="w-full h-10 px-3 rounded-xl bg-muted text-muted-foreground text-xs font-semibold"
+                              className="zivo-chat-chip h-10 w-full rounded-xl px-3 text-xs font-bold text-muted-foreground"
                             >
                               Done
                             </button>
@@ -3049,7 +4615,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                       void handleBulkRemoveFromFolder(folderDef.id);
                                     }
                                   }}
-                                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-muted/60 active:scale-[0.99] transition-all text-sm"
+                                  className="w-full rounded-xl px-3 py-2 text-left text-sm transition-all hover:bg-white/55 active:scale-[0.99]"
                                 >
                                   {folderDef.icon || "📁"} {folderDef.name}
                                 </button>
@@ -3082,7 +4648,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       <AnimatePresence>
         {showChatMenu && !selectionMode && (
           <motion.div
-            className="fixed inset-0 z-[2200] bg-black/35 backdrop-blur-sm"
+            className="fixed inset-0 z-[2200] bg-black/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -3092,19 +4658,19 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               role="dialog"
               aria-modal="true"
               aria-label="Chat menu"
-              className="absolute inset-y-0 left-0 flex w-[min(86vw,340px)] flex-col bg-background shadow-2xl"
+              className="absolute inset-y-0 left-0 flex w-full flex-col overflow-hidden rounded-none border-r border-border/40 !bg-background !bg-none text-foreground !backdrop-blur-none shadow-2xl sm:w-[380px] sm:rounded-r-[2rem]"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 340 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="border-b border-border/20 px-5 pt-safe pb-4">
+              <div className="border-b border-border/20 !bg-background px-5 pt-safe pb-4">
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
                     onClick={() => setShowChatMenu(false)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
+                    className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full active:scale-95"
                     aria-label="Close chat menu"
                     title="Close"
                   >
@@ -3116,7 +4682,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       setShowChatMenu(false);
                       navigate("/account/settings");
                     }}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 active:scale-95"
+                    className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full active:scale-95"
                     aria-label="Open account settings"
                     title="Settings"
                   >
@@ -3130,9 +4696,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     setShowChatMenu(false);
                     navigate("/account/profile-edit");
                   }}
-                  className="mt-4 flex w-full items-center gap-3 rounded-2xl p-1 text-left active:scale-[0.99]"
+                  className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-border/40 !bg-card p-2 text-left shadow-sm active:scale-[0.99]"
                 >
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xl font-bold text-primary">
+                  <div className="zivo-chat-avatar-ring flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xl font-bold text-primary">
                     {chatMenuAvatar ? (
                       <img src={chatMenuAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                     ) : (
@@ -3150,7 +4716,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
                 <div className="mt-3 grid gap-1.5">
                   {chatMenuPhone && (
-                    <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2 text-sm">
+                    <div className="flex items-center gap-3 rounded-xl border border-border/30 !bg-muted px-3 py-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuPhone}</span>
                       <span className="text-xs text-muted-foreground">Phone</span>
@@ -3162,7 +4728,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       setShowChatMenu(false);
                       navigate("/account/username");
                     }}
-                    className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2 text-left text-sm active:scale-[0.99]"
+                    className="flex items-center gap-3 rounded-xl border border-border/30 !bg-muted px-3 py-2 text-left text-sm active:scale-[0.99]"
                   >
                     <AtSign className="h-4 w-4 text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuUsername}</span>
@@ -3171,7 +4737,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-3 py-3">
+              <div className="flex-1 overflow-y-auto !bg-background px-3 py-3">
                 {[
                   { label: "Home", icon: ArrowLeft, action: () => navigate("/") },
                   ...(active === "personal" && !search ? [{ label: "New message", icon: SquarePen, action: () => setShowAddContact(true) }] : []),
@@ -3189,7 +4755,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       setShowChatMenu(false);
                       item.action();
                     }}
-                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/60 active:scale-[0.99]"
                   >
                     <item.icon className="h-5 w-5 text-muted-foreground" />
                     <span>{item.label}</span>
@@ -3207,7 +4773,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           setShowChatMenu(false);
                           handlePersonalHubMenuAction(item.action);
                         }}
-                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/60 active:scale-[0.99]"
                       >
                         <item.icon className="h-5 w-5 text-muted-foreground" />
                         <span>{item.label}</span>
@@ -3223,12 +4789,12 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     setShowChatMenu(false);
                     navigate("/notifications");
                   }}
-                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/70 active:scale-[0.99]"
+                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-foreground hover:bg-muted/60 active:scale-[0.99]"
                 >
                   <Bell className="h-5 w-5 text-muted-foreground" />
                   <span>Notifications</span>
                 </button>
-                <div className="mx-3 mt-2 flex items-center gap-2 rounded-2xl border border-border/30 bg-muted/35 px-3 py-3 text-sm font-semibold">
+                <div className="mx-3 mt-2 flex items-center gap-2 rounded-2xl border border-border/40 !bg-card px-3 py-3 text-sm font-semibold shadow-sm">
                   <span className={cn("h-2.5 w-2.5 rounded-full", syncMode === "live" ? "bg-emerald-500" : "bg-amber-500")} />
                   <span>{syncMode === "live" ? "Live" : "Fallback"} sync</span>
                 </div>
@@ -3285,16 +4851,16 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               className="fixed inset-0 z-[9998] flex items-center justify-center px-6"
               onClick={() => setShowBulkDeleteConfirm(false)}
             >
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="relative bg-background rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+                className="zivo-chat-popover-glass relative w-full max-w-sm rounded-3xl p-6"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-11 h-11 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <div className="zivo-chat-danger-orb flex h-11 w-11 items-center justify-center rounded-full">
                     <Trash2 className="w-5 h-5 text-destructive" />
                   </div>
                   <div>
@@ -3308,13 +4874,13 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 <div className="flex gap-3">
                   <button type="button"
                     onClick={() => setShowBulkDeleteConfirm(false)}
-                    className="flex-1 h-11 rounded-xl bg-muted text-sm font-semibold text-foreground active:scale-[0.97] transition-transform"
+                    className="zivo-chat-chip h-11 flex-1 rounded-xl text-sm font-bold text-foreground transition-transform active:scale-[0.97]"
                   >
                     Cancel
                   </button>
                   <button type="button"
                     onClick={() => { setShowBulkDeleteConfirm(false); void handleBulkDeleteSelected(); }}
-                    className="flex-1 h-11 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold active:scale-[0.97] transition-transform"
+                    className="h-11 flex-1 rounded-xl bg-destructive text-sm font-bold text-destructive-foreground transition-transform active:scale-[0.97] shadow-[0_14px_28px_hsl(var(--destructive)/0.2)]"
                   >
                     Remove
                   </button>
@@ -3331,16 +4897,16 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               className="fixed inset-0 z-[9999] flex items-center justify-center px-6"
               onClick={() => { setDeleteConfirm(null); setSwipedId(null); }}
             >
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="relative bg-background rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+                className="zivo-chat-popover-glass relative w-full max-w-sm rounded-3xl p-6"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-11 h-11 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <div className="zivo-chat-danger-orb flex h-11 w-11 items-center justify-center rounded-full">
                     <Trash2 className="w-5 h-5 text-destructive" />
                   </div>
                   <div>
@@ -3354,13 +4920,13 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 <div className="flex gap-3">
                   <button type="button"
                     onClick={() => { setDeleteConfirm(null); setSwipedId(null); }}
-                    className="flex-1 h-11 rounded-xl bg-muted text-sm font-semibold text-foreground active:scale-[0.97] transition-transform"
+                    className="zivo-chat-chip h-11 flex-1 rounded-xl text-sm font-bold text-foreground transition-transform active:scale-[0.97]"
                   >
                     Cancel
                   </button>
                   <button type="button"
                     onClick={() => handleDeleteChat(deleteConfirm.id, deleteConfirm.category, deleteConfirm.isGroup === true)}
-                    className="flex-1 h-11 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold active:scale-[0.97] transition-transform"
+                    className="h-11 flex-1 rounded-xl bg-destructive text-sm font-bold text-destructive-foreground transition-transform active:scale-[0.97] shadow-[0_14px_28px_hsl(var(--destructive)/0.2)]"
                   >
                     Delete
                   </button>
@@ -3407,29 +4973,35 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       <AnimatePresence>
         {openPersonalChat && (
           <Suspense fallback={
-            <div className="fixed inset-0 z-[1300] bg-background flex flex-col">
-              <div className="sticky top-0 z-10 safe-area-top bg-background/80 backdrop-blur-2xl border-b border-border/10 px-2 py-2.5 flex items-center gap-3">
+            <div className="zivo-chat-surface fixed inset-0 z-[1300] flex flex-col">
+              <div className="zivo-chat-header-glass sticky top-0 z-10 safe-area-top flex items-center gap-3 px-2 py-2.5">
                 <button type="button"
                   onClick={() => setOpenPersonalChat(null)}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-muted/50 active:scale-90 transition-transform"
+                  className="zivo-chat-icon-button flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-transform active:scale-90"
                   aria-label="Back to chat list"
                   title="Back to chat list"
                 >
                   <ArrowLeft className="h-5 w-5 text-foreground" />
                 </button>
-                <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />
+                <div className="zivo-chat-skeleton h-9 w-9 rounded-full" />
                 <div className="flex-1">
-                  <div className="h-4 w-28 bg-muted rounded-full animate-pulse mb-1" />
-                  <div className="h-3 w-16 bg-muted/60 rounded-full animate-pulse" />
+                  <div className="zivo-chat-skeleton mb-1 h-4 w-28 rounded-full" />
+                  <div className="zivo-chat-skeleton h-3 w-16 rounded-full opacity-70" />
                 </div>
               </div>
-              <div className="flex-1 px-4 py-4 space-y-3">
+              <div className="flex-1 space-y-3 px-4 py-4">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className={`flex gap-2 ${i % 2 === 0 ? "" : "flex-row-reverse"}`}>
-                    <div className="w-8 h-8 rounded-full bg-muted animate-pulse flex-shrink-0 mt-1" />
-                    <div className={`h-10 rounded-2xl bg-muted animate-pulse ${i % 2 === 0 ? "w-48 zivo-anim-delay-0" : "w-36 zivo-anim-delay-100"}`} />
+                    <div className="zivo-chat-skeleton mt-1 h-8 w-8 flex-shrink-0 rounded-full" />
+                    <div className={`zivo-chat-skeleton h-10 rounded-2xl ${i % 2 === 0 ? "w-48 zivo-anim-delay-0" : "w-36 zivo-anim-delay-100"}`} />
                   </div>
                 ))}
+              </div>
+              <div className="px-4 pb-[max(1rem,var(--zivo-safe-bottom,0px))]">
+                <div className="zivo-chat-card flex items-center gap-2 rounded-full p-2">
+                  <div className="zivo-chat-skeleton h-8 flex-1 rounded-full" />
+                  <div className="zivo-chat-skeleton h-8 w-8 rounded-full" />
+                </div>
               </div>
             </div>
           }>
@@ -3461,29 +5033,35 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       <AnimatePresence>
         {openGroupChat && (
           <Suspense fallback={
-            <div className="fixed inset-0 z-50 bg-background flex flex-col">
-              <div className="sticky top-0 z-10 safe-area-top bg-background/95 backdrop-blur-xl border-b border-border/30 px-2 py-2.5 flex items-center gap-3">
+            <div className="zivo-chat-surface fixed inset-0 z-50 flex flex-col">
+              <div className="zivo-chat-header-glass sticky top-0 z-10 safe-area-top flex items-center gap-3 px-2 py-2.5">
                 <button type="button"
                   onClick={() => setOpenGroupChat(null)}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-muted/50 active:scale-90 transition-transform"
+                  className="zivo-chat-icon-button flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-transform active:scale-90"
                   aria-label="Back to chat list"
                   title="Back to chat list"
                 >
                   <ArrowLeft className="h-5 w-5 text-foreground" />
                 </button>
-                <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />
+                <div className="zivo-chat-skeleton h-9 w-9 rounded-full" />
                 <div className="flex-1">
-                  <div className="h-4 w-28 bg-muted rounded-full animate-pulse mb-1" />
-                  <div className="h-3 w-20 bg-muted/60 rounded-full animate-pulse" />
+                  <div className="zivo-chat-skeleton mb-1 h-4 w-28 rounded-full" />
+                  <div className="zivo-chat-skeleton h-3 w-20 rounded-full opacity-70" />
                 </div>
               </div>
-              <div className="flex-1 px-4 py-4 space-y-3">
+              <div className="flex-1 space-y-3 px-4 py-4">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className={`flex gap-2 ${i % 2 === 0 ? "" : "flex-row-reverse"}`}>
-                    <div className="w-8 h-8 rounded-full bg-muted animate-pulse flex-shrink-0 mt-1" />
-                    <div className={`h-10 rounded-2xl bg-muted animate-pulse ${i % 2 === 0 ? "w-48 zivo-anim-delay-0" : "w-36 zivo-anim-delay-100"}`} />
+                    <div className="zivo-chat-skeleton mt-1 h-8 w-8 flex-shrink-0 rounded-full" />
+                    <div className={`zivo-chat-skeleton h-10 rounded-2xl ${i % 2 === 0 ? "w-48 zivo-anim-delay-0" : "w-36 zivo-anim-delay-100"}`} />
                   </div>
                 ))}
+              </div>
+              <div className="px-4 pb-[max(1rem,var(--zivo-safe-bottom,0px))]">
+                <div className="zivo-chat-card flex items-center gap-2 rounded-full p-2">
+                  <div className="zivo-chat-skeleton h-8 flex-1 rounded-full" />
+                  <div className="zivo-chat-skeleton h-8 w-8 rounded-full" />
+                </div>
               </div>
             </div>
           }>
@@ -3539,13 +5117,13 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 initial={{ y: 24, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 24, opacity: 0 }}
-                className="relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-[560px] flex-col overflow-hidden rounded-3xl border border-border/30 bg-background shadow-2xl"
+                className="zivo-chat-popover-glass relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-[560px] flex-col overflow-hidden rounded-3xl"
                 onClick={(e) => e.stopPropagation()}
               >
               {/* Header — minimal, with close affordance */}
               <div className="flex items-center justify-between px-6 pt-5">
                 <div className="flex items-center gap-2.5">
-                  <span className="inline-flex w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/15 to-emerald-500/15 items-center justify-center">
+                  <span className="zivo-chat-icon-button inline-flex h-9 w-9 items-center justify-center rounded-xl">
                     <Video className="w-4.5 h-4.5 text-blue-600" />
                   </span>
                   <span className="text-[15px] font-semibold text-foreground tracking-tight">ZIVO Meet</span>
@@ -3553,7 +5131,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 <button
                   type="button"
                   onClick={() => setShowGroupCallPicker(false)}
-                  className="w-9 h-9 rounded-full hover:bg-muted/70 flex items-center justify-center active:scale-90 transition-all"
+                  className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full transition-all active:scale-90"
                   aria-label="Close"
                   title="Close"
                 >
@@ -3578,7 +5156,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     <button
                       type="button"
                       disabled={(groupChats as any[]).length === 0}
-                      className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg shadow-blue-600/25 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed sm:shrink-0"
+                      className="zivo-chat-chip-active inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-black transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:shrink-0"
                     >
                       <Video className="w-4 h-4" />
                       New meeting
@@ -3618,7 +5196,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <div className="flex-1 flex items-center gap-2 px-3 h-12 rounded-full border border-border/60 bg-muted/30">
+                <div className="zivo-chat-search flex h-12 flex-1 items-center gap-2 rounded-full px-3">
                   <Keyboard className="w-4 h-4 text-muted-foreground shrink-0" />
                   <input
                     type="text"
@@ -3626,7 +5204,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     placeholder="Enter a code or link"
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 outline-none disabled:cursor-not-allowed"
                   />
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground/80">Soon</span>
+                  <span className="zivo-chat-chip rounded-full px-2 py-0.5 text-[10px] font-bold text-muted-foreground">Soon</span>
                 </div>
               </div>
               <p className="px-6 pb-5 pt-2 text-[11px] text-muted-foreground/70">
@@ -3637,7 +5215,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               <div className="border-t border-border/30 px-6 pt-4 pb-5 overflow-y-auto">
                 {(groupChats as any[]).length === 0 ? (
                   <div className="py-8 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-muted/50 mx-auto mb-3 flex items-center justify-center">
+                    <div className="zivo-chat-card mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
                       <Users className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <p className="text-sm font-semibold text-foreground mb-1">No groups yet</p>
@@ -3645,7 +5223,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     <button
                       type="button"
                       onClick={() => { setShowGroupCallPicker(false); setShowCreateGroup(true); }}
-                      className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-blue-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+                      className="zivo-chat-chip-active inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-sm font-black transition-transform active:scale-95"
                     >
                       <Plus className="w-4 h-4" /> New group
                     </button>
@@ -3655,8 +5233,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2.5">Your groups</h3>
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {(groupChats as any[]).map((g) => (
-                        <li key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-border/40 bg-card/60 hover:bg-card hover:border-border/70 transition-colors">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        <li key={g.id} className="zivo-chat-row flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors">
+                          <div className="zivo-chat-avatar-ring flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10">
                             {g.avatar ? (
                               <img src={g.avatar} alt={g.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             ) : (
@@ -3672,7 +5250,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                               setShowGroupCallPicker(false);
                               setOpenGroupChat({ id: g.id, name: g.name, avatar: g.avatar, autoStartCall: "audio" });
                             }}
-                            className="w-9 h-9 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 flex items-center justify-center active:scale-90 transition-all"
+                            className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full transition-all active:scale-90"
                             aria-label={`Voice call ${g.name}`}
                             title={`Voice call ${g.name}`}
                           >
@@ -3684,7 +5262,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                               setShowGroupCallPicker(false);
                               setOpenGroupChat({ id: g.id, name: g.name, avatar: g.avatar, autoStartCall: "video" });
                             }}
-                            className="w-9 h-9 rounded-full bg-blue-500/10 hover:bg-blue-500/20 flex items-center justify-center active:scale-90 transition-all"
+                            className="zivo-chat-chip-active flex h-9 w-9 items-center justify-center rounded-full transition-all active:scale-90"
                             aria-label={`Video call ${g.name}`}
                             title={`Video call ${g.name}`}
                           >

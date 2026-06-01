@@ -1,10 +1,6 @@
 import { createClient } from "../_shared/deps.ts";
 import { notifyLodgingReservation } from "../_shared/lodging-notifications.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 function money(cents: number | null | undefined) {
   return `$${((cents || 0) / 100).toFixed(2)}`;
@@ -74,7 +70,9 @@ function linesFromSnapshot(snapshot: any) {
   ];
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("lodging-reservation-receipt", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -157,4 +155,4 @@ Deno.serve(async (req) => {
   } catch (err) {
     return new Response(JSON.stringify({ error: String((err as Error).message || err) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -228,4 +228,4 @@ Deno.serve(withSecurity("resolve-driver-earning-payout", async (req, ctx) => {
     console.error("[resolve-driver-earning-payout]", message);
     return json({ error: message }, 500, cors);
   }
-}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

@@ -141,7 +141,7 @@ export default function P2PTransferSheet() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={close}
-          className="fixed inset-0 z-[1600] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-[1600] flex items-end justify-center bg-black/55 px-2 backdrop-blur-md sm:items-center sm:px-4"
           role="dialog"
           aria-modal="true"
         >
@@ -157,36 +157,36 @@ export default function P2PTransferSheet() {
               if (info.offset.y > 90 || info.velocity.y > 700) close();
             }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-md bg-background rounded-t-[1.75rem] sm:rounded-2xl pb-[max(1.5rem,calc(var(--zivo-safe-bottom,0px)+1rem))] flex flex-col overflow-hidden"
+            className="zivo-chat-popover-glass flex w-full flex-col overflow-hidden rounded-t-[1.75rem] pb-[max(1.5rem,calc(var(--zivo-safe-bottom,0px)+1rem))] shadow-2xl sm:max-w-md sm:rounded-[1.75rem]"
           >
-            <div className="flex justify-center pt-2">
-              <div className="h-1.5 w-12 rounded-full bg-muted" />
-            </div>
-
-            <div className="flex items-start justify-between px-4 pt-4 pb-4 border-b border-border/30">
+            <div className="zivo-chat-header-glass px-5 pb-4 pt-4">
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-foreground/20" />
+            <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-xl font-extrabold tracking-tight">{activeMode === "request" ? "Request from" : "Send to"} {detail.receiverName}</h3>
-                <p className="mt-1 text-sm leading-snug text-muted-foreground">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Money move</p>
+                <h3 className="text-xl font-black tracking-tight">{activeMode === "request" ? "Request from" : "Send to"} {detail.receiverName}</h3>
+                <p className="mt-1 text-sm font-semibold leading-snug text-muted-foreground">
                   {activeMode === "request"
                     ? "They'll get a notification and can accept in chat."
                     : "They'll see it in chat and accept to settle."}
                 </p>
               </div>
-              <button type="button" onClick={close} aria-label="Close" className="h-10 w-10 -mr-1.5 flex shrink-0 items-center justify-center rounded-full hover:bg-muted">
+              <button type="button" onClick={close} aria-label="Close" className="zivo-chat-icon-button -mr-1.5 flex h-10 w-10 shrink-0 items-center justify-center">
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
+            </div>
 
             <div className="px-6 py-6">
-              <div className="mx-auto mb-7 grid w-full max-w-[260px] grid-cols-2 rounded-full bg-muted/60 p-1">
+              <div className="zivo-chat-chip mx-auto mb-7 grid w-full max-w-[260px] grid-cols-2 rounded-full p-1">
                 {(["send", "request"] as const).map((mode) => (
                   <button
                     key={mode}
                     type="button"
                     onClick={() => setActiveMode(mode)}
-                    className={`rounded-full px-3 py-2.5 text-base font-bold transition ${
+                    className={`rounded-full px-3 py-2.5 text-base font-black transition ${
                       activeMode === mode
-                        ? "bg-background text-foreground shadow-sm"
+                        ? "bg-background/85 text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                     aria-pressed={activeMode === mode}
@@ -196,8 +196,8 @@ export default function P2PTransferSheet() {
                 ))}
               </div>
 
-              <div className="mb-5 flex items-baseline justify-center">
-                <span className="mr-1 text-5xl font-extrabold leading-none text-muted-foreground">$</span>
+              <div className="zivo-chat-card mb-5 flex items-baseline justify-center p-5">
+                <span className="mr-1 text-5xl font-black leading-none text-muted-foreground">$</span>
                 <input
                   autoFocus
                   inputMode="decimal"
@@ -207,7 +207,7 @@ export default function P2PTransferSheet() {
                   onBlur={formatAmount}
                   placeholder="0.00"
                   style={{ width: amountInputWidth }}
-                  className="min-w-[4ch] max-w-[8ch] text-5xl font-extrabold tracking-normal text-left bg-transparent outline-none placeholder:text-muted-foreground/35 tabular-nums"
+                  className="min-w-[4ch] max-w-[8ch] bg-transparent text-left text-5xl font-black tracking-normal text-foreground outline-none placeholder:text-muted-foreground/35 tabular-nums"
                 />
               </div>
 
@@ -217,10 +217,10 @@ export default function P2PTransferSheet() {
                     type="button"
                     key={v}
                     onClick={() => setAmount(v.toFixed(2))}
-                    className={`px-4 py-2 rounded-full text-sm font-extrabold active:scale-95 transition ${
+                    className={`rounded-full px-4 py-2 text-sm font-black transition active:scale-95 ${
                       numericAmount === v
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-muted/60 hover:bg-muted text-foreground"
+                        ? "zivo-chat-chip-active shadow-sm"
+                        : "zivo-chat-chip text-foreground hover:bg-muted/40"
                     }`}
                     aria-pressed={numericAmount === v}
                   >
@@ -230,7 +230,7 @@ export default function P2PTransferSheet() {
               </div>
 
               {activeMode !== "request" && (
-                <div className="flex items-center justify-center gap-1.5 mb-4 text-[12px]">
+                <div className="mb-4 flex items-center justify-center gap-1.5 text-[12px]">
                   <span className="text-muted-foreground">Available:</span>
                   <span className={`font-semibold tabular-nums ${availableCents != null && parseFloat(amount || "0") * 100 > availableCents ? "text-rose-500" : "text-foreground"}`}>
                     {balanceLoading
@@ -243,7 +243,7 @@ export default function P2PTransferSheet() {
                     <button
                       type="button"
                       onClick={() => setAmount((availableCents / 100).toFixed(2))}
-                      className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-primary hover:bg-primary/10"
+                      className="zivo-chat-chip ml-1 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-primary"
                     >
                       Max
                     </button>
@@ -257,10 +257,10 @@ export default function P2PTransferSheet() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="What's it for?"
                 maxLength={80}
-                className="w-full px-4 py-4 rounded-2xl bg-muted/35 border border-border/40 text-base text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                className="zivo-chat-search w-full px-4 py-4 text-base text-foreground placeholder:text-muted-foreground outline-none"
               />
 
-              <p className="mt-4 text-center text-sm font-medium text-muted-foreground">
+              <p className="mt-4 text-center text-sm font-semibold text-muted-foreground">
                 {activeMode === "request"
                   ? `${detail.receiverName} will get a request in chat.`
                   : `${detail.receiverName} will get this transfer in chat.`}
@@ -277,19 +277,19 @@ export default function P2PTransferSheet() {
                     <button type="button"
                       onClick={() => void send()}
                       disabled={sending || !amount || overBalance}
-                      className="w-full flex items-center justify-center gap-2 py-4 rounded-[1.35rem] bg-primary text-primary-foreground font-extrabold text-lg active:opacity-80 transition disabled:opacity-50"
+                      className="zivo-chat-chip-active flex w-full items-center justify-center gap-2 rounded-[1.35rem] py-4 text-lg font-black transition active:opacity-80 disabled:opacity-50"
                     >
                       {sending
-                        ? <Loader2 className="w-5 h-5 animate-spin" />
-                        : <><Send className="w-4 h-4" /> {overBalance ? "Insufficient balance" : (activeMode === "request" ? "Request" : "Send")}</>}
+                        ? <Loader2 className="h-5 w-5 animate-spin" />
+                        : <><Send className="h-4 w-4" /> {overBalance ? "Insufficient balance" : (activeMode === "request" ? "Request" : "Send")}</>}
                     </button>
                     {(overBalance || emptyBalance) && (
                       <button
                         type="button"
                         onClick={() => { close(); navigate("/wallet"); }}
-                        className="w-full mt-2 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-muted/60 hover:bg-muted text-foreground font-semibold text-sm active:scale-[0.99] transition"
+                        className="zivo-chat-chip mt-2 flex w-full items-center justify-center gap-1.5 py-2.5 text-sm font-black text-foreground transition active:scale-[0.99]"
                       >
-                        <Wallet className="w-4 h-4" />
+                        <Wallet className="h-4 w-4" />
                         Top up wallet
                       </button>
                     )}
@@ -297,7 +297,7 @@ export default function P2PTransferSheet() {
                       <button
                         type="button"
                         onClick={() => setActiveMode("request")}
-                        className="w-full mt-2 py-2 text-sm font-semibold text-primary"
+                        className="mt-2 w-full py-2 text-sm font-black text-primary"
                       >
                         Request money instead
                       </button>

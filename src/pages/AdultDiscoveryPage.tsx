@@ -252,6 +252,8 @@ export default function AdultDiscoveryPage() {
                           src={c.avatar_url}
                           alt=""
                           className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="absolute inset-0 bg-gradient-to-br from-rose-500/30 to-pink-500/15 flex items-center justify-center">

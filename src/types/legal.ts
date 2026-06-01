@@ -119,7 +119,10 @@ export type PolicyType =
   | 'transportation' 
   | 'car_rental' 
   | 'insurance' 
-  | 'refunds';
+  | 'refunds'
+  | 'cancellation'
+  | 'cookies'
+  | 'marketing';
 
 export type ServiceType = 'flights' | 'cars' | 'rides' | 'eats' | 'move' | 'hotels';
 
@@ -128,7 +131,11 @@ export type RoleType =
   | 'driver' 
   | 'car_owner' 
   | 'fleet_owner' 
-  | 'restaurant_partner';
+  | 'restaurant_partner'
+  | 'shop_owner'
+  | 'creator'
+  | 'merchant'
+  | 'admin';
 
 export type ConsentMethod = 'checkbox' | 'click' | 'implicit';
 

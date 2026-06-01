@@ -333,7 +333,7 @@ const FlightTerms = () => {
                   <li>Non-discrimination for exercising your privacy rights</li>
                 </ul>
                 <p className="text-sm">
-                  For full details, see our <Link to="/privacy">Privacy Policy</Link>. To exercise your rights, contact <a href="mailto:support@hizivo.com">support@hizivo.com</a>.
+                  For full details, see our <Link to="/legal/privacy">Privacy Policy</Link>. To exercise your rights, contact <a href="mailto:support@hizivo.com">support@hizivo.com</a>.
                 </p>
               </CardContent>
             </Card>
@@ -426,8 +426,8 @@ const FlightTerms = () => {
           <div className="mt-12 text-center text-sm text-muted-foreground space-y-2">
             <p>
               By booking a flight through ZIVO, you agree to these Flight Booking Terms, our{' '}
-              <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>,{' '}
-              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>, and{' '}
+              <Link to="/legal/terms" className="text-primary hover:underline">Terms of Service</Link>,{' '}
+              <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>, and{' '}
               <Link to="/legal/partner-disclosure" className="text-primary hover:underline">Partner Disclosure</Link>.
             </p>
             <p className="text-xs text-muted-foreground/60">

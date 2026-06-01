@@ -1,0 +1,246 @@
+{
+  "generated": "2026-06-01T12:45:18.786Z",
+  "sourceCoverage": "docs/workflow-coverage.json",
+  "currentGate": {
+    "mode": "strict",
+    "readyForProductionGate": false,
+    "remoteMigrationHistoryStatus": "access_token_missing",
+    "productionBlockers": [
+      "Environment readiness has 3 critical finding(s).",
+      "Missing SUPABASE_URL for production backend cron/runtime settings.",
+      "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+      "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+      "API readiness has 1 warning(s).",
+      "Supabase remote migration history is unavailable (access_token_missing)."
+    ]
+  },
+  "productionBlockers": [
+    "Environment readiness has 3 critical finding(s).",
+    "Missing SUPABASE_URL for production backend cron/runtime settings.",
+    "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+    "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+    "API readiness has 1 warning(s).",
+    "Supabase remote migration history is unavailable (access_token_missing)."
+  ],
+  "verificationCommands": [
+    "npm run platform:audit",
+    "npm run release:gate",
+    "npm run release:production-gate",
+    "npm run deploy:preflight:strict"
+  ],
+  "actions": [
+    {
+      "order": 1,
+      "id": "sso-auth-sessions",
+      "label": "SSO, Auth, Sessions, Devices",
+      "status": "covered",
+      "testCoverageRatio": 0.039,
+      "target": "tests/e2e/sso-session-roles.spec.ts, tests/e2e/auth-sso-role-matrix.spec.ts",
+      "command": "npm run test:e2e -- tests/e2e/sso-session-roles.spec.ts tests/e2e/auth-sso-role-matrix.spec.ts",
+      "acceptance": [
+        "Password, magic-link/OTP, Google, and Apple entry points have route coverage.",
+        "Customer, owner, staff, creator, driver, and admin stay mapped to protected routes and role gates.",
+        "Session revoke/device management blocks stale access."
+      ]
+    },
+    {
+      "order": 2,
+      "id": "customer-booking-order",
+      "label": "Customer Booking, Order, Trip",
+      "status": "covered",
+      "testCoverageRatio": 0.0258,
+      "target": "src/test/workflows/customer-booking-order.test.ts",
+      "command": "npm run test -- src/test/workflows/customer-booking-order.test.ts",
+      "acceptance": [
+        "Customer can browse, checkout/book, and view confirmation.",
+        "Cancel/refund states match policy and permissions.",
+        "Guest/authenticated paths do not expose another customer data."
+      ]
+    },
+    {
+      "order": 3,
+      "id": "shop-owner-admin",
+      "label": "Shop Owner Setup and Operations",
+      "status": "covered",
+      "testCoverageRatio": 0.0375,
+      "target": "src/test/workflows/shop-owner-workflow.test.ts",
+      "command": "npm run test -- src/test/workflows/shop-owner-workflow.test.ts",
+      "acceptance": [
+        "Owner onboarding reaches a configured shop dashboard.",
+        "Catalog, staff, settings, payments, and marketing tabs render.",
+        "Non-owners cannot mutate owner-only shop data."
+      ]
+    },
+    {
+      "order": 4,
+      "id": "client-staff-workflows",
+      "label": "Client, Staff, Employee Workflows",
+      "status": "covered",
+      "testCoverageRatio": 0.0229,
+      "target": "src/test/workflows/client-staff-workflow.test.ts",
+      "command": "npm run test -- src/test/workflows/client-staff-workflow.test.ts",
+      "acceptance": [
+        "Staff invite acceptance lands on the correct workspace.",
+        "Client/staff users cannot access owner-only settings.",
+        "Schedule/payroll/client data requires the correct role."
+      ]
+    },
+    {
+      "order": 5,
+      "id": "payments-refunds",
+      "label": "Payments, Refunds, Webhooks",
+      "status": "covered",
+      "testCoverageRatio": 0.0322,
+      "target": "src/test/workflows/payments-refunds-webhooks.test.ts",
+      "command": "npm run test -- src/test/workflows/payments-refunds-webhooks.test.ts",
+      "acceptance": [
+        "Webhook replay does not duplicate ledger/order rows.",
+        "Payment states reconcile from provider webhook, not client redirect only.",
+        "Refund/dispute/cancel states render and audit correctly."
+      ]
+    },
+    {
+      "order": 6,
+      "id": "payouts-earnings",
+      "label": "Payouts, Earnings, Balances",
+      "status": "covered",
+      "testCoverageRatio": 0.0498,
+      "target": "src/test/workflows/payouts-earnings-workflow.test.ts",
+      "command": "npm run test -- src/test/workflows/payouts-earnings-workflow.test.ts",
+      "acceptance": [
+        "Payout settings require owner/admin authorization.",
+        "Stripe Connect/earnings states render pending, active, restricted, and failed.",
+        "Payout changes are audit logged and idempotent."
+      ]
+    },
+    {
+      "order": 7,
+      "id": "email-marketing-consent",
+      "label": "Email Marketing, Consent, Suppression",
+      "status": "covered",
+      "testCoverageRatio": 0.0642,
+      "target": "src/test/workflows/email-marketing-consent.test.ts",
+      "command": "npm run test -- src/test/workflows/email-marketing-consent.test.ts",
+      "acceptance": [
+        "Transactional sends are separated from marketing sends.",
+        "Unsubscribe and suppression state block marketing campaigns.",
+        "Consent basis/template/version is recorded for outbound messages."
+      ]
+    },
+    {
+      "order": 8,
+      "id": "ads-monetization-tracking",
+      "label": "Ads, Monetization, Conversion Tracking",
+      "status": "covered",
+      "testCoverageRatio": 0.0347,
+      "target": "src/test/workflows/ads-monetization-tracking.test.ts",
+      "command": "npm run test -- src/test/workflows/ads-monetization-tracking.test.ts",
+      "acceptance": [
+        "Ads Studio attribution ties clicks/creative variants to order revenue.",
+        "Google Ads, Meta CAPI, and provider conversion uploads are deduped and auditable.",
+        "Creator subscriptions, paid video, affiliate tracking, and payouts stay connected."
+      ]
+    },
+    {
+      "order": 9,
+      "id": "push-notifications",
+      "label": "Push Notifications and Notification Center",
+      "status": "covered",
+      "testCoverageRatio": 0.0338,
+      "target": "src/test/workflows/push-notifications-workflow.test.ts",
+      "command": "npm run test -- src/test/workflows/push-notifications-workflow.test.ts",
+      "acceptance": [
+        "Push token registration requires an authenticated user.",
+        "Notification preferences can disable marketing/non-critical sends.",
+        "Digest/test-send paths do not bypass opt-out state."
+      ]
+    },
+    {
+      "order": 10,
+      "id": "storage-media-cdn",
+      "label": "Storage, Media, CDN, Downloads",
+      "status": "covered",
+      "testCoverageRatio": 0.0509,
+      "target": "src/test/fileUploadSecurity.test.ts, src/test/workflows/storage-media-workflow.test.ts",
+      "command": "npm run platform:test:storage-media",
+      "acceptance": [
+        "Client and server upload validators reject unsafe names, empty files, spoofed types, and active-content payload markers.",
+        "Public, owner-only, client-only, and protected media paths are covered.",
+        "Storage upsert requires the intended insert/select/update permissions.",
+        "Delete/retention behavior matches user privacy and policy promises."
+      ]
+    },
+    {
+      "order": 11,
+      "id": "policy-legal-trust",
+      "label": "Law, Policy, Compliance, Trust",
+      "status": "covered",
+      "testCoverageRatio": 0.0502,
+      "target": "src/test/workflows/legal-policy-workflow.test.ts",
+      "command": "npm run test -- src/test/workflows/legal-policy-workflow.test.ts",
+      "acceptance": [
+        "Policy routes render required pages.",
+        "Account export/delete/privacy controls are linked from account surfaces.",
+        "Policy acceptance or consent logging has database/backend evidence."
+      ]
+    },
+    {
+      "order": 12,
+      "id": "api-speed-ops",
+      "label": "API, Server Speed, Observability",
+      "status": "covered",
+      "testCoverageRatio": 0.0288,
+      "target": "src/test/workflows/api-operations-readiness.test.ts",
+      "command": "npm run test -- src/test/workflows/api-operations-readiness.test.ts",
+      "acceptance": [
+        "Critical functions have health/error visibility.",
+        "Webhook failures and function 5xx are surfaced to admin/ops.",
+        "Slow query and auth/payment spike checks have documented owners."
+      ]
+    },
+    {
+      "order": 13,
+      "id": "security-anti-hack",
+      "label": "Security, Anti-Abuse, Hacker Protection",
+      "status": "covered",
+      "testCoverageRatio": 0.0444,
+      "target": "src/test/workflows/security-anti-abuse.test.ts",
+      "command": "npm run test -- src/test/workflows/security-anti-abuse.test.ts",
+      "acceptance": [
+        "High-risk Edge Functions use shared security wrappers.",
+        "Rate-limit and network-risk decisions are auditable.",
+        "Attack drills cover account takeover, card testing, spam, scraping, and fake bookings."
+      ]
+    },
+    {
+      "order": 14,
+      "id": "graphics-design-speed",
+      "label": "Graphics, Design, Frontend Speed",
+      "status": "covered",
+      "testCoverageRatio": 0.0224,
+      "target": "tests/visual/workflow-visual-readiness.spec.ts, tests/visual/safe-area.spec.ts, tests/e2e/mobile-layout-no-overlap.spec.ts, src/test/loadingErrorStates.test.tsx",
+      "command": "npm run qa:frontend-visual-contracts && npm run test:visual && npm run qa:safe-area:all && npm run test -- src/test/loadingErrorStates.test.tsx",
+      "acceptance": [
+        "Auth, feed, grocery, business, support, security, shop, driver, creator, admin, checkout, legal, and settings surfaces stay covered by visual route contracts.",
+        "No clipped primary buttons or incoherent overlapping text.",
+        "Safe-area top and bottom snapshots have committed baselines and seed cookie consent before capture.",
+        "Media-heavy surfaces use lazy/optimized image/video primitives."
+      ]
+    },
+    {
+      "order": 15,
+      "id": "native-mobile-release",
+      "label": "Native iOS, Android, OTA, Store Release",
+      "status": "covered",
+      "testCoverageRatio": 0.028,
+      "target": "src/test/workflows/native-app-release.test.ts, src/test/otaDeployBypass.test.ts",
+      "command": "npm run test -- src/test/workflows/native-app-release.test.ts src/test/otaDeployBypass.test.ts",
+      "acceptance": [
+        "Capacitor, iOS, Android, and store metadata stay aligned.",
+        "OTA updates are checksum-verified and gated by native version when needed.",
+        "OTA preflight bypass requires an explicit emergency risk acknowledgement.",
+        "Native release scripts and platform readiness gates stay wired."
+      ]
+    }
+  ]
+}

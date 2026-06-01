@@ -509,9 +509,9 @@ export default function PartnerWithZivo() {
                   />
                   <span className="text-xs text-muted-foreground leading-relaxed">
                     I agree to the{" "}
-                    <Link to="/terms" className="text-primary hover:underline font-medium">Terms of Service</Link>
+                    <Link to="/legal/terms" className="text-primary hover:underline font-medium">Terms of Service</Link>
                     {" "}and{" "}
-                    <Link to="/privacy" className="text-primary hover:underline font-medium">Privacy Policy</Link>
+                    <Link to="/legal/privacy" className="text-primary hover:underline font-medium">Privacy Policy</Link>
                     {" "}for ZIVO Partners.
                   </span>
                 </label>
@@ -557,7 +557,7 @@ export default function PartnerWithZivo() {
             </p>
           </div>
           <div className="mt-4">
-            <Link to="/partner-disclosure" className="text-primary text-xs font-semibold hover:underline inline-flex items-center gap-1">
+            <Link to="/legal/partner-disclosure" className="text-primary text-xs font-semibold hover:underline inline-flex items-center gap-1">
               Read full Partner Disclosure
               <ChevronRight className="h-3.5 w-3.5" />
             </Link>

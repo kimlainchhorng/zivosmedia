@@ -1,9 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 function isBakongReceiptRide(ride: Record<string, unknown> | null | undefined): boolean {
   if (!ride) return false;
@@ -13,7 +9,9 @@ function isBakongReceiptRide(ride: Record<string, unknown> | null | undefined): 
   return currency === "KHR" || status.startsWith("bakong") || Boolean(reference);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("get-receipt-signed-url", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -114,4 +112,4 @@ Deno.serve(async (req) => {
     console.error("[get-receipt-signed-url]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

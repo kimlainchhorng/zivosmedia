@@ -204,7 +204,7 @@ export default function CafeStorefrontPage() {
       {/* Hero */}
       <div className="relative">
         {store.banner_url ? (
-          <img src={store.banner_url} alt="" className="h-48 sm:h-64 w-full object-cover" />
+          <img src={store.banner_url} alt="" className="h-48 sm:h-64 w-full object-cover" loading="lazy" decoding="async" />
         ) : (
           <div className="h-48 sm:h-64 bg-gradient-to-br from-amber-500/30 via-amber-500/15 to-amber-700/20" />
         )}
@@ -212,7 +212,7 @@ export default function CafeStorefrontPage() {
           <div className="flex items-end gap-4">
             <div className="grid h-24 w-24 shrink-0 place-items-center rounded-2xl border-4 border-background bg-card shadow-lg overflow-hidden">
               {store.logo_url
-                ? <img src={store.logo_url} alt="" className="h-full w-full object-cover" />
+                ? <img src={store.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                 : <Coffee className="h-10 w-10 text-amber-600" />}
             </div>
             <div className="min-w-0 pb-1 flex-1">
@@ -366,7 +366,7 @@ export default function CafeStorefrontPage() {
                   className="rounded-lg border border-border bg-card overflow-hidden hover:shadow-md transition-shadow flex flex-col"
                 >
                   {item.image_url ? (
-                    <img src={item.image_url} alt="" className="h-24 w-full object-cover" />
+                    <img src={item.image_url} alt="" className="h-24 w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="h-24 w-full bg-amber-500/10 grid place-items-center text-amber-600">
                       <Coffee className="h-6 w-6" />

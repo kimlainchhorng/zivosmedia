@@ -13,7 +13,7 @@ type WindowWithAnalyticsLoader = Window & {
   __zivoLoadAnalytics?: () => void;
 };
 
-const STORAGE_KEY = "zivo_cookie_consent";
+export const COOKIE_CONSENT_STORAGE_KEY = "zivo_cookie_consent";
 
 const defaults: CookiePrefs = {
   necessary: true,
@@ -27,7 +27,7 @@ const defaults: CookiePrefs = {
 function load(): CookiePrefs {
   if (typeof window === "undefined") return defaults;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY);
     if (!raw) return defaults;
     return { ...defaults, ...(JSON.parse(raw) as Partial<CookiePrefs>), necessary: true };
   } catch {
@@ -40,7 +40,7 @@ export function useCookiePrefs() {
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setPrefs(load());
+      if (e.key === COOKIE_CONSENT_STORAGE_KEY) setPrefs(load());
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
@@ -53,8 +53,8 @@ export function useCookiePrefs() {
     setPrefs((prev) => {
       const next: CookiePrefs = { ...prev, [key]: value, updatedAt: new Date().toISOString() };
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        if (next.analytics) {
+        window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(next));
+        if (next.analytics || next.marketing) {
           (window as WindowWithAnalyticsLoader).__zivoLoadAnalytics?.();
         }
       } catch {
@@ -75,7 +75,7 @@ export function useCookiePrefs() {
         updatedAt: new Date().toISOString(),
       };
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(next));
         (window as WindowWithAnalyticsLoader).__zivoLoadAnalytics?.();
       } catch {
         // ignore quota errors
@@ -95,7 +95,7 @@ export function useCookiePrefs() {
         updatedAt: new Date().toISOString(),
       };
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(next));
       } catch {
         // ignore quota errors
       }

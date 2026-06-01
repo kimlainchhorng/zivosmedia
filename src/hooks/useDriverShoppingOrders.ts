@@ -69,17 +69,9 @@ export function useDriverShoppingOrders() {
 
   const acceptOrder = useCallback(async (orderId: string) => {
     if (!driverRecord) return false;
-    const { error } = await supabase
-      .from("shopping_orders")
-      .update({
-        driver_id: driverRecord.id,
-        status: "accepted",
-        accepted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId)
-      .eq("status", "pending")
-      .is("driver_id", null);
+    const { error } = await supabase.functions.invoke("shopping-order-state-update", {
+      body: { order_id: orderId, action: "driver_accept" },
+    });
 
     if (!error) {
       await fetchOrders();
@@ -89,30 +81,14 @@ export function useDriverShoppingOrders() {
   }, [driverRecord, fetchOrders]);
 
   const updateStatus = useCallback(async (orderId: string, newStatus: string) => {
-    const timestampField: Record<string, string> = {
-      shopping: "shopping_started_at",
-      shopping_complete: "shopping_completed_at",
-      picked_up: "picked_up_at",
-      delivered: "delivered_at",
-      cancelled: "cancelled_at",
-    };
-
-    const updates: any = {
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-    };
-
-    const tsField = timestampField[newStatus];
-    if (tsField) updates[tsField] = new Date().toISOString();
-
-    const { error } = await supabase
-      .from("shopping_orders")
-      .update(updates)
-      .eq("id", orderId);
+    if (!driverRecord) return false;
+    const { error } = await supabase.functions.invoke("shopping-order-state-update", {
+      body: { order_id: orderId, action: "driver_status", status: newStatus },
+    });
 
     if (!error) await fetchOrders();
     return !error;
-  }, [fetchOrders]);
+  }, [driverRecord?.id, fetchOrders]);
 
   return { available, assigned, isLoading, acceptOrder, updateStatus, refetch: fetchOrders };
 }

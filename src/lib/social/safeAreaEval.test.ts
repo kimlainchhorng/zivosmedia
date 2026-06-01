@@ -120,9 +120,11 @@ describe("evaluateCssExpression — var() design tokens", () => {
     expect(evaluateCssExpression("var(--zivo-safe-top-overlay)", zero)).toBe(60);
   });
 
-  it("resolves --zivo-safe-top-sticky (max(calc(env + 0.625rem), 48px))", () => {
-    expect(evaluateCssExpression("var(--zivo-safe-top-sticky)", iPhone15Pro)).toBe(69);
-    expect(evaluateCssExpression("var(--zivo-safe-top-sticky)", zero)).toBe(48);
+  it("resolves --zivo-safe-top-sticky (max(calc(env + 0.125rem), 64px))", () => {
+    // Current design token: max(calc(env + 0.125rem), 64px).
+    // iPhone 15 Pro: calc(59 + 2) = 61, floor wins → 64.
+    expect(evaluateCssExpression("var(--zivo-safe-top-sticky)", iPhone15Pro)).toBe(64);
+    expect(evaluateCssExpression("var(--zivo-safe-top-sticky)", zero)).toBe(64);
   });
 
   it("unknown vars resolve to 0px (defensive fallback)", () => {

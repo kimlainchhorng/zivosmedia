@@ -85,17 +85,10 @@ export function useSensitiveMediaPreference(userId?: string | null): SensitiveMe
 
     if (!userId) return;
     try {
-      const { data: existing } = await (supabase as any)
-        .from("privacy_settings")
-        .select("user_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const payload = { blur_sensitive_media: next, updated_at: new Date().toISOString() };
-      if (existing?.user_id) {
-        await (supabase as any).from("privacy_settings").update(payload).eq("user_id", userId);
-      } else {
-        await (supabase as any).from("privacy_settings").insert({ user_id: userId, ...payload });
-      }
+      await supabase.functions.invoke("privacy-settings-update", { body: {
+        key: "blur_sensitive_media",
+        value: next,
+      } });
     } catch {
       // The migration may not be deployed yet. Local preference still works.
     }

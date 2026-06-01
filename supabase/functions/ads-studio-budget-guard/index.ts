@@ -1,17 +1,24 @@
 // Cron-driven: pauses publish jobs whose store/platform has hit daily or monthly cap.
 // Also creates an admin notification once per cap-breach (deduped via pause_notified_at).
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("ads-studio-budget-guard", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  if (!isServiceRoleRequest(req, key)) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
   const admin = createClient(url, key);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -76,4 +83,4 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ paused: paused.length, details: paused }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

@@ -1,9 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 type Addon = {
   id?: string;
@@ -39,7 +35,9 @@ function evaluate(addon: Addon, ctx: { guests: number; nights: number; status: s
   return { id: keyFor(addon), eligible: !reason, reason, max_quantity: Math.max(0, Math.min(20, Number(addon.max_quantity || 20))) };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("lodging-addon-eligibility", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -76,4 +74,4 @@ Deno.serve(async (req) => {
   } catch (err) {
     return new Response(JSON.stringify({ error: String((err as Error).message || err) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -475,7 +475,7 @@ export default function CarRentalReceiptPage() {
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {r.damage_photos.map((u, i) => (
                 <div key={i} className="aspect-square overflow-hidden rounded border border-border">
-                  <img src={u} alt="" className="h-full w-full object-cover" />
+                  <img src={u} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                 </div>
               ))}
             </div>

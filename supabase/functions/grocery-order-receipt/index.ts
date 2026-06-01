@@ -5,11 +5,7 @@
  * eats-order-receipt: payment provider + reference, line items, totals.
  */
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 function money(cents: number | null | undefined) {
   return `$${((cents || 0) / 100).toFixed(2)}`;
@@ -90,7 +86,9 @@ function linesFromSnapshot(snapshot: any) {
   ];
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("grocery-order-receipt", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const authHeader = req.headers.get("Authorization") || "";
@@ -170,4 +168,4 @@ Deno.serve(async (req) => {
     console.error("[grocery-order-receipt]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

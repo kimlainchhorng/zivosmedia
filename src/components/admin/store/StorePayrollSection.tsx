@@ -126,13 +126,19 @@ export default function StorePayrollSection({ storeId }: Props) {
       const rateValue = editForm.pay_type === "monthly"
         ? parseFloat(editForm.hourly_rate || "0")
         : parseFloat(editForm.hourly_rate || "0");
-      const { error } = await supabase.from("store_employees").update({
-        name: editForm.name.trim(),
-        role: editForm.role,
-        hourly_rate: rateValue,
-        pay_type: editForm.pay_type,
-      }).eq("id", editingEmp?.id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+        body: {
+          action: "save",
+          employee_id: editingEmp?.id,
+          employee: {
+            name: editForm.name.trim(),
+            role: editForm.role,
+            hourly_rate: rateValue,
+            pay_type: editForm.pay_type,
+          },
+        },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to update employee");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["store-employees-payroll", storeId] });

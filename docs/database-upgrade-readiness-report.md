@@ -1,43 +1,44 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-05-26T21:27:08.523Z
+Generated: 2026-06-01T04:21:28.560Z
 
 ## Summary
 
 - Supabase CLI: 2.100.0
-- Local migrations: 831
+- Local migrations: 1048
 - Invalid migration filenames: 0
-- Duplicate migration versions: 8
-- Allowed legacy duplicate migration versions: 8
+- Duplicate migration versions: 0
+- Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 0
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=831, remote=0, matched=0, remoteError=yes, generated=2026-05-26T21:27:07.378Z
+- Last linked drift report: local=1048, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1048, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-06-01T04:21:28.194Z
+- Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 860
+- Public tables created in migrations: 892
 - Public tables needing RLS review: 0
-- Recent public tables needing Data API grant review: 92
+- Recent public tables needing Data API grant review: 0
 - Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
+- Hardcoded Supabase URLs in migrations: 35
+- Hardcoded scheduled/function endpoint URLs: 19
+- Cron function URL remediation migration present: yes
+- Hardcoded legacy anon JWTs in migrations: 14
+- Hardcoded legacy anon JWTs in scheduled/function SQL: 13
+- Cron anon-key remediation migration present: yes
+- Cron remediation regex issues: 0
 
 ## Blockers
 
-- Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before upgrade.
+- None
 
 ## Warnings
 
-- 92 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
+- None
 
 ## Duplicate Versions
 
-- 20260429230000: 20260429230000_security_hardening.sql, 20260429230000_user_posts_visibility_location.sql (allowed legacy duplicate)
-- 20260429240000: 20260429240000_backfill_storage_paths.sql, 20260429240000_increment_user_post_views.sql (allowed legacy duplicate)
-- 20260429250000: 20260429250000_post_actions_tables.sql, 20260429250000_user_posts_realtime.sql (allowed legacy duplicate)
-- 20260429260000: 20260429260000_post_comments_realtime.sql, 20260429260000_post_reactions.sql (allowed legacy duplicate)
-- 20260430020000: 20260430020000_blocked_link_attempts.sql, 20260430020000_fix_social_notification_triggers.sql (allowed legacy duplicate)
-- 20260430040000: 20260430040000_ar_shop_settings_column.sql, 20260430040000_comment_pinning.sql (allowed legacy duplicate)
-- 20260430050000: 20260430050000_booking_to_workorder_link.sql, 20260430050000_post_comments_pin_and_edit.sql (allowed legacy duplicate)
-- 20260430060000: 20260430060000_ar_estimates_share_token.sql, 20260430060000_post_comments_notification_trigger.sql (allowed legacy duplicate)
+- None
 
 ## Postgres 17 Extension Review
 
@@ -49,91 +50,84 @@ Generated: 2026-05-26T21:27:08.523Z
 
 ## Data API Grant Review Candidates
 
-- store_payment_settings: supabase/migrations/20260524010000_store_payment_settings.sql
-- salon_services: supabase/migrations/20260524020000_salon_services.sql
-- salon_stylists: supabase/migrations/20260524030000_salon_stylists.sql
-- salon_stylist_services: supabase/migrations/20260524030000_salon_stylists.sql
-- salon_clients: supabase/migrations/20260524040000_salon_clients.sql
-- salon_bookings: supabase/migrations/20260524050000_salon_bookings.sql
-- salon_expenses: supabase/migrations/20260524060000_salon_expenses.sql
-- salon_waitlist: supabase/migrations/20260524070000_salon_waitlist_and_schedules.sql
-- salon_stylist_schedules: supabase/migrations/20260524070000_salon_waitlist_and_schedules.sql
-- salon_packages: supabase/migrations/20260524080000_salon_packages_retail_loyalty_reviews.sql
-- salon_package_services: supabase/migrations/20260524080000_salon_packages_retail_loyalty_reviews.sql
-- salon_retail_products: supabase/migrations/20260524080000_salon_packages_retail_loyalty_reviews.sql
-- salon_loyalty_settings: supabase/migrations/20260524080000_salon_packages_retail_loyalty_reviews.sql
-- salon_loyalty_events: supabase/migrations/20260524080000_salon_packages_retail_loyalty_reviews.sql
-- salon_reviews: supabase/migrations/20260524080000_salon_packages_retail_loyalty_reviews.sql
-- salon_booking_retail_items: supabase/migrations/20260524100000_salon_booking_retail_items.sql
-- salon_blockouts: supabase/migrations/20260524140000_salon_blockouts.sql
-- salon_store_closures: supabase/migrations/20260524150000_salon_store_closures.sql
-- salon_gift_cards: supabase/migrations/20260524160000_salon_gift_cards.sql
-- salon_gift_card_redemptions: supabase/migrations/20260524160000_salon_gift_cards.sql
-- salon_time_entries: supabase/migrations/20260524170000_salon_time_entries.sql
-- salon_booking_addons: supabase/migrations/20260524210000_salon_booking_addons_and_commission_payouts.sql
-- salon_commission_payouts: supabase/migrations/20260524210000_salon_booking_addons_and_commission_payouts.sql
-- salon_reminder_settings: supabase/migrations/20260524360000_salon_reminders.sql
-- salon_reminders: supabase/migrations/20260524360000_salon_reminders.sql
-- salon_notification_template_overrides: supabase/migrations/20260524380000_salon_reminders_followup.sql
-- salon_sms_inbound_log: supabase/migrations/20260524380000_salon_reminders_followup.sql
-- salon_campaigns: supabase/migrations/20260524390000_salon_campaigns.sql
-- salon_campaign_recipients: supabase/migrations/20260524390000_salon_campaigns.sql
-- cafe_categories: supabase/migrations/20260525000000_cafe_categories.sql
-- cafe_menu_items: supabase/migrations/20260525010000_cafe_menu_items.sql
-- cafe_modifier_groups: supabase/migrations/20260525020000_cafe_modifiers.sql
-- cafe_modifiers: supabase/migrations/20260525020000_cafe_modifiers.sql
-- cafe_menu_item_modifier_groups: supabase/migrations/20260525020000_cafe_modifiers.sql
-- cafe_tables: supabase/migrations/20260525030000_cafe_tables.sql
-- cafe_orders: supabase/migrations/20260525040000_cafe_orders.sql
-- cafe_order_items: supabase/migrations/20260525050000_cafe_order_items.sql
-- cafe_order_item_modifiers: supabase/migrations/20260525050000_cafe_order_items.sql
-- cafe_payments: supabase/migrations/20260525060000_cafe_payments.sql
-- cafe_gift_cards: supabase/migrations/20260525080000_cafe_gift_cards.sql
-- cafe_gift_card_redemptions: supabase/migrations/20260525080000_cafe_gift_cards.sql
-- cafe_expenses: supabase/migrations/20260525090000_cafe_expenses.sql
-- cafe_baristas: supabase/migrations/20260525100000_cafe_baristas.sql
-- cafe_time_entries: supabase/migrations/20260525110001_cafe_time_entries.sql
-- cafe_reviews: supabase/migrations/20260525120001_cafe_reviews.sql
-- cafe_promotions: supabase/migrations/20260525130001_cafe_promotions.sql
-- cafe_inventory_items: supabase/migrations/20260525140000_cafe_inventory_items.sql
-- cafe_recipes: supabase/migrations/20260525150000_cafe_recipes.sql
-- cafe_inventory_movements: supabase/migrations/20260525160000_cafe_inventory_movements.sql
-- cafe_suppliers: supabase/migrations/20260525170000_cafe_suppliers.sql
-- cafe_purchase_orders: supabase/migrations/20260525180000_cafe_purchase_orders.sql
-- cafe_purchase_order_items: supabase/migrations/20260525180000_cafe_purchase_orders.sql
-- cafe_loyalty_programs: supabase/migrations/20260525190000_cafe_loyalty.sql
-- cafe_loyalty_balances: supabase/migrations/20260525190000_cafe_loyalty.sql
-- cafe_loyalty_events: supabase/migrations/20260525190000_cafe_loyalty.sql
-- cafe_shifts: supabase/migrations/20260525200000_cafe_shifts.sql
-- cafe_hours: supabase/migrations/20260525280000_cafe_hours.sql
-- cafe_settings: supabase/migrations/20260525300000_cafe_settings.sql
-- cafe_till_sessions: supabase/migrations/20260525320000_cafe_till_sessions.sql
-- car_rental_locations: supabase/migrations/20260525400001_car_rental_initial.sql
-- car_rental_vehicles: supabase/migrations/20260525400001_car_rental_initial.sql
-- car_rental_addons: supabase/migrations/20260525400001_car_rental_initial.sql
-- car_rental_customers: supabase/migrations/20260525400001_car_rental_initial.sql
-- car_rental_reservations: supabase/migrations/20260525400001_car_rental_initial.sql
-- car_rental_reservation_addons: supabase/migrations/20260525400001_car_rental_initial.sql
-- cafe_till_drops: supabase/migrations/20260525410000_cafe_till_drops.sql
-- car_rental_expenses: supabase/migrations/20260525410001_car_rental_expenses_maintenance.sql
-- car_rental_maintenance: supabase/migrations/20260525410001_car_rental_expenses_maintenance.sql
-- car_rental_promotions: supabase/migrations/20260525420001_car_rental_reviews_promotions.sql
-- car_rental_promo_redemptions: supabase/migrations/20260525420001_car_rental_reviews_promotions.sql
-- cafe_tip_payouts: supabase/migrations/20260525430000_cafe_tip_payouts.sql
-- cafe_tip_payout_lines: supabase/migrations/20260525430000_cafe_tip_payouts.sql
-- car_rental_vehicle_blackouts: supabase/migrations/20260525430001_car_rental_blackouts.sql
-- cafe_reservations: supabase/migrations/20260525460000_cafe_reservations.sql
-- cafe_customer_notes: supabase/migrations/20260525490000_cafe_customer_notes.sql
-- car_dealership_vehicles: supabase/migrations/20260525500001_car_dealership_initial.sql
-- car_dealership_customers: supabase/migrations/20260525500001_car_dealership_initial.sql
-- car_dealership_leads: supabase/migrations/20260525500001_car_dealership_initial.sql
-- car_dealership_test_drives: supabase/migrations/20260525500001_car_dealership_initial.sql
-- car_dealership_sales: supabase/migrations/20260525500001_car_dealership_initial.sql
-- ...and 12 more
+- None
 
 ## View Review Candidates
 
 - None
+
+## Hardcoded Supabase URL Review
+
+- storage-object: supabase/migrations/20260326202539_3298121e-84c7-4d56-974f-3f1a46b6fb61.sql:3 (https://slirphzzwcogdbkeicff.supabase.co/storage/v1/object/public/store-posts/posts/1dd04bf0-9ffd-4155-9fe8-f582881b1ead/1774556579080.mp4)
+- scheduled-function-endpoint: supabase/migrations/20260331022139_0960ad68-2dae-4fab-ad0c-dc208eddbaf5.sql:7 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/auto-cancel-stale-orders)
+- scheduled-function-endpoint: supabase/migrations/20260406020001_meta_capi_bridge_webhooks.sql:43 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/meta-capi-bridge)
+- project-url: supabase/migrations/20260406061300_42af212f-257b-4941-8a11-53fa5a4fe9fa.sql:20 (https://slirphzzwcogdbkeicff.supabase.co)
+- function-endpoint: supabase/migrations/20260406091500_super_app_architecture.sql:393 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/meta-conversion-handler)
+- scheduled-function-endpoint: supabase/migrations/20260407013601_b2ab3302-a83f-4900-8ad1-28334fa75eb9.sql:90 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/meta-capi-bridge)
+- scheduled-function-endpoint: supabase/migrations/20260421154049_2b800c91-6958-4fd1-8387-947a29759829.sql:20 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ads-studio-auto-winner)
+- scheduled-function-endpoint: supabase/migrations/20260421154049_2b800c91-6958-4fd1-8387-947a29759829.sql:33 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ads-studio-publish)
+- scheduled-function-endpoint: supabase/migrations/20260421155541_f3c2680b-a458-4667-8d70-37465ced87e9.sql:10 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ads-studio-budget-guard)
+- scheduled-function-endpoint: supabase/migrations/20260421182035_80fd27b7-3ab8-482d-b620-5c98b4fa9023.sql:19 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/dispatch-escalate)
+- scheduled-function-endpoint: supabase/migrations/20260421182035_80fd27b7-3ab8-482d-b620-5c98b4fa9023.sql:32 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/dispatch-escalate)
+- scheduled-function-endpoint: supabase/migrations/20260421182035_80fd27b7-3ab8-482d-b620-5c98b4fa9023.sql:45 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/dispatch-escalate)
+- scheduled-function-endpoint: supabase/migrations/20260421182035_80fd27b7-3ab8-482d-b620-5c98b4fa9023.sql:58 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/dispatch-escalate)
+- scheduled-function-endpoint: supabase/migrations/20260421201221_0806eaf5-3ee5-4b2e-b391-cb71ce315bc5.sql:19 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/close-trip-call-sessions)
+- function-endpoint: supabase/migrations/20260421201952_99bf7cfa-c6b1-4722-b898-669fd439bcc4.sql:11 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/close-ride-call-session)
+- scheduled-function-endpoint: supabase/migrations/20260422020019_f3d8e688-6df1-4aab-9c4c-cf427cd305dc.sql:17 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/marketing-automations-tick)
+- scheduled-function-endpoint: supabase/migrations/20260422020106_c7b5c875-882e-45a3-b3a9-91b3b5e5f279.sql:13 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/marketing-automations-tick)
+- scheduled-function-endpoint: supabase/migrations/20260426162733_c3d6c3a6-712d-49ef-b8a9-c9cdca9f78a1.sql:15 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/channel-publish-scheduled)
+- storage-object: supabase/migrations/20260427224910_67bfa090-44cd-4954-896b-a3d1e9a4923d.sql:66 (https://slirphzzwcogdbkeicff.supabase.co/storage/v1/object/public/store-assets/7322b460-2c23-4d3d-bdc5-55a31cc65fab/products/room-1776884994525-bghf6.webp)
+- storage-object: supabase/migrations/20260427224910_67bfa090-44cd-4954-896b-a3d1e9a4923d.sql:67 (https://slirphzzwcogdbkeicff.supabase.co/storage/v1/object/public/store-assets/7322b460-2c23-4d3d-bdc5-55a31cc65fab/products/room-1776884991392-s7pfv.webp)
+- storage-object: supabase/migrations/20260427224910_67bfa090-44cd-4954-896b-a3d1e9a4923d.sql:68 (https://slirphzzwcogdbkeicff.supabase.co/storage/v1/object/public/store-assets/7322b460-2c23-4d3d-bdc5-55a31cc65fab/products/room-1776884991962-np6he.webp)
+- storage-object: supabase/migrations/20260427224910_67bfa090-44cd-4954-896b-a3d1e9a4923d.sql:69 (https://slirphzzwcogdbkeicff.supabase.co/storage/v1/object/public/store-assets/7322b460-2c23-4d3d-bdc5-55a31cc65fab/products/room-1776884992579-8wbbo.webp)
+- storage-object: supabase/migrations/20260427224910_67bfa090-44cd-4954-896b-a3d1e9a4923d.sql:70 (https://slirphzzwcogdbkeicff.supabase.co/storage/v1/object/public/store-assets/7322b460-2c23-4d3d-bdc5-55a31cc65fab/products/room-1776884976699-is3wa.webp)
+- storage-object: supabase/migrations/20260427224910_67bfa090-44cd-4954-896b-a3d1e9a4923d.sql:71 (https://slirphzzwcogdbkeicff.supabase.co/storage/v1/object/public/store-assets/7322b460-2c23-4d3d-bdc5-55a31cc65fab/products/room-1776884990803-8hof5.webp)
+- scheduled-function-endpoint: supabase/migrations/20260508120000_bots_botfather.sql:144 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/bot-dispatch)
+- project-url: supabase/migrations/20260509120000_unified_notifications.sql:72 (https://slirphzzwcogdbkeicff.supabase.co)
+- project-url: supabase/migrations/20260509130000_notifications_followups.sql:85 (https://slirphzzwcogdbkeicff.supabase.co)
+- project-url: supabase/migrations/20260509140000_provider_side_notifications.sql:119 (https://slirphzzwcogdbkeicff.supabase.co)
+- project-url: supabase/migrations/20260509170000_live_and_payout_notifications.sql:56 (https://slirphzzwcogdbkeicff.supabase.co)
+- scheduled-function-endpoint: supabase/migrations/20260509180000_notifications_cron_schedule.sql:23 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/notifications-cron)
+- scheduled-function-endpoint: supabase/migrations/20260509190000_weekly_digest_schedule.sql:21 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/notifications-weekly-digest)
+- project-url: supabase/migrations/20260509200000_grouped_social_notifications.sql:75 (https://slirphzzwcogdbkeicff.supabase.co)
+- project-url: supabase/migrations/20260509210000_notifications_snooze.sql:42 (https://slirphzzwcogdbkeicff.supabase.co)
+- scheduled-function-endpoint: supabase/migrations/20260527144000_ar_reminders_dispatch_cron.sql:11 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ar-reminders-dispatch)
+- scheduled-function-endpoint: supabase/migrations/20260609000000_ar_reminders_secure_cron.sql:14 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ar-reminders-dispatch)
+
+For new cron/function SQL, prefer `current_setting('app.settings.supabase_url', true)` with a deploy-time setting instead of embedding a project URL.
+
+## Hardcoded Legacy Anon JWT Review
+
+- scheduled-function-auth: supabase/migrations/20260331022139_0960ad68-2dae-4fab-ad0c-dc208eddbaf5.sql:8 (sha256:c8e22010f6d3)
+- anon-jwt: supabase/migrations/20260406091500_super_app_architecture.sql:394 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260421154049_2b800c91-6958-4fd1-8387-947a29759829.sql:21 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260421154049_2b800c91-6958-4fd1-8387-947a29759829.sql:34 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260421155541_f3c2680b-a458-4667-8d70-37465ced87e9.sql:11 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260421182035_80fd27b7-3ab8-482d-b620-5c98b4fa9023.sql:20 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260421182035_80fd27b7-3ab8-482d-b620-5c98b4fa9023.sql:33 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260421182035_80fd27b7-3ab8-482d-b620-5c98b4fa9023.sql:46 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260421182035_80fd27b7-3ab8-482d-b620-5c98b4fa9023.sql:59 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260421201221_0806eaf5-3ee5-4b2e-b391-cb71ce315bc5.sql:20 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260426162733_c3d6c3a6-712d-49ef-b8a9-c9cdca9f78a1.sql:18 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260508120000_bots_botfather.sql:146 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260509180000_notifications_cron_schedule.sql:24 (sha256:c8e22010f6d3)
+- scheduled-function-auth: supabase/migrations/20260509190000_weekly_digest_schedule.sql:22 (sha256:c8e22010f6d3)
+
+Token values are intentionally not printed. For new cron/function SQL, prefer `current_setting('app.settings.supabase_anon_key', true)` with a deploy-time setting.
+
+## Cron Remediation Regex Review
+
+- None
+
+## Runtime Settings SQL
+
+Configure these per Supabase project after applying migrations. Generate guarded SQL with `npm run supabase:runtime-settings:sql`; see `docs/supabase-runtime-settings.md`.
+
+```sql
+alter database postgres set "app.settings.supabase_url" = 'https://<project-ref>.supabase.co';
+alter database postgres set "app.settings.supabase_anon_key" = '<legacy-anon-or-compatible-function-auth-key>';
+select pg_reload_conf();
+```
 
 ## Remote SQL To Run Before Upgrade
 
@@ -155,9 +149,9 @@ order by schemaname, tablename;
 
 ## Upgrade Path
 
-1. Install/authenticate Supabase CLI or MCP and refresh `docs/supabase-migration-drift-report.md`.
-2. Reconcile duplicate local migration versions without rewriting already-applied production history.
-3. Compare remote schema history to local migrations and decide whether this repo needs a baseline migration.
+1. Install/authenticate Supabase CLI or MCP and refresh `docs/supabase-migration-drift-report.md` with `npm run supabase:migrations:report`.
+2. Review `docs/supabase-migration-reconciliation-plan.md` and reconcile local/remote version ids without rewriting already-applied production history.
+3. Run `npm run supabase:migrations:linked:strict`; it must pass before production schema push/pull.
 4. Confirm no Postgres 17-unsupported extensions are installed remotely.
 5. For every public table that must be reachable through REST/GraphQL, enable RLS and add explicit grants for `anon` and/or `authenticated`.
 6. Run Supabase advisors, type generation, API readiness, secret scan, and a production build.

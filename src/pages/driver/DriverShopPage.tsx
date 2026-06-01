@@ -397,7 +397,7 @@ export default function DriverShopPage() {
                   <div className="flex gap-3 p-3">
                     <div className="h-16 w-16 rounded-xl bg-white border border-border/30 flex items-center justify-center shrink-0 overflow-hidden">
                       {item.image ? (
-                        <img src={item.image} alt="" className="h-full w-full object-contain p-1" />
+                        <img src={item.image} alt="" className="h-full w-full object-contain p-1" loading="lazy" decoding="async" />
                       ) : (
                         <Package className="h-6 w-6 text-muted-foreground/30" />
                       )}
@@ -500,6 +500,8 @@ export default function DriverShopPage() {
                 src={receiptUrl}
                 alt="Receipt"
                 className="w-full max-h-64 object-contain rounded-2xl border border-border/50"
+                loading="lazy"
+                decoding="async"
               />
               <button type="button"
                 onClick={handleReceiptUpload}

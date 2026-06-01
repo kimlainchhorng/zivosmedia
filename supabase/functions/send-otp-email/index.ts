@@ -11,6 +11,7 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling, HttpError } from "../_shared/errors.ts";
 import { parseBody, v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
+import type { SecurityContext } from "../_shared/withSecurity.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -19,8 +20,9 @@ const Body = v.object({
   userId: v.optionalString,
 });
 
-const handler = withErrorHandling(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") return preflight(req);
+const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): Promise<Response> => {
+  const corsHeaders = ctx?.corsHeaders ?? {};
+  if (req.method === "OPTIONS") return preflight(ctx?.corsHeaders ?? req);
 
   const body = await parseBody(req, Body);
   const email = (body.email as string).trim().toLowerCase();
@@ -127,7 +129,13 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
 
   console.log("OTP email sent successfully");
 
-  return ok(req, { success: true, message: "Verification code sent", expiresAt });
+  return ok(corsHeaders, { success: true, message: "Verification code sent", expiresAt });
 }, "send-otp-email");
 
-serve(withSecurity("send-otp-email", handler, { rateLimit: "auth_otp" }));
+serve(withSecurity("send-otp-email", handler, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "auth_otp",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

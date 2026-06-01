@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Shield, Lock, Eye, Database, Globe, Users, Cookie, Bell, Trash2 } from "lucide-react";
+import { ArrowLeft, Shield, Lock, Eye, Database, Globe, Users, Cookie, Bell, Trash2, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -253,7 +253,7 @@ const PrivacyPolicy = () => {
                 <li>Payment processors (Stripe, PayPal) for transaction processing</li>
                 <li>Cloud service providers (AWS, Google Cloud) for data storage</li>
                 <li>Analytics providers for usage analysis</li>
-                <li>Marketing partners (with your consent)</li>
+                <li>Advertising and marketing partners such as Meta, Google Ads, and TikTok only when you consent to marketing cookies or similar tracking</li>
               </ul>
 
               <h4 className="font-semibold text-foreground mt-6">3.3 For Legal Reasons</h4>
@@ -275,7 +275,9 @@ const PrivacyPolicy = () => {
                 <p className="font-semibold text-foreground">We Do NOT Sell Your Personal Data</p>
                 <p className="text-sm mt-2">
                   ZIVO does not sell, rent, or trade your personal information to third parties for their 
-                  marketing purposes. We share data only as described in this policy.
+                  marketing purposes. We may share limited audience or conversion signals for targeted advertising
+                  only with your consent and only as described in this policy, the Cookie Policy, and the Do Not Sell
+                  or Share page.
                 </p>
               </div>
             </AccordionContent>
@@ -341,6 +343,7 @@ const PrivacyPolicy = () => {
                 <li>Keep you logged in and remember your preferences</li>
                 <li>Understand how you use our services</li>
                 <li>Personalize content and recommendations</li>
+                <li>Measure optional advertising and marketing campaigns when you consent</li>
               </ul>
 
               <h4 className="font-semibold text-foreground mt-6">Types of Cookies</h4>
@@ -357,16 +360,48 @@ const PrivacyPolicy = () => {
                   <p className="font-medium">Analytics Cookies</p>
                   <p className="text-sm">Help us understand usage patterns. Can be disabled.</p>
                 </div>
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="font-medium">Marketing & Advertising Cookies</p>
+                  <p className="text-sm">Consent-based Meta, Google Ads, TikTok, and campaign attribution pixels. Can be disabled.</p>
+                </div>
               </div>
 
               <p className="text-sm mt-4">
-                ZIVO does not use advertising or tracking cookies. We do not track users across apps or websites.
+                Marketing and advertising cookies are optional. You can reject them, withdraw consent, or use
+                Do Not Sell or Share controls where applicable.
               </p>
 
               <h4 className="font-semibold text-foreground mt-6">Managing Cookies</h4>
               <p>
                 You can control cookies through your browser settings or our cookie preference controls. 
                 Note that disabling essential cookies may affect functionality.
+              </p>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="ai-automated-decisions" className="border border-border rounded-lg px-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Brain className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-semibold">AI & Automated Decisions</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="text-muted-foreground space-y-4 pb-6">
+              <p>
+                We use AI, machine learning, and automated systems to rank feed, reels, and search results;
+                personalize recommendations; detect fraud, spam, abuse, and security threats; moderate content;
+                calculate pricing estimates; route support requests; measure ad relevance; and provide AI assistance.
+              </p>
+              <p>
+                Our legal bases include contract, legitimate interests, consent where required, and legal obligation.
+                We may use de-identified or aggregated data to improve AI systems where permitted and subject to
+                your privacy choices.
+              </p>
+              <p>
+                Significant decisions such as account suspension, payout holds, content removal, booking risk review,
+                or payment risk review may include automated signals. You can request information about automated decisions affecting you and request human review or submit an appeal where available.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -407,7 +442,7 @@ const PrivacyPolicy = () => {
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Right to know what personal information we collect and share</li>
                 <li>Right to delete personal information</li>
-                <li>Right to opt-out of sale of personal information (we don't sell data)</li>
+                <li>Right to opt out of sale or sharing of personal information for targeted advertising</li>
                 <li>Right to non-discrimination for exercising privacy rights</li>
               </ul>
 
@@ -517,12 +552,16 @@ const PrivacyPolicy = () => {
             </AccordionTrigger>
             <AccordionContent className="text-muted-foreground space-y-4 pb-6">
               <p>
-                ZIVO services are not intended for children under 18 years of age. We do not knowingly collect 
-                personal information from children under 18.
+                ZIVO is not intended for children under 13 years of age, or under 16 where local law requires
+                a higher digital consent age. Limited personal accounts may be available to teens where
+                permitted by law, but travel booking, rides, delivery ordering, car rental, payments, gifts,
+                subscriptions, live streaming, paid content, business tools, and payout features require users
+                to be at least 18 or the age of legal majority.
               </p>
               <p className="mt-4">
-                If we learn that we have collected information from a child under 18, we will delete it promptly. 
-                If you believe we have collected information from a child, please contact us at privacy@zivo.com.
+                If we learn that we have collected information from a child under the permitted age, we will
+                delete it promptly. If you believe we have collected information from a child, please contact
+                us at privacy@hizivo.com.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -562,15 +601,15 @@ const PrivacyPolicy = () => {
               If you have questions about this Privacy Policy or wish to exercise your privacy rights, contact us:
             </p>
             <div className="space-y-2">
-              <p><strong>Email:</strong> privacy@zivo.com</p>
-              <p><strong>Data Protection Officer:</strong> dpo@zivo.com</p>
+              <p><strong>Email:</strong> privacy@hizivo.com</p>
+              <p><strong>Data Protection Officer:</strong> dpo@hizivo.com</p>
               <p><strong>Address:</strong> {companyName}, 123 Innovation Drive, Wilmington, DE 19801, USA</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/terms-of-service">
+              <Link to="/legal/terms">
                 <Button variant="outline" size="sm">Terms of Service</Button>
               </Link>
-              <Link to="/refund-policy">
+              <Link to="/legal/refunds">
                 <Button variant="outline" size="sm">Refund Policy</Button>
               </Link>
               <Link to="/help">

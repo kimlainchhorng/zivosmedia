@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MoreHorizontal, MessageCircle, User, UserCircle, Share2 } from "lucide-react";
+import { Link2, MoreHorizontal, MessageCircle, User, UserCircle, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,6 +138,13 @@ export default function ShareSheet({
   };
 
   const effectiveShareUrl = normalizeShareUrl(shareUrl);
+  const sharePreviewHost = (() => {
+    try {
+      return new URL(effectiveShareUrl).host;
+    } catch {
+      return "hizivo.com";
+    }
+  })();
 
   const shareEncodedUrl = encodeURIComponent(effectiveShareUrl);
   const shareEncodedText = encodeURIComponent(shareText);
@@ -303,49 +310,72 @@ export default function ShareSheet({
       maxHeightVh={showMoreOptions ? 82 : 60}
       zIndex={zIndex}
       positioning={positioning}
+      safeAreaTop
+      hideCloseButton
     >
 
+        <div className="px-5 pt-2">
+          <button
+            type="button"
+            onClick={() => void handleCopyLink("Post link copied")}
+            aria-label={`Copy share link for ${shareText || "ZIVO post"}`}
+            title="Copy share link"
+            className="zivo-social-share-preview flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <div className="zivo-social-share-orb flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
+              <Link2 className="h-5 w-5 text-primary" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">{shareText || "ZIVO post"}</p>
+              <p className="truncate text-[11px] text-muted-foreground">{sharePreviewHost}</p>
+            </div>
+            <span className="zivo-social-chip shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black text-muted-foreground">
+              Copy
+            </span>
+          </button>
+        </div>
+
         {/* In-app sharing row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 py-3">
+        <div className="grid grid-cols-2 gap-3 px-5 py-3 sm:grid-cols-4">
           {inAppOptions.map((opt) => (
             <button type="button"
               key={opt.key}
               onClick={opt.onClick}
-              className="flex flex-col items-center gap-1.5 min-h-[44px]"
+              className="zivo-social-share-tile flex min-h-[86px] flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-3 transition-all active:scale-[0.98]"
             >
-              <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="zivo-social-share-orb flex h-11 w-11 items-center justify-center rounded-full">
                 <opt.icon className="h-5 w-5 text-primary" />
               </div>
-              <span className="text-[11px] font-medium text-foreground">{opt.label}</span>
+              <span className="text-center text-[11px] font-semibold text-foreground">{opt.label}</span>
             </button>
           ))}
         </div>
 
         {/* External sharing row */}
-        <div className="grid grid-cols-4 gap-3 px-5 py-2.5 border-t border-border/10">
+        <div className="grid grid-cols-4 gap-2.5 border-t border-border/10 px-5 py-3">
           {shareOptions.map((opt) => (
             <button type="button"
               key={opt.label}
               onClick={() => handleOptionClick(opt)}
-              className="flex flex-col items-center gap-1.5 min-h-[44px]"
+              className="zivo-social-share-tile flex min-h-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2.5 transition-all active:scale-[0.98]"
             >
-              <div className={`h-11 w-11 rounded-full flex items-center justify-center ${SHARE_OPTION_BG_CLASS[opt.label] ?? "bg-muted/40"}`}>
+              <div className={`flex h-11 w-11 items-center justify-center rounded-full ${SHARE_OPTION_BG_CLASS[opt.label] ?? "bg-muted/40"}`}>
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill={opt.color}><path d={opt.svg} /></svg>
               </div>
-              <span className="text-[11px] font-medium text-foreground">{opt.label}</span>
+              <span className="text-center text-[11px] font-semibold text-foreground">{opt.label}</span>
             </button>
           ))}
-          <button type="button" onClick={() => void handleCopyLink()} className="flex flex-col items-center gap-1.5 min-h-[44px]">
-            <div className="h-11 w-11 rounded-full bg-muted/50 flex items-center justify-center">
+          <button type="button" onClick={() => void handleCopyLink()} className="zivo-social-share-tile flex min-h-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2.5 transition-all active:scale-[0.98]">
+            <div className="zivo-social-share-orb flex h-11 w-11 items-center justify-center rounded-full">
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /></svg>
             </div>
-            <span className="text-[11px] font-medium text-foreground">Copy link</span>
+            <span className="text-center text-[11px] font-semibold text-foreground">Copy link</span>
           </button>
-          <button type="button" onClick={() => setShowMoreOptions(!showMoreOptions)} className="flex flex-col items-center gap-1.5 min-h-[44px]">
-            <div className="h-11 w-11 rounded-full bg-muted/50 flex items-center justify-center">
+          <button type="button" onClick={() => setShowMoreOptions(!showMoreOptions)} className="zivo-social-share-tile flex min-h-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2.5 transition-all active:scale-[0.98]">
+            <div className="zivo-social-share-orb flex h-11 w-11 items-center justify-center rounded-full">
               <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
             </div>
-            <span className="text-[11px] font-medium text-foreground">{showMoreOptions ? "Less" : "More"}</span>
+            <span className="text-center text-[11px] font-semibold text-foreground">{showMoreOptions ? "Less" : "More"}</span>
           </button>
         </div>
 
@@ -357,17 +387,17 @@ export default function ShareSheet({
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="grid grid-cols-4 gap-3 px-5 py-2.5 border-t border-border/20">
+              <div className="grid grid-cols-4 gap-2.5 border-t border-border/20 px-5 py-3">
                 {moreShareOptions.map((opt) => (
                   <button type="button"
                     key={opt.label}
                     onClick={() => handleOptionClick(opt)}
-                    className="flex flex-col items-center gap-1.5 min-h-[44px]"
+                    className="zivo-social-share-tile flex min-h-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2.5 transition-all active:scale-[0.98]"
                   >
-                    <div className={`h-11 w-11 rounded-full flex items-center justify-center ${SHARE_OPTION_BG_CLASS[opt.label] ?? "bg-muted/40"}`}>
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-full ${SHARE_OPTION_BG_CLASS[opt.label] ?? "bg-muted/40"}`}>
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill={opt.color}><path d={opt.svg} /></svg>
                     </div>
-                    <span className="text-[11px] font-medium text-foreground">{opt.label}</span>
+                    <span className="text-center text-[11px] font-semibold text-foreground">{opt.label}</span>
                   </button>
                 ))}
               </div>

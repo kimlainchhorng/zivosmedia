@@ -66,6 +66,16 @@ function enqueue(ev: QueuedEvent) {
   }
 }
 
+async function writeAnalyticsEvent(payload: {
+  event_name: string;
+  session_id?: string;
+  page?: string | null;
+  meta?: AnalyticsProps;
+  created_at?: string;
+}) {
+  return supabase.functions.invoke("analytics-event-track", { body: payload });
+}
+
 let flushing = false;
 async function flushQueue() {
   if (flushing) return;
@@ -75,10 +85,9 @@ async function flushQueue() {
     if (!q.length) return;
     const batch = q.slice(0, FLUSH_BATCH);
     const remaining = q.slice(batch.length);
-    const sb: any = supabase;
     const results = await Promise.allSettled(
       batch.map((ev) =>
-        sb.from("analytics_events").insert({
+        writeAnalyticsEvent({
           event_name: ev.event_name,
           meta: { ...ev.properties, flushed_at: new Date().toISOString() },
           page: typeof window !== "undefined" ? window.location.pathname : null,
@@ -156,14 +165,12 @@ export function track(event: string, props: AnalyticsProps = {}) {
   const page = typeof window !== "undefined" ? window.location.pathname : null;
 
   try {
-    void (supabase as any)
-      .from("analytics_events")
-      .insert({
-        event_name: event,
-        meta: properties,
-        page,
-        created_at,
-      })
+    void writeAnalyticsEvent({
+      event_name: event,
+      meta: properties,
+      page,
+      created_at,
+    })
       .then(
         (res: any) => {
           if (res?.error) {

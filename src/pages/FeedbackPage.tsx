@@ -1,6 +1,6 @@
 /**
  * FeedbackPage — Submit product feedback and see the team's response.
- * Backed by `feedback_submissions` (orphan). Users can SELECT own + INSERT.
+ * Backed by `feedback-submit` and `feedback_submissions`.
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -111,20 +111,13 @@ export default function FeedbackPage() {
     const msg = message.trim();
     if (msg.length < 12) { toast.error("Tell us a bit more — at least 12 characters"); return; }
     setSubmitting(true);
-    const sb = supabase as unknown as {
-      from: (t: string) => {
-        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
-      };
-    };
-    const { error } = await sb.from("feedback_submissions").insert({
-      user_id: user.id,
+    const { error } = await supabase.functions.invoke("feedback-submit", { body: {
       category,
       subject: subject.trim() || null,
       message: msg,
       rating: rating > 0 ? rating : null,
       device_info: deviceTag(),
-      status: "new",
-    });
+    } });
     setSubmitting(false);
     if (error) { toast.error("Couldn't submit feedback"); return; }
     toast.success("Thanks for the feedback!");

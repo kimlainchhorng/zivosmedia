@@ -136,7 +136,7 @@ const STATUS_ADVANCE_LABEL: Record<string, string> = {
 export default function DriverOrdersPage() {
   const navigate = useNavigate();
   const { notify: notifyEats } = useEatsNotifications();
-  const { available, assigned, isLoading, acceptOrder, refetch } = useDriverShoppingOrders();
+  const { available, assigned, isLoading, acceptOrder, updateStatus, refetch } = useDriverShoppingOrders();
   const handlePullRefresh = useCallback(async () => { await refetch(); }, [refetch]);
   const [tab, setTab] = useState<"available" | "my">("available");
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
@@ -146,9 +146,9 @@ export default function DriverOrdersPage() {
     const next = STATUS_ADVANCE[currentStatus];
     if (!next) return;
     setAdvancingId(orderId);
-    const { error } = await (supabase as any).from("shopping_orders").update({ status: next }).eq("id", orderId);
+    const ok = await updateStatus(orderId, next);
     setAdvancingId(null);
-    if (error) {
+    if (!ok) {
       toast.error("Could not update status.");
       return;
     }

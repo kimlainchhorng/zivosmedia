@@ -278,31 +278,31 @@ export default function NotificationCenterPage() {
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
+    await supabase.functions.invoke("notification-manage", { body: { action: "mark_all_read" } });
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     toast.success("All notifications marked as read");
   };
 
   const markRead = async (id: string) => {
-    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_id: id } });
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   };
 
   const markReadMany = async (ids: string[]) => {
     if (!ids.length) return;
-    await supabase.from("notifications").update({ is_read: true }).in("id", ids);
+    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_ids: ids } });
     const set = new Set(ids);
     setNotifications(prev => prev.map(n => set.has(n.id) ? { ...n, isRead: true } : n));
   };
 
   const deleteNotif = async (id: string) => {
-    await supabase.from("notifications").delete().eq("id", id);
+    await supabase.functions.invoke("notification-manage", { body: { action: "delete", notification_id: id } });
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   const deleteMany = async (ids: string[]) => {
     if (!ids.length) return;
-    await supabase.from("notifications").delete().in("id", ids);
+    await supabase.functions.invoke("notification-manage", { body: { action: "delete", notification_ids: ids } });
     const set = new Set(ids);
     setNotifications(prev => prev.filter(n => !set.has(n.id)));
   };

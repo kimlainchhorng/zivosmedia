@@ -153,7 +153,7 @@ export default function CarRentalCheckoutPage() {
           >
             <div className="w-28 shrink-0 relative">
               {image ? (
-                <img src={image} alt={vehicle.model} className="w-full h-full object-cover" />
+                <img src={image} alt={vehicle.model} className="w-full h-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 <div className="w-full h-full min-h-[96px] bg-muted flex items-center justify-center">
                   <Car className="w-6 h-6 text-muted-foreground/40" />

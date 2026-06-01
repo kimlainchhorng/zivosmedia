@@ -255,6 +255,7 @@ export default function RecordingsPage() {
               src={playingUrl}
               controls
               autoPlay
+              preload="metadata"
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-lg"
             />
@@ -263,6 +264,7 @@ export default function RecordingsPage() {
               src={playingUrl}
               controls
               autoPlay
+              preload="metadata"
               onClick={(e) => e.stopPropagation()}
               className="max-h-[90vh] max-w-[92vw] rounded-lg"
             />

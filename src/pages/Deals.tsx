@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -84,11 +84,13 @@ export default function Deals() {
     }
     setSubmittingDeals(true);
     try {
-      const { error } = await supabase.from("feedback_submissions").insert({
+      const { error } = await supabase.functions.invoke("marketing-interest-submit", { body: {
         category: "deals_alert_signup",
         subject: "Deals page alert signup",
-        message: `Email: ${email}\nCategory: ${activeCategory}`,
-      });
+        email,
+        context: activeCategory,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       toast.success("You'll be notified of new deals!");
       setEmail("");
@@ -172,6 +174,12 @@ export default function Deals() {
                   {submittingDeals ? "Subscribing…" : "Notify Me"}
                 </Button>
               </motion.form>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Deal alerts are marketing messages. You can unsubscribe anytime. See our{" "}
+                <Link to="/legal/privacy" className="underline underline-offset-2">Privacy Policy</Link>
+                {" "}and{" "}
+                <Link to="/legal/terms" className="underline underline-offset-2">Terms</Link>.
+              </p>
             </div>
           </div>
         </section>

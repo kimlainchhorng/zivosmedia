@@ -4,17 +4,14 @@
  */
 
 import { serve, createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface PushRequest {
   user_id?: string;
   user_ids?: string[];  // batch: send to multiple users in one call
   device_token_id?: string;
   notification_type: string;
+  category?: "transactional" | "marketing" | "social" | "chat";
   title: string;
   body?: string;
   data?: Record<string, unknown>;
@@ -22,7 +19,67 @@ interface PushRequest {
   image_url?: string;
 }
 
-serve(async (req) => {
+type NotificationCategory = NonNullable<PushRequest["category"]>;
+
+const marketingTypes = new Set([
+  "admin_broadcast",
+  "app_update",
+  "boost_activated",
+  "marketing",
+  "promo",
+  "promotion",
+]);
+
+function inferCategory(payload: PushRequest): NotificationCategory {
+  if (payload.category) return payload.category;
+  const dataCategory = payload.data?.category;
+  if (
+    dataCategory === "transactional" ||
+    dataCategory === "marketing" ||
+    dataCategory === "social" ||
+    dataCategory === "chat"
+  ) {
+    return dataCategory;
+  }
+
+  const type = payload.notification_type.toLowerCase();
+  if (marketingTypes.has(type) || type.includes("campaign") || type.includes("promo")) {
+    return "marketing";
+  }
+  if (type.startsWith("chat_") || type === "incoming_call") return "chat";
+  if (
+    type.startsWith("social_") ||
+    type.includes("follow") ||
+    type.includes("friend") ||
+    type.includes("post_")
+  ) {
+    return "social";
+  }
+  return "transactional";
+}
+
+function preferenceAllowsPush(prefs: any, category: NotificationCategory): {
+  allowed: boolean;
+  reason?: string;
+} {
+  if (prefs?.push_enabled === false) {
+    return { allowed: false, reason: "push_disabled" };
+  }
+  if (category === "marketing" && prefs?.marketing_enabled !== true) {
+    return { allowed: false, reason: "marketing_disabled" };
+  }
+  if (category === "transactional" && prefs?.operational_enabled === false) {
+    return { allowed: false, reason: "operational_disabled" };
+  }
+  if ((category === "social" || category === "chat") && prefs?.automated_messages_enabled === false) {
+    return { allowed: false, reason: "automated_messages_disabled" };
+  }
+  return { allowed: true };
+}
+
+serve(withSecurity("send-push-notification", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -103,6 +160,8 @@ serve(async (req) => {
       );
     }
 
+    const category = inferCategory(payload);
+
     // Get device tokens from device_tokens table
     let tokens: any[] = [];
 
@@ -142,6 +201,47 @@ serve(async (req) => {
         .eq("is_active", true)
         .eq("platform", "web");
       webSubscriptions = subs || [];
+    }
+
+    const recipientUserIds = Array.from(
+      new Set(
+        [
+          ...tokens.map(token => token.user_id),
+          ...webSubscriptions.map(sub => sub.user_id),
+        ].filter(Boolean)
+      )
+    );
+
+    if (recipientUserIds.length > 0) {
+      const { data: prefsRows } = await supabase
+        .from("notification_preferences")
+        .select("user_id,push_enabled,marketing_enabled,operational_enabled,automated_messages_enabled")
+        .in("user_id", recipientUserIds);
+
+      const prefsByUser = new Map<string, any>(
+        (prefsRows || []).map((prefs: any) => [prefs.user_id, prefs])
+      );
+      const blockedRecipients: Record<string, string> = {};
+
+      for (const uid of recipientUserIds) {
+        const decision = preferenceAllowsPush(prefsByUser.get(uid), category);
+        if (!decision.allowed) blockedRecipients[uid] = decision.reason || "preference_disabled";
+      }
+
+      tokens = tokens.filter(token => !blockedRecipients[token.user_id]);
+      webSubscriptions = webSubscriptions.filter(sub => !blockedRecipients[sub.user_id]);
+
+      if (Object.keys(blockedRecipients).length > 0 && tokens.length === 0 && webSubscriptions.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            skipped: true,
+            reason: "recipient_preferences_disabled",
+            blocked_recipients: blockedRecipients,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     if (tokens.length === 0 && webSubscriptions.length === 0) {
@@ -261,7 +361,7 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 // Helper: Create notification log
 async function createNotificationLog(

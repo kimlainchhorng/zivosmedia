@@ -202,6 +202,27 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
   const [dayBlockouts, setDayBlockouts] = useState<{ id: string; stylist_id: string; start_at: string; end_at: string; reason: string | null }[]>([]);
   const [addonsByBooking, setAddonsByBooking] = useState<Record<string, Array<{ id: string; service_id: string | null; name: string; price_cents: number; duration_minutes: number; quantity: number }>>>({});
 
+  const attachBookingAddons = async (
+    bookingId: string,
+    addons: Array<{ service_id: string | null; name?: string; price_cents?: number; duration_minutes?: number; quantity?: number }>,
+    errorPrefix: string,
+  ) => {
+    if (addons.length === 0) return true;
+    const { data, error: addonErr } = await supabase.functions.invoke("salon-booking-addon-manage", {
+      body: {
+        action: "attach_many",
+        store_id: storeId,
+        booking_id: bookingId,
+        addons,
+      },
+    });
+    if (addonErr || data?.error) {
+      toast.error(`${errorPrefix}: ${data?.error || addonErr?.message || "Could not attach add-ons"}`);
+      return false;
+    }
+    return true;
+  };
+
   // Global search across all dates (debounced). Active when ≥2 chars.
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SalonBooking[]>([]);
@@ -478,27 +499,18 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
         // Snapshot the selected add-ons as DB rows for a single booking. Used
         // for the initial booking and replayed for each recurring occurrence
         // so weekly-repeat clients keep their full upsell list on every visit.
-        const buildAddonRows = (bookingId: string) =>
+        const buildAddonRows = () =>
           draft.addonIds
             .map((id) => serviceById[id])
             .filter((a): a is NonNullable<typeof a> => Boolean(a))
             .map((a) => ({
-              booking_id: bookingId,
-              store_id: storeId,
               service_id: a.id,
-              name: a.name,
-              price_cents: a.price_cents,
-              duration_minutes: a.duration_minutes,
               quantity: 1,
             }));
 
         // Attach selected add-ons (trigger updates booking total + duration).
         if (draft.addonIds.length > 0) {
-          const rows = buildAddonRows(created.id);
-          if (rows.length > 0) {
-            const { error: addonErr } = await supabase.from("salon_booking_addons").insert(rows as never);
-            if (addonErr) toast.error(`Couldn't attach add-ons: ${addonErr.message}`);
-          }
+          await attachBookingAddons(created.id, buildAddonRows(), "Couldn't attach add-ons");
         }
         if (draft.date !== date) setDate(draft.date);
         toast.success("Booking added.");
@@ -534,11 +546,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
               // visits match what the first one is. Best-effort: if the insert
               // fails we toast but keep going.
               if (draft.addonIds.length > 0) {
-                const rows = buildAddonRows(r.id);
-                if (rows.length > 0) {
-                  const { error: addonErr } = await supabase.from("salon_booking_addons").insert(rows as never);
-                  if (addonErr) toast.error(`Couldn't copy add-ons to a recurring visit: ${addonErr.message}`);
-                }
+                await attachBookingAddons(r.id, buildAddonRows(), "Couldn't copy add-ons to a recurring visit");
               }
             } else {
               skipCount++;
@@ -557,11 +565,11 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
     }
     // Save came from a waitlist promotion — mark the waitlist row as booked.
     if (waitlistIdToMark) {
-      const { error: wErr } = await supabase
-        .from("salon_waitlist")
-        .update({ status: "booked" } as never)
-        .eq("id", waitlistIdToMark);
+      const { data: waitlistData, error: wErr } = await supabase.functions.invoke("salon-waitlist-manage", {
+        body: { action: "set_status", waitlist_id: waitlistIdToMark, status: "booked" },
+      });
       if (wErr) console.error("[SalonBookings] waitlist mark failed", wErr);
+      if (waitlistData?.error) console.error("[SalonBookings] waitlist mark failed", waitlistData.error);
       setWaitlistIdToMark(null);
     }
     setDialogOpen(false);
@@ -650,17 +658,13 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
       // just the base service and a shorter time slot.
       const originalAddons = addonsByBooking[b.id] ?? [];
       if (originalAddons.length > 0) {
-        const rows = originalAddons.map((a) => ({
-          booking_id: created.id,
-          store_id: storeId,
+        await attachBookingAddons(created.id, originalAddons.map((a) => ({
           service_id: a.service_id,
           name: a.name,
           price_cents: a.price_cents,
           duration_minutes: a.duration_minutes,
           quantity: a.quantity,
-        }));
-        const { error: addonErr } = await supabase.from("salon_booking_addons").insert(rows as never);
-        if (addonErr) toast.error(`Booked, but couldn't copy add-ons: ${addonErr.message}`);
+        })), "Booked, but couldn't copy add-ons");
       }
       toast.success(`Rebooked ${b.client_name} for ${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
     }
@@ -1697,13 +1701,16 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
           // Stamp the anchor booking as occurrence 0 of the new series.
           // The trigger generates occurrences 1..N — without this, the
           // current booking row wouldn't get the series badge.
-          const { error: stampErr } = await supabase
-            .from("salon_bookings")
-            .update({
-              series_id: created.id,
-              series_occurrence_number: 0,
-            } as never)
-            .eq("id", b.id);
+          const { error: stampErr } = await supabase.functions.invoke("salon-booking-manage", {
+            body: {
+              action: "update",
+              booking_id: b.id,
+              patch: {
+                series_id: created.id,
+                series_occurrence_number: 0,
+              },
+            },
+          });
           if (stampErr) {
             // Anchor stamp failure isn't fatal — the future occurrences
             // still exist; the owner sees one un-badged booking. Surface

@@ -13,9 +13,6 @@ import Bug from "lucide-react/dist/esm/icons/bug";
 export const BUG_REPORT_OPEN_EVENT = "zivo:bug-report-open";
 export function openBugReport() { window.dispatchEvent(new Event(BUG_REPORT_OPEN_EVENT)); }
 
-const dbFrom = (table: string): unknown =>
-  (supabase as unknown as { from: (t: string) => unknown }).from(table);
-
 export default function BugReportSheet() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -32,12 +29,13 @@ export default function BugReportSheet() {
     if (!desc.trim()) return;
     setBusy(true);
     try {
-      await (dbFrom("bug_reports") as { insert: (p: unknown) => Promise<unknown> }).insert({
-        user_id: user?.id ?? null,
+      const { error } = await supabase.functions.invoke("bug-report-submit", { body: {
         description: desc,
         page_url: window.location.href,
         user_agent: navigator.userAgent,
-      });
+        metadata: { source: "bug_report_sheet", user_hint: user?.id ?? null },
+      } });
+      if (error) throw error;
       toast.success("Thanks — we'll look into it");
       setDesc("");
       setOpen(false);

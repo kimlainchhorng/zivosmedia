@@ -1,6 +1,6 @@
 /**
  * BugReportsPage — Submit + view your bug reports.
- * Backed by `bug_reports` (orphan). Users insert, screenshot URL optional.
+ * Backed by `bug-report-submit` and `bug_reports`. Screenshot URL optional.
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -72,18 +72,13 @@ export default function BugReportsPage() {
     const d = description.trim();
     if (d.length < 20) { toast.error("Add a bit more detail — at least 20 characters"); return; }
     setSubmitting(true);
-    const sb = supabase as unknown as {
-      from: (t: string) => {
-        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
-      };
-    };
-    const { error } = await sb.from("bug_reports").insert({
-      user_id: user.id,
+    const { error } = await supabase.functions.invoke("bug-report-submit", { body: {
       description: d,
       screenshot_url: screenshotUrl.trim() || null,
       page_url: typeof window !== "undefined" ? window.location.href : null,
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-    });
+      metadata: { source: "bug_reports_page" },
+    } });
     setSubmitting(false);
     if (error) { toast.error("Couldn't submit"); return; }
     toast.success("Thanks — bug reported");

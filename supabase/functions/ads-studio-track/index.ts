@@ -8,12 +8,7 @@
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const VALID_EVENTS = new Set(["impression", "click", "conversion", "signup"]);
 
@@ -29,8 +24,11 @@ async function sha256(s: string) {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+serve(withSecurity("ads-studio-track", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const trackingHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: trackingHeaders });
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -55,7 +53,7 @@ serve(async (req) => {
     }
 
     if (!payload.creative_id || !VALID_EVENTS.has(payload.event_type)) {
-      return new Response(PIXEL, { status: 200, headers: { ...corsHeaders, "Content-Type": "image/gif" } });
+      return new Response(PIXEL, { status: 200, headers: { ...trackingHeaders, "Content-Type": "image/gif" } });
     }
 
     // Resolve store_id from creative
@@ -66,7 +64,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!creative) {
-      return new Response(PIXEL, { status: 200, headers: { ...corsHeaders, "Content-Type": "image/gif" } });
+      return new Response(PIXEL, { status: 200, headers: { ...trackingHeaders, "Content-Type": "image/gif" } });
     }
 
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0";
@@ -90,15 +88,15 @@ serve(async (req) => {
     if (req.method === "POST") {
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...trackingHeaders, "Content-Type": "application/json" },
       });
     }
     return new Response(PIXEL, {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "image/gif", "Cache-Control": "no-store" },
+      headers: { ...trackingHeaders, "Content-Type": "image/gif", "Cache-Control": "no-store" },
     });
   } catch (e) {
     console.error("track err", e);
-    return new Response(PIXEL, { status: 200, headers: { ...corsHeaders, "Content-Type": "image/gif" } });
+    return new Response(PIXEL, { status: 200, headers: { ...trackingHeaders, "Content-Type": "image/gif" } });
   }
-});
+}, { allowedMethods: ["GET", "POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

@@ -168,7 +168,7 @@ export default function ApplyJobHubPage() {
                 >
                   <div className="w-9 h-9 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0 overflow-hidden">
                     {job.career_companies?.logo_url
-                      ? <img src={job.career_companies.logo_url} alt="" className="w-full h-full object-cover" />
+                      ? <img src={job.career_companies.logo_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       : <Briefcase className="w-4 h-4 text-muted-foreground" />}
                   </div>
                   <div className="flex-1 min-w-0">

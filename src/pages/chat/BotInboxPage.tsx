@@ -66,7 +66,7 @@ export default function BotInboxPage() {
               >
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {c.avatar_url
-                    ? <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ? <img src={c.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     : <BotIcon className="w-6 h-6 text-primary" />}
                 </div>
                 <div className="flex-1 min-w-0">

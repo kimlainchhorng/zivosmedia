@@ -13,11 +13,7 @@
 // kind, batch size 50.
 
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface QueueRow {
   id: string;
@@ -37,6 +33,12 @@ interface RunResult {
 }
 
 const SITE_URL = Deno.env.get("SITE_URL") ?? "https://hizivo.com";
+
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
 
 function templateForKind(kind: string): { templateName: string; mapPayload: (row: QueueRow) => Record<string, unknown> } | null {
   switch (kind) {
@@ -68,7 +70,9 @@ function templateForKind(kind: string): { templateName: string; mapPayload: (row
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("process-security-notifications", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -80,6 +84,15 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+  const provided = new URL(req.url).searchParams.get("secret") ?? req.headers.get("x-cron-secret") ?? "";
+  const cronAuthorized = Boolean(cronSecret && provided === cronSecret);
+  if (!cronAuthorized && !isServiceRoleRequest(req, serviceKey)) {
+    return new Response(JSON.stringify({ error: "forbidden" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
   // Optional body: { kinds?: string[], limit?: number }.
@@ -165,4 +178,4 @@ Deno.serve(async (req) => {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

@@ -486,18 +486,16 @@ export default function ShopEmployeesPage() {
     };
     try {
       if (editingEmployeeId) {
-        const { error } = await (supabase as any)
-          .from("store_employees")
-          .update(payload)
-          .eq("id", editingEmployeeId)
-          .eq("store_id", storeId);
-        if (error) throw error;
+        const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+          body: { action: "save", employee_id: editingEmployeeId, employee: payload },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Could not update employee");
         toast.success(`${name} updated`);
       } else {
-        const { error } = await (supabase as any)
-          .from("store_employees")
-          .insert({ ...payload, store_id: storeId, status: "active" });
-        if (error) throw error;
+        const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+          body: { action: "save", store_id: storeId, employee: { ...payload, status: "active" } },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Could not create employee");
         toast.success(`${name} added to team`);
       }
       closeEmployeeForm();
@@ -511,11 +509,10 @@ export default function ShopEmployeesPage() {
 
   const toggleStatus = async (emp: EmployeeRow) => {
     const next: EmployeeStatus = emp.status === "active" ? "inactive" : "active";
-    const { error } = await (supabase as any)
-      .from("store_employees")
-      .update({ status: next })
-      .eq("id", emp.id);
-    if (error) {
+    const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+      body: { action: "toggle_status", employee_id: emp.id, status: next },
+    });
+    if (error || !data?.ok) {
       toast.error("Could not update status.");
       return;
     }
@@ -525,8 +522,10 @@ export default function ShopEmployeesPage() {
 
   const deleteEmployee = async (emp: EmployeeRow) => {
     if (!confirm(`Remove ${emp.name} from the team? This can't be undone.`)) return;
-    const { error } = await (supabase as any).from("store_employees").delete().eq("id", emp.id);
-    if (error) {
+    const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+      body: { action: "delete", employee_id: emp.id },
+    });
+    if (error || !data?.ok) {
       toast.error("Could not remove employee.");
       return;
     }

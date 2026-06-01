@@ -1501,6 +1501,7 @@ export default function HotelResortDetailPage() {
                       alt={`Map showing ${store?.name || "property"} location`}
                       className="absolute inset-0 w-full h-full object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -1804,6 +1805,8 @@ export default function HotelResortDetailPage() {
             src={optimizeImage(activeLightboxPhoto, 1280)}
             alt={`Photo ${lightboxIdx + 1} of ${visibleGalleryImages.length}`}
             className="max-w-full max-h-full object-contain"
+            loading="lazy"
+            decoding="async"
             onError={() => markPhotoFailed(activeLightboxPhoto)}
             onClick={(e) => e.stopPropagation()}
           />

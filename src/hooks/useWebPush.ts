@@ -233,14 +233,17 @@ export function useWebPush() {
       return;
     }
 
-    // Send real push via edge function (end-to-end test)
+    // Send through the production dispatcher so the test respects the user's
+    // master push opt-out and quiet-hours preferences.
     try {
-      const { error } = await supabase.functions.invoke("send-push-notification", {
+      const { error } = await supabase.functions.invoke("notify-dispatch", {
         body: {
           user_id: user.id,
-          notification_type: "test",
+          event_type: "push_test",
           title: "ZIVO Push Test",
           body: "Push notifications are working end-to-end!",
+          channels: ["push"],
+          category: "transactional",
           data: { type: "test", url: "/account" },
         },
       });

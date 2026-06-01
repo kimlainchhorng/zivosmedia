@@ -106,6 +106,33 @@ const BlueVerifiedBadge = ({ className = "h-5 w-5" }: { className?: string }) =>
   <VerifiedBadge className={className} />
 );
 
+type ProfileNotificationLike = {
+  action_url: string | null;
+  category?: string | null;
+  template?: string | null;
+  metadata?: Record<string, any> | null;
+};
+
+const isChatNotification = (notification: ProfileNotificationLike) => {
+  const template = (notification.template || "").toLowerCase();
+  const category = (notification.category || "").toLowerCase();
+  const actionUrl = (notification.action_url || "").toLowerCase();
+  const metadata = notification.metadata || {};
+
+  return (
+    category === "chat" ||
+    template === "chat_message" ||
+    template === "bot_reply" ||
+    template.includes("chat") ||
+    actionUrl.startsWith("/chat") ||
+    actionUrl.includes("?with=") ||
+    actionUrl.includes("&with=") ||
+    Boolean(metadata.thread_id || metadata.chat_id || metadata.conversation_id || metadata.message_id)
+  );
+};
+
+type ProfileCompletionMissingKind = "username" | "avatar" | "cover" | "bio";
+
 /* ── 3D tilt hook ── */
 function use3DTilt(ref: React.RefObject<HTMLElement | null>, intensity = 8) {
   const [style, setStyle] = useState({ rotateX: 0, rotateY: 0 });
@@ -176,7 +203,7 @@ const Profile = () => {
   const headerName = brandName ? rawHeaderName : (rawHeaderName ? titleCase(rawHeaderName) : "");
   const { data: merchantData } = useMerchantRole();
   const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
-  const { unreadCount: notifUnreadCount, notifications, isLoading: notifLoading, markAsRead, markAllAsRead } = useNotifications(20);
+  const { notifications, isLoading: notifLoading, markAsRead } = useNotifications(20);
   const { data: latestVerificationRequest, isError: hasVerificationRequestError } = useQuery({
     queryKey: ["verification-request", user?.id, "latest"],
     queryFn: async () => {
@@ -225,14 +252,15 @@ const Profile = () => {
   // Count pending friend requests + new followers
   const [socialCount, setSocialCount] = useState(0);
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     const fetchSocialCount = async () => {
       const { count: friendReqCount } = await (supabase as any)
         .from('friendships')
         .select('id', { count: 'exact', head: true })
         .eq('friend_id', user.id)
         .eq('status', 'pending');
-      setSocialCount(friendReqCount || 0);
+      const nextCount = friendReqCount || 0;
+      setSocialCount((current) => (current === nextCount ? current : nextCount));
     };
     fetchSocialCount();
     
@@ -244,9 +272,17 @@ const Profile = () => {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user?.id]);
   
-  const totalNotifCount = notifUnreadCount + socialCount;
+  const profileNotifications = useMemo(
+    () => notifications.filter((notification) => !isChatNotification(notification)),
+    [notifications]
+  );
+  const profileUnreadCount = useMemo(
+    () => profileNotifications.filter((notification) => !notification.is_read).length,
+    [profileNotifications]
+  );
+  const totalNotifCount = profileUnreadCount + socialCount;
   const { isPlus, plan } = useZivoPlus();
   const { balance: coinBalance, loading: coinLoading } = useCoinBalance();
   const { data: walletSummary, isLoading: walletLoading } = useWalletSummary();
@@ -268,7 +304,7 @@ const Profile = () => {
     const restore = () => {
       try {
         const v = sessionStorage.getItem("zivo:profile:notif-panel") === "1";
-        setShowNotifPanel(v);
+        setShowNotifPanel((current) => (current === v ? current : v));
       } catch {}
     };
     window.addEventListener("orientationchange", restore);
@@ -339,18 +375,21 @@ const Profile = () => {
   }, [markAsRead, navigate, resolveNotifLink, selectionChanged]);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const handleMarkAllRead = useCallback(async () => {
-    if (notifUnreadCount === 0 || isMarkingAllRead) return;
+    const unreadIds = profileNotifications
+      .filter((notification) => !notification.is_read)
+      .map((notification) => notification.id);
+    if (unreadIds.length === 0 || isMarkingAllRead) return;
     selectionChanged();
     setIsMarkingAllRead(true);
     try {
-      await markAllAsRead();
+      await markAsRead(unreadIds);
       toast.success("All notifications marked as read");
     } catch {
       toast.error("Couldn't mark all as read");
     } finally {
       setIsMarkingAllRead(false);
     }
-  }, [isMarkingAllRead, markAllAsRead, notifUnreadCount, selectionChanged]);
+  }, [isMarkingAllRead, markAsRead, profileNotifications, selectionChanged]);
   const handleResetCover = useCallback(() => { impact("light"); setCoverPosition(50); }, [impact]);
   
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -451,11 +490,45 @@ const Profile = () => {
 
   useEffect(() => {
     if (!zivoOFMode) return;
-    setActiveMode("creator");
+    setActiveMode((current) => (current === "creator" ? current : "creator"));
     try { localStorage.setItem("zivo:active_mode", "creator"); } catch {}
   }, [zivoOFMode]);
 
   const workflowMode = zivoOFMode ? "creator" : activeMode;
+  const profileCompletion = useMemo(() => {
+    const hasName = Boolean((profile?.full_name || "").trim());
+    const hasUsername = Boolean(claimedUsername || profile?.has_username || profile?.username);
+    const hasAvatar = Boolean(profile?.has_avatar ?? profile?.avatar_url);
+    const hasCover = Boolean(profile?.has_cover ?? profile?.cover_url);
+    const hasBio = Boolean(profile?.has_bio ?? profile?.bio);
+    const fallbackScore =
+      (hasName ? 15 : 0) +
+      (hasUsername ? 20 : 0) +
+      (hasAvatar ? 25 : 0) +
+      (hasCover ? 20 : 0) +
+      (hasBio ? 20 : 0);
+    const score = Math.max(0, Math.min(100, Number(profile?.profile_completion_score ?? fallbackScore)));
+    const missing = [
+      !hasUsername && { label: "Username", kind: "username" as const },
+      !hasAvatar && { label: "Photo", kind: "avatar" as const },
+      !hasCover && { label: "Cover", kind: "cover" as const },
+      !hasBio && { label: "Bio", kind: "bio" as const },
+    ].filter(Boolean) as Array<{ label: string; kind: ProfileCompletionMissingKind }>;
+
+    return { score, missing };
+  }, [
+    claimedUsername,
+    profile?.avatar_url,
+    profile?.bio,
+    profile?.cover_url,
+    profile?.full_name,
+    profile?.has_avatar,
+    profile?.has_bio,
+    profile?.has_cover,
+    profile?.has_username,
+    profile?.profile_completion_score,
+    profile?.username,
+  ]);
   const profileShareUrl = useMemo(
     () => {
       const origin = getPublicOrigin();
@@ -506,8 +579,10 @@ const Profile = () => {
   // staleTime'd so 4 round-trips don't fire on every re-render.
 
   useEffect(() => {
-    setBioDraft(profile?.bio ?? "");
-  }, [profile?.bio]);
+    if (bioEditing) return;
+    const nextBio = profile?.bio ?? "";
+    setBioDraft((current) => (current === nextBio ? current : nextBio));
+  }, [bioEditing, profile?.bio]);
 
   // Scroll to top on mount/navigation
   useEffect(() => {
@@ -523,7 +598,8 @@ const Profile = () => {
   // once the user scrolls past the cover area for legibility.
   const [overCover, setOverCover] = useState(true);
   useMotionValueEvent(scrollY, "change", (latest) => {
-    setOverCover(latest < 80);
+    const nextOverCover = latest < 80;
+    setOverCover((current) => (current === nextOverCover ? current : nextOverCover));
   });
 
   const getInitials = () => {
@@ -709,10 +785,10 @@ const Profile = () => {
           aria-label="Profile quick navigation"
           data-testid="profile-sticky-header"
           style={{
-            height: "calc(var(--zivo-safe-top-sticky) + 3rem)",
+            height: "calc(var(--zivo-safe-top-sticky) + 2.75rem)",
             paddingTop: "var(--zivo-safe-top-sticky)",
           }}
-          className="lg:hidden fixed top-0 inset-x-0 z-40 px-3 flex items-start gap-3"
+          className="lg:hidden fixed top-0 inset-x-0 z-40 px-2.5 flex items-start gap-2"
         >
           {/* Adaptive background: gradient scrim over cover, solid blurred bar after scroll */}
           <div
@@ -720,8 +796,8 @@ const Profile = () => {
             className={cn(
               "absolute inset-0 -z-10 transition-all duration-300",
               overCover
-                ? "bg-background/92 backdrop-blur-xl border-b border-border/40 shadow-sm shadow-background/20"
-                : "bg-background/90 backdrop-blur-xl border-b border-border/40 shadow-sm shadow-background/20"
+                ? "bg-background/94 backdrop-blur-2xl border-b border-border/50 shadow-sm shadow-background/20"
+                : "bg-background/92 backdrop-blur-2xl border-b border-border/50 shadow-sm shadow-background/20"
             )}
           />
           <motion.button
@@ -731,19 +807,19 @@ const Profile = () => {
             whileHover={{ scale: 1.04 }}
             transition={{ type: "spring", stiffness: 400, damping: 22 }}
             className={cn(
-              "h-9 w-9 -ml-1 flex items-center justify-center rounded-full transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "h-9 w-9 -ml-0.5 flex items-center justify-center rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               "hover:bg-muted/60 active:bg-muted/70"
             )}
           >
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </motion.button>
           <span aria-hidden="true">
-            <Avatar className="h-8 w-8 ring-1 ring-border/60">
+            <Avatar className="h-8 w-8 ring-2 ring-background shadow-sm">
               <AvatarImage src={profile?.avatar_url || undefined} alt="" />
               <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
             </Avatar>
           </span>
-          <div className="flex items-center gap-1 min-w-0 flex-1" aria-live="polite">
+          <div className="flex min-w-0 flex-1 items-center gap-1" aria-live="polite">
             <span
               translate="no"
               className={cn(
@@ -754,7 +830,7 @@ const Profile = () => {
             </span>
             {profile?.is_verified && <VerifiedBadge size={14} />}
           </div>
-          <div className="relative">
+          <div className="relative flex shrink-0 items-center gap-1">
             <motion.button
               ref={langTriggerRef}
               type="button"
@@ -769,16 +845,18 @@ const Profile = () => {
               whileTap={{ scale: 0.86 }}
               transition={{ type: "spring", stiffness: 400, damping: 22 }}
               className={cn(
-                "relative h-9 w-9 flex items-center justify-center rounded-full transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                showLangPicker ? "bg-primary/10 text-primary" : "hover:bg-muted/60 text-foreground"
+                "relative h-9 w-9 flex items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                showLangPicker ? "border-primary/30 text-primary" : "hover:bg-muted/60 text-foreground"
               )}
               title="Change language"
             >
-              <Globe className="h-5 w-5" />
+              <Globe className="h-[19px] w-[19px]" />
               <img
                 src={getFlagUrl(currentLang.cc)}
                 alt=""
-                className="absolute -right-0.5 -bottom-0.5 h-4 w-4 rounded-full border border-background bg-background object-cover shadow-sm"
+                className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full border border-background bg-background object-cover shadow-sm"
+                loading="lazy"
+                decoding="async"
               />
             </motion.button>
             <AnimatePresence>
@@ -833,11 +911,15 @@ const Profile = () => {
                               src={getFlagUrl(lang.cc)}
                               alt=""
                               className="absolute right-0 top-1/2 h-[120%] w-auto -translate-y-1/2 opacity-[0.07] pointer-events-none"
+                              loading="lazy"
+                              decoding="async"
                             />
                             <img
                               src={getFlagUrl(lang.cc)}
                               alt=""
                               className="relative z-10 h-5 w-5 rounded-full object-cover ring-1 ring-border/50"
+                              loading="lazy"
+                              decoding="async"
                             />
                             <span className="relative z-10 min-w-0 flex-1 truncate">{lang.label}</span>
                             {selected && <Check className="relative z-10 h-4 w-4 shrink-0" />}
@@ -849,7 +931,6 @@ const Profile = () => {
                 </>
               )}
             </AnimatePresence>
-          </div>
           <motion.button
             type="button"
             onClick={handleCopyProfileLink}
@@ -858,10 +939,10 @@ const Profile = () => {
             whileTap={{ scale: 0.86 }}
             transition={{ type: "spring", stiffness: 400, damping: 22 }}
             className={cn(
-              "h-9 w-9 flex items-center justify-center rounded-full border transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none",
+              "h-9 w-9 flex items-center justify-center rounded-2xl border bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none",
               profileLinkCopied
                 ? "border-emerald-500/30 bg-emerald-500/12 text-emerald-600"
-                : "border-transparent hover:bg-muted/60 text-foreground"
+                : "border-border/60 hover:bg-muted/60 text-foreground"
             )}
           >
             {profileLinkCopied ? <Check className="h-5 w-5" /> : <LinkIcon className="h-5 w-5" />}
@@ -877,7 +958,7 @@ const Profile = () => {
             whileTap={{ scale: 0.86 }}
             transition={{ type: "spring", stiffness: 400, damping: 22 }}
             className={cn(
-              "relative h-9 w-9 flex items-center justify-center rounded-full transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "relative h-9 w-9 flex items-center justify-center rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               showNotifPanel
                 ? "bg-primary text-primary-foreground"
                 : overCover
@@ -887,7 +968,7 @@ const Profile = () => {
           >
             <Bell className="h-5 w-5" />
             {totalNotifCount > 0 && !showNotifPanel && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground shadow-sm">
+              <span className="absolute right-0 top-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground ring-2 ring-background">
                 {totalNotifCount > 99 ? "99+" : totalNotifCount}
               </span>
             )}
@@ -924,14 +1005,14 @@ const Profile = () => {
                 {/* Caret pointing at the bell */}
                 <div className="pointer-events-none absolute -top-1.5 right-12 h-3 w-3 rotate-45 rounded-sm border-l border-t border-border/60 bg-card lg:right-6" />
                 {/* Header (sticky) */}
-                <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border/40 bg-card/95 px-4 pt-3 pb-2.5 backdrop-blur pt-safe">
+                <div className="sticky top-0 zivo-safe-top-none z-10 flex items-center justify-between gap-2 border-b border-border/40 bg-card/95 px-4 py-3 backdrop-blur">
                   <div className="flex items-center gap-2" aria-live="polite">
                     <h3 className="text-[15px] font-bold leading-none tracking-tight">Notifications</h3>
                     {totalNotifCount > 0 && (
                       <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{totalNotifCount}</Badge>
                     )}
                   </div>
-                  {notifUnreadCount > 0 && (
+                  {profileUnreadCount > 0 && (
                     <button type="button"
                       onClick={handleMarkAllRead}
                       disabled={isMarkingAllRead}
@@ -954,7 +1035,7 @@ const Profile = () => {
                           : "bg-muted/50 text-muted-foreground hover:bg-muted"
                       )}
                     >
-                      {f === "all" ? "All" : `Unread${notifUnreadCount > 0 ? ` (${notifUnreadCount})` : ""}`}
+                      {f === "all" ? "All" : `Unread${profileUnreadCount > 0 ? ` (${profileUnreadCount})` : ""}`}
                     </button>
                   ))}
                 </div>
@@ -977,7 +1058,7 @@ const Profile = () => {
                     </button>
                   )}
 
-                  {notifLoading && notifications.length === 0 ? (
+                  {notifLoading && profileNotifications.length === 0 ? (
                     <div className="space-y-2 p-2">
                       {[0, 1, 2].map((i) => (
                         <div key={i} className="flex items-center gap-3">
@@ -991,8 +1072,8 @@ const Profile = () => {
                     </div>
                   ) : (() => {
                     const filtered = (notifFilter === "unread"
-                      ? notifications.filter((n) => !n.is_read)
-                      : notifications);
+                      ? profileNotifications.filter((n) => !n.is_read)
+                      : profileNotifications);
                     if (filtered.length === 0 && socialCount === 0) {
                       return (
                         <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-7 text-center">
@@ -1097,12 +1178,13 @@ const Profile = () => {
             whileTap={{ scale: 0.86 }}
             transition={{ type: "spring", stiffness: 400, damping: 22 }}
             className={cn(
-              "h-9 w-9 -mr-1 flex items-center justify-center rounded-full transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "h-9 w-9 flex items-center justify-center rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               "hover:bg-muted/60 text-foreground"
             )}
           >
             <MoreHorizontal className="h-5 w-5" />
           </motion.button>
+          </div>
         </motion.header>,
         document.body
       )}
@@ -1110,8 +1192,7 @@ const Profile = () => {
 
       {/* ── Scrollable content ── */}
       <div className="relative z-10 min-h-screen pb-24 scroll-smooth bg-background no-scrollbar">
-        {/* Mobile: edge-to-edge full-screen (Facebook-style). Desktop: centered card. */}
-        <div className="px-0 lg:px-4 pt-12 lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
+        <div className="px-3 lg:px-4 pt-14 lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
 
           {profileLoading ? (
             <div className="flex items-center justify-center py-20">
@@ -1130,7 +1211,7 @@ const Profile = () => {
               trackingContext="profile"
             />
           ) : (
-            <div className="space-y-2 pt-0 lg:pt-1">
+            <div className="space-y-3 pt-0 lg:pt-1">
               {hasProfileRefreshError && (
                 <DegradedDataBanner
                   className="px-4 lg:px-0 pt-2"
@@ -1153,8 +1234,7 @@ const Profile = () => {
                   style={{ perspective: "1200px", transformStyle: "preserve-3d" }}
                   className="group"
                 >
-                  {/* Mobile: edge-to-edge plain surface (Facebook). Desktop: glass card. */}
-                  <div className="relative bg-card lg:rounded-3xl lg:overflow-hidden lg:shadow-2xl lg:shadow-primary/[0.08]">
+                  <div className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_18px_60px_rgba(15,23,42,0.08)] lg:shadow-2xl lg:shadow-primary/[0.08]">
                     <div className="hidden lg:block absolute inset-0 bg-card/70 backdrop-blur-2xl rounded-3xl" />
                     <div className="hidden lg:block absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-primary/[0.02] rounded-3xl" />
                     <div className="hidden lg:block pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]" />
@@ -1187,6 +1267,8 @@ const Profile = () => {
                           alt="Cover"
                           className={cn("absolute inset-0 w-full h-full object-cover transition-[object-position] duration-100", coverPositionClass)}
                           draggable={false}
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : zivoOFMode ? (
                         <div className="absolute inset-0 bg-gradient-to-br from-[#00AEEF] via-[#0099D9] to-[#0077B6]">
@@ -1288,7 +1370,7 @@ const Profile = () => {
                               ? "bg-gradient-to-tr from-[#0077B6] via-[#00AEEF] to-[#7CD6FF]"
                               : "bg-ig-gradient"
                           )} />
-                          <Avatar className="relative h-16 w-16 sm:h-24 sm:w-24 md:h-28 md:w-28 ring-2 ring-background">
+                          <Avatar className="relative h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 ring-[5px] ring-card shadow-xl">
                             <AvatarImage src={avatarPreview || profile?.avatar_url || undefined} alt="Profile" />
                             <AvatarFallback className="bg-muted text-foreground text-2xl font-bold">
                               {getInitials()}
@@ -1311,13 +1393,13 @@ const Profile = () => {
                     </div>
 
                     {/* Name & status */}
-                    <div className="px-5 sm:px-6 pb-1 pt-1.5 sm:pt-2 text-left">
-                      <CardTitle translate="no" className="flex items-center justify-start gap-2 text-xl sm:text-2xl font-bold tracking-tight">
+                    <div className="px-4 sm:px-6 pb-3 pt-1.5 text-left">
+                      <CardTitle translate="no" className="flex items-center justify-start gap-1.5 text-[22px] sm:text-2xl font-black leading-tight tracking-tight">
                         <span>{headerName || t("profile.set_name")}</span>
-                        {profile?.is_verified && <VerifiedBadge size={28} />}
+                        {profile?.is_verified && <VerifiedBadge size={22} />}
                       </CardTitle>
                       {/* @username line — link or "set" CTA. Email never shown publicly. */}
-                      <div className="mt-0.5 text-sm text-muted-foreground">
+                      <div className="mt-0.5 text-[13px] text-muted-foreground">
                         {claimedUsername ? (
                           <span>@{claimedUsername}</span>
                         ) : (
@@ -1331,45 +1413,44 @@ const Profile = () => {
                         )}
                       </div>
                       {/* Email hidden — only visible to account owner in settings */}
-                      <div className="flex flex-wrap items-center justify-start gap-2 mt-2 sm:mt-3">
+                      <div className="mt-2 flex flex-wrap items-center justify-start gap-1.5">
                         {isPlus && (
-                          <Badge translate="no" className="bg-ig-gradient text-white border-0 font-semibold rounded-full px-3 py-1">
+                          <Badge translate="no" className="h-8 bg-ig-gradient text-white border-0 font-bold rounded-full px-2.5 shadow-sm">
                             <Crown className="w-3 h-3 mr-1" /> ZIVO+ {plan === "annual" ? "Annual" : "Monthly"}
                           </Badge>
                         )}
+                        {!profile?.is_verified && (
+                          <button
+                            type="button"
+                            onClick={() => navigate("/account/verification")}
+                            className={cn(
+                              "group inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md hover:-translate-y-0.5",
+                              latestVerificationRequest?.status === "pending"
+                                ? "border-border bg-muted text-foreground"
+                                : latestVerificationRequest?.status === "rejected"
+                                  ? "border-destructive/25 bg-destructive/5 text-destructive"
+                                  : "border-foreground bg-foreground text-background"
+                            )}
+                          >
+                            {latestVerificationRequest?.status === "pending" ? (
+                              <>
+                                <Loader2 className="h-3 w-3 animate-spin" /> Verification pending
+                              </>
+                            ) : latestVerificationRequest?.status === "rejected" ? (
+                              <>
+                                <AlertCircle className="h-3 w-3" /> Reapply
+                              </>
+                            ) : (
+                              <>
+                                <BlueVerifiedBadge className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12" /> Blue verified
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
 
-                      {!profile?.is_verified && (
-                        <button
-                          type="button"
-                          onClick={() => navigate("/account/verification")}
-                          className={cn(
-                            "group mt-3 inline-flex min-h-[36px] items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-bold shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md hover:-translate-y-0.5",
-                            latestVerificationRequest?.status === "pending"
-                              ? "border-border bg-muted text-foreground"
-                              : latestVerificationRequest?.status === "rejected"
-                                ? "border-destructive/25 bg-destructive/5 text-destructive"
-                                : "border-foreground bg-foreground text-background"
-                          )}
-                        >
-                          {latestVerificationRequest?.status === "pending" ? (
-                            <>
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Verification pending
-                            </>
-                          ) : latestVerificationRequest?.status === "rejected" ? (
-                            <>
-                              <AlertCircle className="h-3.5 w-3.5" /> Reapply for blue verified
-                            </>
-                          ) : (
-                            <>
-                              <BlueVerifiedBadge className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" /> Get blue verified
-                            </>
-                          )}
-                        </button>
-                      )}
-
                       {/* Bio */}
-                      <div className="mt-2 max-w-sm">
+                      <div className="mt-1.5 max-w-sm">
                         {profile?.bio && !bioEditing ? (
                           <div className="flex items-start gap-2">
                             <p className="flex-1 text-xs text-foreground/85 whitespace-pre-wrap break-words">
@@ -1388,7 +1469,7 @@ const Profile = () => {
                           <button
                             type="button"
                             onClick={() => { setBioDraft(""); setBioEditing(true); }}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none transition-colors"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border/60 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none transition-colors"
                           >
                             <Pencil className="h-3 w-3" />
                             Add bio
@@ -1442,11 +1523,11 @@ const Profile = () => {
                       </div>
 
                       {/* ── Edit Profile / Share / Analytics row ── */}
-                      <div className="mt-3 flex items-center gap-2">
+                      <div className="mt-3 grid grid-cols-[1fr_38px_38px_38px] items-center gap-2">
                         <button
                           type="button"
                           onClick={() => { selectionChanged(); navigate("/account/profile-edit"); }}
-                          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-border/60 bg-background text-sm font-semibold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-10 min-w-0 items-center justify-center gap-2 rounded-2xl border border-border/70 bg-background text-[13px] font-extrabold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <Pencil className="h-3.5 w-3.5 text-foreground" />
                           <span>Edit profile</span>
@@ -1456,7 +1537,7 @@ const Profile = () => {
                           whileTap={{ scale: 0.93 }}
                           onClick={() => { selectionChanged(); setShareOpen(true); }}
                           aria-label="Share profile"
-                          className="h-9 w-9 flex items-center justify-center rounded-full border border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <Share2 className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1466,7 +1547,7 @@ const Profile = () => {
                           onClick={() => { if (user?.id) { selectionChanged(); navigate(`/user/${user.id}?from=profile&as=visitor`); } }}
                           aria-label="Preview public profile"
                           disabled={!user?.id}
-                          className="h-9 w-9 flex items-center justify-center rounded-full border border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Eye className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1475,7 +1556,7 @@ const Profile = () => {
                           whileTap={{ scale: 0.93 }}
                           onClick={() => { selectionChanged(); navigate("/account/analytics"); }}
                           aria-label="Profile analytics"
-                          className="h-9 w-9 flex items-center justify-center rounded-full border border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <BarChart3 className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1484,57 +1565,53 @@ const Profile = () => {
                       {/* Stats row — OF mode shows subscribers + posts only,
                           default mode shows the full social signals. */}
                       {zivoOFMode ? (
-                        <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+                        <div className="mt-2.5 grid grid-cols-2 overflow-hidden rounded-[18px] border border-border/70 bg-card shadow-sm">
                           <button
                             type="button"
                             aria-label={`View ${ofSubscribersCount} subscribers`}
                             onClick={() => { selectionChanged(); navigate("/creator/subscribers"); }}
-                            className="inline-flex items-baseline gap-1 rounded-md px-1 -mx-1 py-0.5 hover:underline focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
+                            className="border-r border-border/60 px-3 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
                           >
-                            <span className="font-bold text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
-                            <span className="font-medium text-muted-foreground">subscribers</span>
+                            <span className="block text-base font-black leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
+                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Subscribers</span>
                           </button>
-                          <span aria-hidden="true" className="text-muted-foreground/70">·</span>
-                          <span className="inline-flex items-baseline gap-1">
-                            <span className="font-bold text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="font-medium text-muted-foreground">{postsCount === 1 ? "post" : "posts"}</span>
+                          <span className="px-3 py-2.5 text-center">
+                            <span className="block text-base font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Posts</span>
                           </span>
                         </div>
                       ) : (
-                        <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+                        <div className="mt-2.5 grid grid-cols-4 overflow-hidden rounded-[18px] border border-border/70 bg-card shadow-sm">
                           <button
                             type="button"
                             aria-label={`View ${followerCount} followers`}
                             onClick={() => setSocialModal({ open: true, tab: "followers" })}
-                            className="inline-flex items-baseline gap-1 rounded-md px-1 -mx-1 py-0.5 hover:underline focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="border-r border-border/60 px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="font-bold text-foreground">{formatCount(followerCount) ?? "0"}</span>
-                            <span className="font-medium text-muted-foreground">{followerCount === 1 ? "follower" : "followers"}</span>
+                            <span className="block text-base font-black leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
+                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{followerCount === 1 ? "Follower" : "Followers"}</span>
                           </button>
-                          <span aria-hidden="true" className="text-muted-foreground/70">·</span>
                           <button
                             type="button"
                             aria-label={`View ${followingCount} following`}
                             onClick={() => setSocialModal({ open: true, tab: "following" })}
-                            className="inline-flex items-baseline gap-1 rounded-md px-1 -mx-1 py-0.5 hover:underline focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="border-r border-border/60 px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="font-bold text-foreground">{formatCount(followingCount) ?? "0"}</span>
-                            <span className="font-medium text-muted-foreground">following</span>
+                            <span className="block text-base font-black leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
+                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Following</span>
                           </button>
-                          <span aria-hidden="true" className="text-muted-foreground/70">·</span>
-                          <span className="inline-flex items-baseline gap-1">
-                            <span className="font-bold text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="font-medium text-muted-foreground">{postsCount === 1 ? "post" : "posts"}</span>
+                          <span className="border-r border-border/60 bg-muted/15 px-2 py-2.5 text-center">
+                            <span className="block text-base font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{postsCount === 1 ? "Post" : "Posts"}</span>
                           </span>
-                          <span aria-hidden="true" className="text-muted-foreground/70">·</span>
                           <button
                             type="button"
                             aria-label={`View ${friendCount} friends`}
                             onClick={() => setSocialModal({ open: true, tab: "friends" })}
-                            className="inline-flex items-baseline gap-1 rounded-md px-1 -mx-1 py-0.5 hover:underline focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="font-bold text-foreground">{formatCount(friendCount) ?? "0"}</span>
-                            <span className="font-medium text-muted-foreground">{friendCount === 1 ? "friend" : "friends"}</span>
+                            <span className="block text-base font-black leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
+                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
                           </button>
                         </div>
                       )}
@@ -1572,19 +1649,24 @@ const Profile = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="lg:hidden mt-3 grid grid-cols-4 gap-2">
+                        <div className="lg:hidden mt-2.5 grid grid-cols-4 gap-2">
                           {[
-                            { label: "Shop", icon: Store, onClick: openShopDashboard },
-                            { label: "Employees", icon: Users, onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
-                            { label: "Switch Mode", icon: Repeat, onClick: () => { selectionChanged(); setModeOpen(true); } },
-                            { label: "Monetization", icon: DollarSign, onClick: () => { selectionChanged(); navigate("/monetization"); } },
+                            { label: "Shop", icon: Store, tone: "from-emerald-500/18 to-teal-500/8", onClick: openShopDashboard },
+                            { label: "Employees", icon: Users, tone: "from-sky-500/18 to-blue-500/8", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
+                            { label: "Mode", icon: Repeat, tone: "from-violet-500/18 to-fuchsia-500/8", onClick: () => { selectionChanged(); setModeOpen(true); } },
+                            { label: "Earn", icon: DollarSign, tone: "from-amber-500/20 to-orange-500/8", onClick: () => { selectionChanged(); navigate("/monetization"); } },
                           ].map((a) => (
                             <button type="button"
                               key={a.label}
                               onClick={a.onClick}
-                              className="flex flex-col items-center gap-1 rounded-2xl border border-border/50 bg-muted/25 px-2 py-2 text-[11px] font-semibold text-foreground hover:bg-muted/50 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none transition-all"
+                              className={cn(
+                                "flex min-h-[56px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-border/60 bg-gradient-to-br px-1.5 py-1.5 text-[9.5px] font-extrabold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+                                a.tone
+                              )}
                             >
-                              <a.icon className="h-4 w-4 text-primary" />
+                              <span className="grid h-7 w-7 place-items-center rounded-xl border border-border/50 bg-background/85 shadow-sm">
+                                <a.icon className="h-3.5 w-3.5 text-foreground" />
+                              </span>
                               <span className="truncate">{a.label}</span>
                             </button>
                           ))}
@@ -1734,7 +1816,9 @@ const Profile = () => {
 
               {/* ── Stories Row ── */}
               <ParallaxSection index={2}>
-                <ProfileStories />
+                <div className="rounded-[22px] border border-border/70 bg-card px-3 py-2 shadow-sm">
+                  <ProfileStories />
+                </div>
               </ParallaxSection>
 
           {/* Notifications panel moved into the sticky header (Facebook-style popover) */}
@@ -1785,13 +1869,15 @@ const Profile = () => {
 
       {/* Mode Switch bottom sheet — placeholder for future per-mode routing */}
       <Sheet open={modeOpen} onOpenChange={setModeOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl pb-10 max-h-[88vh] overflow-y-auto z-[1500]">
-          <SheetHeader className="pb-3">
-            <SheetTitle className="text-base font-bold">Switch mode</SheetTitle>
+        <SheetContent side="bottom" className="z-[1500] max-h-[88vh] overflow-y-auto rounded-t-[28px] border-border/70 bg-background px-4 pb-10 pt-3">
+          <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
+          <SheetHeader className="pb-3 text-left">
+            <SheetTitle className="text-xl font-black tracking-tight">Switch mode</SheetTitle>
+            <p className="text-sm text-muted-foreground">Choose the workspace you want to use right now.</p>
           </SheetHeader>
-          <div className="flex flex-col gap-2">
+          <div className="grid gap-2">
             {zivoOFMode && (
-              <div className="mb-1 rounded-2xl border border-rose-500/30 bg-rose-500/5 px-3 py-2.5 flex items-center justify-between gap-3">
+              <div className="mb-1 flex items-center justify-between gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/5 px-3 py-2.5">
                 <div className="min-w-0">
                   <p className="text-[12px] font-semibold text-foreground">ZIVO OF Mode is active</p>
                   <p className="text-[11px] text-muted-foreground">Creator workflow is locked while OF mode is on.</p>
@@ -1802,7 +1888,7 @@ const Profile = () => {
                     setZivoOFMode(false);
                     toast.success("ZIVO OF Mode turned off");
                   }}
-                  className="shrink-0 text-[11px] font-semibold rounded-lg border border-border/40 px-2.5 py-1.5 hover:bg-muted/50"
+                  className="shrink-0 rounded-xl border border-border/40 px-3 py-2 text-[11px] font-bold hover:bg-muted/50"
                 >
                   Turn off
                 </button>
@@ -1837,31 +1923,35 @@ const Profile = () => {
                     if (m.id === "shop") openShopDashboard();
                     else if (m.route && m.id !== "personal") navigate(m.route);
                   }}
-                  className={`flex items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all active:scale-[0.99] ${
-                    active ? "border-primary/60 bg-primary/5" : "border-border/50 bg-muted/25 hover:bg-muted/50"
-                  }`}
+                  className={cn(
+                    "flex items-center gap-3 rounded-[22px] border px-3 py-3 text-left shadow-sm transition-all active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    active ? "border-border bg-muted/55" : "border-border/60 bg-card hover:bg-muted/35"
+                  )}
                 >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-background border border-border/40">
-                    <Icon className="h-4 w-4 text-primary" />
+                  <span className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",
+                    active ? "border-primary/30 bg-primary/12" : "border-border/50 bg-muted/35"
+                  )}>
+                    <Icon className={cn("h-5 w-5", active ? "text-primary" : "text-foreground")} />
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-semibold text-foreground">{m.label}</span>
-                    <span className="block text-[11px] text-muted-foreground truncate">{m.desc}</span>
+                    <span className="block text-sm font-black text-foreground">{m.label}</span>
+                    <span className="block truncate text-[12px] font-medium text-muted-foreground">{m.desc}</span>
                   </span>
-                  {active && <BadgeCheck className="h-4 w-4 text-primary shrink-0" />}
+                  {active && <BadgeCheck className="h-5 w-5 shrink-0 text-primary" />}
                 </button>
               );
             })}
           </div>
 
           {workflowMode === "personal" && (
-            <div className="mt-5 pt-4 border-t border-border/40">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Personal controls</span>
+            <div className="mt-5 border-t border-border/40 pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Personal controls</span>
                 <button
                   type="button"
                   onClick={() => { setModeOpen(false); navigate("/settings"); }}
-                  className="text-[11px] font-semibold text-primary"
+                  className="text-[11px] font-bold text-primary"
                 >
                   See all
                 </button>
@@ -1888,10 +1978,12 @@ const Profile = () => {
                         if (a.label === "Share profile") setShareOpen(true);
                         else if (a.route) navigate(a.route);
                       }}
-                      className="flex flex-col items-center gap-1.5 rounded-2xl border border-border/40 bg-muted/30 p-3 active:scale-[0.97] transition-transform"
+                      className="flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-card p-3 text-center shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <Icon className="h-5 w-5 text-primary" />
-                      <span className="text-[11px] font-semibold text-center leading-tight">{a.label}</span>
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/40">
+                        <Icon className="h-5 w-5 text-foreground" />
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight">{a.label}</span>
                     </button>
                   );
                 })}
@@ -1900,15 +1992,15 @@ const Profile = () => {
           )}
 
           {workflowMode === "creator" && (
-            <div className="mt-5 pt-4 border-t border-border/40">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="mt-5 border-t border-border/40 pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
                   {zivoOFMode ? "ZIVO OF tools" : "Creator tools"}
                 </span>
                 <button
                   type="button"
                   onClick={() => { setModeOpen(false); navigate("/monetization"); }}
-                  className="text-[11px] font-semibold text-primary"
+                  className="text-[11px] font-bold text-primary"
                 >
                   See all
                 </button>
@@ -1936,10 +2028,12 @@ const Profile = () => {
                     <button type="button"
                       key={a.label}
                       onClick={() => { setModeOpen(false); navigate(a.route); }}
-                      className="flex flex-col items-center gap-1.5 rounded-2xl border border-border/40 bg-muted/30 p-3 active:scale-[0.97] transition-transform"
+                      className="flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-card p-3 text-center shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <Icon className="h-5 w-5 text-primary" />
-                      <span className="text-[11px] font-semibold text-center leading-tight">{a.label}</span>
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/40">
+                        <Icon className="h-5 w-5 text-foreground" />
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight">{a.label}</span>
                     </button>
                   );
                 })}
@@ -1948,9 +2042,9 @@ const Profile = () => {
           )}
 
           {workflowMode === "fan" && (
-            <div className="mt-5 pt-4 border-t border-border/40">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">My fan activity</span>
+            <div className="mt-5 border-t border-border/40 pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">My fan activity</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -1966,10 +2060,12 @@ const Profile = () => {
                     <button type="button"
                       key={a.label}
                       onClick={() => { setModeOpen(false); navigate(a.route); }}
-                      className="flex flex-col items-center gap-1.5 rounded-2xl border border-border/40 bg-muted/30 p-3 active:scale-[0.97] transition-transform"
+                      className="flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-card p-3 text-center shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <Icon className="h-5 w-5 text-primary" />
-                      <span className="text-[11px] font-semibold text-center leading-tight">{a.label}</span>
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/40">
+                        <Icon className="h-5 w-5 text-foreground" />
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight">{a.label}</span>
                     </button>
                   );
                 })}

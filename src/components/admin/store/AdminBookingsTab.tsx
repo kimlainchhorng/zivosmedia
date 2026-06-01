@@ -96,7 +96,13 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       preferred_time: newDialog.time,
       status: newDialog.status,
     };
-    const { error } = await supabase.from("service_bookings").insert(payload);
+    const { error } = await supabase.functions.invoke("service-booking-manage", {
+      body: {
+        action: "create",
+        store_id: storeId,
+        booking: payload,
+      },
+    });
     setSaving(false);
     if (error) { toast.error(error.message || "Failed to create booking"); return; }
     toast.success("Booking created");
@@ -125,10 +131,9 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
 
   const deleteBooking = async (id: string) => {
     if (!window.confirm("Delete this booking? This cannot be undone.")) return;
-    const { error } = await supabase
-      .from("service_bookings")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.functions.invoke("service-booking-manage", {
+      body: { action: "delete", booking_id: id },
+    });
     if (error) { toast.error(error.message || "Failed to delete booking"); return; }
     toast.success("Booking deleted");
     if (expandedId === id) setExpandedId(null);
@@ -136,10 +141,9 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase
-      .from("service_bookings")
-      .update({ status })
-      .eq("id", id);
+    const { error } = await supabase.functions.invoke("service-booking-manage", {
+      body: { action: "update_status", booking_id: id, status },
+    });
     if (error) { toast.error("Failed to update"); return; }
     toast.success(`Booking ${status}`);
     fetchBookings();
@@ -199,7 +203,9 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       .select("id")
       .single();
     if (woErr || !wo) { toast.error("Failed to create work order"); setConvertingId(null); return; }
-    await supabase.from("service_bookings").update({ workorder_id: wo.id } as any).eq("id", b.id);
+    await supabase.functions.invoke("service-booking-manage", {
+      body: { action: "link_workorder", booking_id: b.id, workorder_id: wo.id },
+    });
     setConvertingId(null);
     toast.success(`Work Order ${woNumber} created${vehicleId ? " with linked vehicle" : ""}`);
     fetchBookings();
@@ -207,10 +213,13 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
 
   const saveNotes = async () => {
     setSaving(true);
-    const { error } = await supabase
-      .from("service_bookings")
-      .update({ admin_notes: notesDialog.notes } as any)
-      .eq("id", notesDialog.bookingId);
+    const { error } = await supabase.functions.invoke("service-booking-manage", {
+      body: {
+        action: "save_notes",
+        booking_id: notesDialog.bookingId,
+        admin_notes: notesDialog.notes,
+      },
+    });
     setSaving(false);
     if (error) { toast.error("Failed to save notes"); return; }
     toast.success("Notes saved");
@@ -224,13 +233,14 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("service_bookings")
-      .update({
+    const { error } = await supabase.functions.invoke("service-booking-manage", {
+      body: {
+        action: "reschedule",
+        booking_id: rescheduleDialog.bookingId,
         preferred_date: format(rescheduleDialog.date, "yyyy-MM-dd"),
         preferred_time: rescheduleDialog.time,
-      })
-      .eq("id", rescheduleDialog.bookingId);
+      },
+    });
     setSaving(false);
     if (error) { toast.error("Failed to reschedule"); return; }
     toast.success("Booking rescheduled");

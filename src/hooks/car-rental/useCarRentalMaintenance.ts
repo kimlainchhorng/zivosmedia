@@ -70,7 +70,6 @@ export function useCarRentalMaintenance(storeId: string | undefined) {
   const create = useCallback(async (draft: CarRentalMaintenanceDraft): Promise<CarRentalMaintenance | null> => {
     if (!storeId) return null;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       store_id: storeId,
       vehicle_id: draft.vehicle_id,
@@ -84,20 +83,17 @@ export function useCarRentalMaintenance(storeId: string | undefined) {
       next_service_due_date: draft.next_service_due_date ?? null,
       next_service_due_odometer: draft.next_service_due_odometer ?? null,
       took_vehicle_offline: draft.took_vehicle_offline ?? false,
-      created_by_user_id: user?.id ?? null,
     };
-    const { data, error: err } = await supabase
-      .from("car_rental_maintenance")
-      .insert(payload as never)
-      .select("*")
-      .single();
+    const { data, error: err } = await supabase.functions.invoke("car-rental-maintenance-manage", {
+      body: { action: "create", store_id: storeId, maintenance: payload },
+    });
     if (err) {
       console.error("[useCarRentalMaintenance] create failed", err);
       setError("Couldn't add maintenance record.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as CarRentalMaintenance;
+    const created = data?.maintenance as CarRentalMaintenance;
     setRecords((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -106,11 +102,16 @@ export function useCarRentalMaintenance(storeId: string | undefined) {
   const update = useCallback(async (id: string, patch: Partial<CarRentalMaintenanceDraft>) => {
     setSaving(true);
     setRecords((prev) => prev.map((r) => (r.id === id ? ({ ...r, ...patch } as CarRentalMaintenance) : r)));
-    const { error: err } = await supabase.from("car_rental_maintenance").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-rental-maintenance-manage", {
+      body: { action: "update", maintenance_id: id, maintenance: patch },
+    });
     if (err) {
       console.error("[useCarRentalMaintenance] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
+    } else if (data?.maintenance) {
+      const updated = data.maintenance as CarRentalMaintenance;
+      setRecords((prev) => prev.map((r) => (r.id === id ? updated : r)));
     }
     setSaving(false);
   }, [load]);
@@ -119,7 +120,9 @@ export function useCarRentalMaintenance(storeId: string | undefined) {
     setSaving(true);
     const prev = records;
     setRecords((p) => p.filter((r) => r.id !== id));
-    const { error: err } = await supabase.from("car_rental_maintenance").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-rental-maintenance-manage", {
+      body: { action: "delete", maintenance_id: id },
+    });
     if (err) {
       console.error("[useCarRentalMaintenance] delete failed", err);
       setError("Couldn't delete record.");

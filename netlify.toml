@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm run security:scan && npm run deploy:preflight:local"
   publish = "dist"
 
 [build.environment]
@@ -8,12 +8,6 @@
 
 [[plugins]]
   package = "@netlify/plugin-lighthouse"
-
-[[redirects]]
-  from = "/share/c/:handle"
-  to = "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/channel-og?handle=:handle"
-  status = 200
-  force = true
 
 [[redirects]]
   from = "/*"

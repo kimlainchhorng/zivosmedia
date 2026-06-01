@@ -1,23 +1,21 @@
 // Boost a Facebook Page post via the Graph API /promotions endpoint.
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const json = (data: unknown, status = 200) =>
+const json = (data: unknown, status = 200, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { ...cors, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("boost-facebook-post", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const auth = req.headers.get("Authorization");
-    if (!auth?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+    if (!auth?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401, corsHeaders);
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -25,7 +23,15 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: auth } } }
     );
     const { data: userRes, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userRes?.user) return json({ error: "Unauthorized" }, 401);
+    if (userErr || !userRes?.user) return json({ error: "Unauthorized" }, 401, corsHeaders);
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userRes.user.id);
+    const isAdmin = (roles || []).some((r: any) => r.role === "admin" || r.role === "super_admin");
+    if (!isAdmin) return json({ error: "Forbidden" }, 403, corsHeaders);
 
     const body = await req.json() as {
       post_id: string;
@@ -39,7 +45,7 @@ Deno.serve(async (req) => {
 
     const { post_id, page_access_token, daily_budget_usd, duration_days } = body;
     if (!post_id || !page_access_token || !daily_budget_usd || !duration_days) {
-      return json({ error: "post_id, page_access_token, daily_budget_usd and duration_days are required" }, 400);
+      return json({ error: "post_id, page_access_token, daily_budget_usd and duration_days are required" }, 400, corsHeaders);
     }
 
     const currency = body.currency || "USD";
@@ -79,11 +85,6 @@ Deno.serve(async (req) => {
 
     const promotionData = await promotionRes.json() as any;
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     if (!promotionRes.ok || promotionData.error) {
       const errMsg: string = promotionData.error?.message || "Boost API error";
 
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
         fb_error_code: promotionData.error?.code,
         fallback: "pending",
         post_id,
-      });
+      }, 200, corsHeaders);
     }
 
     const promotionId: string = promotionData.id;
@@ -128,9 +129,9 @@ Deno.serve(async (req) => {
       post_id,
       status: "active",
       total_spend_usd: daily_budget_usd * duration_days,
-    });
+    }, 200, corsHeaders);
   } catch (e) {
     console.error("boost-facebook-post error:", e);
-    return json({ error: (e as Error).message }, 500);
+    return json({ error: (e as Error).message }, 500, corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

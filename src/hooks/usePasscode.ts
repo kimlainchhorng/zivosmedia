@@ -37,14 +37,15 @@ export function usePasscode() {
     if (!/^\d{4,6}$/.test(pin)) throw new Error("PIN must be 4–6 digits");
     const salt = generateSalt();
     const hash = await hashSecret(pin, salt);
-    const { error } = await supabase.from("user_passcode").upsert({
-      user_id: user.id,
+    const { error } = await supabase.functions.invoke("account-security-settings", { body: {
+      resource: "passcode",
+      action: "upsert",
       passcode_hash: hash,
       passcode_salt: salt,
       auto_lock_minutes: autoLockMinutes,
       biometric_enabled: biometric,
       enabled: true,
-    }, { onConflict: "user_id" });
+    } });
     if (error) throw error;
     await refresh();
   }, [user, refresh]);
@@ -53,7 +54,11 @@ export function usePasscode() {
     if (!user || !row) return;
     const next = { ...row, ...patch };
     setRow(next);
-    const { error } = await supabase.from("user_passcode").update(patch).eq("user_id", user.id);
+    const { error } = await supabase.functions.invoke("account-security-settings", { body: {
+      resource: "passcode",
+      action: "update",
+      ...patch,
+    } });
     if (error) await refresh();
   }, [user, row, refresh]);
 
@@ -61,7 +66,10 @@ export function usePasscode() {
     if (!user || !row) throw new Error("No passcode");
     const ok = await verifySecret(currentPin, row.passcode_salt, row.passcode_hash);
     if (!ok) throw new Error("Wrong PIN");
-    const { error } = await supabase.from("user_passcode").delete().eq("user_id", user.id);
+    const { error } = await supabase.functions.invoke("account-security-settings", { body: {
+      resource: "passcode",
+      action: "delete",
+    } });
     if (error) throw error;
     await refresh();
   }, [user, row, refresh]);

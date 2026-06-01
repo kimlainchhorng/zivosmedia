@@ -40,14 +40,15 @@ export function useStoreTrainingAssignments(programId: string | null) {
     mutationFn: async (employeeIds: string[]) => {
       if (!programId) throw new Error("No program");
       const rows = employeeIds.map((employee_id) => ({
-        program_id: programId,
         employee_id,
-        status: "assigned" as const,
-        progress_pct: 0,
       }));
-      const { error } = await supabase
-        .from("store_training_assignments")
-        .upsert(rows, { onConflict: "program_id,employee_id", ignoreDuplicates: true });
+      const { error } = await supabase.functions.invoke("store-training-assignment-manage", {
+        body: {
+          action: "assign",
+          program_id: programId,
+          employee_ids: rows.map((row) => row.employee_id),
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(programId || "") }),
@@ -55,10 +56,13 @@ export function useStoreTrainingAssignments(programId: string | null) {
 
   const unassign = useMutation({
     mutationFn: async (assignmentId: string) => {
-      const { error } = await supabase
-        .from("store_training_assignments")
-        .delete()
-        .eq("id", assignmentId);
+      const { error } = await supabase.functions.invoke("store-training-assignment-manage", {
+        body: {
+          action: "unassign",
+          assignment_id: assignmentId,
+          program_id: programId,
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(programId || "") }),
@@ -68,14 +72,15 @@ export function useStoreTrainingAssignments(programId: string | null) {
     mutationFn: async ({ id, progress_pct }: { id: string; progress_pct: number }) => {
       const status: AssignmentStatus =
         progress_pct >= 100 ? "completed" : progress_pct > 0 ? "in_progress" : "assigned";
-      const { error } = await supabase
-        .from("store_training_assignments")
-        .update({
+      const { error } = await supabase.functions.invoke("store-training-assignment-manage", {
+        body: {
+          action: "update_progress",
+          assignment_id: id,
+          program_id: programId,
           progress_pct,
           status,
-          completed_at: progress_pct >= 100 ? new Date().toISOString() : null,
-        })
-        .eq("id", id);
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(programId || "") }),

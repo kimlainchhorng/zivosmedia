@@ -104,7 +104,7 @@ export default function ReactedBySheet({ open, messageId, onClose }: Props) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-[180] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-[180] flex items-end justify-center bg-black/55 px-2 backdrop-blur-md sm:items-center sm:px-4"
           role="dialog"
           aria-modal="true"
           aria-label="Reactions detail"
@@ -115,26 +115,34 @@ export default function ReactedBySheet({ open, messageId, onClose }: Props) {
             exit={{ y: 80, opacity: 0 }}
             transition={{ type: "spring", damping: 26, stiffness: 280 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-md bg-background rounded-t-2xl sm:rounded-2xl pb-[max(1rem,var(--zivo-safe-bottom,0px))] max-h-[80dvh] flex flex-col overflow-hidden"
+            className="zivo-chat-popover-glass flex max-h-[80dvh] w-full flex-col overflow-hidden rounded-t-[1.75rem] pb-[max(1rem,var(--zivo-safe-bottom,0px))] shadow-2xl sm:max-w-md sm:rounded-[1.75rem]"
           >
-            <div className="flex items-center justify-between p-4 border-b border-border/30">
-              <h3 className="text-base font-bold text-foreground">Reactions</h3>
+            <div className="zivo-chat-header-glass p-4">
+              <div className="mb-3 flex justify-center sm:hidden">
+                <div className="h-1 w-11 rounded-full bg-foreground/20" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Reaction room</p>
+                  <h3 className="text-lg font-black text-foreground">Reactions</h3>
+                </div>
               <button type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="h-9 w-9 -mr-1.5 flex items-center justify-center rounded-full hover:bg-muted"
+                  className="zivo-chat-icon-button -mr-1.5 flex h-9 w-9 items-center justify-center"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
+              </div>
             </div>
 
             {/* Emoji filter pills */}
             {emojis.length > 1 && (
-              <div className="flex gap-1.5 px-4 py-2 border-b border-border/20 overflow-x-auto">
+              <div className="zivo-chat-header-glass flex gap-1.5 overflow-x-auto px-4 py-2">
                 <button type="button"
                   onClick={() => setFilter(null)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    filter == null ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/70"
+                  className={`rounded-full px-2.5 py-1.5 text-xs font-black ${
+                    filter == null ? "zivo-chat-chip-active" : "zivo-chat-chip text-foreground/70"
                   }`}
                 >
                   All · {(items || []).length}
@@ -143,8 +151,8 @@ export default function ReactedBySheet({ open, messageId, onClose }: Props) {
                   <button type="button"
                     key={e}
                     onClick={() => setFilter(e)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      filter === e ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/70"
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-black ${
+                      filter === e ? "zivo-chat-chip-active" : "zivo-chat-chip text-foreground/70"
                     }`}
                   >
                     <span className="text-sm leading-none">{e}</span>
@@ -154,26 +162,28 @@ export default function ReactedBySheet({ open, messageId, onClose }: Props) {
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto px-2 py-2">
+            <div className="flex-1 overflow-y-auto px-4 py-3">
               {items == null ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <div className="zivo-chat-card flex min-h-32 items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 </div>
               ) : visible.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-10">No reactions yet</p>
+                <div className="zivo-chat-card flex min-h-32 items-center justify-center text-center">
+                  <p className="text-sm font-semibold text-muted-foreground">No reactions yet</p>
+                </div>
               ) : (
                 visible.map((r) => (
-                  <div key={`${r.user_id}:${r.emoji}`} className="flex items-center gap-3 px-2 py-2 rounded-xl">
-                    <Avatar className="h-9 w-9">
+                  <div key={`${r.user_id}:${r.emoji}`} className="zivo-chat-row mb-2 flex items-center gap-3 px-3 py-2.5">
+                    <Avatar className="h-10 w-10 ring-2 ring-primary/10">
                       <AvatarImage src={r.avatar_url || undefined} />
-                      <AvatarFallback className="text-xs bg-muted">
+                      <AvatarFallback className="bg-primary/10 text-xs font-black text-primary">
                         {(r.full_name || "?").slice(0, 1).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="flex-1 text-sm font-medium text-foreground truncate">
+                    <span className="flex-1 truncate text-sm font-black text-foreground">
                       {r.full_name || "User"}
                     </span>
-                    <span className="text-lg leading-none">{r.emoji}</span>
+                    <span className="zivo-chat-chip flex h-9 min-w-9 items-center justify-center px-2 text-lg leading-none">{r.emoji}</span>
                   </div>
                 ))
               )}

@@ -131,6 +131,7 @@ export default function PodcastsPage() {
                     alt={show.title}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 text-white text-[10px] font-semibold">
@@ -165,6 +166,7 @@ export default function PodcastsPage() {
                       alt={ep.showTitle}
                       className="w-14 h-14 rounded-xl object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
                     <button
                       type="button"

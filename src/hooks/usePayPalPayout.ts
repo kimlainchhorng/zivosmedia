@@ -10,7 +10,9 @@ export function usePayPalPayout() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { amount_cents: number; paypal_email: string }) => {
+      const idempotencyKey = `paypal-payout-${crypto.randomUUID()}`;
       const { data, error } = await supabase.functions.invoke("paypal-payout", {
+        headers: { "Idempotency-Key": idempotencyKey },
         body: params,
       });
       if (error) throw error;
@@ -31,31 +33,15 @@ export function usePayPalPayout() {
 export function useSavePayPalEmail() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (params: { userId: string; paypal_email: string }) => {
-      const { data: existing } = await (supabase as any)
-        .from("creator_profiles")
-        .select("id, payout_details")
-        .eq("user_id", params.userId)
-        .maybeSingle();
-
-      const newDetails = {
-        ...(existing?.payout_details || {}),
-        paypal_email: params.paypal_email,
-      };
-
-      if (existing) {
-        const { error } = await (supabase as any)
-          .from("creator_profiles")
-          .update({ payout_method: "paypal", payout_details: newDetails })
-          .eq("user_id", params.userId);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any)
-          .from("creator_profiles")
-          .insert({ user_id: params.userId, payout_method: "paypal", payout_details: newDetails });
-        if (error) throw error;
-      }
-      return newDetails;
+    mutationFn: async (params: { userId?: string; paypal_email: string }) => {
+      const idempotencyKey = `creator-paypal-method-${crypto.randomUUID()}`;
+      const { data, error } = await supabase.functions.invoke("creator-payout-method-record", {
+        headers: { "Idempotency-Key": idempotencyKey },
+        body: { method: "paypal", paypal_email: params.paypal_email },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["creator-profile"] });

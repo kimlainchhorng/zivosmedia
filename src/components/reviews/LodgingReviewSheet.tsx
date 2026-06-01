@@ -71,6 +71,10 @@ export function LodgingReviewSheet({
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    if (!user) {
+      toast.error("Please sign in to post a review");
+      return;
+    }
     if (!body.trim()) {
       toast.error("Please share a few words about your stay");
       return;
@@ -80,7 +84,6 @@ export function LodgingReviewSheet({
       const payload: any = {
         store_id: storeId,
         reservation_id: reservationId,
-        guest_user_id: user?.id ?? null,
         guest_name: guestName?.trim() || (user?.email?.split("@")[0] ?? "Guest"),
         rating: overall,
         title: title.trim() || null,
@@ -90,10 +93,8 @@ export function LodgingReviewSheet({
         location_score: sub.location_score,
         staff: sub.staff,
         value: sub.value,
-        source: "zivo_app",
-        flagged: false,
       };
-      const { error } = await (supabase as any).from("lodging_reviews").insert(payload);
+      const { error } = await supabase.functions.invoke("lodging-review-submit", { body: payload });
       if (error) throw error;
       toast.success("Thanks for your review!");
       qc.invalidateQueries({ queryKey: ["hotel-detail-rpc", storeId] });

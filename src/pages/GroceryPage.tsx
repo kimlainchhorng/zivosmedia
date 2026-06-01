@@ -102,7 +102,7 @@ export default function GroceryPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <img src={storeCfg.logo} alt={selectedStore} className="h-7 w-7 rounded-lg object-contain" />
+            <img src={storeCfg.logo} alt={selectedStore} className="h-7 w-7 rounded-lg object-contain" loading="lazy" decoding="async" />
             <h1 className="text-lg font-bold truncate">Grocery</h1>
           </div>
           <button type="button" onClick={() => setShowCart(!showCart)} className="relative p-2 rounded-xl hover:bg-muted">
@@ -128,7 +128,7 @@ export default function GroceryPage() {
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
               )}
             >
-              <img src={store.logo} alt={store.name} className="h-5 w-5 rounded object-contain" />
+              <img src={store.logo} alt={store.name} className="h-5 w-5 rounded object-contain" loading="lazy" decoding="async" />
               {store.name}
             </button>
           ))}
@@ -176,7 +176,7 @@ export default function GroceryPage() {
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {cart.items.map((item) => (
                     <div key={item.productId} className="flex items-center gap-3 p-2 rounded-xl bg-muted/30">
-                      {item.image && <img src={item.image} alt="" className="h-10 w-10 rounded-lg object-contain bg-white" />}
+                      {item.image && <img src={item.image} alt="" className="h-10 w-10 rounded-lg object-contain bg-white" loading="lazy" decoding="async" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate">{item.name}</p>
                         <div className="flex items-center gap-1.5">

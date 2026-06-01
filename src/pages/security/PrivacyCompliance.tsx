@@ -268,7 +268,7 @@ export default function PrivacyCompliance() {
                     </li>
                   </ul>
                   <Button variant="outline" size="sm" className="mt-4" asChild>
-                    <Link to="/cookies">View Cookie Policy</Link>
+                    <Link to="/legal/cookies">View Cookie Policy</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -425,10 +425,10 @@ export default function PrivacyCompliance() {
             <p className="text-sm text-muted-foreground mb-4">Related resources:</p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button variant="outline" size="sm" asChild>
-                <Link to="/privacy">Privacy Policy</Link>
+                <Link to="/legal/privacy">Privacy Policy</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/cookies">Cookie Policy</Link>
+                <Link to="/legal/cookies">Cookie Policy</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link to="/security/data-protection">Data Protection</Link>

@@ -155,7 +155,7 @@ export default function ReelEffectsPage() {
                 className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted shadow-sm text-left active:opacity-90"
               >
                 {e.preview_url ? (
-                  <img src={e.preview_url} alt={e.name} className="w-full h-full object-cover" loading="lazy" />
+                  <img src={e.preview_url} alt={e.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 ) : (
                   <div className="w-full h-full bg-ig-gradient flex items-center justify-center">
                     <Wand2 className="h-10 w-10 text-white/85" />

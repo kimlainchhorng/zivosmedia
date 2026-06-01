@@ -9,7 +9,7 @@ const AccountDeletionInfo = () => {
       <SEOHead
         title="Delete Your ZIVO Account"
         description="Request deletion of your ZIVO account and personal data from the web or inside the ZIVO app."
-        canonical="https://www.zivollc.com/account-deletion"
+        canonical="https://hizivo.com/delete-account"
       />
 
       <main className="container mx-auto max-w-3xl px-4 py-10 md:py-16">
@@ -99,7 +99,7 @@ const AccountDeletionInfo = () => {
             Sign back in to ZIVO within 30 days of your deletion request and choose Cancel deletion to keep your account.
           </p>
           <div className="mt-4 flex flex-wrap gap-4 text-sm">
-            <Link to="/privacy-policy" className="font-medium text-primary hover:underline">
+            <Link to="/legal/privacy" className="font-medium text-primary hover:underline">
               Privacy Policy
             </Link>
             <Link to="/legal/data-retention" className="font-medium text-primary hover:underline">

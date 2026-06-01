@@ -90,12 +90,15 @@ export default function StorePaymentSection({ storeId, market = "KH" }: { storeI
 
   const upsertMutation = useMutation({
     mutationFn: async (method: Partial<PaymentMethod> & { store_id: string; provider: string }) => {
-      const { data, error } = await supabase
-        .from("store_payment_methods")
-        .upsert(method, { onConflict: "store_id,provider" })
-        .select()
-        .single();
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("store-payment-methods-update", {
+        body: {
+          store_id: storeId,
+          methods: [method],
+        },
+      });
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Failed to save");
+      }
       return data;
     },
     onSuccess: () => {

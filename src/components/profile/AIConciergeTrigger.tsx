@@ -48,12 +48,11 @@ export function AIConciergeTrigger() {
     setInput("");
 
     if (user) {
-      await supabase.from("feedback_submissions").insert({
-        category: "concierge_message",
-        subject: "Concierge Chat",
+      await supabase.functions.invoke("concierge-message-submit", { body: {
         message: text,
-        user_id: user.id,
-      });
+        has_upcoming_trips: !!hasUpcomingTrips,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
     }
 
     setTimeout(() => {

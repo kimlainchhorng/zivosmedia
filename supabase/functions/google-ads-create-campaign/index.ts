@@ -1,5 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Creates a Google Ads Search campaign via the REST API.
 // Admin-only. Stores result in ad_campaigns table.
@@ -20,8 +20,8 @@ async function getAccessToken(): Promise<string> {
   return json.access_token;
 }
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
+Deno.serve(withSecurity("google-ads-create-campaign", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
@@ -120,6 +120,12 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("[google-ads-create-campaign]", e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

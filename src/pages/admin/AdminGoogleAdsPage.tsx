@@ -104,27 +104,39 @@ export default function AdminGoogleAdsPage() {
     setSavingConfig(false);
   }, [formCustomerId, formAccountName, formConvId, formConvLabel]);
 
-  // ── Create campaign (save to Supabase + open Google Ads) ─────────────────
+  // ── Create campaign through server API, with a draft fallback until Google API is configured.
   const createCampaign = async () => {
     if (!campaignName.trim()) { toast.error("Enter a campaign name"); return; }
     setCreating(true);
     try {
-      const { error } = await supabase.from("ad_campaigns").insert({
-        platform: "google",
+      const body = {
         name: campaignName.trim(),
         daily_budget_cents: Math.round(parseFloat(dailyBudget) * 100),
-        status: "pending",
-        metadata: {
-          type: campaignType,
-          keywords: keywords.split(",").map(k => k.trim()).filter(Boolean),
-          final_url: finalUrl,
-          headline,
-          description,
-          customer_id: config?.customerId,
-        },
-      } as any);
-      if (error) throw error;
-      toast.success("Campaign saved — finish setup in Google Ads below");
+        keywords: keywords.split(",").map(k => k.trim()).filter(Boolean),
+        final_url: finalUrl,
+      };
+      const { error } = await supabase.functions.invoke("google-ads-create-campaign", { body });
+      if (error) {
+        const { error: draftError } = await supabase.from("ad_campaigns").insert({
+          platform: "google",
+          name: campaignName.trim(),
+          daily_budget_cents: Math.round(parseFloat(dailyBudget) * 100),
+          status: "pending",
+          metadata: {
+            type: campaignType,
+            keywords: body.keywords,
+            final_url: finalUrl,
+            headline,
+            description,
+            customer_id: config?.customerId,
+            server_publish_error: error.message,
+          },
+        } as any);
+        if (draftError) throw draftError;
+        toast.warning("Campaign saved as draft — connect Google Ads API credentials to publish from ZIVO.");
+      } else {
+        toast.success("Campaign created in Google Ads as paused");
+      }
       qc.invalidateQueries({ queryKey: ["ad_campaigns", "google"] });
     } catch (e: any) {
       toast.error(e.message || "Failed to save campaign");
@@ -168,11 +180,12 @@ export default function AdminGoogleAdsPage() {
         toast.success("Conversion sent via gtag! Check Google Ads → Diagnostics.");
       } else {
         // gtag not loaded — record in Supabase as fallback
-        await supabase.from("feedback_submissions" as any).insert({
+        await supabase.functions.invoke("admin-feedback-queue-write", { body: {
+          action: "insert",
           category: "google_ads_conversion_test",
           message: JSON.stringify({ conversion_id: config.conversionId, order_id: orderId, value_usd: value, ts: new Date().toISOString() }),
           status: "pending",
-        });
+        } });
         setConvResult({ ok: false, method: "supabase", message: "gtag not found on page — conversion logged to Supabase. Add the Google tag to your site to enable live tracking." });
         toast.warning("gtag not detected — conversion saved to Supabase log");
       }

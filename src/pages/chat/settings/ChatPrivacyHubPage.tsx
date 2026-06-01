@@ -105,10 +105,9 @@ export default function ChatPrivacyHubPage() {
   });
 
   const unblock = async (id: string) => {
-    const { error } = await dbFrom("blocked_users")
-      .delete()
-      .eq("blocker_id", user!.id)
-      .eq("blocked_id", id);
+    const { error } = await supabase.functions.invoke("block-user-manage", {
+      body: { action: "unblock", blocked_id: id },
+    });
     if (error) { toast.error("Could not unblock"); return; }
     toast.success("Unblocked");
     qc.invalidateQueries({ queryKey: ["blocked-users", user?.id] });

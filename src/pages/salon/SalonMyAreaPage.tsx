@@ -89,16 +89,11 @@ export default function SalonMyAreaPage() {
     clientId: string,
     patch: { sms_opt_in?: boolean; email_opt_in?: boolean; marketing_opt_in?: boolean },
   ) => {
-    // RLS lets the client UPDATE only the three opt-in columns on their own
-    // salon_clients row (enforced by the salon_clients_self_update_guard
-    // trigger added in the customer-portal migration). The refresh after
-    // success keeps the UI consistent.
-    const { error: err } = await supabase
-      .from("salon_clients")
-      .update(patch as never)
-      .eq("id", clientId);
-    if (err) {
-      toast.error(err.message || "Couldn't update preferences.");
+    const { data, error: err } = await supabase.functions.invoke("salon-client-manage", {
+      body: { action: "self_update_preferences", client_id: clientId, preferences: patch },
+    });
+    if (err || data?.error) {
+      toast.error(data?.error || err?.message || "Couldn't update preferences.");
       return;
     }
     void refresh();
@@ -346,7 +341,7 @@ function SalonRow({ salon, onPrefChange }: {
       <div className="flex items-start gap-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
           {salon.logo_url ? (
-            <img src={salon.logo_url} alt="" className="h-full w-full rounded-lg object-cover" />
+            <img src={salon.logo_url} alt="" className="h-full w-full rounded-lg object-cover" loading="lazy" decoding="async" />
           ) : (
             <Store className="h-4 w-4" />
           )}

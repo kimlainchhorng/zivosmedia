@@ -531,7 +531,7 @@ export default function CafeMenuSection({ storeId }: Props) {
                         {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </button>
                       {item.image_url ? (
-                        <img src={item.image_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                        <img src={item.image_url} alt="" className="h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-700">
                           <ImageIcon className="h-4 w-4" />
@@ -677,7 +677,7 @@ export default function CafeMenuSection({ storeId }: Props) {
               <div className="mt-1 flex items-start gap-3">
                 <div className="relative grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-muted/30">
                   {itemDraft.image_url ? (
-                    <img src={itemDraft.image_url} alt="" className="h-full w-full object-cover" />
+                    <img src={itemDraft.image_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <ImageIcon className="h-6 w-6 text-muted-foreground" />
                   )}

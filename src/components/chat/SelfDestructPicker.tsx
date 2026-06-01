@@ -25,23 +25,29 @@ export default function SelfDestructPicker({ value, onChange }: Props) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
-            value ? "text-orange-500 bg-orange-500/10" : "hover:bg-muted text-muted-foreground"
+          className={`flex h-10 w-10 items-center justify-center rounded-full transition-all ${
+            value ? "border border-orange-500/25 bg-orange-500/10 text-orange-500 shadow-sm" : "zivo-chat-icon-button text-muted-foreground"
           }`}
           aria-label="Self-destruct timer"
         >
-          <Flame className="w-5 h-5" />
+          <Flame className="h-5 w-5" />
         </button>
       </PopoverTrigger>
-      <PopoverContent side="top" className="w-48 p-1">
+      <PopoverContent side="top" className="zivo-chat-popover-glass w-56 rounded-3xl border-white/10 p-2 shadow-2xl">
+        <div className="px-2 pb-2 pt-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary/80">Burn after read</p>
+          <p className="text-xs font-semibold text-muted-foreground">Choose when the message disappears.</p>
+        </div>
         {OPTIONS.map((o) => (
           <button type="button"
             key={String(o.value)}
             onClick={() => onChange(o.value)}
-            className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-md hover:bg-muted"
+            className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-sm transition-colors ${
+              value === o.value ? "zivo-chat-row-unread font-black text-primary" : "font-bold text-foreground hover:bg-muted/20"
+            }`}
           >
             <span>{o.label}</span>
-            {value === o.value && <Check className="w-4 h-4 text-primary" />}
+            {value === o.value && <Check className="h-4 w-4 text-primary" />}
           </button>
         ))}
       </PopoverContent>

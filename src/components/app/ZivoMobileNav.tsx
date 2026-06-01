@@ -4,7 +4,7 @@
  * active tab (motion layoutId), tactile active-press scale, subtle ring
  * elevation. Matches the reels-rail / reel-tabs design language.
  */
-import { forwardRef } from "react";
+import { forwardRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, MessageCircle, User, Film, Newspaper } from "lucide-react";
@@ -33,6 +33,32 @@ interface NavTab {
   fillable?: boolean;
 }
 
+type NavNotificationLike = {
+  action_url: string | null;
+  category?: string | null;
+  template?: string | null;
+  metadata?: Record<string, any> | null;
+  is_read?: boolean;
+};
+
+const isChatNotification = (notification: NavNotificationLike) => {
+  const template = (notification.template || "").toLowerCase();
+  const category = (notification.category || "").toLowerCase();
+  const actionUrl = (notification.action_url || "").toLowerCase();
+  const metadata = notification.metadata || {};
+
+  return (
+    category === "chat" ||
+    template === "chat_message" ||
+    template === "bot_reply" ||
+    template.includes("chat") ||
+    actionUrl.startsWith("/chat") ||
+    actionUrl.includes("?with=") ||
+    actionUrl.includes("&with=") ||
+    Boolean(metadata.thread_id || metadata.chat_id || metadata.conversation_id || metadata.message_id)
+  );
+};
+
 const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, ref) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,7 +66,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
   const { t } = useI18n();
   const { user } = useAuth();
   const { data: profile } = useUserProfile();
-  const { unreadCount: notificationUnread } = useNotifications(20);
+  const { notifications } = useNotifications(20);
   const liveActivity = useLiveActivityCount();
 
   const { data: unreadChatIds } = useQuery({
@@ -71,6 +97,10 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     }
     return real.size + manualOnly;
   })();
+  const accountUnread = useMemo(
+    () => notifications.filter((notification) => !notification.is_read && !isChatNotification(notification)).length,
+    [notifications],
+  );
 
   const gated = (path: string) =>
     user ? path : `/login?redirect=${encodeURIComponent(path)}`;
@@ -80,7 +110,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     { id: "feed", labelKey: "nav.feed", icon: Newspaper, path: SOCIAL_ROUTE_PATHS.feed },
     { id: "reels", labelKey: "nav.reel", icon: Film, path: SOCIAL_ROUTE_PATHS.reels },
     { id: "chat", labelKey: "nav.chat", icon: MessageCircle, path: gated(SOCIAL_ROUTE_PATHS.chat), badge: chatUnread, fillable: true },
-    { id: "account", labelKey: "nav.account", icon: User, path: gated(SOCIAL_ROUTE_PATHS.profile), badge: notificationUnread },
+    { id: "account", labelKey: "nav.account", icon: User, path: gated(SOCIAL_ROUTE_PATHS.profile), badge: accountUnread },
   ];
 
   const getActiveTab = () => {
@@ -108,9 +138,9 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     <nav
       ref={ref}
       data-zivo-mobile-nav
-      className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe bg-background/95 backdrop-blur-md border-t border-border/60 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.18)]"
+      className="zivo-social-nav-glass fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe"
     >
-      <div className="relative flex h-[56px] max-w-lg items-stretch justify-around mx-auto px-1">
+      <div className="relative mx-auto flex h-[60px] max-w-lg items-center justify-around px-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
 
@@ -139,7 +169,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                 }
               }}
               className={cn(
-                "flex items-center justify-center flex-1 transition-all duration-200 touch-manipulation relative min-w-[44px] min-h-[44px] active:scale-[0.92]",
+                "relative flex min-h-[48px] min-w-[44px] flex-1 touch-manipulation items-center justify-center transition-all duration-200 active:scale-[0.94]",
                 isActive ? "text-foreground" : "text-foreground/45 hover:text-foreground/70"
               )}
               aria-label={t(tab.labelKey)}
@@ -172,13 +202,13 @@ function NavIcon({
   profile: ReturnType<typeof useUserProfile>["data"];
 }) {
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative flex h-11 w-11 items-center justify-center">
       {isActive && (
         <motion.span
           layoutId="zivo-bottom-nav-pill"
           transition={{ type: "spring", stiffness: 380, damping: 30 }}
           aria-hidden
-          className="absolute -inset-x-3 -inset-y-1.5 rounded-full bg-foreground/[0.06] ring-1 ring-foreground/10"
+          className="zivo-social-nav-pill absolute inset-0 rounded-2xl"
         />
       )}
       {isActive && (
@@ -186,7 +216,7 @@ function NavIcon({
           layoutId="zivo-bottom-nav-glow"
           transition={{ type: "spring", stiffness: 380, damping: 30 }}
           aria-hidden
-          className="bg-ig-gradient absolute -bottom-2 left-1/2 -translate-x-1/2 h-[3px] w-6 rounded-full opacity-90"
+          className="bg-ig-gradient absolute bottom-0.5 left-1/2 h-[3px] w-5 -translate-x-1/2 rounded-full opacity-90"
         />
       )}
       {tab.id === "account" && user ? (
@@ -194,13 +224,13 @@ function NavIcon({
           className={cn(
             "relative z-10 rounded-full",
             isActive
-              ? "bg-ig-gradient p-[1.5px] ring-2 ring-background"
+              ? "bg-ig-gradient p-[1.5px] ring-2 ring-background shadow-sm"
               : ""
           )}
         >
           <Avatar
             className={cn(
-              "h-[26px] w-[26px] transition-all duration-150",
+              "h-7 w-7 transition-all duration-150",
               isActive ? "ring-2 ring-background" : ""
             )}
           >
@@ -216,7 +246,7 @@ function NavIcon({
         </div>
       ) : (
         <tab.icon
-          className="relative z-10 w-[24px] h-[24px]"
+          className="relative z-10 h-[23px] w-[23px]"
           strokeWidth={isActive ? 2.4 : 1.6}
           fill={isActive && tab.fillable ? "currentColor" : "none"}
         />
@@ -226,9 +256,9 @@ function NavIcon({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 500, damping: 20 }}
-          className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full flex items-center justify-center z-20 ring-2 ring-background"
+          className="absolute right-0 top-0 z-20 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-black leading-none text-destructive-foreground ring-2 ring-background"
         >
-          {tab.badge > 9 ? "9+" : tab.badge}
+          {tab.badge > 99 ? "99+" : tab.badge}
         </motion.span>
       )}
     </div>

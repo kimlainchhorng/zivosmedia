@@ -5,14 +5,19 @@
  * and emits `pass` / `fail` outputs to $GITHUB_OUTPUT for downstream steps.
  *
  * Usage:
- *   SUPABASE_URL=https://slirphzzwcogdbkeicff.supabase.co \
+ *   SUPABASE_URL=https://<project-ref>.supabase.co \
  *   SUPABASE_ANON_KEY=... \
  *   deno run --allow-net --allow-env --allow-write scripts/wiring-check.ts
  */
 const SCHEMA_VERSION = 2;
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://slirphzzwcogdbkeicff.supabase.co";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL");
 const ANON = Deno.env.get("SUPABASE_ANON_KEY");
 const IS_CI = Deno.env.get("CI") === "true" || !!Deno.env.get("GITHUB_ACTIONS");
+
+if (!SUPABASE_URL) {
+  console.error("SUPABASE_URL or VITE_SUPABASE_URL env var is required.");
+  Deno.exit(2);
+}
 
 if (!ANON) {
   console.error("SUPABASE_ANON_KEY env var is required.");

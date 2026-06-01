@@ -65,8 +65,11 @@ export default function LodgingStaffSection({ storeId }: { storeId: string }) {
   const upsert = useMutation({
     mutationFn: async (row: Partial<StaffRow>) => {
       const payload: any = { ...row, store_id: storeId };
-      const { error } = await (supabase as any).from("store_employees").upsert(payload);
-      if (error) throw error;
+      const { id, store_id, ...employee } = payload;
+      const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+        body: { action: "save", store_id, employee_id: id, employee },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Save failed");
     },
     onSuccess: () => {
       toast.success("Staff member saved");
@@ -78,8 +81,10 @@ export default function LodgingStaffSection({ storeId }: { storeId: string }) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("store_employees").delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+        body: { action: "delete", employee_id: id },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Delete failed");
     },
     onSuccess: () => {
       toast.success("Removed");

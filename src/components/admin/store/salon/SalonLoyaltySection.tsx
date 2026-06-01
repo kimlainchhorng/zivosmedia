@@ -1,5 +1,7 @@
 /**
  * SalonLoyaltySection — points / rewards configuration + per-client balance.
+ * Mutations go through salon-loyalty-manage so owner/admin scope, point
+ * bounds, and client ownership are validated server-side.
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -85,11 +87,11 @@ export default function SalonLoyaltySection({ storeId }: SalonLoyaltySectionProp
   const saveSettings = async (patch: Partial<LoyaltySettings>) => {
     setSaving(true); setError(null);
     const next = { ...settings, ...patch };
-    const payload = { store_id: storeId, ...next };
-    const { error: err } = await supabase
-      .from("salon_loyalty_settings").upsert(payload as never, { onConflict: "store_id" });
+    const { data, error: err } = await supabase.functions.invoke("salon-loyalty-manage", {
+      body: { action: "update_settings", store_id: storeId, settings: next },
+    });
     setSaving(false);
-    if (err) { setError("Couldn't save."); return; }
+    if (err || data?.error) { setError(data?.error || "Couldn't save."); return; }
     setSettings(next);
   };
 
@@ -110,19 +112,20 @@ export default function SalonLoyaltySection({ storeId }: SalonLoyaltySectionProp
       return;
     }
     setSaving(true);
-    // Track who applied the adjustment so a client dispute later can be
-    // traced back to the staff member who pressed the button.
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error: err } = await supabase.from("salon_loyalty_events").insert({
-      store_id: storeId,
-      client_id: adjustDialog.clientId,
-      event_type: adjustType,
-      points_delta: delta,
-      reason: adjustReason.trim() || null,
-      created_by_user_id: user?.id ?? null,
-    } as never);
+    const { data, error: err } = await supabase.functions.invoke("salon-loyalty-manage", {
+      body: {
+        action: "add_event",
+        store_id: storeId,
+        event: {
+          client_id: adjustDialog.clientId,
+          event_type: adjustType,
+          points_delta: delta,
+          reason: adjustReason.trim() || null,
+        },
+      },
+    });
     setSaving(false);
-    if (err) { setError("Couldn't record event."); return; }
+    if (err || data?.error) { setError(data?.error || "Couldn't record event."); return; }
     toast.success(`${adjustType === "earn" ? "Added" : "Redeemed"} ${n} points.`);
     setAdjustDialog(null);
     await refreshClients();

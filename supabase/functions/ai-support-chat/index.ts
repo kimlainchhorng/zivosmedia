@@ -1,11 +1,6 @@
 import { serve, createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SYSTEM_PROMPT = `You are ZIVO AI Assistant — a friendly, concise support agent for the ZIVO travel and delivery platform. Keep responses under 150 words. Use simple language.
 
@@ -38,11 +33,8 @@ When you're unsure or the issue is complex, say: "I'd recommend connecting with 
 
 Never fabricate specific order details, tracking numbers, or account information. Instead say "I can explain how X works" or suggest checking the app.`;
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(withSecurity("ai-support-chat", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     // Require authenticated user
     const authHeader = req.headers.get("Authorization");
@@ -133,4 +125,10 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

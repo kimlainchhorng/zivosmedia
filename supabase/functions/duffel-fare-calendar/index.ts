@@ -1,5 +1,5 @@
 import { serve, createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 /**
  * Duffel Fare Calendar Edge Function
@@ -136,13 +136,8 @@ function classifyPrices(
   return result;
 }
 
-serve(async (req: Request) => {
-  const corsHeaders = getCorsHeaders(req);
-
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
-  }
-
+serve(withSecurity("duffel-fare-calendar", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Authentication required" }), {
@@ -219,4 +214,10 @@ serve(async (req: Request) => {
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "search",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

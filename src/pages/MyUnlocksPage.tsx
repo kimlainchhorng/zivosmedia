@@ -1,6 +1,6 @@
 /**
  * MyUnlocksPage — Paid content you've unlocked.
- * Backed by `paid_content_access` joined with `paid_content` (both orphan).
+ * Read-only view backed by server/payment-created `paid_content_access` rows.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -205,7 +205,7 @@ export default function MyUnlocksPage() {
                 >
                   <div className="shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-muted relative">
                     {c?.thumbnail_url ? (
-                      <img src={c.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={c.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full bg-ig-gradient flex items-center justify-center">
                         <Icon className="h-5 w-5 text-white" />

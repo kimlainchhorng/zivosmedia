@@ -44,7 +44,7 @@ export default function CompanyDetailPage() {
         <Card className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
-              {company.logo_url ? <img src={company.logo_url} alt="" className="h-full w-full object-cover" /> : <Building2 className="h-7 w-7 text-muted-foreground" />}
+              {company.logo_url ? <img src={company.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" /> : <Building2 className="h-7 w-7 text-muted-foreground" />}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">

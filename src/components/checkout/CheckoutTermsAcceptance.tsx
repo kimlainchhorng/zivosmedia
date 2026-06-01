@@ -124,7 +124,7 @@ export function CheckoutTermsAcceptance({
             I accept ZIVO's{" "}
             <button
               type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSheet("Terms of Service", "/terms"); }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSheet("Terms of Service", "/legal/terms"); }}
               className="text-primary hover:underline inline"
             >
               Terms of Service
@@ -132,7 +132,7 @@ export function CheckoutTermsAcceptance({
             and{" "}
             <button
               type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSheet("Privacy Policy", "/privacy"); }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSheet("Privacy Policy", "/legal/privacy"); }}
               className="text-primary hover:underline inline"
             >
               Privacy Policy

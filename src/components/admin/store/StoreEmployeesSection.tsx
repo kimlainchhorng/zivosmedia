@@ -113,12 +113,16 @@ export default function StoreEmployeesSection({ storeId }: Props) {
       };
       let savedId = editing?.id;
       if (editing) {
-        const { error } = await supabase.from("store_employees").update(payload).eq("id", editing.id);
-        if (error) throw error;
+        const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+          body: { action: "save", employee_id: editing.id, employee: payload },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to update employee");
       } else {
-        const { data, error } = await supabase.from("store_employees").insert(payload).select("id").maybeSingle();
-        if (error) throw error;
-        savedId = data?.id;
+        const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+          body: { action: "save", store_id: storeId, employee: payload },
+        });
+        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to add employee");
+        savedId = data.employee?.id;
       }
       // Fire invites if requested
       if (savedId) {
@@ -136,15 +140,22 @@ export default function StoreEmployeesSection({ storeId }: Props) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("store_employees").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+        body: { action: "delete", employee_id: id },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to remove employee");
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["store-employees", storeId] }); toast.success("Employee removed"); setDeleteId(null); },
     onError: (e) => toast.error("Failed: " + e.message),
   });
 
   const toggleStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("store_employees").update({ status: status === "active" ? "inactive" : "active" }).eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("store-employee-manage", {
+        body: { action: "toggle_status", employee_id: id, status: status === "active" ? "inactive" : "active" },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to update status");
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["store-employees", storeId] }),
   });

@@ -412,7 +412,7 @@ function ReturnDialog({
               <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
                 {damagePhotos.map((u, i) => (
                   <div key={i} className="group relative aspect-square overflow-hidden rounded border border-border">
-                    <img src={u} alt="" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                    <img src={u} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
                     <button type="button"
                       className="absolute inset-0 grid place-items-center bg-destructive/70 opacity-0 transition-opacity group-hover:opacity-100"
                       onClick={() => setDamagePhotos(damagePhotos.filter((_, j) => j !== i))}

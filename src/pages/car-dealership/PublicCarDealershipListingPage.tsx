@@ -475,7 +475,7 @@ export default function PublicCarDealershipListingPage() {
       <header className="border-b border-border bg-card sticky top-0 z-30">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-3">
           {store.logo_url ? (
-            <img src={store.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+            <img src={store.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" />
           ) : (
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
               <Car className="h-5 w-5" />
@@ -677,6 +677,7 @@ export default function PublicCarDealershipListingPage() {
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="absolute inset-0 grid place-items-center">

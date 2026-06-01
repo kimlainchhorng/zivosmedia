@@ -1,5 +1,6 @@
 import { createClient } from "../_shared/deps.ts";
 import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Suppression event payload sent by the Go API when Mailgun reports
 // a bounce, complaint, or unsubscribe.
@@ -24,16 +25,18 @@ function parseSuppressionPayload(body: string): SuppressionPayload {
   return data
 }
 
-function jsonResponse(data: Record<string, unknown>, status = 200): Response {
+function jsonResponse(data: Record<string, unknown>, corsHeaders: Record<string, string>, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("handle-email-suppression", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405)
+    return jsonResponse({ error: 'Method not allowed' }, corsHeaders, 405)
   }
 
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
 
   if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
-    return jsonResponse({ error: 'Server configuration error' }, 500)
+    return jsonResponse({ error: 'Server configuration error' }, corsHeaders, 500)
   }
 
   // Verify HMAC signature using the Lovable API Key (same as auth-email-hook)
@@ -59,24 +62,24 @@ Deno.serve(async (req) => {
       switch (error.code) {
         case 'invalid_signature':
           console.error('Invalid webhook signature')
-          return jsonResponse({ error: 'Invalid signature' }, 401)
+          return jsonResponse({ error: 'Invalid signature' }, corsHeaders, 401)
         case 'stale_timestamp':
           console.error('Stale webhook timestamp')
-          return jsonResponse({ error: 'Stale timestamp' }, 401)
+          return jsonResponse({ error: 'Stale timestamp' }, corsHeaders, 401)
         case 'invalid_payload':
         case 'invalid_json':
           console.error('Invalid payload', { code: error.code })
-          return jsonResponse({ error: 'Invalid payload' }, 400)
+          return jsonResponse({ error: 'Invalid payload' }, corsHeaders, 400)
         default:
           console.error('Webhook verification failed', {
             code: error.code,
             message: error.message,
           })
-          return jsonResponse({ error: 'Verification failed' }, 401)
+          return jsonResponse({ error: 'Verification failed' }, corsHeaders, 401)
       }
     }
     console.error('Unexpected error during verification', { error })
-    return jsonResponse({ error: 'Internal error' }, 500)
+    return jsonResponse({ error: 'Internal error' }, corsHeaders, 500)
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
@@ -99,7 +102,7 @@ Deno.serve(async (req) => {
       error: suppressError,
       email_redacted: normalizedEmail[0] + '***@' + normalizedEmail.split('@')[1],
     })
-    return jsonResponse({ error: 'Failed to write suppression' }, 500)
+    return jsonResponse({ error: 'Failed to write suppression' }, corsHeaders, 500)
   }
 
   // 2. Append a new log entry for the suppression event (never update existing rows)
@@ -132,8 +135,8 @@ Deno.serve(async (req) => {
     has_message_id: !!payload.message_id,
   })
 
-  return jsonResponse({ success: true })
-})
+  return jsonResponse({ success: true }, corsHeaders)
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true, skipWaf: true }))
 
 function mapReasonToStatus(
   reason: string,

@@ -34,21 +34,10 @@ export function useAllowMessageRequests() {
   const setValue = useCallback(
     async (next: boolean) => {
       if (!user) return;
-      const { data: existing } = await (supabase as any)
-        .from("privacy_settings")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (existing) {
-        await (supabase as any)
-          .from("privacy_settings")
-          .update({ allow_message_requests: next, updated_at: new Date().toISOString() })
-          .eq("user_id", user.id);
-      } else {
-        await (supabase as any)
-          .from("privacy_settings")
-          .insert({ user_id: user.id, allow_message_requests: next });
-      }
+      await supabase.functions.invoke("privacy-settings-update", { body: {
+        key: "allow_message_requests",
+        value: next,
+      } });
       queryClient.invalidateQueries({ queryKey: ["privacy-settings"] });
     },
     [user, queryClient]

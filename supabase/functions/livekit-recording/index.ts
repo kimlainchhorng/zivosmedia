@@ -5,20 +5,18 @@
 
 import { createClient } from "../_shared/deps.ts";
 import { EgressClient, EncodedFileType } from "npm:livekit-server-sdk@2.7.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface Body {
   sessionId: string;
   action: "start" | "stop";
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(withSecurity("livekit-recording", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const recordingHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "POST, OPTIONS" };
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: recordingHeaders });
 
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
@@ -28,18 +26,18 @@ Deno.serve(async (req) => {
     const lkKey = Deno.env.get("LIVEKIT_API_KEY");
     const lkSecret = Deno.env.get("LIVEKIT_API_SECRET");
 
-    if (!lkUrl || !lkKey || !lkSecret) return json({ error: "LiveKit secrets missing" }, 500);
+    if (!lkUrl || !lkKey || !lkSecret) return json({ error: "LiveKit secrets missing" }, 500, recordingHeaders);
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const userClient = createClient(url, anon, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userData, error: uerr } = await userClient.auth.getUser();
-    if (uerr || !userData.user) return json({ error: "Unauthorized" }, 401);
+    if (uerr || !userData.user) return json({ error: "Unauthorized" }, 401, recordingHeaders);
     const user = userData.user;
 
     const body = (await req.json()) as Body;
-    if (!body?.sessionId || !body?.action) return json({ error: "Invalid body" }, 400);
+    if (!body?.sessionId || !body?.action) return json({ error: "Invalid body" }, 400, recordingHeaders);
 
     const admin = createClient(url, serviceKey);
     const { data: session, error: serr } = await admin
@@ -47,8 +45,8 @@ Deno.serve(async (req) => {
       .select("id, room_name, host_id, recording_egress_id")
       .eq("id", body.sessionId)
       .maybeSingle();
-    if (serr || !session) return json({ error: "Session not found" }, 404);
-    if (session.host_id !== user.id) return json({ error: "Host only" }, 403);
+    if (serr || !session) return json({ error: "Session not found" }, 404, recordingHeaders);
+    if (session.host_id !== user.id) return json({ error: "Host only" }, 403, recordingHeaders);
 
     const httpUrl = lkUrl.replace(/^wss:/, "https:").replace(/^ws:/, "http:");
     const egress = new EgressClient(httpUrl, lkKey, lkSecret);
@@ -68,11 +66,11 @@ Deno.serve(async (req) => {
         })
         .eq("id", session.id);
 
-      return json({ ok: true, egressId: info.egressId });
+      return json({ ok: true, egressId: info.egressId }, 200, recordingHeaders);
     }
 
     // stop
-    if (!session.recording_egress_id) return json({ error: "Not recording" }, 400);
+    if (!session.recording_egress_id) return json({ error: "Not recording" }, 400, recordingHeaders);
     const stopped = await egress.stopEgress(session.recording_egress_id);
 
     await admin
@@ -96,14 +94,14 @@ Deno.serve(async (req) => {
         .eq("id", session.id);
     }
 
-    return json({ ok: true });
+    return json({ ok: true }, 200, recordingHeaders);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg }, 500);
+    return json({ error: msg }, 500, ctx.corsHeaders);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, status = 200, corsHeaders: Record<string, string>): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

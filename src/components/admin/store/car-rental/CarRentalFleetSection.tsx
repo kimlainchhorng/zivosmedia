@@ -485,6 +485,8 @@ export default function CarRentalFleetSection({ storeId }: Props) {
                     src={draft.photo_url}
                     alt="Vehicle preview"
                     className="h-32 w-full rounded object-cover"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
                   />
                   <p className="mt-1 text-[10px] text-muted-foreground text-center">Primary photo · shown as the storefront thumbnail</p>
@@ -667,7 +669,7 @@ function ExtraPhotosEditor({ urls, onChange }: { urls: string[]; onChange: (urls
         <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
           {urls.map((u, i) => (
             <div key={i} className="group relative aspect-square overflow-hidden rounded border border-border">
-              <img src={u} alt="" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+              <img src={u} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
               <button
                 type="button"
                 className="absolute inset-0 grid place-items-center bg-destructive/70 opacity-0 transition-opacity group-hover:opacity-100"

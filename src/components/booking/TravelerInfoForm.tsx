@@ -171,7 +171,7 @@ export default function TravelerInfoForm({
                 </FormLabel>
                 <FormDescription className="text-xs">
                   {FLIGHT_CONSENT.privacy}{" "}
-                  <Link to="/partner-disclosure" className="text-primary hover:underline">
+                  <Link to="/legal/partner-disclosure" className="text-primary hover:underline">
                     Learn more
                   </Link>
                 </FormDescription>
@@ -216,9 +216,9 @@ export default function TravelerInfoForm({
         {/* Footer note */}
         <p className="text-xs text-center text-muted-foreground">
           By continuing, you agree to our{" "}
-          <Link to="/terms" className="text-primary hover:underline">Terms</Link>,{" "}
-          <Link to="/privacy" className="text-primary hover:underline">Privacy</Link>, and{" "}
-          <Link to="/partner-disclosure" className="text-primary hover:underline">Partner Disclosure</Link>
+          <Link to="/legal/terms" className="text-primary hover:underline">Terms</Link>,{" "}
+          <Link to="/legal/privacy" className="text-primary hover:underline">Privacy</Link>, and{" "}
+          <Link to="/legal/partner-disclosure" className="text-primary hover:underline">Partner Disclosure</Link>
         </p>
       </form>
     </Form>

@@ -1,5 +1,5 @@
 /**
- * Affiliate tracking — logs clicks to Supabase affiliate_click_logs table
+ * Affiliate tracking — logs clicks through the affiliate-click-log Edge Function.
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -59,8 +59,8 @@ export const trackAffiliateClick = (data: Omit<AffiliateClick, "id" | "timestamp
     abExperiments: {},
   };
 
-  // Log to Supabase (fire-and-forget)
-  supabase.from("affiliate_click_logs").insert({
+  // Log through the server gate (fire-and-forget).
+  supabase.functions.invoke("affiliate-click-log", { body: {
     session_id: sessionId,
     partner_id: data.affiliatePartner,
     partner_name: data.affiliatePartner,
@@ -71,11 +71,10 @@ export const trackAffiliateClick = (data: Omit<AffiliateClick, "id" | "timestamp
     subid: sessionId,
     device_type: device,
     user_agent: navigator.userAgent,
-    user_id: data.userId || null,
     utm_source: "hizovo",
     utm_medium: "affiliate",
     utm_campaign: "travel",
-  }).then(({ error }) => {
+  } }).then(({ error }) => {
     if (error) console.warn("[AffiliateTracking] Log error:", error);
   });
 
@@ -83,13 +82,12 @@ export const trackAffiliateClick = (data: Omit<AffiliateClick, "id" | "timestamp
 };
 
 export const trackPageView = (page: string, _metadata?: Record<string, any>) => {
-  // Log to analytics_events table
-  supabase.from("analytics_events").insert({
+  supabase.functions.invoke("analytics-event-track", { body: {
     event_name: "page_view",
     page,
     session_id: getSessionId(),
     device_type: getDeviceType(),
-  }).then(({ error }) => {
+  } }).then(({ error }) => {
     if (error) console.warn("[AffiliateTracking] Page view log error:", error);
   });
 };

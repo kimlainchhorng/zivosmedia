@@ -276,7 +276,7 @@ export default function HighlightsPage() {
                             {isVideo ? (
                               <video src={s.media_url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                             ) : (
-                              <img src={s.media_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                              <img src={s.media_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           {sel && (
@@ -341,7 +341,7 @@ export default function HighlightsPage() {
                   >
                     <div className="w-full h-full rounded-full overflow-hidden bg-card ring-2 ring-background">
                       {h.cover_url ? (
-                        <img src={h.cover_url} alt={h.title} className="w-full h-full object-cover" />
+                        <img src={h.cover_url} alt={h.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
                           <ImageIcon className="h-5 w-5 text-muted-foreground" />
@@ -367,7 +367,7 @@ export default function HighlightsPage() {
                   <div className="shrink-0 h-12 w-12 rounded-full bg-ig-gradient p-[2px]">
                     <div className="w-full h-full rounded-full overflow-hidden bg-card">
                       {h.cover_url ? (
-                        <img src={h.cover_url} alt={h.title} className="w-full h-full object-cover" />
+                        <img src={h.cover_url} alt={h.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
                           <ImageIcon className="h-4 w-4 text-muted-foreground" />

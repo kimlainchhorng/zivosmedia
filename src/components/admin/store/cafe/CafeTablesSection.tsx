@@ -155,7 +155,7 @@ export default function CafeTablesSection({ storeId, storeSlug }: Props) {
               <DialogHeader><DialogTitle>QR code · Table {qrTable.label}</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div className="rounded-xl border border-border bg-white p-4 flex items-center justify-center">
-                  <img src={qrImage(buildQrUrl(storeSlug, qrTable.qr_token), 256)} alt="" width={256} height={256} />
+                  <img src={qrImage(buildQrUrl(storeSlug, qrTable.qr_token), 256)} alt="" width={256} height={256} loading="lazy" decoding="async" />
                 </div>
                 <div className="flex items-center gap-2">
                   <Input readOnly value={buildQrUrl(storeSlug, qrTable.qr_token)} className="text-xs" />

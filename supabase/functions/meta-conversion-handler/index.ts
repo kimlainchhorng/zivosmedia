@@ -1,10 +1,6 @@
 // @ts-nocheck
 import { serve } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface IncomingMetaEvent {
   event_name: "Purchase" | "CompleteRegistration" | "InitiateCheckout" | string;
@@ -44,11 +40,8 @@ async function sha256Hex(input: string): Promise<string> {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(withSecurity("meta-conversion-handler", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const pixelId = Deno.env.get("META_PIXEL_ID") || "2304266847061310";
     const accessToken = Deno.env.get("META_ACCESS_TOKEN");
@@ -142,4 +135,11 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-});
+}, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+  skipBotDetection: true,
+}));

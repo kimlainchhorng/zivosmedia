@@ -9,12 +9,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface VEvent {
   uid: string;
@@ -65,6 +60,22 @@ function normDate(v: string): string {
   const datePart = trimmed.slice(0, 8);
   if (!/^\d{8}$/.test(datePart)) return "";
   return `${datePart.slice(0, 4)}-${datePart.slice(4, 6)}-${datePart.slice(6, 8)}`;
+}
+
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
+async function canManageStore(admin: any, userId: string, storeId: string): Promise<boolean> {
+  const [{ data: store }, { data: employee }, { data: roles }] = await Promise.all([
+    admin.from("restaurants").select("owner_id").eq("id", storeId).maybeSingle(),
+    admin.from("store_employees").select("id").eq("store_id", storeId).eq("user_id", userId).maybeSingle(),
+    admin.from("user_roles").select("role").eq("user_id", userId),
+  ]);
+  const isAdmin = (roles || []).some((r: any) => r.role === "admin" || r.role === "super_admin");
+  return Boolean(isAdmin || store?.owner_id === userId || employee);
 }
 
 async function syncConnection(
@@ -128,12 +139,16 @@ async function syncConnection(
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+Deno.serve(withSecurity("lodging-ical-import", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const importHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "POST, OPTIONS" };
+
+  if (req.method === "OPTIONS") return new Response("ok", { headers: importHeaders });
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false },
     });
@@ -143,15 +158,60 @@ Deno.serve(async (req) => {
       body = await req.json();
     } catch { /* allow empty */ }
 
-    let q = admin
-      .from("lodging_channel_connections")
-      .select("*")
-      .eq("active", true);
+    const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+    const provided = new URL(req.url).searchParams.get("secret") ?? req.headers.get("x-cron-secret") ?? "";
+    const isInternal = Boolean(cronSecret && provided === cronSecret) || isServiceRoleRequest(req, SERVICE_ROLE);
 
-    if (body.connection_id) q = q.eq("id", body.connection_id);
-
-    const { data: conns, error } = await q;
-    if (error) throw error;
+    let conns: any[] = [];
+    if (body.connection_id) {
+      const { data: conn, error } = await admin
+        .from("lodging_channel_connections")
+        .select("*")
+        .eq("active", true)
+        .eq("id", body.connection_id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!conn) {
+        return new Response(JSON.stringify({ error: "Not found" }), {
+          status: 404,
+          headers: { ...importHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!isInternal) {
+        const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+          global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+          auth: { persistSession: false },
+        });
+        const { data: { user } } = await userClient.auth.getUser();
+        if (!user) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { ...importHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const allowed = await canManageStore(admin, user.id, conn.store_id);
+        if (!allowed) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403,
+            headers: { ...importHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+      conns = [conn];
+    } else {
+      if (!isInternal) {
+        return new Response(JSON.stringify({ error: "forbidden" }), {
+          status: 403,
+          headers: { ...importHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data, error } = await admin
+        .from("lodging_channel_connections")
+        .select("*")
+        .eq("active", true);
+      if (error) throw error;
+      conns = data ?? [];
+    }
 
     const results = [];
     for (const c of conns || []) {
@@ -164,12 +224,12 @@ Deno.serve(async (req) => {
         ok: results.filter((r) => r.ok).length,
         results,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { headers: { ...importHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     return new Response(
       JSON.stringify({ error: err?.message || String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 500, headers: { ...importHeaders, "Content-Type": "application/json" } },
     );
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

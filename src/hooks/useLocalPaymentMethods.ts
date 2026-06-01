@@ -130,7 +130,9 @@ export function useLocalPaymentMethods() {
 
   const deleteCard = useCallback(async (id: string) => {
     if (user) {
-      const { error } = await supabase.from("zivo_payment_methods").delete().eq("id", id).eq("user_id", user.id);
+      const { error } = await supabase.functions.invoke("zivo-payment-method-manage", {
+        body: { action: "delete", payment_method_id: id },
+      });
       if (error) {
         toast.error("Failed to remove card");
         return;
@@ -144,9 +146,13 @@ export function useLocalPaymentMethods() {
 
   const setDefault = useCallback(async (id: string) => {
     if (user) {
-      // Unset all defaults, then set the new one
-      await supabase.from("zivo_payment_methods").update({ is_default: false }).eq("user_id", user.id);
-      await supabase.from("zivo_payment_methods").update({ is_default: true }).eq("id", id);
+      const { error } = await supabase.functions.invoke("zivo-payment-method-manage", {
+        body: { action: "set_default", payment_method_id: id },
+      });
+      if (error) {
+        toast.error("Failed to update default card");
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ["zivo-payment-methods"] });
     } else {
       toast.error("Sign in to manage payment methods");

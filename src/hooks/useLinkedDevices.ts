@@ -81,7 +81,9 @@ export function useLinkedDevices() {
 
   const removeDevice = useCallback(
     async (id: string) => {
-      const { error } = await supabase.from("linked_devices").delete().eq("id", id);
+      const { error } = await supabase.functions.invoke("linked-device-manage", {
+        body: { action: "remove", device_id: id },
+      });
       if (error) {
         toast.error("Could not remove device");
         return;

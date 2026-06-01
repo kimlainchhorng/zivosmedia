@@ -8,29 +8,21 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type";
-function cors(req: Request) {
-  const origin = req.headers.get("origin") ?? "*";
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Vary": "Origin",
-  };
-}
-function json(req: Request, body: unknown, status = 200): Response {
+function json(headers: Record<string, string>, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors(req), "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
-Deno.serve(withSecurity("list-my-sessions", async (req) => {
+Deno.serve(withSecurity("list-my-sessions", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   try {
-    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(req) });
+    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json(req, { error: "Missing Authorization header" }, 401);
+    if (!authHeader) return json(corsHeaders, { error: "Missing Authorization header" }, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -42,7 +34,7 @@ Deno.serve(withSecurity("list-my-sessions", async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     const { data: userData, error: userError } = await userClient.auth.getUser();
-    if (userError || !userData?.user) return json(req, { error: "Invalid session" }, 401);
+    if (userError || !userData?.user) return json(corsHeaders, { error: "Invalid session" }, 401);
     const userId = userData.user.id;
 
     // Service role for the read so RLS-blocked columns are surfaced to the
@@ -62,7 +54,7 @@ Deno.serve(withSecurity("list-my-sessions", async (req) => {
 
     if (listError) {
       console.error("[list-my-sessions]", listError);
-      return json(req, { error: "Could not fetch sessions" }, 500);
+      return json(corsHeaders, { error: "Could not fetch sessions" }, 500);
     }
 
     // Light hydration: derive a user-friendly label and a "current session" hint.
@@ -80,9 +72,9 @@ Deno.serve(withSecurity("list-my-sessions", async (req) => {
       expires_at: s.expires_at,
     }));
 
-    return json(req, { success: true, sessions: out });
+    return json(corsHeaders, { success: true, sessions: out });
   } catch (err) {
     console.error("[list-my-sessions] unhandled", err);
-    return json(req, { error: err instanceof Error ? err.message : "Internal server error" }, 500);
+    return json(corsHeaders, { error: err instanceof Error ? err.message : "Internal server error" }, 500);
   }
-}, { rateLimit: "api_general" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

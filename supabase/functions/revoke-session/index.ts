@@ -12,35 +12,27 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type, x-device-fingerprint";
-function cors(req: Request) {
-  const origin = req.headers.get("origin") ?? "*";
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
-  };
-}
-function json(req: Request, body: unknown, status = 200): Response {
+function json(headers: Record<string, string>, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors(req), "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
-Deno.serve(withSecurity("revoke-session", async (req) => {
+Deno.serve(withSecurity("revoke-session", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   try {
-    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(req) });
-    if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
+    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+    if (req.method !== "POST") return json(corsHeaders, { error: "Method not allowed" }, 405);
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json(req, { error: "Missing Authorization header" }, 401);
+    if (!authHeader) return json(corsHeaders, { error: "Missing Authorization header" }, 401);
 
     let body: any;
-    try { body = await req.json(); } catch { return json(req, { error: "Invalid JSON body" }, 400); }
+    try { body = await req.json(); } catch { return json(corsHeaders, { error: "Invalid JSON body" }, 400); }
     const sessionId: string | undefined = body?.sessionId?.toString();
-    if (!sessionId) return json(req, { error: "sessionId is required" }, 400);
+    if (!sessionId) return json(corsHeaders, { error: "sessionId is required" }, 400);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -52,7 +44,7 @@ Deno.serve(withSecurity("revoke-session", async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     const { data: userData, error: userError } = await userClient.auth.getUser();
-    if (userError || !userData?.user) return json(req, { error: "Invalid session" }, 401);
+    if (userError || !userData?.user) return json(corsHeaders, { error: "Invalid session" }, 401);
     const userId = userData.user.id;
 
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -72,7 +64,7 @@ Deno.serve(withSecurity("revoke-session", async (req) => {
       const { data, error } = await query.select("id");
       if (error) {
         console.error("[revoke-session] all_others", error);
-        return json(req, { error: "Could not revoke other sessions" }, 500);
+        return json(corsHeaders, { error: "Could not revoke other sessions" }, 500);
       }
       revoked = data?.length ?? 0;
     } else {
@@ -82,8 +74,8 @@ Deno.serve(withSecurity("revoke-session", async (req) => {
         .select("id, user_id")
         .eq("id", sessionId)
         .maybeSingle();
-      if (getErr || !row) return json(req, { error: "Session not found" }, 404);
-      if (row.user_id !== userId) return json(req, { error: "Forbidden" }, 403);
+      if (getErr || !row) return json(corsHeaders, { error: "Session not found" }, 404);
+      if (row.user_id !== userId) return json(corsHeaders, { error: "Forbidden" }, 403);
 
       const { error: upErr } = await admin
         .from("login_sessions")
@@ -92,7 +84,7 @@ Deno.serve(withSecurity("revoke-session", async (req) => {
         .eq("user_id", userId);
       if (upErr) {
         console.error("[revoke-session]", upErr);
-        return json(req, { error: "Could not revoke session" }, 500);
+        return json(corsHeaders, { error: "Could not revoke session" }, 500);
       }
       revoked = 1;
     }
@@ -108,9 +100,9 @@ Deno.serve(withSecurity("revoke-session", async (req) => {
       } catch {}
     }
 
-    return json(req, { success: true, revoked });
+    return json(corsHeaders, { success: true, revoked });
   } catch (err) {
     console.error("[revoke-session] unhandled", err);
-    return json(req, { error: err instanceof Error ? err.message : "Internal server error" }, 500);
+    return json(corsHeaders, { error: err instanceof Error ? err.message : "Internal server error" }, 500);
   }
-}, { rateLimit: "auth_password_reset" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "auth_password_reset", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

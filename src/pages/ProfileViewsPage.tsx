@@ -153,7 +153,7 @@ export default function ProfileViewsPage() {
                   {anon ? (
                     <div className="shrink-0 h-9 w-9 rounded-full bg-secondary flex items-center justify-center"><EyeOff className="h-4 w-4 text-muted-foreground" /></div>
                   ) : viewer?.avatar_url ? (
-                    <img src={viewer.avatar_url} alt="" className="shrink-0 h-9 w-9 rounded-full object-cover" loading="lazy" />
+                    <img src={viewer.avatar_url} alt="" className="shrink-0 h-9 w-9 rounded-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="shrink-0 h-9 w-9 rounded-full bg-ig-gradient flex items-center justify-center text-white text-xs font-extrabold">{initials(name)}</div>
                   )}

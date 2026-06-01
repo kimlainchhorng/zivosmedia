@@ -2,12 +2,7 @@
 // Validates the pair token against live_pair_sessions (must be confirmed + not expired/revoked)
 // then performs the action server-side using the service role.
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-pair-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface Body {
   pair_token?: string;
@@ -19,7 +14,9 @@ interface Body {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("pair-go-live", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -134,4 +131,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return json(500, { error: (e as Error).message });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

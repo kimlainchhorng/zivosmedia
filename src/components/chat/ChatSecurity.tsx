@@ -80,11 +80,17 @@ export default function ChatSecurity({ open, onClose, chatPartnerId, chatPartner
   const handleBlock = async () => {
     if (!user?.id) return;
     if (isBlocked) {
-      await dbFrom("blocked_users").delete().eq("blocker_id", user.id).eq("blocked_id", chatPartnerId);
+      const { error } = await supabase.functions.invoke("block-user-manage", {
+        body: { action: "unblock", blocked_id: chatPartnerId },
+      });
+      if (error) { toast.error("Could not unblock"); return; }
       setIsBlocked(false);
       toast.success(`${chatPartnerName} unblocked`);
     } else {
-      await dbFrom("blocked_users").insert({ blocker_id: user.id, blocked_id: chatPartnerId });
+      const { error } = await supabase.functions.invoke("block-user-manage", {
+        body: { action: "block", blocked_id: chatPartnerId },
+      });
+      if (error) { toast.error("Could not block"); return; }
       setIsBlocked(true);
       toast.success(`${chatPartnerName} blocked`);
       onBlock?.();

@@ -1,7 +1,7 @@
 /**
  * SalonBlockoutDialog — lets the owner reserve time for a stylist (lunch,
- * cleanup, training, time off). Saves to salon_blockouts; the cross-table
- * trigger prevents bookings from being created in that window.
+ * cleanup, training, time off). Mutations go through salon-blockout-manage;
+ * the cross-table trigger prevents bookings from being created in that window.
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -90,19 +90,22 @@ export default function SalonBlockoutDialog({ storeId, open, defaultDate, onClos
       return;
     }
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("salon_blockouts").insert({
-      store_id: storeId,
-      stylist_id: stylistId,
-      start_at: startIso,
-      end_at: endIso,
-      reason: reason.trim() || null,
-      created_by_user_id: user?.id ?? null,
-    } as never);
+    const { data, error } = await supabase.functions.invoke("salon-blockout-manage", {
+      body: {
+        action: "create",
+        store_id: storeId,
+        blockout: {
+          stylist_id: stylistId,
+          start_at: startIso,
+          end_at: endIso,
+          reason: reason.trim() || null,
+        },
+      },
+    });
     setSaving(false);
-    if (error) {
+    if (error || data?.error) {
       console.error(error);
-      if ((error as any).code === "23P01") {
+      if (data?.error?.includes("overlaps")) {
         toast.error("That overlaps an existing block-off for this stylist.");
       } else {
         toast.error("Couldn't save block-off.");
@@ -127,9 +130,11 @@ export default function SalonBlockoutDialog({ storeId, open, defaultDate, onClos
     const detail = b.reason ? `${formatRange(b.start_at, b.end_at)} · ${b.reason}` : formatRange(b.start_at, b.end_at);
     if (!confirm(`Delete this block-off?\n\n${detail}\n\nThe time will become bookable again.`)) return;
     setSaving(true);
-    const { error } = await supabase.from("salon_blockouts").delete().eq("id", b.id);
+    const { data, error } = await supabase.functions.invoke("salon-blockout-manage", {
+      body: { action: "delete", blockout_id: b.id },
+    });
     setSaving(false);
-    if (error) { toast.error("Couldn't delete."); return; }
+    if (error || data?.error) { toast.error("Couldn't delete."); return; }
     await loadDay();
     onChanged();
   };

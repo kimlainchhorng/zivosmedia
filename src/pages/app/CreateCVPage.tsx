@@ -210,7 +210,7 @@ function PhotoUpload({ photo, onPhotoChange, userId }: { photo: string | null; o
       <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
         className="relative w-20 h-20 rounded-full border-2 border-dashed border-primary/30 bg-muted/20 flex items-center justify-center overflow-hidden touch-manipulation active:scale-95 transition-transform group">
         {uploading ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : photo ? (
-          <img src={photo} alt="Profile" className="w-full h-full object-cover rounded-full" />
+          <img src={photo} alt="Profile" className="w-full h-full object-cover rounded-full" loading="lazy" decoding="async" />
         ) : (
           <div className="flex flex-col items-center gap-0.5">
             <Camera className="w-5 h-5 text-muted-foreground/50" />
@@ -399,7 +399,7 @@ function RefsBlock({ data }: { data: any }) {
 
 function PhotoCircle({ photo }: { photo?: string }) {
   return photo ? (
-    <img src={photo} alt="" className="w-24 h-24 rounded-full object-cover border-[3px] border-white shadow-md" />
+    <img src={photo} alt="" className="w-24 h-24 rounded-full object-cover border-[3px] border-white shadow-md" loading="lazy" decoding="async" />
   ) : (
     <div className="w-24 h-24 rounded-full bg-muted/40 border-[3px] border-white shadow-md flex items-center justify-center">
       <User className="w-10 h-10 text-muted-foreground/30" />
@@ -448,7 +448,7 @@ function ModernLayout({ data }: { data: any }) {
       <div className="cv-hero cv-accent-bg px-5 py-5 flex items-center gap-4">
         <div className="shrink-0">
           {data.photo ? (
-            <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-xl object-cover border-2 border-white/30 shadow-lg" />
+            <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-xl object-cover border-2 border-white/30 shadow-lg" loading="lazy" decoding="async" />
           ) : (
             <div className="cv-photo w-20 h-20 rounded-xl bg-white/20 border-2 border-white/30 flex items-center justify-center">
               <User className="w-8 h-8 text-white/60" />
@@ -492,7 +492,7 @@ function MinimalLayout({ data }: { data: any }) {
       <div className="cv-hero text-center border-b border-foreground/10 pb-4">
         {data.photo && (
           <div className="flex justify-center mb-2">
-            <img src={data.photo} alt="" className="cv-photo w-16 h-16 rounded-full object-cover" />
+            <img src={data.photo} alt="" className="cv-photo w-16 h-16 rounded-full object-cover" loading="lazy" decoding="async" />
           </div>
         )}
         <h1 className="cv-name text-[20px] font-bold text-ig-gradient leading-tight">{data.fullName || "Your Name"}</h1>
@@ -542,7 +542,7 @@ function ProfessionalLayout({ data }: { data: any }) {
     <div className="min-h-full bg-white">
       <div className="cv-hero cv-accent-bg text-white px-5 py-5 flex items-center gap-4 border-b-4" style={{ borderBottomColor: 'hsl(var(--primary) / 0.45)' }}>
         {data.photo ? (
-          <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-full object-cover border-2 border-white/40" />
+          <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-full object-cover border-2 border-white/40" loading="lazy" decoding="async" />
         ) : (
           <div className="cv-photo w-20 h-20 rounded-full bg-white/10 border-2 border-white/40 flex items-center justify-center"><User className="w-8 h-8 text-white/60" /></div>
         )}
@@ -587,7 +587,7 @@ function PremiumLayout({ data }: { data: any }) {
         {data.photo && (
           <div className="flex justify-center mb-3">
             <div className="p-1 rounded-full" style={{ background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.4))' }}>
-              <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-full object-cover border-2 border-white" />
+              <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-full object-cover border-2 border-white" loading="lazy" decoding="async" />
             </div>
           </div>
         )}
@@ -628,7 +628,7 @@ function ExecutiveLayout({ data }: { data: any }) {
       <div className="cv-hero text-white p-5" style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.95), hsl(var(--primary) / 0.65))' }}>
         <div className="flex items-center gap-4">
           {data.photo ? (
-            <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-sm object-cover border border-white/20" />
+            <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-sm object-cover border border-white/20" loading="lazy" decoding="async" />
           ) : (
             <div className="cv-photo w-20 h-20 rounded-sm bg-white/5 border border-white/20 flex items-center justify-center"><User className="w-8 h-8 text-white/40" /></div>
           )}
@@ -672,7 +672,7 @@ function CreativeLayout({ data }: { data: any }) {
         <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/15" />
         <div className="relative flex items-center gap-4">
           {data.photo ? (
-            <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-2xl object-cover border-[3px] border-white shadow-lg rotate-[-3deg]" />
+            <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-2xl object-cover border-[3px] border-white shadow-lg rotate-[-3deg]" loading="lazy" decoding="async" />
           ) : (
             <div className="cv-photo w-20 h-20 rounded-2xl bg-white/20 border-[3px] border-white flex items-center justify-center rotate-[-3deg]"><User className="w-8 h-8 text-white" /></div>
           )}
@@ -720,7 +720,7 @@ function ElegantLayout({ data }: { data: any }) {
       <div className="cv-hero px-5 py-6 text-center">
         {data.photo && (
           <div className="flex justify-center mb-3">
-            <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-full object-cover border-[3px] cv-accent-border" />
+            <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-full object-cover border-[3px] cv-accent-border" loading="lazy" decoding="async" />
           </div>
         )}
         <h1 className="cv-name text-[26px] font-bold cv-accent-text leading-tight italic">{data.fullName || "Your Name"}</h1>
@@ -758,7 +758,7 @@ function TimelineLayout({ data }: { data: any }) {
     <div className="min-h-full">
       <div className="cv-hero px-5 py-4 cv-accent-soft border-l-[5px] cv-accent-border flex items-center gap-4">
         {data.photo
-          ? <img src={data.photo} alt="" className="cv-photo w-16 h-16 rounded-full object-cover cv-accent-ring" />
+          ? <img src={data.photo} alt="" className="cv-photo w-16 h-16 rounded-full object-cover cv-accent-ring" loading="lazy" decoding="async" />
           : <div className="cv-photo w-16 h-16 rounded-full bg-white/60 flex items-center justify-center"><User className="w-7 h-7 cv-accent-text opacity-60" /></div>}
         <div className="min-w-0 flex-1">
           <h1 className="cv-name text-[20px] font-extrabold text-foreground leading-tight">{data.fullName || "Your Name"}</h1>
@@ -801,7 +801,7 @@ function CompactLayout({ data }: { data: any }) {
   return (
     <div className="min-h-full p-4 space-y-3">
       <div className="cv-hero flex items-center gap-3 pb-2 border-b-2 cv-accent-border">
-        {data.photo && <img src={data.photo} alt="" className="cv-photo w-14 h-14 rounded-md object-cover" />}
+        {data.photo && <img src={data.photo} alt="" className="cv-photo w-14 h-14 rounded-md object-cover" loading="lazy" decoding="async" />}
         <div className="min-w-0 flex-1">
           <h1 className="cv-name text-[18px] font-extrabold leading-tight">{data.fullName || "Your Name"}</h1>
           {data.jobTitle && <p className="text-[10px] cv-accent-text font-bold uppercase tracking-wider">{data.jobTitle}</p>}
@@ -833,7 +833,7 @@ function SidebarLayout({ data }: { data: any }) {
       <div className="cv-sidebar w-[36%] shrink-0 p-4 space-y-5 text-white" style={{ background: 'linear-gradient(180deg, #18181b, #27272a)' }}>
         <div className="text-center">
           {data.photo
-            ? <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: 'hsl(var(--primary))' }} />
+            ? <img src={data.photo} alt="" className="cv-photo w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: 'hsl(var(--primary))' }} loading="lazy" decoding="async" />
             : <div className="cv-photo w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto"><User className="w-9 h-9 text-white/50" /></div>}
           <h1 className="cv-name text-[15px] font-extrabold mt-2 leading-tight">{data.fullName || "Your Name"}</h1>
           {data.jobTitle && <p className="text-[10px] mt-0.5 uppercase tracking-wider" style={{ color: 'hsl(var(--primary))' }}>{data.jobTitle}</p>}
@@ -883,7 +883,7 @@ function BoldLayout({ data }: { data: any }) {
         <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -right-4 bottom-0 w-24 h-24 rounded-full bg-white/10" />
         <div className="relative flex items-end gap-4">
-          {data.photo && <img src={data.photo} alt="" className="cv-photo w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-xl" />}
+          {data.photo && <img src={data.photo} alt="" className="cv-photo w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-xl" loading="lazy" decoding="async" />}
           <div className="flex-1 min-w-0 pb-1">
             <h1 className="cv-name text-[26px] font-black text-white leading-none uppercase tracking-tight">{data.fullName || "Your Name"}</h1>
             {data.jobTitle && <p className="text-[12px] font-bold text-white/95 mt-1">{data.jobTitle}</p>}

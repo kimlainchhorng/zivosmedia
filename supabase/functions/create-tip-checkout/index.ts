@@ -164,4 +164,4 @@ Deno.serve(withSecurity("create-tip-checkout", async (req, ctx) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious" }));

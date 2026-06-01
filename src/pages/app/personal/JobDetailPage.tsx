@@ -147,7 +147,7 @@ export default function JobDetailPage() {
         <Card className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
-              {job.career_companies?.logo_url ? <img src={job.career_companies.logo_url} alt="" className="h-full w-full object-cover" /> : <Building2 className="h-5 w-5 text-muted-foreground" />}
+              {job.career_companies?.logo_url ? <img src={job.career_companies.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" /> : <Building2 className="h-5 w-5 text-muted-foreground" />}
             </div>
             <div className="min-w-0 flex-1">
               <button type="button" className="text-sm font-semibold hover:underline" onClick={() => navigate(`/personal/companies/${job.career_companies?.id}`)}>
@@ -201,7 +201,7 @@ export default function JobDetailPage() {
                   onClick={() => navigate(`/personal/jobs/${j.id}`)}>
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
                     {j.career_companies?.logo_url
-                      ? <img src={j.career_companies.logo_url} alt="" className="h-full w-full object-cover" />
+                      ? <img src={j.career_companies.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                       : <Building2 className="h-4 w-4 text-muted-foreground" />}
                   </div>
                   <div className="min-w-0 flex-1">

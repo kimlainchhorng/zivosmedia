@@ -434,10 +434,10 @@ export default function PartnerOnboarding() {
                   />
                   <div className="flex items-center gap-3 pt-2">
                     {form.profileUrl && (
-                      <img src={form.profileUrl} alt="Profile preview" className="w-14 h-14 rounded-full object-cover border border-border" />
+                      <img src={form.profileUrl} alt="Profile preview" className="w-14 h-14 rounded-full object-cover border border-border" loading="lazy" decoding="async" />
                     )}
                     {form.coverUrl && (
-                      <img src={form.coverUrl} alt="Cover preview" className="flex-1 h-14 rounded-lg object-cover border border-border" />
+                      <img src={form.coverUrl} alt="Cover preview" className="flex-1 h-14 rounded-lg object-cover border border-border" loading="lazy" decoding="async" />
                     )}
                   </div>
                 </div>
@@ -525,7 +525,7 @@ function ImagePicker({
       >
         {value ? (
           <>
-            <img src={value} alt={label} className="w-full h-full object-cover" />
+            <img src={value} alt={label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onChange(""); }}

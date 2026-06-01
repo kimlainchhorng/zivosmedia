@@ -152,4 +152,4 @@ serve(withSecurity("travelpayouts-prices", async (req, ctx) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-}, { rateLimit: "search", strictCors: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["GET", "POST"], rateLimit: "search", strictCors: true, trackNetwork: "suspicious" }));

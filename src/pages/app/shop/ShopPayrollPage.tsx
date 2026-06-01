@@ -88,13 +88,16 @@ export default function ShopPayrollPage() {
 
   const saveConfig = async () => {
     if (!storeId) return;
-    const { error } = await (supabase as any).from("store_payroll_configs").upsert({
-      store_id: storeId,
-      base_pay: basePay,
-      truck_sales_commission_pct: truckPct,
-      rides_commission_pct: ridesPct,
-      currency: "USD",
-    }, { onConflict: "store_id" });
+    const { error } = await supabase.functions.invoke("store-payroll-config-update", {
+      body: {
+        store_id: storeId,
+        config: {
+          base_pay: basePay,
+          truck_sales_commission_pct: truckPct,
+          rides_commission_pct: ridesPct,
+        },
+      },
+    });
 
     if (error) {
       toast.error("Failed to save payroll config");

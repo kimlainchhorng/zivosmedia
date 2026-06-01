@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { downloadWiringReportCsv, type WiringReport, type WiringCheck } from "@/lib/admin/wiringReportCsv";
 
-const SUPABASE_PROJECT = "slirphzzwcogdbkeicff";
+const SUPABASE_PROJECT = import.meta.env.VITE_SUPABASE_PROJECT_ID || "";
 
 type ActionType = "copy_fix_sql" | "copy_failing_query" | "open_sql_editor" | "mark_resolved";
 

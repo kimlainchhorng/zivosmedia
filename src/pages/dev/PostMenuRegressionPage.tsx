@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { logProfileActionError } from "@/lib/security/errorReporting";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 import NotFound from "@/pages/NotFound";
 
 type CheckResult =
@@ -61,12 +62,12 @@ const ROWS: CheckRow[] = [
     description: "Posts a synthetic report row to verify the post_reports schema.",
     run: async ({ mockPostId, userId }) => {
       if (!userId) throw new Error("Sign in required for this check.");
-      const { error } = await (supabase as any).from("post_reports").insert({
+      await submitSafetyReport({
+        type: "post",
         post_id: mockPostId,
-        reporter_id: userId,
-        category: "QA regression check",
+        post_source: "user",
+        reason: "QA regression check",
       });
-      if (error) throw error;
       return "Report row inserted";
     },
   },

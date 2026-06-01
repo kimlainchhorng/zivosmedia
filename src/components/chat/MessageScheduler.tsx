@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import X from "lucide-react/dist/esm/icons/x";
 import Clock from "lucide-react/dist/esm/icons/clock";
 import Send from "lucide-react/dist/esm/icons/send";
-import Calendar from "lucide-react/dist/esm/icons/calendar";
 import { Button } from "@/components/ui/button";
 import { format, addHours, addMinutes, setHours, setMinutes, startOfTomorrow } from "date-fns";
 
@@ -45,7 +44,7 @@ export default function MessageScheduler({ open, onClose, onSchedule, message }:
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/45 backdrop-blur-md"
             onClick={onClose}
           />
           <motion.div
@@ -53,36 +52,41 @@ export default function MessageScheduler({ open, onClose, onSchedule, message }:
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ type: "spring", damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-2xl border-t border-border/50 max-h-[70vh] overflow-y-auto"
+            className="zivo-chat-popover-glass fixed bottom-0 left-0 right-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-[1.75rem] border-t border-white/10 shadow-2xl"
             style={{ paddingBottom: "max(var(--zivo-safe-bottom,0px), 1rem)" }}
           >
             {/* Handle */}
             <div className="flex justify-center pt-2 pb-1">
-              <div className="w-8 h-1 rounded-full bg-muted-foreground/20" />
+              <div className="h-1 w-11 rounded-full bg-foreground/20" />
             </div>
 
             <div className="px-4 pb-4">
               {/* Header */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="zivo-chat-header-glass -mx-4 mb-4 flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                  <h3 className="text-base font-semibold">Schedule Message</h3>
+                  <span className="zivo-chat-avatar-ring flex h-10 w-10 items-center justify-center rounded-2xl">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </span>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Send later</p>
+                    <h3 className="text-base font-black">Schedule Message</h3>
+                  </div>
                 </div>
-                <button type="button" onClick={onClose} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted">
+                <button type="button" onClick={onClose} className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center" aria-label="Close scheduler">
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
               {/* Message preview */}
               {message && (
-                <div className="bg-primary/10 rounded-xl px-3 py-2 mb-4">
-                  <p className="text-xs text-muted-foreground mb-0.5">Message</p>
-                  <p className="text-sm text-foreground truncate">{message}</p>
+                <div className="zivo-chat-card mb-4 px-3 py-2">
+                  <p className="mb-0.5 text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Message</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{message}</p>
                 </div>
               )}
 
               {/* Quick options */}
-              <p className="text-xs font-medium text-muted-foreground mb-2">Quick schedule</p>
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Quick schedule</p>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {QUICK_OPTIONS.map((opt) => {
                   const date = opt.getDate();
@@ -90,17 +94,17 @@ export default function MessageScheduler({ open, onClose, onSchedule, message }:
                     <button type="button"
                       key={opt.label}
                       onClick={() => onSchedule(date)}
-                      className="flex flex-col items-start gap-0.5 p-3 rounded-xl bg-muted/50 border border-border/40 hover:bg-accent/50 transition-colors text-left active:scale-[0.97]"
+                      className="zivo-chat-row flex flex-col items-start gap-0.5 p-3 text-left active:scale-[0.97]"
                     >
-                      <span className="text-sm font-medium text-foreground">{opt.label}</span>
-                      <span className="text-[10px] text-muted-foreground">{format(date, "MMM d, h:mm a")}</span>
+                      <span className="text-sm font-black text-foreground">{opt.label}</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground">{format(date, "MMM d, h:mm a")}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Custom date/time */}
-              <p className="text-xs font-medium text-muted-foreground mb-2">Custom time</p>
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Custom time</p>
               <div className="flex gap-2 mb-3">
                 <div className="flex-1">
                   <input
@@ -108,7 +112,7 @@ export default function MessageScheduler({ open, onClose, onSchedule, message }:
                     value={customDate}
                     onChange={(e) => setCustomDate(e.target.value)}
                     min={format(new Date(), "yyyy-MM-dd")}
-                    className="w-full h-10 px-3 rounded-xl bg-muted/50 border border-border/40 text-sm text-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground"
                   />
                 </div>
                 <div className="flex-1">
@@ -116,7 +120,7 @@ export default function MessageScheduler({ open, onClose, onSchedule, message }:
                     type="time"
                     value={customTime}
                     onChange={(e) => setCustomTime(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl bg-muted/50 border border-border/40 text-sm text-foreground"
+                    className="zivo-chat-search h-10 w-full px-3 text-sm text-foreground"
                   />
                 </div>
               </div>
@@ -124,7 +128,7 @@ export default function MessageScheduler({ open, onClose, onSchedule, message }:
               <Button
                 onClick={handleCustomSchedule}
                 disabled={!customDate || !customTime}
-                className="w-full rounded-xl"
+                className="zivo-chat-chip-active h-11 w-full font-black"
               >
                 <Send className="h-4 w-4 mr-2" />
                 Schedule Send

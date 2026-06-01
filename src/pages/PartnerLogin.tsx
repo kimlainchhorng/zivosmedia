@@ -165,7 +165,7 @@ export default function PartnerLogin() {
 
       {/* Background */}
       <div className="absolute inset-0">
-        <img src="/images/auth-bg-3d.jpg" alt="" className="w-full h-full object-cover" />
+        <img src="/images/auth-bg-3d.jpg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
       </div>
 
@@ -380,7 +380,7 @@ export default function PartnerLogin() {
             <div className="pointer-events-auto w-[260px] max-h-[60vh] bg-black/90 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 h-fit ml-auto">
               <div className="relative px-3 py-2 border-b border-white/10 overflow-hidden">
                 {currentLangItem?.flag && (
-                  <img src={currentLangItem.flag} alt="" className="absolute -right-3 -top-3 w-24 h-24 opacity-[0.07] pointer-events-none blur-[1px]" style={{ transform: "rotate(-12deg) scale(1.3)" }} />
+                  <img src={currentLangItem.flag} alt="" className="absolute -right-3 -top-3 w-24 h-24 opacity-[0.07] pointer-events-none blur-[1px]" loading="lazy" decoding="async" style={{ transform: "rotate(-12deg) scale(1.3)" }} />
                 )}
                 <p className="text-xs font-medium text-white/60 relative z-10">{t("lang.select")}</p>
               </div>
@@ -394,8 +394,8 @@ export default function PartnerLogin() {
                       currentLanguage === l.code ? "bg-primary/20 text-primary font-semibold" : "text-white/80 hover:bg-white/10"
                     )}
                   >
-                    <img src={l.flag} alt="" className="absolute right-0 top-1/2 w-14 h-14 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
-                    <img src={l.flag} alt={l.label} className="w-6 h-[17px] rounded-[3px] object-cover shadow-sm border border-white/20 shrink-0 relative z-10" />
+                    <img src={l.flag} alt="" className="absolute right-0 top-1/2 w-14 h-14 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" loading="lazy" decoding="async" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
+                    <img src={l.flag} alt={l.label} className="w-6 h-[17px] rounded-[3px] object-cover shadow-sm border border-white/20 shrink-0 relative z-10" loading="lazy" decoding="async" />
                     <span className="relative z-10 flex-1 text-left">{l.label}</span>
                     <span className="text-[10px] font-mono text-white/40 uppercase relative z-10">{l.code}</span>
                     {currentLanguage === l.code && <CheckCircle className="w-3.5 h-3.5 text-primary relative z-10" />}

@@ -114,7 +114,7 @@ Deno.serve(withSecurity("close-trip-call-sessions", async (req, ctx) => {
     console.error("[close-trip-call-sessions]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-}, { rateLimit: "admin_action", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
+}, { allowedMethods: ["POST"], rateLimit: "admin_action", strictCors: true, skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
 
 function isInternalCaller(req: Request) {
   const authHeader = req.headers.get("Authorization") || "";

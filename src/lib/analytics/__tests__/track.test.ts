@@ -2,22 +2,23 @@
  * Analytics tracking-payload tests.
  *
  * Verifies that every user-facing engagement action emits the correct
- * event_name + payload (post_id, surface, event_id) into analytics_events,
- * and that rapid duplicate calls are deduped client-side.
+ * event_name + payload (post_id, surface, event_id) through the
+ * analytics-event-track server gate, and that rapid duplicate calls are
+ * deduped client-side.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Capture every analytics_events insert payload.
+// Capture every analytics-event-track payload.
 const inserts: Array<{ event_name: string; meta: Record<string, unknown>; page: string | null }> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: (table: string) => ({
-      insert: (row: any) => {
-        if (table === "analytics_events") inserts.push(row);
-        return Promise.resolve({ error: null });
+    functions: {
+      invoke: (route: string, options: { body?: any }) => {
+        if (route === "analytics-event-track") inserts.push(options.body);
+        return Promise.resolve({ data: { ok: true }, error: null });
       },
-    }),
+    },
   },
 }));
 

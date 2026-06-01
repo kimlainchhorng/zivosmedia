@@ -247,6 +247,8 @@ export default function TravelExtras() {
                 src={heroExtras}
                 alt="Travel extras and services"
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background" />
             </div>
@@ -338,6 +340,7 @@ export default function TravelExtras() {
                                     alt={partner.category}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                     loading="lazy"
+                                    decoding="async"
                                   />
                                   <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
                                   {/* Icon Badge */}

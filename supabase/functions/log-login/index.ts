@@ -4,11 +4,10 @@
  * Uses ip-api.com (free, no key) for geolocation.
  */
 import { serve, createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-serve(async (req: Request) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+serve(withSecurity("log-login", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
 
   try {
     const authHeader = req.headers.get("authorization") ?? "";
@@ -127,4 +126,4 @@ serve(async (req: Request) => {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { rateLimit: "auth_login", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

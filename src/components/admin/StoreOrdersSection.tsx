@@ -85,10 +85,9 @@ export default function StoreOrdersSection({ storeId }: Props) {
 
   const confirmPayment = useMutation({
     mutationFn: async (orderId: string) => {
-      const { error } = await supabase
-        .from("store_orders")
-        .update({ status: "payment_confirmed", payment_confirmed_at: new Date().toISOString(), confirmed_by: user?.id })
-        .eq("id", orderId);
+      const { error } = await supabase.functions.invoke("store-order-state-update", {
+        body: { order_id: orderId, store_id: storeId, action: "confirm_payment" },
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -101,10 +100,9 @@ export default function StoreOrdersSection({ storeId }: Props) {
 
   const rejectOrder = useMutation({
     mutationFn: async (orderId: string) => {
-      const { error } = await supabase
-        .from("store_orders")
-        .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_reason: "Payment not verified" })
-        .eq("id", orderId);
+      const { error } = await supabase.functions.invoke("store-order-state-update", {
+        body: { order_id: orderId, store_id: storeId, action: "reject_order" },
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -117,7 +115,9 @@ export default function StoreOrdersSection({ storeId }: Props) {
 
   const assignToDriver = useMutation({
     mutationFn: async (orderId: string) => {
-      const { error } = await supabase.from("store_orders").update({ status: "assigned" }).eq("id", orderId);
+      const { error } = await supabase.functions.invoke("store-order-state-update", {
+        body: { order_id: orderId, store_id: storeId, action: "assign_driver" },
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -130,10 +130,9 @@ export default function StoreOrdersSection({ storeId }: Props) {
 
   const markDelivered = useMutation({
     mutationFn: async (orderId: string) => {
-      const { error } = await supabase
-        .from("store_orders")
-        .update({ status: "delivered", delivered_at: new Date().toISOString() })
-        .eq("id", orderId);
+      const { error } = await supabase.functions.invoke("store-order-state-update", {
+        body: { order_id: orderId, store_id: storeId, action: "mark_delivered" },
+      });
       if (error) throw error;
     },
     onSuccess: () => {

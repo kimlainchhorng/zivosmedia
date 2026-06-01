@@ -158,7 +158,7 @@ export default function ReservationPage() {
     <div className="min-h-[100dvh] bg-background pb-24">
       {/* Header */}
       <div className="relative h-44 w-full overflow-hidden">
-        <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-black/20" />
         <button type="button"
           onClick={() => navigate(-1)}

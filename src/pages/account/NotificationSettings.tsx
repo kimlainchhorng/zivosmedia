@@ -286,7 +286,7 @@ export default function NotificationSettings() {
     const result = await subscribe();
     if (result) {
       toast.success("Push notifications enabled!");
-      updatePrefs.mutate({ inAppEnabled: true });
+      updatePrefs.mutate({ pushEnabled: true, inAppEnabled: true });
     }
   };
 
@@ -294,7 +294,7 @@ export default function NotificationSettings() {
     const result = await unsubscribe();
     if (result) {
       toast.success("Push notifications disabled");
-      updatePrefs.mutate({ inAppEnabled: false });
+      updatePrefs.mutate({ pushEnabled: false });
     }
   };
 

@@ -1,9 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 function csvEscape(v: unknown): string {
   if (v === null || v === undefined) return "";
@@ -12,7 +8,9 @@ function csvEscape(v: unknown): string {
   return s;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("export-moderation-actions-csv", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -95,4 +93,4 @@ Deno.serve(async (req) => {
     console.error("[export-moderation-actions-csv]", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

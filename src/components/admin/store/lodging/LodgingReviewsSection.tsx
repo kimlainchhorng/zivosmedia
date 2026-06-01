@@ -64,7 +64,9 @@ export default function LodgingReviewsSection({ storeId }: { storeId: string }) 
   const saveReply = async (review: Review) => {
     const reply = replyDraft[review.id];
     if (!reply?.trim()) return;
-    const { error } = await (supabase as any).from("lodging_reviews").update({ reply, replied_at: new Date().toISOString() }).eq("id", review.id);
+    const { error } = await supabase.functions.invoke("lodging-review-manage", {
+      body: { action: "reply", review_id: review.id, reply },
+    });
     if (error) return toast.error(error.message);
     toast.success("Reply posted");
     setReplyDraft((d) => { const next = { ...d }; delete next[review.id]; return next; });
@@ -72,7 +74,9 @@ export default function LodgingReviewsSection({ storeId }: { storeId: string }) 
   };
 
   const toggleFlag = async (review: Review) => {
-    const { error } = await (supabase as any).from("lodging_reviews").update({ flagged: !review.flagged }).eq("id", review.id);
+    const { error } = await supabase.functions.invoke("lodging-review-manage", {
+      body: { action: "set_flagged", review_id: review.id, flagged: !review.flagged },
+    });
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["lodging_reviews", storeId] });
   };

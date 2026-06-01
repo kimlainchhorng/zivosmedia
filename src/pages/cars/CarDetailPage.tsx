@@ -133,6 +133,8 @@ export default function CarDetailPage() {
                       src={images[currentImageIndex]}
                       alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                     {images.length > 1 && (
                       <>

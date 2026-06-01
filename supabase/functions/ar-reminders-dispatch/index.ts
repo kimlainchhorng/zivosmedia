@@ -17,13 +17,9 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.106.0";
 import { Resend } from "npm:resend@2.0.0";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const j = (status: number, body: unknown) =>
+const j = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -38,12 +34,21 @@ function normalizePhoneE164(input: string | null | undefined): string | null {
   return null;
 }
 
-serve(async (req) => {
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
+serve(withSecurity("ar-reminders-dispatch", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return j(500, { error: "Server misconfigured" });
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !serviceKey || !anonKey) return j(500, { error: "Server misconfigured" }, corsHeaders);
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -56,6 +61,19 @@ serve(async (req) => {
     } catch {
       // No JSON body — treat as cron run.
     }
+  }
+
+  const isCronSecret = Boolean(Deno.env.get("CRON_SECRET") && req.headers.get("x-cron-secret") === Deno.env.get("CRON_SECRET"));
+  const isInternal = isCronSecret || isServiceRoleRequest(req, serviceKey);
+  let callerUserId: string | null = null;
+  if (reminderId) {
+    const authHeader = req.headers.get("Authorization") || "";
+    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user && !isInternal) return j(401, { error: "Unauthorized" }, corsHeaders);
+    callerUserId = user?.id ?? null;
+  } else if (!isInternal) {
+    return j(403, { error: "forbidden" }, corsHeaders);
   }
 
   let q = supabase
@@ -71,11 +89,24 @@ serve(async (req) => {
   const { data: due, error } = await q.limit(100);
   if (error) {
     console.error("ar-reminders-dispatch query failed", error);
-    return j(500, { error: error.message });
+    return j(500, { error: error.message }, corsHeaders);
   }
 
   const list = due ?? [];
-  if (list.length === 0) return j(200, { sent: 0, failed: 0, skipped: 0, due_count: 0 });
+  if (list.length === 0) return j(200, { sent: 0, failed: 0, skipped: 0, due_count: 0 }, corsHeaders);
+
+  if (reminderId && callerUserId && !isInternal) {
+    const storeId = list[0]?.store_id;
+    const [{ data: store }, { data: roles }, { data: employee }] = await Promise.all([
+      supabase.from("restaurants").select("owner_id").eq("id", storeId).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", callerUserId),
+      supabase.from("store_employees").select("id").eq("store_id", storeId).eq("user_id", callerUserId).maybeSingle(),
+    ]);
+    const isAdmin = (roles || []).some((r: any) => r.role === "admin" || r.role === "super_admin");
+    if (!isAdmin && store?.owner_id !== callerUserId && !employee) {
+      return j(403, { error: "Forbidden" }, corsHeaders);
+    }
+  }
 
   // Bulk-fetch store info for personalization.
   const storeIds = [...new Set(list.map((r: any) => r.store_id).filter(Boolean))];
@@ -160,5 +191,5 @@ serve(async (req) => {
     }
   }
 
-  return j(200, { sent, failed, skipped, due_count: list.length });
-});
+  return j(200, { sent, failed, skipped, due_count: list.length }, corsHeaders);
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

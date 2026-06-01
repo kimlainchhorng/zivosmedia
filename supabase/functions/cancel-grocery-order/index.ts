@@ -202,4 +202,4 @@ Deno.serve(withSecurity("cancel-grocery-order", async (req, ctx) => {
     console.error("[cancel-grocery-order]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-}, { strictCors: true, rateLimit: "payment", trackNetwork: "suspicious" }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious" }));

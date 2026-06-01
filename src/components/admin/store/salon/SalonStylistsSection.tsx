@@ -256,7 +256,7 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
                       st.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                     )}>
                       {st.photo_url ? (
-                        <img src={st.photo_url} alt="" className="h-full w-full rounded-full object-cover" />
+                        <img src={st.photo_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         initialsOf(st.display_name)
                       )}

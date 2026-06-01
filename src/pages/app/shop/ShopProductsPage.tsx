@@ -48,8 +48,11 @@ export default function ShopProductsPage() {
 
   const toggleStock = useMutation({
     mutationFn: async ({ id, inStock }: { id: string; inStock: boolean }) => {
-      const { error } = await supabase.from("store_products").update({ in_stock: !inStock }).eq("id", id);
-      if (error) throw error;
+      if (!store?.id) throw new Error("No store found");
+      const { data, error } = await supabase.functions.invoke("store-product-manage", {
+        body: { action: "toggle_stock", product_id: id, in_stock: !inStock },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to update stock status");
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["shop-products"] }),
     onError: () => toast.error("Failed to update stock status"),
@@ -57,8 +60,11 @@ export default function ShopProductsPage() {
 
   const deleteProduct = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("store_products").delete().eq("id", id);
-      if (error) throw error;
+      if (!store?.id) throw new Error("No store found");
+      const { data, error } = await supabase.functions.invoke("store-product-manage", {
+        body: { action: "delete", product_id: id },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to delete product");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shop-products"] });
@@ -71,15 +77,20 @@ export default function ShopProductsPage() {
     mutationFn: async () => {
       if (!store?.id || !newName.trim()) throw new Error("Missing required fields");
       const price = parseFloat(newPrice) || 0;
-      const { error } = await supabase.from("store_products").insert({
-        store_id: store.id,
-        name: newName.trim(),
-        price,
-        category: newCategory.trim() || null,
-        description: newDesc.trim() || null,
-        in_stock: true,
+      const { data, error } = await supabase.functions.invoke("store-product-manage", {
+        body: {
+          action: "create",
+          store_id: store.id,
+          product: {
+            name: newName.trim(),
+            price,
+            category: newCategory.trim() || null,
+            description: newDesc.trim() || null,
+            in_stock: true,
+          },
+        },
       });
-      if (error) throw error;
+      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to add product");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shop-products"] });
@@ -161,7 +172,7 @@ export default function ShopProductsPage() {
               className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
               <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                 {product.image_url
-                  ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                  ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   : <Package className="h-5 w-5 text-muted-foreground" />
                 }
               </div>

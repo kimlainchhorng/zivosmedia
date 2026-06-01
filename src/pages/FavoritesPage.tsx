@@ -154,7 +154,7 @@ export default function FavoritesPage() {
                   className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border"
                 >
                   <div className="shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-muted">
-                    {image ? <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className={cn("w-full h-full flex items-center justify-center", meta.bg)}><Icon className={cn("h-5 w-5", meta.tone)} /></div>}
+                    {image ? <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <div className={cn("w-full h-full flex items-center justify-center", meta.bg)}><Icon className={cn("h-5 w-5", meta.tone)} /></div>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">

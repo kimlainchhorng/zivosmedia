@@ -299,7 +299,7 @@ export default function PlaylistsPage() {
                     aria-label={`Open playlist ${p.title}`}
                   >
                     {p.cover_url ? (
-                      <img src={p.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={p.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full bg-ig-gradient flex items-center justify-center">
                         <Music className="h-10 w-10 text-white/85" />

@@ -112,7 +112,7 @@ export default function AddContactSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[calc(100dvh-0.75rem)] overflow-hidden rounded-t-[28px] border-border bg-background p-0 text-foreground"
+        className="zivo-chat-popover-glass max-h-[calc(100dvh-0.75rem)] overflow-hidden rounded-t-[28px] p-0 text-foreground"
         style={{
           transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
           transition: dragging ? "none" : undefined,
@@ -135,7 +135,7 @@ export default function AddContactSheet({
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
         >
-          <span className="h-1.5 w-14 rounded-full bg-muted-foreground/25" />
+          <span className="h-1.5 w-14 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
         </div>
 
         <div className="max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain px-5 pb-[calc(6.5rem+var(--zivo-safe-bottom,0px))] pt-2">
@@ -169,7 +169,7 @@ export default function AddContactSheet({
                     onChange={(e) => setValue(e.target.value.replace(/[^a-zA-Z0-9_@]/g, ""))}
                     onKeyDown={(e) => e.key === "Enter" && onSearch()}
                     placeholder="username"
-                    className="h-14 rounded-2xl pl-9 pr-12 text-base"
+                    className="zivo-chat-search h-14 rounded-2xl pl-9 pr-12 text-base"
                     maxLength={33}
                   />
                   <Button
@@ -177,7 +177,7 @@ export default function AddContactSheet({
                     variant="ghost"
                     onClick={onSearch}
                     disabled={searching || !value.trim()}
-                    className="absolute right-1.5 top-1/2 h-10 -translate-y-1/2 rounded-full px-3"
+                    className="zivo-chat-icon-button absolute right-1.5 top-1/2 h-10 -translate-y-1/2 rounded-full px-3"
                   >
                     {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                   </Button>
@@ -186,8 +186,8 @@ export default function AddContactSheet({
                 {error && <p className="text-sm text-destructive">{error}</p>}
 
                 {result && (
-                  <div className="flex items-center gap-3 rounded-2xl border bg-card p-3">
-                    <Avatar className="h-12 w-12">
+                  <div className="zivo-chat-card flex items-center gap-3 rounded-2xl p-3">
+                    <Avatar className="zivo-chat-avatar-ring h-12 w-12">
                       <AvatarImage src={result.avatar_url ?? undefined} />
                       <AvatarFallback>{(result.full_name ?? result.username ?? "?").slice(0, 1)}</AvatarFallback>
                     </Avatar>
@@ -195,7 +195,7 @@ export default function AddContactSheet({
                       <div className="truncate font-semibold">{result.full_name ?? `@${result.username}`}</div>
                       <div className="truncate text-xs text-muted-foreground">@{result.username}</div>
                     </div>
-                    <Button size="sm" onClick={onAdd} disabled={adding} className="bg-emerald-500 text-white hover:bg-emerald-600">
+                    <Button size="sm" onClick={onAdd} disabled={adding} className="zivo-chat-chip-active rounded-full font-black text-white">
                       {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
                     </Button>
                   </div>
@@ -207,7 +207,7 @@ export default function AddContactSheet({
               <button
                 type="button"
                 onClick={() => { onOpenChange(false); navigate("/qr-profile"); }}
-                className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border bg-card p-4 transition hover:bg-muted active:scale-95"
+                className="zivo-chat-card flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl p-4 transition active:scale-95"
               >
                 <QrCode className={`h-7 w-7 ${zivoOFMode ? "text-[#00AEEF]" : "text-emerald-500"}`} />
                 <span className="text-sm font-medium">My QR code</span>
@@ -218,7 +218,7 @@ export default function AddContactSheet({
                   navigator.clipboard?.writeText(inviteLink);
                   toast.success(zivoOFMode ? "Page link copied" : "Invite link copied");
                 }}
-                className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border bg-card p-4 transition hover:bg-muted active:scale-95"
+                className="zivo-chat-card flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl p-4 transition active:scale-95"
               >
                 <LinkIcon className={`h-7 w-7 ${zivoOFMode ? "text-[#00AEEF]" : "text-emerald-500"}`} />
                 <span className="text-sm font-medium">{zivoOFMode ? "Share page link" : "Share invite link"}</span>

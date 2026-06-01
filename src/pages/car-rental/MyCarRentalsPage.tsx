@@ -286,7 +286,7 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
               >
                 <div className="flex items-start gap-3">
                   {s?.logo_url ? (
-                    <img src={s.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                    <img src={s.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                       <Car className="h-5 w-5" />

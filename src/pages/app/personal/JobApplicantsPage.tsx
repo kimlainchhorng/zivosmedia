@@ -69,7 +69,7 @@ export default function JobApplicantsPage() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 {a.profiles?.avatar_url ? (
-                  <img src={a.profiles.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                  <img src={a.profiles.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" loading="lazy" decoding="async" />
                 ) : (
                   <UserCircle className="h-8 w-8 shrink-0 text-muted-foreground" />
                 )}

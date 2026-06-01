@@ -1,16 +1,14 @@
 import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const APP_ORIGIN = "https://zivollc.com";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+Deno.serve(withSecurity("channel-og", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const ogHeaders = { ...corsHeaders, "Access-Control-Allow-Methods": "GET, OPTIONS" };
 
-Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: ogHeaders });
   }
 
   try {
@@ -20,7 +18,7 @@ Deno.serve(async (req) => {
     if (!handle) {
       return new Response(JSON.stringify({ error: "handle required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...ogHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -38,7 +36,7 @@ Deno.serve(async (req) => {
     if (!channel || channel.is_public === false) {
       return new Response(JSON.stringify({ error: "Channel not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...ogHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -85,7 +83,7 @@ Deno.serve(async (req) => {
     return new Response(html, {
       status: 200,
       headers: new Headers({
-        ...corsHeaders,
+        ...ogHeaders,
         "content-type": "text/html; charset=utf-8",
         "cache-control": "public, max-age=300, s-maxage=300",
         "vary": "User-Agent, Accept-Encoding",
@@ -94,10 +92,10 @@ Deno.serve(async (req) => {
   } catch (err) {
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...ogHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { allowedMethods: ["GET"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));
 
 function escapeHtml(str: string): string {
   return str

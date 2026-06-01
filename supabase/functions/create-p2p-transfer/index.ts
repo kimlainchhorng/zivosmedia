@@ -124,7 +124,7 @@ Deno.serve(withSecurity("create-p2p-transfer", async (req, ctx) => {
     console.error("[create-p2p-transfer]", error);
     return json({ error: "internal_error", message: "Couldn't complete transfer" }, 500, ctx.corsHeaders);
   }
-}, { rateLimit: "payment", strictCors: true }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true }));
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(body === null ? null : JSON.stringify(body), {

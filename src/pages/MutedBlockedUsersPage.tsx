@@ -95,8 +95,9 @@ export default function MutedBlockedUsersPage() {
 
   const undo = async (id: string) => {
     qc.setQueryData<ActionRow[]>(["user-safety-actions", user?.id], (old) => (old ?? []).filter((a) => a.id !== id));
-    const sb = supabase as unknown as { from: (t: string) => { delete: () => { eq: (k: string, v: string) => Promise<{ error: unknown }> } } };
-    const { error } = await sb.from("user_safety_actions").delete().eq("id", id);
+    const { error } = await supabase.functions.invoke("user-safety-action-manage", {
+      body: { operation: "remove", safety_action_id: id },
+    });
     if (error) { toast.error("Couldn't undo"); qc.invalidateQueries({ queryKey: ["user-safety-actions", user?.id] }); }
     else toast.success("Restored");
   };
@@ -153,7 +154,7 @@ export default function MutedBlockedUsersPage() {
               return (
                 <motion.div key={a.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx, 12) * 0.02 }} className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border">
                   {p?.avatar_url ? (
-                    <img src={p.avatar_url} alt="" className="shrink-0 h-10 w-10 rounded-full object-cover" loading="lazy" />
+                    <img src={p.avatar_url} alt="" className="shrink-0 h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="shrink-0 h-10 w-10 rounded-full bg-ig-gradient flex items-center justify-center text-white text-xs font-extrabold">{initials(name)}</div>
                   )}

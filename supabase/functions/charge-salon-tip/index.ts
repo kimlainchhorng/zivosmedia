@@ -25,7 +25,7 @@
  * waiting for the payment_intent.payment_failed webhook.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 
 interface Body {
@@ -40,8 +40,8 @@ const MAX_TIP_RATIO = 2.0;
 // Absolute cap for paranoia (Stripe also has its own ceilings).
 const MAX_TIP_CENTS = 100_00; // $100
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
+Deno.serve(withSecurity("charge-salon-tip", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
     console.error("[charge-salon-tip]", e);
     return new Response(JSON.stringify({ error: (e as Error).message || "Unknown error" }), {
       status: 500,
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

@@ -70,9 +70,7 @@ export function useSalonServices(storeId: string | undefined): UseSalonServicesR
     if (!storeId) return null;
     setSaving(true);
     setError(null);
-    const sort_order = services.length > 0 ? Math.max(...services.map((s) => s.sort_order)) + 10 : 0;
     const payload = {
-      store_id: storeId,
       name: draft.name.trim(),
       description: draft.description?.trim() || null,
       category: draft.category?.trim() || null,
@@ -80,20 +78,17 @@ export function useSalonServices(storeId: string | undefined): UseSalonServicesR
       price_cents: draft.price_cents,
       image_url: draft.image_url,
       is_active: draft.is_active,
-      sort_order,
     };
-    const { data, error: err } = await supabase
-      .from("salon_services")
-      .insert(payload as never)
-      .select("*")
-      .single();
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-service-manage", {
+      body: { action: "create", store_id: storeId, service: payload },
+    });
+    if (err || data?.error) {
       console.error("[useSalonServices] create failed", err);
       setError("Couldn't create service.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as SalonService;
+    const created = data.service as SalonService;
     setServices((prev) => [...prev, created]);
     setSaving(false);
     return created;
@@ -115,16 +110,18 @@ export function useSalonServices(storeId: string | undefined): UseSalonServicesR
     // Optimistic local update
     setServices((prev) => prev.map((s) => (s.id === id ? ({ ...s, ...cleanPatch } as SalonService) : s)));
 
-    const { error: err } = await supabase
-      .from("salon_services")
-      .update(cleanPatch as never)
-      .eq("id", id);
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-service-manage", {
+      body: { action: "update", service_id: id, service: cleanPatch },
+    });
+    if (err || data?.error) {
       console.error("[useSalonServices] update failed", err);
       setError("Couldn't save changes — refreshing.");
       await load();
       setSaving(false);
       return false;
+    }
+    if (data?.service) {
+      setServices((prev) => prev.map((s) => (s.id === id ? data.service as SalonService : s)));
     }
     setSaving(false);
     return true;
@@ -135,11 +132,10 @@ export function useSalonServices(storeId: string | undefined): UseSalonServicesR
     setError(null);
     const previous = services;
     setServices((prev) => prev.filter((s) => s.id !== id));
-    const { error: err } = await supabase
-      .from("salon_services")
-      .delete()
-      .eq("id", id);
-    if (err) {
+    const { data, error: err } = await supabase.functions.invoke("salon-service-manage", {
+      body: { action: "delete", service_id: id },
+    });
+    if (err || data?.error) {
       console.error("[useSalonServices] delete failed", err);
       setError("Couldn't delete service.");
       setServices(previous);

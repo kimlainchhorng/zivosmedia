@@ -461,12 +461,15 @@ export default function PublicSalonBookingPage() {
           ? new Date().toISOString()
           : null,
     };
-    const { data, error } = await supabase
-      .from("salon_bookings").insert(payload as never).select("id, start_at, deposit_cents").single();
+    const { data, error } = await supabase.functions.invoke(
+      "salon-booking-submit",
+      { body: payload },
+    );
     if (error) {
       setSubmitting(false);
       console.error("[PublicSalonBookingPage] insert failed", error);
-      if ((error as any).code === "23P01") {
+      const status = (error as any)?.context?.status;
+      if ((error as any).code === "23P01" || status === 409) {
         // 23P01 = exclusion_violation, raised by THREE different sources:
         // the GIST no-overlap (real "just booked" case), the blockout guard,
         // and the store-closure guard. The guards' messages are
@@ -491,8 +494,9 @@ export default function PublicSalonBookingPage() {
     // the webhook auto-confirms the booking. If the deposit-create call
     // fails we still show the confirmed state — the customer can pay later
     // via the booking detail page.
-    const newBookingId = (data as any).id as string;
-    const depositOwed = ((data as any).deposit_cents as number) ?? 0;
+    const booking = (data as any)?.booking;
+    const newBookingId = booking.id as string;
+    const depositOwed = (booking.deposit_cents as number) ?? 0;
     if (depositOwed > 0) {
       try {
         const { data: depositRes, error: depErr } = await supabase.functions.invoke(
@@ -511,7 +515,7 @@ export default function PublicSalonBookingPage() {
       }
     }
     setSubmitting(false);
-    setConfirmed({ id: newBookingId, startAt: (data as any).start_at });
+    setConfirmed({ id: newBookingId, startAt: booking.start_at });
   };
 
   if (loading) {
@@ -585,7 +589,7 @@ export default function PublicSalonBookingPage() {
       {/* Banner */}
       <div className="relative h-40 sm:h-56 w-full bg-gradient-to-br from-primary/15 to-primary/5 overflow-hidden">
         {store.banner_url && (
-          <img src={store.banner_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={store.banner_url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" />
         )}
       </div>
 
@@ -594,7 +598,7 @@ export default function PublicSalonBookingPage() {
         <div className="mb-6 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <div className="flex items-center gap-3">
             {store.logo_url ? (
-              <img src={store.logo_url} alt="" className="h-14 w-14 rounded-xl object-cover ring-1 ring-border" />
+              <img src={store.logo_url} alt="" className="h-14 w-14 rounded-xl object-cover ring-1 ring-border" loading="lazy" decoding="async" />
             ) : (
               <div className="grid h-14 w-14 place-items-center rounded-xl bg-primary/10 text-primary"><Store className="h-7 w-7" /></div>
             )}
@@ -623,6 +627,7 @@ export default function PublicSalonBookingPage() {
                     alt=""
                     className="h-28 w-28 shrink-0 rounded-xl object-cover ring-1 ring-border"
                     loading="lazy"
+                    decoding="async"
                   />
                 ))}
               </div>
@@ -670,7 +675,7 @@ export default function PublicSalonBookingPage() {
                     )}
                   >
                     {s.image_url && (
-                      <img src={s.image_url} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover ring-1 ring-border" loading="lazy" />
+                      <img src={s.image_url} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover ring-1 ring-border" loading="lazy" decoding="async" />
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-foreground">{s.name}</p>
@@ -884,7 +889,7 @@ export default function PublicSalonBookingPage() {
                 {stylists.map((s) => (
                   <div key={s.id} className="rounded-xl border border-border bg-card p-3 text-center">
                     {s.photo_url ? (
-                      <img src={s.photo_url} alt="" className="mx-auto h-14 w-14 rounded-full object-cover ring-1 ring-border" loading="lazy" />
+                      <img src={s.photo_url} alt="" className="mx-auto h-14 w-14 rounded-full object-cover ring-1 ring-border" loading="lazy" decoding="async" />
                     ) : (
                       <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                         {s.display_name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase()}

@@ -301,7 +301,7 @@ export default function CafeDailySummaryPage() {
         <div ref={summaryRef} className="bg-card border border-border rounded-xl p-6 print:border-0 print:shadow-none print:rounded-none print:p-0 space-y-5">
           <div className="flex items-start gap-4">
             {store.logo_url ? (
-              <img src={store.logo_url} alt="" className="h-14 w-14 rounded-lg object-cover" />
+              <img src={store.logo_url} alt="" className="h-14 w-14 rounded-lg object-cover" loading="lazy" decoding="async" />
             ) : (
               <div className="h-14 w-14 rounded-lg bg-amber-500/10 grid place-items-center">
                 <Coffee className="h-7 w-7 text-amber-700" />

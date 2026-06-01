@@ -106,9 +106,9 @@ export default function ProfilePreviewSheet({
   const handleBlock = async () => {
     if (!user?.id || !userId || isSelf) return;
     setBusy("block");
-    const { error } = await (supabase as any)
-      .from("blocked_users")
-      .insert({ blocker_id: user.id, blocked_id: userId });
+    const { error } = await supabase.functions.invoke("block-user-manage", {
+      body: { action: "block", blocked_id: userId },
+    });
     setBusy(null);
     if (error) {
       toast.error("Couldn't block user");

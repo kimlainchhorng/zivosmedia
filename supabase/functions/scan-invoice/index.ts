@@ -1,10 +1,6 @@
 // Scan invoice/receipt image with Anthropic Claude vision
 // Returns structured invoice JSON: vendor, invoice_number, date, time, payment_method, items[], totals.
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SYSTEM_PROMPT = `You are an OCR + invoice parser. The user uploads a photo of a receipt/invoice from an auto-parts vendor (e.g. AutoZone, NAPA, O'Reilly, Advance Auto Parts) or a service vendor.
 Extract a STRICT JSON object with these fields. Money values must be integers in cents. Quantity is a number. If a value is not present, use null (not empty string).
@@ -49,9 +45,8 @@ const TOOL_SCHEMA = {
   },
 };
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
+Deno.serve(withSecurity("scan-invoice", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -155,4 +150,10 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+  rateLimit: "upload",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

@@ -386,4 +386,4 @@ Deno.serve(withSecurity("create-bakong-ride", async (req, ctx) => {
     amount_khr: amountKhr,
     reference,
   }, 200, corsHeaders);
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

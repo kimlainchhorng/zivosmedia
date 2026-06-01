@@ -2,7 +2,7 @@
  * Grocery Nearby Stores - Find real store locations near customer
  * Uses Google Maps Places API (Text Search) to find actual store locations
  */
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const STORE_QUERIES: Record<string, string> = {
   walmart: "Walmart",
@@ -11,12 +11,8 @@ const STORE_QUERIES: Record<string, string> = {
   kroger: "Kroger grocery",
 };
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: cors });
-  }
-
+Deno.serve(withSecurity("grocery-nearby-stores", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   try {
     const GOOGLE_MAPS_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
     if (!GOOGLE_MAPS_KEY) {
@@ -100,7 +96,13 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "search",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));
 
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3958.8;

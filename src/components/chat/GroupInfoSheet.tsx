@@ -484,32 +484,39 @@ export default function GroupInfoSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="z-[1600] flex w-full flex-col overflow-hidden px-0 pb-0 sm:max-w-md">
+      <SheetContent side="right" className="zivo-chat-surface z-[1600] flex w-full flex-col overflow-hidden border-l border-white/10 px-0 pb-0 sm:max-w-md">
         <SheetHeader className="sr-only">
           <SheetTitle>Group info</SheetTitle>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="flex justify-end px-3 pt-3">
+          <div className="zivo-chat-header-glass sticky top-0 z-20 flex items-center justify-between px-4 py-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Group room</p>
+              <p className="text-lg font-black text-foreground">Group Info</p>
+            </div>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted active:bg-muted/80"
+              className="zivo-chat-icon-button flex h-10 w-10 items-center justify-center"
               aria-label="Close group info"
               title="Close"
             >
               <X className="h-5 w-5 text-muted-foreground" />
             </button>
           </div>
-          <div className="px-5 pb-5 pt-1">
-            <div className="flex flex-col items-center text-center">
+          <div className="px-4 pb-5 pt-4">
+            <div className="rounded-[1.75rem] border border-white/10 bg-background/45 px-4 py-6 text-center shadow-xl backdrop-blur-2xl">
+              <div className="flex flex-col items-center">
               <div className="relative">
-                <Avatar className="h-24 w-24 ring-1 ring-border/50">
+                <div className="zivo-chat-avatar-ring rounded-full p-[4px]">
+                <Avatar className="h-24 w-24 ring-[3px] ring-background/80">
                   <AvatarImage src={groupAvatarSrc || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-xl font-bold text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-xl font-black text-white">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
+                </div>
                 {isAdmin && (
                   <>
                     <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -517,7 +524,7 @@ export default function GroupInfoSheet({
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
                       disabled={uploadingAvatar}
-                      className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 disabled:opacity-50"
+                      className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 active:scale-95 disabled:opacity-50"
                       aria-label="Change group photo"
                       title="Change group photo"
                     >
@@ -538,13 +545,13 @@ export default function GroupInfoSheet({
                         if (event.key === "Enter") void handleSaveName();
                         if (event.key === "Escape") setEditingName(false);
                       }}
-                      className="h-11 min-w-0 flex-1 rounded-xl border border-border/50 bg-muted/30 px-3 text-center text-base font-semibold outline-none focus:ring-2 focus:ring-primary/25"
+                      className="zivo-chat-search h-11 min-w-0 flex-1 px-3 text-center text-base font-black outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleSaveName}
                       disabled={savingName}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+                      className="zivo-chat-chip-active flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-50"
                       aria-label="Save group name"
                       title="Save group name"
                     >
@@ -556,7 +563,7 @@ export default function GroupInfoSheet({
                         setDraftName(groupName);
                         setEditingName(false);
                       }}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-foreground"
+                      className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center"
                       aria-label="Cancel edit"
                       title="Cancel edit"
                     >
@@ -565,12 +572,12 @@ export default function GroupInfoSheet({
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">
-                    <h2 className="truncate text-xl font-bold text-foreground">{groupName}</h2>
+                    <h2 className="truncate text-xl font-black text-foreground">{groupName}</h2>
                     {isAdmin && (
                       <button
                         type="button"
                         onClick={() => setEditingName(true)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted"
+                        className="zivo-chat-icon-button flex h-8 w-8 items-center justify-center"
                         aria-label="Edit group name"
                         title="Edit group name"
                       >
@@ -579,32 +586,33 @@ export default function GroupInfoSheet({
                     )}
                   </div>
                 )}
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm font-semibold text-muted-foreground">
                   {activeMemberCount} member{activeMemberCount === 1 ? "" : "s"}
                 </p>
               </div>
             </div>
+            </div>
 
             <div className="mt-5 grid grid-cols-4 gap-2">
-              <button type="button" onClick={() => onStartCall("audio")} className="flex flex-col items-center gap-1.5 rounded-2xl bg-muted/40 px-2 py-3 active:scale-95">
+              <button type="button" onClick={() => onStartCall("audio")} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-background/45 px-2 py-3 shadow-sm active:scale-95">
                 <Phone className="h-5 w-5 text-primary" />
-                <span className="text-[11px] font-semibold">Audio</span>
+                <span className="text-[11px] font-black">Audio</span>
               </button>
-              <button type="button" onClick={() => onStartCall("video")} className="flex flex-col items-center gap-1.5 rounded-2xl bg-muted/40 px-2 py-3 active:scale-95">
+              <button type="button" onClick={() => onStartCall("video")} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-background/45 px-2 py-3 shadow-sm active:scale-95">
                 <Video className="h-5 w-5 text-primary" />
-                <span className="text-[11px] font-semibold">Video</span>
+                <span className="text-[11px] font-black">Video</span>
               </button>
-              <button type="button" onClick={onSearch} className="flex flex-col items-center gap-1.5 rounded-2xl bg-muted/40 px-2 py-3 active:scale-95">
+              <button type="button" onClick={onSearch} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-background/45 px-2 py-3 shadow-sm active:scale-95">
                 <Search className="h-5 w-5 text-primary" />
-                <span className="text-[11px] font-semibold">Search</span>
+                <span className="text-[11px] font-black">Search</span>
               </button>
-              <button type="button" onClick={onToggleMute} className="flex flex-col items-center gap-1.5 rounded-2xl bg-muted/40 px-2 py-3 active:scale-95">
+              <button type="button" onClick={onToggleMute} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-background/45 px-2 py-3 shadow-sm active:scale-95">
                 {muted ? <VolumeX className="h-5 w-5 text-primary" /> : <Volume2 className="h-5 w-5 text-primary" />}
-                <span className="text-[11px] font-semibold">{muted ? "Muted" : "Mute"}</span>
+                <span className="text-[11px] font-black">{muted ? "Muted" : "Mute"}</span>
               </button>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-border/35 bg-muted/20 p-1">
+            <div className="mt-5 rounded-3xl border border-white/10 bg-background/40 p-1 shadow-sm backdrop-blur-xl">
               <InfoSettingRow
                 icon={muted ? BellOff : Bell}
                 label="Notifications"
@@ -653,24 +661,28 @@ export default function GroupInfoSheet({
             </div>
 
             <div className="mt-5 grid gap-2">
-              <button type="button" onClick={onOpenInvites} className="flex items-center gap-3 rounded-2xl bg-muted/30 px-3 py-3 text-left active:scale-[0.99]">
-                <Link2 className="h-5 w-5 text-primary" />
+              <button type="button" onClick={onOpenInvites} className="zivo-chat-row flex items-center gap-3 px-3 py-3 text-left active:scale-[0.99]">
+                <span className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                  <Link2 className="h-5 w-5 text-primary" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">Invite links</p>
-                  <p className="truncate text-xs text-muted-foreground">Create, copy, or revoke group links</p>
+                  <p className="text-sm font-black text-foreground">Invite links</p>
+                  <p className="truncate text-xs font-semibold text-muted-foreground">Create, copy, or revoke group links</p>
                 </div>
               </button>
-              <button type="button" onClick={copyGroupLink} className="flex items-center gap-3 rounded-2xl bg-muted/30 px-3 py-3 text-left active:scale-[0.99]">
-                <Copy className="h-5 w-5 text-primary" />
+              <button type="button" onClick={copyGroupLink} className="zivo-chat-row flex items-center gap-3 px-3 py-3 text-left active:scale-[0.99]">
+                <span className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                  <Copy className="h-5 w-5 text-primary" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">Copy group shortcut</p>
-                  <p className="truncate text-xs text-muted-foreground">Open this group from ZIVO chat</p>
+                  <p className="text-sm font-black text-foreground">Copy group shortcut</p>
+                  <p className="truncate text-xs font-semibold text-muted-foreground">Open this group from ZIVO chat</p>
                 </div>
               </button>
             </div>
           </div>
 
-          <div className="sticky top-0 z-10 border-y border-border/30 bg-background/95 px-4 py-2 backdrop-blur-xl">
+          <div className="zivo-chat-header-glass sticky top-[69px] z-10 px-4 py-2">
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
               {tabs.map((item) => (
                 <button
@@ -678,8 +690,8 @@ export default function GroupInfoSheet({
                   type="button"
                   onClick={() => item.id === "members" ? setTab(item.id) : openMediaTab(item.id)}
                   className={cn(
-                    "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-                    tab === item.id ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground",
+                    "shrink-0 rounded-full px-3 py-1.5 text-xs font-black transition-colors",
+                    tab === item.id ? "zivo-chat-chip-active" : "zivo-chat-chip text-muted-foreground",
                   )}
                 >
                   {item.label}
@@ -696,22 +708,22 @@ export default function GroupInfoSheet({
                   <button
                     type="button"
                     onClick={() => setShowAddMembers((next) => !next)}
-                    className="flex w-full items-center gap-3 rounded-2xl bg-primary/10 px-3 py-3 text-left text-primary active:scale-[0.99]"
+                    className="zivo-chat-row-unread flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-primary active:scale-[0.99]"
                   >
                     <UserPlus className="h-5 w-5" />
-                    <span className="text-sm font-semibold">Add members</span>
+                    <span className="text-sm font-black">Add members</span>
                   </button>
                 )}
 
                 {showAddMembers && (
-                  <div className="rounded-2xl border border-border/50 bg-muted/20 p-3">
+                  <div className="rounded-3xl border border-white/10 bg-background/40 p-3 shadow-sm backdrop-blur-xl">
                     <div className="relative mb-2">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <input
                         value={friendSearch}
                         onChange={(event) => setFriendSearch(event.target.value)}
                         placeholder="Search friends"
-                        className="h-10 w-full rounded-xl border border-border/40 bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/25"
+                        className="zivo-chat-search h-10 w-full pl-9 pr-3 text-sm outline-none"
                       />
                     </div>
                     <div className="max-h-64 overflow-y-auto">
@@ -725,13 +737,13 @@ export default function GroupInfoSheet({
                               type="button"
                               key={friend.id}
                               onClick={() => toggleSelectedFriend(friend.id)}
-                              className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-muted/50"
+                              className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-muted/30"
                             >
                               <Avatar className="h-9 w-9">
                                 <AvatarImage src={friend.avatar || undefined} />
                                 <AvatarFallback>{friend.name[0]}</AvatarFallback>
                               </Avatar>
-                              <span className="min-w-0 flex-1 truncate text-sm font-medium">{friend.name}</span>
+                              <span className="min-w-0 flex-1 truncate text-sm font-bold">{friend.name}</span>
                               <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border", selected ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
                                 {selected && <Check className="h-3 w-3" />}
                               </span>
@@ -740,7 +752,7 @@ export default function GroupInfoSheet({
                         })
                       )}
                     </div>
-                    <Button className="mt-3 w-full" disabled={selectedFriends.size === 0 || addingMembers} onClick={handleAddMembers}>
+                    <Button className="zivo-chat-chip-active mt-3 w-full border-0 font-black" disabled={selectedFriends.size === 0 || addingMembers} onClick={handleAddMembers}>
                       {addingMembers ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                       Add {selectedFriends.size || ""} member{selectedFriends.size === 1 ? "" : "s"}
                     </Button>
@@ -756,16 +768,16 @@ export default function GroupInfoSheet({
                     const profile = profiles[member.user_id];
                     const name = profile?.full_name || profile?.username || "Member";
                     return (
-                      <div key={member.user_id} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted/40">
+                      <div key={member.user_id} className="zivo-chat-row flex items-center gap-3 px-3 py-2.5">
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={profile?.avatar_url || undefined} />
                           <AvatarFallback>{name[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-foreground">
+                          <p className="truncate text-sm font-black text-foreground">
                             {name}{member.user_id === user?.id ? " (you)" : ""}
                           </p>
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="truncate text-xs font-semibold text-muted-foreground">
                             {profile?.username ? `@${profile.username} - ` : ""}{roleLabel(member.role)}
                           </p>
                         </div>
@@ -781,7 +793,7 @@ export default function GroupInfoSheet({
               photoMessages.length === 0 ? (
                 <EmptyState icon={ImageIcon} label="No photos shared yet" />
               ) : (
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-2">
                   {photoMessages.map((message) => (
                     <GroupMediaTile
                       key={message.id}
@@ -798,7 +810,7 @@ export default function GroupInfoSheet({
               videoMessages.length === 0 ? (
                 <EmptyState icon={Video} label="No videos shared yet" />
               ) : (
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-2">
                   {videoMessages.map((message) => (
                     <GroupMediaTile
                       key={message.id}
@@ -817,11 +829,13 @@ export default function GroupInfoSheet({
               ) : (
                 <div className="space-y-2">
                   {linkMessages.map((item) => (
-                    <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-2xl bg-muted/30 px-3 py-3">
-                      <Link2 className="h-5 w-5 shrink-0 text-primary" />
+                    <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="zivo-chat-row flex items-center gap-3 px-3 py-3">
+                      <span className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                        <Link2 className="h-5 w-5 text-primary" />
+                      </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{item.url.replace(/^https?:\/\//i, "")}</p>
-                        <p className="text-xs text-muted-foreground">{format(new Date(item.created_at), "MMM d, h:mm a")}</p>
+                        <p className="truncate text-sm font-black text-foreground">{item.url.replace(/^https?:\/\//i, "")}</p>
+                        <p className="text-xs font-semibold text-muted-foreground">{format(new Date(item.created_at), "MMM d, h:mm a")}</p>
                       </div>
                     </a>
                   ))}
@@ -835,11 +849,13 @@ export default function GroupInfoSheet({
               ) : (
                 <div className="space-y-2">
                   {fileMessages.map((message) => (
-                    <div key={message.id} className="flex items-center gap-3 rounded-2xl bg-muted/30 px-3 py-3">
-                      <FileText className="h-5 w-5 shrink-0 text-primary" />
+                    <div key={message.id} className="zivo-chat-row flex items-center gap-3 px-3 py-3">
+                      <span className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{getFileLabel(message)}</p>
-                        <p className="text-xs text-muted-foreground">{format(new Date(message.created_at), "MMM d, h:mm a")}</p>
+                        <p className="truncate text-sm font-black text-foreground">{getFileLabel(message)}</p>
+                        <p className="text-xs font-semibold text-muted-foreground">{format(new Date(message.created_at), "MMM d, h:mm a")}</p>
                       </div>
                     </div>
                   ))}
@@ -863,7 +879,7 @@ export default function GroupInfoSheet({
               gifMessages.length === 0 ? (
                 <EmptyState icon={ImageIcon} label="No GIFs shared yet" />
               ) : (
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-2">
                   {gifMessages.map((message) => (
                     <GroupMediaTile
                       key={message.id}
@@ -891,8 +907,8 @@ export default function GroupInfoSheet({
           </div>
         </div>
 
-        <div className="border-t border-border/30 p-4 pb-[max(1rem,var(--zivo-safe-bottom,0px))]">
-          <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={handleLeave}>
+        <div className="zivo-chat-header-glass p-4 pb-[max(1rem,var(--zivo-safe-bottom,0px))]">
+          <Button variant="outline" className="w-full rounded-2xl border-destructive/20 bg-destructive/5 font-black text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleLeave}>
             <LogOut className="mr-2 h-4 w-4" />
             Leave group
           </Button>
@@ -904,9 +920,11 @@ export default function GroupInfoSheet({
 
 function EmptyState({ icon: Icon, label }: { icon: ComponentType<{ className?: string }>; label: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-      <Icon className="mb-2 h-8 w-8 opacity-70" />
-      <p className="text-sm">{label}</p>
+    <div className="zivo-chat-card mx-auto flex min-h-44 max-w-sm flex-col items-center justify-center p-6 text-center text-muted-foreground">
+      <div className="zivo-chat-avatar-ring mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
+        <Icon className="h-7 w-7 text-primary" />
+      </div>
+      <p className="text-sm font-black text-foreground">{label}</p>
     </div>
   );
 }
@@ -927,17 +945,17 @@ function InfoSettingRow({
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-background/80 text-primary">
         <Icon className="h-4 w-4" />
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{label}</span>
-      <span className="max-w-[42%] shrink-0 truncate text-right text-xs font-medium text-muted-foreground">{value}</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-black text-foreground">{label}</span>
+      <span className="max-w-[42%] shrink-0 truncate text-right text-xs font-bold text-muted-foreground">{value}</span>
     </>
   );
 
   if (!onClick) {
-    return <div className="flex items-center gap-3 rounded-xl px-2.5 py-2.5">{content}</div>;
+    return <div className="flex items-center gap-3 rounded-2xl px-2.5 py-2.5">{content}</div>;
   }
 
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-background/70 active:scale-[0.99]">
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left hover:bg-muted/20 active:scale-[0.99]">
       {content}
     </button>
   );
@@ -961,13 +979,13 @@ function GroupPlayableRow({
   const duration = formatDuration(message.file_payload?.duration_ms);
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-muted/30 px-3 py-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+    <div className="zivo-chat-row flex items-center gap-3 px-3 py-3">
+      <div className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
         <Icon className="h-5 w-5 text-primary" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="truncate text-sm font-black text-foreground">{label}</p>
+        <p className="text-xs font-semibold text-muted-foreground">
           {duration ? `${duration} - ` : ""}{format(new Date(message.created_at), "MMM d, h:mm a")}
         </p>
       </div>
@@ -1007,7 +1025,7 @@ function GroupMediaTile({
       href={resolvedSrc || undefined}
       target="_blank"
       rel="noreferrer"
-      className="group relative aspect-square overflow-hidden rounded-lg bg-muted"
+      className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-muted/50 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
       aria-label={lockedForViewer ? `${unlockLabel} preview` : isVideoTile ? "Open shared video" : "Open shared photo"}
     >
       {isVideoTile && !lockedForViewer && resolvedSrc ? (
@@ -1026,14 +1044,14 @@ function GroupMediaTile({
         </div>
       )}
       {lockedForViewer && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/18 px-2">
-          <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-bold leading-none text-white shadow-lg">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/25 px-2 backdrop-blur-[1px]">
+          <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-black leading-none text-white shadow-lg backdrop-blur-md">
             {unlockLabel}
           </span>
         </div>
       )}
       {tileBadge && (
-        <span className="absolute left-1.5 top-1.5 rounded-full bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+        <span className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] font-black leading-none text-white shadow-lg backdrop-blur-md">
           {tileBadge}
         </span>
       )}

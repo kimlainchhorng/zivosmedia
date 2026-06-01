@@ -43,6 +43,12 @@ function detectFileType(file: File): string {
 export function useStoreDocuments(storeId: string) {
   const qc = useQueryClient();
 
+  const assertStoreDocumentPath = (filePath: string) => {
+    if (!filePath.startsWith(`${storeId}/`)) {
+      throw new Error("Document path does not belong to this store");
+    }
+  };
+
   const list = useQuery({
     queryKey: KEY(storeId),
     enabled: Boolean(storeId),
@@ -80,18 +86,22 @@ export function useStoreDocuments(storeId: string) {
         .upload(path, input.file, { contentType: input.file.type, upsert: false });
       if (upErr) throw upErr;
 
-      const { error: insErr } = await supabase.from("store_documents").insert({
-        id: docId,
-        store_id: storeId,
-        employee_id: input.employee_id || null,
-        name: input.name || input.file.name,
-        category: input.category,
-        file_path: path,
-        file_type: detectFileType(input.file),
-        size_bytes: input.file.size,
-        expires_at: input.expires_at || null,
-        status: "active",
-        uploaded_by: uid,
+      const { error: insErr } = await supabase.functions.invoke("store-document-manage", {
+        body: {
+          action: "create",
+          store_id: storeId,
+          document: {
+            id: docId,
+            employee_id: input.employee_id || null,
+            name: input.name || input.file.name,
+            category: input.category,
+            file_path: path,
+            file_type: detectFileType(input.file),
+            size_bytes: input.file.size,
+            expires_at: input.expires_at || null,
+            status: "active",
+          },
+        },
       });
       if (insErr) {
         // best-effort cleanup
@@ -104,14 +114,20 @@ export function useStoreDocuments(storeId: string) {
 
   const remove = useMutation({
     mutationFn: async (doc: StoreDocument) => {
-      await supabase.storage.from(BUCKET).remove([doc.file_path]);
-      const { error } = await supabase.from("store_documents").delete().eq("id", doc.id);
+      assertStoreDocumentPath(doc.file_path);
+      const { error } = await supabase.functions.invoke("store-document-manage", {
+        body: {
+          action: "delete",
+          document_id: doc.id,
+        },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(storeId) }),
   });
 
   async function getSignedUrl(filePath: string, expiresInSec = 60): Promise<string> {
+    assertStoreDocumentPath(filePath);
     const { data, error } = await supabase.storage
       .from(BUCKET)
       .createSignedUrl(filePath, expiresInSec);

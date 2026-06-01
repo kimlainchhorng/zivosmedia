@@ -12,7 +12,7 @@ const Terms = () => {
       <SEOHead
         title="Terms of Service - ZIVO | Travel Platform"
         description="Read the terms of service for using ZIVO. Understand how we handle Hotels, Car Rentals (direct sale), and Flights (partner ticketing)."
-        canonical="https://hizivo.com/terms"
+        canonical="https://hizivo.com/legal/terms"
       />
       
       <Header />
@@ -276,15 +276,15 @@ const Terms = () => {
 
           {/* Related Links */}
           <div className="flex flex-wrap gap-4 justify-center pt-8 border-t border-border">
-            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/refunds" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Refund Policy
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Partner Disclosure
             </Link>
           </div>

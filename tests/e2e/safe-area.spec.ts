@@ -5,7 +5,7 @@
  *  1. Inject a custom `--zivo-safe-top` value to simulate the OS's reported
  *     `env(safe-area-inset-top)` (including the broken iOS WKWebView case
  *     where it returns 0 even on Dynamic Island devices).
- *  2. Visit each key viewer (feed sticky header, reel close button,
+ *  2. Visit each key viewer (feed sticky header, reel mode tabs,
  *     post-detail header, profile post viewer).
  *  3. Assert the element's `getBoundingClientRect().top` is below the
  *     status-bar zone for that device.
@@ -86,7 +86,7 @@ for (const p of PROFILES) {
       await page.goto("/reels", { waitUntil: "domcontentloaded" });
       await expectClear(
         page,
-        ".top-safe-overlay",
+        '[aria-label="Reel feed mode"]',
         p.overlayFloor,
         "reels top controls",
       );

@@ -68,18 +68,19 @@ export default function PrivacySettingsPage() {
 
   const updateSetting = async (key: string, value: any) => {
     if (!user) return;
-    const exists = settings?.user_id;
-    if (exists) {
-      await (supabase as any).from("privacy_settings").update({ [key]: value, updated_at: new Date().toISOString() }).eq("user_id", user.id);
-    } else {
-      await (supabase as any).from("privacy_settings").insert({ user_id: user.id, [key]: value });
-    }
+    await supabase.functions.invoke("privacy-settings-update", { body: { key, value } });
     queryClient.invalidateQueries({ queryKey: ["privacy-settings"] });
     toast.success("Privacy updated");
   };
 
   const unblockUser = async (blockId: string) => {
-    await (supabase as any).from("blocked_users").delete().eq("id", blockId);
+    const { error } = await supabase.functions.invoke("block-user-manage", {
+      body: { action: "unblock", block_id: blockId },
+    });
+    if (error) {
+      toast.error(error.message || "Could not unblock user");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["blocked-users"] });
     toast.success("User unblocked");
   };

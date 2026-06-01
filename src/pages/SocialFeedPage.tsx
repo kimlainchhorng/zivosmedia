@@ -26,6 +26,7 @@ import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { toast } from "sonner";
 import { openPostShareSheet } from "@/lib/social/postShareSheet";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 import NavBar from "@/components/home/NavBar";
 import {
   DropdownMenu,
@@ -498,6 +499,7 @@ function PostCard({ post, highlight = false }: { post: FeedPost; highlight?: boo
               src={urls[0]}
               alt={post.caption || "Post"}
               loading="lazy"
+              decoding="async"
               className="w-full max-h-[70vh] object-contain"
               onError={(event) => {
                 event.currentTarget.style.display = "none";
@@ -819,14 +821,12 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
     const reason = window.prompt("Why are you reporting this post?");
     if (!reason || !reason.trim()) return;
     try {
-      const { error } = await (supabase as any)
-        .from("post_reports")
-        .insert({
-          post_id: post.id,
-          reporter_id: user.id,
-          reason: reason.trim().slice(0, 500),
-        });
-      if (error) throw error;
+      await submitSafetyReport({
+        type: "post",
+        post_id: post.id,
+        post_source: "user",
+        reason: reason.trim().slice(0, 500),
+      });
       toast.success("Report submitted", {
         description: "Our team will review it.",
       });

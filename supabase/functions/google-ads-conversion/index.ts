@@ -1,5 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Server-side conversion upload to Google Ads.
 async function getAccessToken(): Promise<string> {
@@ -18,13 +18,22 @@ async function getAccessToken(): Promise<string> {
   return json.access_token;
 }
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
+Deno.serve(withSecurity("google-ads-conversion", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    if (!isServiceRoleRequest(req, serviceKey)) {
+      return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
     const customerId = Deno.env.get("GOOGLE_ADS_CUSTOMER_ID")!;
     const developerToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN")!;
     const admin = createClient(supabaseUrl, serviceKey);
@@ -87,6 +96,6 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("[google-ads-conversion]", e);
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

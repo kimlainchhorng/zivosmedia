@@ -77,7 +77,7 @@ export default function ImportProductPage() {
 
       {/* Gallery */}
       <div className="aspect-square bg-muted/40 overflow-hidden">
-        <img src={images[activeImage]} alt={product.title} className="w-full h-full object-cover" />
+        <img src={images[activeImage]} alt={product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
       </div>
       {images.length > 1 && (
         <div className="flex gap-1.5 px-3 pt-2 overflow-x-auto">
@@ -89,7 +89,7 @@ export default function ImportProductPage() {
                 activeImage === i ? "border-primary" : "border-transparent"
               }`}
             >
-              <img src={src} alt="" className="w-full h-full object-cover" />
+              <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
             </button>
           ))}
         </div>

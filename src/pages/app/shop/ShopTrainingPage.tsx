@@ -60,19 +60,18 @@ export default function ShopTrainingPage() {
     }
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
-        .from("feedback_submissions")
-        .insert({
-          user_id: user!.id,
+      const { error } = await supabase.functions.invoke("shop-ops-record-submit", { body: {
           category: "shop_training",
-          message: JSON.stringify({
+          subject: form.moduleTitle.trim(),
+          payload: {
             employeeName: form.employeeName.trim(),
             moduleTitle: form.moduleTitle.trim(),
             status: form.status,
             completedAt: form.completedAt,
             notes: form.notes.trim(),
-          }),
-        });
+          },
+          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        } });
       if (error) throw error;
       toast.success("Training record saved");
       queryClient.invalidateQueries({ queryKey: ["shop-training", user?.id] });
@@ -89,17 +88,19 @@ export default function ShopTrainingPage() {
     const name = prompt("Employee name:");
     if (!name?.trim()) return;
     try {
-      await (supabase as any).from("feedback_submissions").insert({
-        user_id: user!.id,
+      const { error } = await supabase.functions.invoke("shop-ops-record-submit", { body: {
         category: "shop_training",
-        message: JSON.stringify({
+        subject: module.title,
+        payload: {
           employeeName: name.trim(),
           moduleTitle: module.title,
           moduleId: module.id,
           status: "completed",
           completedAt: new Date().toISOString().slice(0, 10),
-        }),
-      });
+        },
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
       toast.success(`${module.title} marked complete for ${name.trim()}`);
       queryClient.invalidateQueries({ queryKey: ["shop-training", user?.id] });
     } catch (e: any) {

@@ -6,6 +6,7 @@ This config adds Cloudflare hosting in two pieces:
 - A Cloudflare Worker serves R2 media/downloads and can also serve the built Vite app from `dist` with SPA fallback.
 - Serve R2 media through `/media/*` and large downloads through `/downloads/*`, with public `GET`/`HEAD` and secret-protected `PUT`/`DELETE`.
 - Proxy `/share/c/:handle` to the existing Supabase `channel-og` Edge Function for link previews.
+  Configure this with `SUPABASE_URL` or the more specific `CHANNEL_OG_FUNCTION_URL`.
 
 Supabase remains the main backend for database, auth, RLS, realtime, and existing Edge Functions.
 
@@ -69,11 +70,10 @@ curl "http://localhost:8787/media/smoke/hello.txt"
 
 ## Deploy
 
-Build the app, then deploy the Worker:
+Run the local release gate, then deploy the Worker:
 
 ```sh
-npm run build
-npx wrangler deploy --keep-vars
+npm run cloudflare:deploy
 ```
 
 The account has the workers.dev subdomain `myzivo.workers.dev`, so deploys publish at `https://zivo-web.myzivo.workers.dev`.
@@ -85,6 +85,8 @@ npm run cloudflare:pages:deploy
 ```
 
 The Pages deploy script removes `dist/downloads` before upload because Cloudflare Pages has a 25 MiB file limit and the large Mac installer now lives in R2.
+
+`npm run cloudflare:check` runs the same local gate before the Worker dry-run. Both Cloudflare deploy scripts run `npm run security:scan` and `npm run deploy:preflight:local` before publishing, so local/preview deploys use the same safety gates as the Netlify preview path.
 
 Your production domain is `zivollc.com`. The safe preview domain is `preview.zivollc.com`, pointed from Lovable DNS to `zivo-preview.pages.dev`.
 

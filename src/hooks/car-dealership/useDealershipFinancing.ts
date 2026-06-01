@@ -65,17 +65,21 @@ export function useDealershipFinancing(storeId: string | undefined) {
   const create = useCallback(async (draft: DealershipFinancingDraft) => {
     if (!storeId) return null;
     setSaving(true); setError(null);
-    const { data, error: err } = await supabase
-      .from("car_dealership_financing")
-      .insert({ store_id: storeId, ...draft } as never)
-      .select("*").single();
+    const { data, error: err } = await supabase.functions.invoke("car-dealership-financing-manage", {
+      body: { action: "create", store_id: storeId, financing: draft },
+    });
     if (err) {
       console.error("[useDealershipFinancing] create failed", err);
       setError(err.message || "Couldn't create application.");
       setSaving(false);
       return null;
     }
-    const created = data as unknown as DealershipFinancing;
+    const created = (data as { financing?: DealershipFinancing } | null)?.financing;
+    if (!created) {
+      setError("Couldn't create application.");
+      setSaving(false);
+      return null;
+    }
     setFinancings((prev) => [created, ...prev]);
     setSaving(false);
     return created;
@@ -84,9 +88,12 @@ export function useDealershipFinancing(storeId: string | undefined) {
   const update = useCallback(async (id: string, patch: Partial<DealershipFinancingDraft>) => {
     setSaving(true); setError(null);
     setFinancings((prev) => prev.map((f) => (f.id === id ? ({ ...f, ...patch } as DealershipFinancing) : f)));
-    const { error: err } = await supabase
-      .from("car_dealership_financing").update(patch as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("car-dealership-financing-manage", {
+      body: { action: "update", financing_id: id, financing: patch },
+    });
     if (err) { setError("Couldn't update."); setSaving(false); void load(); return false; }
+    const updated = (data as { financing?: DealershipFinancing } | null)?.financing;
+    if (updated) setFinancings((prev) => prev.map((f) => (f.id === id ? updated : f)));
     setSaving(false);
     return true;
   }, [load]);
@@ -95,7 +102,9 @@ export function useDealershipFinancing(storeId: string | undefined) {
     setSaving(true); setError(null);
     const prev = financings;
     setFinancings((p) => p.filter((f) => f.id !== id));
-    const { error: err } = await supabase.from("car_dealership_financing").delete().eq("id", id);
+    const { error: err } = await supabase.functions.invoke("car-dealership-financing-manage", {
+      body: { action: "delete", financing_id: id },
+    });
     if (err) { setError("Couldn't delete."); setFinancings(prev); setSaving(false); return false; }
     setSaving(false);
     return true;

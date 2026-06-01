@@ -47,10 +47,11 @@ export default function AdminBroadcastPage() {
   const getAudiencePreview = async () => {
     setPreviewing(true);
     try {
-      let q = supabase.from("profiles").select("*", { count: "exact", head: true });
-      if (role !== "all") q = (q as any).eq("role", role);
-      const { count } = await q;
-      setPreview(count ?? 0);
+      const { data, error } = await supabase.functions.invoke("admin-broadcast-notification", {
+        body: { action: "preview", role },
+      });
+      if (error) throw error;
+      setPreview(data?.count ?? 0);
     } finally {
       setPreviewing(false);
     }
@@ -63,56 +64,19 @@ export default function AdminBroadcastPage() {
     }
     setSending(true);
     try {
-      const { data: profiles } = await (async () => {
-        let q = supabase.from("profiles").select("id").limit(5000);
-        if (role !== "all") q = (q as any).eq("role", role);
-        return q;
-      })();
-
-      if (!profiles || profiles.length === 0) {
-        toast.error("No users found for this audience");
-        return;
-      }
-
-      const rows = profiles.map((p: any) => ({
-        title,
-        body,
-        channel,
-        template: "admin_broadcast",
-        category: "account",
-        status: "queued",
-        role: role === "all" ? null : role,
-        to_value: p.id,
-      }));
-
-      const BATCH = 500;
-      for (let i = 0; i < rows.length; i += BATCH) {
-        const { error } = await supabase
-          .from("notifications" as any)
-          .insert(rows.slice(i, i + BATCH));
-        if (error) throw error;
-      }
-
-      // Trigger push delivery — pass user_ids so the edge function can target each device token
-      if (channel === "push") {
-        const userIdList = profiles.map((p: any) => p.id as string);
-        // Send in chunks of 500 to stay within edge function limits
-        const PUSH_CHUNK = 500;
-        for (let ci = 0; ci < userIdList.length; ci += PUSH_CHUNK) {
-          await supabase.functions.invoke("send-push-notification", {
-            body: {
-              user_ids: userIdList.slice(ci, ci + PUSH_CHUNK),
-              notification_type: "admin_broadcast",
-              title,
-              body,
-              data: { role, url: "/" },
-            },
-          }).catch(() => {}); // best-effort; don't block on push failure
-        }
-      }
+      const { data, error } = await supabase.functions.invoke("admin-broadcast-notification", {
+        body: {
+          action: "send",
+          title,
+          body,
+          role,
+          channel,
+        },
+      });
+      if (error) throw error;
 
       qc.invalidateQueries({ queryKey: ["admin-broadcasts"] });
-      toast.success(`Broadcast queued for ${profiles.length} users`);
+      toast.success(`Broadcast queued for ${data?.count ?? 0} users`);
       setTitle("");
       setBody("");
       setPreview(null);

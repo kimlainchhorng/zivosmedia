@@ -12,6 +12,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { toast } from "sonner";
+import { COOKIE_CONSENT_STORAGE_KEY } from "@/hooks/useCookiePrefs";
+
+const COOKIE_CONSENT_DATE_STORAGE_KEY = "zivo_cookie_consent_date";
 
 // Cookie categories with descriptions
 const cookieCategories = [
@@ -36,6 +39,13 @@ const cookieCategories = [
     required: false,
     examples: ["Page views", "Navigation patterns", "Performance metrics"],
   },
+  {
+    id: "marketing",
+    title: "Marketing & Advertising Cookies",
+    description: "Help us show relevant offers and measure campaigns when you consent.",
+    required: false,
+    examples: ["Meta pixel", "Google Ads", "TikTok pixel", "Campaign attribution"],
+  },
 ];
 
 const CookiePolicy = () => {
@@ -53,6 +63,7 @@ const CookiePolicy = () => {
     essential: true,
     functional: true,
     analytics: true,
+    marketing: false,
   });
 
   const handlePreferenceChange = (category: string, enabled: boolean) => {
@@ -62,21 +73,28 @@ const CookiePolicy = () => {
 
   const savePreferences = () => {
     // In production, this would save to localStorage and update tracking scripts
-    localStorage.setItem("cookie_preferences", JSON.stringify(preferences));
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(preferences));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    if (preferences.analytics || preferences.marketing) {
+      window.__zivoLoadAnalytics?.();
+    }
     toast.success("Cookie preferences saved");
   };
 
   const acceptAll = () => {
-    const allEnabled = { essential: true, functional: true, analytics: true };
+    const allEnabled = { essential: true, functional: true, analytics: true, marketing: true };
     setPreferences(allEnabled);
-    localStorage.setItem("cookie_preferences", JSON.stringify(allEnabled));
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(allEnabled));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    window.__zivoLoadAnalytics?.();
     toast.success("All cookies accepted");
   };
 
   const rejectOptional = () => {
-    const minimalCookies = { essential: true, functional: false, analytics: false };
+    const minimalCookies = { essential: true, functional: false, analytics: false, marketing: false };
     setPreferences(minimalCookies);
-    localStorage.setItem("cookie_preferences", JSON.stringify(minimalCookies));
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(minimalCookies));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
     toast.success("Optional cookies rejected");
   };
 
@@ -85,7 +103,7 @@ const CookiePolicy = () => {
       <SEOHead
         title="Cookie Policy - ZIVO | Travel Search Platform"
         description="Learn how ZIVO uses cookies and similar technologies. Manage your cookie preferences and opt-in/out of non-essential tracking."
-        canonical="https://hizivo.com/cookies"
+        canonical="https://hizivo.com/legal/cookies"
       />
       
       <Header />
@@ -192,13 +210,18 @@ const CookiePolicy = () => {
                   <CheckCircle2 className="w-4 h-4 text-green-500 mt-1 shrink-0" />
                   Analyze traffic and performance to improve our services
                 </li>
+                <li className="flex items-start gap-3 text-foreground">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-1 shrink-0" />
+                  Measure optional ads and marketing campaigns only when you consent
+                </li>
               </ul>
               <div className="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <div className="flex items-start gap-2">
                   <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    <strong>No tracking or advertising cookies:</strong> ZIVO does not use cookies to track users 
-                    across other apps or websites, and does not use cookies for advertising or ad targeting purposes.
+                    <strong>Consent-based advertising:</strong> ZIVO may use advertising cookies and pixels from
+                    partners such as Meta, Google Ads, and TikTok only when you allow marketing cookies. You can
+                    reject optional cookies or change preferences at any time.
                   </p>
                 </div>
               </div>
@@ -242,6 +265,9 @@ const CookiePolicy = () => {
               <div className="grid sm:grid-cols-2 gap-3">
                 {[
                   { name: "Google Analytics", purpose: "Usage analytics" },
+                  { name: "Google Ads", purpose: "Consent-based conversion measurement" },
+                  { name: "Meta", purpose: "Consent-based campaign measurement" },
+                  { name: "TikTok", purpose: "Consent-based campaign measurement" },
                   { name: "Stripe", purpose: "Payment processing" },
                   { name: "Supabase", purpose: "Authentication" },
                 ].map((item) => (
@@ -252,7 +278,8 @@ const CookiePolicy = () => {
                 ))}
               </div>
               <p className="text-sm text-muted-foreground mt-4">
-                None of these third-party services are used for cross-app or cross-site tracking.
+                Advertising partners are optional. They are enabled only when marketing cookies are accepted and
+                can be disabled through the controls above or Account Privacy Controls.
               </p>
             </div>
           </section>
@@ -316,13 +343,13 @@ const CookiePolicy = () => {
             <p className="text-sm text-muted-foreground mb-4">Related policies:</p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button variant="outline" size="sm" asChild>
-                <Link to="/privacy">Privacy Policy</Link>
+                <Link to="/legal/privacy">Privacy Policy</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/account/privacy">Privacy Controls</Link>
+                <Link to="/account/data-rights#cookies">Privacy Controls</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/terms">Terms of Service</Link>
+                <Link to="/legal/terms">Terms of Service</Link>
               </Button>
             </div>
           </div>

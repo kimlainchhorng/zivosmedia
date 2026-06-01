@@ -118,4 +118,4 @@ Deno.serve(withSecurity("confirm-grocery-payment", async (req, ctx) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -45,16 +45,22 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
     mutationFn: async () => {
       const cents = Math.round((parseFloat(form.amount) || 0) * 100);
       if (cents <= 0) throw new Error("Amount must be greater than zero");
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from("ar_payouts" as any).insert({
-        store_id: storeId,
-        payout_date: form.payout_date,
-        amount_cents: cents,
-        source: form.source || null,
-        reference: form.reference || null,
-        created_by: user?.id,
+      const { data, error } = await supabase.functions.invoke("ar-payout-record", {
+        body: {
+          action: "create",
+          store_id: storeId,
+          payout_date: form.payout_date,
+          amount_cents: cents,
+          source: form.source || null,
+          reference: form.reference || null,
+        },
+        headers: {
+          "Idempotency-Key": `ar-payout-${storeId}-${form.payout_date}-${cents}-${crypto.randomUUID()}`,
+        },
       });
-      if (error) throw error;
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Failed to record payout");
+      }
     },
     onSuccess: () => {
       toast.success("Payout recorded");
@@ -67,8 +73,12 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("ar_payouts" as any).delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("ar-payout-record", {
+        body: { action: "delete", payout_id: id },
+      });
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Failed to delete payout");
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ar-fin-payouts", storeId] }),
   });

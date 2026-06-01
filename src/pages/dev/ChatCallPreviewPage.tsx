@@ -27,6 +27,8 @@ function DirectVideoPreview() {
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
+            loading="lazy"
+            decoding="async"
           />
           <Avatar className="relative z-[1] h-36 w-36 border-4 border-white/15 shadow-2xl">
             <AvatarImage src={PREVIEW_AVATAR} />

@@ -11,14 +11,16 @@ import { withErrorHandling, HttpError } from "../_shared/errors.ts";
 import { parseBody, v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
 import { rateLimit } from "../_shared/rateLimiter.ts";
+import type { SecurityContext } from "../_shared/withSecurity.ts";
 
 const Body = v.object({
   email: v.email,
   code: v.exactDigits(6),
 });
 
-const handler = withErrorHandling(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") return preflight(req);
+const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): Promise<Response> => {
+  const corsHeaders = ctx?.corsHeaders ?? {};
+  if (req.method === "OPTIONS") return preflight(ctx?.corsHeaders ?? req);
 
   const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "unknown";
   const ipRl = rateLimit(ip, "auth_otp");
@@ -162,7 +164,7 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
     }
   }
 
-  return ok(req, {
+  return ok(corsHeaders, {
     success: true,
     message: "Email verified successfully",
     userId: resolvedUserId,
@@ -170,4 +172,10 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
   });
 }, "verify-otp-code");
 
-serve(withSecurity("verify-otp-code", handler, { rateLimit: "auth_otp" }));
+serve(withSecurity("verify-otp-code", handler, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+  rateLimit: "auth_otp",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

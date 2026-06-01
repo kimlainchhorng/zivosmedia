@@ -4,7 +4,7 @@
 
 App Store Connect → My Apps → ZIVO → App Information / Version Information
 
-Bundle ID: `com.myzivo.app`  ·  App ID: `6759480121`
+Bundle ID: `com.hizovo.app`  ·  App ID: `6759480121`
 
 ---
 
@@ -79,8 +79,8 @@ ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers rema
 
 Support: support@hizivo.com
 Website: https://hizivo.com
-Privacy: https://hizivo.com/privacy
-Terms: https://hizivo.com/terms
+Privacy: https://hizivo.com/legal/privacy
+Terms: https://hizivo.com/legal/terms
 ```
 
 ## 6. What's New in This Version  (max 4000 characters — UPDATE EVERY RELEASE)
@@ -99,7 +99,7 @@ Thanks for using ZIVO! Email support@hizivo.com with any feedback.
 ```
 Support URL:    https://hizivo.com/support
 Marketing URL:  https://hizivo.com
-Privacy URL:    https://hizivo.com/privacy
+Privacy URL:    https://hizivo.com/legal/privacy
 ```
 
 ## 8. Category
@@ -119,6 +119,31 @@ Secondary:  Travel
 
 ```
 © 2026 ZIVO LLC
+```
+
+## 11. Release Metadata
+
+```
+Version: 1.3.0
+Build: 3
+Bundle ID: com.hizovo.app
+```
+
+## 12. Screenshot Assets
+
+Upload at least 6 iPhone screenshots for the current release review. Use fresh
+captures from the production web bundle or Simulator build, and keep the first
+six focused on the home/feed, profile, travel, chat, creator, and shop flows.
+
+Current upload-ready files:
+
+```
+ios/store-listing/sim-home-now.png
+ios/store-listing/sim-profile-now.png
+ios/store-listing/simulator-feed-fix-v2.png
+ios/store-listing/simulator-test-flights.png
+ios/store-listing/simulator-profile-compact.png
+ios/store-listing/simulator-live-now.png
 ```
 
 ---

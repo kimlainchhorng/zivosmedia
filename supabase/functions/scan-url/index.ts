@@ -1,11 +1,6 @@
 // Lightweight URL safety scanner — heuristic checks before message/post submission.
 // Runs without external API keys; if GOOGLE_SAFE_BROWSING_KEY is set, also queries Safe Browsing.
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SUSPICIOUS_TLDS = [
   ".zip", ".mov", ".country", ".kim", ".cricket", ".science", ".work",
@@ -78,10 +73,8 @@ async function safeBrowsingScan(urls: string[]): Promise<Set<string>> {
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+Deno.serve(withSecurity("scan-url", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const body = await req.json();
     const urls: string[] = Array.isArray(body?.urls)
@@ -114,4 +107,10 @@ Deno.serve(async (req) => {
       status: 200,
     });
   }
-});
+}, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

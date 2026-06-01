@@ -14,40 +14,36 @@
  *    (GoTrue-managed), so — unlike a refresh token — it is safe to carry in a
  *    one-time redirect.
  *
- * Self-contained (no ../_shared imports) so it deploys cleanly as a single
- * file. SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are
- * injected by the Edge runtime.
+ * SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected
+ * by the Edge runtime.
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.106.0";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, corsHeaders: Record<string, string>, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
-serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+serve(withSecurity("mint-chat-handoff", async (req, ctx): Promise<Response> => {
+  const corsHeaders = ctx.corsHeaders;
+
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, corsHeaders, 405);
 
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
-    return json({ error: "Missing authorization" }, 401);
+    return json({ error: "Missing authorization" }, corsHeaders, 401);
   }
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
   const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (!SUPABASE_URL || !ANON_KEY || !SERVICE_ROLE_KEY) {
-    return json({ error: "Server not configured" }, 500);
+    return json({ error: "Server not configured" }, corsHeaders, 500);
   }
 
   // 1) Identify the caller from THEIR JWT (not from the request body).
@@ -57,7 +53,7 @@ serve(async (req: Request): Promise<Response> => {
   });
   const { data: userData, error: userErr } = await caller.auth.getUser();
   const email = userData?.user?.email;
-  if (userErr || !email) return json({ error: "Invalid session" }, 401);
+  if (userErr || !email) return json({ error: "Invalid session" }, corsHeaders, 401);
 
   // 2) Mint a single-use OTP for that exact email (service role).
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -69,8 +65,8 @@ serve(async (req: Request): Promise<Response> => {
   });
   const tokenHash = linkData?.properties?.hashed_token;
   if (linkErr || !tokenHash) {
-    return json({ error: "Could not create handoff token" }, 500);
+    return json({ error: "Could not create handoff token" }, corsHeaders, 500);
   }
 
-  return json({ token_hash: tokenHash });
-});
+  return json({ token_hash: tokenHash }, corsHeaders);
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "auth_login", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -30,12 +30,14 @@ export default function PersonalHelpPage() {
     if (!subject.trim() || !message.trim()) return;
     setSubmitting(true);
     try {
-      await (supabase as any).from("feedback_submissions").insert({
-        user_id: user?.id ?? null,
+      const { error } = await supabase.functions.invoke("support-ticket-submit", { body: {
+        subject,
+        message,
         email: user?.email ?? null,
-        category: "support_ticket",
-        message: `Subject: ${subject}\n\n${message}`,
-      });
+        source: "personal_help",
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
       toast.success("Support ticket submitted! We'll reply within 24 hours.");
       setSubject("");
       setMessage("");

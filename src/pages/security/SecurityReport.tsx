@@ -73,12 +73,16 @@ export default function SecurityReport() {
 
     setIsSubmitting(true);
     try {
-      const message = `Severity: ${form.severity}\nTitle: ${form.title}\nDescription: ${form.description}\nSteps: ${form.steps}\nImpact: ${form.impact}\nReporter: ${form.name} <${form.email}>`;
-      const { error } = await supabase.from("feedback_submissions").insert({
-        category: "security_report",
-        subject: form.title || "Security Vulnerability Report",
-        message,
-      });
+      const { error } = await supabase.functions.invoke("security-report-submit", { body: {
+        name: form.name,
+        email: form.email,
+        severity: form.severity,
+        title: form.title,
+        description: form.description,
+        steps: form.steps,
+        impact: form.impact,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
       if (error) throw error;
       setSubmitted(true);
       toast.success("Report submitted successfully");

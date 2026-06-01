@@ -45,6 +45,8 @@ import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference
 import { detectSensitiveContent } from "@/lib/social/sensitiveContent";
 import { formatStarsPrice, getLockedMediaItems, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 import { recordChatMediaCacheEntry, type ChatMediaCacheBucket } from "@/lib/chat/mediaCache";
+import { useChatMediaGate } from "@/lib/chat/useChatMediaGate";
+import { ChatMediaDownloadOverlay } from "./ChatMediaDownloadOverlay";
 import { useAutoTranslateMessage } from "@/hooks/useAutoTranslateMessage";
 import {
   parseLegacyMusicShare,
@@ -779,9 +781,15 @@ function MediaAlbumTile({
   const openUrl = useSignedMedia(item.url, "chat-media-files", "display");
   const isVideo = item.type === "video";
   const durationLabel = formatAlbumDurationLabel(item.durationMs);
+  const gate = useChatMediaGate({
+    userId,
+    kind: isVideo ? "videos" : "photos",
+    sizeBytes: item.size,
+    bypass: protectedMedia || item.protected,
+  });
 
   useEffect(() => {
-    if (!displayUrl) return;
+    if (!displayUrl || !gate.shouldLoad) return;
     const trackedPath = item.thumbnailUrl || item.url;
     recordChatMediaCacheEntry({
       userId,
@@ -790,7 +798,7 @@ function MediaAlbumTile({
       bytes: item.thumbnailUrl ? null : item.size,
       storagePath: trackedPath,
     });
-  }, [displayUrl, item.size, item.thumbnailUrl, item.type, item.url, userId]);
+  }, [displayUrl, gate.shouldLoad, item.size, item.thumbnailUrl, item.type, item.url, userId]);
 
   const open = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -808,21 +816,23 @@ function MediaAlbumTile({
   return (
     <button
       type="button"
-      onClick={open}
+      onClick={gate.blocked ? (event) => { event.stopPropagation(); gate.load(); } : open}
       onContextMenu={protectedMedia || item.protected ? (event) => event.preventDefault() : undefined}
       onDragStart={protectedMedia || item.protected ? (event) => event.preventDefault() : undefined}
       data-testid="media-album-tile"
       data-album-index={index}
       className="group relative h-full min-h-0 w-full overflow-hidden bg-muted text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-      aria-label={isVideo ? "Open album video" : "Open album photo"}
+      aria-label={gate.blocked ? "Download album media" : isVideo ? "Open album video" : "Open album photo"}
     >
-      {displayUrl ? (
+      {gate.blocked ? (
+        <ChatMediaDownloadOverlay sizeBytes={item.size} />
+      ) : displayUrl ? (
         isVideo && !item.thumbnailUrl ? (
           <video
             src={`${displayUrl}#t=0.1`}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             playsInline
-            preload="metadata"
+            preload={gate.videoPreload}
             muted
             crossOrigin="anonymous"
             controlsList={protectedMedia || item.protected ? "nodownload noplaybackrate" : undefined}
@@ -1476,6 +1486,15 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     ? "delivered"
     : "sent";
 
+  // Gate the standalone (non-album) image attachment on the auto-download prefs.
+  // Locked/protected media keep their own flow (bypass). No-op on Wi-Fi defaults.
+  const singleImageGate = useChatMediaGate({
+    userId: user?.id,
+    kind: "photos",
+    sizeBytes: filePayloadSizeBytes,
+    bypass: isLocked || isProtectedMedia || isLockedType,
+  });
+
   return (
     <div
       ref={bubbleRef}
@@ -1758,24 +1777,35 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
         {!isMediaAlbum && !isViewOnceMedia && imageFrameUrl && !videoFrameUrl && (
           <div className={`${isTinyImage ? "w-28 max-w-[32vw]" : CHAT_MEDIA_FRAME_CLASS} rounded-2xl overflow-hidden mb-1 shadow-sm relative bg-muted border border-border/10 ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
             <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
-            <img
-              src={imageFrameUrl}
-              alt=""
-              onClick={(e) => { if (!isLocked) { e.stopPropagation(); import("@/lib/chat/openMedia").then(m => m.openMedia({ url: imageFrameUrl, type: "image", id, protected: isLockedType || isProtectedMedia })); } }}
-              className={`block w-full object-contain transition-all duration-300 cursor-zoom-in ${isLocked ? "blur-xl scale-105" : ""}`}
-              style={{
-                maxHeight: CHAT_MEDIA_MAX_HEIGHT,
-                imageRendering: isTinyImage ? "pixelated" : undefined,
-              }}
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-              onContextMenu={(e) => e.preventDefault()}
-              onLoad={(e) => {
-                const img = e.currentTarget;
-                setIsTinyImage((img.naturalWidth || 0) <= 16 && (img.naturalHeight || 0) <= 16);
-              }}
-            />
+            {singleImageGate.blocked ? (
+              <button
+                type="button"
+                aria-label="Download photo"
+                onClick={(e) => { e.stopPropagation(); singleImageGate.load(); }}
+                className="block aspect-[4/3] w-full"
+              >
+                <ChatMediaDownloadOverlay sizeBytes={filePayloadSizeBytes} />
+              </button>
+            ) : (
+              <img
+                src={imageFrameUrl}
+                alt=""
+                onClick={(e) => { if (!isLocked) { e.stopPropagation(); import("@/lib/chat/openMedia").then(m => m.openMedia({ url: imageFrameUrl, type: "image", id, protected: isLockedType || isProtectedMedia })); } }}
+                className={`block w-full object-contain transition-all duration-300 cursor-zoom-in ${isLocked ? "blur-xl scale-105" : ""}`}
+                style={{
+                  maxHeight: CHAT_MEDIA_MAX_HEIGHT,
+                  imageRendering: isTinyImage ? "pixelated" : undefined,
+                }}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  setIsTinyImage((img.naturalWidth || 0) <= 16 && (img.naturalHeight || 0) <= 16);
+                }}
+              />
+            )}
             {/* Locked overlay */}
             {isLocked && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 rounded-2xl">

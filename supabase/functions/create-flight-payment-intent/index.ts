@@ -312,4 +312,4 @@ Deno.serve(withSecurity("create-flight-payment-intent", async (req, ctx) => {
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
     );
   }
-}, { rateLimit: "payment", strictCors: true }));
+}, { allowedMethods: ["POST"], rateLimit: "payment", strictCors: true }));

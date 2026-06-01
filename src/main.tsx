@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import "./lib/toastErrorFilter";
+import { setupGlobalErrorHandlers } from "@/lib/security/errorReporting";
 
 // Dev mode only: unregister any service worker left over from a previous
 // prod build and wipe its caches, so HMR updates show up on refresh instead
@@ -79,7 +80,7 @@ import("@capacitor/core").then(({ Capacitor }) => {
 // Defer non-critical setup to after first paint
 const idle = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 200));
 idle(() => {
-  import("@/lib/security/errorReporting").then(m => m.setupGlobalErrorHandlers());
+  setupGlobalErrorHandlers();
   import("@/lib/perf/webVitals").then(m => m.startWebVitals());
   
   import("@capacitor/core").then(({ Capacitor }) => {

@@ -1,5 +1,7 @@
 /**
  * SalonWaitlistSection — clients hoping for a slot to open.
+ * Writes are routed through salon-waitlist-manage so client/service/stylist
+ * ownership and status changes are validated server-side.
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -127,22 +129,20 @@ export default function SalonWaitlistSection({ storeId, onJumpToTab }: SalonWait
     setSaving(true);
     const svc = activeServices.find((s) => s.id === draft.service_id);
     const stylist = activeStylists.find((s) => s.id === draft.stylist_id);
-    const payload = {
-      store_id: storeId,
+    const entry = {
       client_id: draft.client_id || null,
       client_name: draft.client_name.trim(),
       client_phone: draft.client_phone.trim() || null,
       requested_service_id: svc?.id ?? null,
-      requested_service_name: svc?.name ?? null,
       requested_stylist_id: stylist?.id ?? null,
-      requested_stylist_name: stylist?.display_name ?? null,
       preferred_window: draft.preferred_window.trim() || null,
       notes: draft.notes.trim() || null,
-      status: "waiting" as const,
     };
-    const { error: err } = await supabase.from("salon_waitlist").insert(payload as never);
+    const { data, error: err } = await supabase.functions.invoke("salon-waitlist-manage", {
+      body: { action: "create", store_id: storeId, entry },
+    });
     setSaving(false);
-    if (err) { setError("Couldn't add to waitlist."); return; }
+    if (err || data?.error) { setError(data?.error || "Couldn't add to waitlist."); return; }
     toast.success("Added to waitlist.");
     setDialogOpen(false);
     await load();
@@ -150,9 +150,11 @@ export default function SalonWaitlistSection({ storeId, onJumpToTab }: SalonWait
 
   const setStatus = async (id: string, status: WaitlistStatus) => {
     setSaving(true);
-    const { error: err } = await supabase.from("salon_waitlist").update({ status } as never).eq("id", id);
+    const { data, error: err } = await supabase.functions.invoke("salon-waitlist-manage", {
+      body: { action: "set_status", waitlist_id: id, status },
+    });
     setSaving(false);
-    if (err) { setError("Couldn't update status."); return; }
+    if (err || data?.error) { setError(data?.error || "Couldn't update status."); return; }
     toast.success(`Marked ${STATUS_META[status].label.toLowerCase()}.`);
     await load();
   };
@@ -166,9 +168,11 @@ export default function SalonWaitlistSection({ storeId, onJumpToTab }: SalonWait
       `Permanently remove ${row.client_name} from the waitlist?\n\nUse "Cancel" instead if you might want to look this up later — Remove can't be undone.`
     )) return;
     setSaving(true);
-    const { error: err } = await supabase.from("salon_waitlist").delete().eq("id", row.id);
+    const { data, error: err } = await supabase.functions.invoke("salon-waitlist-manage", {
+      body: { action: "delete", waitlist_id: row.id },
+    });
     setSaving(false);
-    if (err) { setError("Couldn't remove."); return; }
+    if (err || data?.error) { setError(data?.error || "Couldn't remove."); return; }
     toast.success("Removed from waitlist.");
     await load();
   };

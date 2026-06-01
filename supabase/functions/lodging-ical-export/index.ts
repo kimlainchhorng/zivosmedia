@@ -5,11 +5,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 function pad(n: number) { return n.toString().padStart(2, "0"); }
 function toICalDate(d: Date) {
@@ -19,13 +15,15 @@ function plainDateToICal(s: string) {
   return s.replace(/-/g, "");
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("lodging-ical-export", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const url = new URL(req.url);
     const token = url.searchParams.get("token");
-    if (!token) {
+    if (!token || token.length < 24) {
       return new Response("Missing token", { status: 400, headers: corsHeaders });
     }
 
@@ -117,4 +115,4 @@ Deno.serve(async (req) => {
       headers: corsHeaders,
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["GET", "POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

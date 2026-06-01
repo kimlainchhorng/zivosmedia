@@ -396,7 +396,7 @@ export default function AdminEmployeesPage() {
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                         {emp.avatar_url ? (
-                          <img src={emp.avatar_url} className="h-8 w-8 rounded-full object-cover" alt="" />
+                          <img src={emp.avatar_url} className="h-8 w-8 rounded-full object-cover" alt="" loading="lazy" decoding="async" />
                         ) : (
                           <Shield className="h-3.5 w-3.5 text-muted-foreground" />
                         )}

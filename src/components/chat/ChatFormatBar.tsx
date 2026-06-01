@@ -40,7 +40,7 @@ export default function ChatFormatBar({
 }) {
   if (!visible) return null;
   return (
-    <div className="absolute bottom-full left-0 mb-2 z-40 flex items-center gap-0.5 rounded-full border border-border/40 bg-background/95 px-1 py-1 shadow-lg shadow-black/10 backdrop-blur-xl">
+    <div className="zivo-chat-popover-glass absolute bottom-full left-0 z-40 mb-2 flex items-center gap-1 rounded-full border-white/10 px-1.5 py-1.5 shadow-2xl shadow-black/10">
       {ITEMS.map(({ fmt, label, Icon }) => (
         <button
           key={fmt}
@@ -52,7 +52,7 @@ export default function ChatFormatBar({
             e.preventDefault();
             onFormat(fmt);
           }}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground active:scale-90"
+          className="zivo-chat-icon-button flex h-8 w-8 items-center justify-center text-muted-foreground transition-all hover:text-foreground active:scale-90"
         >
           <Icon className="h-4 w-4" />
         </button>

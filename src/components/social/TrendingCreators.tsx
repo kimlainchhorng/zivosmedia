@@ -21,6 +21,12 @@ import { toast } from "sonner";
 import TrendingUp from "lucide-react/dist/esm/icons/trending-up";
 import UserCheck from "lucide-react/dist/esm/icons/user-check";
 import UserPlus from "lucide-react/dist/esm/icons/user-plus";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import Flame from "lucide-react/dist/esm/icons/flame";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles";
+import Clock3 from "lucide-react/dist/esm/icons/clock-3";
+import BadgeCheck from "lucide-react/dist/esm/icons/badge-check";
+import Target from "lucide-react/dist/esm/icons/target";
 
 interface TrendingCreator {
   id: string;
@@ -138,47 +144,162 @@ export default function TrendingCreators() {
   };
 
   if (creators.length === 0) return null;
+  const topGain = creators[0]?.newFollowers ?? 0;
+  const totalNewFollowers = creators.reduce((sum, creator) => sum + creator.newFollowers, 0);
+  const leader = creators[0] ?? null;
+  const averageGain = creators.length > 0 ? Math.round(totalNewFollowers / creators.length) : 0;
+  const verifiedCount = creators.filter((creator) => isBlueVerified(creator.is_verified)).length;
+  const velocityLabel = topGain >= averageGain * 2 && averageGain > 0
+    ? "Breakout week"
+    : totalNewFollowers >= 25
+      ? "Fast climb"
+      : "Organic lift";
 
   return (
     <section
       aria-label="Trending creators this week"
-      className="bg-card border-b border-border/10 px-3 py-3"
+      className="zivo-social-module mx-2 my-3 overflow-hidden rounded-[1.25rem] px-3 py-3"
     >
-      <div className="flex items-center justify-between mb-2.5">
-        <h3 className="text-[13px] font-bold text-foreground flex items-center gap-1.5">
-          <TrendingUp className="h-4 w-4 text-amber-500" aria-hidden="true" />
-          Trending this week
-        </h3>
+      <div className="zivo-social-header-glass mb-2.5 flex items-center justify-between gap-3 rounded-[1.15rem] px-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl">
+            <TrendingUp className="h-4 w-4 text-amber-500" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-[13px] font-bold text-foreground">Trending this week</h3>
+            <p className="truncate text-[11px] font-medium text-muted-foreground">
+              Fastest-growing creators right now
+            </p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => navigate("/explore")}
-          className="text-[12px] font-semibold text-primary active:opacity-70"
+          aria-label="Open creator explore"
+          className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold text-primary active:scale-95"
         >
           See all
+          <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
-      <ul className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
+            <Flame className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black tabular-nums text-foreground">{formatCount(topGain)}</span>
+            <span className="block truncate text-[10px] font-semibold text-muted-foreground">Top gain</span>
+          </span>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <TrendingUp className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black tabular-nums text-foreground">{formatCount(totalNewFollowers)}</span>
+            <span className="block truncate text-[10px] font-semibold text-muted-foreground">Growth</span>
+          </span>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/10 text-fuchsia-500">
+            <Sparkles className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black tabular-nums text-foreground">{creators.length}</span>
+            <span className="block truncate text-[10px] font-semibold text-muted-foreground">Creators</span>
+          </span>
+        </div>
+        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500">
+            <Clock3 className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black tabular-nums text-foreground">7d</span>
+            <span className="block truncate text-[10px] font-semibold text-muted-foreground">Window</span>
+          </span>
+        </div>
+      </div>
+      {leader && (
+        <div className="zivo-social-share-preview mb-2.5 flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+              <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-black uppercase tracking-[0.08em] text-muted-foreground">
+                Weekly leader
+              </p>
+              <p className="truncate text-sm font-bold text-foreground">{leader.full_name || "Creator"}</p>
+            </div>
+          </div>
+          <span className="zivo-social-chip-active shrink-0 rounded-full px-3 py-1 text-[11px] font-black tabular-nums">
+            +{formatCount(leader.newFollowers)}
+          </span>
+        </div>
+      )}
+      <div className="zivo-social-module-tile mb-2.5 grid grid-cols-2 gap-2 rounded-2xl px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
+            <Target className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+              Trend velocity
+            </span>
+            <span className="block truncate text-xs font-black text-foreground">{velocityLabel}</span>
+          </span>
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500">
+            <BadgeCheck className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+              Avg gain
+            </span>
+            <span className="block truncate text-xs font-black text-foreground">
+              +{formatCount(averageGain)} / creator
+            </span>
+          </span>
+        </div>
+        {verifiedCount > 0 && (
+          <span className="zivo-social-chip col-span-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-1 text-[9px] font-black text-primary">
+            <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+            {verifiedCount} verified in the trend
+          </span>
+        )}
+      </div>
+      <ul className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none">
         {creators.map((c, idx) => {
           const followed = optimisticallyFollowed.has(c.id);
           const name = c.full_name || "Creator";
+          const isTopThree = idx < 3;
           return (
-            <li key={c.id} className="shrink-0 w-[110px]">
-              <div className="relative flex flex-col items-center gap-1.5 p-2 rounded-xl bg-muted/30 border border-border/20">
+            <li key={c.id} className="w-[132px] shrink-0">
+              <div className="zivo-social-module-tile group relative flex flex-col items-center gap-2 rounded-2xl p-3 transition-all hover:-translate-y-0.5">
                 <span
-                  className="absolute top-1.5 left-1.5 h-5 min-w-[20px] px-1 rounded-full bg-amber-500/95 text-white text-[10px] font-bold flex items-center justify-center leading-none"
+                  className="absolute left-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500/95 px-1 text-[10px] font-bold leading-none text-white shadow-[0_8px_18px_rgba(245,158,11,0.32)]"
                   aria-label={`Rank ${idx + 1}`}
+                  title={`Rank ${idx + 1}`}
                 >
                   {idx + 1}
                 </span>
+                {isTopThree && (
+                  <span className="absolute right-2 top-2 zivo-social-chip flex h-6 items-center gap-1 rounded-full px-2 text-[9px] font-black uppercase tracking-[0.08em] text-amber-600">
+                    <Flame className="h-3 w-3" />
+                    Hot
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => navigate(`/user/${c.id}`)}
                   className="flex flex-col items-center gap-1 active:opacity-70"
                   aria-label={`View ${name}'s profile`}
                 >
-                  <Avatar className="h-12 w-12 border-2 border-amber-500/40">
+                  <Avatar className="zivo-social-avatar-ring h-14 w-14 transition-transform group-hover:scale-105">
                     <AvatarImage src={optimizeAvatar(c.avatar_url, 48)} alt="" loading="lazy" />
-                    <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm font-bold">
+                    <AvatarFallback className="bg-transparent text-primary text-sm font-bold">
                       {initialsOf(c.full_name)}
                     </AvatarFallback>
                   </Avatar>
@@ -186,9 +307,15 @@ export default function TrendingCreators() {
                     <span className="truncate">{name}</span>
                     {isBlueVerified(c.is_verified) && <VerifiedBadge size={10} interactive={false} />}
                   </p>
-                  <p className="text-[9px] text-muted-foreground text-center leading-tight">
+                  <p className="zivo-social-chip rounded-full px-2 py-0.5 text-center text-[9px] font-bold leading-tight text-muted-foreground">
                     +{formatCount(c.newFollowers)} followers
                   </p>
+                  <span className="w-full overflow-hidden rounded-full bg-muted/70">
+                    <span
+                      className="block h-1.5 rounded-full bg-gradient-to-r from-amber-400 via-primary to-fuchsia-500"
+                      style={{ width: `${Math.max(16, Math.min(100, Math.round((c.newFollowers / Math.max(topGain, 1)) * 100)))}%` }}
+                    />
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -196,10 +323,10 @@ export default function TrendingCreators() {
                   disabled={followed}
                   aria-label={followed ? `Following ${name}` : `Follow ${name}`}
                   className={
-                    "w-full py-1 rounded-full text-[10px] font-bold text-center active:opacity-70 transition-colors flex items-center justify-center gap-1 " +
+                    "flex min-h-[32px] w-full items-center justify-center gap-1 rounded-full py-1 text-center text-[10px] font-bold transition-colors active:scale-95 " +
                     (followed
-                      ? "bg-muted text-muted-foreground"
-                      : "bg-primary text-primary-foreground")
+                      ? "zivo-social-chip text-muted-foreground"
+                      : "zivo-social-chip-active")
                   }
                 >
                   {followed ? (

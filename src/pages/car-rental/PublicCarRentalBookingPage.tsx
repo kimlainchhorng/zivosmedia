@@ -518,33 +518,31 @@ export default function PublicCarRentalBookingPage() {
       return;
     }
 
-    // Promo redemption record
-    if (appliedPromo && (data as any)?.id) {
-      await supabase.from("car_rental_promo_redemptions").insert({
-        store_id: store.id,
-        promo_id: appliedPromo.id,
-        reservation_id: (data as any).id,
-        amount_discounted_cents: discountCents,
-      } as never);
-    }
-
-    // Add-on rows (snapshot)
     const selected = addons.filter((a) => selectedAddons.has(a.id));
-    if (selected.length > 0 && (data as any)?.id) {
-      const rows = selected.map((a) => {
-        const qty = selectedAddons.get(a.id) ?? 1;
-        const itemTotal = a.billing === "per_day" ? a.price_cents * qty * rentalDays : a.price_cents * qty;
-        return {
+    if ((appliedPromo || selected.length > 0) && (data as any)?.id && (data as any)?.confirmation_code) {
+      const { error: extrasErr } = await supabase.functions.invoke("car-rental-booking-extras-submit", {
+        body: {
+          store_id: store.id,
           reservation_id: (data as any).id,
-          addon_id: a.id,
-          name: a.name,
-          unit_price_cents: a.price_cents,
-          billing: a.billing,
-          quantity: qty,
-          total_cents: itemTotal,
-        };
+          confirmation_code: (data as any).confirmation_code,
+          promo: appliedPromo
+            ? {
+                promo_id: appliedPromo.id,
+                amount_discounted_cents: discountCents,
+              }
+            : null,
+          addons: selected.map((a) => ({
+            addon_id: a.id,
+            quantity: selectedAddons.get(a.id) ?? 1,
+          })),
+        },
       });
-      await supabase.from("car_rental_reservation_addons").insert(rows as never);
+      if (extrasErr) {
+        console.error(extrasErr);
+        setError("Booking was created, but add-ons or promo could not be attached. Please contact the rental team with your confirmation code.");
+        setSubmitting(false);
+        return;
+      }
     }
 
     const reservationId = (data as any).id as string;
@@ -742,7 +740,7 @@ export default function PublicCarRentalBookingPage() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center gap-3">
           {store.logo_url ? (
-            <img src={store.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+            <img src={store.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" />
           ) : (
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
               <Car className="h-5 w-5" />
@@ -906,7 +904,7 @@ export default function PublicCarRentalBookingPage() {
                         )}
                       >
                         {v.photo_url ? (
-                          <img src={v.photo_url} alt="" className="mb-2 h-32 w-full rounded-xl object-cover" />
+                          <img src={v.photo_url} alt="" className="mb-2 h-32 w-full rounded-xl object-cover" loading="lazy" decoding="async" />
                         ) : (
                           <div className="mb-2 grid h-32 w-full place-items-center rounded-xl bg-muted">
                             <Car className="h-10 w-10 text-muted-foreground" />
@@ -915,7 +913,7 @@ export default function PublicCarRentalBookingPage() {
                         {(v.photo_urls?.length ?? 0) > 0 && (
                           <div className="mb-3 flex gap-1">
                             {(v.photo_urls ?? []).slice(0, 4).map((u, i) => (
-                              <img key={i} src={u} alt="" className="h-12 flex-1 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                              <img key={i} src={u} alt="" className="h-12 flex-1 rounded object-cover" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
                             ))}
                           </div>
                         )}
@@ -1446,7 +1444,7 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
                 <button type="button" onClick={onStartBooking} className="group w-full text-left rounded-2xl border border-border bg-card overflow-hidden transition-all hover:border-primary/40 hover:shadow-md">
                   <div className="relative">
                     {v.photo_url ? (
-                      <img src={v.photo_url} alt="" className="h-36 w-full object-cover" />
+                      <img src={v.photo_url} alt="" className="h-36 w-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="grid h-36 w-full place-items-center bg-muted">
                         <Car className="h-12 w-12 text-muted-foreground" />

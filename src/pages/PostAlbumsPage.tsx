@@ -329,7 +329,7 @@ export default function PostAlbumsPage() {
                               isVideo ? (
                                 <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                               ) : (
-                                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               )
                             ) : (
                               <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-4 w-4 text-muted-foreground" /></div>
@@ -404,7 +404,7 @@ export default function PostAlbumsPage() {
                     aria-label={`Open album ${a.name}`}
                   >
                     {a.cover_url ? (
-                      <img src={a.cover_url} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
+                      <img src={a.cover_url} alt={a.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className={cn("w-full h-full flex items-center justify-center bg-ig-gradient")}>
                         <BookImage className="h-10 w-10 text-white/85" />

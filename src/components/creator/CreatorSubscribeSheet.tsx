@@ -89,6 +89,16 @@ export default function CreatorSubscribeSheet() {
               <button type="button" onClick={subscribe} disabled={!selectedTier} className="w-full mt-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
                 Subscribe
               </button>
+              <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
+                Monthly subscription · cancel anytime. Creator subscriptions follow the
+                {" "}
+                <a href="/legal/terms" className="font-semibold underline underline-offset-2">Terms</a>
+                {" "}
+                and
+                {" "}
+                <a href="/legal/refunds" className="font-semibold underline underline-offset-2">Refund Policy</a>
+                , including payout, tax, chargeback, and refund rules.
+              </p>
             </div>
           </motion.div>
         </motion.div>

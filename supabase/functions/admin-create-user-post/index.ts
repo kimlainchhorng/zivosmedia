@@ -1,6 +1,5 @@
 import { createClient } from "../_shared/deps.ts";
 import { decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 
@@ -34,8 +33,8 @@ function getMediaType(file: UploadFileInput) {
   return file.contentType?.startsWith("video/") ? "video" : "image";
 }
 
-Deno.serve(withSecurity("admin-create-user-post", async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+Deno.serve(withSecurity("admin-create-user-post", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -183,6 +182,6 @@ Deno.serve(withSecurity("admin-create-user-post", async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[admin-create-user-post] unexpected error:", message);
-    return jsonResponse({ error: message }, 500, getCorsHeaders(req));
+    return jsonResponse({ error: message }, 500, corsHeaders);
   }
-}, { rateLimit: "upload", skipWaf: true }));
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "upload", skipWaf: true, trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

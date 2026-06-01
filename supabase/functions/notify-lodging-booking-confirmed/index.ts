@@ -10,11 +10,7 @@
  */
 import { createClient } from "../_shared/deps.ts";
 import { notifyLodgingBookingConfirmed } from "../_shared/lodging-notifications.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PAY_METHOD_LABELS: Record<string, string> = {
   pay_at_property: "Pay at Property",
@@ -22,7 +18,9 @@ const PAY_METHOD_LABELS: Record<string, string> = {
   khqr: "KHQR / ABA Pay",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withSecurity("notify-lodging-booking-confirmed", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -77,4 +75,4 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

@@ -6,6 +6,7 @@ import type { UserProfile } from "@/hooks/useUserProfile";
 const baseProfile: UserProfile = {
   id: "p1",
   user_id: "u1",
+  username: null,
   full_name: null,
   email: null,
   phone: null,
@@ -31,6 +32,12 @@ const baseProfile: UserProfile = {
   allow_friend_requests: null,
   hide_from_drivers: null,
   profile_visibility: null,
+  profile_completion_score: null,
+  has_username: null,
+  has_avatar: null,
+  has_cover: null,
+  has_bio: null,
+  last_profile_polished_at: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 };

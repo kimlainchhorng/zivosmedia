@@ -80,7 +80,7 @@ Deno.serve(withSecurity("create-grocery-square-checkout", async (req, ctx) => {
     console.error("[create-grocery-square-checkout]", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 function safeRedirectUrl(req: Request, value: unknown, fallbackPath: string) {
   const origin = req.headers.get("origin") || "https://hizivo.com";

@@ -67,7 +67,7 @@ export default function SuggestedContactsRow() {
       <section
         role="group"
         aria-label="Suggested people you may know"
-        className="px-1 pb-2"
+        className="zivo-chat-card mx-3 mb-2 rounded-3xl px-1 pb-2"
       >
         <div className="flex items-center justify-between px-3 py-2">
           <h2 className="text-[13px] font-semibold text-muted-foreground">People you may know</h2>
@@ -89,16 +89,16 @@ export default function SuggestedContactsRow() {
             return (
               <li
                 key={s.user_id}
-                className="relative shrink-0 w-[120px] rounded-2xl border bg-card p-2.5 flex flex-col items-center text-center"
+                className="zivo-chat-row relative flex w-[120px] shrink-0 flex-col items-center rounded-2xl p-2.5 text-center"
               >
                 <button type="button"
                   onClick={() => void dismiss(s.user_id)}
                   aria-label={`Dismiss ${name}`}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-muted/70 hover:bg-muted flex items-center justify-center focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                  className="zivo-chat-icon-button absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
                   <X className="w-3 h-3" />
                 </button>
-                <Avatar className="w-12 h-12 mb-1.5">
+                <Avatar className="zivo-chat-avatar-ring mb-1.5 h-12 w-12">
                   <AvatarImage src={s.avatar_url ?? undefined} />
                   <AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback>
                 </Avatar>
@@ -124,7 +124,7 @@ export default function SuggestedContactsRow() {
                     type="button"
                     onClick={() => openContext({ ...s, reason: "chat" })}
                     aria-label={`${name} is in your contacts — open chat`}
-                    className="w-full h-7 rounded-full bg-muted text-foreground text-[11px] font-semibold flex items-center justify-center gap-1 hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                    className="zivo-chat-chip flex h-7 w-full items-center justify-center gap-1 rounded-full text-[11px] font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                   >
                     <Check className="w-3 h-3" /> In contacts
                   </button>
@@ -142,7 +142,7 @@ export default function SuggestedContactsRow() {
                     type="button"
                     onClick={() => openConfirm(s)}
                     aria-label={`Send contact request to ${name}`}
-                    className="w-full h-7 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-semibold flex items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:outline-none"
+                    className="zivo-chat-chip-active flex h-7 w-full items-center justify-center gap-1 rounded-full text-[11px] font-black text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
                   >
                     <UserPlus className="w-3 h-3" /> Add
                   </button>

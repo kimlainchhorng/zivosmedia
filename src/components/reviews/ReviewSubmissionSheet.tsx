@@ -70,20 +70,20 @@ export function ReviewSubmissionSheet({
 
     setLoading(true);
     try {
-      const { error } = await (supabase.from("reviews") as any).insert([
-        {
-          reviewer_id: user.id,
-          service_type: serviceType,
-          service_id: serviceId,
-          booking_reference: bookingReference,
+      const comment = [reviewTitle.trim(), reviewBody.trim()].filter(Boolean).join("\n\n");
+      const { error } = await supabase.functions.invoke("review-manage", {
+        body: {
+          action: "submit",
+          review: {
+          target_type: serviceType,
+          target_id: serviceId,
           rating,
-          title: reviewTitle,
-          body: reviewBody,
-          photos: photos.length > 0 ? photos : null,
-          verified_purchase: !!bookingReference,
-          status: "published",
+          comment,
+          service_type: serviceType,
+          order_id: bookingReference,
+          },
         },
-      ]);
+      });
 
       if (error) throw error;
       toast.success("Review posted!");

@@ -17,17 +17,12 @@
  * JWT, not service-role.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const j = (status: number, body: unknown) =>
+const j = (headers: Record<string, string>, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 
 interface Body {
@@ -35,18 +30,20 @@ interface Body {
   target_user?: string;
 }
 
-serve(async (req) => {
+serve(withSecurity("send-test-notification", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return j(405, { error: "Method not allowed" });
+  if (req.method !== "POST") return j(corsHeaders, 405, { error: "Method not allowed" });
 
   const auth = req.headers.get("Authorization") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !anonKey || !serviceKey) {
-    return j(500, { error: "Server misconfigured" });
+    return j(corsHeaders, 500, { error: "Server misconfigured" });
   }
-  if (!auth.startsWith("Bearer ")) return j(401, { error: "Authentication required" });
+  if (!auth.startsWith("Bearer ")) return j(corsHeaders, 401, { error: "Authentication required" });
 
   // Identify caller via their JWT.
   const userClient = createClient(supabaseUrl, anonKey, {
@@ -55,12 +52,12 @@ serve(async (req) => {
   const { data: userData, error: userErr } = await userClient.auth.getUser(
     auth.replace("Bearer ", ""),
   );
-  if (userErr || !userData?.user?.id) return j(401, { error: "Authentication required" });
+  if (userErr || !userData?.user?.id) return j(corsHeaders, 401, { error: "Authentication required" });
   const callerId = userData.user.id;
 
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: isAdminRow } = await admin.rpc("is_admin", { user_uuid: callerId });
-  if (!isAdminRow) return j(403, { error: "Admin only" });
+  if (!isAdminRow) return j(corsHeaders, 403, { error: "Admin only" });
 
   let body: Body = {};
   try {
@@ -112,11 +109,11 @@ serve(async (req) => {
     /* keep null */
   }
 
-  return j(200, {
+  return j(corsHeaders, 200, {
     success: dispatchRes.ok,
     target_user: targetUser,
     channels,
     diagnostics,
     dispatch,
   });
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

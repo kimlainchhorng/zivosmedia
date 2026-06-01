@@ -177,7 +177,7 @@ export default function MyRestaurantTripPage() {
               >
                 {booking.restaurant.image_url && (
                   <div className="h-40 w-full bg-muted overflow-hidden">
-                    <img src={booking.restaurant.image_url} alt={booking.restaurant.name} className="w-full h-full object-cover" />
+                    <img src={booking.restaurant.image_url} alt={booking.restaurant.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   </div>
                 )}
                 <div className="p-4 space-y-3">

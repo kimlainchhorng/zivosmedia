@@ -320,7 +320,9 @@ export default function EatsTrackingPage() {
               {[1, 2, 3, 4, 5].map(s => (
                 <button type="button" key={s} onClick={async () => {
                   setRating(s);
-                  await supabase.from("food_orders").update({ rating: s } as any).eq("id", order.id);
+                  await supabase.functions.invoke("eats-order-state-update", {
+                    body: { order_id: order.id, action: "rate_order", rating: s },
+                  });
                   toast.success(`Rated ${s} stars! Thank you!`);
                 }} className="touch-manipulation active:scale-90 transition-transform">
                   <Star className={cn("w-8 h-8 transition-all",

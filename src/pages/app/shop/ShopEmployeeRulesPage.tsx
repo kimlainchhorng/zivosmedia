@@ -84,11 +84,11 @@ export default function ShopEmployeeRulesPage() {
 
       if (rows.length === 0) {
         const seeded = SEED_RULES.map((r) => ({ ...r, store_id: sid }));
-        const { data: inserted } = await (supabase as any)
-          .from("employee_rules")
-          .insert(seeded)
-          .select("id, store_id, title, description, category, active, position, created_at");
-        rows = ((inserted || []) as Rule[]).sort((a, b) => a.position - b.position);
+        const { data: inserted, error } = await supabase.functions.invoke("employee-rule-manage", {
+          body: { action: "seed_defaults", store_id: sid, rules: seeded },
+        });
+        if (error || !inserted?.ok) throw error || new Error(inserted?.error || "Could not seed rules");
+        rows = ((inserted.rules || []) as Rule[]).sort((a, b) => a.position - b.position);
       }
       setRules(rows);
 
@@ -124,15 +124,20 @@ export default function ShopEmployeeRulesPage() {
     setSaving(true);
     try {
       const nextPos = (rules.at(-1)?.position ?? -1) + 1;
-      const { error } = await (supabase as any).from("employee_rules").insert({
-        store_id: storeId,
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        category: form.category,
-        active: true,
-        position: nextPos,
+      const { data, error } = await supabase.functions.invoke("employee-rule-manage", {
+        body: {
+          action: "create",
+          store_id: storeId,
+          rule: {
+            title: form.title.trim(),
+            description: form.description.trim() || null,
+            category: form.category,
+            active: true,
+            position: nextPos,
+          },
+        },
       });
-      if (error) throw error;
+      if (error || !data?.ok) throw error || new Error(data?.error || "Could not add rule");
       toast.success(`Rule added: ${form.title.trim()}`);
       setForm({ title: "", description: "", category: "General" });
       setShowForm(false);
@@ -147,11 +152,10 @@ export default function ShopEmployeeRulesPage() {
   const toggleRule = async (rule: Rule) => {
     const next = !rule.active;
     setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, active: next } : r)));
-    const { error } = await (supabase as any)
-      .from("employee_rules")
-      .update({ active: next })
-      .eq("id", rule.id);
-    if (error) {
+    const { data, error } = await supabase.functions.invoke("employee-rule-manage", {
+      body: { action: "set_active", rule_id: rule.id, active: next },
+    });
+    if (error || !data?.ok) {
       toast.error("Could not update rule.");
       loadData();
       return;
@@ -162,8 +166,10 @@ export default function ShopEmployeeRulesPage() {
   const removeRule = async (rule: Rule) => {
     if (!confirm(`Remove rule "${rule.title}"?`)) return;
     setRules((prev) => prev.filter((r) => r.id !== rule.id));
-    const { error } = await (supabase as any).from("employee_rules").delete().eq("id", rule.id);
-    if (error) {
+    const { data, error } = await supabase.functions.invoke("employee-rule-manage", {
+      body: { action: "delete", rule_id: rule.id },
+    });
+    if (error || !data?.ok) {
       toast.error("Could not remove rule.");
       loadData();
       return;

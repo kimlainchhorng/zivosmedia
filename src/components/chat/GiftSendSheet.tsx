@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Coins from "lucide-react/dist/esm/icons/coins";
+import Gift from "lucide-react/dist/esm/icons/gift";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -61,28 +62,34 @@ export default function GiftSendSheet({ open, onClose, recipientId }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="bottom" className="rounded-t-3xl max-h-[80vh] overflow-y-auto pb-8">
-        <SheetHeader className="text-left">
-          <SheetTitle className="text-base">Send a gift</SheetTitle>
+      <SheetContent side="bottom" className="zivo-chat-popover-glass max-h-[80vh] overflow-y-auto rounded-t-[1.75rem] border-white/10 px-0 pb-8 shadow-2xl">
+        <div className="zivo-chat-header-glass sticky top-0 z-10 px-5 pb-4 pt-5">
+          <div className="mx-auto mb-4 h-1 w-11 rounded-full bg-foreground/20" />
+          <SheetHeader className="text-left">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Gift studio</p>
+            <SheetTitle className="flex items-center gap-2 text-lg font-black">
+              <Gift className="h-4 w-4 text-amber-500" /> Send a gift
+            </SheetTitle>
         </SheetHeader>
+        </div>
 
-        <div className="grid grid-cols-4 gap-2 mt-4">
+        <div className="grid grid-cols-4 gap-2 px-4 pt-4">
           {GIFT_CATALOG.slice(0, 32).map((g) => (
             <button type="button"
               key={g.name}
               onClick={() => setSelected(g)}
               className={cn(
-                "flex flex-col items-center gap-1 p-2 rounded-xl border transition-all",
+                "relative flex min-h-[104px] flex-col items-center justify-center gap-1 rounded-2xl border p-2 shadow-sm transition-all",
                 selected?.name === g.name
-                  ? "bg-primary/10 border-primary/40 scale-[1.02]"
-                  : "bg-muted/30 border-border/30 hover:bg-muted/50"
+                  ? "border-primary/50 bg-primary/10 scale-[1.02] shadow-lg shadow-primary/10"
+                  : "border-white/10 bg-background/45 hover:-translate-y-0.5 hover:bg-muted/20 hover:shadow-lg"
               )}
             >
-              <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center text-2xl", g.bg)}>
+              <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-2xl shadow-sm", g.bg)}>
                 {g.icon}
               </div>
-              <div className="text-[10px] font-medium truncate w-full text-center">{g.name}</div>
-              <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+              <div className="w-full truncate text-center text-[10px] font-black">{g.name}</div>
+              <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground">
                 <Coins className="w-2.5 h-2.5" />
                 {g.coins}
               </div>
@@ -91,18 +98,30 @@ export default function GiftSendSheet({ open, onClose, recipientId }: Props) {
         </div>
 
         {selected && (
-          <div className="mt-4 px-1">
+          <div className="zivo-chat-card mx-4 mt-4 p-4">
+            <div className="mb-3 flex items-center gap-3">
+              <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-2xl shadow-sm", selected.bg)}>
+                {selected.icon}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black text-foreground">{selected.name}</p>
+                <p className="flex items-center gap-1 text-xs font-bold text-muted-foreground">
+                  <Coins className="h-3 w-3" />
+                  {selected.coins} coins
+                </p>
+              </div>
+            </div>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Add a note (optional)…"
               maxLength={80}
-              className="w-full px-3 py-2.5 rounded-xl bg-muted/30 border border-border/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="zivo-chat-search w-full px-3 py-2.5 text-sm focus:outline-none"
             />
             <button type="button"
               onClick={send}
               disabled={sending}
-              className="mt-3 w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold disabled:opacity-50"
+              className="mt-3 w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-black text-white shadow-lg shadow-amber-500/20 disabled:opacity-50"
             >
               {sending ? "Sending…" : `Send ${selected.name} · ${selected.coins} coins`}
             </button>

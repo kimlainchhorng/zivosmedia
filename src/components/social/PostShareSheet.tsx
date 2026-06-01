@@ -23,6 +23,11 @@ import Mail from "lucide-react/dist/esm/icons/mail";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import Download from "lucide-react/dist/esm/icons/download";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2";
+import Globe2 from "lucide-react/dist/esm/icons/globe-2";
+import Zap from "lucide-react/dist/esm/icons/zap";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
+import { useHaptic } from "@/hooks/useHaptic";
 
 const externalIntents = (url: string, text: string) => {
   const u = encodeURIComponent(url);
@@ -91,6 +96,7 @@ export default function PostShareSheet() {
   const queryClient = useQueryClient();
   const [target, _setTarget] = useState<PostShareSheetTarget | null>(null);
   const [sharingToStory, setSharingToStory] = useState(false);
+  const haptic = useHaptic();
 
   useEffect(() => registerPostShareSheetTargetSetter(_setTarget), []);
 
@@ -101,8 +107,11 @@ export default function PostShareSheet() {
   const intents = externalIntents(url, text);
   const host = getShareHost(url);
   const previewText = clampStoryText(text || title, 112);
+  const recommendedRoutes = 3 + (onSendToFriend ? 1 : 0);
+  const mediaState = target.imageUrl ? "Media ready" : "Link only";
 
   const copyPostLink = async () => {
+    haptic("light");
     try {
       await copyText(url);
       toast.success("Link copied", { description: "Paste it anywhere to share this post." });
@@ -127,6 +136,7 @@ export default function PostShareSheet() {
   };
 
   const handleNativeSheet = async () => {
+    haptic("light");
     try {
       const result = await shareContent({ title, text, url, dialogTitle: "Share post" });
       if (result.shared) {
@@ -151,6 +161,7 @@ export default function PostShareSheet() {
 
   const handleStory = async () => {
     if (sharingToStory) return;
+    haptic("medium");
     setSharingToStory(true);
     try {
       const { data, error: authError } = await supabase.auth.getUser();
@@ -182,6 +193,7 @@ export default function PostShareSheet() {
   };
 
   const handleDownload = async () => {
+    haptic("light");
     if (!target.imageUrl) {
       toast("This post has no image to save");
       return;
@@ -204,6 +216,7 @@ export default function PostShareSheet() {
   };
 
   const handleExternal = (intent: { id: string; href: string; label: string }) => {
+    haptic("light");
     try {
       window.open(intent.href, "_blank", "noopener,noreferrer");
       onShared?.(intent.id);
@@ -215,26 +228,34 @@ export default function PostShareSheet() {
 
   return (
     <Sheet open={!!target} onOpenChange={(o) => { if (!o) close(); }}>
-      <SheetContent side="bottom" className="rounded-t-3xl px-4 pt-3 pb-[max(1.25rem,var(--zivo-safe-bottom,0px))]">
-        <SheetHeader className="text-left">
-          <SheetTitle className="text-[17px] font-extrabold tracking-tight">Share post</SheetTitle>
+      <SheetContent side="bottom" className="zivo-social-sheet-panel rounded-t-3xl px-4 pt-3 pb-[max(1.25rem,var(--zivo-safe-bottom,0px))]">
+        <SheetHeader className="zivo-social-header-glass rounded-[1.25rem] px-4 py-3 text-left">
+          <div className="flex items-center gap-3">
+            <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-primary">
+              <Share2 className="h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <SheetTitle className="truncate text-[17px] font-extrabold tracking-tight">Share post</SheetTitle>
+              <p className="truncate text-xs font-medium text-muted-foreground">{host}</p>
+            </div>
+          </div>
           <SheetDescription className="sr-only">
             Choose where to share this post or copy its link.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-4 overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm">
+        <div className="zivo-social-share-preview mt-4 overflow-hidden rounded-3xl">
           <div className="flex gap-3 p-3">
             {target.imageUrl ? (
               <img
                 src={target.imageUrl}
-	                alt=""
-	                className="h-20 w-20 shrink-0 rounded-2xl object-cover"
-	                loading="lazy"
-	                decoding="async"
-	              />
+                alt=""
+                className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-sm"
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
-              <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary via-sky-500 to-emerald-500 text-white">
+              <div className="zivo-social-share-orb grid h-20 w-20 shrink-0 place-items-center rounded-2xl text-primary">
                 <Share2 className="h-8 w-8" />
               </div>
             )}
@@ -250,14 +271,14 @@ export default function PostShareSheet() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2 border-t border-border/40 bg-muted/20 px-3 py-2">
-            <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+          <div className="zivo-social-engagement-summary flex gap-2 px-3 py-2">
+            <span className="zivo-social-chip rounded-full px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
               DM ready
             </span>
-            <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+            <span className="zivo-social-chip rounded-full px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
               Story ready
             </span>
-            <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+            <span className="zivo-social-chip rounded-full px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
               Public link
             </span>
           </div>
@@ -265,7 +286,51 @@ export default function PostShareSheet() {
 
         <div className="mt-5 flex items-center justify-between px-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Recommended</p>
-          <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">Fast share</span>
+          <span className="zivo-social-chip inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold text-primary">
+            <Zap className="h-3 w-3" aria-hidden="true" />
+            Fast share
+          </span>
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className="zivo-social-module-tile rounded-2xl px-3 py-2 text-left">
+            <Send className="mb-1.5 h-3.5 w-3.5 text-primary" aria-hidden="true" />
+            <p className="text-xs font-black leading-none text-foreground">{recommendedRoutes}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Quick routes</p>
+          </div>
+          <div className="zivo-social-module-tile rounded-2xl px-3 py-2 text-left">
+            <Globe2 className="mb-1.5 h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+            <p className="text-xs font-black leading-none text-foreground">{intents.length}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">External apps</p>
+          </div>
+          <div className="zivo-social-module-tile rounded-2xl px-3 py-2 text-left">
+            <CheckCircle2 className="mb-1.5 h-3.5 w-3.5 text-fuchsia-500" aria-hidden="true" />
+            <p className="truncate text-xs font-black leading-none text-foreground">{mediaState}</p>
+            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Share payload</p>
+          </div>
+        </div>
+        <div className="zivo-social-module-tile mt-2 grid grid-cols-2 gap-2 rounded-2xl px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                Share scope
+              </span>
+              <span className="block truncate text-xs font-black text-foreground">Public link</span>
+            </span>
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500">
+              <Globe2 className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                Payload
+              </span>
+              <span className="block truncate text-xs font-black text-foreground">{target.imageUrl ? "Media + link" : "Link only"}</span>
+            </span>
+          </div>
         </div>
         <div className="mt-2 grid grid-cols-4 gap-2.5">
           {onSendToFriend && (
@@ -305,11 +370,17 @@ export default function PostShareSheet() {
         <button
           type="button"
           onClick={handleCopy}
-          className="mt-5 flex w-full items-center gap-2 rounded-2xl border border-border/50 bg-muted/25 px-3 py-2.5 text-left transition-colors hover:bg-muted/40 active:scale-[0.99]"
+          className="zivo-social-sheet-row mt-5 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all active:scale-[0.99]"
           aria-label="Copy share link"
         >
-          <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-muted-foreground">{url}</span>
+          <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-primary">
+            <Globe2 className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-bold text-foreground">Copy public link</span>
+            <span className="block truncate text-[11px] font-medium text-muted-foreground">{url}</span>
+          </span>
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
         </button>
       </SheetContent>
     </Sheet>
@@ -337,9 +408,9 @@ function ShareTile({
       onClick={onClick}
       disabled={disabled}
       aria-label={description ? `${label}: ${description}` : label}
-      className="flex min-h-[86px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/40 bg-background/70 px-1.5 py-2 text-center transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+      className="zivo-social-share-tile group flex min-h-[86px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2 text-center transition-transform hover:-translate-y-0.5 active:scale-95 disabled:cursor-wait disabled:opacity-70"
     >
-      <span className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ${color}`}>{children}</span>
+      <span className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm transition-transform group-hover:scale-105 ${color}`}>{children}</span>
       <span className="text-[11px] font-extrabold leading-tight text-foreground">{label}</span>
       {description && <span className="text-[9px] font-semibold leading-tight text-muted-foreground">{description}</span>}
     </button>

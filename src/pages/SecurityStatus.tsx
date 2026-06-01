@@ -37,7 +37,7 @@ const SECTIONS: CheckSection[] = [
       { label: "Chat media buckets are private",                    detail: "chat-media-files / chat_uploads RLS — owners + message recipients only",                              done: true },
       { label: "Signed URLs replace public URLs",                   detail: "useSignedMedia hook + signedUrlFor() with TTLs (1h / 6h / 24h)",                                       done: true },
       { label: "Legacy public URLs backfilled to paths",            detail: "20260429240000_backfill_storage_paths.sql",                                                            done: true },
-      { label: "GDPR Article 15 — data export endpoint",            detail: "account-export — JSON dump of 16 user-owned tables",                                                  done: true },
+      { label: "GDPR Article 15 — data export endpoint",            detail: "account-export — JSON dump of 22 user-owned tables plus auth user",                                   done: true },
       { label: "GDPR Article 17 — self-service deletion",           detail: "account-delete-self — purges storage + auth row",                                                     done: true },
     ],
   },

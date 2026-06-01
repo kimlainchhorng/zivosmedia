@@ -152,6 +152,8 @@ const PollCreatorSheet = lazy(() => import("./PollCreatorSheet"));
 import { useMessageActions, type DirectMessage } from "@/hooks/useMessageActions";
 import { useLocalChatHide } from "@/hooks/useLocalChatHide";
 import { detectSensitiveContent, isChatMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
+import { cn } from "@/lib/utils";
 
 const INITIAL_VISIBLE_TIMELINE_ITEMS = 25;
 const VISIBLE_TIMELINE_STEP = 30;
@@ -2938,27 +2940,22 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     setMessages((prev) => prev.filter((m) => m.id !== id));
 
     const blockSender = async () => {
-      await (supabase as any).from("user_safety_actions").upsert(
-        {
-          user_id: user.id,
-          target_user_id: msg.sender_id,
-          action: "block",
-        },
-        { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
-      );
+      await submitSafetyReport({
+        type: "safety_action",
+        target_user_id: msg.sender_id,
+        action: "block",
+      });
     };
 
     try {
-      const { error } = await (supabase as any).from("chat_message_reports").insert({
-        reporter_id: user.id,
+      await submitSafetyReport({
+        type: "chat_message",
         message_id: msg.id,
         sender_id: msg.sender_id,
         receiver_id: msg.receiver_id,
         reason,
         description: (msg.message || "").slice(0, 500),
       });
-      if (error) throw error;
-      await blockSender();
       toast.success("We hid it, blocked this user, and sent it for safety review");
     } catch (error) {
       if (isChatMessageSafetySchemaDriftError(error)) {
@@ -3333,12 +3330,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       // anchors its left edge to that variable so the list stays visible.
       // Mobile / inline modes are unchanged.
       className={inline
-        ? "absolute inset-0 z-50 flex flex-col overflow-hidden h-full w-full bg-background"
+        ? "zivo-chat-surface absolute inset-0 z-50 flex h-full w-full flex-col overflow-hidden"
         // Mobile: top:0 bottom:0 fills the viewport. Desktop (lg+): top:60px
         // makes room for the NavBar; resetting `inset-y` to auto lets the
         // top/bottom utilities own the vertical placement. No inline `height`
         // because that would override `bottom` and overflow past the viewport.
-        : "fixed inset-y-0 right-0 left-0 z-[1300] bg-background flex flex-col overflow-hidden lg:top-[60px] lg:bottom-0 lg:inset-y-auto lg:left-[var(--chat-sidebar-w,0px)] transition-[left] duration-200"
+        : "zivo-chat-surface fixed inset-y-0 right-0 left-0 z-[1300] flex flex-col overflow-hidden lg:top-[60px] lg:bottom-0 lg:inset-y-auto lg:left-[var(--chat-sidebar-w,0px)] transition-[left] duration-200"
       }
       initial={inline ? { opacity: 0 } : { x: "100%" }}
       animate={inline ? { opacity: 1 } : { x: 0 }}
@@ -3346,9 +3343,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       transition={inline ? { duration: 0.12 } : { type: "tween", duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-2xl border-b border-border/20">
+      <div className="zivo-chat-header-glass sticky top-0 z-10">
         <div className="px-2 py-2.5 flex items-center gap-3">
-          <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-90 transition-transform rounded-full hover:bg-muted/50" aria-label="Back" title="Back">
+          <button type="button" onClick={onClose} className="zivo-chat-icon-button flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-transform active:scale-90" aria-label="Back" title="Back">
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
           <button
@@ -3359,11 +3356,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             className="relative shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-default"
           >
             {isSelfChat ? (
-              <div className="h-11 w-11 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm">
+              <div className="zivo-chat-chip-active flex h-11 w-11 items-center justify-center rounded-full">
                 <Bookmark className="h-5 w-5 text-white" />
               </div>
             ) : (
-              <Avatar className="h-11 w-11 ring-2 ring-border/10">
+              <Avatar className="zivo-chat-avatar-ring h-11 w-11">
                 <AvatarImage src={recipientAvatar || undefined} />
                 <AvatarFallback className="text-xs font-bold bg-primary/8 text-primary">{initials}</AvatarFallback>
               </Avatar>
@@ -3407,11 +3404,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               <motion.button
                 whileTap={{ scale: 0.85 }}
                 onClick={() => setShowGiftPanel(true)}
-                className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${
-                  zivoOFMode
-                    ? "hover:bg-[#00AEEF]/10 active:bg-[#00AEEF]/15"
-                    : "hover:bg-amber-500/10 active:bg-amber-500/15"
-                }`}
+                className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center rounded-full transition-colors"
                 aria-label={zivoOFMode ? "Send a tip" : "Send a gift"}
                 title={zivoOFMode ? "Send a tip" : "Send a gift"}
               >
@@ -3424,7 +3417,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   whileTap={{ scale: 0.85 }}
                   onClick={() => { void handleStartCall("video"); }}
                   disabled={!!callStarting}
-                  className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-blue-500/10 active:bg-blue-500/15 transition-colors disabled:pointer-events-none disabled:opacity-60"
+                  className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center rounded-full transition-colors disabled:pointer-events-none disabled:opacity-60"
                   aria-label="Video call"
                   title="Video call"
                 >
@@ -3436,7 +3429,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   whileTap={{ scale: 0.85 }}
                   onClick={() => { void handleStartCall("voice"); }}
                   disabled={!!callStarting}
-                  className="h-11 w-11 rounded-full flex items-center justify-center hover:bg-emerald-500/10 active:bg-emerald-500/15 transition-colors disabled:pointer-events-none disabled:opacity-60"
+                  className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center rounded-full transition-colors disabled:pointer-events-none disabled:opacity-60"
                   aria-label="Voice call"
                   title="Voice call"
                 >
@@ -3450,7 +3443,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         </div>
 
         {shouldShowContactActionBanner && (
-          <div className="flex min-h-[44px] items-center border-t border-border/15 bg-background/95 text-[12px] font-bold uppercase tracking-normal">
+          <div className="flex min-h-[44px] items-center border-t border-border/15 bg-white/35 text-[12px] font-bold uppercase tracking-normal backdrop-blur-xl">
             <button
               type="button"
               onClick={() => { void handleAddContactFromBanner(); }}
@@ -3468,7 +3461,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             <button
               type="button"
               onClick={dismissContactBanner}
-              className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted/60"
+              className="zivo-chat-icon-button mx-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors"
               aria-label="Dismiss contact actions"
               title="Dismiss"
             >
@@ -3481,7 +3474,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         {pinnedMessages.length > 0 && (
           <button type="button"
             onClick={() => setNavigatorMode("pinned")}
-            className="w-full px-4 py-2 bg-gradient-to-r from-sky-500/10 via-sky-400/5 to-transparent border-t border-sky-400/25 flex items-center gap-2 text-left hover:from-sky-500/15 hover:via-sky-400/10 transition-colors"
+            className="zivo-chat-card w-full px-4 py-2 flex items-center gap-2 text-left transition-colors"
             aria-label="Open pinned messages"
             title="Open pinned messages"
           >
@@ -3497,8 +3490,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         )}
 
         {showMissedCallBanner && latestMissedCall && (
-          <div className="w-full px-4 py-3 border-t border-border bg-secondary flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-background border border-border flex items-center justify-center shrink-0">
+          <div className="zivo-chat-card flex w-full items-center gap-3 px-4 py-3">
+            <div className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
               <Phone className="w-5 h-5 text-amber-500" />
             </div>
             <div className="min-w-0 flex-1">
@@ -3512,7 +3505,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             <button type="button"
               onClick={() => { void handleStartCall(latestMissedCall.call_type as "voice" | "video"); }}
               disabled={!!callStarting}
-              className="h-9 px-4 rounded-full bg-foreground text-background text-[13px] font-bold active:scale-95 transition-transform flex items-center gap-1.5 disabled:pointer-events-none disabled:opacity-70"
+              className="zivo-chat-chip-active flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-black transition-transform active:scale-95 disabled:pointer-events-none disabled:opacity-70"
             >
               {callStarting === latestMissedCall.call_type
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -3521,7 +3514,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             </button>
             <button type="button"
               onClick={() => dismissMissedCall(latestMissedCall)}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-background transition-colors"
+              className="zivo-chat-icon-button flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors"
               aria-label="Dismiss"
             >
               <X className="h-4 w-4" />
@@ -4040,7 +4033,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             {/* Typing indicator — 2026 style */}
             {recipientTyping && !isSelfChat && (
               <div className="flex justify-start px-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="bg-muted/70 backdrop-blur-xl rounded-[22px] rounded-bl-[6px] px-4 py-3 flex items-center gap-2 shadow-sm border border-border/10">
+                <div className="zivo-chat-card flex items-center gap-2 rounded-[22px] rounded-bl-[6px] px-4 py-3">
                   <div className="flex items-center gap-1">
                     <span className="h-[6px] w-[6px] rounded-full bg-primary/60 animate-bounce [animation-delay:0ms] [animation-duration:1s]" />
                     <span className="h-[6px] w-[6px] rounded-full bg-primary/60 animate-bounce [animation-delay:150ms] [animation-duration:1s]" />
@@ -4063,7 +4056,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-amber-500/10 border-t border-amber-500/30 px-4 py-2 flex items-center gap-2 overflow-hidden"
+            className="zivo-chat-card flex items-center gap-2 overflow-hidden px-4 py-2"
           >
             <div className="w-1 h-8 rounded-full bg-amber-500 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -4084,7 +4077,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-muted/50 border-t border-border/30 px-4 py-2 flex items-center gap-2 overflow-hidden"
+            className="zivo-chat-card flex items-center gap-2 overflow-hidden px-4 py-2"
           >
             <div className="w-1 h-8 rounded-full bg-primary shrink-0" />
             <div className="flex-1 min-w-0">
@@ -4113,7 +4106,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               setUnreadWhileScrolled(0);
             }}
             aria-label={unreadWhileScrolled > 0 ? `${unreadWhileScrolled} new ${unreadWhileScrolled === 1 ? "message" : "messages"} — jump to latest` : "Jump to latest"}
-            className="absolute right-4 bottom-[calc(var(--zivo-safe-bottom,0px)+5.25rem)] z-20 inline-flex items-center gap-1.5 h-10 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/25"
+            className="zivo-chat-chip-active absolute right-4 bottom-[calc(var(--zivo-safe-bottom,0px)+5.25rem)] z-20 inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black"
           >
             Jump to latest
             {unreadWhileScrolled > 0 && (
@@ -4126,7 +4119,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       </AnimatePresence>
 
       {/* Smart reply suggestions — chips above the composer */}
-      <div className="bg-background/85 backdrop-blur-2xl border-t border-border/10 px-2.5 py-2 relative [padding-bottom:max(var(--zivo-safe-bottom,0px),0.5rem)]">
+      <div className="zivo-chat-header-glass relative px-2.5 py-2 [padding-bottom:max(var(--zivo-safe-bottom,0px),0.5rem)]">
           {/* AI smart-reply chips — appears when latest visible message is from
               the other side and the composer is empty. Tap a chip to seed the
               composer (does not auto-send so the user can edit). */}
@@ -4208,9 +4201,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                     setShowComposerHub(false);
                     setShowStickerKeyboard((prev) => !prev);
                   }}
-                  className={`h-11 w-11 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                    showStickerKeyboard ? "bg-primary/10 text-primary" : "text-muted-foreground/60 hover:bg-muted/50"
-                  }`}
+                  className={cn(
+                    "zivo-chat-icon-button flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all",
+                    showStickerKeyboard ? "text-primary" : "text-muted-foreground/70",
+                  )}
                   aria-label="Open stickers"
                   title="Open stickers"
                 >
@@ -4333,8 +4327,8 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 placeholder={disappearingMode ? "Disappearing message…" : "Message…"}
                 className={`w-full h-12 pl-4 pr-12 rounded-full text-[15px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all ${
                   disappearingMode
-                    ? "bg-amber-500/5 border border-amber-500/15 focus:ring-2 focus:ring-amber-500/10"
-                    : "bg-muted/30 border border-border/10 focus:ring-2 focus:ring-primary/15 focus:border-primary/20"
+                    ? "zivo-chat-search border-amber-500/25 focus:ring-2 focus:ring-amber-500/10"
+                    : "zivo-chat-search focus:ring-2 focus:ring-primary/15"
                 }`}
               />
               <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center">
@@ -4347,7 +4341,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                   }}
                   disabled={uploadingMedia}
                   className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-                    showComposerHub ? "text-primary bg-primary/10" : "text-muted-foreground/45 hover:text-muted-foreground"
+                    showComposerHub ? "zivo-chat-chip-active" : "text-muted-foreground/60 hover:text-muted-foreground"
                   }`}
                   aria-label="Composer hub"
                   title="Composer hub"
@@ -4435,7 +4429,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 onClick={() => editingId ? handleSaveEdit() : handleSend()}
                 onContextMenu={(e) => { e.preventDefault(); setShowScheduler(true); }}
                 disabled={sending}
-                className="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all shrink-0 shadow-sm"
+                className="zivo-chat-chip-active flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all active:scale-90 disabled:opacity-40"
                 title="Long press to schedule"
                 aria-label={editingId ? "Save edit" : "Send message"}
               >

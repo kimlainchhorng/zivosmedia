@@ -399,6 +399,8 @@ export default function CreatePPVPostPage() {
                           src={item.localPreview}
                           alt={item.name}
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-full h-full bg-muted flex items-center justify-center">

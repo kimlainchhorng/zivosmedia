@@ -56,7 +56,10 @@ export default function ShopOrdersPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("store_orders").update({ status }).eq("id", id);
+      if (!store?.id) throw new Error("No store found");
+      const { error } = await supabase.functions.invoke("store-order-state-update", {
+        body: { order_id: id, store_id: store.id, action: "advance_status", status },
+      });
       if (error) throw error;
     },
     onSuccess: () => {

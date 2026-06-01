@@ -127,4 +127,4 @@ Deno.serve(withSecurity("create-identity-verification-session", async (req, ctx)
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-}, { strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

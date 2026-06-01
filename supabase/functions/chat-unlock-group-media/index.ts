@@ -52,7 +52,7 @@ Deno.serve(withSecurity("chat-unlock-group-media", async (req, ctx) => {
     const message = error instanceof Error ? error.message : "Unlock failed";
     return json({ error: message }, 500, corsHeaders);
   }
-}, { rateLimit: "payment", strictCors: true, trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {

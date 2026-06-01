@@ -14,7 +14,7 @@ export default function MyChannelsStrip() {
   const { channels, loading } = useMyChannels();
 
   return (
-    <div className="border-b border-border/20">
+    <div className="zivo-chat-card mx-3 mb-2 rounded-3xl">
       <div className="flex items-center justify-between px-4 pt-2 pb-1">
         <div className="flex items-center gap-1.5">
           <Megaphone className="w-3.5 h-3.5 text-muted-foreground" />
@@ -41,7 +41,7 @@ export default function MyChannelsStrip() {
         {!loading && channels.length === 0 && (
           <button type="button"
             onClick={() => nav("/channels")}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-muted/60 border border-border/30 text-[12px] font-medium text-muted-foreground whitespace-nowrap active:scale-95 transition-transform"
+            className="zivo-chat-row flex items-center gap-2 rounded-2xl px-4 py-2.5 text-[12px] font-bold text-muted-foreground whitespace-nowrap active:scale-95 transition-transform"
           >
             <Compass className="w-4 h-4" />
             Find channels to follow
@@ -53,7 +53,7 @@ export default function MyChannelsStrip() {
             onClick={() => nav(`/c/${c.handle}`)}
             className="flex flex-col items-center gap-1 w-[68px] shrink-0 group active:scale-95 transition-transform"
           >
-            <Avatar className="w-12 h-12 ring-2 ring-primary/20">
+            <Avatar className="zivo-chat-avatar-ring w-12 h-12">
               <AvatarImage src={c.avatar_url ?? undefined} />
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                 {c.name.slice(0, 2).toUpperCase()}
@@ -73,7 +73,7 @@ export default function MyChannelsStrip() {
           onClick={() => nav("/channels")}
           className="flex flex-col items-center gap-1 w-[68px] shrink-0 group active:scale-95 transition-transform"
         >
-          <div className="w-12 h-12 rounded-full bg-muted/70 flex items-center justify-center border border-border/40">
+          <div className="zivo-chat-icon-button flex h-12 w-12 items-center justify-center rounded-full">
             <Compass className="w-5 h-5 text-muted-foreground" />
           </div>
           <span className="text-[10.5px] font-medium text-muted-foreground leading-tight">More</span>

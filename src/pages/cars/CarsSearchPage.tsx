@@ -452,6 +452,8 @@ function VehicleCard({ vehicle }: { vehicle: P2PVehicleWithOwner }) {
               src={imageUrl}
               alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="flex items-center justify-center h-full">

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isSensitiveReportReason } from "@/lib/social/sensitiveContent";
+import { submitSafetyReport } from "@/lib/social/safetyReport";
 
 export type PostSource = "store" | "user";
 
@@ -105,8 +106,8 @@ export function usePostActions(userId: string | null) {
       return;
     }
     try {
-      await (supabase as any).from("user_safety_actions").insert({
-        user_id: userId,
+      await submitSafetyReport({
+        type: "safety_action",
         target_user_id: target.authorId,
         action: "mute",
       });
@@ -122,8 +123,8 @@ export function usePostActions(userId: string | null) {
       return;
     }
     try {
-      await (supabase as any).from("user_safety_actions").insert({
-        user_id: userId,
+      await submitSafetyReport({
+        type: "safety_action",
         target_user_id: target.authorId,
         action: "block",
       });
@@ -140,22 +141,14 @@ export function usePostActions(userId: string | null) {
     }
     try {
       const sensitiveReport = isSensitiveReportReason(reason);
-      await (supabase as any).from("post_reports").insert({
-        reporter_id: userId,
+      await submitSafetyReport({
+        type: "post",
         post_id: target.postId,
         post_source: target.source,
         reason,
+        target_user_id: target.authorId,
+        auto_block: sensitiveReport,
       });
-      if (sensitiveReport && target.authorId && target.authorId !== userId) {
-        await (supabase as any).from("user_safety_actions").upsert(
-          {
-            user_id: userId,
-            target_user_id: target.authorId,
-            action: "block",
-          },
-          { onConflict: "user_id,target_user_id,action", ignoreDuplicates: true },
-        );
-      }
       toast.success(sensitiveReport ? "We hid it, blocked this user, and sent it for safety review" : "Thanks — we'll review this post");
     } catch {
       toast.error("Couldn't submit report");

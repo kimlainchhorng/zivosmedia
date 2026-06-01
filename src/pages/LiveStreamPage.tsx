@@ -760,7 +760,7 @@ function LiveWatcher({ stream, onLeave }: { stream: LiveStream; onLeave: () =>vo
 <div className="border-b border-white/5 py-2 px-4 flex items-center gap-3">
 <div className="flex items-center gap-2 shrink-0">
 <div className="flex items-center gap-1 bg-amber-500/15 rounded-full px-2.5 py-1 border border-amber-500/20">
-<img src={goldCoinIcon} alt="coins" className="w-4 h-4" />
+<img src={goldCoinIcon} alt="coins" className="w-4 h-4" loading="lazy" decoding="async" />
 <span className="text-amber-300 text-[11px] font-bold">{coinBalance.toLocaleString()}</span>
 </div>
 <button type="button"
@@ -791,7 +791,7 @@ function LiveWatcher({ stream, onLeave }: { stream: LiveStream; onLeave: () =>vo
  >
 <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br overflow-hidden relative", gift.bg)}>
  {giftImages[gift.name] ? (
-<img src={giftImages[gift.name]} alt={gift.name} className="w-10 h-10 object-contain" loading="lazy" />
+<img src={giftImages[gift.name]} alt={gift.name} className="w-10 h-10 object-contain" loading="lazy" decoding="async" />
  ) : (
 <span className="text-3xl">{gift.icon}</span>
  )}
@@ -802,7 +802,7 @@ function LiveWatcher({ stream, onLeave }: { stream: LiveStream; onLeave: () =>vo
 <span className="text-[10px] text-white/70 truncate w-full text-center leading-tight mt-0.5">{gift.name}</span>
 <div className="flex items-center gap-0.5">
 <span className={cn("text-[8px] font-bold", getLevelColor(gift.level))}>Lv.{gift.level}</span>
-<img src={goldCoinIcon} alt="coin" className="w-3 h-3 object-contain" loading="lazy" />
+<img src={goldCoinIcon} alt="coin" className="w-3 h-3 object-contain" loading="lazy" decoding="async" />
 <span className="text-[10px] text-yellow-400 font-semibold">{gift.coins.toLocaleString()}</span>
 </div>
 </button>
@@ -821,7 +821,7 @@ function LiveWatcher({ stream, onLeave }: { stream: LiveStream; onLeave: () =>vo
 <div className="flex items-center gap-2 px-4 py-2.5">
 <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br overflow-hidden shrink-0", selectedGift.coins >= 100 ? "from-amber-400 to-orange-500" : "from-violet-400 to-purple-500")}>
  {giftImages[selectedGift.name] ? (
-<img src={giftImages[selectedGift.name]} alt="" className="w-7 h-7 object-contain" />
+<img src={giftImages[selectedGift.name]} alt="" className="w-7 h-7 object-contain" loading="lazy" decoding="async" />
  ) : (
 <span className="text-xl">{selectedGift.icon}</span>
  )}
@@ -829,7 +829,7 @@ function LiveWatcher({ stream, onLeave }: { stream: LiveStream; onLeave: () =>vo
 <div className="flex-1 min-w-0">
 <p className="text-white text-xs font-semibold truncate">{selectedGift.name}</p>
 <div className="flex items-center gap-1">
-<img src={goldCoinIcon} alt="" className="w-3 h-3" />
+<img src={goldCoinIcon} alt="" className="w-3 h-3" loading="lazy" decoding="async" />
 <span className="text-amber-300 text-[11px] font-bold">{(selectedGift.coins * giftQty).toLocaleString()}</span>
 </div>
 </div>
@@ -875,7 +875,7 @@ function LiveWatcher({ stream, onLeave }: { stream: LiveStream; onLeave: () =>vo
  ))}
 <div className="flex-1" />
 <button type="button" onClick={() =>setShowRechargeSheet(true)} className="flex items-center gap-1.5 bg-gradient-to-r from-amber-600 to-yellow-500 rounded-full px-3.5 py-1.5 shadow-lg shadow-amber-500/20 active:scale-95 transition-transform">
-<img src={goldCoinIcon} alt="" className="w-4 h-4" />
+<img src={goldCoinIcon} alt="" className="w-4 h-4" loading="lazy" decoding="async" />
 <span className="text-[11px] text-white font-bold">Add Coin</span>
 </button>
 </div>
@@ -2697,7 +2697,7 @@ export default function LiveStreamPage() {
  className="w-full text-left bg-card rounded-2xl border border-border/30 overflow-hidden hover:border-red-500/30 transition-all group shadow-sm hover:shadow-xl hover:-translate-y-1 duration-300 opacity-90"
  >
 <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-<img src={s.photo} alt={s.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 grayscale-[20%]" />
+<img src={s.photo} alt={s.title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 grayscale-[20%]" />
 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
 <Badge className={cn("absolute top-3 left-3 backdrop-blur-sm text-white border-0 text-[10px] gap-1", notifiedOffline.has(s.name) ? "bg-primary/90" : "bg-zinc-700/90")}>
 <span className={cn("h-1.5 w-1.5 rounded-full", notifiedOffline.has(s.name) ? "bg-white" : "bg-zinc-300")} />{notifiedOffline.has(s.name) ? "Notify set ✓" : "Soon"}
@@ -2753,7 +2753,7 @@ export default function LiveStreamPage() {
  className="w-full text-left bg-card rounded-2xl border border-border/30 overflow-hidden hover:border-red-500/30 transition-all group shadow-sm hover:shadow-xl hover:-translate-y-1 duration-300"
  >
 <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-<img src={photo} alt={stream.title} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+<img src={photo} alt={stream.title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/40" />
  {stream.status === "live" && (
 <Badge className="absolute top-3 left-3 bg-red-500 text-white border-0 text-[10px] gap-1 animate-pulse shadow-lg">
@@ -2829,4 +2829,3 @@ export default function LiveStreamPage() {
 </div>
  );
 }
-

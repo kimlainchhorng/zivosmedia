@@ -131,7 +131,7 @@ export default function ItinerariesPage() {
               return (
                 <motion.div key={it.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx, 12) * 0.03 }} className="rounded-2xl bg-card border border-border overflow-hidden">
                   <button type="button" onClick={() => toggle(it.id)} className="w-full text-left flex items-start gap-3 p-3.5 hover:bg-secondary/40 transition-colors">
-                    {it.cover_image_url ? <img src={it.cover_image_url} alt="" className="shrink-0 h-14 w-14 rounded-xl object-cover" loading="lazy" /> : <div className="shrink-0 h-14 w-14 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><MapPin className="h-5 w-5 text-ig-gradient" /></div>}
+                    {it.cover_image_url ? <img src={it.cover_image_url} alt="" className="shrink-0 h-14 w-14 rounded-xl object-cover" loading="lazy" decoding="async" /> : <div className="shrink-0 h-14 w-14 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><MapPin className="h-5 w-5 text-ig-gradient" /></div>}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-foreground line-clamp-1">{it.title}</p>
                       <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground flex-wrap">

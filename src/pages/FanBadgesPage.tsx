@@ -1,6 +1,6 @@
 /**
  * FanBadgesPage — Badges you've earned by supporting creators.
- * Backed by `fan_badges` (orphan). IG-style "Top Fan" collection.
+ * Read-only view backed by server-awarded `fan_badges` rows.
  */
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";

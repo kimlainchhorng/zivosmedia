@@ -1,9 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 // Country code → suggested language mapping
 const COUNTRY_LANG_MAP: Record<string, string> = {
@@ -23,11 +19,8 @@ const COUNTRY_LANG_MAP: Record<string, string> = {
 // Countries we support as market selections
 const SUPPORTED_COUNTRIES = ["US", "KH"];
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+Deno.serve(withSecurity("geo-detect", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     // Try multiple free IP geolocation services
     let countryCode = "US";
@@ -72,4 +65,10 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["GET"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));
