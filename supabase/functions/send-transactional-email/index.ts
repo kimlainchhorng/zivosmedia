@@ -357,6 +357,14 @@ Deno.serve(async (req) => {
         subject: resolvedSubject,
         html,
         text: plainText,
+        // RFC 8058 one-click unsubscribe — required by Gmail/Yahoo bulk-sender
+        // rules. handle-email-unsubscribe accepts ?token= via GET and the
+        // POST "List-Unsubscribe=One-Click" form. We already mint a per-email
+        // token above, so reuse it here.
+        headers: {
+          'List-Unsubscribe': `<${supabaseUrl}/functions/v1/handle-email-unsubscribe?token=${unsubscribeToken}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
       }),
     })
 
