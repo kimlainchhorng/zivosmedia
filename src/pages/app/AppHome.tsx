@@ -106,6 +106,8 @@ import PartnerBadge from "@/components/shared/PartnerBadge";
 import { useDestinationPrices } from "@/hooks/useDestinationPrices";
 import { getRestaurantPhoto } from "@/config/restaurantPhotos";
 import { formatDistanceToNow, format } from "date-fns";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { AD_SLOTS } from "@/config/adSlots";
 import { useDeviceIntegrityCheck } from "@/hooks/useDeviceIntegrityCheck";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { useLodgeRooms } from "@/hooks/lodging/useLodgeRooms";
@@ -1052,6 +1054,11 @@ const AppHome = () => {
           <Suspense fallback={null}>
             <SpendTrackerWidget />
           </Suspense>
+
+          {/* ─── SPONSORED (Google AdSense) — renders nothing until AD_SLOTS.homeFeed + publisher id are set ─── */}
+          <div className="px-5 pb-3">
+            <AdSenseUnit slot={AD_SLOTS.homeFeed} />
+          </div>
 
           {/* "What's New" widget removed — was a hardcoded marketing block
               (4 cards with fake "X NEW" badges and made-up feature lists).

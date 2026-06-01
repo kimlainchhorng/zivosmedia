@@ -5,7 +5,7 @@
  * Legally compliant with partner disclosures
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { AlertCircle, ExternalLink, ShieldCheck, SlidersHorizontal, RotateCcw, Car } from "lucide-react";
 // DriverCrossSell removed
@@ -14,6 +14,8 @@ import { differenceInDays, format, parseISO } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { AD_SLOTS } from "@/config/adSlots";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -486,8 +488,12 @@ export default function CarResultsPage() {
                 {/* Results Grid */}
                 {!isLoading && carCards.length > 0 && (
                   <div className="space-y-4 stagger-results">
-                    {carCards.map((car) => (
-                      <RampCarCard key={car.id} car={car} onViewDeal={handleViewDeal} />
+                    {carCards.map((car, index) => (
+                      <Fragment key={car.id}>
+                        <RampCarCard car={car} onViewDeal={handleViewDeal} />
+                        {/* In-feed ad after the 3rd result — renders nothing until AD_SLOTS.searchResults + publisher id are set */}
+                        {index === 2 && <AdSenseUnit slot={AD_SLOTS.searchResults} />}
+                      </Fragment>
                     ))}
                   </div>
                 )}

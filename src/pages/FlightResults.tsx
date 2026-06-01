@@ -30,6 +30,8 @@ import { AirlineLogo } from "@/components/flight/AirlineLogo";
 import { getAirportByCode } from "@/data/airports";
 import { cn } from "@/lib/utils";
 import DuffelFlightCard from "@/components/flight/DuffelFlightCard";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { AD_SLOTS } from "@/config/adSlots";
 import FlightCompareWidget, { type CompareFlight } from "@/components/flight/FlightCompareWidget";
 import FlightLegCard, { type LegGroup } from "@/components/flight/FlightLegCard";
 import FlightEmptyState from "@/components/flight/FlightEmptyState";
@@ -1325,6 +1327,13 @@ const FlightResults = () => {
                   ))}
                 </AnimatePresence>
               </div>
+
+              {/* Sponsored (Google AdSense) — after one-way results; renders nothing until AD_SLOTS.searchResults + publisher id are set */}
+              {!isRoundTrip && filtered.length > 0 && (
+                <div className="mt-4">
+                  <AdSenseUnit slot={AD_SLOTS.searchResults} />
+                </div>
+              )}
 
               {/* Count */}
               {!isRoundTrip && filtered.length > 0 && (
