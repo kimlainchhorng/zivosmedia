@@ -9,7 +9,7 @@ import {
   Briefcase, Tv, Video, Mic, DollarSign, ClipboardList, Stethoscope, Dumbbell, Activity,
   Rocket, Hash, BookOpen, PenTool, KeyRound, Languages, Eye, Lock, Fingerprint,
   Cookie, Wallet, Receipt, ShoppingBag, Bookmark, Target, Trophy,
-  Sun, Moon, BellOff, Zap, Camera, Check, Upload, RefreshCw, ExternalLink, Share2, Copy,
+  Sun, BellOff, Zap, Camera, Check, Upload, RefreshCw, ExternalLink, Share2, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,6 @@ import { usePinnedSettings } from "@/hooks/usePinnedSettings";
 import { useLinkedDevices } from "@/hooks/useLinkedDevices";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import ProfileShareDialog from "@/components/account/ProfileShareDialog";
-import { useTheme } from "next-themes";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -201,7 +200,8 @@ export default function AccountSettingsPage() {
   const { data: notifPrefs } = useNotificationPreferences();
   const updateNotifPrefs = useUpdateNotificationPreferences();
   const { unreadCount: notifUnread } = useNotifications(50);
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  // Theme is force-light app-wide (see App.tsx forcedTheme); dark mode is not
+  // wired yet, so we intentionally don't consume next-themes state here.
   const { items: recentItems, record: recordRecent, clear: clearRecents } = useRecentSettings();
   const { isPinned, toggle: togglePin } = usePinnedSettings();
   const { devices } = useLinkedDevices();
@@ -249,7 +249,6 @@ export default function AccountSettingsPage() {
     return t.charAt(0).toUpperCase() + t.slice(1);
   }, [points?.tier]);
 
-  const isDark = (theme === "system" ? resolvedTheme : theme) === "dark";
   const notificationsMuted = notifPrefs?.inAppEnabled === false;
 
   // ── Account Setup checklist ──────────────────────────
@@ -974,18 +973,17 @@ export default function AccountSettingsPage() {
         <div className="mt-3 grid grid-cols-3 gap-2 px-3">
           <button type="button"
             onClick={() => {
-              const next = isDark ? "light" : "dark";
-              setTheme(next);
-              toast.success(`${next === "dark" ? "Dark" : "Light"} mode`);
+              // Dark mode is not shippable yet (App.tsx forces light until the
+              // design-system tokens are reauthored). Don't call setTheme — it's
+              // a no-op under forcedTheme and previously toasted a false success.
+              toast.message("Dark mode is coming soon");
             }}
-            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.97] ${
-              isDark ? "bg-primary/10 border-primary/30 text-primary" : "bg-card border-border/40 hover:bg-accent/50"
-            }`}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/40 bg-card transition-all active:scale-[0.97] hover:bg-accent/50"
           >
-            {isDark ? <Moon className="h-4 w-4 shrink-0" /> : <Sun className="h-4 w-4 shrink-0 text-amber-500" />}
+            <Sun className="h-4 w-4 shrink-0 text-amber-500" />
             <div className="text-left min-w-0 flex-1">
-              <p className="text-[11px] font-semibold leading-tight truncate">{isDark ? "Dark" : "Light"}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">Theme</p>
+              <p className="text-[11px] font-semibold leading-tight truncate">Light</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Theme · soon</p>
             </div>
           </button>
           <button type="button"

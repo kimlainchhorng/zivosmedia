@@ -585,7 +585,7 @@ export default function MorePage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { user, signOut, isAdmin } = useAuth();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const [showPartnerSheet, setShowPartnerSheet] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -1308,10 +1308,11 @@ export default function MorePage() {
   ];
 
   const toggleThemePreference = () => {
-    const next = (resolvedTheme ?? theme) === "dark" ? "light" : "dark";
-    setTheme(next);
-    void logAccountHubActivity("more_preference_theme", `${location.pathname}${location.search}#theme-${next}`);
-    toast.message(`${next === "dark" ? "Dark" : "Light"} theme on`);
+    // Dark mode is force-disabled app-wide (App.tsx forcedTheme="light") until
+    // the design-system tokens are reauthored. setTheme is a no-op here, so we
+    // don't call it or claim a theme switched — we tell the truth instead.
+    void logAccountHubActivity("more_preference_theme", `${location.pathname}${location.search}#theme-soon`);
+    toast.message("Dark mode is coming soon");
   };
 
   const formatActivityTime = (createdAt: string) => {
