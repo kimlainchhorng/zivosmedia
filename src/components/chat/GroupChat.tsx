@@ -43,6 +43,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isToday, isYesterday } from "date-fns";
 import { toast } from "sonner";
+import { createPortal } from "react-dom";
+import { getChatMessageShareUrl } from "@/lib/getPublicOrigin";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import HoldToRecordMic from "./HoldToRecordMic";
@@ -559,6 +561,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     navigator.clipboard?.writeText(m || "");
     toast.success("Copied to forward");
   }, []);
+  const handleCopyMessageLink = useCallback((id: string) => {
+    try {
+      navigator.clipboard.writeText(getChatMessageShareUrl({ groupId, messageId: id }));
+      toast.success("Link copied");
+    } catch { toast.error("Couldn't copy link"); }
+  }, [groupId]);
   const handleToggleSensitiveMedia = useCallback(() => {
     const next = !markNextMediaSensitive;
     setMarkNextMediaSensitive(next);
@@ -2231,6 +2239,29 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     } catch { toast.error("Failed to delete"); }
   }, [user?.id]);
 
+  // ── Multi-select (Telegram-style) ──
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const exitSelect = useCallback(() => { setSelectionMode(false); setSelectedIds(new Set()); }, []);
+  const enterSelect = useCallback((mid: string) => { setSelectionMode(true); setSelectedIds(new Set([mid])); }, []);
+  const toggleSelect = useCallback((mid: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(mid)) next.delete(mid); else next.add(mid);
+      if (next.size === 0) setSelectionMode(false);
+      return next;
+    });
+  }, []);
+  const bulkCopySelected = useCallback(() => {
+    const text = messages.filter((m) => selectedIds.has(m.id)).map((m: any) => m.message || m.content || "").filter(Boolean).join("\n");
+    if (text) { navigator.clipboard.writeText(text); toast.success("Copied"); }
+    exitSelect();
+  }, [messages, selectedIds, exitSelect]);
+  const bulkDeleteSelected = useCallback(() => {
+    selectedIds.forEach((mid) => { void handleDeleteMsg(mid); });
+    exitSelect();
+  }, [selectedIds, handleDeleteMsg, exitSelect]);
+
   const handleReportMessage = useCallback(async (msgId: string, reason: string) => {
     if (!user?.id) {
       toast.error("Sign in to report messages");
@@ -2555,6 +2586,17 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           </div>
         ) : (
           <>
+          {selectionMode && createPortal(
+            <div className="fixed inset-x-0 bottom-0 z-[100] flex items-center justify-between gap-3 border-t border-border bg-background/95 px-4 py-3 pb-safe shadow-lg backdrop-blur-xl">
+              <button type="button" onClick={exitSelect} className="text-sm font-semibold text-muted-foreground">Cancel</button>
+              <span className="text-sm font-bold">{selectedIds.size} selected</span>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={bulkCopySelected} className="rounded-full bg-muted px-3.5 py-1.5 text-sm font-semibold">Copy</button>
+                <button type="button" onClick={bulkDeleteSelected} className="rounded-full bg-destructive/10 px-3.5 py-1.5 text-sm font-semibold text-destructive">Delete</button>
+              </div>
+            </div>,
+            document.body,
+          )}
           <AnimatePresence initial={false}>
           {/* eslint-disable-next-line react-hooks/refs -- voice resend/discard callbacks read refs only after user actions */}
           {visibleMessages.map((msg, idx) => {
@@ -2694,6 +2736,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                         onReport={handleReportMessage}
                         onPin={canPinMessages && !msg.id.startsWith("opt-") ? handlePinMsg : undefined}
                         onForward={handleForwardCopy}
+                        onCopyLink={handleCopyMessageLink}
+                        selectionMode={selectionMode}
+                        selected={selectedIds.has(msg.id)}
+                        onToggleSelect={toggleSelect}
+                        onEnterSelect={enterSelect}
                         onMiniAppAction={handleMiniAppAction}
                       />
                     </Suspense>

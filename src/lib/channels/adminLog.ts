@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type ChannelLogAction =
   | "member_joined"
   | "member_left"
+  | "member_added"
   | "member_removed"
   | "member_unbanned"
   | "role_changed"
@@ -25,6 +26,7 @@ export type ChannelLogCategory = "members" | "settings" | "messages";
 export const LOG_CATEGORY: Record<ChannelLogAction, ChannelLogCategory> = {
   member_joined: "members",
   member_left: "members",
+  member_added: "members",
   member_removed: "members",
   member_unbanned: "members",
   role_changed: "members",

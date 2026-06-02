@@ -130,6 +130,8 @@ import type { EffectType } from "./messageEffectUtils";
 import { detectMessageEffect } from "./messageEffectUtils";
 const MessageEffects = lazy(() => import("./MessageEffects"));
 import { toast } from "sonner";
+import { createPortal } from "react-dom";
+import { getChatMessageShareUrl } from "@/lib/getPublicOrigin";
 import { useChatPresence } from "@/hooks/useChatPresence";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { blobToDataUrl, shouldInlineVoiceBlob, uploadVoiceWithProgress, retryWithBackoff, UploadAbortedError, UploadHttpError } from "@/lib/voiceUpload";
@@ -2839,6 +2841,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     if (msg) setForwardingMsg(msg);
   }, [messages]);
 
+  const handleCopyMessageLink = useCallback((id: string) => {
+    try {
+      navigator.clipboard.writeText(getChatMessageShareUrl({ recipientId, messageId: id }));
+      toast.success("Link copied");
+    } catch { toast.error("Couldn't copy link"); }
+  }, [recipientId]);
+
   // Save to Saved Messages — Telegram-style one-tap save (forward to self)
   const handleSave = useCallback(async (id: string) => {
     if (!user?.id) return;
@@ -2919,6 +2928,29 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       setMessages((data || []) as Message[]);
     }
   }, [user?.id, recipientId]);
+
+  // ── Multi-select (Telegram-style) ──
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const exitSelect = useCallback(() => { setSelectionMode(false); setSelectedIds(new Set()); }, []);
+  const enterSelect = useCallback((mid: string) => { setSelectionMode(true); setSelectedIds(new Set([mid])); }, []);
+  const toggleSelect = useCallback((mid: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(mid)) next.delete(mid); else next.add(mid);
+      if (next.size === 0) setSelectionMode(false);
+      return next;
+    });
+  }, []);
+  const bulkCopySelected = useCallback(() => {
+    const text = messages.filter((m) => selectedIds.has(m.id)).map((m: any) => m.message || m.content || "").filter(Boolean).join("\n");
+    if (text) { navigator.clipboard.writeText(text); toast.success("Copied"); }
+    exitSelect();
+  }, [messages, selectedIds, exitSelect]);
+  const bulkDeleteSelected = useCallback(() => {
+    selectedIds.forEach((mid) => { void handleDelete(mid); });
+    exitSelect();
+  }, [selectedIds, handleDelete, exitSelect]);
 
   // Telegram-style "Delete for me" — hide from this device only, no server delete.
   const handleDeleteForMe = useCallback((id: string) => {
@@ -3717,6 +3749,17 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 onOpenInfo={() => setShowContactInfo(true)}
               />
             )}
+            {selectionMode && createPortal(
+              <div className="fixed inset-x-0 bottom-0 z-[100] flex items-center justify-between gap-3 border-t border-border bg-background/95 px-4 py-3 pb-safe shadow-lg backdrop-blur-xl">
+                <button type="button" onClick={exitSelect} className="text-sm font-semibold text-muted-foreground">Cancel</button>
+                <span className="text-sm font-bold">{selectedIds.size} selected</span>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={bulkCopySelected} className="rounded-full bg-muted px-3.5 py-1.5 text-sm font-semibold">Copy</button>
+                  <button type="button" onClick={bulkDeleteSelected} className="rounded-full bg-destructive/10 px-3.5 py-1.5 text-sm font-semibold text-destructive">Delete</button>
+                </div>
+              </div>,
+              document.body,
+            )}
             <AnimatePresence initial={false}>
             {visibleTimeline.map((item, idx) => {
                 const itemDate = new Date(item.created_at).toDateString();
@@ -3995,6 +4038,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         onDelete={handleDelete}
                         onDeleteForMe={handleDeleteForMe}
                         onForward={handleForward}
+                        onCopyLink={handleCopyMessageLink}
+                        selectionMode={selectionMode}
+                        selected={selectedIds.has(msg.id)}
+                        onToggleSelect={toggleSelect}
+                        onEnterSelect={enterSelect}
                         onPin={handlePin}
                         onEdit={handleEdit}
                         onReport={handleReportMessage}

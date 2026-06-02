@@ -27,6 +27,7 @@ const FILTERS: { value: "all" | ChannelLogCategory; label: string }[] = [
 const ACTION_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   member_joined: UserPlus,
   member_left: LogOut,
+  member_added: UserPlus,
   member_removed: UserMinus,
   member_unbanned: UserPlus,
   role_changed: Shield,
@@ -92,6 +93,7 @@ export default function ChannelAdminLogPage() {
     switch (r.action) {
       case "member_joined": return `${actor} joined the channel`;
       case "member_left": return `${actor} left the channel`;
+      case "member_added": return `${actor} added ${target}`;
       case "member_removed": return `${actor} removed ${target}`;
       case "member_unbanned": return `${actor} added ${target} back`;
       case "role_changed": return `${actor} set ${target}'s role to ${r.meta?.role ?? "member"}`;

@@ -62,3 +62,20 @@ export function getChannelShareUrl(handle: string): string {
 export function getChannelOgFunctionUrl(handle: string): string {
   return `${CHANNEL_OG_FUNCTION}?handle=${encodeURIComponent(handle)}`;
 }
+
+/**
+ * Deep link to a specific chat message. Uses the `?with=…&msg=…` (DM) or
+ * `?group=…&msg=…` (group) convention that ChatHubPage already reads to open
+ * the conversation and jump to the message.
+ */
+export function getChatMessageShareUrl(opts: {
+  recipientId?: string;
+  groupId?: string;
+  messageId: string;
+}): string {
+  const params = new URLSearchParams();
+  if (opts.groupId) params.set("group", opts.groupId);
+  else if (opts.recipientId) params.set("with", opts.recipientId);
+  params.set("msg", opts.messageId);
+  return `${getPublicOrigin()}/chat?${params.toString()}`;
+}

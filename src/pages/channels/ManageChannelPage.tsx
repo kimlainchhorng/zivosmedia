@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useChannel } from "@/hooks/useChannel";
 import { useSmartBack } from "@/lib/smartBack";
-import { getChannelShareUrl } from "@/lib/getPublicOrigin";
+import { getChannelShareUrl, getPublicOrigin } from "@/lib/getPublicOrigin";
 import { shareContent } from "@/lib/native/share";
 import { copyText } from "@/lib/native/clipboard";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
@@ -19,7 +19,7 @@ import { ChannelMemberRow, type MemberRow } from "@/components/channels/ChannelM
 import { cn } from "@/lib/utils";
 import { logChannelAction } from "@/lib/channels/adminLog";
 import { toast } from "sonner";
-import { ChevronLeft, BadgeCheck, Loader2, Download, Link2, Share2, Forward, Users, Shield, Globe, Lock, Copy, CalendarClock, ChevronRight, SmilePlus, Palette, Timer, UserCheck, EyeOff, Hash, Check, UserMinus, History, Trash2 } from "lucide-react";
+import { ChevronLeft, BadgeCheck, Loader2, Download, Link2, Share2, Forward, Users, Shield, Globe, Lock, Copy, CalendarClock, ChevronRight, SmilePlus, Palette, Timer, UserCheck, EyeOff, Hash, Check, UserMinus, History, Trash2, UserPlus } from "lucide-react";
 
 const SNAPSHOT_WIDTH = 1080;
 const SNAPSHOT_HEIGHT = 1350;
@@ -306,7 +306,11 @@ export default function ManageChannelPage() {
   const [slowMode, setSlowMode] = useState(0);
   const [removed, setRemoved] = useState<Array<MemberRow & { removedByName?: string }>>([]);
   const [ownerProfile, setOwnerProfile] = useState<{ name?: string | null; avatar?: string | null }>({});
-  const [sheet, setSheet] = useState<null | "reactions" | "appearance" | "slowmode" | "removed" | "admins">(null);
+  const [sheet, setSheet] = useState<null | "reactions" | "appearance" | "slowmode" | "removed" | "admins" | "addmembers" | "invites">(null);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberResults, setMemberResults] = useState<MemberRow[]>([]);
+  const [searchingMembers, setSearchingMembers] = useState(false);
+  const [inviteLinks, setInviteLinks] = useState<Array<{ id: string; code: string; created_at: string; revoked: boolean; uses: number }>>([]);
   const downloadsLocked = restrictSaving;
 
   // Check if the signed-in user is a platform admin (controls visibility of
@@ -371,6 +375,7 @@ export default function ManageChannelPage() {
     loadMembers();
     loadScheduled();
     loadRemoved();
+    loadInviteLinks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel?.id]);
 
@@ -604,6 +609,67 @@ export default function ManageChannelPage() {
     navigate("/channels");
   };
 
+  const searchAddableUsers = async (q: string) => {
+    setMemberQuery(q);
+    if (q.trim().length < 2) { setMemberResults([]); return; }
+    setSearchingMembers(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, avatar_url")
+      .ilike("full_name", `%${q.trim()}%`)
+      .limit(20);
+    const existing = new Set(members.map((m) => m.user_id));
+    setMemberResults(
+      (data ?? [])
+        .filter((p: any) => p.user_id !== channel?.owner_id && !existing.has(p.user_id))
+        .map((p: any) => ({ user_id: p.user_id, role: "sub", display_name: p.full_name, avatar_url: p.avatar_url })),
+    );
+    setSearchingMembers(false);
+  };
+
+  const addMember = async (uid: string) => {
+    if (!channel) return;
+    const { error } = await (supabase as any).rpc("channel_add_member", { p_channel_id: channel.id, p_user_id: uid });
+    if (error) { toast.error(error.message || "Couldn't add member"); return; }
+    toast.success("Member added");
+    void logChannelAction(channel.id, userId, "member_added", { targetUserId: uid });
+    setMemberResults((prev) => prev.filter((m) => m.user_id !== uid));
+    loadMembers();
+  };
+
+  const loadInviteLinks = async () => {
+    if (!channel) return;
+    const { data } = await (supabase as any)
+      .from("channel_invite_links")
+      .select("id, code, created_at, revoked, uses")
+      .eq("channel_id", channel.id)
+      .order("created_at", { ascending: false });
+    setInviteLinks(data ?? []);
+  };
+
+  const inviteUrl = (code: string) => `${getPublicOrigin()}/c/${channel?.handle}?invite=${code}`;
+
+  const createInviteLink = async () => {
+    if (!channel || !userId) return;
+    const code = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+    const { error } = await (supabase as any).from("channel_invite_links").insert({ channel_id: channel.id, code, created_by: userId });
+    if (error) { toast.error(error.message || "Couldn't create link"); return; }
+    toast.success("Invite link created");
+    void logChannelAction(channel.id, userId, "settings_changed", { meta: { invite_link: "created" } });
+    loadInviteLinks();
+  };
+
+  const revokeInviteLink = async (id: string) => {
+    const { error } = await (supabase as any).from("channel_invite_links").delete().eq("id", id);
+    if (error) { toast.error("Couldn't revoke link"); return; }
+    loadInviteLinks();
+  };
+
+  const copyInviteLink = (code: string) => {
+    try { navigator.clipboard.writeText(inviteUrl(code)); toast.success("Invite link copied"); }
+    catch { toast.error("Couldn't copy link"); }
+  };
+
   if (loading) return <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>;
   if (!channel) return <div className="p-8 text-center text-sm text-muted-foreground">Not found.</div>;
   if (userId !== channel.owner_id) {
@@ -706,6 +772,14 @@ export default function ManageChannelPage() {
               right={<Switch checked={approveRequired} onCheckedChange={(v) => { setApproveRequired(v); void patch({ channel_join_approval_required: v }, () => setApproveRequired(!v)); }} aria-label="Toggle approval" />}
             />
             <SettingRow
+              icon={Link2}
+              tint="bg-cyan-500/10 text-cyan-600"
+              label="Invite links"
+              sublabel="Create and manage join links"
+              onClick={() => setSheet("invites")}
+              right={<span className="flex items-center gap-1 text-sm font-medium text-muted-foreground">{inviteLinks.length}<ChevronRight className="h-4 w-4" /></span>}
+            />
+            <SettingRow
               icon={restrictSaving ? Lock : Download}
               tint="bg-amber-500/10 text-amber-600"
               label="Content control"
@@ -774,6 +848,14 @@ export default function ManageChannelPage() {
         <section>
           <SectionLabel>People</SectionLabel>
           <div className="divide-y divide-border/60 rounded-2xl border border-border bg-card">
+            <SettingRow
+              icon={UserPlus}
+              tint="bg-primary/10 text-primary"
+              label="Add members"
+              sublabel="Subscribe people to this channel"
+              onClick={() => setSheet("addmembers")}
+              right={<ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            />
             <SettingRow
               icon={Users}
               tint="bg-violet-500/10 text-violet-600"
@@ -1055,6 +1137,65 @@ export default function ManageChannelPage() {
                 <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                   No other admins yet.
                 </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Add members */}
+        <Sheet open={sheet === "addmembers"} onOpenChange={(o) => { if (!o) { setSheet(null); setMemberQuery(""); setMemberResults([]); } }}>
+          <SheetContent side="bottom" className="rounded-t-3xl">
+            <SheetHeader><SheetTitle>Add members</SheetTitle></SheetHeader>
+            <Input
+              value={memberQuery}
+              onChange={(e) => void searchAddableUsers(e.target.value)}
+              placeholder="Search people by name…"
+              className="mt-3"
+            />
+            <div className="mt-3 max-h-[50vh] space-y-2 overflow-y-auto">
+              {memberResults.map((m) => (
+                <div key={m.user_id} className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-card p-2.5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={m.avatar_url ?? undefined} />
+                      <AvatarFallback>{(m.display_name ?? "U").slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="truncate text-sm font-medium">{m.display_name ?? "User"}</span>
+                  </div>
+                  <Button size="sm" onClick={() => void addMember(m.user_id)}>Add</Button>
+                </div>
+              ))}
+              {memberQuery.trim().length < 2 ? (
+                <p className="px-1 text-xs text-muted-foreground">Type at least 2 letters to search.</p>
+              ) : searchingMembers ? (
+                <p className="px-1 text-xs text-muted-foreground">Searching…</p>
+              ) : memberResults.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No people found.</div>
+              ) : null}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Invite links */}
+        <Sheet open={sheet === "invites"} onOpenChange={(o) => !o && setSheet(null)}>
+          <SheetContent side="bottom" className="rounded-t-3xl">
+            <SheetHeader><SheetTitle>Invite links</SheetTitle></SheetHeader>
+            <p className="mt-1 text-xs text-muted-foreground">Share these to let people join. Revoke any time.</p>
+            <Button onClick={() => void createInviteLink()} className="mt-3 w-full rounded-xl font-bold">
+              <Link2 className="mr-2 h-4 w-4" /> Create invite link
+            </Button>
+            <div className="mt-3 max-h-[45vh] space-y-2 overflow-y-auto">
+              {inviteLinks.map((l) => (
+                <div key={l.id} className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2.5">
+                  <button type="button" onClick={() => copyInviteLink(l.code)} className="min-w-0 flex-1 text-left">
+                    <div className="truncate text-sm font-medium text-primary">{getPublicOrigin().replace(/^https?:\/\//, "")}/c/{channel.handle}?invite={l.code}</div>
+                    <div className="text-[11px] text-muted-foreground">{l.uses} use{l.uses === 1 ? "" : "s"} · tap to copy</div>
+                  </button>
+                  <Button size="sm" variant="outline" onClick={() => void revokeInviteLink(l.id)}>Revoke</Button>
+                </div>
+              ))}
+              {inviteLinks.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No invite links yet.</div>
               )}
             </div>
           </SheetContent>

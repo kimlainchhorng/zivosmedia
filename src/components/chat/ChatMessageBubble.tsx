@@ -14,6 +14,8 @@ import Reply from "lucide-react/dist/esm/icons/reply";
 import ReadReceipt, { type ReadReceiptStatus } from "@/components/chat/ReadReceipt";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import Forward from "lucide-react/dist/esm/icons/forward";
+import Link2 from "lucide-react/dist/esm/icons/link-2";
+import Check from "lucide-react/dist/esm/icons/check";
 import Pin from "lucide-react/dist/esm/icons/pin";
 import Bookmark from "lucide-react/dist/esm/icons/bookmark";
 import Timer from "lucide-react/dist/esm/icons/timer";
@@ -432,6 +434,13 @@ interface ChatMessageBubbleProps {
   /** Optional Telegram-style "Delete for me" â€” hides only on this device. */
   onDeleteForMe?: (id: string) => void;
   onForward?: (id: string, message: string) => void;
+  /** Copy a deep link to this message. */
+  onCopyLink?: (id: string) => void;
+  /** Telegram-style multi-select. */
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+  onEnterSelect?: (id: string) => void;
   onPin?: (id: string, pinned: boolean) => void;
   onEdit?: (id: string, currentText: string) => void;
   onReport?: (id: string, reason: string) => void | Promise<void>;
@@ -983,7 +992,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   lockedPriceCoins, lockedPreviewUrl, initiallyLocked, onUnlockLockedMedia, onLockedMediaUnlocked,
   editedAt, createdAt,
   initialReactions,
-  onReply, onDelete, onDeleteForMe, onForward, onPin, onEdit, onSave, hideSave, forwardedFromName, forwardedFromUserId,
+  onReply, onDelete, onDeleteForMe, onForward, onCopyLink, selectionMode, selected, onToggleSelect, onEnterSelect, onPin, onEdit, onSave, hideSave, forwardedFromName, forwardedFromUserId,
   onReport,
   onMiniAppAction,
   senderName,
@@ -1450,6 +1459,12 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     setShowReactions(false);
   };
 
+  const handleCopyLink = () => {
+    onCopyLink?.(id);
+    setShowActions(false);
+    setShowReactions(false);
+  };
+
   const handleShare = async () => {
     try {
       if (navigator.share) {
@@ -1498,12 +1513,26 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     <div
       ref={bubbleRef}
       data-testid="chat-message-bubble"
-      className={`chat-no-callout flex ${isMe ? "justify-end" : "justify-start"} relative px-1 mb-1`}
+      className={`chat-no-callout flex ${isMe ? "justify-end" : "justify-start"} relative px-1 mb-1 ${selected ? "rounded-xl bg-primary/10" : ""} ${selectionMode ? "cursor-pointer" : ""}`}
       onContextMenu={(e) => e.preventDefault()}
       onContextMenuCapture={handleContextMenu}
       onDragStartCapture={(e) => e.preventDefault()}
       style={{ WebkitTouchCallout: "none", WebkitTapHighlightColor: "transparent" }}
     >
+      {selectionMode && (
+        <>
+          {/* Click-catcher overlay — toggles selection and suppresses tap/long-press. */}
+          <button
+            type="button"
+            aria-label={selected ? "Deselect message" : "Select message"}
+            onClick={(e) => { e.stopPropagation(); onToggleSelect?.(id); }}
+            className="absolute inset-0 z-20"
+          />
+          <span className={`absolute top-1/2 z-30 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border-2 ${isMe ? "left-1.5" : "right-1.5"} ${selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40 bg-background"}`}>
+            {selected && <Check className="h-3 w-3" />}
+          </span>
+        </>
+      )}
       {/* Paid-content report sheet â€” opens from the "Report paid content"
           action on locked_* messages and writes to content_reports
           (different table from the legacy chat_message_reports used by
@@ -2177,6 +2206,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                         />
                       )}
                       {!isProtectedMessage && <MsgMenuItem icon={Copy} label="Copy" onClick={handleCopy} />}
+                      {onCopyLink && <MsgMenuItem icon={Link2} label="Copy Link" onClick={handleCopyLink} />}
                       {!isProtectedMessage && <MsgMenuItem icon={Forward} label="Forward" onClick={handleForward} />}
                       {!isProtectedMessage && (
                         <MsgMenuItem icon={Share2} label="Share" onClick={() => void handleShare()} />
@@ -2189,6 +2219,9 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                       )}
                       {canDeleteMessage && (
                         <MsgMenuItem icon={Trash2} label="Delete" onClick={() => setShowDeleteSub(true)} destructive chevron />
+                      )}
+                      {onEnterSelect && (
+                        <MsgMenuItem icon={Check} label="Select" onClick={() => { onEnterSelect(id); setShowActions(false); setShowReactions(false); }} />
                       )}
                     </motion.div>
                   ) : (
