@@ -270,6 +270,7 @@ const ChannelsDirectoryPage = lazy(() => import("./pages/channels/ChannelsDirect
 const NewChannelPage = lazy(() => import("./pages/channels/NewChannelPage"));
 const ChannelPage = lazy(() => import("./pages/channels/ChannelPage"));
 const ManageChannelPage = lazy(() => import("./pages/channels/ManageChannelPage"));
+const ChannelAdminLogPage = lazy(() => import("./pages/channels/ChannelAdminLogPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const BookmarksPage = lazy(() => import("./pages/BookmarksPage"));
 const PrivacySettingsPage = lazy(() => import("./pages/account/PrivacySettingsPage"));
@@ -1539,6 +1540,7 @@ const App = () => (
                 <Route path="/channels/new" element={<ProtectedRoute><NewChannelPage /></ProtectedRoute>} />
                 <Route path="/c/:handle" element={<ChannelPage />} />
                 <Route path="/c/:handle/manage" element={<ProtectedRoute><ManageChannelPage /></ProtectedRoute>} />
+                <Route path="/c/:handle/log" element={<ProtectedRoute><ChannelAdminLogPage /></ProtectedRoute>} />
                 <Route path="/chat/settings/privacy" element={<ProtectedRoute><PrivacySecurityPage /></ProtectedRoute>} />
                 <Route path="/chat/settings/sessions" element={<ProtectedRoute><ActiveSessionsPage /></ProtectedRoute>} />
                 <Route path="/chat/settings/two-step" element={<ProtectedRoute><TwoStepSetupPage /></ProtectedRoute>} />

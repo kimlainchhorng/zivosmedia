@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
+import { logChannelAction } from "@/lib/channels/adminLog";
 
 export type Channel = {
   id: string;
@@ -126,6 +127,7 @@ export function useChannel(handle: string | undefined) {
       user_id: userId,
       role: channel.channel_join_approval_required ? "pending" : "sub",
     } as any, { onConflict: "channel_id,user_id" });
+    void logChannelAction(channel.id, userId, "member_joined");
     await refresh();
   };
 
@@ -136,6 +138,7 @@ export function useChannel(handle: string | undefined) {
       .delete()
       .eq("channel_id", channel.id)
       .eq("user_id", userId);
+    void logChannelAction(channel.id, userId, "member_left");
     await refresh();
   };
 
