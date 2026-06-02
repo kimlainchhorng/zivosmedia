@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, Plus, Search, Users, Megaphone, Sparkles, Check } from "lucide-react";
+import { ChevronLeft, Plus, Search, Users, Megaphone, Sparkles, Check, Share2, UserMinus, UserPlus } from "lucide-react";
 import { format, formatDistanceToNow, isToday } from "date-fns";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+import PullToRefresh from "@/components/shared/PullToRefresh";
+import SwipeableRow from "@/components/chat/SwipeableRow";
+import { getChannelShareUrl } from "@/lib/getPublicOrigin";
 
 type Channel = {
   id: string;
@@ -56,69 +59,72 @@ export default function ChannelsDirectoryPage() {
   }, [q]);
 
   // Fetch channels (and last post time per channel for "active" signals)
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      let query = supabase
-        .from("channels")
-        .select("id, handle, name, description, avatar_url, subscriber_count, created_at")
-        .eq("is_public", true)
-        .order("subscriber_count", { ascending: false })
-        .limit(80);
-      if (debouncedQ) {
-        query = query.or(`name.ilike.%${debouncedQ}%,handle.ilike.%${debouncedQ}%`);
-      }
-      const { data: chs } = await query;
-      if (cancelled) return;
-      const list = (chs ?? []) as Channel[];
+  const loadChannels = useCallback(async () => {
+    setLoading(true);
+    let query = supabase
+      .from("channels")
+      .select("id, handle, name, description, avatar_url, subscriber_count, created_at")
+      .eq("is_public", true)
+      .order("subscriber_count", { ascending: false })
+      .limit(80);
+    if (debouncedQ) {
+      query = query.or(`name.ilike.%${debouncedQ}%,handle.ilike.%${debouncedQ}%`);
+    }
+    const { data: chs } = await query;
+    const list = (chs ?? []) as Channel[];
 
-      // Pull last_post_at for these channels in a single round trip
-      if (list.length > 0) {
-        const ids = list.map((c) => c.id);
-        const { data: posts } = await (supabase as any)
-          .from("channel_posts")
-          .select("channel_id, published_at, body, media")
-          .in("channel_id", ids)
-          .not("published_at", "is", null)
-          .order("published_at", { ascending: false });
-        if (cancelled) return;
-        const lastByChan = new Map<string, { published_at: string; preview: string }>();
-        (posts ?? []).forEach((p: { channel_id: string; published_at: string; body: string | null; media: unknown }) => {
-          if (!lastByChan.has(p.channel_id)) {
-            lastByChan.set(p.channel_id, {
-              published_at: p.published_at,
-              preview: postPreview(p.body, p.media),
-            });
-          }
-        });
-        list.forEach((c) => {
-          const last = lastByChan.get(c.id);
-          c.last_post_at = last?.published_at ?? null;
-          c.last_post_preview = last?.preview ?? null;
-        });
-      }
+    // Pull last_post_at for these channels in a single round trip
+    if (list.length > 0) {
+      const ids = list.map((c) => c.id);
+      const { data: posts } = await (supabase as any)
+        .from("channel_posts")
+        .select("channel_id, published_at, body, media")
+        .in("channel_id", ids)
+        .not("published_at", "is", null)
+        .order("published_at", { ascending: false });
+      const lastByChan = new Map<string, { published_at: string; preview: string }>();
+      (posts ?? []).forEach((p: { channel_id: string; published_at: string; body: string | null; media: unknown }) => {
+        if (!lastByChan.has(p.channel_id)) {
+          lastByChan.set(p.channel_id, {
+            published_at: p.published_at,
+            preview: postPreview(p.body, p.media),
+          });
+        }
+      });
+      list.forEach((c) => {
+        const last = lastByChan.get(c.id);
+        c.last_post_at = last?.published_at ?? null;
+        c.last_post_preview = last?.preview ?? null;
+      });
+    }
 
-      setChannels(list);
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
+    setChannels(list);
+    setLoading(false);
   }, [debouncedQ]);
 
+  useEffect(() => { void loadChannels(); }, [loadChannels]);
+
   // Track which channels the user already follows so we can show the right CTA
-  useEffect(() => {
+  const loadSubs = useCallback(async () => {
     if (!user?.id) { setSubscribedIds(new Set()); return; }
-    let cancelled = false;
-    (async () => {
-      const { data } = await (supabase as any)
-        .from("channel_subscribers")
-        .select("channel_id")
-        .eq("user_id", user.id);
-      if (cancelled) return;
-      setSubscribedIds(new Set((data ?? []).map((r: { channel_id: string }) => r.channel_id)));
-    })();
-    return () => { cancelled = true; };
+    const { data } = await (supabase as any)
+      .from("channel_subscribers")
+      .select("channel_id")
+      .eq("user_id", user.id);
+    setSubscribedIds(new Set((data ?? []).map((r: { channel_id: string }) => r.channel_id)));
   }, [user?.id]);
+
+  useEffect(() => { void loadSubs(); }, [loadSubs]);
+
+  // Pull-to-refresh re-queries both the channel list and the user's follows.
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([loadChannels(), loadSubs()]);
+  }, [loadChannels, loadSubs]);
+
+  const shareChannelRow = useCallback((c: Channel) => {
+    try { navigator.clipboard.writeText(getChannelShareUrl(c.handle)); toast.success("Channel link copied"); }
+    catch { toast.error("Couldn't copy link"); }
+  }, []);
 
   const handleToggleFollow = async (c: Channel) => {
     if (!user?.id) {
@@ -191,9 +197,13 @@ export default function ChannelsDirectoryPage() {
   const renderRow = (c: Channel) => {
     const isSubbed = subscribedIds.has(c.id);
     return (
-      <div
+      <SwipeableRow
         key={c.id}
-        className="flex items-center gap-3 rounded-2xl border border-transparent bg-card/60 p-3 transition-colors hover:border-border/60 hover:bg-card"
+        leftActions={[{ key: "share", label: "Share", icon: <Share2 className="h-5 w-5" />, onPress: () => shareChannelRow(c), className: "bg-sky-500 text-white" }]}
+        rightActions={[{ key: "follow", label: isSubbed ? "Leave" : "Join", icon: isSubbed ? <UserMinus className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />, onPress: () => handleToggleFollow(c), className: isSubbed ? "bg-muted text-foreground" : "bg-primary text-primary-foreground" }]}
+      >
+      <div
+        className="flex items-center gap-3 border border-transparent bg-card/60 p-3 transition-colors hover:border-border/60 hover:bg-card"
       >
         <Link to={`/c/${c.handle}`} className="flex items-center gap-3 min-w-0 flex-1">
           <Avatar className="h-12 w-12">
@@ -237,6 +247,7 @@ export default function ChannelsDirectoryPage() {
           {pendingId === c.id ? "..." : isSubbed ? "Joined" : "Join"}
         </Button>
       </div>
+      </SwipeableRow>
     );
   };
 
@@ -263,6 +274,7 @@ export default function ChannelsDirectoryPage() {
         </Button>
       </header>
 
+      <PullToRefresh onRefresh={handleRefresh}>
       <div className="mx-auto max-w-2xl p-4">
         <div className="relative mb-4">
           <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -330,6 +342,7 @@ export default function ChannelsDirectoryPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
     </div>
   );
 }
