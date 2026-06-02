@@ -101,6 +101,8 @@ import PullToRefresh from "@/components/shared/PullToRefresh";
 import { useHiddenPosts } from "@/hooks/useHiddenPosts";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
+import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 import { useChatPrefs } from "@/hooks/useChatPrefs";
 import RelativeTime from "@/components/social/RelativeTime";
 import { topicForUserSync } from "@/lib/security/channelName";
@@ -173,7 +175,6 @@ const FollowSuggestions = lazy(() => import("@/components/social/FollowSuggestio
 const LiveNowStrip = lazy(() => import("@/components/social/LiveNowStrip"));
 const FriendActivity = lazy(() => import("@/components/social/FriendActivity"));
 const TrendingCreators = lazy(() => import("@/components/social/TrendingCreators"));
-const SavedPostsLink = lazy(() => import("@/components/social/SavedPostsLink"));
 const ProfileCompletionNudge = lazy(() => import("@/components/social/ProfileCompletionNudge"));
 const FloatingProductCard = lazy(() => import("@/components/reels/FloatingProductCard"));
 const CommentsSheet = lazy(() => import("@/components/social/CommentsSheet"));
@@ -395,6 +396,7 @@ interface FeedItem {
   author_id?: string;
   author_is_verified?: boolean;
   store_slug?: string;
+  store_category?: string | null;
   created_at: string;
   location?: string | null;
   is_pinned?: boolean;
@@ -817,6 +819,13 @@ export default function ReelsFeedPage() {
   const [userProfile, setUserProfile] = useState<{ name: string; avatar: string | null } | null>(null);
   const { user: authUser, isLoading: authLoading } = useAuth();
   const { unreadCount: notificationUnread } = useNotifications(20);
+  const { data: ownerStores = [] } = useOwnerStores();
+  const primaryOwnerStore = ownerStores[0];
+  const myBusinessPath = primaryOwnerStore
+    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id).path
+    : null;
+  const hasMultipleBusinesses = ownerStores.length > 1;
+  const [businessSwitcherOpen, setBusinessSwitcherOpen] = useState(false);
   const { prefs: chatPrefs } = useChatPrefs(userId ?? undefined);
   const { data: unreadChatSenders } = useQuery({
     queryKey: ["feed-header-chat-unread", userId],
@@ -879,10 +888,12 @@ export default function ReelsFeedPage() {
   const [storeSearchResults, setStoreSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [feedFilter, setFeedFilter] = useState<"all" | "photos" | "videos" | "text">("all");
-  const [feedTab, setFeedTab] = useState<"For You" | "Friends" | "Following">(() => {
+  const FEED_TABS = ["For You", "Friends", "Following", "Travel", "Eat"] as const;
+  type FeedTab = (typeof FEED_TABS)[number];
+  const [feedTab, setFeedTab] = useState<FeedTab>(() => {
     try {
       const v = localStorage.getItem("zivo:feed-tab-v1");
-      if (v === "For You" || v === "Friends" || v === "Following") return v;
+      if (v && (FEED_TABS as readonly string[]).includes(v)) return v as FeedTab;
     } catch { /* ignore */ }
     return "For You";
   });
@@ -1162,7 +1173,7 @@ export default function ReelsFeedPage() {
         const storeIds = [...new Set(storePosts.map((p: any) => p.store_id))];
         const { data: stores } = await supabase
           .from("store_profiles")
-          .select("id, name, logo_url, slug, is_verified")
+          .select("id, name, logo_url, slug, is_verified, category")
           .in("id", storeIds);
         const storeMap = new Map((stores || []).map((s: any) => [s.id, s]));
 
@@ -1191,6 +1202,7 @@ export default function ReelsFeedPage() {
             author_id: store?.id || post.store_id,
             author_is_verified: store?.is_verified === true,
             store_slug: store?.slug || null,
+            store_category: store?.category || null,
             created_at: post.created_at,
           });
         }
@@ -1577,6 +1589,69 @@ export default function ReelsFeedPage() {
     refetchOnWindowFocus: false,
   });
 
+  // Travel / Eat are category feeds — they pull every matching business's posts
+  // straight from the DB (not just whatever's in the loaded main feed window),
+  // ranked by engagement, so the tab is never empty when matching posts exist.
+  const isCategoryTab = feedTab === "Travel" || feedTab === "Eat";
+  const { data: categoryItems = [], isLoading: categoryLoading } = useQuery({
+    queryKey: ["feed-category", feedTab],
+    enabled: isCategoryTab,
+    staleTime: 2 * 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      // Stored category values come from STORE_CATEGORY_OPTIONS (lowercase); the
+      // extra entries cover known legacy variants (plurals, spaced car-rental).
+      const TRAVEL_DB_CATEGORIES = ["hotel", "hotels", "resort", "resorts", "guesthouse", "guest house", "bus", "van", "car-rental", "car rental"];
+      const EAT_DB_CATEGORIES = ["restaurant", "cafe", "bakery", "drink"];
+      const cats = feedTab === "Travel" ? TRAVEL_DB_CATEGORIES : EAT_DB_CATEGORIES;
+
+      // Single query: filter store_posts by the embedded store's category via an
+      // inner join. Avoids building a giant store_id IN (...) list (the imported
+      // hotel/resort catalogue is huge and overflows the request URL).
+      const { data: storePosts } = await supabase
+        .from("store_posts")
+        .select("id, media_urls, media_type, caption, likes_count, comments_count, shares_count, view_count, created_at, store_id, store_profiles!inner(id, name, logo_url, slug, is_verified, category)")
+        .eq("is_published", true)
+        .in("store_profiles.category", cats)
+        .order("likes_count", { ascending: false })
+        .limit(80);
+      if (!storePosts?.length) return [] as FeedItem[];
+
+      const engagementOf = (p: any) =>
+        (p.likes_count || 0) + (p.comments_count || 0) * 2 + (p.shares_count || 0) * 3;
+
+      const mapped: FeedItem[] = [];
+      for (const post of storePosts as any[]) {
+        const store = post.store_profiles;
+        const urls: string[] = (post.media_urls || []).map((u: string) => normalizeStorePostMediaUrl(u));
+        if (!urls.length && !post.caption?.trim()) continue;
+        mapped.push({
+          id: post.id,
+          source: "store",
+          media_urls: urls,
+          media_type: (urls.length === 0
+            ? "image"
+            : (post.media_type === "video" || urls[0]?.match(/\.(mp4|mov|webm)/i)) ? "video" : "image") as "image" | "video",
+          caption: post.caption,
+          likes_count: post.likes_count || 0,
+          comments_count: post.comments_count || 0,
+          shares_count: post.shares_count || 0,
+          views_count: post.view_count || 0,
+          author_name: store?.name || "Store",
+          author_avatar: store?.logo_url || null,
+          author_id: store?.id || post.store_id,
+          author_is_verified: store?.is_verified === true,
+          store_slug: store?.slug || null,
+          store_category: store?.category || null,
+          created_at: post.created_at,
+        });
+      }
+      mapped.sort((a, b) => engagementOf(b) - engagementOf(a));
+      return mapped;
+    },
+  });
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("comments") === "1") return;
@@ -1745,15 +1820,76 @@ export default function ReelsFeedPage() {
                         </SheetDescription>
                       </SheetHeader>
                       <div className="p-3 space-y-3">
+                        {userId && myBusinessPath && (
+                          hasMultipleBusinesses ? (
+                            <div className="zivo-social-module rounded-[1.25rem] overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => setBusinessSwitcherOpen((v) => !v)}
+                                aria-expanded={businessSwitcherOpen}
+                                className="group flex w-full items-center gap-3 px-3 py-3 text-left transition-all active:scale-[0.98]"
+                              >
+                                <span className="zivo-social-share-orb flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-primary">
+                                  <Building2 className="h-5 w-5" />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-[13px] font-bold text-foreground">My Business</span>
+                                  <span className="mt-0.5 block truncate text-[11px] font-semibold text-muted-foreground">
+                                    Switch between {ownerStores.length} pages
+                                  </span>
+                                </span>
+                                <ChevronDown className={cn("ml-auto h-4 w-4 text-muted-foreground transition-transform", businessSwitcherOpen && "rotate-180")} />
+                              </button>
+                              {businessSwitcherOpen && (
+                                <div className="border-t border-border/40">
+                                  {ownerStores.map((store) => (
+                                    <button
+                                      key={store.id}
+                                      type="button"
+                                      onClick={() => navigate(resolveBusinessDashboardRoute(store.category, store.id).path)}
+                                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-all hover:bg-white/55 active:scale-[0.99]"
+                                    >
+                                      <Avatar className="zivo-social-avatar-ring h-8 w-8 shrink-0">
+                                        <AvatarImage src={store.logo_url || undefined} alt={store.name || "Business"} />
+                                        <AvatarFallback className="bg-transparent text-[11px] font-bold text-primary">
+                                          {(store.name || "B").charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-[13px] font-medium text-foreground">{store.name || "Untitled business"}</span>
+                                        {store.normalizedCategory && (
+                                          <span className="block truncate text-[10px] capitalize text-muted-foreground">{store.normalizedCategory}</span>
+                                        )}
+                                      </span>
+                                      <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => navigate(myBusinessPath)}
+                              className="zivo-social-module group flex w-full items-center gap-3 rounded-[1.25rem] px-3 py-3 text-left transition-all active:scale-[0.98]"
+                            >
+                              <span className="zivo-social-share-orb flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-primary">
+                                <Building2 className="h-5 w-5" />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-[13px] font-bold text-foreground">My Business</span>
+                                <span className="mt-0.5 block truncate text-[11px] font-semibold text-muted-foreground">
+                                  {primaryOwnerStore?.name || "Open your dashboard"}
+                                </span>
+                              </span>
+                              <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
+                            </button>
+                          )
+                        )}
                         {sidebarDataReady && (
-                          <>
-                            <Suspense fallback={null}>
-                              <ProfileCompletionNudge />
-                            </Suspense>
-                            <Suspense fallback={null}>
-                              <SavedPostsLink />
-                            </Suspense>
-                          </>
+                          <Suspense fallback={null}>
+                            <ProfileCompletionNudge />
+                          </Suspense>
                         )}
 
                         {/* Facebook-style Create section */}
@@ -1770,7 +1906,7 @@ export default function ReelsFeedPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-2 p-2">
                               {[
-                                { label: "Business", desc: "Page for your shop", icon: Building2, color: "text-emerald-500", route: "/business/new" },
+                                { label: "Business", desc: "Create a new page", icon: Building2, color: "text-emerald-500", route: "/business/new?new=1" },
                                 { label: "Group", desc: "Build a community", icon: Users, color: "text-blue-500", route: "/communities" },
                                 { label: "Event", desc: "Bring people together", icon: Calendar, color: "text-amber-500", route: "/explore" },
                                 { label: "Reel", desc: "Short video", icon: Film, color: "text-fuchsia-500", route: "/reels" },
@@ -1855,14 +1991,6 @@ export default function ReelsFeedPage() {
                     )}
                   </div>
                   <button type="button"
-                    onClick={() => userId ? setShowCreate(true) : navigate("/auth")}
-                    className="zivo-social-icon-button shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-foreground active:scale-95 transition"
-                    aria-label="Create post"
-                    title="Create post"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                  <button type="button"
                     onClick={() => navigate("/notifications")}
                     className="zivo-social-icon-button shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-foreground active:scale-95 transition relative"
                     aria-label={notificationUnread > 0 ? `Notifications, ${notificationUnread} unread` : "Notifications"}
@@ -1897,14 +2025,14 @@ export default function ReelsFeedPage() {
                 >
                   {/* Tab strip — For You / Friends / Following (signed-in only) */}
                   {userId && (
-                    <div className="zivo-feed-tabbar mx-2 mb-2.5 grid grid-cols-3 gap-1 rounded-[1.25rem] p-1">
-                      {(["For You", "Friends", "Following"] as const).map((label) => (
+                    <div className="zivo-feed-tabbar mx-2 mb-2.5 grid grid-cols-5 gap-1 rounded-[1.25rem] p-1">
+                      {FEED_TABS.map((label) => (
                         <button type="button"
                           key={label}
                           onClick={() => setFeedTab(label)}
                           aria-pressed={feedTab === label}
                           className={cn(
-                            "relative min-h-[36px] rounded-[1rem] px-2 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                            "relative min-h-[36px] rounded-[1rem] px-1 text-[11px] font-black tracking-[-0.02em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                             feedTab === label
                               ? "zivo-feed-tab-active"
                               : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
@@ -1918,23 +2046,6 @@ export default function ReelsFeedPage() {
                       ))}
                     </div>
                   )}
-                  {/* Content type filter chips */}
-                  <div className="grid grid-cols-4 gap-1 px-2 pb-1.5 pt-1">
-                    {(["all", "photos", "videos", "text"] as const).map((f) => (
-                      <button type="button"
-                        key={f}
-                        onClick={() => setFeedFilter(f)}
-                        className={cn(
-                          "min-h-10 w-full px-2 py-2 rounded-full text-[11px] font-semibold transition-all active:scale-95",
-                          feedFilter === f
-                            ? "zivo-social-chip-active"
-                            : "zivo-social-chip"
-                        )}
-                      >
-                        {f === "all" ? "All" : f === "photos" ? "Photos" : f === "videos" ? "Videos" : "Text"}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
@@ -2224,10 +2335,9 @@ export default function ReelsFeedPage() {
             </div>
           )}
 
-          {/* ProfileCompletionNudge + SavedPostsLink moved to the hamburger
-              menu in the feed header — they're secondary destinations that
-              don't need to compete with actual posts for vertical real estate.
-              Open the ≡ menu to access them. */}
+          {/* ProfileCompletionNudge moved to the hamburger menu in the feed
+              header — a secondary destination that doesn't need to compete with
+              actual posts for vertical real estate. Open the ≡ menu to access it. */}
 
           {/* On this day — Facebook-style memories */}
           {sidebarDataReady && <Suspense fallback={null}><OnThisDay /></Suspense>}
@@ -2255,14 +2365,14 @@ export default function ReelsFeedPage() {
           {/* Feed mode tabs — desktop only (mobile uses the sticky header tabs) */}
           {userId && (
             <div className="zivo-feed-tabs-shell hidden lg:flex justify-center sticky lg:top-[60px] z-20 py-1">
-              <div className="zivo-feed-tabbar grid w-[min(420px,calc(100%-2rem))] grid-cols-3 gap-1 rounded-[1.35rem] p-1">
-                {(["For You", "Friends", "Following"] as const).map((label) => (
+              <div className="zivo-feed-tabbar grid w-[min(620px,calc(100%-2rem))] grid-cols-5 gap-1 rounded-[1.35rem] p-1">
+                {FEED_TABS.map((label) => (
                   <button type="button"
                     key={label}
                     onClick={() => setFeedTab(label)}
                     aria-pressed={feedTab === label}
                     className={cn(
-                      "relative min-h-[40px] rounded-[1rem] px-6 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                      "relative min-h-[40px] rounded-[1rem] px-3 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                       feedTab === label
                         ? "zivo-feed-tab-active"
                         : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
@@ -2279,7 +2389,7 @@ export default function ReelsFeedPage() {
           )}
 
           {/* Posts */}
-          {isLoading ? (
+          {(isCategoryTab ? categoryLoading : isLoading) ? (
             <div className="space-y-2 pb-4" aria-label="Loading posts" aria-busy="true">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.25rem]">
@@ -2297,7 +2407,7 @@ export default function ReelsFeedPage() {
                 </div>
               ))}
             </div>
-          ) : items.length === 0 ? (
+          ) : (!isCategoryTab && items.length === 0) ? (
             <div className="zivo-social-module mx-2 my-4 flex min-h-60 flex-col items-center justify-center rounded-[1.25rem] px-6 py-8 text-center">
               <div className="zivo-social-share-orb h-16 w-16 rounded-2xl flex items-center justify-center mb-3 mx-auto">
                 <Camera className="h-8 w-8 text-muted-foreground" />
@@ -2314,9 +2424,13 @@ export default function ReelsFeedPage() {
               )}
             </div>
           ) : (() => {
+            // Travel/Eat draw from the server-side category feed (already filtered
+            // to the right businesses and ranked by engagement); every other tab
+            // works off the blended main feed.
+            const rawSource = isCategoryTab ? categoryItems : items;
             const hiddenFiltered = hiddenPosts.hidden.size > 0
-              ? items.filter(i => !hiddenPosts.isHidden(i.id))
-              : items;
+              ? rawSource.filter(i => !hiddenPosts.isHidden(i.id))
+              : rawSource;
             const baseItems = selectedHashtag
               ? hiddenFiltered.filter(i => postHasHashtag(i.caption, selectedHashtag))
               : hiddenFiltered;
@@ -2373,6 +2487,24 @@ export default function ReelsFeedPage() {
                       </Suspense>
                     )}
                   </div>
+                ) : feedTab === "Travel" || feedTab === "Eat" ? (
+                  <>
+                    <div className="zivo-social-share-orb mb-1 flex h-14 w-14 items-center justify-center rounded-2xl">
+                      <TrendingUp className="h-7 w-7 text-primary" />
+                    </div>
+                    <p className="text-sm text-foreground font-medium">Nothing in {feedTab} yet</p>
+                    <p className="text-xs text-muted-foreground max-w-[260px]">
+                      {feedTab === "Travel"
+                        ? "Posts from hotels, resorts, guesthouses, bus operators and car rentals show up here, ranked by engagement."
+                        : "Posts from restaurants, cafés, bakeries and bars show up here, ranked by engagement."}
+                    </p>
+                    <button type="button"
+                      onClick={() => setFeedTab("For You")}
+                      className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                    >
+                      Back to For You
+                    </button>
+                  </>
                 ) : (
                   <>
                     <div className="zivo-social-share-orb mb-1 flex h-14 w-14 items-center justify-center rounded-2xl">

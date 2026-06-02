@@ -205,8 +205,8 @@ export default function ManageChannelPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [shotBusy, setShotBusy] = useState(false);
-  const [controlOpen, setControlOpen] = useState(false);
-  const downloadsLocked = !controlOpen;
+  const [restrictSaving, setRestrictSaving] = useState(true);
+  const downloadsLocked = restrictSaving;
 
   // Check if the signed-in user is a platform admin (controls visibility of
   // the "Verified" toggle below). The set_channel_verified RPC also enforces
@@ -260,25 +260,11 @@ export default function ManageChannelPage() {
     setName(channel.name);
     setDesc(channel.description ?? "");
     setIsPublic(channel.is_public);
-    try {
-      const saved = localStorage.getItem(`zivo:channel:control-open:${channel.id}`);
-      setControlOpen(saved === "1");
-    } catch {
-      setControlOpen(false);
-    }
+    setRestrictSaving(channel.restrict_saving_content !== false);
     loadMembers();
     loadScheduled();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel?.id]);
-
-  useEffect(() => {
-    if (!channel?.id) return;
-    try {
-      localStorage.setItem(`zivo:channel:control-open:${channel.id}`, controlOpen ? "1" : "0");
-    } catch {
-      // Ignore storage errors in private mode.
-    }
-  }, [channel?.id, controlOpen]);
 
   const loadMembers = async () => {
     if (!channel) return;
@@ -319,7 +305,7 @@ export default function ManageChannelPage() {
     if (!channel) return;
     const { error } = await supabase
       .from("channels")
-      .update({ name: name.trim(), description: desc.trim() || null, is_public: isPublic })
+      .update({ name: name.trim(), description: desc.trim() || null, is_public: isPublic, restrict_saving_content: restrictSaving })
       .eq("id", channel.id);
     if (error) {
       if (!silent) toast.error(error.message);
@@ -476,12 +462,12 @@ export default function ManageChannelPage() {
             <div className="space-y-0.5">
               <Label>Content Control</Label>
               <p className="text-[11px] text-muted-foreground">
-                {controlOpen ? "Open: users can download/save media." : "Close: users cannot download/save media."}
+                {restrictSaving ? "Restricted: non-managers cannot save/download media." : "Open: users can save/download media."}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{controlOpen ? "Open" : "Close"}</span>
-              <Switch checked={controlOpen} onCheckedChange={setControlOpen} aria-label="Toggle content control open or close" />
+              <span className="text-xs text-muted-foreground">{restrictSaving ? "Restricted" : "Open"}</span>
+              <Switch checked={restrictSaving} onCheckedChange={setRestrictSaving} aria-label="Toggle saving restriction" />
             </div>
           </div>
           {isAdmin && (

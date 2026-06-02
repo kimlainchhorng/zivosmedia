@@ -1,52 +1,135 @@
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Bell, ChevronLeft, FileText, Hash, ImageIcon, Inbox, Info, Link as LinkIcon, Mic, Music, Play, Share2, Users } from "lucide-react";
-import { useChannel } from "@/hooks/useChannel";
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type TouchEvent } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Bell, ChevronDown, ChevronLeft, Compass, Copy, Info, Pin, Share2, Users } from "lucide-react";
+import { useChannel, type ChannelPost } from "@/hooks/useChannel";
 import { ChannelInfoSheet } from "@/components/channels/ChannelInfoSheet";
 import { ChannelPostCard } from "@/components/channels/ChannelPostCard";
 import { ChannelPostComposer } from "@/components/channels/ChannelPostComposer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  buildChannelMediaBuckets,
-  channelPostMatchesTab,
-  type ChannelMediaTab,
-} from "@/lib/channels/channelMedia";
 import { getChannelShareUrl } from "@/lib/getPublicOrigin";
 import { shareContent } from "@/lib/native/share";
 import { copyText } from "@/lib/native/clipboard";
 import { toast } from "sonner";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
+import { CHANNEL_WALLPAPERS, normalizeChannelWallpaper } from "@/lib/channels/channelWallpaper";
 
-type ViewTab = "posts" | ChannelMediaTab;
+function getPostTimestamp(post: ChannelPost): number {
+  const value = new Date(post.published_at ?? post.created_at).getTime();
+  return Number.isNaN(value) ? 0 : value;
+}
+
+function getPostDayKey(post: ChannelPost): string {
+  const date = new Date(post.published_at ?? post.created_at);
+  if (Number.isNaN(date.getTime())) return "unknown";
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+function formatPostDay(post: ChannelPost): string {
+  const date = new Date(post.published_at ?? post.created_at);
+  if (Number.isNaN(date.getTime())) return "Recent";
+  const today = new Date();
+  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const startPost = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const diffDays = Math.round((startToday - startPost) / 86_400_000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
+}
 
 export default function ChannelPage() {
   const { handle } = useParams<{ handle: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<ViewTab>("posts");
-  const [controlOpen, setControlOpen] = useState(false);
+  const [searchParams] = useSearchParams();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [swipeProgress, setSwipeProgress] = useState(0);
+  const [showJumpToBottom, setShowJumpToBottom] = useState(false);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const mouseSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const timelineEndRef = useRef<HTMLDivElement>(null);
   const { channel, posts, isSubscribed, notificationsOn, role, loading, userId, subscribe, unsubscribe, setNotifications, refresh } =
     useChannel(handle);
 
-  const sortedPosts = useMemo(() => [...posts].sort((a, b) => Number(!!b.is_pinned) - Number(!!a.is_pinned)), [posts]);
-  const mediaBuckets = useMemo(() => buildChannelMediaBuckets(sortedPosts), [sortedPosts]);
+  const timelinePosts = useMemo(() => [...posts].sort((a, b) => getPostTimestamp(a) - getPostTimestamp(b)), [posts]);
+  const timelineItems = useMemo(() => {
+    const items: Array<
+      | { type: "day"; key: string; label: string }
+      | { type: "post"; post: ChannelPost }
+    > = [];
+    let lastDay = "";
+    for (const post of timelinePosts) {
+      const key = getPostDayKey(post);
+      if (key !== lastDay) {
+        items.push({ type: "day", key, label: formatPostDay(post) });
+        lastDay = key;
+      }
+      items.push({ type: "post", post });
+    }
+    return items;
+  }, [timelinePosts]);
 
-  const pinnedPost = sortedPosts.find((p) => p.is_pinned);
-
-  const filteredPosts = useMemo(
-    () => (activeTab === "posts" ? sortedPosts : sortedPosts.filter((post) => channelPostMatchesTab(post, activeTab))),
-    [activeTab, sortedPosts],
+  const pinnedPost = useMemo(
+    () => [...timelinePosts].filter((p) => p.is_pinned).sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a))[0],
+    [timelinePosts],
   );
+  const targetPostId = searchParams.get("post");
 
   useEffect(() => {
-    if (!channel?.id) return;
-    try {
-      setControlOpen(localStorage.getItem(`zivo:channel:control-open:${channel.id}`) === "1");
-    } catch {
-      setControlOpen(false);
-    }
-  }, [channel?.id]);
+    if (!targetPostId || timelinePosts.length === 0) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`channel-post-${targetPostId}`)?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [timelinePosts.length, targetPostId]);
+
+  useEffect(() => {
+    if (targetPostId || timelinePosts.length === 0) return;
+    const frame = window.requestAnimationFrame(() => {
+      timelineEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [targetPostId, timelinePosts.length]);
+
+  useEffect(() => {
+    const update = () => {
+      const distanceFromBottom = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+      setShowJumpToBottom(timelinePosts.length > 0 && distanceFromBottom > 360);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [timelinePosts.length]);
+
+  useEffect(() => {
+    const previousBodyOverscroll = document.body.style.overscrollBehavior;
+    const previousHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overscrollBehavior = "none";
+    return () => {
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
+      document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
+    };
+  }, []);
+
+  const scrollToPost = (postId: string) => {
+    window.setTimeout(() => {
+      document.getElementById(`channel-post-${postId}`)?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    }, 80);
+  };
+  const scrollToLatest = () => {
+    timelineEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  };
 
   if (loading) {
     return <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>;
@@ -57,8 +140,10 @@ export default function ChannelPage() {
 
   const isOwner = userId === channel.owner_id;
   const canPost = isOwner || role === "admin" || role === "owner";
+  const joinPending = role === "pending";
   const canViewComments = isSubscribed || canPost;
-  const showInlineJoin = !isSubscribed && !canPost && filteredPosts.length === 0;
+  const showInlineJoin = !isSubscribed && !canPost && timelinePosts.length === 0;
+  const wallpaper = CHANNEL_WALLPAPERS[normalizeChannelWallpaper(channel.wallpaper_style)];
 
   // Primary share path — opens the in-app picker so the channel card lands
   // in a friend's ZIVO chat with the proper preview (handle, subscribers,
@@ -117,114 +202,252 @@ export default function ChannelPage() {
     await copyChannelLink();
   };
 
-  const tabItems: { id: ViewTab; label: string; icon: typeof Hash; count: number }[] = [
-    { id: "posts", label: "Posts", icon: Hash, count: sortedPosts.length },
-    { id: "media", label: "Media", icon: ImageIcon, count: mediaBuckets.media.length },
-    { id: "files", label: "Files", icon: FileText, count: mediaBuckets.files.length },
-    { id: "links", label: "Links", icon: LinkIcon, count: mediaBuckets.links.length },
-    { id: "music", label: "Music", icon: Music, count: mediaBuckets.music.length },
-    { id: "gif", label: "GIF", icon: Play, count: mediaBuckets.gif.length },
-    { id: "voice", label: "Voice", icon: Mic, count: mediaBuckets.voice.length },
-  ];
+  const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate("/channels"));
+  const updateSwipeProgress = (start: { x: number; y: number } | null, x: number, y: number) => {
+    if (!start) return;
+    const dx = x - start.x;
+    const dy = y - start.y;
+    if (dx <= 0 || Math.abs(dy) > Math.abs(dx) * 0.9) {
+      setSwipeProgress(0);
+      return;
+    }
+    setSwipeProgress(Math.min(1, dx / 96));
+  };
+  const finishSwipe = (start: { x: number; y: number } | null, x: number, y: number) => {
+    setSwipeProgress(0);
+    if (!start) return;
+    const dx = x - start.x;
+    const dy = y - start.y;
+    if (dx > 78 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+      goBack();
+    }
+  };
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch || touch.clientX > 28) {
+      swipeStartRef.current = null;
+      setSwipeProgress(0);
+      return;
+    }
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+  const handleTouchMove = (event: TouchEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    const touch = event.touches[0];
+    if (!start || !touch) return;
+    updateSwipeProgress(start, touch.clientX, touch.clientY);
+  };
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    finishSwipe(start, touch.clientX, touch.clientY);
+  };
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch" || event.clientX > 28) {
+      pointerSwipeStartRef.current = null;
+      return;
+    }
+    pointerSwipeStartRef.current = { x: event.clientX, y: event.clientY };
+  };
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+    updateSwipeProgress(pointerSwipeStartRef.current, event.clientX, event.clientY);
+  };
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+    const start = pointerSwipeStartRef.current;
+    pointerSwipeStartRef.current = null;
+    finishSwipe(start, event.clientX, event.clientY);
+  };
+  const handleMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.clientX > 28) {
+      mouseSwipeStartRef.current = null;
+      return;
+    }
+    mouseSwipeStartRef.current = { x: event.clientX, y: event.clientY };
+  };
+  const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
+    updateSwipeProgress(mouseSwipeStartRef.current, event.clientX, event.clientY);
+  };
+  const handleMouseUp = (event: MouseEvent<HTMLDivElement>) => {
+    const start = mouseSwipeStartRef.current;
+    mouseSwipeStartRef.current = null;
+    finishSwipe(start, event.clientX, event.clientY);
+  };
 
   return (
-    <div className="zivo-shell-mobile mx-auto max-w-2xl bg-background text-foreground pt-safe pb-20">
-      <div className="zivo-sticky-mobile-header z-20 px-3 py-2">
+    <div
+      className={cn(
+        "zivo-shell-mobile mx-auto max-w-2xl scroll-smooth overscroll-contain scrollbar-hide text-foreground touch-pan-y pt-safe [-webkit-overflow-scrolling:touch]",
+        canPost ? "pb-44" : "pb-20",
+        swipeProgress > 0 && "cursor-grabbing select-none",
+      )}
+      style={{
+        ...wallpaper.shell,
+        scrollPaddingTop: "5.25rem",
+        scrollPaddingBottom: canPost ? "11rem" : "5rem",
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={() => {
+        swipeStartRef.current = null;
+        setSwipeProgress(0);
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => {
+        pointerSwipeStartRef.current = null;
+        setSwipeProgress(0);
+      }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={() => {
+        mouseSwipeStartRef.current = null;
+        setSwipeProgress(0);
+      }}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-y-0 left-0 z-40 w-16 bg-gradient-to-r from-white/55 to-transparent transition-opacity duration-150 ease-out"
+        style={{ opacity: swipeProgress * 0.8 }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed left-3 top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-slate-800 shadow-lg ring-1 ring-white/80 backdrop-blur transition-[opacity,transform] duration-150 ease-out will-change-transform"
+        style={{
+          opacity: swipeProgress,
+          transform: `translate3d(${Math.round(swipeProgress * 18)}px, -50%, 0) scale(${0.82 + swipeProgress * 0.18})`,
+        }}
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </div>
+      <div
+        className="zivo-sticky-mobile-header z-20 border-b-0 px-3 pb-2 pt-3 shadow-none"
+        style={{ background: wallpaper.header }}
+      >
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/channels"))}
-            className="p-2 -ml-2 rounded-full text-foreground hover:bg-muted"
+            onClick={goBack}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
             aria-label="Back"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground truncate">{channel.name}</p>
-            <p className="text-[11px] text-muted-foreground truncate inline-flex items-center gap-1">
-              <Users className="w-3 h-3" /> {channel.subscriber_count.toLocaleString()} subscriber{channel.subscriber_count === 1 ? "" : "s"}
-            </p>
-          </div>
           <button
             type="button"
             onClick={() => setInfoOpen(true)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm hover:bg-muted"
+            className="min-w-0 flex-1 rounded-full bg-white/80 py-1.5 pl-4 pr-1.5 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
             aria-label="Open channel info"
           >
-            <Info className="h-4 w-4" />
+            <span className="flex items-center gap-3">
+              <span className="min-w-0 flex-1 text-center">
+                <span className="block truncate text-[15px] font-bold leading-tight text-slate-950">{channel.name}</span>
+                <span className="block truncate text-[11px] leading-tight text-slate-500">
+                  {channel.subscriber_count.toLocaleString()} subscriber{channel.subscriber_count === 1 ? "" : "s"}
+                </span>
+              </span>
+              <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white text-xs font-bold text-sky-700 ring-2 ring-white">
+                {channel.avatar_url ? (
+                  <img src={channel.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center bg-sky-100">{channel.name.slice(0, 2).toUpperCase()}</span>
+                )}
+                <span className="absolute bottom-0 right-0 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200">
+                  <Info className="h-2.5 w-2.5" />
+                </span>
+              </span>
+            </span>
           </button>
         </div>
 
-        <div className="mt-2 flex gap-1 overflow-x-auto rounded-xl bg-muted/70 p-1 ring-1 ring-border/40">
-          {tabItems.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "h-8 shrink-0 rounded-lg px-3 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors",
-                  active
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-foreground/75 hover:text-foreground",
-                )}
-              >
-                <Icon className={cn("w-3.5 h-3.5", !active && "opacity-90")} />
-                {tab.label}
-                {tab.count > 0 && <span className="text-[10px] opacity-70">{tab.count}</span>}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {pinnedPost && (
         <button
           type="button"
-          onClick={() => setActiveTab("posts")}
-          className="w-full text-left border-b border-border/40 px-4 py-2.5 bg-primary/5 hover:bg-primary/10 transition-colors"
+          onClick={() => scrollToPost(pinnedPost.id)}
+          className="sticky top-[calc(var(--zivo-safe-top,0px)+4.75rem)] z-10 mx-3 mt-2 flex w-[calc(100%-1.5rem)] items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 text-left shadow-sm ring-1 ring-white/70 backdrop-blur transition-colors hover:bg-white/95 dark:bg-zinc-900/80 dark:ring-zinc-800"
         >
-          <p className="text-[10px] font-bold uppercase tracking-wide text-primary">Pinned message</p>
-          <p className="text-[12px] text-foreground/90 truncate mt-0.5">{pinnedPost.body || "Pinned post"}</p>
+          <span className="h-9 w-1 rounded-full border-l-2 border-dashed border-sky-500" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[12px] font-bold text-slate-900 dark:text-zinc-50">Pinned Message</span>
+            <span className="block truncate text-[12px] text-slate-700 dark:text-zinc-300">{pinnedPost.body || "Pinned post"}</span>
+          </span>
+          <Pin className="h-4 w-4 shrink-0 text-slate-500" />
         </button>
       )}
 
-      <div className="space-y-3 p-4">
-        {canPost && activeTab === "posts" && <ChannelPostComposer channelId={channel.id} onPosted={refresh} />}
-        {filteredPosts.map((p) => (
+      <div
+        className={cn(
+          "space-y-3 p-3",
+          timelinePosts.length === 0 && canPost && "flex min-h-[calc(100dvh-15rem)] items-center justify-center pb-36",
+        )}
+      >
+        {timelinePosts.length > 0 && (
+          <div className="flex justify-center py-1">
+            <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-500 shadow-sm ring-1 ring-white/70 backdrop-blur">
+              Channel created
+            </span>
+          </div>
+        )}
+        {timelineItems.map((item) => item.type === "day" ? (
+          <div key={`day-${item.key}`} className="flex justify-center py-1">
+            <span className="rounded-full bg-emerald-700/45 px-3 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur">
+              {item.label}
+            </span>
+          </div>
+        ) : (
             <ChannelPostCard
-              key={p.id}
-              post={p}
+              key={item.post.id}
+              post={item.post}
               canManage={canPost}
               canComment={canViewComments}
-              protectContent={!canPost && !controlOpen}
+              protectContent={!canPost && channel.restrict_saving_content !== false}
+              reactionPolicy={channel.reaction_policy ?? "all"}
               onPinChanged={refresh}
+              highlight={item.post.id === targetPostId}
             />
           ))}
-        {filteredPosts.length === 0 && (() => {
-          const emptyState = getChannelEmptyState(activeTab, canPost);
-          const EmptyIcon = emptyState.icon;
-          const showSubscribedEmpty = activeTab === "posts" && isSubscribed && !canPost;
+        {timelinePosts.length > 0 && <div ref={timelineEndRef} className="h-1" aria-hidden />}
+        {timelinePosts.length === 0 && (() => {
+          const showSubscribedEmpty = isSubscribed && !canPost;
+          const showOwnerPostsEmpty = canPost;
           return (
             <div className={cn(
-              "rounded-2xl border bg-card p-8 text-center shadow-sm",
-              showSubscribedEmpty ? "border-primary/20" : "border-dashed border-border",
+              "mx-auto max-w-md rounded-2xl border bg-white/75 p-6 text-center shadow-sm backdrop-blur dark:bg-zinc-900/70",
+              showOwnerPostsEmpty && "border-0 bg-transparent p-3 shadow-none backdrop-blur-0 dark:bg-transparent",
+              showSubscribedEmpty ? "border-sky-200 dark:border-sky-900" : "border-dashed border-slate-300 dark:border-zinc-700",
             )}>
-              <div className={cn(
-                "mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full",
-                showSubscribedEmpty ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground",
-              )}>
-                {showSubscribedEmpty ? <Bell className="h-5 w-5" /> : <EmptyIcon className="h-5 w-5" />}
-              </div>
-              <p className="text-sm font-semibold text-foreground">
-                {showSubscribedEmpty ? "You're subscribed" : emptyState.title}
+              {!showOwnerPostsEmpty && (
+                <div className={cn(
+                  "mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full",
+                  showSubscribedEmpty ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-300" : "bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400",
+                )}>
+                  <Bell className="h-5 w-5" />
+                </div>
+              )}
+              {showOwnerPostsEmpty && (
+                <div className="mx-auto mb-3 inline-flex rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900/80 dark:text-zinc-400 dark:ring-zinc-800">
+                  Channel created
+                </div>
+              )}
+              <p className="text-[15px] font-semibold text-slate-950">
+                  {joinPending ? "Request sent" : showSubscribedEmpty ? "You're subscribed" : showOwnerPostsEmpty ? "No messages yet" : "No posts yet"}
               </p>
-              <p className="mx-auto mt-1 max-w-[280px] text-[12px] leading-5 text-muted-foreground">
-                {showSubscribedEmpty
-                  ? `New posts from @${channel.handle} will appear here, and notifications are ${notificationsOn ? "on" : "muted"}.`
-                  : emptyState.subtitle}
+              <p className="mx-auto mt-1 max-w-[240px] text-[12px] leading-5 text-slate-600">
+                {joinPending
+                  ? "Waiting for admin approval."
+                  : showSubscribedEmpty
+                  ? notificationsOn ? "New posts will appear here." : "New posts will appear here. Alerts are muted."
+                  : showOwnerPostsEmpty
+                  ? "Broadcast messages will appear here."
+                  : "New posts will appear here."}
               </p>
               {showSubscribedEmpty && (
                 <div className="mt-3 flex flex-wrap justify-center gap-2 text-[11px] font-semibold">
@@ -238,30 +461,25 @@ export default function ChannelPage() {
                   </span>
                 </div>
               )}
-              {activeTab === "posts" && (
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                  {canPost && (
-                    <Button type="button" size="sm" onClick={() => setControlOpen(true)}>
-                      Create first post
-                    </Button>
-                  )}
-                  <Button type="button" size="sm" variant="outline" onClick={shareChannel}>
-                    <Share2 className="mr-1.5 h-3.5 w-3.5" />
-                    Send channel
-                  </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => void copyChannelLink()}>
-                    Copy link
-                  </Button>
-                  {!isSubscribed && !canPost && !showInlineJoin && (
-                    <Button type="button" size="sm" onClick={subscribe}>
-                      Join Channel
-                    </Button>
-                  )}
-                  <Button type="button" size="sm" variant="ghost" onClick={() => navigate("/channels")}>
-                    Discover channels
-                  </Button>
-                </div>
-              )}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <button type="button" onClick={shareChannel} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/55 px-3 text-sm font-semibold text-slate-950 shadow-sm ring-1 ring-white/70 backdrop-blur transition hover:bg-white/75">
+                  <Share2 className="h-3.5 w-3.5" />
+                  Send channel
+                </button>
+                <button type="button" onClick={() => void copyChannelLink()} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/35 px-3 text-sm font-semibold text-slate-950 ring-1 ring-white/45 backdrop-blur transition hover:bg-white/60">
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy link
+                </button>
+                {!isSubscribed && !canPost && !showInlineJoin && (
+                  <button type="button" onClick={subscribe} disabled={joinPending} className="inline-flex h-9 items-center rounded-full bg-sky-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 disabled:opacity-60">
+                    {joinPending ? "Request sent" : channel.channel_join_approval_required ? "Request to join" : "Join Channel"}
+                  </button>
+                )}
+                <button type="button" onClick={() => navigate("/channels")} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/35 px-3 text-sm font-semibold text-slate-950 ring-1 ring-white/45 backdrop-blur transition hover:bg-white/60">
+                  <Compass className="h-3.5 w-3.5" />
+                  Discover
+                </button>
+              </div>
             </div>
           );
         })()}
@@ -269,10 +487,12 @@ export default function ChannelPage() {
         {showInlineJoin && (
           <div className="mx-auto max-w-2xl rounded-2xl border border-primary/20 bg-background/95 backdrop-blur p-3 flex items-center justify-between gap-3 shadow-sm">
             <div className="min-w-0">
-              <p className="text-[12px] font-semibold truncate">Join @{channel.handle}</p>
-              <p className="text-[11px] text-muted-foreground truncate">Get new posts and channel updates.</p>
+              <p className="text-[12px] font-semibold truncate">{joinPending ? "Request pending" : `Join @${channel.handle}`}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{joinPending ? "Waiting for admin approval." : "Get new posts and channel updates."}</p>
             </div>
-            <Button onClick={subscribe} className="shrink-0">Join</Button>
+            <Button onClick={subscribe} disabled={joinPending} className="shrink-0">
+              {joinPending ? "Sent" : channel.channel_join_approval_required ? "Request" : "Join"}
+            </Button>
           </div>
         )}
       </div>
@@ -281,20 +501,45 @@ export default function ChannelPage() {
         <div className="fixed bottom-[calc(var(--zivo-safe-bottom,0px)+4rem)] left-0 right-0 z-30 px-4 pb-3">
           <div className="mx-auto max-w-2xl rounded-2xl border border-primary/20 bg-background/95 backdrop-blur p-3 flex items-center justify-between gap-3 shadow-lg">
             <div className="min-w-0">
-              <p className="text-[12px] font-semibold truncate">Join @{channel.handle}</p>
-              <p className="text-[11px] text-muted-foreground truncate">Get new posts and channel updates.</p>
+              <p className="text-[12px] font-semibold truncate">{joinPending ? "Request pending" : `Join @${channel.handle}`}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{joinPending ? "Waiting for admin approval." : "Get new posts and channel updates."}</p>
             </div>
-            <Button onClick={subscribe} className="shrink-0">Join</Button>
+            <Button onClick={subscribe} disabled={joinPending} className="shrink-0">
+              {joinPending ? "Sent" : channel.channel_join_approval_required ? "Request" : "Join"}
+            </Button>
           </div>
         </div>
+      )}
+
+      {canPost && (
+        <div className="fixed inset-x-0 bottom-[var(--zivo-safe-bottom,0px)] z-40 px-3 pb-3">
+          <div className="mx-auto max-w-2xl">
+            <ChannelPostComposer channelId={channel.id} onPosted={refresh} />
+          </div>
+        </div>
+      )}
+
+      {showJumpToBottom && (
+        <button
+          type="button"
+          onClick={scrollToLatest}
+          className={cn(
+            "fixed right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-lg ring-1 ring-white/80 backdrop-blur transition hover:bg-white active:scale-95",
+            canPost ? "bottom-[calc(var(--zivo-safe-bottom,0px)+9.5rem)]" : "bottom-[calc(var(--zivo-safe-bottom,0px)+5.5rem)]",
+          )}
+          aria-label="Jump to latest message"
+        >
+          <ChevronDown className="h-5 w-5" />
+        </button>
       )}
 
       <ChannelInfoSheet
         open={infoOpen}
         onOpenChange={setInfoOpen}
         channel={channel}
-        posts={sortedPosts}
+        posts={timelinePosts}
         isSubscribed={isSubscribed}
+        joinPending={joinPending}
         canManage={canPost}
         notificationsOn={notificationsOn}
         onSubscribe={subscribe}
@@ -302,60 +547,8 @@ export default function ChannelPage() {
         onShareToChat={shareChannel}
         onCopyLink={copyChannelLink}
         onExternalShare={shareChannelExternal}
-        onManage={() => navigate(`/c/${channel.handle}/manage`)}
+        onRefresh={refresh}
       />
     </div>
   );
-}
-
-function getChannelEmptyState(tab: ViewTab, canPost: boolean): { title: string; subtitle: string; icon: typeof Hash } {
-  switch (tab) {
-    case "posts":
-      return {
-        title: "No posts yet",
-        subtitle: canPost ? "Share something with your subscribers to get started." : "New posts from this channel will show up here.",
-        icon: Inbox,
-      };
-    case "media":
-      return {
-        title: "No media shared yet",
-        subtitle: "Photos and videos posted to this channel will appear here.",
-        icon: ImageIcon,
-      };
-    case "files":
-      return {
-        title: "No files shared yet",
-        subtitle: "Documents and downloads posted to this channel will appear here.",
-        icon: FileText,
-      };
-    case "links":
-      return {
-        title: "No links shared yet",
-        subtitle: "Links shared in posts will appear here.",
-        icon: LinkIcon,
-      };
-    case "music":
-      return {
-        title: "No music shared yet",
-        subtitle: "Audio and music links shared in posts will appear here.",
-        icon: Music,
-      };
-    case "gif":
-      return {
-        title: "No GIFs shared yet",
-        subtitle: "Animated GIFs posted to this channel will appear here.",
-        icon: Play,
-      };
-    case "voice":
-      return {
-        title: "No voice messages yet",
-        subtitle: "Voice notes posted to this channel will appear here.",
-        icon: Mic,
-      };
-  }
-  return {
-    title: "Nothing here yet",
-    subtitle: "Shared channel items will appear here.",
-    icon: Inbox,
-  };
 }

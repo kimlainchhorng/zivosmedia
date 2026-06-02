@@ -186,8 +186,13 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const channelBroadcast = read("supabase/functions/channel-broadcast/index.ts");
     expect(channelBroadcast).toContain("isLikelyMaliciousBot(req.headers)");
     expect(channelBroadcast).toContain("isIpAbuseThresholdExceeded");
-    expect(channelBroadcast).toContain("scanContentForLinks(text)");
+    expect(channelBroadcast).toContain("scanContentForLinks(normalizedText)");
     expect(channelBroadcast).toContain("sub?.role === \"admin\" || sub?.role === \"editor\"");
+    expect(channelBroadcast).toContain("comments_enabled");
+    expect(channelBroadcast).toContain("comments_enabled === false ? false : true");
+    expect(channelBroadcast).toContain("normalizedText");
+    expect(channelBroadcast).toContain("normalizedMedia.length === 0");
+    expect(channelBroadcast).toContain("scheduled_for must be a future ISO timestamp");
 
     const scheduled = read("supabase/functions/channel-publish-scheduled/index.ts");
     expect(scheduled).toContain("isServiceRoleRequest(req, serviceKey)");

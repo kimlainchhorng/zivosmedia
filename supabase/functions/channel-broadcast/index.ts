@@ -54,21 +54,34 @@ Deno.serve(withSecurity("channel-broadcast", async (req, ctx) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { channel_id, body: text, media, scheduled_for } = body || {};
-    if (!channel_id || (!text && !media)) {
+    const { channel_id, body: text, media, scheduled_for, comments_enabled } = body || {};
+    const normalizedText = typeof text === "string" ? text.trim() : "";
+    const normalizedMedia = Array.isArray(media) ? media.filter(Boolean) : [];
+    const scheduledFor = typeof scheduled_for === "string" && scheduled_for.trim() ? scheduled_for.trim() : null;
+
+    if (!channel_id || (!normalizedText && normalizedMedia.length === 0)) {
       return new Response(JSON.stringify({ error: "channel_id and body or media required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (typeof text === "string") {
-      const linkScan = scanContentForLinks(text);
+    if (scheduledFor) {
+      const scheduledAt = new Date(scheduledFor);
+      if (!Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) {
+        return new Response(JSON.stringify({ error: "scheduled_for must be a future ISO timestamp" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    if (normalizedText) {
+      const linkScan = scanContentForLinks(normalizedText);
       if (!linkScan.ok) {
         logBlockedAttempt(supabase, {
           endpoint: "channel-broadcast",
           userId: u.user.id,
           urls: linkScan.blocked,
-          text,
+          text: normalizedText,
           ip: req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for"),
         });
         return new Response(
@@ -80,7 +93,7 @@ Deno.serve(withSecurity("channel-broadcast", async (req, ctx) => {
 
     // Verify caller is owner or admin
     const { data: ch } = await supabase
-      .from("channels").select("id, owner_id, name, handle").eq("id", channel_id).maybeSingle();
+      .from("channels").select("id, owner_id, name, handle, slow_mode_seconds").eq("id", channel_id).maybeSingle();
     if (!ch) {
       return new Response(JSON.stringify({ error: "channel not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -99,16 +112,42 @@ Deno.serve(withSecurity("channel-broadcast", async (req, ctx) => {
       });
     }
 
+    const publishNow = !scheduledFor;
+    const slowModeSeconds = Number(ch.slow_mode_seconds || 0);
+    if (publishNow && slowModeSeconds > 0) {
+      const { data: lastPost } = await supabase
+        .from("channel_posts")
+        .select("published_at")
+        .eq("channel_id", channel_id)
+        .eq("author_id", u.user.id)
+        .not("published_at", "is", null)
+        .order("published_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const lastPublishedAt = lastPost?.published_at ? new Date(lastPost.published_at).getTime() : 0;
+      const waitMs = slowModeSeconds * 1000 - (Date.now() - lastPublishedAt);
+      if (lastPublishedAt > 0 && waitMs > 0) {
+        return new Response(JSON.stringify({
+          error: "slow_mode_active",
+          code: "slow_mode_active",
+          message: `Slow mode is active. Try again in ${Math.ceil(waitMs / 1000)} seconds.`,
+          retry_after_seconds: Math.ceil(waitMs / 1000),
+        }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Insert post
-    const publishNow = !scheduled_for;
     const { data: post, error: postErr } = await supabase
       .from("channel_posts")
       .insert({
         channel_id,
         author_id: u.user.id,
-        body: text ?? null,
-        media: media ?? null,
-        scheduled_for: scheduled_for ?? null,
+        body: normalizedText || null,
+        media: normalizedMedia,
+        comments_enabled: comments_enabled === false ? false : true,
+        scheduled_for: scheduledFor,
         published_at: publishNow ? new Date().toISOString() : null,
       })
       .select("id")
@@ -141,7 +180,7 @@ Deno.serve(withSecurity("channel-broadcast", async (req, ctx) => {
           category: "social" as const,
           template: "channel_post",
           title: ch.name,
-          body: (text ?? "Sent a new post").slice(0, 140),
+          body: (normalizedText || "Sent a new post").slice(0, 140),
           action_url: actionUrl,
           status: "sent" as const,
           metadata: { channel_id, post_id: post.id, handle: ch.handle },
@@ -162,7 +201,7 @@ Deno.serve(withSecurity("channel-broadcast", async (req, ctx) => {
               user_ids: recipients,
               notification_type: "channel_post",
               title: ch.name,
-              body: (text ?? "Sent a new post").slice(0, 140),
+              body: (normalizedText || "Sent a new post").slice(0, 140),
               data: { channel_id, post_id: post.id, handle: ch.handle, url: actionUrl },
             }),
           });

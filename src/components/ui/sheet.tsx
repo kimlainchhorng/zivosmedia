@@ -54,10 +54,12 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  hideClose?: boolean;
+}
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = "right", className, children, ...props }, ref) => {
+  ({ side = "right", className, children, hideClose = false, ...props }, ref) => {
     const zMatch = className?.match(/(?:^|\s)z-\[(\d+)\]/);
     const overlayZClass = zMatch ? `z-[${Math.max(0, parseInt(zMatch[1], 10) - 1)}]` : undefined;
 
@@ -70,18 +72,20 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
               status bar, so they need the safe-area inset. For side="bottom"
               the sheet sits at the bottom of the screen — applying the inset
               there pushes the X far below the title, which looks broken. */}
-          <SheetPrimitive.Close
-            className="absolute right-4 rounded-full w-8 h-8 flex items-center justify-center bg-foreground text-background shadow-md ring-1 ring-black/10 hover:opacity-90 ring-offset-background transition-all active:scale-90 touch-manipulation focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-50"
-            style={{
-              top:
-                side === "bottom"
-                  ? "0.75rem"
-                  : "calc(var(--zivo-safe-top,0px) + 0.75rem)",
-            }}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
+          {!hideClose && (
+            <SheetPrimitive.Close
+              className="absolute right-4 rounded-full w-8 h-8 flex items-center justify-center bg-foreground text-background shadow-md ring-1 ring-black/10 hover:opacity-90 ring-offset-background transition-all active:scale-90 touch-manipulation focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-50"
+              style={{
+                top:
+                  side === "bottom"
+                    ? "0.75rem"
+                    : "calc(var(--zivo-safe-top,0px) + 0.75rem)",
+              }}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </SheetPrimitive.Close>
+          )}
         </SheetPrimitive.Content>
       </SheetPortal>
     );

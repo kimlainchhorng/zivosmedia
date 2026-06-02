@@ -20,12 +20,20 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { cn } from "@/lib/utils";
+import StorePaymentSection from "@/components/admin/StorePaymentSection";
+import { BUS_VEHICLE_TYPES, getBusVehicleType } from "@/config/busVehicleTypes";
 import Bus from "lucide-react/dist/esm/icons/bus";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Clock from "lucide-react/dist/esm/icons/clock";
 import Ticket from "lucide-react/dist/esm/icons/ticket";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import LayoutDashboard from "lucide-react/dist/esm/icons/layout-dashboard";
+import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
+import Users from "lucide-react/dist/esm/icons/users";
+import Calendar from "lucide-react/dist/esm/icons/calendar";
+import TrendingUp from "lucide-react/dist/esm/icons/trending-up";
+import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
 
 // Loose row shapes — the bus_* tables aren't in the generated types yet.
 type BusStore = { id: string; name: string; category: string | null };
@@ -51,8 +59,17 @@ const db = supabase as unknown as {
 const AMENITIES = ["wifi", "ac", "charging"] as const;
 const dollars = (cents: number) => (cents / 100).toFixed(2);
 const toCents = (v: string) => Math.max(0, Math.round(parseFloat(v || "0") * 100));
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
-type Tab = "routes" | "trips" | "bookings";
+type Tab = "overview" | "routes" | "trips" | "bookings" | "payments";
+
+const NAV: { id: Tab; label: string; icon: typeof Bus }[] = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "routes", label: "Routes", icon: MapPin },
+  { id: "trips", label: "Trips", icon: Clock },
+  { id: "bookings", label: "Bookings", icon: Ticket },
+  { id: "payments", label: "Payments", icon: DollarSign },
+];
 
 export default function BusOperatorConsole() {
   const navigate = useNavigate();
@@ -61,7 +78,7 @@ export default function BusOperatorConsole() {
   const [stores, setStores] = useState<BusStore[]>([]);
   const [storesLoaded, setStoresLoaded] = useState(false);
   const [storeId, setStoreId] = useState<string>("");
-  const [tab, setTab] = useState<Tab>("routes");
+  const [tab, setTab] = useState<Tab>("overview");
 
   const [routes, setRoutes] = useState<Route[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -77,7 +94,10 @@ export default function BusOperatorConsole() {
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false });
       if (!active) return;
-      const buses = (data || []).filter((s: BusStore) => normalizeStoreCategory(s.category).includes("bus"));
+      const buses = (data || []).filter((s: BusStore) => {
+        const norm = normalizeStoreCategory(s.category);
+        return norm.includes("bus") || norm.includes("van");
+      });
       setStores(buses);
       setStoreId((prev) => prev || buses[0]?.id || "");
       setStoresLoaded(true);
@@ -139,27 +159,27 @@ export default function BusOperatorConsole() {
     <>
       <SEOHead title="ZIVO Bus Operator – Manage Routes, Trips & Bookings" description="Manage your bus routes, schedules and bookings on ZIVO." canonical="/bus/operator" noIndex />
       <AppLayout title="Bus operator" showBack onBack={() => navigate("/bus")}>
-        <div className="mx-auto w-full max-w-2xl px-4 py-4 space-y-4">
+        <div className="mx-auto w-full max-w-5xl px-4 py-4">
           {/* Store selector */}
           {stores.length > 1 && (
             <select
               value={storeId}
               onChange={(e) => setStoreId(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-semibold"
+              className="mb-4 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-semibold md:max-w-xs"
             >
               {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           )}
 
-          {/* Tabs */}
-          <div className="flex gap-1 rounded-2xl bg-muted p-1">
-            {([["routes", "Routes", MapPin], ["trips", "Trips", Clock], ["bookings", "Bookings", Ticket]] as const).map(([id, label, Icon]) => (
+          {/* Mobile tab bar */}
+          <div className="mb-4 flex gap-1 rounded-2xl bg-muted p-1 md:hidden">
+            {NAV.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors",
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-bold transition-colors",
                   tab === id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
                 )}
               >
@@ -168,12 +188,164 @@ export default function BusOperatorConsole() {
             ))}
           </div>
 
-          {tab === "routes" && <RoutesTab storeId={storeId} routes={routes} reload={loadRoutes} />}
-          {tab === "trips" && <TripsTab storeId={storeId} routes={routes} trips={trips} reload={loadTrips} routeLabel={routeLabel} />}
-          {tab === "bookings" && <BookingsTab bookings={bookings} reload={loadBookings} routeLabel={routeLabel} trips={trips} />}
+          <div className="md:flex md:gap-6">
+            {/* Desktop sidebar */}
+            <aside className="hidden w-56 shrink-0 md:block">
+              <nav className="sticky top-20 space-y-1">
+                {NAV.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setTab(id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
+                      tab === id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" /> {label}
+                  </button>
+                ))}
+              </nav>
+            </aside>
+
+            {/* Content */}
+            <div className="min-w-0 flex-1 space-y-4">
+              {tab === "overview" && <OverviewTab routes={routes} trips={trips} bookings={bookings} routeLabel={routeLabel} onNavigate={setTab} />}
+              {tab === "routes" && <RoutesTab storeId={storeId} routes={routes} reload={loadRoutes} />}
+              {tab === "trips" && <TripsTab storeId={storeId} routes={routes} trips={trips} reload={loadTrips} routeLabel={routeLabel} />}
+              {tab === "bookings" && <BookingsTab bookings={bookings} reload={loadBookings} routeLabel={routeLabel} trips={trips} />}
+              {tab === "payments" && <PaymentsTab storeId={storeId} />}
+            </div>
+          </div>
         </div>
       </AppLayout>
     </>
+  );
+}
+
+// ─────────────────────────────── Overview ───────────────────────────────
+function OverviewTab({ routes, trips, bookings, routeLabel, onNavigate }: {
+  routes: Route[]; trips: Trip[]; bookings: Booking[]; routeLabel: (id: string) => string; onNavigate: (t: Tab) => void;
+}) {
+  const today = todayISO();
+  const scheduled = trips.filter((t) => t.status === "scheduled");
+  const upcoming = scheduled
+    .filter((t) => t.depart_date >= today)
+    .sort((a, b) => `${a.depart_date}${a.depart_time}`.localeCompare(`${b.depart_date}${b.depart_time}`));
+  const pending = bookings.filter((b) => b.status === "hold");
+  const confirmed = bookings.filter((b) => b.status === "confirmed");
+  const seatsSold = confirmed.reduce((n, b) => n + (b.passenger_count || (b.seats?.length ?? 0)), 0);
+  const revenueCents = bookings
+    .filter((b) => b.payment_status === "captured" || b.status === "confirmed")
+    .reduce((n, b) => n + (b.amount_cents || 0), 0);
+
+  if (routes.length === 0 && trips.length === 0 && bookings.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+          <Bus className="h-7 w-7 text-primary" />
+        </div>
+        <h3 className="text-base font-black text-foreground">Set up your bus service</h3>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+          Add a route, schedule a trip, and your buses show up in customer search instantly.
+        </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <Button onClick={() => onNavigate("routes")} className="rounded-xl font-bold"><Plus className="mr-1 h-4 w-4" /> Add a route</Button>
+          <Button variant="outline" onClick={() => onNavigate("trips")} className="rounded-xl font-bold">Schedule a trip</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const stats: { label: string; value: string; sub?: string; icon: typeof Bus; tint: string }[] = [
+    { label: "Active routes", value: String(routes.length), icon: MapPin, tint: "bg-sky-500/10 text-sky-500" },
+    { label: "Scheduled trips", value: String(scheduled.length), icon: Clock, tint: "bg-violet-500/10 text-violet-500" },
+    { label: "Bookings", value: String(bookings.length), sub: pending.length ? `${pending.length} pending` : undefined, icon: Ticket, tint: "bg-amber-500/10 text-amber-500" },
+    { label: "Revenue", value: `$${dollars(revenueCents)}`, icon: DollarSign, tint: "bg-emerald-500/10 text-emerald-500" },
+    { label: "Seats sold", value: String(seatsSold), icon: Users, tint: "bg-rose-500/10 text-rose-500" },
+    { label: "Upcoming departures", value: String(upcoming.length), icon: Calendar, tint: "bg-indigo-500/10 text-indigo-500" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-2xl border border-border bg-card p-4">
+            <div className={cn("mb-2 flex h-9 w-9 items-center justify-center rounded-xl", s.tint)}>
+              <s.icon className="h-4 w-4" />
+            </div>
+            <p className="text-2xl font-black leading-none text-foreground">{s.value}</p>
+            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+              {s.label}{s.sub ? <span className="ml-1 text-amber-600">· {s.sub}</span> : null}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {pending.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onNavigate("bookings")}
+          className="flex w-full items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-left"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600"><Ticket className="h-4 w-4" /></span>
+            <div>
+              <p className="text-sm font-bold text-foreground">{pending.length} booking{pending.length > 1 ? "s" : ""} awaiting confirmation</p>
+              <p className="text-[11px] text-muted-foreground">Review and confirm to capture payment.</p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+      )}
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="flex items-center gap-1.5 text-sm font-black text-foreground"><TrendingUp className="h-4 w-4 text-primary" /> Next departures</h3>
+          <button type="button" onClick={() => onNavigate("trips")} className="flex items-center gap-1 text-xs font-bold text-primary">All trips <ArrowRight className="h-3 w-3" /></button>
+        </div>
+        {upcoming.length === 0 ? (
+          <p className="py-3 text-center text-sm text-muted-foreground">No upcoming departures.</p>
+        ) : (
+          <div className="space-y-2">
+            {upcoming.slice(0, 5).map((t) => (
+              <div key={t.id} className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-foreground">{routeLabel(t.route_id)}</p>
+                  <p className="text-[11px] text-muted-foreground">{t.depart_date} · {t.depart_time} · {t.bus_type}</p>
+                </div>
+                <span className="shrink-0 text-sm font-black text-foreground">${dollars(t.price_cents)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="flex items-center gap-1.5 text-sm font-black text-foreground"><Ticket className="h-4 w-4 text-primary" /> Recent bookings</h3>
+          <button type="button" onClick={() => onNavigate("bookings")} className="flex items-center gap-1 text-xs font-bold text-primary">All bookings <ArrowRight className="h-3 w-3" /></button>
+        </div>
+        {bookings.length === 0 ? (
+          <p className="py-3 text-center text-sm text-muted-foreground">No bookings yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {bookings.slice(0, 5).map((b) => (
+              <div key={b.id} className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-foreground">{b.contact_name || b.booking_ref || b.id.slice(0, 8)}</p>
+                  <p className="text-[11px] text-muted-foreground">{(b.seats?.length || b.passenger_count) ?? 0} seat(s) · ${dollars(b.amount_cents)}</p>
+                </div>
+                <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold",
+                  b.status === "confirmed" ? "bg-emerald-500/15 text-emerald-600" : b.status === "cancelled" ? "bg-rose-500/15 text-rose-500" : "bg-amber-500/15 text-amber-600")}>
+                  {b.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -259,13 +431,24 @@ function TripsTab({ storeId, routes, trips, reload, routeLabel }: {
   const [date, setDate] = useState("");
   const [depart, setDepart] = useState("08:00");
   const [arrive, setArrive] = useState("");
-  const [busType, setBusType] = useState("VIP Coach");
-  const [seats, setSeats] = useState("40");
+  const [busType, setBusType] = useState<string>(BUS_VEHICLE_TYPES[0].value);
+  const [seats, setSeats] = useState(String(BUS_VEHICLE_TYPES[0].defaultSeats));
   const [price, setPrice] = useState("");
-  const [amenities, setAmenities] = useState<string[]>(["ac"]);
+  const [amenities, setAmenities] = useState<string[]>([...BUS_VEHICLE_TYPES[0].amenities]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (!routeId && routes[0]) setRouteId(routes[0].id); }, [routes, routeId]);
+
+  // Picking a vehicle type pre-fills typical seats + amenities for that type;
+  // the operator can still tweak both afterwards.
+  const applyVehicleType = (value: string) => {
+    setBusType(value);
+    const vt = getBusVehicleType(value);
+    if (vt) {
+      setSeats(String(vt.defaultSeats));
+      setAmenities([...vt.amenities]);
+    }
+  };
 
   const add = async () => {
     if (!routeId) { toast.error("Create a route first."); return; }
@@ -313,7 +496,11 @@ function TripsTab({ storeId, routes, trips, reload, routeLabel }: {
           </Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} /></Field>
-            <Field label="Bus type"><input value={busType} onChange={(e) => setBusType(e.target.value)} className={inputCls} /></Field>
+            <Field label="Vehicle type">
+              <select value={busType} onChange={(e) => applyVehicleType(e.target.value)} className={inputCls}>
+                {BUS_VEHICLE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </Field>
             <Field label="Departs"><input type="time" value={depart} onChange={(e) => setDepart(e.target.value)} className={inputCls} /></Field>
             <Field label="Arrives"><input type="time" value={arrive} onChange={(e) => setArrive(e.target.value)} className={inputCls} /></Field>
             <Field label="Total seats"><input value={seats} onChange={(e) => setSeats(e.target.value)} inputMode="numeric" className={inputCls} /></Field>
@@ -359,6 +546,22 @@ function TripsTab({ storeId, routes, trips, reload, routeLabel }: {
   );
 }
 
+// ─────────────────────────────── Payments ───────────────────────────────
+function PaymentsTab({ storeId }: { storeId: string }) {
+  if (!storeId) {
+    return <p className="py-6 text-center text-sm text-muted-foreground">Select a bus business to set up payments.</p>;
+  }
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-base font-black text-foreground">Payment setup</h3>
+        <p className="text-xs text-muted-foreground">Choose how riders pay for tickets — KHQR wallets (ABA, Wing, ACLEDA), cards, or cash on board.</p>
+      </div>
+      <StorePaymentSection storeId={storeId} />
+    </div>
+  );
+}
+
 // ─────────────────────────────── Bookings ───────────────────────────────
 function BookingsTab({ bookings, reload, routeLabel, trips }: {
   bookings: Booking[]; reload: () => Promise<void>; routeLabel: (id: string) => string; trips: Trip[];
@@ -367,6 +570,25 @@ function BookingsTab({ bookings, reload, routeLabel, trips }: {
     const m = new Map(trips.map((t) => [t.id, t.route_id]));
     return (tripId: string) => routeLabel(m.get(tripId) || "");
   }, [trips, routeLabel]);
+
+  // Confirm = capture the authorized card (if any) + mark confirmed. The edge
+  // function also handles cash / no-card bookings. If it isn't deployed yet we
+  // fall back to a plain status update so confirming always works; the booking
+  // row's payment_status still shows whether the card was captured.
+  const confirmBooking = async (id: string) => {
+    try {
+      const { error } = await supabase.functions.invoke("capture-bus-payment", { body: { booking_id: id } });
+      if (error) throw error;
+      toast.success("Booking confirmed.");
+      void reload();
+      return;
+    } catch {
+      const { error } = await db.from("bus_bookings").update({ status: "confirmed" }).eq("id", id);
+      if (error) { toast.error("Couldn't confirm booking."); return; }
+      toast.success("Booking confirmed.");
+      void reload();
+    }
+  };
 
   const setStatus = async (id: string, status: string) => {
     const { error } = await db.from("bus_bookings").update({ status }).eq("id", id);
@@ -396,7 +618,7 @@ function BookingsTab({ bookings, reload, routeLabel, trips }: {
           </p>
           {b.status === "hold" && (
             <div className="mt-2 flex gap-2">
-              <Button size="sm" onClick={() => setStatus(b.id, "confirmed")} className="h-8 rounded-lg text-xs font-bold">Confirm</Button>
+              <Button size="sm" onClick={() => confirmBooking(b.id)} className="h-8 rounded-lg text-xs font-bold">Confirm</Button>
               <Button size="sm" variant="outline" onClick={() => setStatus(b.id, "cancelled")} className="h-8 rounded-lg text-xs font-bold">Cancel</Button>
             </div>
           )}

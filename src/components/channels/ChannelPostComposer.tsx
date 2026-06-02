@@ -1,28 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   BarChart3,
+  Clock,
   FileText,
   ImagePlus,
   Loader2,
   MessageSquareOff,
   Mic,
   Music,
+  Paperclip,
   Plus,
   Send,
+  Smile,
   Square,
   Trash2,
   Video as VideoIcon,
   X,
 } from "lucide-react";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { cn } from "@/lib/utils";
 
 interface Props {
   channelId: string;
@@ -42,8 +44,23 @@ interface MediaItem {
 }
 
 type UploadKind = "photo" | "video" | "gif" | "file" | "music";
+type AttachmentActionId =
+  | "photo"
+  | "video"
+  | "gif"
+  | "file"
+  | "music"
+  | "voice"
+  | "poll"
+  | "schedule"
+  | "comments";
+type ComposerPanel = "attachments" | "emoji" | null;
+type EmojiMode = "GIFs" | "Stickers" | "Emoji";
 
 const CHANNEL_VOICE_MAX_MS = 5 * 60 * 1000;
+const EMOJI_CHOICES = ["😀", "😂", "😍", "👍", "🙏", "🔥", "🎉", "❤️", "😎", "😭", "👏", "💯", "🤝", "✨", "✅", "🚀"];
+const STICKER_CHOICES = ["🐣", "🍩", "😺", "🐶", "🦊", "🐸", "🐵", "🐼", "🐯", "🐨", "🧸", "🌟"];
+const GIF_LABELS = ["Wave", "Thanks", "OK", "Laugh", "Fire", "Celebrate", "Done", "Love"];
 
 function getUploadMediaType(file: File, kind: UploadKind): MediaItem["type"] | null {
   if (kind === "gif") return file.type === "image/gif" || /\.gif$/i.test(file.name) ? "gif" : null;
@@ -83,6 +100,25 @@ function formatFileSize(bytes?: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
+async function getFunctionErrorMessage(error: unknown, fallback = "Couldn't publish"): Promise<string> {
+  const context = (error as { context?: unknown } | null)?.context;
+  if (context instanceof Response) {
+    try {
+      const payload = await context.clone().json();
+      if (typeof payload?.message === "string") return payload.message;
+      if (typeof payload?.error === "string") return payload.error;
+    } catch {
+      try {
+        const text = await context.clone().text();
+        if (text.trim()) return text.trim();
+      } catch {
+        // Fall through to the wrapped error message.
+      }
+    }
+  }
+  return (error as { message?: string } | null)?.message || fallback;
+}
+
 export function ChannelPostComposer({ channelId, onPosted }: Props) {
   const [body, setBody] = useState("");
   const [scheduled, setScheduled] = useState(false);
@@ -90,6 +126,9 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
+  const [composerPanel, setComposerPanel] = useState<ComposerPanel>(null);
+  const [emojiMode, setEmojiMode] = useState<EmojiMode>("Stickers");
+  const [composerInitial, setComposerInitial] = useState("Z");
   // Telegram parity — admins can ship a post with comments locked. The
   // schema already has channel_posts.comments_enabled (rendered conditionally
   // in ChannelPostCard), it just had no UI to set it.
@@ -101,6 +140,33 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
   const voice = useVoiceRecorder();
   const [voicePanelOpen, setVoicePanelOpen] = useState(false);
   const [voiceUploading, setVoiceUploading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      const user = data.user;
+      const label =
+        user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        user?.email ||
+        "Z";
+      setComposerInitial(String(label).trim().slice(0, 1).toUpperCase() || "Z");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const attachmentsOpen = composerPanel === "attachments";
+  const emojiPanelOpen = composerPanel === "emoji";
+  const toggleComposerPanel = (panel: Exclude<ComposerPanel, null>) => {
+    setComposerPanel((current) => (current === panel ? null : panel));
+  };
+  const appendDraftText = (value: string) => {
+    setBody((current) => `${current}${value}`);
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
+  };
 
   const fmtElapsed = (ms: number) => {
     const s = Math.floor(ms / 1000);
@@ -175,6 +241,7 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
   const gifRef = useRef<HTMLInputElement>(null);
   const documentRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Poll editor — set to null when no poll is attached. Telegram channels
   // allow exactly one poll per post, so we model it as a single optional
@@ -269,6 +336,13 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
     }
   };
 
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(132, Math.max(42, el.scrollHeight))}px`;
+  }, [body]);
+
   const submit = async () => {
     if (!body.trim() && media.length === 0 && !poll) {
       toast.error("Write something, add media, or attach a poll");
@@ -344,21 +418,14 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
         body: body.trim() || null,
         media: mediaPayload,
         scheduled_for: scheduled && when ? new Date(when).toISOString() : null,
+        comments_enabled: !disableComments,
       },
     });
     if (error || (data as any)?.error) {
       setSubmitting(false);
-      toast.error((data as any)?.error ?? error?.message ?? "Couldn't publish");
+      const message = (data as any)?.message ?? (data as any)?.error ?? await getFunctionErrorMessage(error);
+      toast.error(message);
       return;
-    }
-    // Apply comments-disabled as a follow-up update (the broadcast fn doesn't
-    // accept this field directly). Best-effort; failures don't block the post.
-    const newPostId = (data as any)?.post_id;
-    if (disableComments && newPostId) {
-      await (supabase as any)
-        .from("channel_posts")
-        .update({ comments_enabled: false })
-        .eq("id", newPostId);
     }
     setSubmitting(false);
     setBody("");
@@ -367,6 +434,7 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
     setMedia([]);
     setPoll(null);
     setDisableComments(false);
+    setComposerPanel(null);
     const notified = (data as any)?.notified ?? 0;
     toast.success(
       scheduled
@@ -378,17 +446,141 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
     onPosted?.();
   };
 
-  return (
-    <div className="rounded-lg border border-border bg-card p-3 space-y-3">
-      <Textarea
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder="Share an update with your subscribers…"
-        rows={3}
-      />
+  const handleAttachmentAction = (id: AttachmentActionId) => {
+    switch (id) {
+      case "photo":
+        fileRef.current?.click();
+        setComposerPanel(null);
+        break;
+      case "video":
+        videoRef.current?.click();
+        setComposerPanel(null);
+        break;
+      case "gif":
+        gifRef.current?.click();
+        setComposerPanel(null);
+        break;
+      case "file":
+        documentRef.current?.click();
+        setComposerPanel(null);
+        break;
+      case "music":
+        audioRef.current?.click();
+        setComposerPanel(null);
+        break;
+      case "voice":
+        void (voicePanelOpen ? cancelVoice() : startVoice());
+        setComposerPanel(null);
+        break;
+      case "poll":
+        if (poll) {
+          setPoll(null);
+        } else {
+          setPoll({ question: "", options: ["", ""], is_anonymous: false });
+        }
+        setComposerPanel(null);
+        break;
+      case "schedule":
+        setScheduled((v) => !v);
+        setComposerPanel(null);
+        break;
+      case "comments":
+        setDisableComments((v) => !v);
+        setComposerPanel(null);
+        break;
+    }
+  };
 
+  const attachmentActions: Array<{
+    id: AttachmentActionId;
+    label: string;
+    ariaLabel: string;
+    icon: typeof ImagePlus;
+    tone: string;
+    disabled: boolean;
+    active?: boolean;
+  }> = [
+    {
+      id: "photo",
+      label: "Photo",
+      ariaLabel: "Attach photo",
+      icon: ImagePlus,
+      tone: "text-sky-600 bg-sky-50",
+      disabled: uploading || media.length >= 6,
+    },
+    {
+      id: "video",
+      label: "Video",
+      ariaLabel: "Attach video",
+      icon: VideoIcon,
+      tone: "text-violet-600 bg-violet-50",
+      disabled: uploading || media.length >= 6,
+    },
+    {
+      id: "gif",
+      label: "GIF",
+      ariaLabel: "Attach GIF",
+      icon: ImagePlus,
+      tone: "text-fuchsia-600 bg-fuchsia-50",
+      disabled: uploading || media.length >= 6,
+    },
+    {
+      id: "file",
+      label: "File",
+      ariaLabel: "Attach file",
+      icon: FileText,
+      tone: "text-amber-600 bg-amber-50",
+      disabled: uploading || media.length >= 6,
+    },
+    {
+      id: "music",
+      label: "Music",
+      ariaLabel: "Attach music",
+      icon: Music,
+      tone: "text-emerald-600 bg-emerald-50",
+      disabled: uploading || media.length >= 6,
+    },
+    {
+      id: "voice",
+      label: voicePanelOpen ? "Cancel" : "Voice",
+      ariaLabel: "Record voice",
+      icon: Mic,
+      tone: "text-rose-600 bg-rose-50",
+      disabled: uploading || media.length >= 6,
+    },
+    {
+      id: "poll",
+      label: poll ? "Poll on" : "Poll",
+      ariaLabel: poll ? "Remove poll" : "Create poll",
+      icon: BarChart3,
+      tone: "text-indigo-600 bg-indigo-50",
+      disabled: false,
+    },
+    {
+      id: "schedule",
+      label: scheduled ? "Scheduled" : "Schedule",
+      ariaLabel: scheduled ? "Unschedule post" : "Schedule post",
+      icon: Clock,
+      tone: "text-sky-600 bg-sky-50",
+      disabled: false,
+      active: scheduled,
+    },
+    {
+      id: "comments",
+      label: disableComments ? "Comments off" : "Comments",
+      ariaLabel: disableComments ? "Allow comments" : "Disable comments",
+      icon: MessageSquareOff,
+      tone: "text-slate-600 bg-slate-100",
+      disabled: false,
+      active: disableComments,
+    },
+  ];
+  const hasDraft = body.trim().length > 0 || media.length > 0 || !!poll;
+
+  return (
+    <div className="space-y-2">
       {media.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 rounded-[22px] bg-white/90 p-2 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 backdrop-blur">
           {media.map((m, i) => (
             <div key={m.path} className="relative aspect-square overflow-hidden rounded-md border border-border bg-muted">
               {m.type === "video" ? (
@@ -483,7 +675,7 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
       />
 
       {voicePanelOpen && (
-        <div className="rounded-xl border border-border bg-muted/30 p-3 flex items-center gap-3">
+        <div className="flex items-center gap-3 rounded-[22px] bg-white/90 p-3 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 backdrop-blur">
           <button
             type="button"
             onClick={cancelVoice}
@@ -527,7 +719,7 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
       )}
 
       {poll && (
-        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
+        <div className="space-y-2 rounded-[22px] bg-white/90 p-3 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 backdrop-blur">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-fuchsia-500">
               <BarChart3 className="h-3.5 w-3.5" /> Poll
@@ -590,116 +782,225 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Button
+      <div className="space-y-2">
+        {attachmentsOpen && (
+          <div className="grid grid-cols-4 gap-1.5 rounded-[22px] bg-white/95 px-2 py-2 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 backdrop-blur">
+            {attachmentActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.ariaLabel}
+                  type="button"
+                  onClick={() => handleAttachmentAction(action.id)}
+                  disabled={action.disabled}
+                  aria-label={action.ariaLabel}
+                  aria-pressed={action.active}
+                  className="flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-sky-600 disabled:opacity-40"
+                  title={action.label}
+                >
+                  <span className={cn(
+                    "inline-flex h-10 w-10 items-center justify-center rounded-full shadow-sm ring-1 ring-white/80",
+                    action.active ? "bg-rose-50 text-rose-500" : action.tone,
+                  )}>
+                    {uploading && ["Attach photo", "Attach video", "Attach GIF", "Attach file", "Attach music"].includes(action.ariaLabel) ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
+                  </span>
+                  <span className="w-full truncate">{action.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {emojiPanelOpen && (
+          <div className="overflow-hidden rounded-[28px] bg-white/95 shadow-xl shadow-slate-900/10 ring-1 ring-white/80 backdrop-blur">
+            <div className="flex gap-1 overflow-x-auto px-3 py-2 scrollbar-hide">
+              {STICKER_CHOICES.slice(0, 10).map((item) => (
+                <button
+                  key={`top-${item}`}
+                  type="button"
+                  onClick={() => appendDraftText(item)}
+                  className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lime-50 text-xl transition hover:bg-lime-100 active:scale-95"
+                  aria-label={`Add sticker ${item}`}
+                >
+                  {item}
+                  <span className="absolute -right-0.5 -top-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[10px] font-bold text-emerald-600 shadow-sm">
+                    +
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="px-3 pb-2">
+              <div className="flex h-10 items-center gap-2 rounded-full bg-lime-50/80 px-3 text-slate-500">
+                <Smile className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 flex-1 text-sm">Search</span>
+                <button
+                  type="button"
+                  onClick={() => setComposerPanel(null)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-white"
+                  aria-label="Close emoji panel"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-56 overflow-y-auto px-3 pb-3 scrollbar-hide">
+              {emojiMode === "GIFs" && (
+                <div className="grid grid-cols-4 gap-2">
+                  {GIF_LABELS.map((label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => gifRef.current?.click()}
+                      className="flex aspect-square flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-fuchsia-100 text-xs font-bold text-slate-700 shadow-sm transition active:scale-95"
+                      aria-label={`Attach ${label} GIF`}
+                    >
+                      <span className="text-xl">GIF</span>
+                      <span className="mt-1 max-w-full truncate px-1">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {emojiMode === "Stickers" && (
+                <>
+                  <p className="px-1 pb-2 text-center text-xs font-bold uppercase tracking-wide text-lime-600">Trending Premium Stickers</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {STICKER_CHOICES.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => appendDraftText(item)}
+                        className="flex aspect-square items-center justify-center rounded-2xl bg-lime-50 text-4xl shadow-sm transition hover:bg-lime-100 active:scale-95"
+                        aria-label={`Add sticker ${item}`}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {emojiMode === "Emoji" && (
+                <div className="grid grid-cols-8 gap-1.5">
+                  {EMOJI_CHOICES.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => appendDraftText(item)}
+                      className="flex h-9 items-center justify-center rounded-xl text-2xl transition hover:bg-lime-50 active:scale-95"
+                      aria-label={`Add emoji ${item}`}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-center border-t border-lime-100/80 px-3 py-2">
+              <div className="inline-flex rounded-full bg-white/90 p-0.5 shadow-sm ring-1 ring-lime-100">
+                {(["GIFs", "Stickers", "Emoji"] as EmojiMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setEmojiMode(mode)}
+                    className={cn(
+                      "h-9 rounded-full px-4 text-sm font-semibold transition",
+                      emojiMode === mode ? "bg-lime-100 text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-950",
+                    )}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {(media.length > 0 || poll || disableComments) && (
+          <div className="flex flex-wrap gap-1.5 px-2">
+            {media.length > 0 && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                {media.length}/6 attached
+              </span>
+            )}
+            {poll && <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-600">Poll attached</span>}
+            {disableComments && <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600">Comments off</span>}
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading || media.length >= 6}
-            className="gap-1"
+            onClick={() => toggleComposerPanel("attachments")}
+            className={cn(
+              "inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/95 text-slate-800 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 outline-none backdrop-blur transition focus:outline-none focus-visible:outline-none focus-visible:ring-0",
+              attachmentsOpen ? "text-sky-600" : "hover:text-sky-600",
+            )}
+            style={{ outline: "none" }}
+            aria-expanded={attachmentsOpen}
+            aria-label="Open attachments"
+            title="Attach"
           >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-            Photo
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => videoRef.current?.click()}
-            disabled={uploading || media.length >= 6}
-            className="gap-1"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <VideoIcon className="h-4 w-4" />}
-            Video
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => gifRef.current?.click()}
-            disabled={uploading || media.length >= 6}
-            className="gap-1"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-            GIF
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => documentRef.current?.click()}
-            disabled={uploading || media.length >= 6}
-            className="gap-1"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            File
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => audioRef.current?.click()}
-            disabled={uploading || media.length >= 6}
-            className="gap-1"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Music className="h-4 w-4" />}
-            Music
-          </Button>
-          <Button
-            type="button"
-            variant={voicePanelOpen ? "secondary" : "outline"}
-            size="sm"
-            onClick={voicePanelOpen ? cancelVoice : startVoice}
-            disabled={uploading || media.length >= 6}
-            className="gap-1"
-          >
-            <Mic className="h-4 w-4" />
-            Voice
-          </Button>
-          <Button
-            type="button"
-            variant={poll ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => {
-              if (poll) {
-                setPoll(null);
-              } else {
-                setPoll({ question: "", options: ["", ""], is_anonymous: false });
-              }
-            }}
-            className="gap-1"
-          >
-            <BarChart3 className="h-4 w-4" />
-            {poll ? "Poll on" : "Poll"}
-          </Button>
-          <Button
-            type="button"
-            variant={disableComments ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setDisableComments((v) => !v)}
-            aria-pressed={disableComments}
-            title={disableComments ? "Comments disabled — tap to allow" : "Tap to disable comments"}
-            className="gap-1"
-          >
-            <MessageSquareOff className="h-4 w-4" />
-            {disableComments ? "Comments off" : "Comments"}
-          </Button>
-          <Switch checked={scheduled} onCheckedChange={setScheduled} id="sch" />
-          <Label htmlFor="sch" className="text-xs">Schedule</Label>
+            {attachmentsOpen ? <X className="h-4 w-4" /> : <Paperclip className="h-4 w-4" />}
+          </button>
+          <div className="flex min-h-12 min-w-0 flex-1 items-end gap-2 rounded-full bg-white/95 py-1.5 pl-1.5 pr-2 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 backdrop-blur">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-sm font-bold text-white shadow-sm ring-2 ring-white/80">
+              {composerInitial}
+            </span>
+            <Textarea
+              ref={textareaRef}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  void submit();
+                }
+              }}
+              placeholder="Message"
+              rows={1}
+              className="max-h-[96px] min-h-9 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-0 py-1.5 text-[16px] leading-6 shadow-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+              style={{ outline: "none", boxShadow: "none" }}
+            />
+            <button
+              type="button"
+              onClick={() => toggleComposerPanel("emoji")}
+              aria-expanded={emojiPanelOpen}
+              className={cn(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-sky-600",
+                emojiPanelOpen ? "bg-sky-50 text-sky-600" : "text-slate-500",
+              )}
+              aria-label="Open emoji and stickers"
+              title="Emoji and stickers"
+            >
+              <Smile className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex shrink-0 items-center">
+            <button
+              type="button"
+              onClick={hasDraft ? submit : startVoice}
+              disabled={submitting || uploading || (!hasDraft && media.length >= 6)}
+              aria-label={hasDraft ? scheduled ? "Schedule post" : "Post" : "Record voice"}
+              className={cn(
+                "inline-flex h-12 w-12 items-center justify-center rounded-full shadow-lg shadow-slate-900/10 transition active:scale-95 disabled:cursor-default disabled:opacity-45",
+                hasDraft ? "bg-sky-500 text-white hover:bg-sky-600" : "bg-white/95 text-slate-950 ring-1 ring-white/80 hover:bg-white",
+              )}
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : hasDraft ? <Send className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
         {scheduled && (
           <Input
             type="datetime-local"
             value={when}
             onChange={(e) => setWhen(e.target.value)}
-            className="w-[220px]"
+            className="w-full shrink-0 rounded-2xl border-0 bg-white/95 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 backdrop-blur sm:w-[220px]"
           />
         )}
-        <Button onClick={submit} disabled={submitting || uploading} size="sm" className="gap-1">
-          <Send className="h-4 w-4" /> {scheduled ? "Schedule" : "Post"}
-        </Button>
       </div>
     </div>
   );

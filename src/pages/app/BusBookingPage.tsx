@@ -94,11 +94,14 @@ const hashString = (s: string) => {
 };
 
 const buildTrips = (from: string, to: string, date: string): BusTrip[] => {
+  // Sample/fallback only (shown when search_bus_trips returns nothing). `type`
+  // values mirror the canonical labels in src/config/busVehicleTypes.ts so the
+  // rider taxonomy matches what operators select in the console.
   const operators = [
-    { name: "Giant Ibis Transport", type: "Hotel Bus", base: 18, rating: 4.8, amenities: ["wifi", "ac", "charging"] as const },
-    { name: "Mekong Express", type: "VIP Coach", base: 15, rating: 4.6, amenities: ["wifi", "ac"] as const },
-    { name: "Virak Buntham", type: "Sleeper", base: 12, rating: 4.3, amenities: ["ac", "charging"] as const },
-    { name: "Larryta Express", type: "Express", base: 14, rating: 4.5, amenities: ["wifi", "ac"] as const },
+    { name: "Giant Ibis Transport", type: "VIP Bus", base: 18, rating: 4.8, amenities: ["wifi", "ac", "charging"] as const },
+    { name: "Mekong Express", type: "AC Bus", base: 15, rating: 4.6, amenities: ["wifi", "ac"] as const },
+    { name: "Virak Buntham", type: "Sleeper Bus", base: 12, rating: 4.3, amenities: ["ac", "charging"] as const },
+    { name: "Larryta Express", type: "Standard Bus", base: 14, rating: 4.5, amenities: ["wifi", "ac"] as const },
     { name: "Vireak Buntham Night", type: "Night Sleeper", base: 16, rating: 4.4, amenities: ["wifi", "ac", "charging"] as const },
   ];
   const departBase = ["06:30", "08:00", "11:45", "14:15", "22:30"];

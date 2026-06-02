@@ -21,6 +21,7 @@ import Car from "lucide-react/dist/esm/icons/car";
 import BedDouble from "lucide-react/dist/esm/icons/bed-double";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Package from "lucide-react/dist/esm/icons/package";
+import Bus from "lucide-react/dist/esm/icons/bus";
 import Star from "lucide-react/dist/esm/icons/star";
 import Heart from "lucide-react/dist/esm/icons/heart";
 import Home from "lucide-react/dist/esm/icons/home";
@@ -38,7 +39,6 @@ import zivoEatsIcon from "@/assets/zivo-eats-icon.webp";
 import zivoFlightsIcon from "@/assets/zivo-flights-icon.webp";
 import zivoHotelsIcon from "@/assets/zivo-hotels-icon.webp";
 import zivoRentalCarIcon from "@/assets/zivo-rental-car.webp";
-import zivoReserveIcon from "@/assets/zivo-reserve-car.webp";
 import zivoShoppingIcon from "@/assets/zivo-shopping.webp";
 
 // Lazy-load below-fold heavy components
@@ -872,7 +872,7 @@ const AppHome = () => {
             <div className="grid grid-cols-4 gap-3 px-5 pb-2 preserve-3d">
               {(([
                 { label: t("home.rental_cars"), image: zivoRentalCarIcon, icon: null, href: "/rent-car", badge: null },
-                { label: "Reserve", image: zivoReserveIcon, icon: null, href: "/rides/hub?tab=reserve", badge: null },
+                { label: "Bus", image: null, icon: Bus, href: "/bus", badge: null },
                 { label: t("home.shopping"), image: zivoShoppingIcon, icon: null, href: "/grocery", badge: null },
                 { label: "Delivery", image: null, icon: Package, href: "/delivery", badge: null },
               ].filter(Boolean)) as Array<{ label: string; image: string | null; icon: typeof Package | null; href: string; badge: string | null }>).map((s) => {

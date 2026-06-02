@@ -64,6 +64,11 @@ export function resolveBusinessDashboardRoute(
     return { path: `/admin/stores/${storeId}?tab=cd-dashboard`, fallback: false };
   }
 
+  // Bus / van operator → dedicated bus console (self-resolves the owner's store).
+  if (normalizedCategory === "bus" || normalizedCategory === "van") {
+    return { path: "/bus/operator", fallback: false };
+  }
+
   // Lodging → store edit page on the lodge tab.
   if (category && isLodgingStoreCategory(category as StoreCategory) && storeId) {
     return { path: `/admin/stores/${storeId}?tab=lodge-overview`, fallback: false };

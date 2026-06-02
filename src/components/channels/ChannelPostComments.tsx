@@ -149,12 +149,12 @@ export default function ChannelPostComments({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+        className="inline-flex h-6 items-center gap-1 rounded-full bg-white/30 px-1.5 text-[10px] text-emerald-800/70 transition hover:bg-white/55 hover:text-emerald-950"
       >
         <MessageCircle className="w-3.5 h-3.5" />
         {count > 0
-          ? `View ${count === 1 ? "1 comment" : `all ${count} comments`}`
-          : "Add a comment"}
+          ? `${count}`
+          : "Comment"}
       </button>
     );
   }

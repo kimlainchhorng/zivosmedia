@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink, Apple } from "lucide-react";
+import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink } from "lucide-react";
 import { supabase, setRememberMePreference } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -337,23 +337,6 @@ const Login = () => {
     return { ok: true, email: trimmed };
   };
 
-  const handleOAuthSignIn = async (provider: "google" | "apple") => {
-    if (submitting) return;
-    setSubmitting(true);
-    setRememberMePreference(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: getEmailRedirectTo(),
-        ...(provider === "google" ? { queryParams: { prompt: "select_account" } } : {}),
-      },
-    });
-    if (error) {
-      setSubmitting(false);
-      toast.error(error.message || `Could not start ${provider} sign-in.`);
-    }
-  };
-
   // Passwordless sign-in — sends the Supabase magic-link email
   // and routes to /verify-otp. Used as a fallback when the user can't remember
   // their password and doesn't want a full reset cycle.
@@ -546,26 +529,6 @@ const Login = () => {
                 Log into another account
               </button>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("google")}
-                  disabled={submitting || editingAccounts}
-                  className="h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 text-sm font-semibold text-zinc-800 dark:text-zinc-100 flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 transition"
-                >
-                  <span className="font-bold text-base" aria-hidden>G</span>
-                  Google
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("apple")}
-                  disabled={submitting || editingAccounts}
-                  className="h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 text-sm font-semibold text-zinc-800 dark:text-zinc-100 flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 transition"
-                >
-                  <Apple className="h-4 w-4" />
-                  Apple
-                </button>
-              </div>
             </div>
           )}
 
@@ -658,27 +621,6 @@ const Login = () => {
                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
                 <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">OR</span>
                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("google")}
-                  disabled={submitting}
-                  className="h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 text-sm font-semibold text-zinc-800 dark:text-zinc-100 flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 transition"
-                >
-                  <span className="font-bold text-base" aria-hidden>G</span>
-                  Google
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("apple")}
-                  disabled={submitting}
-                  className="h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 text-sm font-semibold text-zinc-800 dark:text-zinc-100 flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 transition"
-                >
-                  <Apple className="h-4 w-4" />
-                  Apple
-                </button>
               </div>
 
               {/* Option 2: passwordless via email link/code */}
@@ -797,27 +739,6 @@ const Login = () => {
                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
                 <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">OR</span>
                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("google")}
-                  disabled={submitting}
-                  className="h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 text-sm font-semibold text-zinc-800 dark:text-zinc-100 flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 transition"
-                >
-                  <span className="font-bold text-base" aria-hidden>G</span>
-                  Google
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("apple")}
-                  disabled={submitting}
-                  className="h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 text-sm font-semibold text-zinc-800 dark:text-zinc-100 flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 transition"
-                >
-                  <Apple className="h-4 w-4" />
-                  Apple
-                </button>
               </div>
 
               {/* Option 2: passwordless via email link/code */}

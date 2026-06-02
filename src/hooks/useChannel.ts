@@ -11,7 +11,14 @@ export type Channel = {
   banner_url: string | null;
   owner_id: string;
   is_public: boolean;
+  channel_join_approval_required?: boolean;
+  restrict_saving_content?: boolean;
+  reaction_policy?: "all" | "some" | "none";
   subscriber_count: number;
+  wallpaper_style?: "green" | "blue" | "pink" | "none";
+  topics_enabled?: boolean;
+  hide_members?: boolean;
+  slow_mode_seconds?: number;
   is_verified?: boolean;
   verified_at?: string | null;
 };
@@ -81,7 +88,7 @@ export function useChannel(handle: string | undefined) {
         .eq("channel_id", ch.id)
         .eq("user_id", u.user.id)
         .maybeSingle();
-      setIsSubscribed(!!sub);
+      setIsSubscribed(!!sub && sub.role !== "pending");
       setRole(sub?.role ?? null);
       setNotificationsOn(sub?.notifications_on ?? true);
     } else {
@@ -114,11 +121,11 @@ export function useChannel(handle: string | undefined) {
 
   const subscribe = async () => {
     if (!channel || !userId) return;
-    await supabase.from("channel_subscribers").insert({
+    await supabase.from("channel_subscribers").upsert({
       channel_id: channel.id,
       user_id: userId,
-      role: "sub",
-    } as any);
+      role: channel.channel_join_approval_required ? "pending" : "sub",
+    } as any, { onConflict: "channel_id,user_id" });
     await refresh();
   };
 

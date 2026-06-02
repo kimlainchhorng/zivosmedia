@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense, type PointerEvent as ReactPointerEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Check,
+  CheckCheck,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Eye,
   FileText,
   Link as LinkIcon,
@@ -14,20 +16,23 @@ import {
   Pin,
   PinOff,
   Share2,
+  Smile,
   Trash2,
+  Video,
   X,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import type { ChannelPost } from "@/hooks/useChannel";
 import { getPublicOrigin } from "@/lib/getPublicOrigin";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
+import { cn } from "@/lib/utils";
 
 const ChannelPostComments = lazy(() => import("./ChannelPostComments"));
 const ChannelPostInsights = lazy(() => import("./ChannelPostInsights"));
 const ChatPollBubble = lazy(() => import("../chat/ChatPollBubble"));
 
 const REACTIONS = ["👍", "❤️", "🔥", "🎉", "👏"];
+const URL_PATTERN = /https?:\/\/[^\s<>"')]+/i;
 
 interface Props {
   post: ChannelPost;
@@ -37,8 +42,12 @@ interface Props {
   canComment?: boolean;
   /** Best-effort client-side protection against simple save/download gestures. */
   protectContent?: boolean;
+  /** Channel-level reaction policy. */
+  reactionPolicy?: "all" | "some" | "none";
   /** Called after pin toggles so the parent can re-order the list. */
   onPinChanged?: () => void;
+  /** True when a post link targets this message. */
+  highlight?: boolean;
 }
 
 interface MediaItem {
@@ -92,7 +101,96 @@ function formatAttachmentSize(bytes?: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
-export function ChannelPostCard({ post, canManage = false, canComment = true, protectContent = false, onPinChanged }: Props) {
+function getFirstUrl(text?: string | null): string | null {
+  const match = text?.match(URL_PATTERN)?.[0]?.replace(/[),.;!?]+$/g, "");
+  return match || null;
+}
+
+function buildLinkPreview(url: string) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    const isMeet = host.includes("meet.google.com");
+    const isTelegram = host.includes("t.me") || host.includes("telegram.");
+    return {
+      kind: isMeet ? "meet" : isTelegram ? "telegram" : "link",
+      host,
+      title: isMeet ? "Google Meet" : isTelegram ? "Telegram" : host,
+      description: isMeet
+        ? "Real-time meetings by Google. Using your browser, share your video, desktop, and presentations with teammates and customers."
+        : isTelegram
+        ? "Open this Telegram link."
+        : parsed.pathname.split("/").filter(Boolean).join(" / ") || "Open link",
+      accent: isMeet ? "border-l-4 border-l-emerald-500" : "border-l-4 border-l-sky-500",
+    };
+  } catch {
+    return { kind: "link", host: url, title: "Link", description: url, accent: "border-l-4 border-l-sky-500" };
+  }
+}
+
+function formatPostTime(value?: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date);
+}
+
+function renderMessageText(text: string) {
+  return text.split(/(https?:\/\/[^\s<>"')]+)/gi).map((part, index) => {
+    const url = part.match(URL_PATTERN)?.[0]?.replace(/[),.;!?]+$/g, "");
+    if (!url) return <span key={`${index}-${part}`}>{part}</span>;
+    return (
+      <a
+        key={`${index}-${url}`}
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+      >
+        {part}
+      </a>
+    );
+  });
+}
+
+function PostActionButton({
+  icon: Icon,
+  label,
+  destructive = false,
+  disabled = false,
+  onClick,
+}: {
+  icon: typeof Copy;
+  label: string;
+  destructive?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left text-base font-medium last:border-b-0 disabled:opacity-45",
+        destructive ? "text-rose-500" : "text-slate-950",
+      )}
+    >
+      <Icon className="h-5 w-5 shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+    </button>
+  );
+}
+
+export function ChannelPostCard({
+  post,
+  canManage = false,
+  canComment = true,
+  protectContent = false,
+  reactionPolicy = "all",
+  onPinChanged,
+  highlight = false,
+}: Props) {
   const [pinning, setPinning] = useState(false);
   // Admin "more" menu — open/close + edit/delete state.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -105,6 +203,8 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
   // Local copy of body so an edit shows immediately without a refetch.
   const [localBody, setLocalBody] = useState<string | null>(post.body ?? null);
   const [deleted, setDeleted] = useState(false);
+  const [actionSheetOpen, setActionSheetOpen] = useState(false);
+  const longPressTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -117,6 +217,7 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
 
   async function copyLink() {
     setMenuOpen(false);
+    setActionSheetOpen(false);
     const handle = (post as any).channel_handle as string | undefined;
     const path = handle ? `/c/${handle}?post=${post.id}` : `/c/?post=${post.id}`;
     const url = `${getPublicOrigin()}${path}`;
@@ -125,6 +226,21 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
       toast.success("Post link copied");
     } catch {
       toast.message(url);
+    }
+  }
+
+  async function copyMessageText() {
+    setActionSheetOpen(false);
+    const text = (localBody ?? post.body ?? "").trim();
+    if (!text) {
+      toast.message("No message text to copy");
+      return;
+    }
+    try {
+      await navigator.clipboard?.writeText(text);
+      toast.success("Message copied");
+    } catch {
+      toast.message(text);
     }
   }
 
@@ -173,6 +289,7 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
   // Forward via ChatHub's built-in share flow so users can pick recipients in
   // one place (Telegram-style) instead of relying on clipboard handoff.
   async function forwardToDm() {
+    setActionSheetOpen(false);
     const handle = (post as any).channel_handle as string | undefined;
     const path = handle ? `/c/${handle}?post=${post.id}` : `/c/?post=${post.id}`;
     const url = `${getPublicOrigin()}${path}`;
@@ -194,6 +311,7 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
   }
 
   async function togglePin() {
+    setActionSheetOpen(false);
     setPinning(true);
     try {
       const { error } = await (supabase as any).rpc("toggle_channel_post_pin", { p_post_id: post.id });
@@ -206,6 +324,25 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
     }
   }
 
+  const openActionSheet = () => {
+    setMenuOpen(false);
+    setReactionPickerOpen(false);
+    setActionSheetOpen(true);
+  };
+  const clearLongPress = () => {
+    if (longPressTimerRef.current != null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+  const startLongPress = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement | null)?.closest("a,button,textarea,audio,video")) return;
+    clearLongPress();
+    longPressTimerRef.current = window.setTimeout(openActionSheet, 420);
+  };
+
+  useEffect(() => clearLongPress, []);
+
   const ref = useRef<HTMLDivElement>(null);
   const [counted, setCounted] = useState(false);
   const [reactions, setReactions] = useState<Record<string, number>>(
@@ -214,7 +351,15 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
   // Viewer's own reaction (one per post, Telegram-style). null = none.
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [reacting, setReacting] = useState(false);
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const allowedReactions = reactionPolicy === "some" ? REACTIONS.slice(0, 3) : REACTIONS;
+  const firstUrl = useMemo(() => getFirstUrl(localBody ?? post.body), [localBody, post.body]);
+  const linkPreview = useMemo(() => (firstUrl ? buildLinkPreview(firstUrl) : null), [firstUrl]);
+  const visibleReactions = allowedReactions
+    .map((emoji) => ({ emoji, count: reactions[emoji] ?? 0, mine: myReaction === emoji }))
+    .filter((item) => item.count > 0 || item.mine);
+  const postTimeLabel = formatPostTime(post.published_at ?? post.created_at);
 
   const blockSaveGestures = (e: React.SyntheticEvent) => {
     if (!protectContent) return;
@@ -328,6 +473,7 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
       if (next) out[next] = (out[next] ?? 0) + 1;
       return out;
     });
+    setReactionPickerOpen(false);
     setReacting(true);
     try {
       if (next == null) {
@@ -382,39 +528,53 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
   return (
     <>
       <div
+        id={`channel-post-${post.id}`}
         ref={ref}
-        className={`rounded-2xl border p-4 shadow-sm ${
+        onPointerDown={startLongPress}
+        onPointerUp={clearLongPress}
+        onPointerCancel={clearLongPress}
+        onPointerLeave={clearLongPress}
+        onContextMenu={(event) => {
+          if ((event.target as HTMLElement | null)?.closest("a,button,textarea,audio,video")) return;
+          event.preventDefault();
+          openActionSheet();
+        }}
+        onDoubleClick={(event) => {
+          if (reactionPolicy === "none" || (event.target as HTMLElement | null)?.closest("a,button,textarea,audio,video")) return;
+          void react("👍");
+        }}
+        className={`scroll-mt-32 relative ml-auto max-w-[90%] rounded-[18px] rounded-br-md p-2.5 pb-1.5 shadow-sm shadow-emerald-900/5 ring-1 transition-shadow after:absolute after:bottom-0 after:-right-1.5 after:h-4 after:w-4 after:rounded-bl-full after:bg-[#d9fdd3] after:content-[''] ${
           post.is_pinned
-            ? "border-primary/40 bg-primary/[0.07] ring-1 ring-primary/20"
-            : "border-border/50 bg-card/95"
-        }`}
+            ? "bg-[#d9fdd3] ring-emerald-300/80 dark:bg-emerald-950/70 dark:ring-emerald-900"
+            : "bg-[#d9fdd3] ring-emerald-200/70 dark:bg-emerald-950/60 dark:ring-emerald-900/70"
+        } ${highlight ? "ring-2 ring-sky-400 ring-offset-2 ring-offset-[#dcefdc] dark:ring-offset-zinc-950" : ""}`}
       >
         {(post.is_pinned || canManage) && (
-          <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="mb-1 flex items-center justify-between gap-2">
             {post.is_pinned ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/45 px-2 py-0.5 text-[10px] font-bold text-emerald-900/70">
                 <Pin className="w-3 h-3" /> Pinned
               </span>
             ) : <span />}
             {canManage && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={togglePin}
                   disabled={pinning}
-                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/35 text-emerald-900/70 transition hover:bg-white/60 hover:text-emerald-950 disabled:opacity-50"
                   aria-label={post.is_pinned ? "Unpin post" : "Pin post"}
+                  title={post.is_pinned ? "Unpin" : "Pin"}
                 >
                   {post.is_pinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-                  {post.is_pinned ? "Unpin" : "Pin"}
                 </button>
                 <div ref={menuRef} className="relative">
                   <button
                     type="button"
-                    onClick={() => setMenuOpen((v) => !v)}
-                    aria-haspopup="true"
+                    onClick={openActionSheet}
+                    aria-haspopup="dialog"
                     aria-label="Post actions"
-                    className="p-1 -mr-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/35 text-emerald-900/70 transition hover:bg-white/60 hover:text-emerald-950"
                   >
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
@@ -479,8 +639,34 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
           </div>
         ) : (
           (localBody ?? post.body) && (
-            <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-foreground/95">{localBody ?? post.body}</p>
+            <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-950">
+              {renderMessageText(localBody ?? post.body ?? "")}
+            </p>
           )
+        )}
+
+        {linkPreview && (
+          <a
+            href={firstUrl ?? undefined}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 flex gap-2 rounded-lg bg-emerald-100/55 p-2 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70"
+          >
+            <span className="w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12px] font-bold text-emerald-700 dark:text-emerald-300">{linkPreview.title}</span>
+              <span className="mt-0.5 line-clamp-3 block text-[12px] leading-4 text-slate-800 dark:text-zinc-300">{linkPreview.description}</span>
+              <span className="mt-1 block truncate text-[11px] text-emerald-700/70 dark:text-emerald-300/70">{linkPreview.host}</span>
+            </span>
+            <span
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/65 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-300",
+                linkPreview.kind === "meet" && "bg-yellow-300 text-white dark:bg-yellow-400 dark:text-white",
+              )}
+            >
+              {linkPreview.kind === "meet" ? <Video className="h-5 w-5 fill-current" /> : <LinkIcon className="h-4 w-4" />}
+            </span>
+          </a>
         )}
 
         {pollAttachment && (
@@ -630,49 +816,80 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
           </div>
         )}
 
-        <div className="mt-3 flex items-start justify-between gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            {REACTIONS.map((e) => {
-              const mine = myReaction === e;
-              const count = reactions[e] ?? 0;
-              return (
-                <button type="button"
-                  key={e}
-                  onClick={() => react(e)}
+        {reactionPolicy !== "none" && reactionPickerOpen && (
+          <div className="mt-2 flex justify-end">
+            <div className="flex gap-1 rounded-full bg-white/75 px-1.5 py-1 shadow-sm ring-1 ring-emerald-200/60 backdrop-blur">
+              {allowedReactions.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => react(emoji)}
                   disabled={reacting}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition disabled:opacity-60 ${
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-base transition active:scale-95 disabled:opacity-60 ${
+                    myReaction === emoji ? "bg-sky-100" : "hover:bg-white"
+                  }`}
+                  aria-label={`React ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-1.5 flex items-end justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap gap-1">
+            {reactionPolicy !== "none" && (
+              <button
+                type="button"
+                onClick={() => setReactionPickerOpen((v) => !v)}
+                disabled={reacting}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/35 text-emerald-800/70 transition hover:bg-white/60 hover:text-emerald-950 disabled:opacity-60"
+                aria-label="Choose reaction"
+                title="React"
+              >
+                <Smile className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {visibleReactions.map(({ emoji, count, mine }) => (
+              <button
+                  type="button"
+                  key={emoji}
+                  onClick={() => react(emoji)}
+                  disabled={reacting}
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 ${
                     mine
-                      ? "bg-primary/15 ring-1 ring-primary/40 text-foreground"
-                      : "bg-muted/70 hover:bg-muted"
+                      ? "bg-white/75 ring-1 ring-primary/40 text-foreground"
+                      : "bg-white/45 hover:bg-white/70"
                   }`}
                 >
-                  {e}
+                  {emoji}
                   {count > 0 && (
                     <span className={`ml-1 ${mine ? "text-primary font-semibold" : "text-muted-foreground"}`}>
                       {count}
                     </span>
                   )}
                 </button>
-              );
-            })}
+            ))}
           </div>
-          <div className="flex flex-col items-end gap-1 text-[11px] text-muted-foreground min-w-[110px]">
+          <div className="flex shrink-0 items-center gap-1 text-[10px] text-emerald-800/70 dark:text-emerald-200/80">
             <button
               type="button"
               onClick={forwardToDm}
-              className="inline-flex items-center gap-1 hover:text-foreground active:scale-95 transition"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/35 transition hover:bg-white/60 hover:text-emerald-950 active:scale-95"
               aria-label="Forward to chat"
               title="Forward to chat"
             >
-              <Share2 className="h-3 w-3" /> Forward
+              <Share2 className="h-3 w-3" />
             </button>
-            <div className="inline-flex items-center gap-2">
-              <span className="inline-flex items-center gap-1">
+            <div className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white/30 px-1.5 py-0.5">
+              {post.view_count > 0 && (
+              <span className="inline-flex items-center gap-0.5">
                 <Eye className="h-3 w-3" /> {post.view_count}
               </span>
-              {post.published_at && (
-                <span>{formatDistanceToNow(new Date(post.published_at), { addSuffix: true })}</span>
               )}
+              {postTimeLabel && <span>{postTimeLabel}</span>}
+              {canManage && <CheckCheck className="h-3.5 w-3.5 text-sky-500" />}
             </div>
           </div>
         </div>
@@ -698,6 +915,78 @@ export function ChannelPostCard({ post, canManage = false, canComment = true, pr
           </Suspense>
         )}
       </div>
+
+      {actionSheetOpen && (
+        <div
+          className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/35 px-2 pb-2"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setActionSheetOpen(false)}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-[2rem] bg-[#f1f1f6] p-2 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto my-2 h-1 w-10 rounded-full bg-slate-300" />
+            {reactionPolicy !== "none" && (
+              <div className="mb-2 flex justify-center gap-1 rounded-3xl bg-white px-2 py-2 shadow-sm">
+                {allowedReactions.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      void react(emoji);
+                      setActionSheetOpen(false);
+                    }}
+                    disabled={reacting}
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full text-xl transition active:scale-95 disabled:opacity-50",
+                      myReaction === emoji ? "bg-sky-100" : "hover:bg-slate-50",
+                    )}
+                    aria-label={`React ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mb-2 rounded-2xl bg-[#d9fdd3] p-3 text-sm text-slate-950 shadow-sm">
+              <p className="line-clamp-3 whitespace-pre-wrap">
+                {(localBody ?? post.body)?.trim() || (media.length > 0 ? "Media message" : pollAttachment ? "Poll" : "Channel message")}
+              </p>
+              {postTimeLabel && <p className="mt-1 text-right text-[11px] text-emerald-800/70">{postTimeLabel}</p>}
+            </div>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+              <PostActionButton icon={Copy} label="Copy Text" onClick={() => void copyMessageText()} disabled={!(localBody ?? post.body)?.trim()} />
+              <PostActionButton icon={LinkIcon} label="Copy Link" onClick={() => void copyLink()} />
+              <PostActionButton icon={Share2} label="Forward" onClick={() => void forwardToDm()} />
+              {canManage && (
+                <>
+                  <PostActionButton icon={post.is_pinned ? PinOff : Pin} label={post.is_pinned ? "Unpin Message" : "Pin Message"} onClick={() => void togglePin()} />
+                  <PostActionButton
+                    icon={Pencil}
+                    label="Edit Message"
+                    onClick={() => {
+                      setActionSheetOpen(false);
+                      setEditBody(localBody ?? post.body ?? "");
+                      setEditing(true);
+                    }}
+                  />
+                  <PostActionButton
+                    icon={Trash2}
+                    label="Delete Message"
+                    destructive
+                    onClick={() => {
+                      setActionSheetOpen(false);
+                      setConfirmDelete(true);
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {lightboxIdx !== null && (
         <div

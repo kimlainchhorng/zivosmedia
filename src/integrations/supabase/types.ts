@@ -16417,15 +16417,22 @@ export type Database = {
           created_at: string
           description: string | null
           handle: string
+          hide_members: boolean
           id: string
           is_public: boolean
           is_verified: boolean
+          channel_join_approval_required: boolean
           name: string
           owner_id: string
+          reaction_policy: "all" | "some" | "none"
+          restrict_saving_content: boolean
+          slow_mode_seconds: number
           subscriber_count: number
+          topics_enabled: boolean
           updated_at: string
           verified_at: string | null
           verified_by: string | null
+          wallpaper_style: "green" | "blue" | "pink" | "none"
         }
         Insert: {
           avatar_url?: string | null
@@ -16433,15 +16440,22 @@ export type Database = {
           created_at?: string
           description?: string | null
           handle: string
+          hide_members?: boolean
           id?: string
           is_public?: boolean
           is_verified?: boolean
+          channel_join_approval_required?: boolean
           name: string
           owner_id: string
+          reaction_policy?: "all" | "some" | "none"
+          restrict_saving_content?: boolean
+          slow_mode_seconds?: number
           subscriber_count?: number
+          topics_enabled?: boolean
           updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
+          wallpaper_style?: "green" | "blue" | "pink" | "none"
         }
         Update: {
           avatar_url?: string | null
@@ -16449,15 +16463,22 @@ export type Database = {
           created_at?: string
           description?: string | null
           handle?: string
+          hide_members?: boolean
           id?: string
           is_public?: boolean
           is_verified?: boolean
+          channel_join_approval_required?: boolean
           name?: string
           owner_id?: string
+          reaction_policy?: "all" | "some" | "none"
+          restrict_saving_content?: boolean
+          slow_mode_seconds?: number
           subscriber_count?: number
+          topics_enabled?: boolean
           updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
+          wallpaper_style?: "green" | "blue" | "pink" | "none"
         }
         Relationships: []
       }
@@ -78817,7 +78838,7 @@ export type Database = {
         | "rented"
         | "maintenance"
         | "retired"
-      channel_role: "owner" | "admin" | "sub"
+      channel_role: "owner" | "admin" | "sub" | "pending"
       checkout_mode: "redirect" | "iframe"
       document_review_status: "pending" | "approved" | "rejected"
       driver_state: "offline" | "online_available" | "online_busy"
@@ -79392,7 +79413,7 @@ export const Constants = {
         "maintenance",
         "retired",
       ],
-      channel_role: ["owner", "admin", "sub"],
+      channel_role: ["owner", "admin", "sub", "pending"],
       checkout_mode: ["redirect", "iframe"],
       document_review_status: ["pending", "approved", "rejected"],
       driver_state: ["offline", "online_available", "online_busy"],

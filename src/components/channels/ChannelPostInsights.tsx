@@ -93,10 +93,12 @@ export default function ChannelPostInsights({ post }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80"
+        className="inline-flex h-6 items-center gap-1 rounded-full bg-white/30 px-1.5 text-[10px] text-emerald-800/70 transition hover:bg-white/55 hover:text-emerald-950"
+        aria-label="Post insights"
+        title="Insights"
       >
         <BarChart3 className="w-3.5 h-3.5" />
-        Insights
+        Stats
       </button>
     );
   }

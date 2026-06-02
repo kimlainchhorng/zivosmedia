@@ -4,7 +4,7 @@
  * Mounted globally; opened by dispatching a window event with a payload, so
  * any product page can share a card without importing chat internals.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -148,14 +148,23 @@ export default function ShareToChatSheet() {
     });
   }, [friends, search]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setOpen(false);
     setCard(null);
     setSearch("");
     setFriends(null);
     setGroups(null);
     setSelected(new Set());
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleClose, open]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {

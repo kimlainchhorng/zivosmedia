@@ -23,7 +23,8 @@ Required for --create:
 Optional:
   ZIVO_TEST_ACCESS_TOKEN
   ZIVO_TEST_CHANNEL_ID or ZIVO_TEST_CHANNEL_HANDLE
-  ZIVO_CHANNEL_SMOKE_TEXT`);
+  ZIVO_CHANNEL_SMOKE_TEXT
+  ZIVO_CHANNEL_SMOKE_COMMENTS_ENABLED=0|1`);
   process.exit(0);
 }
 
@@ -42,6 +43,7 @@ const allowMutation = env.ZIVO_ALLOW_CHANNEL_SMOKE_POSTS === "1";
 const email = env.ZIVO_TEST_USER_EMAIL || env.VITE_TEST_USER_EMAIL;
 const password = env.ZIVO_TEST_USER_PASSWORD || env.VITE_TEST_USER_PASSWORD;
 const accessToken = env.ZIVO_TEST_ACCESS_TOKEN;
+const commentsEnabled = env.ZIVO_CHANNEL_SMOKE_COMMENTS_ENABLED !== "0";
 
 function projectRefFromUrl(url) {
   try {
@@ -175,6 +177,7 @@ async function createSmokePost(client, channel) {
       body,
       media: smokeMedia(),
       scheduled_for: null,
+      comments_enabled: commentsEnabled,
     },
   });
 
