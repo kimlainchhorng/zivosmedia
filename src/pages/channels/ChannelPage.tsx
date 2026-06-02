@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEven
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Bell, ChevronDown, ChevronLeft, Compass, Copy, Info, Pin, Share2, Users } from "lucide-react";
 import { useChannel, type ChannelPost } from "@/hooks/useChannel";
+import { supabase } from "@/integrations/supabase/client";
 import { ChannelInfoSheet } from "@/components/channels/ChannelInfoSheet";
 import { ChannelPostCard } from "@/components/channels/ChannelPostCard";
 import { ChannelPostComposer } from "@/components/channels/ChannelPostComposer";
@@ -40,7 +41,7 @@ function formatPostDay(post: ChannelPost): string {
 export default function ChannelPage() {
   const { handle } = useParams<{ handle: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [infoOpen, setInfoOpen] = useState(false);
   const [swipeProgress, setSwipeProgress] = useState(0);
   const [showJumpToBottom, setShowJumpToBottom] = useState(false);
@@ -50,6 +51,29 @@ export default function ChannelPage() {
   const timelineEndRef = useRef<HTMLDivElement>(null);
   const { channel, posts, isSubscribed, notificationsOn, role, loading, userId, subscribe, unsubscribe, setNotifications, refresh } =
     useChannel(handle);
+
+  // Redeem an invite link (?invite=code): subscribe via the channel_redeem_invite
+  // RPC, then strip the param so a refresh doesn't re-run it.
+  const inviteCode = searchParams.get("invite");
+  useEffect(() => {
+    if (!inviteCode || !userId || !channel) return;
+    const clearParam = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete("invite");
+      setSearchParams(next, { replace: true });
+    };
+    if (isSubscribed) { clearParam(); return; }
+    let alive = true;
+    (async () => {
+      const { error } = await (supabase as any).rpc("channel_redeem_invite", { p_code: inviteCode });
+      if (!alive) return;
+      if (error) toast.error(error.message || "This invite link is invalid.");
+      else { toast.success("You've joined the channel"); await refresh(); }
+      clearParam();
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inviteCode, userId, channel?.id, isSubscribed]);
 
   const timelinePosts = useMemo(() => [...posts].sort((a, b) => getPostTimestamp(a) - getPostTimestamp(b)), [posts]);
   const timelineItems = useMemo(() => {
