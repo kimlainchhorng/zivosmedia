@@ -64,7 +64,7 @@ import { getStickerMotionSpec } from "./stickerMotion";
 import RichText from "./RichText";
 import ViewOnceBubble from "./ViewOnceBubble";
 import { viewOnceMediaState } from "@/lib/chat/viewOnce";
-import Plus from "lucide-react/dist/esm/icons/plus";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import { pushRecentEmoji } from "@/config/emojiData";
 import { emitReactionAdded } from "./FloatingReactionsOverlay";
 const EmojiReactionPicker = lazy(() => import("./EmojiReactionPicker"));
@@ -75,14 +75,13 @@ const TransparentStickerVideo = lazy(() => import("./TransparentStickerVideo").t
 const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
 const HEART_REACTION = "\u2764\uFE0F";
 const REACTION_EMOJIS = [
-  HEART_REACTION,
-  "\u{1F602}",
-  "\u{1F44D}",
-  "\u{1F62E}",
-  "\u{1F622}",
-  "\u{1F525}",
-  "\u{1F389}",
-  "\u{1F60D}",
+  HEART_REACTION,   // \u2764\uFE0F
+  "\u{1F44D}",      // \uD83D\uDC4D
+  "\u{1F44E}",      // \uD83D\uDC4E
+  "\u{1F525}",      // \uD83D\uDD25
+  "\u{1F970}",      // \uD83E\uDD70
+  "\u{1F44F}",      // \uD83D\uDC4F
+  "\u{1F601}",      // \uD83D\uDE01
 ];
 const AUTO_MEDIA_MESSAGES = new Set(["Photo", "Video", "Photo album", "Media album"]);
 const CHAT_MEDIA_FRAME_CLASS = "w-[292px] max-w-[76vw]";
@@ -2131,7 +2130,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                     aria-label="More reactions"
                     className="h-[36px] w-[36px] flex items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-all hover:scale-110 active:scale-90 duration-150"
                   >
-                    <Plus className="h-[18px] w-[18px]" />
+                    <ChevronDown className="h-[18px] w-[18px]" />
                   </motion.button>
                 </motion.div>
               )}

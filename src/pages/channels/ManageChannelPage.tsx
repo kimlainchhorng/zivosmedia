@@ -14,11 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ChannelMemberRow, type MemberRow } from "@/components/channels/ChannelMemberRow";
 import { cn } from "@/lib/utils";
 import { logChannelAction } from "@/lib/channels/adminLog";
 import { toast } from "sonner";
-import { ChevronLeft, BadgeCheck, Loader2, Download, Link2, Share2, Forward, Users, Shield, Globe, Lock, Copy, CalendarClock, ChevronRight, SmilePlus, Palette, Timer, UserCheck, EyeOff, Hash, Check, UserMinus, History } from "lucide-react";
+import { ChevronLeft, BadgeCheck, Loader2, Download, Link2, Share2, Forward, Users, Shield, Globe, Lock, Copy, CalendarClock, ChevronRight, SmilePlus, Palette, Timer, UserCheck, EyeOff, Hash, Check, UserMinus, History, Trash2 } from "lucide-react";
 
 const SNAPSHOT_WIDTH = 1080;
 const SNAPSHOT_HEIGHT = 1350;
@@ -595,6 +596,14 @@ export default function ManageChannelPage() {
     loadScheduled();
   };
 
+  const deleteChannel = async () => {
+    if (!channel) return;
+    const { error } = await supabase.from("channels").delete().eq("id", channel.id);
+    if (error) { toast.error(error.message || "Couldn't delete channel"); return; }
+    toast.success("Channel deleted");
+    navigate("/channels");
+  };
+
   if (loading) return <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>;
   if (!channel) return <div className="p-8 text-center text-sm text-muted-foreground">Not found.</div>;
   if (userId !== channel.owner_id) {
@@ -874,6 +883,44 @@ export default function ManageChannelPage() {
             Snapshot download is locked by the content-control policy for this channel.
           </p>
         )}
+
+        {/* Danger zone */}
+        <section>
+          <SectionLabel>Danger zone</SectionLabel>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left transition-colors hover:bg-destructive/10"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-destructive">Delete channel</div>
+                  <div className="text-[11px] text-muted-foreground">Permanently removes @{channel.handle} and all its posts.</div>
+                </div>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete @{channel.handle}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently deletes the channel, its posts, members and history. This can't be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => void deleteChannel()}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete channel
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </section>
 
         {/* Reactions picker */}
         <Sheet open={sheet === "reactions"} onOpenChange={(o) => !o && setSheet(null)}>
