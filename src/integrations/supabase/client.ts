@@ -6,10 +6,14 @@ import type { Database } from './types';
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
 const REMEMBER_ME_KEY = "zivo_remember_me";
+const EFFECTIVE_SUPABASE_URL = SUPABASE_URL || FALLBACK_SUPABASE_URL;
+const EFFECTIVE_SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
 const SUPABASE_PROJECT_REF =
   import.meta.env.VITE_SUPABASE_PROJECT_ID ||
-  (SUPABASE_URL ? new URL(SUPABASE_URL).hostname.split(".")[0] : "");
+  (EFFECTIVE_SUPABASE_URL ? new URL(EFFECTIVE_SUPABASE_URL).hostname.split(".")[0] : "");
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
@@ -20,7 +24,7 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   // eslint-disable-next-line no-console
   console.error(
     "[supabase/client] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY — " +
-    "Supabase calls will fail until the site is re-published with env vars."
+    "using bundled public fallback until the site is re-published with env vars."
   );
 }
 
@@ -147,12 +151,7 @@ const authStorage = isNativePlatform ? nativeAuthStorage : webAuthStorage;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Fall back to harmless placeholders when env vars are missing so createClient
-// doesn't throw at module load (a throw here blanks out the whole React tree).
-const SAFE_URL = SUPABASE_URL || "https://missing-env.supabase.co";
-const SAFE_KEY = SUPABASE_PUBLISHABLE_KEY || "missing-env-key";
-
-export const supabase = createClient<Database>(SAFE_URL, SAFE_KEY, {
+export const supabase = createClient<Database>(EFFECTIVE_SUPABASE_URL, EFFECTIVE_SUPABASE_KEY, {
   db: {
     schema: "public",
   },
