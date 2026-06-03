@@ -4066,6 +4066,9 @@ export type Database = {
           mileage: number | null
           model: string
           notes: string | null
+          oil_capacity: string | null
+          oil_filter: string | null
+          oil_viscosity: string | null
           owner_email: string | null
           owner_name: string
           owner_phone: string | null
@@ -4084,6 +4087,9 @@ export type Database = {
           mileage?: number | null
           model: string
           notes?: string | null
+          oil_capacity?: string | null
+          oil_filter?: string | null
+          oil_viscosity?: string | null
           owner_email?: string | null
           owner_name: string
           owner_phone?: string | null
@@ -4102,6 +4108,9 @@ export type Database = {
           mileage?: number | null
           model?: string
           notes?: string | null
+          oil_capacity?: string | null
+          oil_filter?: string | null
+          oil_viscosity?: string | null
           owner_email?: string | null
           owner_name?: string
           owner_phone?: string | null
@@ -4167,127 +4176,202 @@ export type Database = {
       }
       ar_estimates: {
         Row: {
+          appointment_type: string | null
           converted_invoice_id: string | null
           converted_workorder_id: string | null
           created_at: string
           created_by: string | null
           customer_address: string | null
+          customer_city: string | null
           customer_email: string | null
           customer_id: string | null
           customer_name: string | null
           customer_notes: string | null
           customer_phone: string | null
           customer_responded_at: string | null
+          customer_state: string | null
+          customer_street: string | null
           customer_viewed_at: string | null
+          customer_zip: string | null
           deleted_at: string | null
           diagnosis_notes: string | null
           discount_cents: number
+          epa_cents: number | null
           expires_at: string | null
+          fees_cents: number | null
           id: string
           intake_method: string | null
           items: Json | null
+          keytag: string | null
+          labor_rate_cents: number | null
           license_plate: string | null
           line_items: Json
+          mileage_in: number | null
+          mileage_out: number | null
           notes: string | null
           number: string
+          payment_method: string | null
           plate_state: string | null
+          po_number: string | null
+          promised_at: string | null
           sent_at: string | null
+          service_writer: string | null
           share_token: string | null
+          shop_supplies_cents: number | null
           status: string
           store_id: string
+          sublet_cents: number | null
           subtotal_cents: number
           tax_cents: number
           tax_rate: number
+          technician: string | null
+          technician_cert: string | null
+          tire_pressures: Json | null
           total_cents: number
+          unit_number: string | null
           updated_at: string
+          vehicle_color: string | null
+          vehicle_engine: string | null
           vehicle_id: string | null
           vehicle_label: string | null
           vehicle_make: string | null
           vehicle_model: string | null
+          vehicle_transmission: string | null
           vehicle_year: string | null
           vin: string | null
+          workflow_stage: string | null
         }
         Insert: {
+          appointment_type?: string | null
           converted_invoice_id?: string | null
           converted_workorder_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_address?: string | null
+          customer_city?: string | null
           customer_email?: string | null
           customer_id?: string | null
           customer_name?: string | null
           customer_notes?: string | null
           customer_phone?: string | null
           customer_responded_at?: string | null
+          customer_state?: string | null
+          customer_street?: string | null
           customer_viewed_at?: string | null
+          customer_zip?: string | null
           deleted_at?: string | null
           diagnosis_notes?: string | null
           discount_cents?: number
+          epa_cents?: number | null
           expires_at?: string | null
+          fees_cents?: number | null
           id?: string
           intake_method?: string | null
           items?: Json | null
+          keytag?: string | null
+          labor_rate_cents?: number | null
           license_plate?: string | null
           line_items?: Json
+          mileage_in?: number | null
+          mileage_out?: number | null
           notes?: string | null
           number: string
+          payment_method?: string | null
           plate_state?: string | null
+          po_number?: string | null
+          promised_at?: string | null
           sent_at?: string | null
+          service_writer?: string | null
           share_token?: string | null
+          shop_supplies_cents?: number | null
           status?: string
           store_id: string
+          sublet_cents?: number | null
           subtotal_cents?: number
           tax_cents?: number
           tax_rate?: number
+          technician?: string | null
+          technician_cert?: string | null
+          tire_pressures?: Json | null
           total_cents?: number
+          unit_number?: string | null
           updated_at?: string
+          vehicle_color?: string | null
+          vehicle_engine?: string | null
           vehicle_id?: string | null
           vehicle_label?: string | null
           vehicle_make?: string | null
           vehicle_model?: string | null
+          vehicle_transmission?: string | null
           vehicle_year?: string | null
           vin?: string | null
+          workflow_stage?: string | null
         }
         Update: {
+          appointment_type?: string | null
           converted_invoice_id?: string | null
           converted_workorder_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_address?: string | null
+          customer_city?: string | null
           customer_email?: string | null
           customer_id?: string | null
           customer_name?: string | null
           customer_notes?: string | null
           customer_phone?: string | null
           customer_responded_at?: string | null
+          customer_state?: string | null
+          customer_street?: string | null
           customer_viewed_at?: string | null
+          customer_zip?: string | null
           deleted_at?: string | null
           diagnosis_notes?: string | null
           discount_cents?: number
+          epa_cents?: number | null
           expires_at?: string | null
+          fees_cents?: number | null
           id?: string
           intake_method?: string | null
           items?: Json | null
+          keytag?: string | null
+          labor_rate_cents?: number | null
           license_plate?: string | null
           line_items?: Json
+          mileage_in?: number | null
+          mileage_out?: number | null
           notes?: string | null
           number?: string
+          payment_method?: string | null
           plate_state?: string | null
+          po_number?: string | null
+          promised_at?: string | null
           sent_at?: string | null
+          service_writer?: string | null
           share_token?: string | null
+          shop_supplies_cents?: number | null
           status?: string
           store_id?: string
+          sublet_cents?: number | null
           subtotal_cents?: number
           tax_cents?: number
           tax_rate?: number
+          technician?: string | null
+          technician_cert?: string | null
+          tire_pressures?: Json | null
           total_cents?: number
+          unit_number?: string | null
           updated_at?: string
+          vehicle_color?: string | null
+          vehicle_engine?: string | null
           vehicle_id?: string | null
           vehicle_label?: string | null
           vehicle_make?: string | null
           vehicle_model?: string | null
+          vehicle_transmission?: string | null
           vehicle_year?: string | null
           vin?: string | null
+          workflow_stage?: string | null
         }
         Relationships: []
       }
@@ -4607,26 +4691,42 @@ export type Database = {
           diagnosis_notes: string | null
           discount_cents: number
           due_at: string | null
+          epa_cents: number | null
           estimate_id: string | null
+          fees_cents: number | null
           fleet_account_id: string | null
           id: string
           intake_method: string | null
           items: Json
+          keytag: string | null
           license_plate: string | null
+          mileage_in: number | null
+          mileage_out: number | null
           notes: string | null
           number: string
           paid_at: string | null
+          payment_method: string | null
           plate_state: string | null
           po_number: string | null
+          promised_at: string | null
           sent_at: string | null
+          service_writer: string | null
+          shop_supplies_cents: number | null
           source_workorder_id: string | null
           status: string
           store_id: string
+          sublet_cents: number | null
           subtotal_cents: number
           tax_cents: number
           tax_rate: number
+          technician: string | null
+          technician_cert: string | null
+          tire_pressures: Json | null
           total_cents: number
+          unit_number: string | null
           updated_at: string
+          vehicle_color: string | null
+          vehicle_engine: string | null
           vehicle_label: string | null
           vehicle_make: string | null
           vehicle_model: string | null
@@ -4646,26 +4746,42 @@ export type Database = {
           diagnosis_notes?: string | null
           discount_cents?: number
           due_at?: string | null
+          epa_cents?: number | null
           estimate_id?: string | null
+          fees_cents?: number | null
           fleet_account_id?: string | null
           id?: string
           intake_method?: string | null
           items?: Json
+          keytag?: string | null
           license_plate?: string | null
+          mileage_in?: number | null
+          mileage_out?: number | null
           notes?: string | null
           number: string
           paid_at?: string | null
+          payment_method?: string | null
           plate_state?: string | null
           po_number?: string | null
+          promised_at?: string | null
           sent_at?: string | null
+          service_writer?: string | null
+          shop_supplies_cents?: number | null
           source_workorder_id?: string | null
           status?: string
           store_id: string
+          sublet_cents?: number | null
           subtotal_cents?: number
           tax_cents?: number
           tax_rate?: number
+          technician?: string | null
+          technician_cert?: string | null
+          tire_pressures?: Json | null
           total_cents?: number
+          unit_number?: string | null
           updated_at?: string
+          vehicle_color?: string | null
+          vehicle_engine?: string | null
           vehicle_label?: string | null
           vehicle_make?: string | null
           vehicle_model?: string | null
@@ -4685,26 +4801,42 @@ export type Database = {
           diagnosis_notes?: string | null
           discount_cents?: number
           due_at?: string | null
+          epa_cents?: number | null
           estimate_id?: string | null
+          fees_cents?: number | null
           fleet_account_id?: string | null
           id?: string
           intake_method?: string | null
           items?: Json
+          keytag?: string | null
           license_plate?: string | null
+          mileage_in?: number | null
+          mileage_out?: number | null
           notes?: string | null
           number?: string
           paid_at?: string | null
+          payment_method?: string | null
           plate_state?: string | null
           po_number?: string | null
+          promised_at?: string | null
           sent_at?: string | null
+          service_writer?: string | null
+          shop_supplies_cents?: number | null
           source_workorder_id?: string | null
           status?: string
           store_id?: string
+          sublet_cents?: number | null
           subtotal_cents?: number
           tax_cents?: number
           tax_rate?: number
+          technician?: string | null
+          technician_cert?: string | null
+          tire_pressures?: Json | null
           total_cents?: number
+          unit_number?: string | null
           updated_at?: string
+          vehicle_color?: string | null
+          vehicle_engine?: string | null
           vehicle_label?: string | null
           vehicle_make?: string | null
           vehicle_model?: string | null
@@ -8830,6 +8962,7 @@ export type Database = {
       bus_bookings: {
         Row: {
           amount_cents: number
+          boarded_at: string | null
           booking_ref: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -8848,6 +8981,7 @@ export type Database = {
         }
         Insert: {
           amount_cents?: number
+          boarded_at?: string | null
           booking_ref?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -8866,6 +9000,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          boarded_at?: string | null
           booking_ref?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -8895,6 +9030,224 @@ export type Database = {
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "bus_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bus_drivers: {
+        Row: {
+          created_at: string
+          id: string
+          license_number: string | null
+          name: string
+          phone: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          license_number?: string | null
+          name: string
+          phone?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          license_number?: string | null
+          name?: string
+          phone?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bus_drivers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bus_promos: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          ends_on: string | null
+          id: string
+          max_uses: number | null
+          min_fare_cents: number
+          starts_on: string | null
+          status: string
+          store_id: string
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          ends_on?: string | null
+          id?: string
+          max_uses?: number | null
+          min_fare_cents?: number
+          starts_on?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          ends_on?: string | null
+          id?: string
+          max_uses?: number | null
+          min_fare_cents?: number
+          starts_on?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bus_promos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bus_reviews: {
+        Row: {
+          booking_id: string | null
+          comment: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          rating: number
+          replied_at: string | null
+          reply: string | null
+          status: string
+          store_id: string
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          rating: number
+          replied_at?: string | null
+          reply?: string | null
+          status?: string
+          store_id: string
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          rating?: number
+          replied_at?: string | null
+          reply?: string | null
+          status?: string
+          store_id?: string
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bus_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bus_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bus_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bus_reviews_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "bus_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bus_route_stops: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          offset_mins: number | null
+          route_id: string
+          stop_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          offset_mins?: number | null
+          route_id: string
+          stop_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          offset_mins?: number | null
+          route_id?: string
+          stop_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bus_route_stops_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "bus_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bus_route_stops_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -8958,6 +9311,7 @@ export type Database = {
           currency: string
           depart_date: string
           depart_time: string
+          driver_id: string | null
           id: string
           price_cents: number
           route_id: string
@@ -8966,6 +9320,7 @@ export type Database = {
           store_id: string
           total_seats: number
           updated_at: string
+          vehicle_id: string | null
         }
         Insert: {
           amenities?: Json
@@ -8975,6 +9330,7 @@ export type Database = {
           currency?: string
           depart_date: string
           depart_time: string
+          driver_id?: string | null
           id?: string
           price_cents?: number
           route_id: string
@@ -8983,6 +9339,7 @@ export type Database = {
           store_id: string
           total_seats?: number
           updated_at?: string
+          vehicle_id?: string | null
         }
         Update: {
           amenities?: Json
@@ -8992,6 +9349,7 @@ export type Database = {
           currency?: string
           depart_date?: string
           depart_time?: string
+          driver_id?: string | null
           id?: string
           price_cents?: number
           route_id?: string
@@ -9000,8 +9358,16 @@ export type Database = {
           store_id?: string
           total_seats?: number
           updated_at?: string
+          vehicle_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bus_trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "bus_drivers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bus_trips_route_id_fkey"
             columns: ["route_id"]
@@ -9011,6 +9377,60 @@ export type Database = {
           },
           {
             foreignKeyName: "bus_trips_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bus_trips_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "bus_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bus_vehicles: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          plate: string | null
+          seat_layout: string
+          status: string
+          store_id: string
+          total_seats: number
+          updated_at: string
+          vehicle_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          plate?: string | null
+          seat_layout?: string
+          status?: string
+          store_id: string
+          total_seats?: number
+          updated_at?: string
+          vehicle_type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          plate?: string | null
+          seat_layout?: string
+          status?: string
+          store_id?: string
+          total_seats?: number
+          updated_at?: string
+          vehicle_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bus_vehicles_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "store_profiles"
@@ -16177,6 +16597,120 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_admin_log: {
+        Row: {
+          action: string
+          actor_id: string
+          channel_id: string
+          created_at: string
+          id: string
+          meta: Json
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          channel_id: string
+          created_at?: string
+          id?: string
+          meta?: Json
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          channel_id?: string
+          created_at?: string
+          id?: string
+          meta?: Json
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_admin_log_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_invite_links: {
+        Row: {
+          channel_id: string
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          revoked: boolean
+          uses: number
+        }
+        Insert: {
+          channel_id: string
+          code: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          revoked?: boolean
+          uses?: number
+        }
+        Update: {
+          channel_id?: string
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          revoked?: boolean
+          uses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_invite_links_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_permission_exceptions: {
+        Row: {
+          channel_id: string
+          created_at: string
+          created_by: string | null
+          permissions: Json
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          created_by?: string | null
+          permissions?: Json
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          created_by?: string | null
+          permissions?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_permission_exceptions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_post_comment_likes: {
         Row: {
           comment_id: string
@@ -16378,6 +16912,38 @@ export type Database = {
           },
         ]
       }
+      channel_removed_users: {
+        Row: {
+          channel_id: string
+          reason: string | null
+          removed_at: string
+          removed_by: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          reason?: string | null
+          removed_at?: string
+          removed_by: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          reason?: string | null
+          removed_at?: string
+          removed_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_removed_users_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_subscribers: {
         Row: {
           channel_id: string
@@ -16414,6 +16980,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           banner_url: string | null
+          channel_join_approval_required: boolean
           created_at: string
           description: string | null
           handle: string
@@ -16421,10 +16988,9 @@ export type Database = {
           id: string
           is_public: boolean
           is_verified: boolean
-          channel_join_approval_required: boolean
           name: string
           owner_id: string
-          reaction_policy: "all" | "some" | "none"
+          reaction_policy: Database["public"]["Enums"]["channel_reaction_policy"]
           restrict_saving_content: boolean
           slow_mode_seconds: number
           subscriber_count: number
@@ -16433,11 +16999,12 @@ export type Database = {
           updated_at: string
           verified_at: string | null
           verified_by: string | null
-          wallpaper_style: "green" | "blue" | "pink" | "none"
+          wallpaper_style: Database["public"]["Enums"]["channel_wallpaper_style"]
         }
         Insert: {
           avatar_url?: string | null
           banner_url?: string | null
+          channel_join_approval_required?: boolean
           created_at?: string
           description?: string | null
           handle: string
@@ -16445,10 +17012,9 @@ export type Database = {
           id?: string
           is_public?: boolean
           is_verified?: boolean
-          channel_join_approval_required?: boolean
           name: string
           owner_id: string
-          reaction_policy?: "all" | "some" | "none"
+          reaction_policy?: Database["public"]["Enums"]["channel_reaction_policy"]
           restrict_saving_content?: boolean
           slow_mode_seconds?: number
           subscriber_count?: number
@@ -16457,11 +17023,12 @@ export type Database = {
           updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
-          wallpaper_style?: "green" | "blue" | "pink" | "none"
+          wallpaper_style?: Database["public"]["Enums"]["channel_wallpaper_style"]
         }
         Update: {
           avatar_url?: string | null
           banner_url?: string | null
+          channel_join_approval_required?: boolean
           created_at?: string
           description?: string | null
           handle?: string
@@ -16469,10 +17036,9 @@ export type Database = {
           id?: string
           is_public?: boolean
           is_verified?: boolean
-          channel_join_approval_required?: boolean
           name?: string
           owner_id?: string
-          reaction_policy?: "all" | "some" | "none"
+          reaction_policy?: Database["public"]["Enums"]["channel_reaction_policy"]
           restrict_saving_content?: boolean
           slow_mode_seconds?: number
           subscriber_count?: number
@@ -16481,7 +17047,7 @@ export type Database = {
           updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
-          wallpaper_style?: "green" | "blue" | "pink" | "none"
+          wallpaper_style?: Database["public"]["Enums"]["channel_wallpaper_style"]
         }
         Relationships: []
       }
@@ -61848,6 +62414,7 @@ export type Database = {
           banner_url: string | null
           category: string
           created_at: string | null
+          default_language: string | null
           delivery_min: number | null
           description: string | null
           facebook_url: string | null
@@ -61883,6 +62450,7 @@ export type Database = {
           banner_url?: string | null
           category?: string
           created_at?: string | null
+          default_language?: string | null
           delivery_min?: number | null
           description?: string | null
           facebook_url?: string | null
@@ -61918,6 +62486,7 @@ export type Database = {
           banner_url?: string | null
           category?: string
           created_at?: string | null
+          default_language?: string | null
           delivery_min?: number | null
           description?: string | null
           facebook_url?: string | null
@@ -76117,6 +76686,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      channel_add_member: {
+        Args: { p_channel_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      channel_redeem_invite: { Args: { p_code: string }; Returns: string }
       check_expiring_documents: { Args: never; Returns: number }
       check_login_anomaly: {
         Args: {
@@ -76255,6 +76829,7 @@ export type Database = {
         Args: {
           p_contact_name: string
           p_contact_phone: string
+          p_promo_code?: string
           p_seats: Json
           p_trip_id: string
         }
@@ -76989,6 +77564,8 @@ export type Database = {
           payment_status: string
           seats: Json
           status: string
+          store_id: string
+          trip_id: string
         }[]
       }
       get_my_phone_status: {
@@ -78027,6 +78604,7 @@ export type Database = {
           origin: string
           price_cents: number
           rating: number
+          review_count: number
           seat_layout: string
           seats_left: number
           store_id: string
@@ -78841,7 +79419,9 @@ export type Database = {
         | "rented"
         | "maintenance"
         | "retired"
+      channel_reaction_policy: "all" | "some" | "none"
       channel_role: "owner" | "admin" | "sub" | "pending"
+      channel_wallpaper_style: "green" | "blue" | "pink" | "none"
       checkout_mode: "redirect" | "iframe"
       document_review_status: "pending" | "approved" | "rejected"
       driver_state: "offline" | "online_available" | "online_busy"
@@ -79416,7 +79996,9 @@ export const Constants = {
         "maintenance",
         "retired",
       ],
+      channel_reaction_policy: ["all", "some", "none"],
       channel_role: ["owner", "admin", "sub", "pending"],
+      channel_wallpaper_style: ["green", "blue", "pink", "none"],
       checkout_mode: ["redirect", "iframe"],
       document_review_status: ["pending", "approved", "rejected"],
       driver_state: ["offline", "online_available", "online_busy"],
