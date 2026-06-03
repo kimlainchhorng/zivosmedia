@@ -31,6 +31,7 @@ import PartPickerDialog, { type PickedPart } from "./PartPickerDialog";
 import BuildROCustomerDialog, { type CustomerDraft, blankCustomer } from "./BuildROCustomerDialog";
 import BuildROVehicleDialog from "./BuildROVehicleDialog";
 import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
+import { listConnectedVendors } from "./AutoRepairPartSuppliersSection";
 import BuildROHub from "./BuildROHub";
 import BuildROExistingCustomerDialog from "./BuildROExistingCustomerDialog";
 import BuildROBarcode from "./BuildROBarcode";
@@ -339,6 +340,22 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     },
   });
 
+  // Shop's saved canned jobs (Price Book) — surfaced as quick presets.
+  const { data: cannedJobs = [] } = useQuery({
+    queryKey: ["ar-service-catalog", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_service_catalog" as any)
+        .select("id, name, labor_hours, labor_rate_cents, parts")
+        .eq("store_id", storeId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .limit(24);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
   const searchResults = useMemo(() => {
     const s = custSearch.trim().toLowerCase();
     if (!s) return [];
@@ -522,6 +539,20 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     if (!seed) return;
     setLines((a) => [...a, ...seed]);
     toast.success(`${preset} added — ${seed.length} line${seed.length === 1 ? "" : "s"}`);
+  };
+
+  // Expand a saved canned job (ar_service_catalog row) into R.O. lines.
+  const addCannedJob = (c: any) => {
+    const out: ROLine[] = [];
+    if (c.labor_hours > 0) {
+      out.push({ ...blankLine(activeJob, "labor"), description: `${c.name} — labor`, qty: Number(c.labor_hours) || 1, unit_cents: Number(c.labor_rate_cents) || laborRateC });
+    }
+    for (const p of (Array.isArray(c.parts) ? c.parts : [])) {
+      out.push({ ...blankLine(activeJob, "part"), description: p.name ?? "Part", qty: Number(p.qty) || 1, unit_cents: Number(p.unit_cents) || 0, taxable: true });
+    }
+    if (out.length === 0) out.push({ ...blankLine(activeJob, "labor"), description: c.name, qty: 1, unit_cents: laborRateC });
+    setLines((a) => [...a, ...out]);
+    toast.success(`${c.name} added — ${out.length} line${out.length === 1 ? "" : "s"}`);
   };
 
   // ── New / Load ──
@@ -1330,6 +1361,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         {["Basic", "Full Service", "Premium", "Alignment", "Diagnosis", "Cert"].map((p) => (
           <Button key={p} size="sm" variant="outline" className="h-7 text-xs" onClick={() => applyPreset(p)}>
             {p}
+          </Button>
+        ))}
+        {cannedJobs.length > 0 && <span className="mx-0.5 self-center text-muted-foreground/40">|</span>}
+        {cannedJobs.map((c: any) => (
+          <Button key={c.id} size="sm" variant="outline" className="h-7 gap-1 text-xs border-primary/30 text-primary hover:bg-primary/5" onClick={() => addCannedJob(c)} title="Your saved canned job">
+            <BookOpen className="h-3 w-3" /> {c.name}
           </Button>
         ))}
         <Button size="sm" variant="ghost" className="ml-auto h-7 gap-1 text-xs" disabled={!lines.some((l) => l.description.trim())} onClick={() => setOpenCanned(true)}>
