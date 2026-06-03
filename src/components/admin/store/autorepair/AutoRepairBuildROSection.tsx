@@ -32,7 +32,7 @@ import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, Gauge, ShieldCheck, ChevronDown,
-  Link2, X, UserPlus, Sparkles,
+  Link2, X, UserPlus, Sparkles, Ban, ShoppingCart, Mail, MessageSquare, ArrowRightCircle,
 } from "lucide-react";
 
 type GarageVehicle = {
@@ -75,6 +75,8 @@ interface ROLine {
   disc: number;         // discount amount; interpreted by disc_type
   disc_type: "%" | "$";
   taxable: boolean;
+  declined: boolean;    // customer declined this work — excluded from totals
+  ordered: boolean;     // part has been ordered from the vendor
 }
 
 const KIND_META: Record<LineKind, { label: string; icon: typeof Wrench }> = {
@@ -112,6 +114,8 @@ const blankLine = (job: number, kind: LineKind): ROLine => ({
   disc: 0,
   disc_type: "%",
   taxable: kind === "part" || kind === "tire",
+  declined: false,
+  ordered: false,
 });
 
 /** Per-line discount in cents. */
@@ -200,6 +204,8 @@ const coerceLine = (raw: any, idx: number): ROLine => {
     disc: Number(raw?.disc) || 0,
     disc_type: raw?.disc_type === "$" ? "$" : "%",
     taxable: raw?.taxable ?? (kind === "part" || kind === "tire"),
+    declined: raw?.declined ?? false,
+    ordered: raw?.ordered ?? false,
   };
 };
 
@@ -261,6 +267,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [discountC, setDiscountC] = useState(0);
   const [taxRate, setTaxRate] = useState(0);
   const [droppedOff, setDroppedOff] = useState(false);
+  const [status, setStatus] = useState<string>("draft");
 
   // ── Recent estimates (for the Open dropdown) ──
   const { data: recent = [] } = useQuery({
@@ -386,19 +393,23 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
 
   // ── Totals ──
   const t = useMemo(() => {
-    const by = (k: LineKind) => lines.filter((l) => l.kind === k).reduce((s, l) => s + lineTotalCents(l), 0);
+    const active = lines.filter((l) => !l.declined);
+    const by = (k: LineKind) => active.filter((l) => l.kind === k).reduce((s, l) => s + lineTotalCents(l), 0);
     const parts = by("part");
     const tires = by("tire");
     const labor = by("labor");
     const sublet = by("sublet");
-    const lineSubtotal = lines.reduce((s, l) => s + lineTotalCents(l), 0);
-    const taxableBase = lines.filter((l) => l.taxable).reduce((s, l) => s + lineTotalCents(l), 0);
+    const lineSubtotal = active.reduce((s, l) => s + lineTotalCents(l), 0);
+    const taxableBase = active.filter((l) => l.taxable).reduce((s, l) => s + lineTotalCents(l), 0);
     const tax = Math.round((taxableBase * taxRate) / 100);
     const total = Math.max(0, lineSubtotal + feesC + epaC + suppliesC - discountC + tax);
-    const cost = lines.reduce((s, l) => s + l.cost_cents * l.qty, 0);
+    const cost = active.reduce((s, l) => s + l.cost_cents * l.qty, 0);
     const margin = lineSubtotal > 0 ? ((lineSubtotal - cost) / lineSubtotal) * 100 : 0;
     return { parts, tires, labor, sublet, lineSubtotal, taxableBase, tax, total, margin };
   }, [lines, feesC, epaC, suppliesC, discountC, taxRate]);
+
+  const declinedCount = useMemo(() => lines.filter((l) => l.declined).length, [lines]);
+  const toOrderCount = useMemo(() => lines.filter((l) => l.kind === "part" && !l.ordered && !l.declined).length, [lines]);
 
   // ── Line ops ──
   const addLine = (kind: LineKind) => setLines((a) => [...a, blankLine(activeJob, kind)]);
@@ -471,6 +482,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setActiveJob(1);
     setFeesC(0); setEpaC(0); setSuppliesC(0); setDiscountC(0); setTaxRate(0);
     setDroppedOff(false);
+    setStatus("draft");
     unbind();
     setCustSearch("");
   };
@@ -509,6 +521,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setSuppliesC(e.shop_supplies_cents ?? 0);
     setDiscountC(e.discount_cents ?? 0);
     setTaxRate(e.tax_rate != null ? Number(e.tax_rate) : 0);
+    setStatus(e.status ?? "draft");
     setOpenLoad(false);
     toast.success(`Loaded ${e.number ?? "estimate"}`);
   };
@@ -560,11 +573,135 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     },
     onSuccess: (id, authorize) => {
       setEditId(id);
+      if (authorize) setStatus("approved");
       qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
       toast.success(authorize ? "Authorized & saved" : "Repair order saved");
     },
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+  });
+
+  // ── Phase 4: orders, conversion, send ──
+  const placeOrder = () => {
+    if (toOrderCount === 0) { toast.info("No parts to order"); return; }
+    setLines((a) => a.map((l) => (l.kind === "part" && !l.declined ? { ...l, ordered: true } : l)));
+    toast.success(`${toOrderCount} part${toOrderCount === 1 ? "" : "s"} marked ordered`);
+  };
+
+  const ensureSavedId = async () => editId ?? (await save.mutateAsync(false));
+
+  const convertWO = useMutation({
+    mutationFn: async () => {
+      const id = await save.mutateAsync(true);
+      const partsUsed = lines
+        .filter((l) => l.kind === "part" && !l.declined)
+        .map((l) => ({ name: l.description, qty: l.qty, unit_cents: l.unit_cents }));
+      const { data, error } = await supabase.from("ar_work_orders" as any).insert({
+        store_id: storeId,
+        estimate_id: id,
+        number: `WO-${Date.now().toString().slice(-6)}`,
+        status: "awaiting",
+        parts_used: partsUsed,
+        total_cents: t.total,
+        customer_name: header.customer_name || null,
+        customer_phone: header.customer_phone || null,
+        customer_email: header.customer_email || null,
+        vehicle_label: header.vehicle_label || null,
+        vehicle_id: vehicleId,
+      }).select("id").single();
+      if (error) throw error;
+      await supabase.from("ar_estimates" as any)
+        .update({ status: "approved", converted_workorder_id: (data as any).id }).eq("id", id);
+      return data;
+    },
+    onSuccess: () => {
+      setStatus("approved");
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
+      toast.success("Converted to Work Order");
+      onNavigate?.("ar-workorders");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to convert"),
+  });
+
+  const convertInvoice = useMutation({
+    mutationFn: async () => {
+      const id = await save.mutateAsync(true);
+      // ar_invoices uses `items` (dollars) — map kind→category and cents→dollars.
+      const items = lines.filter((l) => !l.declined).map((l) => ({
+        category: l.kind, description: l.description, qty: l.qty, price: l.unit_cents / 100,
+      }));
+      const { error } = await supabase.from("ar_invoices" as any).insert({
+        store_id: storeId,
+        number: `INV-${Date.now().toString().slice(-6)}`,
+        estimate_id: id,
+        status: "draft",
+        customer_name: header.customer_name || null,
+        customer_phone: header.customer_phone || null,
+        customer_email: header.customer_email || null,
+        vehicle_label: header.vehicle_label || null,
+        license_plate: header.license_plate || null,
+        vehicle_color: header.vehicle_color || null,
+        unit_number: header.unit_number || null,
+        mileage_in: header.mileage_in ? Number(header.mileage_in) : null,
+        service_writer: header.service_writer || null,
+        technician: header.technician || null,
+        keytag: header.keytag || null,
+        promised_at: header.promised_at || null,
+        payment_method: header.payment_method || null,
+        items,
+        subtotal_cents: t.lineSubtotal,
+        sublet_cents: t.sublet,
+        fees_cents: feesC,
+        epa_cents: epaC,
+        shop_supplies_cents: suppliesC,
+        discount_cents: discountC,
+        tax_rate: taxRate,
+        tax_cents: t.tax,
+        total_cents: t.total,
+        amount_paid_cents: 0,
+        customer_notes: header.customer_request || null,
+        diagnosis_notes: [header.diagnosis, header.recommendation].filter(Boolean).join("\n") || null,
+      });
+      if (error) throw error;
+      await supabase.from("ar_estimates" as any).update({ status: "approved" }).eq("id", id);
+    },
+    onSuccess: () => {
+      setStatus("approved");
+      qc.invalidateQueries({ queryKey: ["ar-invoices", storeId] });
+      toast.success("Converted to Invoice");
+      onNavigate?.("ar-invoices");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to convert"),
+  });
+
+  const copyApprovalLink = async () => {
+    try {
+      const id = await ensureSavedId();
+      const { data } = await supabase.from("ar_estimates" as any).select("share_token").eq("id", id).single();
+      let token = (data as any)?.share_token as string | undefined;
+      if (!token) {
+        token = crypto.randomUUID();
+        await supabase.from("ar_estimates" as any).update({ share_token: token, status: "sent" }).eq("id", id);
+      }
+      await navigator.clipboard.writeText(`${window.location.origin}/estimate/${token}`);
+      setStatus("sent");
+      toast.success("Approval link copied");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed");
+    }
+  };
+
+  const sendChannel = useMutation({
+    mutationFn: async (channel: "email" | "sms") => {
+      const id = await ensureSavedId();
+      const { data, error } = await supabase.functions.invoke("ar-estimate-send", { body: { estimate_id: id, channel } });
+      if (error) throw error;
+      const r = (data ?? {}) as { ok?: boolean; error?: string };
+      if (!r.ok) throw new Error(r.error || "Send failed");
+    },
+    onSuccess: (_d, channel) => { setStatus("sent"); toast.success(channel === "email" ? "Estimate emailed" : "Estimate texted"); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to send"),
   });
 
   const printRO = () => {
@@ -837,7 +974,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                     .map((l) => {
                       const Icon = KIND_META[l.kind].icon;
                       return (
-                        <tr key={l.id} className="border-b last:border-0 hover:bg-muted/20">
+                        <tr key={l.id} className={`border-b last:border-0 hover:bg-muted/20 ${l.declined ? "opacity-40" : ""}`}>
                           <td className="px-2 py-1">
                             <Select value={l.kind} onValueChange={(v: LineKind) => patchLine(l.id, { kind: v })}>
                               <SelectTrigger className="h-7 w-[84px] text-[11px]">
@@ -851,8 +988,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                           <td className="px-2 py-1">
                             <Input className="h-7 min-w-[150px] text-xs" placeholder="Description" value={l.description}
                               onChange={(e) => patchLine(l.id, { description: e.target.value })} />
-                            {l.kind === "part" && l.vendor && (
-                              <p className="mt-0.5 pl-1 text-[9px] uppercase tracking-wide text-muted-foreground truncate">Vendor: {l.vendor}</p>
+                            {l.kind === "part" && (l.vendor || l.ordered) && (
+                              <p className="mt-0.5 pl-1 text-[9px] uppercase tracking-wide text-muted-foreground truncate">
+                                {l.vendor ? `Vendor: ${l.vendor}` : ""}{l.ordered ? (l.vendor ? " · ordered" : "ordered") : ""}
+                              </p>
                             )}
                           </td>
                           <td className="px-2 py-1">
@@ -883,9 +1022,16 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                           </td>
                           <td className="px-2 py-1 text-right font-semibold tabular-nums">{money(lineTotalCents(l))}</td>
                           <td className="px-1 py-1">
-                            <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => removeLine(l.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex items-center gap-0.5">
+                              <button type="button" title={l.declined ? "Restore work" : "Mark declined"}
+                                className={l.declined ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
+                                onClick={() => patchLine(l.id, { declined: !l.declined })}>
+                                <Ban className="h-3.5 w-3.5" />
+                              </button>
+                              <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => removeLine(l.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -900,6 +1046,20 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 </Button>
               ))}
             </div>
+          </div>
+
+          {/* Status / orders strip */}
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card px-3 py-1.5 text-xs">
+            <span className={`flex items-center gap-1 ${declinedCount ? "text-destructive" : "text-muted-foreground"}`}>
+              <Ban className="h-3.5 w-3.5" /> Declined Jobs ({declinedCount})
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Status:</span>
+              <Badge variant="outline" className="text-[10px] capitalize">{status}</Badge>
+            </span>
+            <Button size="sm" variant={toOrderCount ? "default" : "outline"} className="ml-auto h-7 gap-1.5 text-xs" onClick={placeOrder}>
+              <ShoppingCart className="h-3.5 w-3.5" /> Place Order ({toOrderCount})
+            </Button>
           </div>
 
           {/* Notes */}
@@ -1010,6 +1170,27 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             <Button className="mt-2 w-full gap-1.5" disabled={save.isPending} onClick={() => save.mutate(true)}>
               <ShieldCheck className="h-4 w-4" /> Authorize
             </Button>
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+              <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" disabled={convertWO.isPending || !lines.length} onClick={() => convertWO.mutate()}>
+                <ArrowRightCircle className="h-3.5 w-3.5" /> Work Order
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" disabled={convertInvoice.isPending || !lines.length} onClick={() => convertInvoice.mutate()}>
+                <Receipt className="h-3.5 w-3.5" /> Invoice
+              </Button>
+            </div>
+            <div className="mt-1.5 flex items-center justify-center gap-1 border-t pt-1.5">
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" onClick={copyApprovalLink}>
+                <Link2 className="h-3.5 w-3.5" /> Link
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!header.customer_email || sendChannel.isPending}
+                onClick={() => sendChannel.mutate("email")}>
+                <Mail className="h-3.5 w-3.5" /> Email
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!header.customer_phone || sendChannel.isPending}
+                onClick={() => sendChannel.mutate("sms")}>
+                <MessageSquare className="h-3.5 w-3.5" /> SMS
+              </Button>
+            </div>
           </div>
 
           {/* Section shortcuts */}
