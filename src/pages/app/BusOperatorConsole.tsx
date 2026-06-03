@@ -688,9 +688,47 @@ function TripsTab({ storeId, routes, trips, vehicles, drivers, reload, routeLabe
     void reload();
   };
 
-  const cancel = async (id: string) => {
-    const { error } = await db.from("bus_trips").update({ status: "cancelled" }).eq("id", id);
+  const cancel = async (tp: Trip) => {
+    const { error } = await db.from("bus_trips").update({ status: "cancelled" }).eq("id", tp.id);
     if (error) { toast.error("Couldn't cancel trip."); return; }
+    const { data } = await db.from("bus_bookings").select("id, customer_id, status").eq("trip_id", tp.id);
+    const active = (data || []).filter((b: any) => b.status !== "cancelled");
+
+    // Release/refund each active booking (best-effort; the edge function voids
+    // an authorization or refunds a capture). Falls back to marking cancelled.
+    for (const b of active) {
+      try {
+        const { error: rErr } = await supabase.functions.invoke("capture-bus-payment", { body: { booking_id: b.id, action: "refund" } });
+        if (rErr) throw rErr;
+      } catch {
+        await db.from("bus_bookings").update({ status: "cancelled" }).eq("id", b.id);
+      }
+    }
+
+    // Notify booked passengers with a ZIVO account that the trip is off.
+    const recipients = [...new Set(active
+      .filter((b: any) => b.customer_id)
+      .map((b: any) => b.customer_id as string))];
+    if (recipients.length > 0) {
+      const rows = recipients.map((uid) => ({
+        user_id: uid,
+        channel: "in_app",
+        category: "operational",
+        template: "bus_trip_update",
+        title: `${routeLabel(tp.route_id)} · ${tp.depart_date}`,
+        body: presetMsg(tp, "cancel"),
+        action_url: "/bus/tickets",
+        event_type: "bus_trip_update",
+        role: "customer",
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        metadata: { trip_id: tp.id, kind: "cancellation" },
+      }));
+      await db.from("notifications").insert(rows);
+      toast.success(`Trip cancelled · ${recipients.length} passenger${recipients.length === 1 ? "" : "s"} notified.`);
+    } else {
+      toast.success("Trip cancelled.");
+    }
     void reload();
   };
 
@@ -873,7 +911,7 @@ function TripsTab({ storeId, routes, trips, vehicles, drivers, reload, routeLabe
               <>
                 <button type="button" onClick={() => openNotify(tp)} className="text-[11px] font-bold text-primary">Notify</button>
                 <button type="button" onClick={() => beginEdit(tp)} className="text-[11px] font-bold text-primary">Edit</button>
-                <button type="button" onClick={() => cancel(tp.id)} className="text-[11px] font-bold text-rose-500">Cancel</button>
+                <button type="button" onClick={() => cancel(tp)} className="text-[11px] font-bold text-rose-500">Cancel</button>
               </>
             )}
           </div>
@@ -1297,11 +1335,21 @@ function BookingsTab({ bookings, reload, routeLabel, trips }: {
     }
   };
 
-  const setStatus = async (id: string, status: string) => {
-    const { error } = await db.from("bus_bookings").update({ status }).eq("id", id);
-    if (error) { toast.error("Couldn't update booking."); return; }
-    toast.success(status === "confirmed" ? "Booking confirmed." : "Booking cancelled.");
-    void reload();
+  // Cancel + refund. The edge function voids an uncaptured authorization or
+  // refunds a captured charge, then marks the booking cancelled. Falls back to
+  // a plain status update if the payment function isn't deployed yet.
+  const cancelAndRefund = async (id: string) => {
+    try {
+      const { error } = await supabase.functions.invoke("capture-bus-payment", { body: { booking_id: id, action: "refund" } });
+      if (error) throw error;
+      toast.success("Booking cancelled & refunded.");
+      void reload();
+    } catch {
+      const { error } = await db.from("bus_bookings").update({ status: "cancelled" }).eq("id", id);
+      if (error) { toast.error("Couldn't cancel booking."); return; }
+      toast.success("Booking cancelled.");
+      void reload();
+    }
   };
 
   const toggleBoarded = async (b: Booking) => {
@@ -1394,7 +1442,7 @@ function BookingsTab({ bookings, reload, routeLabel, trips }: {
           {b.status === "hold" && (
             <div className="mt-2 flex gap-2">
               <Button size="sm" onClick={() => confirmBooking(b.id)} className="h-8 rounded-lg text-xs font-bold">Confirm</Button>
-              <Button size="sm" variant="outline" onClick={() => setStatus(b.id, "cancelled")} className="h-8 rounded-lg text-xs font-bold">Cancel</Button>
+              <Button size="sm" variant="outline" onClick={() => cancelAndRefund(b.id)} className="h-8 rounded-lg text-xs font-bold">Cancel & refund</Button>
             </div>
           )}
         </div>

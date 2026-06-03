@@ -103,6 +103,8 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.meta-conversion-handler]
     verify_jwt = false
+  [functions.marketing-event-track]
+    verify_jwt = false
   [functions.notifications-summary]
     verify_jwt = false
   [functions.oauth-callback]
@@ -135,3 +137,7 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.create-p2p-transfer]
     verify_jwt = false
+  [functions.create-bus-payment-intent]
+    verify_jwt = true
+  [functions.capture-bus-payment]
+    verify_jwt = true

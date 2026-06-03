@@ -46,8 +46,9 @@ Deno.serve(async (req: Request) => {
     if (userError || !userData?.user) return json({ error: "Unauthorized" }, 401);
     const userId = userData.user.id;
 
-    const { booking_id } = await req.json();
+    const { booking_id, action } = await req.json();
     if (!booking_id) return json({ error: "booking_id required" }, 400);
+    const mode: "capture" | "refund" = action === "refund" ? "refund" : "capture";
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -72,12 +73,42 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (!store) return json({ error: "Forbidden" }, 403);
 
+    const paymentIntentId = booking.stripe_payment_intent_id;
+
+    // ── Refund / cancel ── void an uncaptured authorization or refund a
+    // captured charge, then mark the booking cancelled. Idempotent: a booking
+    // already cancelled returns ok.
+    if (mode === "refund") {
+      if (booking.status === "cancelled") {
+        return json({ ok: true, idempotent: true, status: "cancelled" });
+      }
+      let refunded = false;
+      let voided = false;
+      if (paymentIntentId) {
+        const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+        if (!stripeKey) return json({ error: "Stripe not configured" }, 500);
+        const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (pi.status === "requires_capture") {
+          await stripe.paymentIntents.cancel(paymentIntentId);
+          voided = true;
+        } else if (pi.status === "succeeded") {
+          await stripe.refunds.create({ payment_intent: paymentIntentId });
+          refunded = true;
+        }
+      }
+      const { error: uErr } = await admin
+        .from("bus_bookings")
+        .update({ status: "cancelled", payment_status: refunded ? "refunded" : voided ? "voided" : booking.payment_status })
+        .eq("id", booking.id);
+      if (uErr) return json({ error: "Refund processed but booking update failed" }, 500);
+      return json({ ok: true, status: "cancelled", refunded, voided });
+    }
+
     if (booking.status === "cancelled") return json({ error: "Booking is cancelled" }, 409);
     if (booking.status === "confirmed" && booking.payment_status === "captured") {
       return json({ ok: true, idempotent: true, captured: true, status: "confirmed" });
     }
-
-    const paymentIntentId = booking.stripe_payment_intent_id;
 
     // No card authorization on file (cash / payment not enabled) → just confirm.
     if (!paymentIntentId) {

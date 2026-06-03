@@ -36,8 +36,11 @@ import Toilet from "lucide-react/dist/esm/icons/toilet";
 import Layers from "lucide-react/dist/esm/icons/layers";
 import Tv from "lucide-react/dist/esm/icons/tv";
 import { BUS_AMENITIES, type BusVehicleAmenity } from "@/config/busVehicleTypes";
+import BusInlinePaymentForm from "@/components/bus/BusInlinePaymentForm";
+import KHQRPaymentModal from "@/components/shop/KHQRPaymentModal";
 
-type Step = "search" | "results" | "seats" | "summary" | "confirmed";
+type Step = "search" | "results" | "seats" | "summary" | "pay" | "confirmed";
+type PayMethod = "card" | "khqr";
 
 interface BusTrip {
   id: string;
@@ -227,6 +230,14 @@ export default function BusBookingPage() {
   // sample-catalog demo confirmation.
   const [realBooking, setRealBooking] = useState(false);
 
+  // Payment (real operator trips). Card → Stripe PaymentElement on a "pay"
+  // step; KHQR → reuse the platform ABA PayWay QR modal.
+  const [payMethod, setPayMethod] = useState<PayMethod>("card");
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [payAmountCents, setPayAmountCents] = useState(0);
+  const [createdBookingId, setCreatedBookingId] = useState<string>("");
+  const [khqrOpen, setKhqrOpen] = useState(false);
+
   // Promo code (real operator trips only). Validated client-side for preview;
   // re-validated and applied authoritatively by create_bus_booking.
   const [promoInput, setPromoInput] = useState("");
@@ -364,7 +375,7 @@ export default function BusBookingPage() {
       setSubmitting(true);
       try {
         const seatLabels = selectedSeats.map(seatLabel);
-        const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ booking_id: string; booking_ref: string }> | null; error: { message: string } | null }> })
+        const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ booking_id: string; booking_ref: string; amount_cents: number }> | null; error: { message: string } | null }> })
           .rpc("create_bus_booking", {
             p_trip_id: selectedTrip.id,
             p_seats: seatLabels,
@@ -383,18 +394,39 @@ export default function BusBookingPage() {
           return;
         }
         const row = Array.isArray(data) ? data[0] : data;
+        const bookingId = row?.booking_id || "";
+        const amtCents = row?.amount_cents ?? Math.round(totalUsd * 100);
         setBookingRef(row?.booking_ref || "");
         setRealBooking(true);
-        // Attempt card authorization. The payment function activates this
-        // automatically once deployed; until then the booking stays a reserved
-        // hold and we continue gracefully.
+        setCreatedBookingId(bookingId);
+
+        // KHQR / ABA → hand off to the platform QR modal.
+        if (payMethod === "khqr") {
+          setPayAmountCents(amtCents);
+          setKhqrOpen(true);
+          return;
+        }
+
+        // Card → authorize via Stripe PaymentElement on the dedicated pay step.
+        // If the payment function isn't deployed yet, fall back to a reserved
+        // hold so the booking still completes (today's behavior).
         try {
-          await supabase.functions.invoke("create-bus-payment-intent", {
-            body: { booking_id: row?.booking_id },
+          const { data: pay, error: payErr } = await supabase.functions.invoke("create-bus-payment-intent", {
+            body: { booking_id: bookingId },
           });
-        } catch { /* payment not enabled yet — reserved hold */ }
-        setStep("confirmed");
-        toast.success(t("bus.booked_toast"));
+          if (payErr) throw payErr;
+          if (pay?.client_secret) {
+            setClientSecret(pay.client_secret);
+            setPayAmountCents(pay.amount_cents ?? amtCents);
+            setStep("pay");
+            return;
+          }
+          setStep("confirmed");
+          toast.success(t("bus.booked_toast"));
+        } catch {
+          setStep("confirmed");
+          toast.success(t("bus.booked_toast"));
+        }
       } catch (e) {
         toast.error(bookingErrorMessage(String(e)));
       } finally {
@@ -414,10 +446,24 @@ export default function BusBookingPage() {
     toast.success(t("bus.booked_toast"));
   };
 
+  // Card authorized (manual capture) — operator captures on confirmation.
+  const onCardAuthorized = () => {
+    setStep("confirmed");
+    toast.success(t("bus.booked_toast"));
+  };
+
+  // KHQR paid — the booking stays a hold until the operator confirms receipt.
+  const onKhqrPaid = () => {
+    setKhqrOpen(false);
+    setStep("confirmed");
+    toast.success(t("bus.booked_toast"));
+  };
+
   const handleBack = () => {
     if (step === "results") setStep("search");
     else if (step === "seats") setStep("results");
     else if (step === "summary") setStep("seats");
+    else if (step === "pay") setStep("summary");
     else if (step === "confirmed") navigate("/");
     else navigate("/");
   };
@@ -427,6 +473,7 @@ export default function BusBookingPage() {
     results: `${from} → ${to}`,
     seats: t("bus.choose_seats"),
     summary: t("bus.review_pay"),
+    pay: t("bus.review_pay"),
     confirmed: t("bus.booked"),
   };
 
@@ -845,12 +892,54 @@ export default function BusBookingPage() {
                     </div>
                   </div>
 
+                  {/* Payment method — real operator trips only */}
+                  {selectedTrip.real && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {([["card", "Card"], ["khqr", "KHQR / ABA"]] as const).map(([m, label]) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setPayMethod(m)}
+                          className={cn(
+                            "rounded-2xl border p-3 text-sm font-bold transition-colors",
+                            payMethod === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground",
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <Button onClick={confirmBooking} disabled={submitting} className="h-12 w-full rounded-2xl text-base font-black">
-                    {submitting ? `${t("bus.confirm")}…` : `${t("bus.confirm")} · $${totalUsd.toFixed(2)}`}
+                    {submitting
+                      ? `${t("bus.confirm")}…`
+                      : selectedTrip.real && payMethod === "card"
+                        ? `Continue to payment · $${totalUsd.toFixed(2)}`
+                        : `${t("bus.confirm")} · $${totalUsd.toFixed(2)}`}
                   </Button>
                   <p className="text-center text-[11px] text-muted-foreground">
                     {selectedTrip.real ? t("bus.reserved_notice") : t("bus.sample_notice")}
                   </p>
+                </div>
+              )}
+
+              {/* ── PAY (card) ── */}
+              {step === "pay" && selectedTrip && clientSecret && (
+                <div className="space-y-4 py-2">
+                  <div className="rounded-2xl border border-border bg-card p-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{selectedTrip.operator} · {selectedSeats.map(seatLabel).sort().join(", ")}</span>
+                      <span className="font-black text-foreground">${(payAmountCents / 100).toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <BusInlinePaymentForm
+                    clientSecret={clientSecret}
+                    amountCents={payAmountCents}
+                    currency="usd"
+                    onCancel={() => setStep("summary")}
+                    onSuccess={onCardAuthorized}
+                  />
                 </div>
               )}
 
@@ -909,6 +998,20 @@ export default function BusBookingPage() {
             </motion.div>
           </AnimatePresence>
         </div>
+
+        {/* KHQR / ABA PayWay QR payment */}
+        <KHQRPaymentModal
+          open={khqrOpen}
+          onOpenChange={setKhqrOpen}
+          amount={payAmountCents / 100}
+          currency="USD"
+          description={selectedTrip ? `Bus · ${from} → ${to}` : "ZIVO Bus"}
+          reference={bookingRef || undefined}
+          sourceTable="bus_bookings"
+          sourceId={createdBookingId || undefined}
+          onSuccess={onKhqrPaid}
+          onCancel={() => setKhqrOpen(false)}
+        />
       </AppLayout>
     </>
   );
