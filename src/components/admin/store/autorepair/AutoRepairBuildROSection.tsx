@@ -33,6 +33,7 @@ import BuildROVehicleDialog from "./BuildROVehicleDialog";
 import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
 import BuildROHub from "./BuildROHub";
 import BuildROExistingCustomerDialog from "./BuildROExistingCustomerDialog";
+import BuildROBarcode from "./BuildROBarcode";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import {
@@ -136,8 +137,14 @@ const lineTotalCents = (l: ROLine) => Math.max(0, l.qty * l.unit_cents - lineDis
 const blankHeader = {
   number: "",
   customer_name: "",
+  customer_first_name: "",
+  customer_last_name: "",
   customer_phone: "",
   customer_email: "",
+  customer_street: "",
+  customer_city: "",
+  customer_state: "",
+  customer_zip: "",
   vehicle_label: "",
   vehicle_year: "",
   vehicle_make: "",
@@ -369,6 +376,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setHeader((h) => ({
       ...h,
       customer_name: v.owner_name ?? "",
+      customer_first_name: (v.owner_name ?? "").split(" ").slice(0, -1).join(" ") || (v.owner_name ?? ""),
+      customer_last_name: (v.owner_name ?? "").includes(" ") ? (v.owner_name ?? "").split(" ").slice(-1)[0] : "",
       customer_phone: v.owner_phone ?? "",
       customer_email: v.owner_email ?? "",
       vehicle_label: [v.year, v.make, v.model].filter(Boolean).join(" "),
@@ -390,7 +399,19 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   // New Customer dialog → fill header customer fields; optionally chain to the vehicle dialog.
   const handleSaveCustomer = (c: CustomerDraft, addVehicle: boolean) => {
     setCustomerDraft(c);
-    setHeader((h) => ({ ...h, customer_name: c.name, customer_phone: c.cell || c.work, customer_email: c.email }));
+    const nameParts = c.name.trim().split(" ");
+    setHeader((h) => ({
+      ...h,
+      customer_name: c.name,
+      customer_first_name: nameParts.slice(0, -1).join(" ") || c.name,
+      customer_last_name: nameParts.length > 1 ? nameParts.slice(-1)[0] : "",
+      customer_phone: c.cell || c.work,
+      customer_email: c.email,
+      customer_street: c.street || "",
+      customer_city: c.city || "",
+      customer_state: c.state || "",
+      customer_zip: c.zip || "",
+    }));
     setOpenCustomer(false);
     if (addVehicle || pendingVehicleAfterCustomer) {
       setPendingVehicleAfterCustomer(false);
@@ -544,9 +565,20 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       ...blankHeader,
       number: e.number ?? "",
       customer_name: e.customer_name ?? "",
+      customer_first_name: e.customer_first_name ?? ((e.customer_name ?? "").split(" ").slice(0, -1).join(" ") || (e.customer_name ?? "")),
+      customer_last_name: e.customer_last_name ?? ((e.customer_name ?? "").includes(" ") ? (e.customer_name ?? "").split(" ").slice(-1)[0] : ""),
       customer_phone: e.customer_phone ?? "",
       customer_email: e.customer_email ?? "",
+      customer_street: e.customer_street ?? "",
+      customer_city: e.customer_city ?? "",
+      customer_state: e.customer_state ?? "",
+      customer_zip: e.customer_zip ?? "",
       vehicle_label: e.vehicle_label ?? "",
+      vehicle_year: e.vehicle_year ?? ((e.vehicle_label ?? "").split(" ")[0] || ""),
+      vehicle_make: e.vehicle_make ?? ((e.vehicle_label ?? "").split(" ")[1] || ""),
+      vehicle_model: e.vehicle_model ?? ((e.vehicle_label ?? "").split(" ").slice(2).join(" ") || ""),
+      vehicle_engine: e.vehicle_engine ?? "",
+      vehicle_transmission: e.vehicle_transmission ?? "",
       vehicle_color: e.vehicle_color ?? "",
       unit_number: e.unit_number ?? "",
       license_plate: e.license_plate ?? "",
@@ -931,47 +963,21 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </button>
             </div>
           </div>
-          <div className="relative mb-1.5">
-            <Search className="pointer-events-none absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              className={`${fieldCls} pl-7`}
-              placeholder="Search garage by name, phone, plate, or VIN…"
-              value={custSearch}
-              onChange={(e) => { setCustSearch(e.target.value); setSearchOpen(true); }}
-              onFocus={() => setSearchOpen(true)}
-              onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
-            />
-            {searchOpen && searchResults.length > 0 && (
-              <div className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto rounded-lg border bg-popover p-1 shadow-lg">
-                {searchResults.map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => bindVehicle(v)}
-                    className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-muted"
-                  >
-                    <span className="min-w-0">
-                      <span className="font-medium">{v.owner_name}</span>
-                      <span className="block truncate text-[11px] text-muted-foreground">
-                        {[v.year, v.make, v.model].filter(Boolean).join(" ")}{v.plate ? ` · ${v.plate}` : ""}
-                      </span>
-                    </span>
-                    <Car className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
-            )}
-            {searchOpen && custSearch.trim() && searchResults.length === 0 && (
-              <div className="absolute z-30 mt-1 w-full rounded-lg border bg-popover px-3 py-2 text-[11px] text-muted-foreground shadow-lg">
-                No match in garage — fill the fields below, then “Save to garage”.
-              </div>
-            )}
-          </div>
           <div className="grid grid-cols-2 gap-1.5">
-            <Input className={fieldCls} placeholder="Customer name" value={header.customer_name} onChange={(e) => setH({ customer_name: e.target.value })} />
+            <Input className={fieldCls} placeholder="First name" value={header.customer_first_name}
+              onChange={(e) => setH({ customer_first_name: e.target.value, customer_name: [e.target.value, header.customer_last_name].filter(Boolean).join(" ") })} />
+            <Input className={fieldCls} placeholder="Last name" value={header.customer_last_name}
+              onChange={(e) => setH({ customer_last_name: e.target.value, customer_name: [header.customer_first_name, e.target.value].filter(Boolean).join(" ") })} />
             <Input className={fieldCls} placeholder="Phone" value={header.customer_phone} onChange={(e) => setH({ customer_phone: e.target.value })} />
-            <Input className={`${fieldCls} col-span-2`} placeholder="Email" value={header.customer_email} onChange={(e) => setH({ customer_email: e.target.value })} />
+            <Input className={fieldCls} placeholder="Email" type="email" autoComplete="email" value={header.customer_email} onChange={(e) => setH({ customer_email: e.target.value })} />
+            <Input className={`${fieldCls} col-span-2`} placeholder="Street address" autoComplete="street-address"
+              value={header.customer_street} onChange={(e) => setH({ customer_street: e.target.value })} />
+            <Input className={fieldCls} placeholder="City" autoComplete="address-level2"
+              value={header.customer_city} onChange={(e) => setH({ customer_city: e.target.value })} />
+            <Input className={fieldCls} placeholder="State" autoComplete="address-level1"
+              value={header.customer_state} onChange={(e) => setH({ customer_state: e.target.value })} />
+            <Input className={fieldCls} placeholder="Zip code" autoComplete="postal-code"
+              value={header.customer_zip} onChange={(e) => setH({ customer_zip: e.target.value })} />
           </div>
         </div>
         <div className="rounded-xl border bg-card p-2.5">
@@ -1348,6 +1354,15 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ── EST barcode / keytag strip ── */}
+      <div className="flex items-center justify-between gap-4 rounded-xl border bg-card px-4 py-2">
+        <span className="shrink-0 text-xs font-medium text-muted-foreground">EST # {header.number || "NEW"}</span>
+        {header.number
+          ? <BuildROBarcode value={header.number} className="h-10 w-auto max-w-[60%]" />
+          : <span className="text-[11px] text-muted-foreground">Barcode appears once saved</span>}
+        <span className="shrink-0 text-xs font-medium text-muted-foreground">KEYTAG: <b className="text-foreground">{header.keytag || "—"}</b></span>
       </div>
 
       {/* ── Bottom preset bar ── */}
