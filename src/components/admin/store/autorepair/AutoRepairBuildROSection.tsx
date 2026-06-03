@@ -14,7 +14,7 @@
  * fields ride along; the legacy {kind,name,qty,unit_cents} keys are kept so the simple Estimates list and
  * the print/share flows keep working). No database changes — clean note/PO round-tripping lands in Phase 2.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import ServiceCatalogPickerDialog, { type ServiceCatalogPick } from "./ServiceCatalogPickerDialog";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
@@ -317,6 +317,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [printCopies, setPrintCopies] = useState(1);
   const [smsMenuOpen, setSmsMenuOpen] = useState(false);
   const [smsCustomMsg, setSmsCustomMsg] = useState("");
+  const [placeOrderOpen, setPlaceOrderOpen] = useState(false);
   const [pendingVehicleAfterCustomer, setPendingVehicleAfterCustomer] = useState(false);
   const [openCustomer, setOpenCustomer] = useState(false);
   const [openVehicleDlg, setOpenVehicleDlg] = useState(false);
@@ -642,6 +643,21 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     toast.success(`Loaded ${e.number ?? "estimate"}`);
   };
 
+  // Handoff from another tab (Estimates list "Open / New in Build R.O."): a sessionStorage
+  // key + the lodge-set-tab event bring us here; load the requested estimate or start fresh.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("ar_buildro_open");
+    if (!raw) return;
+    sessionStorage.removeItem("ar_buildro_open");
+    if (raw === "new") { resetAll(); setView("builder"); return; }
+    (async () => {
+      const { data, error } = await supabase.from("ar_estimates" as any).select("*").eq("id", raw).maybeSingle();
+      if (!error && data) { loadEstimate(data); setView("builder"); }
+      else { resetAll(); setView("builder"); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Save ──
   const save = useMutation({
     mutationFn: async (authorize: boolean) => {
@@ -698,10 +714,39 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   });
 
   // ── Phase 4: orders, conversion, send ──
+  // Parts still to order, grouped by their selected vendor (so each group can be
+  // sent to / opened at the right supplier portal).
+  const orderGroups = useMemo(() => {
+    const toOrder = lines.filter((l) => l.kind === "part" && !l.ordered && !l.declined);
+    const map = new Map<string, ROLine[]>();
+    for (const l of toOrder) {
+      const key = l.vendor?.trim() || "";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(l);
+    }
+    return Array.from(map.entries()).map(([vendor, items]) => ({
+      vendor,
+      items,
+      connected: connectedVendors.find((v) => v.name === vendor) ?? null,
+    }));
+  }, [lines, connectedVendors]);
+
   const placeOrder = () => {
     if (toOrderCount === 0) { toast.info("No parts to order"); return; }
-    setLines((a) => a.map((l) => (l.kind === "part" && !l.declined ? { ...l, ordered: true } : l)));
-    toast.success(`${toOrderCount} part${toOrderCount === 1 ? "" : "s"} marked ordered`);
+    setPlaceOrderOpen(true);
+  };
+
+  // Mark a set of part lines ordered (by id), optionally opening the vendor portal.
+  const markGroupOrdered = (ids: string[], portalUrl?: string) => {
+    setLines((a) => a.map((l) => (ids.includes(l.id) ? { ...l, ordered: true } : l)));
+    if (portalUrl) {
+      const w = window.open(portalUrl, "_blank", "noopener,noreferrer");
+      if (!w) toast.error("Pop-up blocked — allow pop-ups to open the portal");
+    }
+    toast.success(`${ids.length} part${ids.length === 1 ? "" : "s"} marked ordered`);
+    // Auto-close once nothing is left to order.
+    const remaining = lines.filter((l) => l.kind === "part" && !l.ordered && !l.declined && !ids.includes(l.id)).length;
+    if (remaining === 0) setPlaceOrderOpen(false);
   };
 
   const ensureSavedId = async () => editId ?? (await save.mutateAsync(false));
@@ -1608,6 +1653,87 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Place Order (by vendor) ── */}
+      <Dialog open={placeOrderOpen} onOpenChange={setPlaceOrderOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" /> Place Parts Order
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {orderGroups.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">All parts are ordered.</p>
+            ) : (
+              orderGroups.map((g, gi) => {
+                const ids = g.items.map((i) => i.id);
+                return (
+                  <div key={g.vendor || `nv-${gi}`} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-semibold truncate">
+                          {g.vendor || "No vendor selected"}
+                        </span>
+                        {g.connected && (
+                          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                            connected{g.connected.account ? ` · #${g.connected.account}` : ""}
+                          </span>
+                        )}
+                        <span className="text-[11px] text-muted-foreground">({g.items.length})</span>
+                      </div>
+                    </div>
+                    {/* Parts in this group */}
+                    <div className="space-y-1">
+                      {g.items.map((i) => (
+                        <div key={i.id} className="flex items-center justify-between gap-2 text-xs">
+                          <span className="min-w-0 truncate">
+                            {i.misc ? <span className="font-mono text-muted-foreground">{i.misc} · </span> : null}
+                            {i.description || "—"}
+                          </span>
+                          <span className="shrink-0 text-muted-foreground">×{i.qty || 1}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Order actions */}
+                    <div className="flex items-center gap-2 pt-1">
+                      {g.connected ? (
+                        <Button size="sm" className="h-7 gap-1.5 text-xs"
+                          onClick={() => markGroupOrdered(ids, g.connected!.url)}>
+                          <ShoppingCart className="h-3.5 w-3.5" /> Order at {g.connected.name} →
+                        </Button>
+                      ) : g.vendor ? (
+                        <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+                          onClick={() => markGroupOrdered(ids)}>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Mark ordered
+                        </Button>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          Pick a vendor on these part lines to order electronically, or mark ordered for a manual/phone order.
+                        </p>
+                      )}
+                      {!g.connected && (
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
+                          onClick={() => markGroupOrdered(ids)}>
+                          Mark ordered
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPlaceOrderOpen(false)}>Close</Button>
+            {orderGroups.length > 0 && (
+              <Button onClick={() => markGroupOrdered(orderGroups.flatMap((g) => g.items.map((i) => i.id)))}>
+                Mark all ordered
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

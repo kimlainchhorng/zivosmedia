@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import {
   FileSignature, Plus, Send, ArrowRightCircle, Search, Trash2,
   ClipboardList, Download, Pencil, ChevronDown, ChevronUp,
-  Link2, CheckCircle2, XCircle, BookOpen, Mail, MessageSquare, Loader2, Copy,
+  Link2, CheckCircle2, XCircle, BookOpen, Mail, MessageSquare, Loader2, Copy, Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
@@ -106,6 +106,12 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
   };
 
   const openNew = () => { resetForm(); setOpen(true); };
+
+  // Hand off to the VSM "Build R.O." console: stash the target, then ask the page to switch tabs.
+  const openInBuildRO = (id: string) => {
+    sessionStorage.setItem("ar_buildro_open", id);
+    window.dispatchEvent(new CustomEvent("lodge-set-tab", { detail: { tab: "ar-build-ro" } }));
+  };
 
   const openEdit = (e: any) => {
     setEditId(e.id);
@@ -329,9 +335,14 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
           <CardTitle className="text-base flex items-center gap-2">
             <FileSignature className="w-4 h-4" /> Estimates & Quotes
           </CardTitle>
-          <Button size="sm" className="gap-1.5" onClick={openNew}>
-            <Plus className="w-3.5 h-3.5" /> New Estimate
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openInBuildRO("new")} title="Open the VSM Build R.O. console">
+              <Wrench className="w-3.5 h-3.5" /> Build R.O.
+            </Button>
+            <Button size="sm" className="gap-1.5" onClick={openNew}>
+              <Plus className="w-3.5 h-3.5" /> New Estimate
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
@@ -383,6 +394,10 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
                           <Button size="icon" variant="ghost" className="h-7 w-7" title="Edit"
                             onClick={() => openEdit(e)}>
                             <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" title="Open in Build R.O. console"
+                            onClick={() => openInBuildRO(e.id)}>
+                            <Wrench className="w-3.5 h-3.5" />
                           </Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7" title="Duplicate as new estimate"
                             onClick={() => duplicateEstimate(e)}>
