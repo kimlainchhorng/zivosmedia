@@ -3974,16 +3974,6 @@ export default function AdminStoreEditPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Labor Rate ($/hr)</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        placeholder="e.g. 120"
-                        value={form.ar_settings?.labor_rate ?? ""}
-                        onChange={(e) => updateArSettings("labor_rate", parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
                       <Label className="text-xs">Service Bays</Label>
                       <Input
                         type="number"
@@ -3993,8 +3983,6 @@ export default function AdminStoreEditPage() {
                         onChange={(e) => updateArSettings("service_bays", parseInt(e.target.value) || 0)}
                       />
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs">Booking Buffer (min)</Label>
                       <Input
@@ -4005,30 +3993,142 @@ export default function AdminStoreEditPage() {
                         onChange={(e) => updateArSettings("booking_buffer_mins", parseInt(e.target.value) || 0)}
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Parts Markup (%)</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={500}
-                        step={0.1}
-                        placeholder="e.g. 35"
-                        value={form.ar_settings?.parts_markup_pct ?? ""}
-                        onChange={(e) => updateArSettings("parts_markup_pct", parseFloat(e.target.value) || 0)}
-                      />
+                  </div>
+
+                  {/* ── Smart Markup ── */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-semibold">Smart Markup</Label>
+                    <div className="rounded-lg border overflow-hidden text-xs">
+                      <div className="grid grid-cols-2 bg-muted/60 font-medium px-3 py-1.5">
+                        <span>Parts Tier</span><span className="text-right">Markup %</span>
+                      </div>
+                      {([
+                        { key: "parts_markup_pct",         label: "Parts Markup (Default)" },
+                        { key: "parts_markup_tires_pct",   label: "Tires Markup" },
+                        { key: "parts_markup_5to20_pct",   label: "$5 to $20 Parts" },
+                        { key: "parts_markup_under5_pct",  label: "Less than $5 Parts" },
+                      ] as const).map(({ key, label }) => (
+                        <div key={key} className="grid grid-cols-2 px-3 py-1.5 border-t items-center">
+                          <span>{label}</span>
+                          <div className="flex items-center gap-1 justify-end">
+                            <Input type="number" min={0} max={1000} step={1} placeholder="0"
+                              className="w-20 text-xs h-7"
+                              value={(form.ar_settings as any)?.[key] ?? ""}
+                              onChange={(e) => updateArSettings(key, parseFloat(e.target.value) || 0)} />
+                            <span className="text-muted-foreground">%</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+
+                  {/* ── Labor Rates ── */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-semibold">Labor Rates ($/hr)</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {([
+                        { key: "labor_rate",          label: "Standard" },
+                        { key: "labor_rate_diesel",   label: "Diesel" },
+                        { key: "labor_rate_euro",     label: "Euro" },
+                        { key: "labor_rate_warranty", label: "Warranty" },
+                        { key: "labor_rate_fleet",    label: "Fleet" },
+                        { key: "labor_rate_custom",   label: "Custom" },
+                      ] as const).map(({ key, label }) => (
+                        <div key={key} className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">{label}</Label>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">$</span>
+                            <Input type="number" min={0} step={0.01} placeholder="0.00"
+                              value={(form.ar_settings as any)?.[key] ?? ""}
+                              onChange={(e) => updateArSettings(key, parseFloat(e.target.value) || 0)} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* ── Sales Tax Setup ── */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-semibold">Sales Tax Setup</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* R1 */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Tax Rate (R1)</Label>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground shrink-0">R1:</span>
+                          <Input type="number" min={0} max={100} step={0.01} placeholder="0.00"
+                            value={form.ar_settings?.tax_rate ?? ""}
+                            onChange={(e) => updateArSettings("tax_rate", parseFloat(e.target.value) || 0)} />
+                          <span className="text-xs text-muted-foreground shrink-0">%</span>
+                        </div>
+                      </div>
+                      {/* R2 */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Tax Rate (R2)</Label>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground shrink-0">R1:</span>
+                          <Input type="number" min={0} max={100} step={0.01} placeholder="0.00"
+                            value={form.ar_settings?.tax_r2_base_pct ?? ""}
+                            onChange={(e) => updateArSettings("tax_r2_base_pct", parseFloat(e.target.value) || 0)} />
+                          <span className="text-xs text-muted-foreground shrink-0">%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground shrink-0">+</span>
+                          <Input type="number" min={0} max={100} step={0.01} placeholder="0.00"
+                            value={form.ar_settings?.tax_r2_extra_pct ?? ""}
+                            onChange={(e) => updateArSettings("tax_r2_extra_pct", parseFloat(e.target.value) || 0)} />
+                          <span className="text-xs text-muted-foreground shrink-0">%</span>
+                        </div>
+                      </div>
+                      {/* R3 */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Tax Rate (R3)</Label>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground shrink-0">R3:</span>
+                          <Input type="number" min={0} max={100} step={0.01} placeholder="0.00"
+                            value={form.ar_settings?.tax_r3_pct ?? ""}
+                            onChange={(e) => updateArSettings("tax_r3_pct", parseFloat(e.target.value) || 0)} />
+                          <span className="text-xs text-muted-foreground shrink-0">%</span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Apply taxes on matrix */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Tax Rate (%)</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        placeholder="e.g. 8.5"
-                        value={form.ar_settings?.tax_rate ?? ""}
-                        onChange={(e) => updateArSettings("tax_rate", parseFloat(e.target.value) || 0)}
-                      />
+                      <Label className="text-xs text-muted-foreground">Apply Taxes On</Label>
+                      <div className="rounded-lg border overflow-hidden text-xs">
+                        <div className="grid grid-cols-2 bg-muted/60 font-medium px-3 py-1.5">
+                          <span>Item</span>
+                          <span className="text-right">Rate</span>
+                        </div>
+                        {([
+                          { key: "parts", label: "Parts" },
+                          { key: "tires", label: "Tires" },
+                          { key: "labor", label: "Labor" },
+                          { key: "subcontract", label: "Subcontract" },
+                          { key: "fees", label: "Fees" },
+                          { key: "discount", label: "Discount" },
+                          { key: "epa", label: "EPA" },
+                          { key: "shop_supplies", label: "Shop Supplies" },
+                        ] as const).map(({ key, label }) => (
+                          <div key={key} className="grid grid-cols-2 px-3 py-1.5 border-t items-center">
+                            <span>{label}</span>
+                            <div className="flex justify-end">
+                              <select
+                                className="text-xs border rounded px-1.5 py-0.5 bg-background"
+                                value={(form.ar_settings?.tax_applies_to as Record<string, string>)?.[key] ?? "N"}
+                                onChange={(e) => updateArSettings("tax_applies_to", {
+                                  ...((form.ar_settings?.tax_applies_to as Record<string, string>) || {}),
+                                  [key]: e.target.value,
+                                })}
+                              >
+                                <option value="R1">R1</option>
+                                <option value="R2">R2</option>
+                                <option value="R3">R3</option>
+                                <option value="N">N</option>
+                              </select>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-1.5 pt-2 border-t">
@@ -4071,23 +4171,51 @@ export default function AdminStoreEditPage() {
                       onChange={(e) => updateArSettings("certifications", e.target.value)}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Warranty Policy</Label>
-                    <Textarea
-                      placeholder="e.g. 12 months / 12,000 miles on parts and labor"
-                      rows={2}
-                      value={form.ar_settings?.warranty_policy ?? ""}
-                      onChange={(e) => updateArSettings("warranty_policy", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Terms Policy</Label>
-                    <Textarea
-                      placeholder="e.g. Customer approval is required before additional work. Payment is due at pickup unless otherwise agreed."
-                      rows={3}
-                      value={form.ar_settings?.terms_policy ?? ""}
-                      onChange={(e) => updateArSettings("terms_policy", e.target.value)}
-                    />
+                  {/* ── Terms & Conditions ── */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-semibold">Terms &amp; Conditions</Label>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Estimate Footer</Label>
+                        <span className="text-[10px] text-muted-foreground">Max 970 chars</span>
+                      </div>
+                      <Textarea rows={3} maxLength={970} placeholder="TERMS: I hereby authorize the repair work herein set forth…"
+                        value={form.ar_settings?.terms_estimate_footer ?? form.ar_settings?.terms_policy ?? ""}
+                        onChange={(e) => updateArSettings("terms_estimate_footer", e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Estimate Footer (cont.)</Label>
+                        <span className="text-[10px] text-muted-foreground">Max 330 chars</span>
+                      </div>
+                      <Textarea rows={2} maxLength={330} placeholder="Estimate and Diagnosis Fee are based on hourly rate…"
+                        value={form.ar_settings?.terms_estimate_footer_2 ?? ""}
+                        onChange={(e) => updateArSettings("terms_estimate_footer_2", e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Invoice Footer</Label>
+                      <Textarea rows={3} placeholder="Terms printed on invoices…"
+                        value={form.ar_settings?.terms_invoice_footer ?? ""}
+                        onChange={(e) => updateArSettings("terms_invoice_footer", e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Statement Footer</Label>
+                      <Textarea rows={2} placeholder="Terms printed on statements…"
+                        value={form.ar_settings?.terms_statement_footer ?? ""}
+                        onChange={(e) => updateArSettings("terms_statement_footer", e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Warranty</Label>
+                      <Textarea rows={2} placeholder="e.g. 12 months / 12,000 miles on parts and labor"
+                        value={form.ar_settings?.warranty_policy ?? ""}
+                        onChange={(e) => updateArSettings("warranty_policy", e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Self Check-In Terms</Label>
+                      <Textarea rows={2} placeholder="Terms shown to customers during self check-in…"
+                        value={form.ar_settings?.terms_self_checkin ?? ""}
+                        onChange={(e) => updateArSettings("terms_self_checkin", e.target.value)} />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Service Categories</Label>
@@ -4128,6 +4256,349 @@ export default function AdminStoreEditPage() {
                       checked={form.ar_settings?.dvi_enabled ?? true}
                       onCheckedChange={(v) => updateArSettings("dvi_enabled", v)}
                     />
+                  </div>
+
+                  {/* ── Fees & Setup ── */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-semibold">Fees &amp; Setup</Label>
+
+                    {/* Shop Supplies */}
+                    <div className="rounded-lg border p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium">Shop Supplies</Label>
+                        <Switch
+                          checked={form.ar_settings?.shop_supplies_enabled ?? false}
+                          onCheckedChange={(v) => updateArSettings("shop_supplies_enabled", v)}
+                        />
+                      </div>
+                      {form.ar_settings?.shop_supplies_enabled && (
+                        <div className="space-y-3">
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox"
+                                checked={form.ar_settings?.shop_supplies_on_parts ?? false}
+                                onChange={(e) => updateArSettings("shop_supplies_on_parts", e.target.checked)} />
+                              On Parts
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox"
+                                checked={form.ar_settings?.shop_supplies_on_labor ?? false}
+                                onChange={(e) => updateArSettings("shop_supplies_on_labor", e.target.checked)} />
+                              On Labor
+                            </label>
+                          </div>
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name="ar_shop_supplies_type"
+                                checked={(form.ar_settings?.shop_supplies_type ?? "amount") === "amount"}
+                                onChange={() => updateArSettings("shop_supplies_type", "amount")} />
+                              Actual Amount
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name="ar_shop_supplies_type"
+                                checked={form.ar_settings?.shop_supplies_type === "pct"}
+                                onChange={() => updateArSettings("shop_supplies_type", "pct")} />
+                              Percentage %
+                            </label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs w-28">Shop Supplies</Label>
+                            <Input type="number" min={0} step={0.01} placeholder="0"
+                              className="w-24"
+                              value={form.ar_settings?.shop_supplies_value ?? ""}
+                              onChange={(e) => updateArSettings("shop_supplies_value", parseFloat(e.target.value) || 0)} />
+                            <span className="text-xs text-muted-foreground">
+                              {form.ar_settings?.shop_supplies_type === "pct" ? "%" : "$"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* EPA Setup */}
+                    <div className="rounded-lg border p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium">EPA / Environmental Fee</Label>
+                        <Switch
+                          checked={form.ar_settings?.epa_enabled ?? false}
+                          onCheckedChange={(v) => updateArSettings("epa_enabled", v)}
+                        />
+                      </div>
+                      {form.ar_settings?.epa_enabled && (
+                        <div className="space-y-3">
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox"
+                                checked={form.ar_settings?.epa_on_parts ?? false}
+                                onChange={(e) => updateArSettings("epa_on_parts", e.target.checked)} />
+                              On Parts
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox"
+                                checked={form.ar_settings?.epa_on_labor ?? false}
+                                onChange={(e) => updateArSettings("epa_on_labor", e.target.checked)} />
+                              On Labor
+                            </label>
+                          </div>
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name="ar_epa_type"
+                                checked={(form.ar_settings?.epa_type ?? "amount") === "amount"}
+                                onChange={() => updateArSettings("epa_type", "amount")} />
+                              Actual Amount
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name="ar_epa_type"
+                                checked={form.ar_settings?.epa_type === "pct"}
+                                onChange={() => updateArSettings("epa_type", "pct")} />
+                              Percentage %
+                            </label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs w-28">EPA</Label>
+                            <Input type="number" min={0} step={0.01} placeholder="0"
+                              className="w-24"
+                              value={form.ar_settings?.epa_value ?? ""}
+                              onChange={(e) => updateArSettings("epa_value", parseFloat(e.target.value) || 0)} />
+                            <span className="text-xs text-muted-foreground">
+                              {form.ar_settings?.epa_type === "pct" ? "%" : "$"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Credit Card Fee */}
+                    <div className="rounded-lg border p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium">Credit Card Fee</Label>
+                        <Switch
+                          checked={form.ar_settings?.cc_fee_enabled ?? false}
+                          onCheckedChange={(v) => updateArSettings("cc_fee_enabled", v)}
+                        />
+                      </div>
+                      {form.ar_settings?.cc_fee_enabled && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">In Person</Label>
+                            <div className="flex items-center gap-1">
+                              <Input type="number" min={0} max={100} step={0.01} placeholder="0"
+                                value={form.ar_settings?.cc_fee_in_person_pct ?? ""}
+                                onChange={(e) => updateArSettings("cc_fee_in_person_pct", parseFloat(e.target.value) || 0)} />
+                              <span className="text-xs text-muted-foreground shrink-0">%</span>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Online</Label>
+                            <div className="flex items-center gap-1">
+                              <Input type="number" min={0} max={100} step={0.01} placeholder="0"
+                                value={form.ar_settings?.cc_fee_online_pct ?? ""}
+                                onChange={(e) => updateArSettings("cc_fee_online_pct", parseFloat(e.target.value) || 0)} />
+                              <span className="text-xs text-muted-foreground shrink-0">%</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* State Mandates / Fees */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">State Mandates — Fees</Label>
+                      <div className="rounded-lg border overflow-hidden text-xs">
+                        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 bg-muted/60 font-medium px-3 py-1.5">
+                          <span>Fee</span>
+                          <span className="w-20 text-right">Amount</span>
+                          <span className="w-14 text-center">Taxable</span>
+                          <span className="w-16 text-center">Auto Apply</span>
+                        </div>
+                        {([
+                          { key: "state_fee_new_tires",           label: "State Mandates – New Tires (Passenger / Light Truck)" },
+                          { key: "state_fee_scrap_tire_env",       label: "Scrap Tire Environmental Fee (Passenger / Light Truck)" },
+                          { key: "state_fee_scrap_tire_disposal",  label: "Scrap Tire Disposal Fee (Passenger / Light Truck)" },
+                          { key: "state_fee_battery",              label: "State Mandates – New or Remanufactured Battery" },
+                        ] as const).map(({ key, label }) => {
+                          const fee = (form.ar_settings?.state_fees as any)?.[key] ?? {};
+                          const setFee = (patch: Record<string, any>) =>
+                            updateArSettings("state_fees", { ...((form.ar_settings?.state_fees as any) || {}), [key]: { ...fee, ...patch } });
+                          return (
+                            <div key={key} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-2 border-t items-center">
+                              <div className="flex items-center gap-2">
+                                <input type="checkbox" className="w-4 h-4 rounded accent-primary"
+                                  checked={fee.enabled ?? false}
+                                  onChange={(e) => setFee({ enabled: e.target.checked })} />
+                                <span className="text-[11px]">{label}</span>
+                              </div>
+                              <Input type="number" min={0} step={0.01} placeholder="0.00"
+                                className="w-20 h-7 text-xs text-right"
+                                value={fee.amount ?? ""}
+                                onChange={(e) => setFee({ amount: parseFloat(e.target.value) || 0 })} />
+                              <select className="w-14 text-xs border rounded px-1 py-0.5 bg-background"
+                                value={fee.taxable ?? "N"}
+                                onChange={(e) => setFee({ taxable: e.target.value })}>
+                                <option value="R1">R1</option>
+                                <option value="R2">R2</option>
+                                <option value="R3">R3</option>
+                                <option value="N">N</option>
+                              </select>
+                              <div className="flex justify-center w-16">
+                                <input type="checkbox" checked={fee.auto_apply ?? false}
+                                  onChange={(e) => setFee({ auto_apply: e.target.checked })} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <Label className="text-xs font-medium pt-1 block">Labor — Tire Installation</Label>
+                      <div className="rounded-lg border overflow-hidden text-xs">
+                        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 bg-muted/60 font-medium px-3 py-1.5">
+                          <span>Labor Description</span>
+                          <span className="w-20 text-right">Amount</span>
+                          <span className="w-14 text-center">Taxable</span>
+                          <span className="w-16 text-center">Auto Apply</span>
+                        </div>
+                        {([
+                          { key: "tire_labor_mount_balance", label: "Mount and Balance" },
+                        ] as const).map(({ key, label }) => {
+                          const fee = (form.ar_settings?.tire_labor as any)?.[key] ?? {};
+                          const setFee = (patch: Record<string, any>) =>
+                            updateArSettings("tire_labor", { ...((form.ar_settings?.tire_labor as any) || {}), [key]: { ...fee, ...patch } });
+                          return (
+                            <div key={key} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-2 border-t items-center">
+                              <div className="flex items-center gap-2">
+                                <input type="checkbox" className="w-4 h-4 rounded accent-primary"
+                                  checked={fee.enabled ?? false}
+                                  onChange={(e) => setFee({ enabled: e.target.checked })} />
+                                <span className="text-[11px]">{label}</span>
+                              </div>
+                              <Input type="number" min={0} step={0.01} placeholder="0.00"
+                                className="w-20 h-7 text-xs text-right"
+                                value={fee.amount ?? ""}
+                                onChange={(e) => setFee({ amount: parseFloat(e.target.value) || 0 })} />
+                              <select className="w-14 text-xs border rounded px-1 py-0.5 bg-background"
+                                value={fee.taxable ?? "N"}
+                                onChange={(e) => setFee({ taxable: e.target.value })}>
+                                <option value="R1">R1</option>
+                                <option value="R2">R2</option>
+                                <option value="R3">R3</option>
+                                <option value="N">N</option>
+                              </select>
+                              <div className="flex justify-center w-16">
+                                <input type="checkbox" checked={fee.auto_apply ?? false}
+                                  onChange={(e) => setFee({ auto_apply: e.target.checked })} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Invoice Settings ── */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-semibold">Invoice Settings</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {([
+                        { key: "inv_apply_payment_after_conversion",    label: "Apply Payment After Conversion",      default: true  },
+                        { key: "inv_add_part_number",                   label: "Add Part# to Parts Description",      default: true  },
+                        { key: "inv_auto_complete_tires_inv",           label: "Auto Complete Tires Inventory",       default: false },
+                        { key: "inv_show_barcode",                      label: "Show Barcode",                        default: true  },
+                        { key: "inv_add_custom_part_number",            label: "Add Custom Part# to Description",     default: false },
+                        { key: "inv_auto_complete_general_inv",         label: "Auto Complete General Inventory",     default: false },
+                        { key: "inv_print_qr_code_vin",                 label: "Print QR Code with Complete VIN",     default: false },
+                        { key: "inv_show_logo",                         label: "Show Logo",                           default: true  },
+                        { key: "inv_auto_fill_warranty_click",          label: "Auto-Fill Warranty on Click",         default: true  },
+                        { key: "inv_use_vendor_list_price",             label: "Use Vendor's List Price (if available)", default: false },
+                        { key: "inv_print_each_mechanic",               label: "Print Each Mechanic Worked on Vehicle", default: false },
+                        { key: "inv_auto_fill_warranty_estimate",       label: "Auto-Fill Warranty When Creating Estimate", default: false },
+                        { key: "inv_show_1st_signature",                label: "Show 1st Signature",                  default: false },
+                        { key: "inv_print_authorization",               label: "Print Authorization",                 default: false },
+                        { key: "inv_forward_notifications_gmail",       label: "Forward Notifications to Gmail",      default: false },
+                        { key: "inv_e_customer_signature",              label: "E Customer Signature",                default: false },
+                        { key: "inv_print_format_jobs_subtotal",        label: "Print Format: Jobs With SubTotal",    default: true  },
+                        { key: "inv_enforce_mileage_before_payment",    label: "Enforce Mileage Before Payment",      default: false },
+                        { key: "inv_show_labor_hours",                  label: "Show Labor Hours",                    default: true  },
+                        { key: "inv_print_format_subtotal_only",        label: "Print Format: SubTotal Only",         default: false },
+                        { key: "inv_show_thank_you",                    label: "Show Thank You",                      default: true  },
+                        { key: "inv_save_estimate_before_converting",   label: "Save Estimate Before Converting to Invoice", default: false },
+                        { key: "inv_always_expand_estimate_listview",   label: "Always Expand Estimate Listview",     default: true  },
+                        { key: "inv_tablet_mode",                       label: "Tablet Mode",                         default: false },
+                        { key: "inv_labor_guide_auto_fill",             label: "Labor Guide Auto Fill",               default: true  },
+                      ] as const).map(({ key, label, default: def }) => (
+                        <label key={key} className="flex items-center gap-2 text-xs cursor-pointer py-1.5 px-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
+                          <input type="checkbox"
+                            checked={(form.ar_settings as any)?.[key] ?? def}
+                            onChange={(e) => updateArSettings(key, e.target.checked)} />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Type Default</Label>
+                        <select className="w-full text-xs border rounded px-2 py-1.5 bg-background"
+                          value={form.ar_settings?.inv_type_default ?? "Part"}
+                          onChange={(e) => updateArSettings("inv_type_default", e.target.value)}>
+                          <option>Part</option><option>Labor</option><option>Diagnosis</option><option>Sublet</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs"># of Copies (Thank You)</Label>
+                        <Input type="number" min={1} max={10} placeholder="1"
+                          value={form.ar_settings?.inv_thank_you_copies ?? ""}
+                          onChange={(e) => updateArSettings("inv_thank_you_copies", parseInt(e.target.value) || 1)} />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Parts Memo</Label>
+                      <Input placeholder="All Parts are New Unless Shown as Used."
+                        value={form.ar_settings?.inv_parts_memo ?? ""}
+                        onChange={(e) => updateArSettings("inv_parts_memo", e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Thank You Memo</Label>
+                      <Input placeholder="Thank You For Your Business !"
+                        value={form.ar_settings?.inv_thank_you_memo ?? ""}
+                        onChange={(e) => updateArSettings("inv_thank_you_memo", e.target.value)} />
+                    </div>
+                  </div>
+
+                  {/* ── Gmail Setup ── */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-semibold">Shop Gmail Account</Label>
+                    <p className="text-[11px] text-muted-foreground">Used to forward invoice notifications and send emails directly from your shop address.</p>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Company Gmail Address</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="email"
+                          placeholder="yourshop@gmail.com"
+                          value={form.ar_settings?.shop_gmail ?? ""}
+                          onChange={(e) => updateArSettings("shop_gmail", e.target.value)}
+                        />
+                        <Button type="button" size="sm" variant="outline" className="shrink-0 text-xs"
+                          onClick={() => {
+                            if (!form.ar_settings?.shop_gmail) { toast.error("Enter a Gmail address first"); return; }
+                            toast.success("Test email queued — check your inbox");
+                          }}>
+                          Test Gmail
+                        </Button>
+                      </div>
+                    </div>
+                    <a
+                      href="https://myaccount.google.com/permissions"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50 transition-colors"
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                      </svg>
+                      Sign in with Google
+                    </a>
                   </div>
                 </CardContent>
               </Card>

@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import Check from "lucide-react/dist/esm/icons/check";
+import X from "lucide-react/dist/esm/icons/x";
 import Pencil from "lucide-react/dist/esm/icons/pencil";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
 import Key from "lucide-react/dist/esm/icons/key";
@@ -40,7 +41,25 @@ type Supplier = {
   initials: string;
 };
 
-type Cred = { username: string; password: string };
+type Cred = { username: string; password: string; account?: string; email?: string };
+
+type VendorSetup = {
+  useAccountEmail: boolean;
+  accountLabel?: string;
+  steps?: string[];
+  phone?: string;
+  /** Direct catalog URL that skips the vehicle-selector dead-end. */
+  shopUrl?: string;
+};
+
+const VENDOR_SETUP: Record<string, VendorSetup> = {
+  autozonepro:  { useAccountEmail: true,  accountLabel: "Account #", steps: ["Enter Your Account Number and your Email", "Call AutoZone @1-866-853-6459 and Ask to use VIP for Electronic Ordering.", "When the AutoZone portal opens — click 'Shop Without Vehicle' to browse all parts, or enter your vehicle (Year/Make/Model) manually on their page."], phone: "1-866-853-6459", shopUrl: "https://www.autozonepro.com/catalog/home" },
+  firstcall:    { useAccountEmail: true,  accountLabel: "Account #", steps: ["Enter your O'Reilly commercial account number", "Call O'Reilly @1-800-755-6759 to enable electronic ordering."], phone: "1-800-755-6759", shopUrl: "https://www.firstcallonline.com" },
+  napapro:      { useAccountEmail: true,  accountLabel: "Account #", steps: ["Enter your NAPA ProLink account number", "Call your local NAPA store to enable electronic ordering."], shopUrl: "https://www.napaonline.com/en/prolink" },
+  oreillypro:   { useAccountEmail: true,  accountLabel: "Account #", steps: ["Enter your O'Reilly PRO account number and email", "Call 1-800-755-6759 to enable PRO electronic ordering."], phone: "1-800-755-6759", shopUrl: "https://www.oreillyauto.com/pro" },
+  carquestpro:  { useAccountEmail: true,  accountLabel: "Account #", steps: ["Enter your Carquest account number and email", "Contact your local Carquest store to enable ordering."], shopUrl: "https://www.carquest.com" },
+  acdelco:      { useAccountEmail: true,  accountLabel: "Dealer Code", steps: ["Enter your ACDelco dealer code and email", "Call 1-800-825-5886 to activate electronic ordering."], phone: "1-800-825-5886", shopUrl: "https://www.acdelco.com" },
+};
 
 const CATS: Cat[] = ["All", "Retail Chain", "OE / Dealer", "Wholesale Distributor", "Online Marketplace", "Specialty"];
 
@@ -105,13 +124,30 @@ function removeCred(storeId: string, supplierId: string) {
   localStorage.removeItem(credKey(storeId, supplierId));
 }
 
+/**
+ * Vendors the shop has connected (saved an account/credentials for), for use in
+ * other AR screens like Build R.O.'s vendor picker. Reads the same localStorage
+ * keys this screen writes. Returns the supplier name + portal URL.
+ */
+export type ConnectedVendor = { id: string; name: string; url: string; account?: string };
+export function listConnectedVendors(storeId: string): ConnectedVendor[] {
+  return SUPPLIERS
+    .map((s) => {
+      const cred = loadCred(storeId, s.id);
+      return cred ? { id: s.id, name: s.name, url: s.url, account: cred.account } : null;
+    })
+    .filter((v): v is ConnectedVendor => v !== null);
+}
+
+/** All known supplier names, for free-pick fallback in vendor dropdowns. */
+export const AR_SUPPLIER_NAMES: string[] = SUPPLIERS.map((s) => s.name);
+
 export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
   const [catFilter, setCatFilter] = useState<Cat>("All");
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<Supplier | null>(null);
-  const [form, setForm] = useState<Cred>({ username: "", password: "" });
+  const [form, setForm] = useState<Cred>({ username: "", password: "", account: "", email: "" });
   const [showPw, setShowPw] = useState(false);
-  const [portalUrl, setPortalUrl] = useState<string | null>(null);
 
   const [savedMap, setSavedMap] = useState<Record<string, Cred | null>>(() => {
     const map: Record<string, Cred | null> = {};
@@ -131,22 +167,33 @@ export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
 
   const openDialog = (s: Supplier) => {
     const existing = savedMap[s.id];
-    setForm(existing ?? { username: "", password: "" });
+    setForm(existing ?? { username: "", password: "", account: "", email: "" });
     setShowPw(false);
     setTarget(s);
   };
 
+  // B2B vendor portals block iframe embedding (X-Frame-Options), so open them
+  // in a real new tab instead of the in-app modal.
+  const openPortal = (s: Supplier) => {
+    const w = window.open(s.url, "_blank", "noopener,noreferrer");
+    if (!w) { toast.error("Pop-up blocked — allow pop-ups to open the portal"); return; }
+  };
+
   const handleSave = () => {
     if (!target) return;
-    if (!form.username.trim()) {
-      toast.error("Username / email is required");
-      return;
+    const setup = VENDOR_SETUP[target.id];
+    if (setup?.useAccountEmail) {
+      if (!form.account?.trim()) { toast.error("Account number is required"); return; }
+    } else {
+      if (!form.username.trim()) { toast.error("Username / email is required"); return; }
     }
-    persistCred(storeId, target.id, { username: form.username.trim(), password: form.password });
-    setSavedMap(prev => ({ ...prev, [target.id]: { username: form.username.trim(), password: form.password } }));
+    const cred: Cred = { username: form.username.trim(), password: form.password, account: form.account?.trim() || "", email: form.email?.trim() || "" };
+    persistCred(storeId, target.id, cred);
+    setSavedMap(prev => ({ ...prev, [target.id]: cred }));
     toast.success(`${target.name} — account saved`);
-    setPortalUrl(target.url);
+    const saved = target;
     setTarget(null);
+    openPortal(saved);
   };
 
   const handleDisconnect = (s: Supplier) => {
@@ -235,11 +282,8 @@ export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7 text-green-600"
-                          title="Open portal"
-                          onClick={() => {
-                            setPortalUrl(s.url);
-                            setTarget(null);
-                          }}
+                          title="Open portal in new tab"
+                          onClick={() => openPortal(s)}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </Button>
@@ -272,102 +316,128 @@ export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Credentials dialog */}
+      {/* VSM-styled Setup Vendor Account dialog */}
       <Dialog open={!!target} onOpenChange={open => { if (!open) setTarget(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {target && (
-                <span
-                  className="w-7 h-7 rounded text-white flex items-center justify-center text-[9px] font-bold shrink-0"
-                  style={{ backgroundColor: target.bg }}
-                >
-                  {target.initials}
-                </span>
-              )}
-              Connect {target?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Enter your portal credentials. Saved locally on this device only.
-            </DialogDescription>
+        <DialogContent className="max-w-lg gap-0 overflow-hidden border-slate-700 bg-[#0b1220] p-0 text-slate-100">
+          <DialogHeader className="p-0">
+            {/* Title bar */}
+            <div className="flex items-center gap-3 bg-slate-800/80 px-5 py-3">
+              <span className="font-serif text-lg italic tracking-wide text-slate-300">VIP</span>
+              <DialogTitle className="text-base font-bold text-slate-100">Setup Vendor Account:</DialogTitle>
+            </div>
+            {/* Blue gradient sub-header */}
+            <div className="bg-gradient-to-b from-[#1e90ff] to-[#1577e0] py-2 text-center">
+              <span className="font-serif text-base italic text-white">{target?.name}</span>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium mb-1 block">Username / Email</label>
-              <Input
-                placeholder="Username or email"
-                value={form.username}
-                onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-                autoComplete="username"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium mb-1 block">Password</label>
-              <div className="relative">
-                <Input
-                  placeholder="Password"
-                  type={showPw ? "text" : "password"}
-                  value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                  autoComplete="current-password"
-                  className="pr-20"
-                  onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1 h-7 px-2 text-xs"
-                  onClick={() => setShowPw(v => !v)}
-                >
-                  {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </Button>
+          <div className="space-y-4 bg-white px-6 py-5 text-slate-800">
+            {/* Vendor logo placeholder */}
+            <div className="flex justify-center">
+              <div className="rounded-lg px-6 py-3 text-white font-bold text-xl tracking-wide"
+                style={{ backgroundColor: target?.bg }}>
+                {target?.name}
               </div>
             </div>
-            <p className="text-[11px] text-muted-foreground leading-snug">
-              Clicking <strong>Save & Open Portal</strong> will store your credentials and open{" "}
-              {target?.name} in a modal so you can log in.
-            </p>
+
+            {(() => {
+              const setup = target ? VENDOR_SETUP[target.id] : null;
+              if (setup?.useAccountEmail) {
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <label className="w-24 text-right text-sm font-semibold shrink-0">{setup.accountLabel ?? "Account #"}:</label>
+                      <input className="flex-1 rounded border border-blue-400 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={form.account ?? ""}
+                        onChange={e => setForm(f => ({ ...f, account: e.target.value }))}
+                        placeholder="" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="w-24 text-right text-sm font-semibold shrink-0">Email:</label>
+                      <input type="email" className="flex-1 rounded border border-blue-400 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={form.email ?? ""}
+                        onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                        placeholder="" />
+                    </div>
+                    {setup.steps && (
+                      <div className="rounded-lg bg-slate-900 p-3 text-white">
+                        <p className="text-xs font-semibold text-red-400 mb-2">To Complete {target?.name} Setup:</p>
+                        {setup.steps.map((step, i) => (
+                          <p key={i} className="text-xs text-slate-300">Step {i + 1} : {step}</p>
+                        ))}
+                      </div>
+                    )}
+                    {/* Vehicle-transfer explainer */}
+                    <div className="rounded-lg border border-amber-400 bg-amber-50 p-3">
+                      <p className="text-xs font-semibold text-amber-700">Seeing "no vehicle set" on {target?.name}?</p>
+                      <p className="text-[11px] text-amber-700/90 leading-snug mt-1">
+                        Automatic vehicle transfer only works after {target?.name} enables <strong>electronic ordering</strong> on your
+                        account (Step&nbsp;2 above). Until then — or any time transfer fails — use the button below to skip the
+                        vehicle screen, or type the Year / Make / Model on their page.
+                      </p>
+                    </div>
+                    {/* One-click Shop Without Vehicle */}
+                    <button type="button"
+                      onClick={() => {
+                        const url = setup.shopUrl || target?.url;
+                        if (!url) return;
+                        const w = window.open(url, "_blank", "noopener,noreferrer");
+                        if (!w) toast.error("Pop-up blocked — allow pop-ups to open the portal");
+                      }}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+                      <Store className="h-4 w-4" /> Shop Without Vehicle →
+                    </button>
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <label className="w-24 text-right text-sm font-semibold shrink-0">Username:</label>
+                    <input className="flex-1 rounded border border-blue-400 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={form.username}
+                      onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                      autoComplete="username" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="w-24 text-right text-sm font-semibold shrink-0">Password:</label>
+                    <div className="relative flex-1">
+                      <input type={showPw ? "text" : "password"} className="w-full rounded border border-blue-400 px-3 py-1.5 pr-16 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={form.password}
+                        onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                        autoComplete="current-password"
+                        onKeyDown={e => { if (e.key === "Enter") handleSave(); }} />
+                      <button type="button" className="absolute right-2 top-1.5 text-xs text-blue-600"
+                        onClick={() => setShowPw(v => !v)}>
+                        {showPw ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
-          <DialogFooter className="gap-2 flex-wrap">
+          {/* Footer */}
+          <div className="flex items-center justify-center gap-3 border-t border-slate-700 bg-slate-900/60 px-6 py-3">
             {savedMap[target?.id ?? ""] && (
-              <Button
-                variant="outline"
-                className="text-destructive border-destructive/30 hover:bg-destructive/10 mr-auto"
-                onClick={() => target && handleDisconnect(target)}
-              >
+              <button onClick={() => target && handleDisconnect(target)}
+                className="rounded border border-red-500/60 bg-slate-800 px-4 py-2 text-sm font-semibold text-red-400 hover:bg-slate-700">
                 Disconnect
-              </Button>
+              </button>
             )}
-            <Button variant="outline" onClick={() => setTarget(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} className="gap-1.5">
-              <Check className="w-3.5 h-3.5" />
-              Save & Open Portal
-            </Button>
-          </DialogFooter>
+            <button onClick={handleSave}
+              className="rounded bg-[#1e90ff] px-10 py-2.5 font-semibold text-white hover:bg-[#1577e0]">
+              Save
+            </button>
+            <button onClick={() => setTarget(null)}
+              className="flex items-center gap-1 rounded border border-red-500/60 bg-slate-800 px-6 py-2.5 font-semibold text-red-400 hover:bg-slate-700">
+              <X className="h-4 w-4" /> Cancel
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Portal iframe modal */}
-      <Dialog open={!!portalUrl} onOpenChange={open => { if (!open) setPortalUrl(null); }}>
-        <DialogContent className="max-w-4xl h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Supplier Portal</DialogTitle>
-          </DialogHeader>
-          {portalUrl && (
-            <iframe
-              src={portalUrl}
-              className="w-full h-full border-0 rounded"
-              title="Supplier portal"
-              sandbox="allow-same-origin allow-forms allow-scripts allow-popups allow-top-navigation"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

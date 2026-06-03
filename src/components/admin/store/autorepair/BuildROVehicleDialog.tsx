@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Car, Search, Camera, X, Loader2 } from "lucide-react";
+import BuildROCarfaxDialog from "./BuildROCarfaxDialog";
 
 export type VehicleOwner = { name: string; phone: string; email: string };
 
@@ -33,6 +34,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
   const [f, setF] = useState(blank);
   const [decoding, setDecoding] = useState(false);
   const [reportCarfax, setReportCarfax] = useState(true);
+  const [carfaxOpen, setCarfaxOpen] = useState(false);
 
   useEffect(() => { if (open) { setF(blank); setReportCarfax(true); } }, [open]);
   const set = (p: Partial<typeof blank>) => setF((s) => ({ ...s, ...p }));
@@ -80,6 +82,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
   });
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl gap-0 overflow-hidden border-slate-700 bg-[#0b1220] p-0 text-slate-100">
         <DialogTitle className="sr-only">Edit / Add New Vehicle</DialogTitle>
@@ -120,7 +123,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
             </div>
             {/* Right column — carfax / photo */}
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-slate-700 p-3">
-              <span className="text-xs text-red-400 underline">View Carfax History</span>
+              <button type="button" onClick={() => setCarfaxOpen(true)} className="text-xs text-red-400 underline hover:text-red-300">View Carfax History</button>
               <div className="flex h-16 w-20 items-center justify-center rounded bg-slate-200 text-slate-500"><Camera className="h-7 w-7" /></div>
               <label className="flex items-center gap-1.5 text-xs text-slate-300">
                 <input type="checkbox" className="h-3.5 w-3.5 accent-sky-500" checked={reportCarfax} onChange={(e) => setReportCarfax(e.target.checked)} />
@@ -143,5 +146,12 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
         </div>
       </DialogContent>
     </Dialog>
+    <BuildROCarfaxDialog
+      open={carfaxOpen}
+      onOpenChange={setCarfaxOpen}
+      storeId={storeId}
+      vehicle={{ vin: f.vin, year: f.year, make: f.make, model: f.model }}
+    />
+    </>
   );
 }

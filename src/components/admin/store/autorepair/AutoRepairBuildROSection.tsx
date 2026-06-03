@@ -108,6 +108,23 @@ const RAIL: LineKind[] = ["labor", "part", "tire", "fee", "sublet", "note", "dia
 const APPOINTMENT_TYPES = ["Stay With Vehicle", "Drop Off", "Waiter", "Pick-up & Delivery", "Towed In"];
 const PAYMENT_METHODS = ["", "Cash", "Card", "Check", "Fleet / PO", "KHQR", "Other"];
 
+// Shop-floor repair-order workflow stages, shown as a clickable chevron stepper.
+// `value` is what's written to ar_estimates.status; `color` themes the chevron.
+const WORK_STAGES = [
+  { value: "awaiting",    label: "Awaiting Start", color: "#7c3aed" }, // purple
+  { value: "in_progress", label: "In Progress",    color: "#2563eb" }, // blue
+  { value: "ready",       label: "Ready",          color: "#16a34a" }, // green
+  { value: "picked_up",   label: "Picked Up",      color: "#64748b" }, // slate
+] as const;
+
+/** Map any persisted status (draft/sent/approved/…) to a workflow stage index. */
+const statusToStageIndex = (s: string): number => {
+  const i = WORK_STAGES.findIndex((w) => w.value === s);
+  if (i >= 0) return i;
+  if (s === "done" || s === "invoiced") return 3;
+  return 0; // draft / sent / approved / awaiting → first stage
+};
+
 const money = (cents: number) =>
   `$${((cents ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const dollarsToCents = (v: string | number) => Math.round((Number(v) || 0) * 100);
@@ -753,6 +770,18 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     toast.success(`${ids.length} part${ids.length === 1 ? "" : "s"} marked ordered`);
   };
 
+  // Advance/set the shop-floor workflow stage. Persists immediately when the RO
+  // is already saved; otherwise it rides along on the next save.
+  const setWorkStatus = async (value: string) => {
+    setStatus(value);
+    if (editId) {
+      const { error } = await supabase.from("ar_estimates" as any).update({ status: value }).eq("id", editId);
+      if (error) { toast.error("Couldn't update status"); return; }
+    }
+    const label = WORK_STAGES.find((w) => w.value === value)?.label ?? value;
+    toast.success(`Status: ${label}`);
+  };
+
   const ensureSavedId = async () => editId ?? (await save.mutateAsync(false));
 
   const convertWO = useMutation({
@@ -1093,6 +1122,35 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </button>
             </div>
           </div>
+          {boundVehicle ? (
+            <dl className="space-y-1 rounded-lg bg-muted/40 px-3 py-2 text-xs">
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 font-medium text-muted-foreground">Vehicle</dt>
+                <dd className="font-semibold">{header.vehicle_label || "—"}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 font-medium text-muted-foreground">Engine</dt>
+                <dd>{[header.vehicle_engine, header.vehicle_transmission].filter(Boolean).join(" · ") || "—"}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 font-medium text-muted-foreground">VIN</dt>
+                <dd className="font-mono">{boundVehicle.vin || "—"}</dd>
+              </div>
+              {header.license_plate && (
+                <div className="flex gap-2">
+                  <dt className="w-16 shrink-0 font-medium text-muted-foreground">Plate</dt>
+                  <dd className="font-mono uppercase">{header.license_plate}</dd>
+                </div>
+              )}
+              <div className="flex items-center gap-2 pt-0.5">
+                <dt className="w-16 shrink-0 font-medium text-muted-foreground">Mileage</dt>
+                <Input className="h-7 w-24 text-xs" type="number" placeholder="Enter Mileage" value={header.mileage_in} onChange={(e) => setH({ mileage_in: e.target.value })} />
+                <span className="shrink-0 font-medium text-muted-foreground">Key tag</span>
+                <Input className="h-7 w-20 text-xs" placeholder="Key tag" value={header.keytag} onChange={(e) => setH({ keytag: e.target.value })} />
+                <button type="button" onClick={unbind} className="ml-auto text-[10px] font-semibold text-primary hover:underline">EDIT</button>
+              </div>
+            </dl>
+          ) : (
           <div className="grid grid-cols-2 gap-1.5">
             <Input className={fieldCls} placeholder="Year" value={header.vehicle_year}
               onChange={(e) => setH({ vehicle_year: e.target.value, vehicle_label: [e.target.value, header.vehicle_make, header.vehicle_model].filter(Boolean).join(" ") })} />
@@ -1108,6 +1166,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             <Input className={fieldCls} type="number" placeholder="Mileage in" value={header.mileage_in} onChange={(e) => setH({ mileage_in: e.target.value })} />
             <Input className={fieldCls} placeholder="Key tag" value={header.keytag} onChange={(e) => setH({ keytag: e.target.value })} />
           </div>
+          )}
         </div>
       </div>
 
@@ -1315,7 +1374,35 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             </span>
             <span className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Status:</span>
-              <Badge variant="outline" className="text-[10px] capitalize">{status}</Badge>
+              <span className="flex items-center">
+                {WORK_STAGES.map((stage, i) => {
+                  const active = i <= statusToStageIndex(status);
+                  const isCurrent = i === statusToStageIndex(status);
+                  return (
+                    <button
+                      key={stage.value}
+                      type="button"
+                      onClick={() => setWorkStatus(stage.value)}
+                      title={stage.label}
+                      className={`relative flex h-6 items-center pl-3 pr-2.5 text-[10px] font-semibold transition-colors first:rounded-l-md last:rounded-r-md ${
+                        active ? "text-white" : "text-muted-foreground"
+                      } ${isCurrent ? "ring-1 ring-offset-1 ring-foreground/20" : ""}`}
+                      style={{
+                        backgroundColor: active ? stage.color : "hsl(var(--muted))",
+                        // chevron notch
+                        clipPath: i === 0
+                          ? "polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%)"
+                          : i === WORK_STAGES.length - 1
+                          ? "polygon(0 0, 100% 0, 100% 100%, 0 100%, 7px 50%)"
+                          : "polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%, 7px 50%)",
+                        marginLeft: i === 0 ? 0 : -4,
+                      }}
+                    >
+                      {stage.label}
+                    </button>
+                  );
+                })}
+              </span>
             </span>
             <span className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Tech:</span>
