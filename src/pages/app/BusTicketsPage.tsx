@@ -12,8 +12,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import Ticket from "lucide-react/dist/esm/icons/ticket";
 import Bus from "lucide-react/dist/esm/icons/bus";
+import Star from "lucide-react/dist/esm/icons/star";
 
 type BookingRow = {
   booking_id: string;
@@ -30,7 +32,11 @@ type BookingRow = {
   depart_date: string;
   depart_time: string;
   created_at: string;
+  store_id: string;
+  trip_id: string;
 };
+
+type MyReview = { booking_id: string | null; rating: number; comment: string | null };
 
 const STATUS_STYLE: Record<string, string> = {
   confirmed: "bg-emerald-500/15 text-emerald-600",
@@ -44,21 +50,54 @@ export default function BusTicketsPage() {
   const { t } = useI18n();
   const [rows, setRows] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<Record<string, MyReview>>({});
+  const [openReview, setOpenReview] = useState<string | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [savingReview, setSavingReview] = useState(false);
+
+  const db = supabase as unknown as { from: (t: string) => any };
+
+  const loadReviews = async () => {
+    if (!user) return;
+    const { data } = await db.from("bus_reviews").select("booking_id, rating, comment").eq("customer_id", user.id);
+    const map: Record<string, MyReview> = {};
+    for (const r of (data || []) as MyReview[]) if (r.booking_id) map[r.booking_id] = r;
+    setReviews(map);
+  };
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     let active = true;
     (async () => {
       try {
-        const { data } = await (supabase as { rpc: (fn: string) => Promise<{ data: BookingRow[] | null }> })
+        const { data } = await (supabase as unknown as { rpc: (fn: string) => Promise<{ data: BookingRow[] | null }> })
           .rpc("get_my_bus_bookings");
         if (active) setRows((data || []) as BookingRow[]);
+        await loadReviews();
       } finally {
         if (active) setLoading(false);
       }
     })();
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  const submitReview = async (b: BookingRow) => {
+    setSavingReview(true);
+    const { error } = await db.from("bus_reviews").insert({
+      store_id: b.store_id,
+      trip_id: b.trip_id,
+      booking_id: b.booking_id,
+      rating,
+      comment: comment.trim() || null,
+    });
+    setSavingReview(false);
+    if (error) { toast.error("Couldn't submit review."); return; }
+    toast.success("Thanks for your review!");
+    setOpenReview(null); setComment(""); setRating(5);
+    void loadReviews();
+  };
 
   const fmtDate = (d: string) => {
     try { return new Date(d + "T00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }); }
@@ -112,6 +151,47 @@ export default function BusTicketsPage() {
                       </span>
                       <span className="font-black text-foreground">${(b.amount_cents / 100).toFixed(2)}</span>
                     </div>
+
+                    {/* Review — only for confirmed trips */}
+                    {b.status === "confirmed" && (
+                      <div className="border-t border-border pt-2">
+                        {reviews[b.booking_id] ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">Your rating:</span>
+                            <span className="inline-flex">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <Star key={i} className={cn("h-3.5 w-3.5", i <= reviews[b.booking_id].rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
+                              ))}
+                            </span>
+                          </div>
+                        ) : openReview === b.booking_id ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <button key={i} type="button" onClick={() => setRating(i)} aria-label={`${i} star`}>
+                                  <Star className={cn("h-6 w-6", i <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
+                                </button>
+                              ))}
+                            </div>
+                            <textarea
+                              value={comment}
+                              onChange={(e) => setComment(e.target.value)}
+                              rows={2}
+                              placeholder="How was your trip? (optional)"
+                              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                            />
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => submitReview(b)} disabled={savingReview} className="h-8 rounded-lg text-xs font-bold">{savingReview ? "Submitting…" : "Submit review"}</Button>
+                              <Button size="sm" variant="outline" onClick={() => { setOpenReview(null); setComment(""); setRating(5); }} className="h-8 rounded-lg text-xs font-bold">Cancel</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => { setOpenReview(b.booking_id); setRating(5); setComment(""); }} className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                            <Star className="h-3.5 w-3.5" /> Rate this trip
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

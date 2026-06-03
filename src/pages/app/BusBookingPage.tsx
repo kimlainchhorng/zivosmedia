@@ -29,19 +29,28 @@ import Zap from "lucide-react/dist/esm/icons/zap";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2";
 import Ticket from "lucide-react/dist/esm/icons/ticket";
+import BedDouble from "lucide-react/dist/esm/icons/bed-double";
+import Utensils from "lucide-react/dist/esm/icons/utensils";
+import GlassWater from "lucide-react/dist/esm/icons/glass-water";
+import Toilet from "lucide-react/dist/esm/icons/toilet";
+import Layers from "lucide-react/dist/esm/icons/layers";
+import Tv from "lucide-react/dist/esm/icons/tv";
+import { BUS_AMENITIES, type BusVehicleAmenity } from "@/config/busVehicleTypes";
 
 type Step = "search" | "results" | "seats" | "summary" | "confirmed";
 
 interface BusTrip {
   id: string;
+  storeId: string;
   operator: string;
   rating: number;
+  reviewCount: number;
   departTime: string;
   arriveTime: string;
   durationMins: number;
   priceUsd: number;
   busType: string;
-  amenities: Array<"wifi" | "ac" | "charging">;
+  amenities: BusVehicleAmenity[];
   seatsLeft: number;
   totalSeats: number;
   /** true when sourced from a real operator trip (Supabase), false for the
@@ -49,12 +58,12 @@ interface BusTrip {
   real: boolean;
 }
 
-const AMENITY_KEYS: Array<"wifi" | "ac" | "charging"> = ["wifi", "ac", "charging"];
-const normalizeAmenities = (raw: unknown): Array<"wifi" | "ac" | "charging"> => {
+const AMENITY_KEYS: BusVehicleAmenity[] = BUS_AMENITIES.map((a) => a.value);
+const normalizeAmenities = (raw: unknown): BusVehicleAmenity[] => {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((a) => String(a).toLowerCase())
-    .filter((a): a is "wifi" | "ac" | "charging" => (AMENITY_KEYS as string[]).includes(a));
+    .filter((a): a is BusVehicleAmenity => (AMENITY_KEYS as string[]).includes(a));
 };
 
 const POPULAR_CITIES = [
@@ -62,10 +71,16 @@ const POPULAR_CITIES = [
   "Kampot", "Kep", "Bangkok", "Ho Chi Minh City",
 ];
 
-const AMENITY_META = {
+const AMENITY_META: Record<BusVehicleAmenity, { icon: typeof Wifi; label: string }> = {
   wifi: { icon: Wifi, label: "Wi-Fi" },
   ac: { icon: Snowflake, label: "A/C" },
   charging: { icon: Zap, label: "Charging" },
+  sleeper: { icon: BedDouble, label: "Sleeper beds" },
+  meals: { icon: Utensils, label: "Meals" },
+  water: { icon: GlassWater, label: "Water" },
+  toilet: { icon: Toilet, label: "Toilet" },
+  blanket: { icon: Layers, label: "Blanket" },
+  tv: { icon: Tv, label: "TV" },
 } as const;
 
 const SEAT_ROWS = 11;       // 11 rows
@@ -100,9 +115,9 @@ const buildTrips = (from: string, to: string, date: string): BusTrip[] => {
   const operators = [
     { name: "Giant Ibis Transport", type: "VIP Bus", base: 18, rating: 4.8, amenities: ["wifi", "ac", "charging"] as const },
     { name: "Mekong Express", type: "AC Bus", base: 15, rating: 4.6, amenities: ["wifi", "ac"] as const },
-    { name: "Virak Buntham", type: "Sleeper Bus", base: 12, rating: 4.3, amenities: ["ac", "charging"] as const },
+    { name: "Virak Buntham", type: "Sleeper Bus", base: 12, rating: 4.3, amenities: ["ac", "charging", "sleeper", "blanket"] as const },
     { name: "Larryta Express", type: "Standard Bus", base: 14, rating: 4.5, amenities: ["wifi", "ac"] as const },
-    { name: "Vireak Buntham Night", type: "Night Sleeper", base: 16, rating: 4.4, amenities: ["wifi", "ac", "charging"] as const },
+    { name: "Vireak Buntham Night", type: "Night Sleeper", base: 16, rating: 4.4, amenities: ["wifi", "ac", "charging", "sleeper", "blanket", "meals"] as const },
   ];
   const departBase = ["06:30", "08:00", "11:45", "14:15", "22:30"];
   const baseSeed = hashString(`${from}-${to}-${date}`);
@@ -114,8 +129,10 @@ const buildTrips = (from: string, to: string, date: string): BusTrip[] => {
     const price = op.base + (seed % 7);
     return {
       id: `${date}-${i}`,
+      storeId: "",
       operator: op.name,
       rating: op.rating,
+      reviewCount: 0,
       departTime: departBase[i],
       arriveTime: addMinutes(departBase[i], durationMins),
       durationMins,
@@ -152,15 +169,17 @@ const labelToIndex = (label: string): number => {
 
 // Map a search_bus_trips RPC row into the UI trip shape.
 type RpcTripRow = {
-  trip_id: string; operator: string | null; arrive_time: string | null;
+  trip_id: string; store_id: string; operator: string | null; arrive_time: string | null;
   depart_time: string; duration_mins: number | null; price_cents: number | null;
   bus_type: string | null; total_seats: number | null; seats_left: number | null;
-  amenities: unknown; rating: number | null;
+  amenities: unknown; rating: number | null; review_count: number | null;
 };
 const mapRpcTrip = (r: RpcTripRow): BusTrip => ({
   id: r.trip_id,
+  storeId: r.store_id,
   operator: r.operator || "Operator",
   rating: Number(r.rating) || 0,
+  reviewCount: Number(r.review_count) || 0,
   departTime: (r.depart_time || "").slice(0, 5),
   arriveTime: (r.arrive_time || "").slice(0, 5),
   durationMins: r.duration_mins || 0,
@@ -208,8 +227,46 @@ export default function BusBookingPage() {
   // sample-catalog demo confirmation.
   const [realBooking, setRealBooking] = useState(false);
 
+  // Promo code (real operator trips only). Validated client-side for preview;
+  // re-validated and applied authoritatively by create_bus_booking.
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; discountUsd: number } | null>(null);
+  const [promoError, setPromoError] = useState("");
+  const [checkingPromo, setCheckingPromo] = useState(false);
+
   const seatRows = Math.ceil((selectedTrip?.totalSeats ?? SEAT_ROWS * SEATS_PER_ROW) / SEATS_PER_ROW);
-  const totalUsd = selectedTrip ? selectedTrip.priceUsd * selectedSeats.length : 0;
+  const subtotalUsd = selectedTrip ? selectedTrip.priceUsd * selectedSeats.length : 0;
+  const totalUsd = Math.max(0, subtotalUsd - (promo?.discountUsd ?? 0));
+
+  const applyPromo = async () => {
+    const code = promoInput.trim();
+    if (!code || !selectedTrip) return;
+    setCheckingPromo(true);
+    setPromoError("");
+    try {
+      const { data } = await (supabase as unknown as { from: (t: string) => any })
+        .from("bus_promos").select("*")
+        .eq("store_id", selectedTrip.storeId)
+        .ilike("code", code)
+        .eq("status", "active")
+        .limit(1);
+      const p = (data || [])[0];
+      const today = todayISO();
+      if (!p) { setPromo(null); setPromoError("That code isn't valid"); return; }
+      if ((p.starts_on && p.starts_on > today) || (p.ends_on && p.ends_on < today)) { setPromo(null); setPromoError("That code isn't valid"); return; }
+      if (p.max_uses != null && p.used_count >= p.max_uses) { setPromo(null); setPromoError("That code isn't valid"); return; }
+      const subtotalCents = Math.round(subtotalUsd * 100);
+      if (subtotalCents < (p.min_fare_cents || 0)) { setPromo(null); setPromoError("Fare too low for this code"); return; }
+      const discountCents = p.discount_type === "fixed"
+        ? Math.min(p.discount_value, subtotalCents)
+        : Math.min(Math.floor(subtotalCents * p.discount_value / 100), subtotalCents);
+      setPromo({ code: p.code, discountUsd: discountCents / 100 });
+    } finally {
+      setCheckingPromo(false);
+    }
+  };
+
+  const clearPromo = () => { setPromo(null); setPromoInput(""); setPromoError(""); };
 
   const swapCities = () => {
     setFrom(to);
@@ -229,7 +286,7 @@ export default function BusBookingPage() {
     try {
       // Real operator trips first; fall back to the sample catalog so the page
       // still demonstrates the flow before any operator has published trips.
-      const { data, error } = await (supabase as { rpc: (fn: string, args: unknown) => Promise<{ data: RpcTripRow[] | null; error: unknown }> })
+      const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: RpcTripRow[] | null; error: unknown }> })
         .rpc("search_bus_trips", { p_from: from.trim(), p_to: to.trim(), p_date: date });
       const real = !error && Array.isArray(data) && data.length > 0;
       setTrips(real ? (data as RpcTripRow[]).map(mapRpcTrip) : buildTrips(from.trim(), to.trim(), date));
@@ -249,7 +306,7 @@ export default function BusBookingPage() {
     if (trip.real) {
       const set = new Set<number>();
       try {
-        const { data } = await (supabase as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ seat: string }> | null }> })
+        const { data } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ seat: string }> | null }> })
           .rpc("get_bus_trip_seats", { p_trip_id: trip.id });
         (data || []).forEach((row) => { const i = labelToIndex(row.seat); if (i >= 0) set.add(i); });
       } catch { /* no seats taken / offline — treat as all available */ }
@@ -286,6 +343,8 @@ export default function BusBookingPage() {
     if (raw.includes("seat_taken")) return t("bus.err_seat_taken");
     if (raw.includes("auth_required")) return t("bus.err_login");
     if (raw.includes("trip_unavailable") || raw.includes("trip_not_found")) return t("bus.err_trip_unavailable");
+    if (raw.includes("promo_invalid") || raw.includes("promo_exhausted")) return "That code isn't valid";
+    if (raw.includes("promo_min_fare")) return "Fare too low for this code";
     return t("bus.err_generic");
   };
 
@@ -305,12 +364,13 @@ export default function BusBookingPage() {
       setSubmitting(true);
       try {
         const seatLabels = selectedSeats.map(seatLabel);
-        const { data, error } = await (supabase as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ booking_id: string; booking_ref: string }> | null; error: { message: string } | null }> })
+        const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ booking_id: string; booking_ref: string }> | null; error: { message: string } | null }> })
           .rpc("create_bus_booking", {
             p_trip_id: selectedTrip.id,
             p_seats: seatLabels,
             p_contact_name: contactName.trim(),
             p_contact_phone: contactPhone.trim(),
+            p_promo_code: promo?.code ?? null,
           });
         if (error) {
           toast.error(bookingErrorMessage(error.message));
@@ -318,6 +378,8 @@ export default function BusBookingPage() {
             // Refresh the seat map so the customer can pick again.
             void chooseTrip(selectedTrip);
           }
+          // Promo went invalid between preview and submit — drop it so a retry works.
+          if (error.message.includes("promo_")) clearPromo();
           return;
         }
         const row = Array.isArray(data) ? data[0] : data;
@@ -571,6 +633,7 @@ export default function BusBookingPage() {
                             <span className="flex items-center gap-0.5 text-[11px] font-bold text-amber-500">
                               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                               {trip.rating.toFixed(1)}
+                              {trip.reviewCount > 0 && <span className="font-semibold text-muted-foreground">({trip.reviewCount})</span>}
                             </span>
                           </div>
                           <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{trip.busType}</p>
@@ -734,20 +797,56 @@ export default function BusBookingPage() {
                     />
                   </div>
 
+                  {/* Promo code — real operator trips only */}
+                  {selectedTrip.real && (
+                    <div className="rounded-2xl border border-border bg-card p-4">
+                      {promo ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-lg bg-emerald-500/15 px-2 py-0.5 font-mono text-xs font-black tracking-wider text-emerald-600">{promo.code}</span>
+                            <span className="text-xs font-semibold text-emerald-600">−${promo.discountUsd.toFixed(2)}</span>
+                          </div>
+                          <button type="button" onClick={clearPromo} className="text-xs font-bold text-muted-foreground hover:text-rose-500">{"Remove"}</button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex gap-2">
+                            <input
+                              value={promoInput}
+                              onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                              placeholder={"Promo code"}
+                              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm uppercase outline-none focus:ring-2 focus:ring-primary/40"
+                            />
+                            <Button variant="outline" onClick={applyPromo} disabled={checkingPromo || !promoInput.trim()} className="shrink-0 rounded-xl font-bold">
+                              {checkingPromo ? "…" : "Apply"}
+                            </Button>
+                          </div>
+                          {promoError && <p className="mt-1.5 text-[11px] font-semibold text-rose-500">{promoError}</p>}
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {/* Price */}
                   <div className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">${selectedTrip.priceUsd} × {selectedSeats.length} {selectedSeats.length > 1 ? t("bus.seats") : t("bus.seat")}</span>
-                      <span className="font-semibold text-foreground">${totalUsd}</span>
+                      <span className="font-semibold text-foreground">${subtotalUsd.toFixed(2)}</span>
                     </div>
+                    {promo && (
+                      <div className="mt-1 flex items-center justify-between text-sm">
+                        <span className="text-emerald-600">{"Discount"} ({promo.code})</span>
+                        <span className="font-semibold text-emerald-600">−${promo.discountUsd.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                       <span className="text-sm font-bold text-foreground">{t("bus.total")}</span>
-                      <span className="text-xl font-black text-foreground">${totalUsd}</span>
+                      <span className="text-xl font-black text-foreground">${totalUsd.toFixed(2)}</span>
                     </div>
                   </div>
 
                   <Button onClick={confirmBooking} disabled={submitting} className="h-12 w-full rounded-2xl text-base font-black">
-                    {submitting ? `${t("bus.confirm")}…` : `${t("bus.confirm")} · $${totalUsd}`}
+                    {submitting ? `${t("bus.confirm")}…` : `${t("bus.confirm")} · $${totalUsd.toFixed(2)}`}
                   </Button>
                   <p className="text-center text-[11px] text-muted-foreground">
                     {selectedTrip.real ? t("bus.reserved_notice") : t("bus.sample_notice")}
