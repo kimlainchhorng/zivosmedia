@@ -18,7 +18,14 @@ export type ProfitLine = {
   disc: number;
   disc_type: "%" | "$";
   declined: boolean;
+  job?: number;
+  description?: string;
 };
+
+/** Kinds that carry a real cost of goods (everything else is full margin). */
+const COGS_KINDS = new Set(["part", "tire", "sublet"]);
+/** Parts below this gross-profit % are flagged for a pricing review. */
+const LOW_MARGIN_PCT = 20;
 
 interface Props {
   open: boolean;
@@ -59,7 +66,32 @@ export default function BuildROProfitDialog({ open, onOpenChange, lines }: Props
     const laborHours = active.filter((l) => l.kind === "labor").reduce((s, l) => s + (l.qty || 0), 0);
     const laborSell = active.filter((l) => l.kind === "labor").reduce((s, l) => s + sellCents(l), 0);
     const declined = (lines || []).filter((l) => l.declined).length;
-    return { rows, revenue, cogs, gp: revenue - cogs, laborHours, laborSell, declined };
+
+    // Per-job rollup (VSM groups work into jobs; profit is tracked per job).
+    const jobMap = new Map<number, { sell: number; cost: number }>();
+    for (const l of active) {
+      const j = Number(l.job) || 1;
+      const cur = jobMap.get(j) || { sell: 0, cost: 0 };
+      cur.sell += sellCents(l);
+      cur.cost += COGS_KINDS.has(l.kind) ? costCents(l) : 0;
+      jobMap.set(j, cur);
+    }
+    const perJob = [...jobMap.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([job, v]) => ({ job, sell: v.sell, cost: v.cost, gp: v.sell - v.cost }));
+
+    // Underpriced parts — sell set but gross profit below the healthy threshold.
+    const lowMargin = active
+      .filter((l) => (l.kind === "part" || l.kind === "tire") && sellCents(l) > 0)
+      .map((l) => {
+        const s = sellCents(l);
+        const c = costCents(l);
+        return { description: l.description || "Part", sell: s, gpPct: ((s - c) / s) * 100 };
+      })
+      .filter((x) => x.gpPct < LOW_MARGIN_PCT)
+      .sort((a, b) => a.gpPct - b.gpPct);
+
+    return { rows, revenue, cogs, gp: revenue - cogs, laborHours, laborSell, declined, perJob, lowMargin };
   }, [lines]);
 
   const gpPct = data.revenue > 0 ? (data.gp / data.revenue) * 100 : 0;
@@ -124,6 +156,43 @@ export default function BuildROProfitDialog({ open, onOpenChange, lines }: Props
                 </tr>
               </tfoot>
             </table>
+
+            {/* Per-job breakdown (only meaningful with more than one job) */}
+            {data.perJob.length > 1 && (
+              <div>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">By job</p>
+                <table className="w-full text-xs">
+                  <tbody>
+                    {data.perJob.map((j) => (
+                      <tr key={j.job} className="border-b last:border-0">
+                        <td className="px-2 py-1">Job {j.job}</td>
+                        <td className="px-2 py-1 text-right tabular-nums text-muted-foreground">{money(j.cost)} cost</td>
+                        <td className="px-2 py-1 text-right tabular-nums">{money(j.sell)}</td>
+                        <td className="px-2 py-1 text-right font-medium tabular-nums text-emerald-700">{j.sell > 0 ? pct((j.gp / j.sell) * 100) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Low-margin watchlist — catch underpriced parts before they ship */}
+            {data.lowMargin.length > 0 && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-800">
+                <p className="font-medium">
+                  {data.lowMargin.length} part{data.lowMargin.length === 1 ? "" : "s"} under {LOW_MARGIN_PCT}% GP — review pricing
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {data.lowMargin.slice(0, 4).map((x, i) => (
+                    <li key={i} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{x.description}</span>
+                      <span className="shrink-0 tabular-nums">{pct(x.gpPct)}</span>
+                    </li>
+                  ))}
+                  {data.lowMargin.length > 4 && <li className="text-amber-700">+{data.lowMargin.length - 4} more…</li>}
+                </ul>
+              </div>
+            )}
 
             {/* Footnotes */}
             <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
