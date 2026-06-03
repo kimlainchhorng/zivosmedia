@@ -32,6 +32,7 @@ import BuildROCustomerDialog, { type CustomerDraft, blankCustomer } from "./Buil
 import BuildROVehicleDialog from "./BuildROVehicleDialog";
 import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
 import BuildROHub from "./BuildROHub";
+import BuildROExistingCustomerDialog from "./BuildROExistingCustomerDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import {
@@ -301,9 +302,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [printCopies, setPrintCopies] = useState(1);
   const [smsMenuOpen, setSmsMenuOpen] = useState(false);
   const [smsCustomMsg, setSmsCustomMsg] = useState("");
+  const [pendingVehicleAfterCustomer, setPendingVehicleAfterCustomer] = useState(false);
   const [openCustomer, setOpenCustomer] = useState(false);
   const [openVehicleDlg, setOpenVehicleDlg] = useState(false);
   const [openCatalog, setOpenCatalog] = useState(false);
+  const [openExisting, setOpenExisting] = useState(false);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
   const [view, setView] = useState<"hub" | "builder">("hub");
 
@@ -377,8 +380,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setCustomerDraft(c);
     setHeader((h) => ({ ...h, customer_name: c.name, customer_phone: c.cell || c.work, customer_email: c.email }));
     setOpenCustomer(false);
-    if (addVehicle) setOpenVehicleDlg(true);
-    else toast.success("Customer added");
+    if (addVehicle || pendingVehicleAfterCustomer) {
+      setPendingVehicleAfterCustomer(false);
+      setOpenVehicleDlg(true);
+    } else {
+      toast.success("Customer added");
+    }
   };
   const customerMemo = [
     customerDraft.street,
@@ -808,7 +815,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         storeId={storeId}
         recent={recent}
         onCreateNew={() => { resetAll(); setView("builder"); }}
-        onExistingCustomer={() => { resetAll(); setView("builder"); setSearchOpen(true); toast.info("Search the customer in the Customer panel"); }}
+        onExistingCustomer={() => { resetAll(); setView("builder"); setOpenExisting(true); }}
         onNewCustomer={() => { resetAll(); setView("builder"); setOpenCustomer(true); }}
         onOpenTicket={(e) => { loadEstimate(e); setView("builder"); }}
         onRequestInfoSms={requestInfoBySms}
@@ -955,7 +962,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                   <UserPlus className="h-3 w-3" /> Save to garage
                 </button>
               )}
-              <button type="button" onClick={() => setOpenVehicleDlg(true)}
+              <button type="button"
+                onClick={() => setOpenVehicleDlg(true)}
                 className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90">
                 <Car className="h-3 w-3" /> Add New
               </button>
@@ -1368,6 +1376,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         open={openCatalog}
         onOpenChange={setOpenCatalog}
         storeId={storeId}
+      />
+      <BuildROExistingCustomerDialog
+        open={openExisting}
+        onOpenChange={setOpenExisting}
+        garage={garage}
+        onPick={(v) => bindVehicle(v as GarageVehicle)}
       />
 
       {/* ── Print / Review modal ── */}

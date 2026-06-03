@@ -5,7 +5,7 @@
  * written onto the ar_customer_vehicles row when the vehicle is saved.
  */
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { UserPlus, Search, Star, X } from "lucide-react";
@@ -50,6 +50,7 @@ export default function BuildROCustomerDialog({ open, onOpenChange, initial, onS
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl gap-0 overflow-hidden border-slate-700 bg-[#0b1220] p-0 text-slate-100">
+        <DialogTitle className="sr-only">Create New Customer</DialogTitle>
         {/* Title bar */}
         <div className="flex items-center gap-3 bg-slate-800/80 px-5 py-3">
           <span className="font-serif text-lg italic tracking-wide text-slate-300">VIP</span>

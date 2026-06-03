@@ -5,7 +5,7 @@
  * repair-info reference links sits underneath.
  */
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PARTS_SUPPLIERS, type PartsSupplier } from "@/config/partsSuppliers";
 import PartsSupplierLogo from "./PartsSupplierLogo";
 import SupplierBrowserModal from "./SupplierBrowserModal";
@@ -32,6 +32,7 @@ export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId 
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl gap-0 overflow-hidden border-slate-700 bg-[#1b1f27] p-0 text-slate-100">
+          <DialogTitle className="sr-only">Parts Catalog — Suppliers</DialogTitle>
           <div className="flex items-center justify-between bg-slate-800/80 px-5 py-2.5">
             <span className="text-sm font-semibold uppercase tracking-wide text-slate-300">Parts Catalog — Suppliers</span>
             <button onClick={() => onOpenChange(false)} className="rounded bg-red-600 p-1 text-white hover:bg-red-700"><X className="h-4 w-4" /></button>

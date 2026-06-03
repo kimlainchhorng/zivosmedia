@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Car, Search, Camera, X, Loader2 } from "lucide-react";
@@ -83,6 +83,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl gap-0 overflow-hidden border-slate-700 bg-[#0b1220] p-0 text-slate-100">
+        <DialogTitle className="sr-only">Edit / Add New Vehicle</DialogTitle>
         <div className="flex items-center gap-3 bg-slate-800/80 px-5 py-3">
           <span className="font-serif text-lg italic tracking-wide text-slate-300">VIP</span>
           <span className="text-base font-bold">Vehicle Information:</span>
