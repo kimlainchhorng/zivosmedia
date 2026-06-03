@@ -132,7 +132,7 @@ function removeCred(storeId: string, supplierId: string) {
 export type ConnectedVendor = { id: string; name: string; url: string; account?: string };
 export function listConnectedVendors(storeId: string): ConnectedVendor[] {
   return SUPPLIERS
-    .map((s) => {
+    .map((s): ConnectedVendor | null => {
       const cred = loadCred(storeId, s.id);
       return cred ? { id: s.id, name: s.name, url: s.url, account: cred.account } : null;
     })

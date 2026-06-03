@@ -40,6 +40,7 @@ import BuildROExistingCustomerDialog from "./BuildROExistingCustomerDialog";
 import BuildROBarcode from "./BuildROBarcode";
 import BuildROSaveCannedDialog from "./BuildROSaveCannedDialog";
 import BuildROPartsMatrixDialog from "./BuildROPartsMatrixDialog";
+import BuildROImportPartsDialog, { type ImportedPart } from "./BuildROImportPartsDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import { type MatrixTier, DEFAULT_PARTS_MATRIX, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
@@ -353,6 +354,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [openExisting, setOpenExisting] = useState(false);
   const [openCanned, setOpenCanned] = useState(false);
   const [openMatrix, setOpenMatrix] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
   const [view, setView] = useState<"hub" | "builder">("hub");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -631,6 +633,28 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     toast.success(`Added ${p.description}${p.brand ? ` (${p.brand})` : ""}`);
   };
 
+  // Import pasted parts (AutoZone-transfer stand-in): cost -> matrix sell, vendor, Pending Order.
+  const importParts = (parts: ImportedPart[], vendor: string) => {
+    setLines((a) => [
+      ...a,
+      ...parts.map((p) => {
+        const costCents = Math.round((p.cost || 0) * 100);
+        return {
+          ...blankLine(activeJob, "part"),
+          description: p.description,
+          qty: p.qty || 1,
+          cost_cents: costCents,
+          unit_cents: costCents > 0 ? sellFromCostCents(costCents, partsMatrix) : 0,
+          part_number: p.sku || "",
+          vendor,
+          misc: p.sku || "",
+          taxable: taxableFor("part"),
+        };
+      }),
+    ]);
+    toast.success(`Imported ${parts.length} part${parts.length === 1 ? "" : "s"} from ${vendor}`);
+  };
+
   const rewriteNote = () => {
     const current = header[noteTab];
     if (!current.trim()) { toast.info("Nothing to rewrite yet"); return; }
@@ -733,7 +757,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setCreatedAt(e.created_at ?? null);
     const ls = Array.isArray(e.line_items) ? e.line_items.map(coerceLine) : [];
     setLines(ls);
-    const js = Array.from(new Set(ls.map((l) => l.job))).sort((a, b) => a - b);
+    const js = Array.from(new Set((ls as any[]).map((l: any) => Number(l.job) || 1))).sort((a, b) => a - b);
     setJobs(js.length ? js : [1]);
     setActiveJob(js[0] ?? 1);
     setFeesC(e.fees_cents ?? 0);
@@ -1354,6 +1378,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenMatrix(true)} title="Cost → Sell markup tiers">
                 <Percent className="h-3 w-3" /> Matrix
               </Button>
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenImport(true)} title="Paste a supplier cart / spreadsheet">
+                <ShoppingCart className="h-3 w-3" /> Import
+              </Button>
               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenPicker(true)}>
                 <BookOpen className="h-3 w-3" /> Price Book
               </Button>
@@ -1613,18 +1640,16 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <div className="flex justify-between border-t pt-1 font-medium">
                 <dt>SubTotal</dt><dd className="tabular-nums">{money(t.lineSubtotal)}</dd>
               </div>
-              {[
+              {([
                 ["Fees", feesC, setFeesC],
                 ["EPA", epaC, (n: number) => { setEpaTouched(true); setEpaC(n); }],
                 ["Shop Supplies", suppliesC, (n: number) => { setSuppliesTouched(true); setSuppliesC(n); }],
                 ["Discount", discountC, setDiscountC],
-              ].map(([label, val, setter]) => (
+              ] as [string, number, (n: number) => void][]).map(([label, val, setter]) => (
                 <div key={label as string} className="flex items-center justify-between">
                   <dt className="text-muted-foreground">{label}</dt>
                   <dd>
-                    <Input
-                      className="h-6 w-20 text-right text-xs"
-                      type="number"
+                    <input className="h-6 w-16 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number"
                       value={centsToDollars(val as number)}
                       onChange={(e) => (setter as (n: number) => void)(dollarsToCents(e.target.value))}
                     />
@@ -1634,7 +1659,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">Tax %</dt>
                 <dd className="flex items-center gap-1">
-                  <Input className="h-6 w-14 text-right text-xs" type="number" value={taxRate || ""} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} />
+                  <input className="h-6 w-12 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number" value={taxRate || ""} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} />
                   <span className="tabular-nums text-muted-foreground">{money(t.tax)}</span>
                 </dd>
               </div>
@@ -1811,6 +1836,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         onOpenChange={setOpenMatrix}
         storeId={storeId}
         initial={partsMatrix}
+      />
+      <BuildROImportPartsDialog
+        open={openImport}
+        onOpenChange={setOpenImport}
+        onImport={importParts}
       />
 
       {/* ── Print / Review modal ── */}
