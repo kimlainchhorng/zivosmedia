@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-03T21:46:29.403Z
+Generated: 2026-06-03T22:11:27.389Z
 Mode: soft
 Options: strict=no, skipBuild=yes, skipTypeCheck=yes
 
@@ -18,9 +18,9 @@ Options: strict=no, skipBuild=yes, skipTypeCheck=yes
 - Override JSON freshness window: append `-- --max-age-minutes=60`
 - Require a strict-mode summary: append `-- --require-mode=strict`
 - TypeScript SIGTERM/resource notes: `docs/typescript-preflight-resource-notes.md`
-- API readiness: critical=1, warnings=8
-- Environment readiness: critical=2, warnings=1
-- Runtime settings SQL: failed
+- API readiness: critical=0, warnings=4
+- Environment readiness: critical=0, warnings=0
+- Runtime settings SQL: passed
 - Database readiness: blockers=2, warnings=1
 - Edge Function deploy contracts: failures=0
 - Edge Function slot readiness: mode=local-plus-known-live-gap, missingLiveCritical=6, warnings=1, failures=0
@@ -43,52 +43,38 @@ Options: strict=no, skipBuild=yes, skipTypeCheck=yes
 ### Supabase deploy environment
 
 - Command: `node scripts/deploy/env-preflight.mjs`
-- Status: failed
-- Failure: exitStatus=1
+- Status: passed
 
 ```json
 {
-  "critical": 2,
-  "warnings": 1,
+  "critical": 0,
+  "warnings": 0,
   "checked": {
-    "viteSupabaseUrl": false,
+    "viteSupabaseUrl": true,
     "backendSupabaseUrl": false,
-    "publishableKey": false,
+    "publishableKey": true,
     "anonKey": false,
     "runtimeSettingsSqlInputs": false,
     "serviceRoleKey": false,
     "supabaseAccessToken": true,
     "channelOgUrl": false
   },
-  "findings": [
-    {
-      "severity": "critical",
-      "id": "VITE_SUPABASE_URL-missing",
-      "message": "Missing VITE_SUPABASE_URL."
-    },
-    {
-      "severity": "warning",
-      "id": "channel-og-unconfigured",
-      "message": "Channel share previews need SUPABASE_URL or CHANNEL_OG_FUNCTION_URL."
-    },
-    {
-      "severity": "critical",
-      "id": "publishable-key-missing",
-      "message": "Missing VITE_SUPABASE_PUBLISHABLE_KEY."
-    }
-  ]
+  "findings": []
 }
 ```
 
 ### Supabase runtime settings SQL
 
 - Command: `node scripts/supabase/runtime-settings-sql.mjs`
-- Status: failed
-- Failure: exitStatus=1
+- Status: passed
 
 ```text
-runtime-settings-sql: Missing Supabase URL. Set SUPABASE_URL or pass --url/--project-ref. See docs/supabase-deploy-env-setup.md.
-runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key. See docs/supabase-deploy-env-setup.md.
+-- Supabase runtime settings for database-side Edge Function calls
+-- Review before running in the Supabase SQL editor.
+-- Preview mode used VITE_SUPABASE_PUBLISHABLE_KEY; use SUPABASE_ANON_KEY with --strict for production cron auth.
+alter database postgres set "app.settings.supabase_url" = 'https://slirphzzwcogdbkeicff.supabase.co';
+alter database postgres set "app.settings.supabase_anon_key" = '<redacted: set SUPABASE_ANON_KEY and rerun with --emit-secrets>';
+select pg_reload_conf();
 ```
 
 ### Supabase migration drift report
@@ -201,37 +187,22 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "critical": 1,
-  "warnings": 8,
+  "critical": 0,
+  "warnings": 4,
   "edgeFunctions": {
     "total": 400,
     "highRisk": 136,
-    "withSecurity": 398,
-    "strictCors": 398,
-    "methodGated": 398,
+    "withSecurity": 400,
+    "strictCors": 400,
+    "methodGated": 400,
     "serviceRole": 343,
-    "highRiskMissingSecurity": [
-      "supabase/functions/capture-bus-payment/index.ts",
-      "supabase/functions/create-bus-payment-intent/index.ts"
-    ],
+    "highRiskMissingSecurity": [],
     "highRiskMissingMethodGate": [],
-    "missingWithSecurity": [
-      "supabase/functions/capture-bus-payment/index.ts",
-      "supabase/functions/create-bus-payment-intent/index.ts"
-    ],
-    "missingStrictCors": [
-      "supabase/functions/capture-bus-payment/index.ts",
-      "supabase/functions/create-bus-payment-intent/index.ts"
-    ],
+    "missingWithSecurity": [],
+    "missingStrictCors": [],
     "missingMethodGate": [],
-    "wildcardCors": [
-      "supabase/functions/capture-bus-payment/index.ts",
-      "supabase/functions/create-bus-payment-intent/index.ts"
-    ],
-    "looseRouteBacklog": [
-      "supabase/functions/capture-bus-payment/index.ts",
-      "supabase/functions/create-bus-payment-intent/index.ts"
-    ]
+    "wildcardCors": [],
+    "looseRouteBacklog": []
   },
   "migrationDrift": {
     "local": 1073,
@@ -277,7 +248,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-06-03T21:46:25.442Z",
+  "generated": "2026-06-03T22:11:21.920Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -325,7 +296,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-06-03T21:46:25.533Z",
+  "generated": "2026-06-03T22:11:22.016Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 76,
@@ -457,7 +428,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-06-03T21:46:28.839Z",
+  "generated": "2026-06-03T22:11:26.783Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2768,
@@ -542,14 +513,9 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Production Blockers
 
-- Failed command: Supabase deploy environment
-- Failed command: Supabase runtime settings SQL
-- API readiness has 1 critical finding(s).
-- Environment readiness has 2 critical finding(s).
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
-- Environment readiness has 1 warning(s).
-- API readiness has 8 warning(s).
+- API readiness has 4 warning(s).
 - Database readiness has 2 blocker(s).
 - Database readiness has 1 warning(s).
 - Supabase linked migration history is disconnected: local and remote have zero exact version matches.
@@ -557,7 +523,4 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Current Gate Blockers
 
-- Failed command: Supabase deploy environment
-- Failed command: Supabase runtime settings SQL
-- API readiness has 1 critical finding(s).
-- Environment readiness has 2 critical finding(s).
+- None

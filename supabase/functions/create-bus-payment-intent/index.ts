@@ -6,9 +6,8 @@
  * (status='hold'); this function attaches the PaymentIntent and flips
  * payment_status to 'authorized'. Amount is read authoritatively from the DB.
  *
- * Self-contained (npm: specifiers + inline auth/CORS) so it deploys without
- * pulling the _shared bundle. Requires env: SUPABASE_URL, SUPABASE_ANON_KEY,
- * SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY.
+ * Requires env: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
+ * STRIPE_SECRET_KEY.
  *
  * NOTE: not yet deployed — the Supabase project is at its plan's edge-function
  * cap. Deploy once a slot is freed / the plan is upgraded.
@@ -16,19 +15,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.106.0";
 import Stripe from "npm:stripe@18.5.0";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+Deno.serve(withSecurity("create-bus-payment-intent", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -117,4 +109,4 @@ Deno.serve(async (req: Request) => {
     console.error("[bus-payment] Error:", e);
     return json({ error: String(e) }, 500);
   }
-});
+}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

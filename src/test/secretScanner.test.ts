@@ -139,6 +139,7 @@ describe("secret scanner", () => {
     const fakeToken = `sbp_${"c".repeat(40)}`;
 
     try {
+      writeFileSync(path.join(workspace, ".env"), `SUPABASE_ACCESS_TOKEN=${fakeToken}\n`);
       writeFileSync(path.join(workspace, ".env.local"), `SUPABASE_ACCESS_TOKEN=${fakeToken}\n`);
       writeFileSync(path.join(workspace, ".env.production.local"), `SUPABASE_ACCESS_TOKEN=${fakeToken}\n`);
 
@@ -160,7 +161,7 @@ describe("secret scanner", () => {
     const fakeToken = `sbp_${"c".repeat(40)}`;
 
     try {
-      writeFileSync(path.join(workspace, ".env.local"), `SUPABASE_ACCESS_TOKEN=${fakeToken}\n`);
+      writeFileSync(path.join(workspace, ".env"), `SUPABASE_ACCESS_TOKEN=${fakeToken}\n`);
 
       const result = spawnSync(process.execPath, [scanner, "--include-local-env"], {
         cwd: workspace,
@@ -169,7 +170,7 @@ describe("secret scanner", () => {
 
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("Supabase access token");
-      expect(result.stderr).toContain(".env.local:1");
+      expect(result.stderr).toContain(".env:1");
       expect(result.stderr).not.toContain(fakeToken);
     } finally {
       rmSync(workspace, { recursive: true, force: true });
@@ -274,7 +275,7 @@ describe("Supabase token fragment scanner", () => {
     const fakeToken = `sbp_${"e".repeat(40)}`;
 
     try {
-      writeFileSync(path.join(workspace, ".env.local"), `TOKEN=${fakeToken}\n`);
+      writeFileSync(path.join(workspace, ".env"), `TOKEN=${fakeToken}\n`);
 
       const defaultResult = spawnSync(process.execPath, [supabaseFragmentScanner], {
         cwd: workspace,
@@ -288,7 +289,7 @@ describe("Supabase token fragment scanner", () => {
       expect(defaultResult.status).toBe(0);
       expect(defaultResult.stdout).toContain("No Supabase token fragments detected");
       expect(localResult.status).toBe(1);
-      expect(localResult.stderr).toContain(".env.local:1");
+      expect(localResult.stderr).toContain(".env:1");
       expect(localResult.stderr).not.toContain(fakeToken);
     } finally {
       rmSync(workspace, { recursive: true, force: true });

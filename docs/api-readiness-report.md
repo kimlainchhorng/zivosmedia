@@ -1,18 +1,18 @@
 # API Readiness Report
 
-Generated: 2026-06-03T21:46:25.375Z
+Generated: 2026-06-03T22:12:10.318Z
 
 ## Summary
 
-- Critical findings: 1
-- Warnings: 8
+- Critical findings: 0
+- Warnings: 4
 - Edge Functions inventoried: 400
 - High-risk Edge Functions: 136
-- Functions using withSecurity(): 398
-- Functions using strictCorsHeaders(): 398
-- Method-gated Edge Functions: 398
+- Functions using withSecurity(): 400
+- Functions using strictCorsHeaders(): 400
+- Method-gated Edge Functions: 400
 - Functions using service role: 343
-- Loose Edge Function security backlog: 2
+- Loose Edge Function security backlog: 0
 - Method gate backlog: 0
 - Required public env documented: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
 - Recommended backend env documented: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
@@ -23,14 +23,10 @@ Generated: 2026-06-03T21:46:25.375Z
 
 ## Critical
 
-- [edge-function-security-backlog] Every Edge Function must use withSecurity(), strict CORS, and avoid literal wildcard origins.
+- No critical API readiness issues found.
 
 ## Warnings
 
-- [high-risk-function-without-wrapper] High-risk Edge Function does not use withSecurity(). (supabase/functions/capture-bus-payment/index.ts)
-- [service-role-wildcard-cors] High-risk service-role function appears to use wildcard CORS without the shared security wrapper. (supabase/functions/capture-bus-payment/index.ts)
-- [high-risk-function-without-wrapper] High-risk Edge Function does not use withSecurity(). (supabase/functions/create-bus-payment-intent/index.ts)
-- [service-role-wildcard-cors] High-risk service-role function appears to use wildcard CORS without the shared security wrapper. (supabase/functions/create-bus-payment-intent/index.ts)
 - [duplicate-migration-versions] Local Supabase migrations contain 4 new duplicate version(s). (docs/supabase-migration-drift-report.md)
 - [migration-history-disconnected] Local and remote Supabase migration histories have no exact matches, but 616 local migrations have a remote timestamp within one minute. Treat db push/pull as risky until version-id drift is reconciled. (docs/supabase-migration-drift-report.md)
 - [pending-local-table-without-grant] 1 likely pending local migration(s) create public tables without detected explicit grants. (docs/supabase-migration-drift-report.md)
@@ -38,8 +34,7 @@ Generated: 2026-06-03T21:46:25.375Z
 
 ## High-Risk Functions Missing withSecurity()
 
-- supabase/functions/capture-bus-payment/index.ts
-- supabase/functions/create-bus-payment-intent/index.ts
+- None
 
 ## High-Risk Functions Missing allowedMethods
 
@@ -47,8 +42,7 @@ Generated: 2026-06-03T21:46:25.375Z
 
 ## Loose Edge Function Security Backlog
 
-- supabase/functions/capture-bus-payment/index.ts
-- supabase/functions/create-bus-payment-intent/index.ts
+- None
 
 ## Next Hardening Moves
 

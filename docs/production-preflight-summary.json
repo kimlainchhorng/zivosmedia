@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-06-03T21:46:29.408Z",
+  "generated": "2026-06-03T22:11:27.396Z",
   "mode": "soft",
   "options": {
     "strict": false,
     "skipBuild": true,
     "skipTypeCheck": true
   },
-  "readyForCurrentGate": false,
+  "readyForCurrentGate": true,
   "readyForProductionGate": false,
   "counts": {
-    "apiCritical": 1,
-    "apiWarnings": 8,
-    "environmentCritical": 2,
-    "environmentWarnings": 1,
+    "apiCritical": 0,
+    "apiWarnings": 4,
+    "environmentCritical": 0,
+    "environmentWarnings": 0,
     "databaseBlockers": 2,
     "databaseWarnings": 1,
     "edgeFunctionDeployFailures": 0,
     "edgeFunctionMissingLiveCritical": 6,
     "edgeFunctionBrowserGateFailures": 0,
-    "failedCommands": 2,
-    "productionBlockers": 10,
-    "currentGateBlockers": 2
+    "failedCommands": 0,
+    "productionBlockers": 7,
+    "currentGateBlockers": 0
   },
   "supabase": {
     "envAccessToken": true,
@@ -104,25 +104,16 @@
   },
   "blockers": {
     "production": [
-      "API readiness has 1 critical finding(s).",
-      "Environment readiness has 2 critical finding(s).",
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
-      "Environment readiness has 1 warning(s).",
-      "API readiness has 8 warning(s).",
+      "API readiness has 4 warning(s).",
       "Database readiness has 2 blocker(s).",
       "Database readiness has 1 warning(s).",
       "Supabase linked migration history is disconnected: local and remote have zero exact version matches.",
       "Supabase migrations have 4 unresolved duplicate version(s)."
     ],
-    "currentGate": [
-      "API readiness has 1 critical finding(s).",
-      "Environment readiness has 2 critical finding(s)."
-    ],
-    "failedCommands": [
-      "Supabase deploy environment",
-      "Supabase runtime settings SQL"
-    ]
+    "currentGate": [],
+    "failedCommands": []
   },
   "steps": [
     {
@@ -133,12 +124,12 @@
     {
       "id": "environment",
       "title": "Supabase deploy environment",
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "runtime-settings-sql",
       "title": "Supabase runtime settings SQL",
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "migration-drift",
@@ -193,12 +184,12 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 18220
+      "bytes": 16939
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 7367
+      "bytes": 7016
     },
     "migrationDrift": {
       "path": "docs\\supabase-migration-drift-report.md",
@@ -213,7 +204,7 @@
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 3934
+      "bytes": 2995
     },
     "reconciliationPlan": {
       "path": "docs\\supabase-migration-reconciliation-plan.md",
@@ -250,6 +241,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 486705
+    "bytes": 484134
   }
 }
