@@ -409,6 +409,22 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     },
   });
 
+  // Recent PO numbers used on invoices — autocomplete the header PO field.
+  const { data: poNumbers = [] } = useQuery({
+    queryKey: ["ar-build-ro-pos", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_invoices" as any)
+        .select("po_number")
+        .eq("store_id", storeId)
+        .not("po_number", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return Array.from(new Set(((data ?? []) as any[]).map((r) => r.po_number).filter(Boolean))) as string[];
+    },
+  });
+
   // Shop-level defaults (labor rate, tax rate) from store_profiles.ar_settings — prefill new R.O.s.
   const { data: shopDefaults } = useQuery({
     queryKey: ["ar-build-ro-defaults", storeId],
@@ -1148,7 +1164,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Due:</span>
           <Input type="date" className="h-6 w-[130px] text-xs" value={header.promised_at} onChange={(e) => setH({ promised_at: e.target.value })} /></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">PO #:</span>
-          <Input className="h-6 w-24 text-xs" placeholder="PO number" value={header.po_number} onChange={(e) => setH({ po_number: e.target.value })} /></span>
+          <Input list="ar-ro-pos" className="h-6 w-24 text-xs" placeholder="PO number" value={header.po_number} onChange={(e) => setH({ po_number: e.target.value })} />
+          <datalist id="ar-ro-pos">{poNumbers.map((p) => <option key={p} value={p} />)}</datalist></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Rate $:</span>
           <Input className="h-6 w-16 text-xs" type="number" value={header.labor_rate} onChange={(e) => setH({ labor_rate: e.target.value })} /></span>
         <span className="ml-auto font-mono text-sm font-semibold">EST # {header.number || "NEW"}</span>
