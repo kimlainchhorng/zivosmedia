@@ -22,17 +22,23 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import ServiceCatalogPickerDialog, { type ServiceCatalogPick } from "./ServiceCatalogPickerDialog";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
 import VehicleHistoryDialog from "./VehicleHistoryDialog";
 import PartPickerDialog, { type PickedPart } from "./PartPickerDialog";
+import BuildROCustomerDialog, { type CustomerDraft, blankCustomer } from "./BuildROCustomerDialog";
+import BuildROVehicleDialog from "./BuildROVehicleDialog";
+import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
+import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, Gauge, ShieldCheck, ChevronDown,
   Link2, X, UserPlus, Sparkles, Ban, ShoppingCart, Mail, MessageSquare, ArrowRightCircle,
+  Download, Star, CheckCircle2, Send, PhoneCall,
 } from "lucide-react";
 
 type GarageVehicle = {
@@ -290,6 +296,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [custSearch, setCustSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [printCopies, setPrintCopies] = useState(1);
+  const [smsMenuOpen, setSmsMenuOpen] = useState(false);
+  const [smsCustomMsg, setSmsCustomMsg] = useState("");
+  const [openCustomer, setOpenCustomer] = useState(false);
+  const [openVehicleDlg, setOpenVehicleDlg] = useState(false);
+  const [openCatalog, setOpenCatalog] = useState(false);
+  const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
 
   const { data: garage = [] } = useQuery({
     queryKey: ["ar-build-ro-garage", storeId],
@@ -355,6 +369,20 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     toast.success(`Linked ${[v.year, v.make, v.model].filter(Boolean).join(" ")}`);
   };
   const unbind = () => { setVehicleId(null); setBoundVehicle(null); };
+
+  // New Customer dialog → fill header customer fields; optionally chain to the vehicle dialog.
+  const handleSaveCustomer = (c: CustomerDraft, addVehicle: boolean) => {
+    setCustomerDraft(c);
+    setHeader((h) => ({ ...h, customer_name: c.name, customer_phone: c.cell || c.work, customer_email: c.email }));
+    setOpenCustomer(false);
+    if (addVehicle) setOpenVehicleDlg(true);
+    else toast.success("Customer added");
+  };
+  const customerMemo = [
+    customerDraft.street,
+    [customerDraft.city, customerDraft.state, customerDraft.zip].filter(Boolean).join(" "),
+    customerDraft.memo,
+  ].filter((s) => s && s.trim()).join(" · ");
 
   const saveToGarage = useMutation({
     mutationFn: async () => {
@@ -786,7 +814,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </div>
             )}
           </div>
-          <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={printRO}>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => setPrintModalOpen(true)}>
             <Printer className="h-3.5 w-3.5" /> Print
           </Button>
           <Button size="sm" className="h-8 gap-1.5" disabled={save.isPending} onClick={() => save.mutate(false)}>
@@ -802,12 +830,18 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Search className="h-3 w-3" /> Customer
             </p>
-            {boundVehicle && (
-              <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
-                <Link2 className="h-3 w-3" /> Linked
-                <button type="button" className="ml-0.5 hover:text-foreground" onClick={unbind} title="Unlink"><X className="h-3 w-3" /></button>
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {boundVehicle && (
+                <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                  <Link2 className="h-3 w-3" /> Linked
+                  <button type="button" className="ml-0.5 hover:text-foreground" onClick={unbind} title="Unlink"><X className="h-3 w-3" /></button>
+                </span>
+              )}
+              <button type="button" onClick={() => setOpenCustomer(true)}
+                className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90">
+                <UserPlus className="h-3 w-3" /> Add New
+              </button>
+            </div>
           </div>
           <div className="relative mb-1.5">
             <Search className="pointer-events-none absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
@@ -857,17 +891,23 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Car className="h-3 w-3" /> Vehicle
             </p>
-            {boundVehicle ? (
-              <button type="button" onClick={() => setHistoryOpen(true)}
-                className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline">
-                <History className="h-3 w-3" /> History
+            <div className="flex items-center gap-2">
+              {boundVehicle ? (
+                <button type="button" onClick={() => setHistoryOpen(true)}
+                  className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline">
+                  <History className="h-3 w-3" /> History
+                </button>
+              ) : (
+                <button type="button" disabled={saveToGarage.isPending} onClick={() => saveToGarage.mutate()}
+                  className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline disabled:opacity-50">
+                  <UserPlus className="h-3 w-3" /> Save to garage
+                </button>
+              )}
+              <button type="button" onClick={() => setOpenVehicleDlg(true)}
+                className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90">
+                <Car className="h-3 w-3" /> Add New
               </button>
-            ) : (
-              <button type="button" disabled={saveToGarage.isPending} onClick={() => saveToGarage.mutate()}
-                className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline disabled:opacity-50">
-                <UserPlus className="h-3 w-3" /> Save to garage
-              </button>
-            )}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <Input className={`${fieldCls} col-span-2`} placeholder="Year / Make / Model (e.g. 2020 Toyota Camry)" value={header.vehicle_label} onChange={(e) => setH({ vehicle_label: e.target.value })} />
@@ -933,8 +973,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <Plus className="h-3 w-3" /> Job
             </Button>
             <span className="ml-auto flex flex-wrap gap-1.5">
-              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenParts(true)}>
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenCatalog(true)}>
                 <Package className="h-3 w-3" /> Parts Catalog
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenParts(true)}>
+                <Package className="h-3 w-3" /> Inventory
               </Button>
               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenPicker(true)}>
                 <BookOpen className="h-3 w-3" /> Price Book
@@ -1186,8 +1229,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 onClick={() => sendChannel.mutate("email")}>
                 <Mail className="h-3.5 w-3.5" /> Email
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!header.customer_phone || sendChannel.isPending}
-                onClick={() => sendChannel.mutate("sms")}>
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!header.customer_phone}
+                onClick={() => setSmsMenuOpen(true)}>
                 <MessageSquare className="h-3.5 w-3.5" /> SMS
               </Button>
             </div>
@@ -1255,6 +1298,155 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         storeId={storeId}
         onPick={addPartFromCatalog}
       />
+      <BuildROCustomerDialog
+        open={openCustomer}
+        onOpenChange={setOpenCustomer}
+        initial={customerDraft}
+        onSave={handleSaveCustomer}
+      />
+      <BuildROVehicleDialog
+        open={openVehicleDlg}
+        onOpenChange={setOpenVehicleDlg}
+        storeId={storeId}
+        owner={{ name: header.customer_name, phone: header.customer_phone, email: header.customer_email }}
+        ownerMemo={customerMemo}
+        onSaved={(v) => bindVehicle(v as GarageVehicle)}
+      />
+      <BuildROPartsCatalogDialog
+        open={openCatalog}
+        onOpenChange={setOpenCatalog}
+        storeId={storeId}
+      />
+
+      {/* ── Print / Review modal ── */}
+      <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg">Print / Review</DialogTitle>
+          </DialogHeader>
+          <p className="text-center text-xs text-muted-foreground -mt-2">Default Printer: Browser Default</p>
+          <div className="space-y-3 pt-2">
+            {/* Review & Sign */}
+            <Button className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2"
+              onClick={async () => { setPrintModalOpen(false); await copyApprovalLink(); }}>
+              <FileSignature className="h-4 w-4" /> Review &amp; Sign
+            </Button>
+            {/* Print Estimate */}
+            <Button className="w-full bg-red-600 hover:bg-red-700 text-white gap-2"
+              onClick={() => { setPrintModalOpen(false); for (let i = 0; i < printCopies; i++) printRO(); }}>
+              <Printer className="h-4 w-4" /> Print Estimate
+            </Button>
+            {/* Copies */}
+            <div className="flex items-center justify-end gap-2 text-xs">
+              <span className="text-muted-foreground">Copies:</span>
+              <Input type="number" min={1} max={10} className="h-7 w-16 text-center text-xs"
+                value={printCopies}
+                onChange={(e) => setPrintCopies(Math.max(1, parseInt(e.target.value) || 1))} />
+            </div>
+            <div className="flex items-center justify-between border-t pt-2 text-xs">
+              {/* Download Estimate */}
+              <button className="flex items-center gap-1 text-primary hover:underline"
+                onClick={async () => {
+                  if (!lines.length) { toast.error("Add at least one line first"); return; }
+                  try {
+                    const blob = await generateDocumentPdf({
+                      doc: {
+                        type: "estimate", number: header.number || "EST",
+                        customer: header.customer_name || "Customer",
+                        phone: header.customer_phone || undefined,
+                        email: header.customer_email || undefined,
+                        vehicle: header.vehicle_label || undefined,
+                        mileageIn: header.mileage_in ? String(header.mileage_in) : undefined,
+                        items: lines.filter(l => l.kind !== "note").map(l => ({
+                          category: l.kind === "labor" ? "labor" : l.kind === "part" ? "part" : "diagnosis",
+                          description: l.description,
+                          qty: l.qty, price: l.unit_cents / 100,
+                          hours: l.kind === "labor" ? l.qty : undefined,
+                        })),
+                        status: status, createdAt: new Date().toISOString(),
+                        taxRate: taxRate, epaCents: epaC * 100, shopSuppliesCents: suppliesC * 100,
+                        feesCents: feesC * 100,
+                      },
+                    });
+                    downloadPdf(blob, `estimate-${header.number || "draft"}.pdf`);
+                  } catch (e: any) { toast.error(e?.message ?? "PDF error"); }
+                  setPrintModalOpen(false);
+                }}>
+                <Download className="h-3.5 w-3.5" /> Download Estimate
+              </button>
+              {/* Print Tech Assignment */}
+              <button className="flex items-center gap-1 text-primary hover:underline"
+                onClick={() => {
+                  const html = `<html><head><title>Tech Assignment</title><style>body{font-family:system-ui;padding:24px}h2{margin:0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{padding:6px 8px;border:1px solid #ddd;text-align:left}th{background:#f3f4f6;font-size:11px;text-transform:uppercase}</style></head><body>
+                    <h2>Tech Assignment — RO ${header.number || ""}</h2>
+                    <p><b>Vehicle:</b> ${header.vehicle_label || "—"} &nbsp;|&nbsp; <b>Plate:</b> ${header.license_plate || "—"}</p>
+                    <p><b>Mileage In:</b> ${header.mileage_in || "—"}</p>
+                    <table><tr><th>Type</th><th>Description</th><th>Qty</th></tr>
+                    ${lines.filter(l => l.kind === "labor").map(l => `<tr><td>Labor</td><td>${l.description}</td><td>${l.qty} hr</td></tr>`).join("")}
+                    </table></body></html>`;
+                  const w = window.open("", "_blank");
+                  if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
+                  setPrintModalOpen(false);
+                }}>
+                <PhoneCall className="h-3.5 w-3.5" /> Print Tech Assignment
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── SMS Menu ── */}
+      <Dialog open={smsMenuOpen} onOpenChange={setSmsMenuOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg">Text Message (SMS) Menu</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 pt-1">
+            {/* Req. Approval */}
+            <Button className="w-full bg-red-700 hover:bg-red-800 text-white gap-2" disabled={sendChannel.isPending}
+              onClick={async () => {
+                setSmsMenuOpen(false);
+                await sendChannel.mutateAsync("sms");
+              }}>
+              <CheckCircle2 className="h-4 w-4" /> Req. Approval
+            </Button>
+            {/* Ready */}
+            <Button className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
+              onClick={() => {
+                const msg = encodeURIComponent(`Your vehicle is ready for pickup! Please call us to arrange. Thank you.`);
+                window.open(`sms:${header.customer_phone}?body=${msg}`, "_blank");
+                setSmsMenuOpen(false);
+              }}>
+              <CheckCircle2 className="h-4 w-4" /> Ready
+            </Button>
+            {/* Request a Review */}
+            <Button variant="outline" className="w-full gap-2"
+              onClick={() => {
+                const msg = encodeURIComponent(`Thank you for choosing us! We'd love your feedback. Please leave us a review — it means a lot to our team.`);
+                window.open(`sms:${header.customer_phone}?body=${msg}`, "_blank");
+                setSmsMenuOpen(false);
+              }}>
+              <Star className="h-4 w-4" /> Request a Review
+            </Button>
+            {/* New Message */}
+            <div className="space-y-2 border-t pt-2">
+              <Textarea rows={3} placeholder="Type a custom message…"
+                className="text-xs resize-none"
+                value={smsCustomMsg}
+                onChange={(e) => setSmsCustomMsg(e.target.value)} />
+              <Button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white gap-2"
+                disabled={!smsCustomMsg.trim()}
+                onClick={() => {
+                  window.open(`sms:${header.customer_phone}?body=${encodeURIComponent(smsCustomMsg)}`, "_blank");
+                  setSmsCustomMsg("");
+                  setSmsMenuOpen(false);
+                }}>
+                <Send className="h-4 w-4" /> New Message
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
