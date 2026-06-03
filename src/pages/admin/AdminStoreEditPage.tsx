@@ -182,6 +182,7 @@ const AutoRepairFleetSection = React.lazy(() => import("@/components/admin/store
 const AutoRepairReportsSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairReportsSection"));
 const AutoRepairPartSuppliersSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairPartSuppliersSection"));
 const AutoRepairDashboardSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairDashboardSection"));
+const AutoRepairBuildROSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairBuildROSection"));
 const AutoRepairServiceCatalogSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairServiceCatalogSection"));
 const AutoRepairReviewsSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairReviewsSection"));
 const AutoRepairInboxSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairInboxSection"));
@@ -2310,6 +2311,7 @@ export default function AdminStoreEditPage() {
     "ar-fin-tax": "Finance — Tax & Payouts",
     "ar-parts-suppliers": "Parts Suppliers",
     "ar-dashboard": "Shop Dashboard",
+    "ar-build-ro": "Build R.O.",
     "ar-service-catalog": "Service Catalog",
     "ar-labor-time": "Labor Time Tracking",
     "ar-loaners": "Loaner Vehicles",
@@ -2972,6 +2974,7 @@ export default function AdminStoreEditPage() {
               <div className="overflow-x-auto -mx-1 px-1">
                 <TabsList className="flex w-max gap-0.5 h-auto flex-wrap bg-muted/50 p-1">
                   <TabsTrigger value="ar-dashboard" className="gap-1 text-xs h-7"><LayoutDashboard className="h-3 w-3" /> Dashboard</TabsTrigger>
+                  <TabsTrigger value="ar-build-ro" className="gap-1 text-xs h-7"><Wrench className="h-3 w-3" /> Build R.O.</TabsTrigger>
                   <TabsTrigger value="ar-service-catalog" className="gap-1 text-xs h-7"><BookOpen className="h-3 w-3" /> Price Book</TabsTrigger>
                   <TabsTrigger value="ar-invoices" className="gap-1 text-xs h-7"><BarChart3 className="h-3 w-3" /> Invoices</TabsTrigger>
                   <TabsTrigger value="ar-workorders" className="gap-1 text-xs h-7"><ListChecks className="h-3 w-3" /> Work Orders</TabsTrigger>
@@ -4557,6 +4560,7 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-fin-tax"><div><FinanceTaxPayoutsSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-parts-suppliers"><div><AutoRepairPartSuppliersSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-dashboard"><AutoRepairDashboardSection storeId={storeId!} /></TabsContent>
+              <TabsContent value="ar-build-ro"><div><AutoRepairBuildROSection storeId={storeId!} onNavigate={handleTabChange} /></div></TabsContent>
               <TabsContent value="ar-service-catalog"><AutoRepairServiceCatalogSection storeId={storeId!} /></TabsContent>
             </>
           )}

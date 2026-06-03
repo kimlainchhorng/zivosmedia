@@ -1,6 +1,7 @@
 export const LODGING_TAB_IDS = ["lodge-overview", "lodge-rooms", "lodge-rate-plans", "lodge-reservations", "lodge-calendar", "lodge-guests", "lodge-frontdesk", "lodge-housekeeping", "lodge-maintenance", "lodge-nightaudit", "lodge-addons", "lodge-guest-requests", "lodge-dining", "lodge-experiences", "lodge-transport", "lodge-wellness", "lodge-amenities", "lodge-property", "lodge-policies", "lodge-reviews", "lodge-reports", "lodge-promos", "lodge-channels", "lodge-payouts", "lodge-inbox", "lodge-staff", "lodge-handover", "lodge-concierge", "lodge-lostfound", "lodge-gallery", "lodge-folio", "lodge-groupbooking", "lodge-revenue", "lodge-notifications", "lodge-yield", "lodge-inventory", "lodge-roomservice", "lodge-vouchers", "lodge-parking", "lodge-wakeup", "lodge-laundry", "lodge-complaints"] as const;
 export const AUTO_REPAIR_TAB_IDS = [
   "ar-dashboard",
+  "ar-build-ro",
   "ar-service-catalog",
   "ar-invoices",
   "ar-autocheck",

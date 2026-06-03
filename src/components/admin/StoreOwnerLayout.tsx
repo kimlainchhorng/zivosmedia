@@ -230,6 +230,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
     ...(isAutoRepair ? [
       { id: "ar-dashboard", label: "Auto Repair Dashboard", icon: LayoutDashboard },
       { id: "_ar_frontdesk_label", label: "AUTO REPAIR FRONT DESK", icon: ClipboardList, divider: true },
+      { id: "ar-build-ro", label: "Build R.O.", icon: Wrench },
       { id: "customer-bookings", label: "Customer Bookings", icon: CalendarCheck },
       { id: "ar-service-catalog", label: "Service Catalog", icon: BookOpen },
       { id: "ar-vehicles", label: "Customer Vehicles", icon: Car },
