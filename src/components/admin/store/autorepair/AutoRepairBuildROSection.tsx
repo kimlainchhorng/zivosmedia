@@ -327,6 +327,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [view, setView] = useState<"hub" | "builder">("hub");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
 
+  // Vendors the shop has connected in Parts Suppliers — surfaced in the part-line
+  // vendor picker so ordering goes to a real account. Recomputed when the dialog
+  // closes (a new connection may have been saved).
+  const connectedVendors = useMemo(() => listConnectedVendors(storeId), [storeId, openCatalog]);
+
   const { data: garage = [] } = useQuery({
     queryKey: ["ar-build-ro-garage", storeId],
     queryFn: async () => {
@@ -353,6 +358,19 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         .limit(24);
       if (error) throw error;
       return (data ?? []) as any[];
+    },
+  });
+
+  // Shop-level defaults (labor rate, tax rate) from store_profiles.ar_settings — prefill new R.O.s.
+  const { data: shopDefaults } = useQuery({
+    queryKey: ["ar-build-ro-defaults", storeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("store_profiles").select("ar_settings").eq("id", storeId).maybeSingle();
+      const s = ((data as any)?.ar_settings || {}) as Record<string, any>;
+      const taxRaw = Number(s.tax_rate);
+      const taxPct = !isNaN(taxRaw) && taxRaw > 0 ? (taxRaw <= 1 ? taxRaw * 100 : taxRaw) : 0;
+      const labor = parseFloat(String(s.labor_rate ?? "")) || 0;
+      return { taxPct, labor };
     },
   });
 
@@ -558,11 +576,13 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   // ── New / Load ──
   const resetAll = () => {
     setEditId(null);
-    setHeader(blankHeader);
+    // Prefill the shop's default labor rate (Auto Repair Settings) onto a fresh R.O.
+    setHeader({ ...blankHeader, labor_rate: shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate });
     setLines([]);
     setJobs([1]);
     setActiveJob(1);
-    setFeesC(0); setEpaC(0); setSuppliesC(0); setDiscountC(0); setTaxRate(0);
+    setFeesC(0); setEpaC(0); setSuppliesC(0); setDiscountC(0);
+    setTaxRate(shopDefaults?.taxPct ?? 0);
     setDroppedOff(false);
     setStatus("draft");
     setCreatedAt(null);
@@ -603,7 +623,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       payment_method: e.payment_method ?? "",
       promised_at: e.promised_at ?? "",
       po_number: e.po_number ?? "",
-      labor_rate: blankHeader.labor_rate,
+      labor_rate: shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate,
       ...parseNotes(e.notes ?? null),
     });
     setCreatedAt(e.created_at ?? null);
@@ -1148,10 +1168,26 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                           <td className="px-2 py-1">
                             <Input className="h-7 min-w-[150px] text-xs" placeholder="Description" value={l.description}
                               onChange={(e) => patchLine(l.id, { description: e.target.value })} />
-                            {l.kind === "part" && (l.vendor || l.ordered) && (
-                              <p className="mt-0.5 pl-1 text-[9px] uppercase tracking-wide text-muted-foreground truncate">
-                                {l.vendor ? `Vendor: ${l.vendor}` : ""}{l.ordered ? (l.vendor ? " · ordered" : "ordered") : ""}
-                              </p>
+                            {l.kind === "part" && (
+                              <div className="mt-0.5 flex items-center gap-1 pl-1">
+                                <select
+                                  className="h-5 max-w-[150px] rounded border bg-background px-1 text-[10px] text-muted-foreground"
+                                  value={l.vendor || ""}
+                                  onChange={(e) => patchLine(l.id, { vendor: e.target.value })}
+                                >
+                                  <option value="">Vendor…</option>
+                                  {connectedVendors.map((v) => (
+                                    <option key={v.id} value={v.name}>{v.name}{v.account ? ` (#${v.account})` : ""}</option>
+                                  ))}
+                                  {/* keep a free-text/legacy vendor selected even if not connected */}
+                                  {l.vendor && !connectedVendors.some((v) => v.name === l.vendor) && (
+                                    <option value={l.vendor}>{l.vendor}</option>
+                                  )}
+                                </select>
+                                {l.ordered && (
+                                  <span className="text-[9px] uppercase tracking-wide text-emerald-600">ordered</span>
+                                )}
+                              </div>
                             )}
                           </td>
                           <td className="px-2 py-1">
