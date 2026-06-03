@@ -34,12 +34,13 @@ import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
 import BuildROHub from "./BuildROHub";
 import BuildROExistingCustomerDialog from "./BuildROExistingCustomerDialog";
 import BuildROBarcode from "./BuildROBarcode";
+import BuildROSaveCannedDialog from "./BuildROSaveCannedDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
-  History, ClipboardCheck, Activity, CreditCard, Gauge, ShieldCheck, ChevronDown,
+  History, ClipboardCheck, Activity, CreditCard, ShieldCheck, ChevronDown,
   Link2, X, UserPlus, Sparkles, Ban, ShoppingCart, Mail, MessageSquare, ArrowRightCircle,
   Download, Star, CheckCircle2, Send, PhoneCall, Home,
 } from "lucide-react";
@@ -320,6 +321,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [openVehicleDlg, setOpenVehicleDlg] = useState(false);
   const [openCatalog, setOpenCatalog] = useState(false);
   const [openExisting, setOpenExisting] = useState(false);
+  const [openCanned, setOpenCanned] = useState(false);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
   const [view, setView] = useState<"hub" | "builder">("hub");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -348,27 +350,6 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       )
       .slice(0, 8);
   }, [garage, custSearch]);
-
-  // Last-service summary for the bound/typed vehicle (matched by label across invoices + work orders).
-  const vehLabel = header.vehicle_label.trim();
-  const { data: lastService } = useQuery({
-    queryKey: ["ar-build-ro-lastservice", storeId, vehLabel],
-    enabled: !!vehLabel,
-    queryFn: async () => {
-      const [inv, wo] = await Promise.all([
-        supabase.from("ar_invoices" as any).select("created_at, mileage_in, mileage_out")
-          .eq("store_id", storeId).eq("vehicle_label", vehLabel).order("created_at", { ascending: false }).limit(1),
-        supabase.from("ar_work_orders" as any).select("created_at")
-          .eq("store_id", storeId).eq("vehicle_label", vehLabel).order("created_at", { ascending: false }).limit(1),
-      ]);
-      const invRow: any = inv.data?.[0];
-      const woRow: any = wo.data?.[0];
-      const dates = [invRow?.created_at, woRow?.created_at].filter(Boolean) as string[];
-      const lastDate = dates.sort().slice(-1)[0] ?? null;
-      const lastMileage = invRow?.mileage_out ?? invRow?.mileage_in ?? null;
-      return { lastDate, lastMileage };
-    },
-  });
 
   const bindVehicle = (v: GarageVehicle) => {
     setVehicleId(v.id);
@@ -885,6 +866,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           <Input type="date" className="h-6 w-[130px] text-xs" value={header.promised_at} onChange={(e) => setH({ promised_at: e.target.value })} /></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">PO #:</span>
           <Input className="h-6 w-24 text-xs" placeholder="PO number" value={header.po_number} onChange={(e) => setH({ po_number: e.target.value })} /></span>
+        <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Rate $:</span>
+          <Input className="h-6 w-16 text-xs" type="number" value={header.labor_rate} onChange={(e) => setH({ labor_rate: e.target.value })} /></span>
         <span className="ml-auto font-mono text-sm font-semibold">EST # {header.number || "NEW"}</span>
       </div>
 
@@ -1203,6 +1186,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <span className="text-muted-foreground">Status:</span>
               <Badge variant="outline" className="text-[10px] capitalize">{status}</Badge>
             </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Tech:</span>
+              <Input className="h-6 w-28 text-xs" placeholder="Unassigned" value={header.technician} onChange={(e) => setH({ technician: e.target.value })} />
+            </span>
+            <Select value={header.appointment_type} onValueChange={(v) => setH({ appointment_type: v })}>
+              <SelectTrigger className="h-6 w-[150px] text-xs"><SelectValue placeholder="Appointment type" /></SelectTrigger>
+              <SelectContent>{APPOINTMENT_TYPES.map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}</SelectContent>
+            </Select>
             <Button size="sm" variant={toOrderCount ? "default" : "outline"} className="ml-auto h-7 gap-1.5 text-xs" onClick={placeOrder}>
               <ShoppingCart className="h-3.5 w-3.5" /> Place Order ({toOrderCount})
             </Button>
@@ -1231,40 +1222,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           </div>
         </div>
 
-        {/* Right: vehicle-data + summary */}
+        {/* Right: estimate summary */}
         <div className="space-y-2">
-          {/* Service writer / tech / appointment */}
-          <div className="rounded-xl border bg-card p-2.5 space-y-1.5">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Gauge className="h-3 w-3" /> Vehicle Data
-            </p>
-            <dl className="rounded-lg bg-muted/40 px-2 py-1.5 text-[11px]">
-              {[
-                ["Last serviced", lastService?.lastDate ? new Date(lastService.lastDate).toLocaleDateString() : "—"],
-                ["Last mileage", lastService?.lastMileage != null ? `${Number(lastService.lastMileage).toLocaleString()} mi` : "—"],
-                ["Oil capacity", "—"],
-                ["Oil viscosity", "—"],
-                ["Oil filter", "—"],
-              ].map(([k, v]) => (
-                <div key={k as string} className="flex justify-between py-0.5">
-                  <dt className="text-muted-foreground">{k}</dt>
-                  <dd className="font-medium">{v}</dd>
-                </div>
-              ))}
-            </dl>
-            <Input className={fieldCls} placeholder="Service writer" value={header.service_writer} onChange={(e) => setH({ service_writer: e.target.value })} />
-            <Input className={fieldCls} placeholder="Technician" value={header.technician} onChange={(e) => setH({ technician: e.target.value })} />
-            <Select value={header.appointment_type} onValueChange={(v) => setH({ appointment_type: v })}>
-              <SelectTrigger className={fieldCls}><SelectValue placeholder="Appointment type" /></SelectTrigger>
-              <SelectContent>{APPOINTMENT_TYPES.map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}</SelectContent>
-            </Select>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-muted-foreground">Labor rate $</span>
-              <Input className={`${fieldCls} w-20`} type="number" value={header.labor_rate} onChange={(e) => setH({ labor_rate: e.target.value })} />
-            </div>
-            <Input className={fieldCls} type="date" value={header.promised_at} onChange={(e) => setH({ promised_at: e.target.value })} />
-          </div>
-
           {/* Estimate Summary */}
           <div className="rounded-xl border bg-card p-2.5">
             <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1373,7 +1332,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             {p}
           </Button>
         ))}
-        <Button size="sm" className="ml-auto h-7 gap-1.5 text-xs" disabled={save.isPending} onClick={() => save.mutate(false)}>
+        <Button size="sm" variant="ghost" className="ml-auto h-7 gap-1 text-xs" disabled={!lines.some((l) => l.description.trim())} onClick={() => setOpenCanned(true)}>
+          <BookOpen className="h-3.5 w-3.5" /> Save as Canned
+        </Button>
+        <Button size="sm" className="h-7 gap-1.5 text-xs" disabled={save.isPending} onClick={() => save.mutate(false)}>
           <Wrench className="h-3.5 w-3.5" /> + Build R.O.
         </Button>
       </div>
@@ -1438,6 +1400,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         storeId={storeId}
         garage={garage}
         onPick={(v) => bindVehicle(v as GarageVehicle)}
+      />
+      <BuildROSaveCannedDialog
+        open={openCanned}
+        onOpenChange={setOpenCanned}
+        storeId={storeId}
+        lines={lines.map((l) => ({ kind: l.kind, description: l.description, qty: l.qty, unit_cents: l.unit_cents }))}
       />
 
       {/* ── Print / Review modal ── */}
