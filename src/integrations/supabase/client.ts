@@ -24,7 +24,7 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   // eslint-disable-next-line no-console
   console.error(
     "[supabase/client] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY — " +
-    "Supabase calls will fail until the site is re-published with env vars."
+    "using bundled public fallback until the site is re-published with env vars."
   );
 }
 
@@ -151,12 +151,7 @@ const authStorage = isNativePlatform ? nativeAuthStorage : webAuthStorage;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Fall back to harmless placeholders when env vars are missing so createClient
-// doesn't throw at module load (a throw here blanks out the whole React tree).
-const SAFE_URL = SUPABASE_URL || "https://missing-env.supabase.co";
-const SAFE_KEY = SUPABASE_PUBLISHABLE_KEY || "missing-env-key";
-
-export const supabase = createClient<Database>(SAFE_URL, SAFE_KEY, {
+export const supabase = createClient<Database>(EFFECTIVE_SUPABASE_URL, EFFECTIVE_SUPABASE_KEY, {
   db: {
     schema: "public",
   },
