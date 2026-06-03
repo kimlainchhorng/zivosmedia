@@ -496,8 +496,8 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
           document.body
         )}
 
-        {/* Desktop sticky sidebar */}
-        <aside className="hidden lg:flex sticky top-0 left-0 z-30 h-[100dvh] w-48 xl:w-52 bg-card border-r border-border flex-col overflow-hidden">
+        {/* Desktop sticky sidebar — hidden on the Build R.O. tab, where the top icon bar is the nav. */}
+        <aside className={`${activeTab === "ar-build-ro" ? "hidden" : "hidden lg:flex"} sticky top-0 left-0 z-30 h-[100dvh] w-48 xl:w-52 bg-card border-r border-border flex-col overflow-hidden`}>
           {renderSidebarContent({ isMobile: false })}
         </aside>
 
@@ -514,6 +514,16 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                 aria-label="Open navigation"
               >
                 <Menu className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1 -ml-1 px-2"
+                onClick={() => navigate(-1)}
+                aria-label="Go back"
+                title="Go back"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back
               </Button>
               <h1 className="text-lg font-bold text-foreground">{title}</h1>
             </div>
