@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Plus, Trash2, RotateCcw } from "lucide-react";
-import { type MatrixTier, DEFAULT_PARTS_MATRIX, multiplierOf, normalizeMatrix } from "@/lib/admin/partsMatrix";
+import { type MatrixTier, DEFAULT_PARTS_MATRIX, multiplierOf, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
 
 interface Props {
   open: boolean;
@@ -24,6 +24,7 @@ interface Props {
 export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, initial }: Props) {
   const qc = useQueryClient();
   const [rows, setRows] = useState<MatrixTier[]>(DEFAULT_PARTS_MATRIX);
+  const [testCost, setTestCost] = useState("");
 
   useEffect(() => {
     if (open) setRows(normalizeMatrix(initial));
@@ -44,6 +45,14 @@ export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, 
   const resetDefaults = () => { setRows(DEFAULT_PARTS_MATRIX); toast.info("Reset to default tiers — Save to apply"); };
 
   const valid = useMemo(() => rows.every((t) => !isNaN(t.start) && !isNaN(t.markup)), [rows]);
+
+  const testResult = useMemo(() => {
+    const cost = Number(testCost) || 0;
+    if (cost <= 0) return null;
+    const tier = rows.find((t) => cost >= t.start && (t.end == null || cost <= t.end)) ?? rows[rows.length - 1];
+    const sell = sellFromCostCents(Math.round(cost * 100), rows) / 100;
+    return { sell, tier };
+  }, [testCost, rows]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -127,6 +136,18 @@ export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, 
         <p className="text-center text-[11px] text-muted-foreground">
           Sell = Cost × Multiplier. New parts you enter a cost for will price automatically; you can still override any line.
         </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+          <span className="text-muted-foreground">Test a cost: $</span>
+          <Input className="h-8 w-24 text-right" type="number" placeholder="0.00" value={testCost} onChange={(e) => setTestCost(e.target.value)} />
+          <span className="text-muted-foreground">→ Sell</span>
+          <span className="font-semibold text-sky-600">{testResult ? `$${testResult.sell.toFixed(2)}` : "—"}</span>
+          {testResult?.tier && (
+            <span className="text-[11px] text-muted-foreground">
+              ({testResult.tier.start}–{testResult.tier.end ?? "MAX"} · {testResult.tier.markup}% · {multiplierOf(testResult.tier.markup).toFixed(2)}x)
+            </span>
+          )}
+        </div>
 
         <DialogFooter className="sm:justify-center">
           <Button onClick={() => save.mutate()} disabled={save.isPending || !valid} className="bg-sky-500 px-10 hover:bg-sky-600">
