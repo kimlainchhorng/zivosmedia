@@ -139,6 +139,11 @@ const blankHeader = {
   customer_phone: "",
   customer_email: "",
   vehicle_label: "",
+  vehicle_year: "",
+  vehicle_make: "",
+  vehicle_model: "",
+  vehicle_transmission: "",
+  vehicle_engine: "",
   vehicle_color: "",
   unit_number: "",
   license_plate: "",
@@ -151,6 +156,7 @@ const blankHeader = {
   appointment_type: "Stay With Vehicle",
   payment_method: "",
   promised_at: "",
+  po_number: "",
   labor_rate: "100",
   customer_request: "",
   diagnosis: "",
@@ -309,6 +315,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [openExisting, setOpenExisting] = useState(false);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
   const [view, setView] = useState<"hub" | "builder">("hub");
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
 
   const { data: garage = [] } = useQuery({
     queryKey: ["ar-build-ro-garage", storeId],
@@ -365,6 +372,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       customer_phone: v.owner_phone ?? "",
       customer_email: v.owner_email ?? "",
       vehicle_label: [v.year, v.make, v.model].filter(Boolean).join(" "),
+      vehicle_year: v.year ? String(v.year) : "",
+      vehicle_make: v.make ?? "",
+      vehicle_model: v.model ?? "",
+      vehicle_transmission: "",
+      vehicle_engine: v.notes?.match(/Engine:\s*([^·]+)/)?.[1]?.trim() ?? "",
       license_plate: v.plate ?? "",
       vehicle_color: v.color ?? "",
       mileage_in: v.mileage ? String(v.mileage) : h.mileage_in,
@@ -520,6 +532,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setFeesC(0); setEpaC(0); setSuppliesC(0); setDiscountC(0); setTaxRate(0);
     setDroppedOff(false);
     setStatus("draft");
+    setCreatedAt(null);
     unbind();
     setCustSearch("");
   };
@@ -545,9 +558,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       technician_cert: e.technician_cert ?? "",
       payment_method: e.payment_method ?? "",
       promised_at: e.promised_at ?? "",
+      po_number: e.po_number ?? "",
       labor_rate: blankHeader.labor_rate,
       ...parseNotes(e.notes ?? null),
     });
+    setCreatedAt(e.created_at ?? null);
     const ls = Array.isArray(e.line_items) ? e.line_items.map(coerceLine) : [];
     setLines(ls);
     const js = Array.from(new Set(ls.map((l) => l.job))).sort((a, b) => a - b);
@@ -685,6 +700,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         technician: header.technician || null,
         keytag: header.keytag || null,
         promised_at: header.promised_at || null,
+        po_number: header.po_number || null,
         payment_method: header.payment_method || null,
         items,
         subtotal_cents: t.lineSubtotal,
@@ -827,6 +843,19 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
 
   return (
     <div className="space-y-3">
+      {/* ── VSM header strip: created · last viewed · service writer · due date · PO# · EST# ── */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border bg-muted/30 px-3 py-1.5 text-xs">
+        <span><span className="text-muted-foreground">Created:</span> <b className="ml-1">{createdAt ? new Date(createdAt).toLocaleDateString() : "New"}</b></span>
+        <span className="hidden sm:inline"><span className="text-muted-foreground">Last viewed:</span> <b className="ml-1">{createdAt ? new Date().toLocaleDateString() : "—"}</b></span>
+        <span className="flex items-center gap-1.5"><span className="text-muted-foreground">S.W.:</span>
+          <Input className="h-6 w-28 text-xs" placeholder="Service writer" value={header.service_writer} onChange={(e) => setH({ service_writer: e.target.value })} /></span>
+        <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Due:</span>
+          <Input type="date" className="h-6 w-[130px] text-xs" value={header.promised_at} onChange={(e) => setH({ promised_at: e.target.value })} /></span>
+        <span className="flex items-center gap-1.5"><span className="text-muted-foreground">PO #:</span>
+          <Input className="h-6 w-24 text-xs" placeholder="PO number" value={header.po_number} onChange={(e) => setH({ po_number: e.target.value })} /></span>
+        <span className="ml-auto font-mono text-sm font-semibold">EST # {header.number || "NEW"}</span>
+      </div>
+
       {/* ── Top action bar ── */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2">
         <div className="flex items-center gap-2">
@@ -970,9 +999,17 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             </div>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
-            <Input className={`${fieldCls} col-span-2`} placeholder="Year / Make / Model (e.g. 2020 Toyota Camry)" value={header.vehicle_label} onChange={(e) => setH({ vehicle_label: e.target.value })} />
+            <Input className={fieldCls} placeholder="Year" value={header.vehicle_year}
+              onChange={(e) => setH({ vehicle_year: e.target.value, vehicle_label: [e.target.value, header.vehicle_make, header.vehicle_model].filter(Boolean).join(" ") })} />
+            <Input className={fieldCls} placeholder="Make" value={header.vehicle_make}
+              onChange={(e) => setH({ vehicle_make: e.target.value, vehicle_label: [header.vehicle_year, e.target.value, header.vehicle_model].filter(Boolean).join(" ") })} />
+            <Input className={fieldCls} placeholder="Model" value={header.vehicle_model}
+              onChange={(e) => setH({ vehicle_model: e.target.value, vehicle_label: [header.vehicle_year, header.vehicle_make, e.target.value].filter(Boolean).join(" ") })} />
+            <Input className={fieldCls} placeholder="Engine (e.g. 5.0L V8)" value={header.vehicle_engine}
+              onChange={(e) => setH({ vehicle_engine: e.target.value })} />
+            <Input className={`${fieldCls} col-span-2`} placeholder="Transmission (e.g. 6-Speed Auto)" value={header.vehicle_transmission}
+              onChange={(e) => setH({ vehicle_transmission: e.target.value })} />
             <Input className={fieldCls} placeholder="License plate" value={header.license_plate} onChange={(e) => setH({ license_plate: e.target.value })} />
-            <Input className={fieldCls} placeholder="Color" value={header.vehicle_color} onChange={(e) => setH({ vehicle_color: e.target.value })} />
             <Input className={fieldCls} type="number" placeholder="Mileage in" value={header.mileage_in} onChange={(e) => setH({ mileage_in: e.target.value })} />
             <Input className={fieldCls} placeholder="Key tag" value={header.keytag} onChange={(e) => setH({ keytag: e.target.value })} />
           </div>

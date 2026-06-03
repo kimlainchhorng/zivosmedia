@@ -55,12 +55,11 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!owner.name.trim()) throw new Error("Add the customer first");
       if (!f.make.trim() || !f.model.trim()) throw new Error("Make and model are required");
       const noteParts = [f.engine.trim() ? `Engine: ${f.engine.trim()}` : "", ownerMemo?.trim() || ""].filter(Boolean);
       const payload = {
         store_id: storeId,
-        owner_name: owner.name.trim(),
+        owner_name: owner.name.trim() || "Unknown",
         owner_phone: owner.phone.trim() || null,
         owner_email: owner.email.trim() || null,
         year: f.year ? parseInt(f.year, 10) : null,
