@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { PARTS_SUPPLIERS, getPartsSupplier, type PartsSupplier } from "@/config/partsSuppliers";
 import SupplierBrowserModal from "./SupplierBrowserModal";
+import { sellFromCostCents, normalizeMatrix } from "@/lib/admin/partsMatrix";
 import Search from "lucide-react/dist/esm/icons/search";
 import Package from "lucide-react/dist/esm/icons/package";
 import Plus from "lucide-react/dist/esm/icons/plus";
@@ -69,6 +70,18 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
     staleTime: 30_000,
   });
 
+  // Shop's Parts Matrix — used to price a part that has a cost but no set sell price.
+  const { data: matrix = [] } = useQuery({
+    queryKey: ["ar-parts-matrix", storeId],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase.from("store_profiles").select("ar_settings").eq("id", storeId).maybeSingle();
+      return normalizeMatrix((data as any)?.ar_settings?.parts_matrix);
+    },
+  });
+  /** Sell cents: the shop's set price if any, else the matrix markup on cost. */
+  const effectiveSellCents = (p: any) => (p.price_cents > 0 ? p.price_cents : (p.cost_cents > 0 ? sellFromCostCents(p.cost_cents, matrix) : 0));
+
   const filtered = useMemo(() => {
     const lq = q.toLowerCase();
     return parts.filter((p: any) =>
@@ -80,7 +93,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
   }, [parts, q, cat]);
 
   const handlePick = (p: any) => {
-    const price = p.price_cents / 100;
+    const price = effectiveSellCents(p) / 100;
     onPick({
       description: `${p.name}${p.brand ? ` (${p.brand})` : ""}${p.sku ? ` — SKU: ${p.sku}` : ""}`,
       sku: p.sku,
@@ -225,7 +238,12 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
                         <p className="text-[10px] text-muted-foreground">OEM: <span className="font-mono">{p.oem_number}</span></p>
                       )}
                       <div className="flex items-center justify-between mt-1.5 gap-2">
-                        <span className="text-sm font-bold">${(p.price_cents / 100).toFixed(2)}</span>
+                        <span className="flex items-baseline gap-1">
+                          <span className="text-sm font-bold">${(effectiveSellCents(p) / 100).toFixed(2)}</span>
+                          {p.price_cents <= 0 && p.cost_cents > 0 && (
+                            <span className="text-[9px] font-medium text-violet-500" title="Priced from your Parts Matrix">matrix</span>
+                          )}
+                        </span>
                         <span className={`text-[10px] font-medium ${sCls} flex items-center gap-1`}>
                           {p.stock <= 5 && p.stock > 0 && <AlertTriangle className="w-3 h-3" />}
                           {sText}
