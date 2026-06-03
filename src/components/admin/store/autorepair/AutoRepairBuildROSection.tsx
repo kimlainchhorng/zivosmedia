@@ -31,6 +31,8 @@ import PartPickerDialog, { type PickedPart } from "./PartPickerDialog";
 import BuildROCustomerDialog, { type CustomerDraft, blankCustomer } from "./BuildROCustomerDialog";
 import BuildROVehicleDialog from "./BuildROVehicleDialog";
 import BuildROCarfaxDialog from "./BuildROCarfaxDialog";
+import BuildROStatusDialog from "./BuildROStatusDialog";
+import BuildROLineComposer, { type ComposedLineDraft } from "./BuildROLineComposer";
 import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
 import { listConnectedVendors } from "./AutoRepairPartSuppliersSection";
 import BuildROHub from "./BuildROHub";
@@ -46,7 +48,7 @@ import {
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, ShieldCheck, ChevronDown,
   Link2, X, UserPlus, Sparkles, Ban, ShoppingCart, Mail, MessageSquare, ArrowRightCircle,
-  Download, Star, CheckCircle2, Send, PhoneCall, Home, Percent,
+  Download, Star, CheckCircle2, Send, PhoneCall, Home, Percent, Clock,
 } from "lucide-react";
 
 type GarageVehicle = {
@@ -309,6 +311,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [suppliesC, setSuppliesC] = useState(0);
   const [discountC, setDiscountC] = useState(0);
   const [taxRate, setTaxRate] = useState(0);
+  // Once the user hand-edits EPA / Shop Supplies, stop auto-applying the shop default.
+  const [epaTouched, setEpaTouched] = useState(false);
+  const [suppliesTouched, setSuppliesTouched] = useState(false);
   const [droppedOff, setDroppedOff] = useState(false);
   const [status, setStatus] = useState<string>("draft");
 
@@ -334,6 +339,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [searchOpen, setSearchOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [carfaxOpen, setCarfaxOpen] = useState(false);
+  const [statusDlgOpen, setStatusDlgOpen] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printCopies, setPrintCopies] = useState(1);
   const [smsMenuOpen, setSmsMenuOpen] = useState(false);
@@ -394,7 +400,26 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       const taxPct = !isNaN(taxRaw) && taxRaw > 0 ? (taxRaw <= 1 ? taxRaw * 100 : taxRaw) : 0;
       const labor = parseFloat(String(s.labor_rate ?? "")) || 0;
       const matrix = normalizeMatrix(s.parts_matrix);
-      return { taxPct, labor, matrix };
+      // Fees & Setup → EPA + Shop Supplies auto-apply config.
+      const epa = s.epa_enabled
+        ? { type: s.epa_type === "pct" ? "pct" : "amount", value: Number(s.epa_value) || 0, onParts: !!s.epa_on_parts, onLabor: !!s.epa_on_labor }
+        : null;
+      const supplies = s.shop_supplies_enabled
+        ? { type: s.shop_supplies_type === "pct" ? "pct" : "amount", value: Number(s.shop_supplies_value) || 0, onParts: !!s.shop_supplies_on_parts, onLabor: !!s.shop_supplies_on_labor }
+        : null;
+      // Sales Tax "Apply Taxes On" matrix → which line kinds are taxable.
+      // A category is taxable when its rate is R1/R2/R3 (not "N"). undefined = not configured.
+      const at = (s.tax_applies_to || {}) as Record<string, string>;
+      const taxableOf = (key: string): boolean | undefined =>
+        at[key] == null ? undefined : at[key] !== "N";
+      const taxableByKind: Partial<Record<LineKind, boolean>> = {
+        part: taxableOf("parts"),
+        tire: taxableOf("tires"),
+        labor: taxableOf("labor"),
+        sublet: taxableOf("subcontract"),
+        fee: taxableOf("fees"),
+      };
+      return { taxPct, labor, matrix, epa, supplies, taxableByKind };
     },
   });
   const partsMatrix: MatrixTier[] = shopDefaults?.matrix ?? DEFAULT_PARTS_MATRIX;
@@ -522,8 +547,41 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const declinedCount = useMemo(() => lines.filter((l) => l.declined).length, [lines]);
   const toOrderCount = useMemo(() => lines.filter((l) => l.kind === "part" && !l.ordered && !l.declined).length, [lines]);
 
+  // Compute an EPA/Shop-Supplies charge (in cents) from its shop-settings config
+  // against the current parts/labor subtotals.
+  const chargeFromConfig = (cfg: { type: string; value: number; onParts: boolean; onLabor: boolean } | null | undefined): number | null => {
+    if (!cfg || cfg.value <= 0) return null;
+    if (cfg.type === "pct") {
+      const base = (cfg.onParts ? t.parts + t.tires : 0) + (cfg.onLabor ? t.labor : 0);
+      return Math.round((base * cfg.value) / 100);
+    }
+    return Math.round(cfg.value * 100); // flat dollar amount → cents
+  };
+
+  // Whether a new line of this kind is taxable — follows the shop's "Apply Taxes
+  // On" matrix when configured, else the sensible default (parts & tires taxable).
+  const taxableFor = (kind: LineKind): boolean => {
+    const m = shopDefaults?.taxableByKind?.[kind];
+    return m === undefined ? (kind === "part" || kind === "tire") : m;
+  };
+
+  // Auto-apply the configured EPA + Shop Supplies until the user overrides them.
+  useEffect(() => {
+    if (!epaTouched) {
+      const c = chargeFromConfig(shopDefaults?.epa);
+      if (c != null) setEpaC(c);
+    }
+    if (!suppliesTouched) {
+      const c = chargeFromConfig(shopDefaults?.supplies);
+      if (c != null) setSuppliesC(c);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.parts, t.tires, t.labor, shopDefaults, epaTouched, suppliesTouched]);
+
   // ── Line ops ──
-  const addLine = (kind: LineKind) => setLines((a) => [...a, blankLine(activeJob, kind)]);
+  const addLine = (kind: LineKind) => setLines((a) => [...a, { ...blankLine(activeJob, kind), taxable: taxableFor(kind) }]);
+  const addComposedLine = (d: ComposedLineDraft) =>
+    setLines((a) => [...a, { ...blankLine(activeJob, d.kind), ...d }]);
   const patchLine = (id: string, patch: Partial<ROLine>) =>
     setLines((a) => a.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   const removeLine = (id: string) => setLines((a) => a.filter((l) => l.id !== id));
@@ -551,7 +609,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         part_number: p.sku || "",
         vendor: p.brand || "",
         misc: p.sku || "",
-        taxable: true,
+        taxable: taxableFor("part"),
       },
     ]);
     toast.success(`Added ${p.description}${p.brand ? ` (${p.brand})` : ""}`);
@@ -568,8 +626,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   // ── Presets (canned jobs). Phase 3 wires these to real templates; for now they seed sensible lines. ──
   const laborRateC = dollarsToCents(header.labor_rate);
   const applyPreset = (preset: string) => {
-    const L = (description: string, hours: number): ROLine => ({ ...blankLine(activeJob, "labor"), description, qty: hours, unit_cents: laborRateC });
-    const P = (description: string, sell: number): ROLine => ({ ...blankLine(activeJob, "part"), description, qty: 1, unit_cents: dollarsToCents(sell), taxable: true });
+    const L = (description: string, hours: number): ROLine => ({ ...blankLine(activeJob, "labor"), description, qty: hours, unit_cents: laborRateC, taxable: taxableFor("labor") });
+    const P = (description: string, sell: number): ROLine => ({ ...blankLine(activeJob, "part"), description, qty: 1, unit_cents: dollarsToCents(sell), taxable: taxableFor("part") });
     const seeds: Record<string, ROLine[]> = {
       Basic: [L("Lube, Oil & Filter — labor", 0.5), P("Engine oil (5 qt)", 32), P("Oil filter", 9)],
       "Full Service": [L("Full service inspection — labor", 1), L("Lube, Oil & Filter — labor", 0.5), P("Engine oil (5 qt)", 32), P("Oil filter", 9), P("Air filter", 18)],
@@ -588,10 +646,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const addCannedJob = (c: any) => {
     const out: ROLine[] = [];
     if (c.labor_hours > 0) {
-      out.push({ ...blankLine(activeJob, "labor"), description: `${c.name} — labor`, qty: Number(c.labor_hours) || 1, unit_cents: Number(c.labor_rate_cents) || laborRateC });
+      out.push({ ...blankLine(activeJob, "labor"), description: `${c.name} — labor`, qty: Number(c.labor_hours) || 1, unit_cents: Number(c.labor_rate_cents) || laborRateC, taxable: taxableFor("labor") });
     }
     for (const p of (Array.isArray(c.parts) ? c.parts : [])) {
-      out.push({ ...blankLine(activeJob, "part"), description: p.name ?? "Part", qty: Number(p.qty) || 1, unit_cents: Number(p.unit_cents) || 0, taxable: true });
+      out.push({ ...blankLine(activeJob, "part"), description: p.name ?? "Part", qty: Number(p.qty) || 1, unit_cents: Number(p.unit_cents) || 0, taxable: taxableFor("part") });
     }
     if (out.length === 0) out.push({ ...blankLine(activeJob, "labor"), description: c.name, qty: 1, unit_cents: laborRateC });
     setLines((a) => [...a, ...out]);
@@ -607,6 +665,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setJobs([1]);
     setActiveJob(1);
     setFeesC(0); setEpaC(0); setSuppliesC(0); setDiscountC(0);
+    setEpaTouched(false); setSuppliesTouched(false); // re-apply shop defaults on a fresh RO
     setTaxRate(shopDefaults?.taxPct ?? 0);
     setDroppedOff(false);
     setStatus("draft");
@@ -650,6 +709,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       po_number: e.po_number ?? "",
       labor_rate: shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate,
       ...parseNotes(e.notes ?? null),
+      // Prefer the dedicated note columns when present (fall back to parsed notes for older estimates).
+      ...(e.customer_notes ? { customer_request: e.customer_notes } : {}),
+      ...(e.diagnosis_notes ? { diagnosis: e.diagnosis_notes } : {}),
     });
     setCreatedAt(e.created_at ?? null);
     const ls = Array.isArray(e.line_items) ? e.line_items.map(coerceLine) : [];
@@ -660,6 +722,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setFeesC(e.fees_cents ?? 0);
     setEpaC(e.epa_cents ?? 0);
     setSuppliesC(e.shop_supplies_cents ?? 0);
+    setEpaTouched(true); setSuppliesTouched(true); // preserve the saved RO's charges, don't re-derive
     setDiscountC(e.discount_cents ?? 0);
     setTaxRate(e.tax_rate != null ? Number(e.tax_rate) : 0);
     setStatus(e.status ?? "draft");
@@ -715,6 +778,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         tax_cents: t.tax,
         total_cents: t.total,
         notes: composeNotes(header) || null,
+        // Persist the two main intake notes in their dedicated columns (clean
+        // round-trip + they flow to the invoice and customer-facing views).
+        customer_notes: header.customer_request || null,
+        diagnosis_notes: header.diagnosis || null,
+        // Link the bound garage vehicle by id for robust history matching.
+        vehicle_id: vehicleId,
       };
       if (editId) {
         if (authorize) payload.status = "approved";
@@ -1266,7 +1335,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                     </td>
                   </tr>
                 ) : (
-                  lines
+                  <>
+                  {lines
                     .filter((l) => l.job === activeJob)
                     .map((l) => {
                       const Icon = KIND_META[l.kind].icon;
@@ -1301,8 +1371,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                                     <option value={l.vendor}>{l.vendor}</option>
                                   )}
                                 </select>
-                                {l.ordered && (
-                                  <span className="text-[9px] uppercase tracking-wide text-emerald-600">ordered</span>
+                                {l.ordered ? (
+                                  <span className="flex items-center gap-0.5 text-[9px] uppercase tracking-wide text-emerald-600">
+                                    <CheckCircle2 className="h-3 w-3" /> Ordered
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-0.5 text-[9px] font-medium uppercase tracking-wide text-amber-500">
+                                    <Clock className="h-3 w-3" /> Pending Order
+                                  </span>
                                 )}
                               </div>
                             )}
@@ -1336,8 +1412,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                             </div>
                           </td>
                           <td className="px-2 py-1 text-center">
-                            <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={l.taxable}
-                              onChange={(e) => patchLine(l.id, { taxable: e.target.checked })} />
+                            <button type="button"
+                              title={l.taxable ? "Taxable (R1) — click to exempt" : "Tax-exempt — click to tax"}
+                              onClick={() => patchLine(l.id, { taxable: !l.taxable })}
+                              className={`h-6 w-7 rounded text-[11px] font-semibold transition ${
+                                l.taxable ? "text-sky-500 hover:bg-sky-500/10" : "text-muted-foreground hover:bg-muted"
+                              }`}>
+                              {l.taxable ? "R1" : "N"}
+                            </button>
                           </td>
                           <td className="px-2 py-1 text-right font-semibold tabular-nums">{money(lineTotalCents(l))}</td>
                           <td className="px-1 py-1">
@@ -1354,7 +1436,18 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                           </td>
                         </tr>
                       );
-                    })
+                    })}
+                  {/* Job subtotal */}
+                  <tr className="border-t bg-muted/30">
+                    <td colSpan={7} className="px-3 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Job {activeJob} SubTotal
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-bold tabular-nums">
+                      {money(lines.filter((l) => l.job === activeJob && !l.declined).reduce((s, l) => s + lineTotalCents(l), 0))}
+                    </td>
+                    <td />
+                  </tr>
+                  </>
                 )}
               </tbody>
             </table>
@@ -1366,6 +1459,15 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               ))}
             </div>
           </div>
+
+          {/* VSM-style line composer (Part / Labor entry) */}
+          <BuildROLineComposer
+            job={activeJob}
+            laborRateCents={laborRateC}
+            storeId={storeId}
+            onAdd={addComposedLine}
+            onOpenCatalog={() => setOpenCatalog(true)}
+          />
 
           {/* Status / orders strip */}
           <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card px-3 py-1.5 text-xs">
@@ -1406,7 +1508,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             </span>
             <span className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Tech:</span>
-              <Input className="h-6 w-28 text-xs" placeholder="Unassigned" value={header.technician} onChange={(e) => setH({ technician: e.target.value })} />
+              <button type="button" onClick={() => setStatusDlgOpen(true)} className="h-6 rounded border px-2 text-xs font-medium hover:bg-muted" title="Status & technician">{header.technician || "Select Technician"}</button>
             </span>
             <Select value={header.appointment_type} onValueChange={(v) => setH({ appointment_type: v })}>
               <SelectTrigger className="h-6 w-[150px] text-xs"><SelectValue placeholder="Appointment type" /></SelectTrigger>
@@ -1460,7 +1562,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 <dt>SubTotal</dt><dd className="tabular-nums">{money(t.lineSubtotal)}</dd>
               </div>
               {[
-                ["Fees", feesC, setFeesC], ["EPA", epaC, setEpaC], ["Shop Supplies", suppliesC, setSuppliesC], ["Discount", discountC, setDiscountC],
+                ["Fees", feesC, setFeesC],
+                ["EPA", epaC, (n: number) => { setEpaTouched(true); setEpaC(n); }],
+                ["Shop Supplies", suppliesC, (n: number) => { setSuppliesTouched(true); setSuppliesC(n); }],
+                ["Discount", discountC, setDiscountC],
               ].map(([label, val, setter]) => (
                 <div key={label as string} className="flex items-center justify-between">
                   <dt className="text-muted-foreground">{label}</dt>
@@ -1595,6 +1700,16 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         onOpenChange={setCarfaxOpen}
         storeId={storeId}
         vehicle={boundVehicle}
+      />
+      <BuildROStatusDialog
+        open={statusDlgOpen}
+        onOpenChange={setStatusDlgOpen}
+        roNumber={header.number || undefined}
+        status={status}
+        onSetStatus={setWorkStatus}
+        technician={header.technician}
+        onSetTechnician={(name) => setH({ technician: name })}
+        soldHours={lines.filter((l) => l.kind === "labor" || l.kind === "diagnosis").reduce((s, l) => s + (Number(l.qty) || 0), 0)}
       />
       <PartPickerDialog
         open={openParts}
