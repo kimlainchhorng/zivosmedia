@@ -6,6 +6,8 @@ import type { Database } from './types';
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
 const REMEMBER_ME_KEY = "zivo_remember_me";
 const SUPABASE_PROJECT_REF =
   import.meta.env.VITE_SUPABASE_PROJECT_ID ||
