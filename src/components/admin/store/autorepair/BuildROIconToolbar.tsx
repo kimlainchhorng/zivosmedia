@@ -6,7 +6,7 @@
  */
 import {
   Plus, Home, Calendar, Users, Car, Gauge, Clock, Calculator,
-  MessageSquare, BarChart3, Printer, Settings,
+  MessageSquare, BarChart3, Printer, Settings, TrendingUp,
 } from "lucide-react";
 
 interface Props {
@@ -14,9 +14,11 @@ interface Props {
   onHub: () => void;
   onPrint: () => void;
   onNavigate?: (tab: string) => void;
+  /** Open the Estimate Profitability (gross-profit) breakdown for the current R.O. */
+  onProfit?: () => void;
 }
 
-export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate }: Props) {
+export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, onProfit }: Props) {
   const nav = (tab: string) => () => onNavigate?.(tab);
   const items: { icon: typeof Plus; label: string; onClick: () => void; accent?: string }[] = [
     { icon: Plus, label: "New R.O.", onClick: onNew, accent: "text-emerald-600" },
@@ -27,6 +29,7 @@ export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate }
     { icon: Gauge, label: "Dashboard", onClick: nav("ar-dashboard") },
     { icon: Clock, label: "Labor time", onClick: nav("ar-labor-time") },
     { icon: Calculator, label: "Finance", onClick: nav("ar-fin-income") },
+    ...(onProfit ? [{ icon: TrendingUp, label: "Profit / GP", onClick: onProfit, accent: "text-emerald-600" }] : []),
     { icon: MessageSquare, label: "SMS & email", onClick: nav("ar-campaigns") },
     { icon: BarChart3, label: "Reports", onClick: nav("ar-reports") },
     { icon: Printer, label: "Print", onClick: onPrint },
