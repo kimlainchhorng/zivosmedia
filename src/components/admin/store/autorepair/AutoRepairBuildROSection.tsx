@@ -41,6 +41,7 @@ import BuildROBarcode from "./BuildROBarcode";
 import BuildROSaveCannedDialog from "./BuildROSaveCannedDialog";
 import BuildROPartsMatrixDialog from "./BuildROPartsMatrixDialog";
 import BuildROImportPartsDialog, { type ImportedPart } from "./BuildROImportPartsDialog";
+import BuildROIconToolbar from "./BuildROIconToolbar";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import { type MatrixTier, DEFAULT_PARTS_MATRIX, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
@@ -1130,6 +1131,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
 
   return (
     <div className="space-y-3">
+      {/* ── VSM top icon toolbar (quick-nav) ── */}
+      <BuildROIconToolbar
+        onNew={() => { resetAll(); }}
+        onHub={() => setView("hub")}
+        onPrint={printRO}
+        onNavigate={onNavigate}
+      />
+
       {/* ── VSM header strip: created · last viewed · service writer · due date · PO# · EST# ── */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border bg-muted/30 px-3 py-1.5 text-xs">
         <span><span className="text-muted-foreground">Created:</span> <b className="ml-1">{createdAt ? new Date(createdAt).toLocaleDateString() : "New"}</b></span>
@@ -1648,8 +1657,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               ] as [string, number, (n: number) => void][]).map(([label, val, setter]) => (
                 <div key={label as string} className="flex items-center justify-between">
                   <dt className="text-muted-foreground">{label}</dt>
-                  <dd>
-                    <input className="h-6 w-16 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number"
+                  <dd className="flex items-center justify-end gap-0.5"><span className="text-[10px] text-muted-foreground">$</span><input className="h-6 w-16 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number"
                       value={centsToDollars(val as number)}
                       onChange={(e) => (setter as (n: number) => void)(dollarsToCents(e.target.value))}
                     />
@@ -1659,7 +1667,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">Tax %</dt>
                 <dd className="flex items-center gap-1">
-                  <input className="h-6 w-12 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number" value={taxRate || ""} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} />
+                  <input className="h-6 w-12 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number" value={taxRate || ""} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} /><span className="text-[10px] text-muted-foreground">%</span>
                   <span className="tabular-nums text-muted-foreground">{money(t.tax)}</span>
                 </dd>
               </div>
