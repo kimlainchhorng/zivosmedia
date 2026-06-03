@@ -23,6 +23,7 @@ interface Props {
   onSetStatus: (value: string) => void;
   technician: string;
   onSetTechnician: (name: string) => void;
+  onCommitTechnician?: (name: string) => void;
   soldHours: number;
   technicians?: string[];
 }
@@ -34,7 +35,7 @@ const PRIMARY = [
 ] as const;
 
 export default function BuildROStatusDialog({
-  open, onOpenChange, roNumber, status, onSetStatus, technician, onSetTechnician, soldHours, technicians = [],
+  open, onOpenChange, roNumber, status, onSetStatus, technician, onSetTechnician, onCommitTechnician, soldHours, technicians = [],
 }: Props) {
   const [techMode, setTechMode] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -111,7 +112,7 @@ export default function BuildROStatusDialog({
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-3">
             <span className="font-serif text-sm font-semibold italic text-slate-200">Assign Main Technician</span>
             <Input list="ar-status-techs" className="h-9 w-52 border-slate-600 bg-slate-800/60 text-sm text-slate-100" placeholder="Select Technician"
-              value={technician} onChange={(e) => onSetTechnician(e.target.value)} />
+              value={technician} onChange={(e) => onSetTechnician(e.target.value)} onBlur={(e) => onCommitTechnician?.(e.target.value)} />
             <datalist id="ar-status-techs">{technicians.map((t) => <option key={t} value={t} />)}</datalist>
             <label className="flex items-center gap-1.5 text-xs text-slate-300">
               <input type="checkbox" className="h-4 w-4 accent-sky-500" checked={techMode} onChange={(e) => setTechMode(e.target.checked)} />

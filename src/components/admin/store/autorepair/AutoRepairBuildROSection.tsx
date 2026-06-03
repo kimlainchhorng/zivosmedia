@@ -316,6 +316,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [suppliesTouched, setSuppliesTouched] = useState(false);
   const [droppedOff, setDroppedOff] = useState(false);
   const [status, setStatus] = useState<string>("draft");
+  const [workflowStage, setWorkflowStage] = useState<string>("awaiting");
 
   // ── Recent estimates (for the Open dropdown) ──
   const { data: recent = [] } = useQuery({
@@ -387,6 +388,21 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         .limit(24);
       if (error) throw error;
       return (data ?? []) as any[];
+    },
+  });
+
+  // Active technicians — feed the Technician picker (status dialog datalist).
+  const { data: technicianNames = [] } = useQuery({
+    queryKey: ["ar-build-ro-techs", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_technicians" as any)
+        .select("name")
+        .eq("store_id", storeId)
+        .eq("active", true)
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((t) => t.name).filter(Boolean) as string[];
     },
   });
 
@@ -669,6 +685,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setTaxRate(shopDefaults?.taxPct ?? 0);
     setDroppedOff(false);
     setStatus("draft");
+    setWorkflowStage("awaiting");
     setCreatedAt(null);
     unbind();
     setCustSearch("");
@@ -726,6 +743,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setDiscountC(e.discount_cents ?? 0);
     setTaxRate(e.tax_rate != null ? Number(e.tax_rate) : 0);
     setStatus(e.status ?? "draft");
+    setWorkflowStage((e as any).workflow_stage ?? "awaiting");
     setOpenLoad(false);
     // Re-bind the saved garage vehicle so History / linked features work on load.
     if (e.vehicle_id) {
@@ -759,8 +777,19 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         customer_name: header.customer_name || null,
         customer_phone: header.customer_phone || null,
         customer_email: header.customer_email || null,
+        customer_street: header.customer_street || null,
+        customer_city: header.customer_city || null,
+        customer_state: header.customer_state || null,
+        customer_zip: header.customer_zip || null,
+        customer_address: [header.customer_street, header.customer_city, header.customer_state, header.customer_zip].filter(Boolean).join(", ") || null,
         vehicle_label: header.vehicle_label || null,
+        vehicle_year: header.vehicle_year || null,
+        vehicle_make: header.vehicle_make || null,
+        vehicle_model: header.vehicle_model || null,
+        vehicle_engine: header.vehicle_engine || null,
+        vehicle_transmission: header.vehicle_transmission || null,
         vehicle_color: header.vehicle_color || null,
+        vin: boundVehicle?.vin || null,
         unit_number: header.unit_number || null,
         license_plate: header.license_plate || null,
         plate_state: header.plate_state || null,
@@ -771,6 +800,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         technician_cert: header.technician_cert || null,
         payment_method: header.payment_method || null,
         promised_at: header.promised_at || null,
+        po_number: header.po_number || null,
         // line_items keep both the extended fields and the legacy {name} alias.
         line_items: lines.map((l) => ({ ...l, name: l.description })),
         subtotal_cents: t.lineSubtotal,
@@ -844,19 +874,36 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     toast.success(`${ids.length} part${ids.length === 1 ? "" : "s"} marked ordered`);
   };
 
-  // Advance/set the shop-floor workflow stage. Persists immediately when the RO
-  // is already saved; otherwise it rides along on the next save.
+  const ensureSavedId = async () => editId ?? (await save.mutateAsync(false));
+
+  // Advance/set the shop-floor workflow stage. Auto-saves (creates) the RO if needed
+  // so the status always persists to the backend on click.
   const setWorkStatus = async (value: string) => {
-    setStatus(value);
-    if (editId) {
-      const { error } = await supabase.from("ar_estimates" as any).update({ status: value }).eq("id", editId);
-      if (error) { toast.error("Couldn't update status"); return; }
+    setWorkflowStage(value);
+    try {
+      const id = await ensureSavedId();
+      const { error } = await supabase.from("ar_estimates" as any).update({ workflow_stage: value }).eq("id", id);
+      if (error) throw error;
+    } catch {
+      toast.error("Couldn't save status");
+      return;
     }
     const label = WORK_STAGES.find((w) => w.value === value)?.label ?? value;
     toast.success(`Status: ${label}`);
   };
 
-  const ensureSavedId = async () => editId ?? (await save.mutateAsync(false));
+  // Persist the main technician immediately (auto-saving the RO first). Avoids
+  // creating an RO just to store an empty technician.
+  const persistTechnician = async (name: string) => {
+    if (!editId && !name.trim()) return;
+    try {
+      const id = await ensureSavedId();
+      const { error } = await supabase.from("ar_estimates" as any).update({ technician: name.trim() || null }).eq("id", id);
+      if (error) throw error;
+    } catch {
+      toast.error("Couldn't save technician");
+    }
+  };
 
   const convertWO = useMutation({
     mutationFn: async () => {
@@ -1483,8 +1530,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <span className="text-muted-foreground">Status:</span>
               <span className="flex items-center">
                 {WORK_STAGES.map((stage, i) => {
-                  const active = i <= statusToStageIndex(status);
-                  const isCurrent = i === statusToStageIndex(status);
+                  const active = i <= statusToStageIndex(workflowStage);
+                  const isCurrent = i === statusToStageIndex(workflowStage);
                   return (
                     <button
                       key={stage.value}
@@ -1710,10 +1757,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         open={statusDlgOpen}
         onOpenChange={setStatusDlgOpen}
         roNumber={header.number || undefined}
-        status={status}
+        status={workflowStage}
         onSetStatus={setWorkStatus}
         technician={header.technician}
         onSetTechnician={(name) => setH({ technician: name })}
+        onCommitTechnician={persistTechnician}
+        technicians={technicianNames}
         soldHours={lines.filter((l) => l.kind === "labor" || l.kind === "diagnosis").reduce((s, l) => s + (Number(l.qty) || 0), 0)}
       />
       <PartPickerDialog
