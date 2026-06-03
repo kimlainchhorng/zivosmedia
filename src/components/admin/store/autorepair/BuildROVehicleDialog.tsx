@@ -25,7 +25,7 @@ interface Props {
   onSaved: (vehicle: any) => void;
 }
 
-const blank = { year: "", make: "", model: "", engine: "", vin: "", plate: "", plateState: "LA", color: "", mileage: "" };
+const blank = { year: "", make: "", model: "", engine: "", vin: "", plate: "", plateState: "LA", color: "", mileage: "", oil_capacity: "", oil_viscosity: "", oil_filter: "" };
 
 const label = "w-24 shrink-0 text-right text-base font-semibold text-slate-300";
 const field = "flex-1 bg-slate-800/60 border-slate-600 text-slate-100 placeholder:text-slate-500 h-10";
@@ -71,9 +71,12 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
         plate: f.plate.trim() || null,
         color: f.color.trim().toLowerCase() || null,
         mileage: f.mileage ? parseInt(f.mileage, 10) : 0,
+        oil_capacity: f.oil_capacity.trim() || null,
+        oil_viscosity: f.oil_viscosity.trim() || null,
+        oil_filter: f.oil_filter.trim() || null,
         notes: noteParts.join(" · ") || null,
       };
-      const { data, error } = await supabase.from("ar_customer_vehicles").insert(payload).select("*").single();
+      const { data, error } = await supabase.from("ar_customer_vehicles").insert(payload as any).select("*").single();
       if (error) throw error;
       return data;
     },
@@ -130,6 +133,13 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
                 Report To Carfax
               </label>
             </div>
+          </div>
+
+          {/* Oil specs — persisted on the vehicle, shown on its R.O.s */}
+          <div className="grid grid-cols-1 gap-2 rounded-lg border border-slate-700 bg-slate-900/40 p-2.5 sm:grid-cols-3">
+            <div className="flex items-center gap-2"><span className="shrink-0 text-xs font-semibold text-slate-300">Oil cap.</span><Input className="h-9 flex-1 border-slate-600 bg-slate-800/60 text-sm text-slate-100" placeholder="e.g. 5.5 qt" value={f.oil_capacity} onChange={(e) => set({ oil_capacity: e.target.value })} /></div>
+            <div className="flex items-center gap-2"><span className="shrink-0 text-xs font-semibold text-slate-300">Viscosity</span><Input className="h-9 flex-1 border-slate-600 bg-slate-800/60 text-sm text-slate-100" placeholder="e.g. 5W-30" value={f.oil_viscosity} onChange={(e) => set({ oil_viscosity: e.target.value })} /></div>
+            <div className="flex items-center gap-2"><span className="shrink-0 text-xs font-semibold text-slate-300">Filter</span><Input className="h-9 flex-1 border-slate-600 bg-slate-800/60 text-sm text-slate-100" placeholder="e.g. PH3614" value={f.oil_filter} onChange={(e) => set({ oil_filter: e.target.value })} /></div>
           </div>
 
           <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-red-400">
