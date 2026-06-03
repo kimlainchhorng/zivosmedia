@@ -13,7 +13,15 @@ const SUPABASE_PROJECT_REF =
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY.");
+  // Don't throw at module load — that crashes the whole React tree and leaves
+  // visitors with a blank white page (seen on zivollc.com when the production
+  // build was published without the VITE_SUPABASE_* env vars baked in).
+  // Log loudly so the issue is still obvious in DevTools, but let the app boot.
+  // eslint-disable-next-line no-console
+  console.error(
+    "[supabase/client] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY — " +
+    "Supabase calls will fail until the site is re-published with env vars."
+  );
 }
 
 function isSupabaseSecretKey(key: string): boolean {
