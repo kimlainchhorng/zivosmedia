@@ -727,6 +727,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setTaxRate(e.tax_rate != null ? Number(e.tax_rate) : 0);
     setStatus(e.status ?? "draft");
     setOpenLoad(false);
+    // Re-bind the saved garage vehicle so History / linked features work on load.
+    if (e.vehicle_id) {
+      const gv = garage.find((g) => g.id === e.vehicle_id);
+      if (gv) { setVehicleId(gv.id); setBoundVehicle(gv); }
+    }
     toast.success(`Loaded ${e.number ?? "estimate"}`);
   };
 
