@@ -25,12 +25,31 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ServiceCatalogPickerDialog, { type ServiceCatalogPick } from "./ServiceCatalogPickerDialog";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
+import VehicleHistoryDialog from "./VehicleHistoryDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, Gauge, ShieldCheck, ChevronDown,
+  Link2, X, UserPlus,
 } from "lucide-react";
+
+type GarageVehicle = {
+  id: string;
+  store_id: string;
+  owner_name: string;
+  owner_phone?: string | null;
+  owner_email?: string | null;
+  year?: number | null;
+  make: string;
+  model: string;
+  vin?: string | null;
+  plate?: string | null;
+  color?: string | null;
+  mileage?: number | null;
+  notes?: string | null;
+  created_at: string;
+};
 
 interface Props {
   storeId: string;
@@ -220,6 +239,113 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     },
   });
 
+  // ── Customer / vehicle binding ──
+  const [vehicleId, setVehicleId] = useState<string | null>(null);
+  const [boundVehicle, setBoundVehicle] = useState<GarageVehicle | null>(null);
+  const [custSearch, setCustSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const { data: garage = [] } = useQuery({
+    queryKey: ["ar-build-ro-garage", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_customer_vehicles")
+        .select("*")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as GarageVehicle[];
+    },
+  });
+
+  const searchResults = useMemo(() => {
+    const s = custSearch.trim().toLowerCase();
+    if (!s) return [];
+    return garage
+      .filter((v) =>
+        `${v.owner_name} ${v.owner_phone ?? ""} ${v.plate ?? ""} ${v.vin ?? ""} ${v.year ?? ""} ${v.make} ${v.model}`
+          .toLowerCase()
+          .includes(s),
+      )
+      .slice(0, 8);
+  }, [garage, custSearch]);
+
+  // Last-service summary for the bound/typed vehicle (matched by label across invoices + work orders).
+  const vehLabel = header.vehicle_label.trim();
+  const { data: lastService } = useQuery({
+    queryKey: ["ar-build-ro-lastservice", storeId, vehLabel],
+    enabled: !!vehLabel,
+    queryFn: async () => {
+      const [inv, wo] = await Promise.all([
+        supabase.from("ar_invoices" as any).select("created_at, mileage_in, mileage_out")
+          .eq("store_id", storeId).eq("vehicle_label", vehLabel).order("created_at", { ascending: false }).limit(1),
+        supabase.from("ar_work_orders" as any).select("created_at")
+          .eq("store_id", storeId).eq("vehicle_label", vehLabel).order("created_at", { ascending: false }).limit(1),
+      ]);
+      const invRow: any = inv.data?.[0];
+      const woRow: any = wo.data?.[0];
+      const dates = [invRow?.created_at, woRow?.created_at].filter(Boolean) as string[];
+      const lastDate = dates.sort().slice(-1)[0] ?? null;
+      const lastMileage = invRow?.mileage_out ?? invRow?.mileage_in ?? null;
+      return { lastDate, lastMileage };
+    },
+  });
+
+  const bindVehicle = (v: GarageVehicle) => {
+    setVehicleId(v.id);
+    setBoundVehicle(v);
+    setHeader((h) => ({
+      ...h,
+      customer_name: v.owner_name ?? "",
+      customer_phone: v.owner_phone ?? "",
+      customer_email: v.owner_email ?? "",
+      vehicle_label: [v.year, v.make, v.model].filter(Boolean).join(" "),
+      license_plate: v.plate ?? "",
+      vehicle_color: v.color ?? "",
+      mileage_in: v.mileage ? String(v.mileage) : h.mileage_in,
+    }));
+    setCustSearch("");
+    setSearchOpen(false);
+    toast.success(`Linked ${[v.year, v.make, v.model].filter(Boolean).join(" ")}`);
+  };
+  const unbind = () => { setVehicleId(null); setBoundVehicle(null); };
+
+  const saveToGarage = useMutation({
+    mutationFn: async () => {
+      if (!header.customer_name.trim()) throw new Error("Enter a customer name first");
+      const label = header.vehicle_label.trim();
+      if (!label) throw new Error("Enter the vehicle first");
+      const parts = label.split(/\s+/);
+      let year: number | null = null;
+      let rest = parts;
+      if (/^\d{4}$/.test(parts[0])) { year = parseInt(parts[0], 10); rest = parts.slice(1); }
+      const make = rest[0] ?? label;
+      const model = rest.slice(1).join(" ") || "—";
+      const payload = {
+        store_id: storeId,
+        owner_name: header.customer_name.trim(),
+        owner_phone: header.customer_phone.trim() || null,
+        owner_email: header.customer_email.trim() || null,
+        year, make, model,
+        plate: header.license_plate.trim() || null,
+        color: header.vehicle_color.trim().toLowerCase() || null,
+        mileage: header.mileage_in ? parseInt(header.mileage_in, 10) : 0,
+      };
+      const { data, error } = await supabase.from("ar_customer_vehicles").insert(payload).select("*").single();
+      if (error) throw error;
+      return data as unknown as GarageVehicle;
+    },
+    onSuccess: (v) => {
+      setVehicleId(v.id);
+      setBoundVehicle(v);
+      qc.invalidateQueries({ queryKey: ["ar-build-ro-garage", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-customer-vehicles", storeId] });
+      toast.success("Saved to garage");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to save vehicle"),
+  });
+
   // ── Totals ──
   const t = useMemo(() => {
     const by = (k: LineKind) => lines.filter((l) => l.kind === k).reduce((s, l) => s + lineTotalCents(l), 0);
@@ -282,10 +408,13 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setActiveJob(1);
     setFeesC(0); setEpaC(0); setSuppliesC(0); setDiscountC(0); setTaxRate(0);
     setDroppedOff(false);
+    unbind();
+    setCustSearch("");
   };
 
   const loadEstimate = (e: any) => {
     setEditId(e.id);
+    unbind();
     setHeader({
       ...blankHeader,
       number: e.number ?? "",
@@ -402,12 +531,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setTimeout(() => w.print(), 400);
   };
 
-  const shortcuts = [
-    { label: "Summary", icon: FileSignature, tab: null },
-    { label: "Service History", icon: History, tab: "ar-vehicles" },
-    { label: "Vehicle Inspection", icon: ClipboardCheck, tab: "ar-inspections" },
-    { label: "Activities", icon: Activity, tab: "ar-customer-notes" },
-    { label: "Payments", icon: CreditCard, tab: "ar-fin-payments" },
+  const shortcuts: { label: string; icon: typeof Wrench; onClick?: () => void }[] = [
+    { label: "Summary", icon: FileSignature },
+    { label: "Service History", icon: History, onClick: () => boundVehicle ? setHistoryOpen(true) : onNavigate?.("ar-vehicles") },
+    { label: "Vehicle Inspection", icon: ClipboardCheck, onClick: () => onNavigate?.("ar-inspections") },
+    { label: "Activities", icon: Activity, onClick: () => onNavigate?.("ar-customer-notes") },
+    { label: "Payments", icon: CreditCard, onClick: () => onNavigate?.("ar-fin-payments") },
   ];
 
   const fieldCls = "h-8 text-xs";
@@ -469,9 +598,54 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       {/* ── Customer / Vehicle header ── */}
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="rounded-xl border bg-card p-2.5">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <Search className="h-3 w-3" /> Customer
-          </p>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Search className="h-3 w-3" /> Customer
+            </p>
+            {boundVehicle && (
+              <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                <Link2 className="h-3 w-3" /> Linked
+                <button type="button" className="ml-0.5 hover:text-foreground" onClick={unbind} title="Unlink"><X className="h-3 w-3" /></button>
+              </span>
+            )}
+          </div>
+          <div className="relative mb-1.5">
+            <Search className="pointer-events-none absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              className={`${fieldCls} pl-7`}
+              placeholder="Search garage by name, phone, plate, or VIN…"
+              value={custSearch}
+              onChange={(e) => { setCustSearch(e.target.value); setSearchOpen(true); }}
+              onFocus={() => setSearchOpen(true)}
+              onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
+            />
+            {searchOpen && searchResults.length > 0 && (
+              <div className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto rounded-lg border bg-popover p-1 shadow-lg">
+                {searchResults.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => bindVehicle(v)}
+                    className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-muted"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium">{v.owner_name}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {[v.year, v.make, v.model].filter(Boolean).join(" ")}{v.plate ? ` · ${v.plate}` : ""}
+                      </span>
+                    </span>
+                    <Car className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchOpen && custSearch.trim() && searchResults.length === 0 && (
+              <div className="absolute z-30 mt-1 w-full rounded-lg border bg-popover px-3 py-2 text-[11px] text-muted-foreground shadow-lg">
+                No match in garage — fill the fields below, then “Save to garage”.
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-1.5">
             <Input className={fieldCls} placeholder="Customer name" value={header.customer_name} onChange={(e) => setH({ customer_name: e.target.value })} />
             <Input className={fieldCls} placeholder="Phone" value={header.customer_phone} onChange={(e) => setH({ customer_phone: e.target.value })} />
@@ -479,9 +653,22 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           </div>
         </div>
         <div className="rounded-xl border bg-card p-2.5">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <Car className="h-3 w-3" /> Vehicle
-          </p>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Car className="h-3 w-3" /> Vehicle
+            </p>
+            {boundVehicle ? (
+              <button type="button" onClick={() => setHistoryOpen(true)}
+                className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline">
+                <History className="h-3 w-3" /> History
+              </button>
+            ) : (
+              <button type="button" disabled={saveToGarage.isPending} onClick={() => saveToGarage.mutate()}
+                className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline disabled:opacity-50">
+                <UserPlus className="h-3 w-3" /> Save to garage
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-1.5">
             <Input className={`${fieldCls} col-span-2`} placeholder="Year / Make / Model (e.g. 2020 Toyota Camry)" value={header.vehicle_label} onChange={(e) => setH({ vehicle_label: e.target.value })} />
             <Input className={fieldCls} placeholder="License plate" value={header.license_plate} onChange={(e) => setH({ license_plate: e.target.value })} />
@@ -673,6 +860,20 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Gauge className="h-3 w-3" /> Vehicle Data
             </p>
+            <dl className="rounded-lg bg-muted/40 px-2 py-1.5 text-[11px]">
+              {[
+                ["Last serviced", lastService?.lastDate ? new Date(lastService.lastDate).toLocaleDateString() : "—"],
+                ["Last mileage", lastService?.lastMileage != null ? `${Number(lastService.lastMileage).toLocaleString()} mi` : "—"],
+                ["Oil capacity", "—"],
+                ["Oil viscosity", "—"],
+                ["Oil filter", "—"],
+              ].map(([k, v]) => (
+                <div key={k as string} className="flex justify-between py-0.5">
+                  <dt className="text-muted-foreground">{k}</dt>
+                  <dd className="font-medium">{v}</dd>
+                </div>
+              ))}
+            </dl>
             <Input className={fieldCls} placeholder="Service writer" value={header.service_writer} onChange={(e) => setH({ service_writer: e.target.value })} />
             <Input className={fieldCls} placeholder="Technician" value={header.technician} onChange={(e) => setH({ technician: e.target.value })} />
             <Select value={header.appointment_type} onValueChange={(v) => setH({ appointment_type: v })}>
@@ -745,8 +946,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <button
                 key={s.label}
                 type="button"
-                disabled={!s.tab}
-                onClick={() => s.tab && onNavigate?.(s.tab)}
+                disabled={!s.onClick}
+                onClick={s.onClick}
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground transition hover:bg-muted disabled:opacity-40"
               >
                 <s.icon className="h-3.5 w-3.5" /> {s.label}
@@ -788,6 +989,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           appendPicks([{ kind: "labor", name: entry.service, qty: entry.baseHours, unit_cents: laborRateC }]);
           toast.success(`Added "${entry.service}" — ${entry.baseHours}h @ ${money(laborRateC)}`);
         }}
+      />
+      <VehicleHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        storeId={storeId}
+        vehicle={boundVehicle}
       />
     </div>
   );
