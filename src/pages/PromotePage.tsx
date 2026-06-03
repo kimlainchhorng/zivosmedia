@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { trackMarketingEvent } from "@/services/marketingTracking";
 
 interface UserPostRow {
   id: string;
@@ -110,6 +111,15 @@ export default function PromotePage() {
       toast.error("Pick a post to boost first.");
       return;
     }
+    trackMarketingEvent("Lead", {
+      eventId: `boost-${selectedPost.id}-${tier.id}`,
+      value: tier.price,
+      currency: "USD",
+      contentType: "post_boost",
+      contentId: selectedPost.id,
+      contentName: tier.name,
+      source: "promote_page",
+    });
     toast.success(`${tier.name} boost queued — billing rolls out in beta.`);
   };
 

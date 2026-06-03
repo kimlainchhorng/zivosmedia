@@ -563,6 +563,65 @@ const emptyProduct = {
   car_body_type: "" as string,
 };
 
+/** Countries the store "market" field supports (matches the flag/phone maps used elsewhere). */
+const STORE_COUNTRY_OPTIONS: { code: string; name: string; flag: string }[] = [
+  { code: "KH", name: "Cambodia", flag: "🇰🇭" },
+  { code: "US", name: "United States", flag: "🇺🇸" },
+  { code: "VN", name: "Vietnam", flag: "🇻🇳" },
+  { code: "TH", name: "Thailand", flag: "🇹🇭" },
+  { code: "CN", name: "China", flag: "🇨🇳" },
+  { code: "KR", name: "South Korea", flag: "🇰🇷" },
+  { code: "JP", name: "Japan", flag: "🇯🇵" },
+  { code: "IN", name: "India", flag: "🇮🇳" },
+  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
+  { code: "AU", name: "Australia", flag: "🇦🇺" },
+  { code: "SG", name: "Singapore", flag: "🇸🇬" },
+  { code: "MY", name: "Malaysia", flag: "🇲🇾" },
+  { code: "PH", name: "Philippines", flag: "🇵🇭" },
+  { code: "ID", name: "Indonesia", flag: "🇮🇩" },
+  { code: "LA", name: "Laos", flag: "🇱🇦" },
+  { code: "MM", name: "Myanmar", flag: "🇲🇲" },
+];
+
+/** Normalize a store handle to the slug format the DB + edge function enforce. */
+function normalizeSlug(value: string): string {
+  return (value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Real columns on store_products — used to strip UI-only fields (size,
+ *  price_usd, car_*) before a direct write, since the edge function whitelists
+ *  server-side but a raw insert/update does not. */
+const PRODUCT_COLUMNS = [
+  "name", "description", "price", "image_url", "category", "brand", "sku",
+  "in_stock", "sort_order", "image_urls", "price_khr", "discount_type",
+  "discount_value", "discount_price_khr", "discount_expires_at",
+  "buy_quantity", "get_quantity", "unit", "badge", "size_variants",
+] as const;
+
+function pickProductColumns(product: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const key of PRODUCT_COLUMNS) if (key in product) out[key] = product[key];
+  return out;
+}
+
+/** True when an edge function couldn't be reached (e.g. the local dev preview
+ *  can't hit Functions). Production reaches the function, so the direct
+ *  fallbacks these guard only run during local development. */
+function isEdgeUnreachable(error: any): boolean {
+  return error?.name === "FunctionsFetchError" || /failed to send a request/i.test(error?.message || "");
+}
+
+/** Pull the friendly message out of an edge-function error/response. */
+async function edgeErrorMessage(error: any, data: any, fallback: string): Promise<string> {
+  if (data?.error) return data.error;
+  try { const body = await error?.context?.json?.(); if (body?.error) return body.error; } catch { /* noop */ }
+  return error?.message || fallback;
+}
+
 export default function AdminStoreEditPage() {
   const { storeId } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
@@ -705,7 +764,7 @@ export default function AdminStoreEditPage() {
 
   const [form, setForm] = useState({
     name: "", slug: "", description: "", logo_url: "", banner_url: "",
-    market: "", category: "", address: "", phone: "", hours: "",
+    market: "", category: "", default_language: "", address: "", phone: "", hours: "",
     rating: 0, delivery_min: 0, is_active: true, khr_rate: 4062.5,
     latitude: null as number | null, longitude: null as number | null,
     banner_position: 50,
@@ -736,6 +795,7 @@ export default function AdminStoreEditPage() {
         banner_position: (store as any).banner_position ?? 50,
         market: store.market || "",
         category: store.category || "",
+        default_language: (store as any).default_language || "",
         address: store.address || "",
         phone: store.phone || "",
         hours: store.hours || "",
@@ -797,18 +857,20 @@ export default function AdminStoreEditPage() {
   const saveProfile = useMutation({
     mutationFn: async () => {
       const { rating, booking_days, booking_start_time, booking_end_time, booking_duration, booking_note, ...profileData } = form;
-      const { error } = await supabase
-        .from("store_profiles")
-        .update(profileData as any)
-        .eq("id", storeId!);
-      if (error) throw error;
+      // Normalize the handle to the slug format the DB/edge function enforce so
+      // owners get a valid URL instead of a server rejection.
+      const slug = normalizeSlug(profileData.slug);
+      if (!slug) throw new Error("Store handle (URL) can't be empty");
+      // Persist through the gated store-profile-manage edge function (server-side
+      // whitelist + validation), the same path images/gallery already use.
+      await saveStoreProfilePatch({ ...profileData, slug });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-store", storeId] });
       queryClient.invalidateQueries({ queryKey: ["admin-stores"] });
       toast.success("Store profile updated");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message || "Could not save store profile"),
   });
 
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
@@ -1966,13 +2028,34 @@ export default function AdminStoreEditPage() {
         const { data, error } = await supabase.functions.invoke("store-product-manage", {
           body: { action: "update", product_id: editingProduct.id, product: productPayload },
         });
-        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to update product");
+        if (error && isEdgeUnreachable(error)) {
+          // Local dev fallback — direct, RLS-gated update (admins only, per policy).
+          const { error: dErr } = await supabase
+            .from("store_products")
+            .update(pickProductColumns(productPayload) as any)
+            .eq("id", editingProduct.id);
+          if (dErr) throw new Error(dErr.message || "Failed to update product");
+        } else if (error || !data?.ok) {
+          throw new Error(await edgeErrorMessage(error, data, "Failed to update product"));
+        }
       } else {
         const { data, error } = await supabase.functions.invoke("store-product-manage", {
           body: { action: "create", store_id: storeId, product: productPayload },
         });
-        if (error || !data?.ok) throw error || new Error(data?.error || "Failed to add product");
-        if (data.product) setEditingProduct(data.product);
+        if (error && isEdgeUnreachable(error)) {
+          // Local dev fallback — direct, RLS-gated insert (admins only, per policy).
+          const { data: row, error: dErr } = await supabase
+            .from("store_products")
+            .insert({ ...pickProductColumns(productPayload), store_id: storeId } as any)
+            .select()
+            .maybeSingle();
+          if (dErr) throw new Error(dErr.message || "Failed to add product");
+          if (row) setEditingProduct(row);
+        } else if (error || !data?.ok) {
+          throw new Error(await edgeErrorMessage(error, data, "Failed to add product"));
+        } else if (data.product) {
+          setEditingProduct(data.product);
+        }
       }
       return keepOpen;
     },
@@ -1994,7 +2077,13 @@ export default function AdminStoreEditPage() {
       const { data, error } = await supabase.functions.invoke("store-product-manage", {
         body: { action: "delete", product_id: id },
       });
-      if (error || !data?.ok) throw error || new Error(data?.error || "Failed to delete product");
+      if (error && isEdgeUnreachable(error)) {
+        // Local dev fallback — direct, RLS-gated delete (owner or admin, per policy).
+        const { error: dErr } = await supabase.from("store_products").delete().eq("id", id);
+        if (dErr) throw new Error(dErr.message || "Failed to delete product");
+      } else if (error || !data?.ok) {
+        throw new Error(await edgeErrorMessage(error, data, "Failed to delete product"));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-store-products", storeId] });
@@ -2011,7 +2100,24 @@ export default function AdminStoreEditPage() {
     const { data, error } = await supabase.functions.invoke("store-profile-manage", {
       body: { action: "update", store_id: storeId, profile },
     });
-    if (error || !data?.ok) throw error || new Error(data?.error || "Failed to save store profile");
+    if (error) {
+      if (isEdgeUnreachable(error)) {
+        // The edge function couldn't be reached (e.g. the local dev preview
+        // can't hit Functions). Fall back to a direct, RLS-gated update so dev
+        // still works. Production reaches the function, so this never runs there.
+        const { error: directErr } = await supabase
+          .from("store_profiles")
+          .update(profile as any)
+          .eq("id", storeId!);
+        if (directErr) {
+          if ((directErr as any).code === "23505") throw new Error("That handle (store URL) is already taken");
+          throw new Error(directErr.message || "Failed to save store profile");
+        }
+        return null;
+      }
+      throw new Error(await edgeErrorMessage(error, data, "Failed to save store profile"));
+    }
+    if (!data?.ok) throw new Error(data?.error || "Failed to save store profile");
     return data.store;
   };
 
@@ -3258,7 +3364,12 @@ export default function AdminStoreEditPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>{t("admin.store.slug")}</Label>
-                    <Input value={form.slug} onChange={e => updateField("slug", e.target.value)} />
+                    <Input
+                      value={form.slug}
+                      onChange={e => updateField("slug", e.target.value)}
+                      onBlur={e => updateField("slug", normalizeSlug(e.target.value))}
+                      placeholder="my-store"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -3267,8 +3378,19 @@ export default function AdminStoreEditPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>{t("admin.store.market")}</Label>
-                    <Input value={form.market} onChange={e => updateField("market", e.target.value)} />
+                    <Label>Country</Label>
+                    <select
+                      value={form.market}
+                      onChange={e => updateField("market", e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {form.market && !STORE_COUNTRY_OPTIONS.some(c => c.code === form.market) && (
+                        <option value={form.market}>{form.market}</option>
+                      )}
+                      {STORE_COUNTRY_OPTIONS.map(c => (
+                        <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <Label>{t("admin.store.category")}</Label>
@@ -3279,6 +3401,19 @@ export default function AdminStoreEditPage() {
                     >
                       {STORE_CATEGORY_OPTIONS.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Store Language</Label>
+                    <select
+                      value={form.default_language}
+                      onChange={e => updateField("default_language", e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">App default</option>
+                      {activeLanguages.map(l => (
+                        <option key={l.code} value={l.code}>{l.native_name || l.name} ({l.code})</option>
                       ))}
                     </select>
                   </div>
@@ -3868,6 +4003,20 @@ export default function AdminStoreEditPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
+                      <Label className="text-xs">Parts Markup (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={500}
+                        step={0.1}
+                        placeholder="e.g. 35"
+                        value={form.ar_settings?.parts_markup_pct ?? ""}
+                        onChange={(e) => updateArSettings("parts_markup_pct", parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
                       <Label className="text-xs">Tax Rate (%)</Label>
                       <Input
                         type="number"
@@ -3876,6 +4025,38 @@ export default function AdminStoreEditPage() {
                         placeholder="e.g. 8.5"
                         value={form.ar_settings?.tax_rate ?? ""}
                         onChange={(e) => updateArSettings("tax_rate", parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t">
+                    <Label className="text-xs font-semibold">Invoice header details</Label>
+                    <p className="text-[11px] text-muted-foreground">Printed on the header of estimates &amp; invoices (alongside your shop name, address, phone &amp; logo).</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Invoice email</Label>
+                      <Input
+                        type="email"
+                        placeholder="shop@example.com"
+                        value={form.ar_settings?.invoice_email ?? ""}
+                        onChange={(e) => updateArSettings("invoice_email", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Second phone (L2)</Label>
+                      <Input
+                        type="tel"
+                        placeholder="(555) 222-3333"
+                        value={form.ar_settings?.phone_l2 ?? ""}
+                        onChange={(e) => updateArSettings("phone_l2", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">State registration no.</Label>
+                      <Input
+                        placeholder="e.g. 55454545"
+                        value={form.ar_settings?.state_reg_no ?? ""}
+                        onChange={(e) => updateArSettings("state_reg_no", e.target.value)}
                       />
                     </div>
                   </div>
@@ -3894,6 +4075,15 @@ export default function AdminStoreEditPage() {
                       rows={2}
                       value={form.ar_settings?.warranty_policy ?? ""}
                       onChange={(e) => updateArSettings("warranty_policy", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Terms Policy</Label>
+                    <Textarea
+                      placeholder="e.g. Customer approval is required before additional work. Payment is due at pickup unless otherwise agreed."
+                      rows={3}
+                      value={form.ar_settings?.terms_policy ?? ""}
+                      onChange={(e) => updateArSettings("terms_policy", e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">

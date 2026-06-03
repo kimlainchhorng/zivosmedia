@@ -13,6 +13,12 @@ interface Body {
   asHost?: boolean;
 }
 
+type ChannelCallAccess = {
+  channelId: string;
+  isMember: boolean;
+  isManager: boolean;
+};
+
 Deno.serve(withSecurity("livekit-token", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   const respond = (body: unknown, status = 200) => json(body, status, corsHeaders);
@@ -51,6 +57,11 @@ Deno.serve(withSecurity("livekit-token", async (req, ctx) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    const channelAccess = await getChannelCallAccess(admin, body.roomName, user.id);
+    if (channelAccess && !channelAccess.isMember) {
+      return respond({ error: "You must be a channel member to join this call" }, 403);
+    }
+
     // Find or create the session row
     const { data: existing } = await admin
       .from("video_call_sessions")
@@ -62,6 +73,9 @@ Deno.serve(withSecurity("livekit-token", async (req, ctx) => {
     let isHost = false;
 
     if (!existing || existing.ended_at) {
+      if (channelAccess && !channelAccess.isManager) {
+        return respond({ error: "Only channel admins can start this call" }, 403);
+      }
       // First joiner becomes host
       const { data: created, error: cerr } = await admin
         .from("video_call_sessions")
@@ -134,4 +148,38 @@ function json(body: unknown, status = 200, headers: Record<string, string> = {})
     status,
     headers: { ...headers, "Content-Type": "application/json" },
   });
+}
+
+async function getChannelCallAccess(admin: any, roomName: string, userId: string): Promise<ChannelCallAccess | null> {
+  const match = roomName.match(/^channel-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+  if (!match) return null;
+
+  const channelId = match[1];
+  const { data: channel, error: channelError } = await admin
+    .from("channels")
+    .select("id, owner_id")
+    .eq("id", channelId)
+    .maybeSingle();
+
+  if (channelError || !channel) {
+    throw new Error("Channel not found");
+  }
+
+  const isOwner = channel.owner_id === userId;
+  const { data: subscriber, error: subscriberError } = await admin
+    .from("channel_subscribers")
+    .select("role")
+    .eq("channel_id", channelId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (subscriberError) {
+    throw new Error(subscriberError.message);
+  }
+
+  const role = typeof subscriber?.role === "string" ? subscriber.role : null;
+  const isManager = isOwner || role === "owner" || role === "admin";
+  const isMember = isManager || (Boolean(subscriber) && role !== "pending");
+
+  return { channelId, isMember, isManager };
 }

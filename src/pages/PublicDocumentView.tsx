@@ -24,6 +24,12 @@ export default function PublicDocumentView() {
   const [storeName, setStoreName] = useState<string>("");
   const [storeAddr, setStoreAddr] = useState<string>("");
   const [storePhone, setStorePhone] = useState<string>("");
+  const [storePhone2, setStorePhone2] = useState<string>("");
+  const [storeEmail, setStoreEmail] = useState<string>("");
+  const [storeStateReg, setStoreStateReg] = useState<string>("");
+  const [storeLogoUrl, setStoreLogoUrl] = useState<string>("");
+  const [storeLogoData, setStoreLogoData] = useState<string | undefined>(undefined);
+  const [storeTerms, setStoreTerms] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -37,18 +43,44 @@ export default function PublicDocumentView() {
       if (sid) {
         const { data: store } = await supabase
           .from("store_profiles")
-          .select("name, address, phone")
+          .select("name, address, phone, logo_url, ar_settings")
           .eq("id", sid)
           .maybeSingle();
         if (store) {
+          const ar = ((store as any).ar_settings) || {};
           setStoreName(store.name || "");
           setStoreAddr(store.address || "");
           setStorePhone(store.phone || "");
+          setStorePhone2(ar.phone_l2 || ar.phone2 || "");
+          setStoreEmail(ar.invoice_email || ar.contact_email || ar.email || "");
+          setStoreStateReg(ar.state_reg_no || ar.state_reg || "");
+          setStoreTerms(ar.terms_policy || "");
+          setStoreLogoUrl((store as any).logo_url || "");
         }
       }
       setLoading(false);
     })();
   }, [token]);
+
+  // Convert the shop logo to a data URL for the PDF header (CORS-permitting).
+  useEffect(() => {
+    if (!storeLogoUrl || typeof document === "undefined") { setStoreLogoData(undefined); return; }
+    let cancelled = false;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const ctx = c.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0);
+        if (!cancelled) setStoreLogoData(c.toDataURL("image/png"));
+      } catch { /* tainted canvas — skip logo */ }
+    };
+    img.src = storeLogoUrl;
+    return () => { cancelled = true; };
+  }, [storeLogoUrl]);
 
   if (loading) {
     return (
@@ -102,13 +134,41 @@ export default function PublicDocumentView() {
       address: d.customer_address || undefined,
       vehicle: d.vehicle_label || undefined,
       vin: d.vin || undefined,
+      year: d.vehicle_year || undefined,
+      make: d.vehicle_make || undefined,
+      model: d.vehicle_model || undefined,
+      engine: d.vehicle_engine || undefined,
+      color: d.vehicle_color || undefined,
+      licensePlate: d.license_plate || undefined,
+      plateState: d.plate_state || undefined,
+      unitNumber: d.unit_number || undefined,
+      mileageIn: d.mileage_in != null ? String(d.mileage_in) : undefined,
+      mileageOut: d.mileage_out != null ? String(d.mileage_out) : undefined,
       items,
       status: d.status || "sent",
       taxRate,
       createdAt: d.created_at,
-      customerNotes: d.notes || d.customer_notes,
+      closedAt: d.paid_at || undefined,
+      promisedAt: d.promised_at || undefined,
+      serviceWriter: d.service_writer || undefined,
+      technician: d.technician || undefined,
+      technicianCert: d.technician_cert || undefined,
+      keytag: d.keytag || undefined,
+      paymentMethod: d.payment_method || undefined,
+      customerNotes: d.customer_notes || d.notes || undefined,
+      diagnosisNotes: d.diagnosis_notes || undefined,
+      tirePressures: d.tire_pressures || undefined,
+      subletCents: d.sublet_cents ?? undefined,
+      feesCents: d.fees_cents ?? undefined,
+      epaCents: d.epa_cents ?? undefined,
+      shopSuppliesCents: d.shop_supplies_cents ?? undefined,
+      amountPaidCents: d.amount_paid_cents ?? undefined,
     };
-    const blob = generateDocumentPdf({ doc: pdfDoc, storeName, storeAddress: storeAddr, storePhone });
+    const blob = generateDocumentPdf({
+      doc: pdfDoc,
+      storeName, storeAddress: storeAddr, storePhone,
+      storePhone2, storeEmail, storeStateReg, storeLogo: storeLogoData, storeTermsPolicy: storeTerms,
+    });
     downloadPdf(blob, `${data.doc_type}-${d.number}.pdf`);
   };
 

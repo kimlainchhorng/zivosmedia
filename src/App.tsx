@@ -55,6 +55,13 @@ import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { RouteErrorBoundary } from "./components/shared/RouteErrorBoundary";
 import PreserveQueryRedirect from "./components/routing/PreserveQueryRedirect";
 
+function ChannelShareRedirect() {
+  const { handle } = useParams<{ handle: string }>();
+  const location = useLocation();
+  const target = handle ? `/c/${encodeURIComponent(handle)}${location.search}${location.hash}` : `/channels${location.search}${location.hash}`;
+  return <Navigate to={target} replace />;
+}
+
 // Defer non-critical overlays — these don't need to block FCP/LCP
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 const CookieConsent = lazyWithRetry(() => import("./components/common/CookieConsent"));
@@ -1538,6 +1545,7 @@ const App = () => (
                 <Route path="/chat/search" element={<ProtectedRoute><ChatSearchPage /></ProtectedRoute>} />
                 <Route path="/channels" element={<ChannelsDirectoryPage />} />
                 <Route path="/channels/new" element={<ProtectedRoute><NewChannelPage /></ProtectedRoute>} />
+                <Route path="/share/c/:handle" element={<ChannelShareRedirect />} />
                 <Route path="/c/:handle" element={<ChannelPage />} />
                 <Route path="/c/:handle/manage" element={<ProtectedRoute><ManageChannelPage /></ProtectedRoute>} />
                 <Route path="/c/:handle/log" element={<ProtectedRoute><ChannelAdminLogPage /></ProtectedRoute>} />

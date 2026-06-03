@@ -15,6 +15,10 @@ import type { ChannelPost } from "@/hooks/useChannel";
 
 interface Props {
   post: ChannelPost;
+  /** Controlled open state. When provided, the collapsed trigger is hidden and
+   *  the parent owns open/close (e.g. from a long-press action sheet). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface DailyBucket {
@@ -22,8 +26,14 @@ interface DailyBucket {
   count: number;
 }
 
-export default function ChannelPostInsights({ post }: Props) {
-  const [open, setOpen] = useState(false);
+export default function ChannelPostInsights({ post, open: openProp, onOpenChange }: Props) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (isControlled) onOpenChange?.(next);
+    else setInternalOpen(next);
+  };
   const [loading, setLoading] = useState(false);
   const [uniqueViewers, setUniqueViewers] = useState<number | null>(null);
   const [reactionBreakdown, setReactionBreakdown] = useState<{ emoji: string; count: number }[]>([]);
@@ -89,11 +99,13 @@ export default function ChannelPostInsights({ post }: Props) {
   }, [open, post.id]);
 
   if (!open) {
+    // Parent-controlled: the trigger lives in the long-press action sheet.
+    if (isControlled) return null;
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-6 items-center gap-1 rounded-full bg-white/30 px-1.5 text-[10px] text-emerald-800/70 transition hover:bg-white/55 hover:text-emerald-950"
+        className="inline-flex h-6 items-center gap-1 rounded-full px-1.5 text-[10px] text-emerald-800/50 transition hover:bg-white/45 hover:text-emerald-950"
         aria-label="Post insights"
         title="Insights"
       >

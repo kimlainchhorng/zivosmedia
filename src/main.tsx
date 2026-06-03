@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import "./lib/toastErrorFilter";
 import { setupGlobalErrorHandlers } from "@/lib/security/errorReporting";
+import { installMarketingRuntimeConfig } from "@/config/marketingRuntimeConfig";
 
 // Dev mode only: unregister any service worker left over from a previous
 // prod build and wipe its caches, so HMR updates show up on refresh instead
@@ -37,6 +38,7 @@ const onBootError = (e: ErrorEvent) => paintBootError(e.error ?? e.message);
 const onBootRejection = (e: PromiseRejectionEvent) => paintBootError(e.reason);
 window.addEventListener("error", onBootError);
 window.addEventListener("unhandledrejection", onBootRejection);
+installMarketingRuntimeConfig();
 
 try {
   createRoot(document.getElementById("root")!).render(<App />);

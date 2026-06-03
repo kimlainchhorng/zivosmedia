@@ -41,6 +41,10 @@ interface Props {
   canComment?: boolean;
   /** True when the viewer is a manager — exposes delete on others' comments. */
   canModerate?: boolean;
+  /** Controlled open state. When provided, the collapsed trigger is hidden and
+   *  the parent owns open/close (e.g. from a long-press action sheet). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export default function ChannelPostComments({
@@ -50,10 +54,18 @@ export default function ChannelPostComments({
   initialCount = 0,
   canComment = true,
   canModerate = false,
+  open: openProp,
+  onOpenChange,
 }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(!collapsed);
+  const [internalOpen, setInternalOpen] = useState(!collapsed);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (isControlled) onOpenChange?.(next);
+    else setInternalOpen(next);
+  };
   const [rows, setRows] = useState<CommentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState("");
@@ -145,11 +157,13 @@ export default function ChannelPostComments({
   }
 
   if (!open) {
+    // Parent-controlled: the trigger lives in the long-press action sheet.
+    if (isControlled) return null;
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-6 items-center gap-1 rounded-full bg-white/30 px-1.5 text-[10px] text-emerald-800/70 transition hover:bg-white/55 hover:text-emerald-950"
+        className="inline-flex h-6 items-center gap-1 rounded-full px-1.5 text-[10px] text-emerald-800/50 transition hover:bg-white/45 hover:text-emerald-950"
       >
         <MessageCircle className="w-3.5 h-3.5" />
         {count > 0

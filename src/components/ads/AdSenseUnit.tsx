@@ -22,7 +22,6 @@ import {
 declare global {
   interface Window {
     adsbygoogle?: unknown[];
-    Capacitor?: { isNativePlatform?: () => boolean };
   }
 }
 
@@ -35,9 +34,11 @@ export function getAdSenseClient(): string | null {
 }
 
 function isNativeApp(): boolean {
-  return Boolean(
-    typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.(),
-  );
+  if (typeof window === "undefined") return false;
+  const capacitor = (window as Window & {
+    Capacitor?: { isNativePlatform?: () => boolean };
+  }).Capacitor;
+  return Boolean(capacitor?.isNativePlatform?.());
 }
 
 interface AdSenseUnitProps {

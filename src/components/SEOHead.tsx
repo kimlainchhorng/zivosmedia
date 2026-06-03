@@ -73,7 +73,9 @@ export default function SEOHead({
     setMeta('property', 'og:image:alt', title);
     setMeta('property', 'og:site_name', 'ZIVO');
     setMeta('property', 'og:locale', 'en_US');
-    setMeta('property', 'fb:app_id', '2304266847061310');
+    if (import.meta.env.VITE_META_APP_ID) {
+      setMeta('property', 'fb:app_id', import.meta.env.VITE_META_APP_ID);
+    }
 
     if (publishedTime) setMeta('property', 'article:published_time', publishedTime);
     if (modifiedTime) setMeta('property', 'article:modified_time', modifiedTime);

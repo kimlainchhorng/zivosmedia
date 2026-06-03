@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense, type PointerEvent as ReactPointerEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  BarChart3,
   Check,
   CheckCheck,
   ChevronLeft,
@@ -10,13 +11,13 @@ import {
   FileText,
   Link as LinkIcon,
   Loader2,
-  MoreHorizontal,
+  MessageCircle,
   Music,
   Pencil,
   Pin,
   PinOff,
+  Plus,
   Share2,
-  Smile,
   Trash2,
   Video,
   X,
@@ -25,6 +26,7 @@ import { toast } from "sonner";
 import type { ChannelPost } from "@/hooks/useChannel";
 import { getPublicOrigin } from "@/lib/getPublicOrigin";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
+import { ILLUSTRATED_PACKS } from "@/config/illustratedStickers";
 import { cn } from "@/lib/utils";
 
 const ChannelPostComments = lazy(() => import("./ChannelPostComments"));
@@ -33,6 +35,16 @@ const ChatPollBubble = lazy(() => import("../chat/ChatPollBubble"));
 
 const REACTIONS = ["👍", "❤️", "🔥", "🎉", "👏"];
 const URL_PATTERN = /https?:\/\/[^\s<>"')]+/i;
+const INSTALLED_STICKER_PACKS_KEY = "zivo_installed_sticker_packs";
+type IllustratedStickerPack = (typeof ILLUSTRATED_PACKS)[number];
+type IllustratedSticker = IllustratedStickerPack["stickers"][number];
+const STICKER_ASSET_BY_ID = new Map(
+  ILLUSTRATED_PACKS.flatMap((pack) => pack.stickers.map((sticker) => [sticker.id, sticker] as const)),
+);
+const STICKER_PACK_BY_ID = new Map(ILLUSTRATED_PACKS.map((pack) => [pack.id, pack] as const));
+const STICKER_PACK_BY_STICKER_ID = new Map(
+  ILLUSTRATED_PACKS.flatMap((pack) => pack.stickers.map((sticker) => [sticker.id, pack] as const)),
+);
 
 interface Props {
   post: ChannelPost;
@@ -60,6 +72,20 @@ interface MediaItem {
   waveform?: number[];
 }
 
+interface StickerItem {
+  type?: string;
+  sticker?: string;
+  url?: string;
+  name?: string;
+  pack?: string;
+}
+
+interface Reactor {
+  id: string;
+  url: string | null;
+  name: string;
+}
+
 function attachmentType(item: any): string {
   return String(item?.type || item?.mime_type || item?.mimeType || "").toLowerCase();
 }
@@ -77,6 +103,83 @@ function isMusicAttachment(item: any): boolean {
 function isFileAttachment(item: any): boolean {
   const type = attachmentType(item);
   return type === "file" || type === "document" || type.includes("application/");
+}
+
+function normalizePostMedia(value: unknown): any[] {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return normalizePostMedia(parsed);
+    } catch {
+      return [];
+    }
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.items)) return record.items.filter(Boolean);
+    if (Array.isArray(record.media)) return record.media.filter(Boolean);
+    if (record.type || record.url || record.sticker) return [record];
+  }
+  return [];
+}
+
+function getStickerImage(item: StickerItem): string | null {
+  if (typeof item.url === "string" && item.url.trim()) return item.url;
+  if (typeof item.sticker !== "string") return null;
+  return STICKER_ASSET_BY_ID.get(item.sticker)?.src ?? null;
+}
+
+function getStickerLabel(item: StickerItem): string {
+  if (item.name?.trim()) return item.name.trim();
+  if (typeof item.sticker === "string") return STICKER_ASSET_BY_ID.get(item.sticker)?.alt ?? item.sticker;
+  return "Sticker";
+}
+
+function getStickerPack(item: StickerItem): IllustratedStickerPack | null {
+  if (typeof item.pack === "string") {
+    const pack = STICKER_PACK_BY_ID.get(item.pack);
+    if (pack) return pack;
+  }
+  if (typeof item.sticker === "string") return STICKER_PACK_BY_STICKER_ID.get(item.sticker) ?? null;
+  return null;
+}
+
+function getStickerMotionClass(stickerId?: string): string {
+  const id = (stickerId ?? "").toLowerCase();
+  if (/cry|sad|sick|nope/.test(id)) return "zivo-sticker-cry";
+  if (/angry|fire/.test(id)) return "zivo-sticker-angry";
+  if (/love|heart|kiss/.test(id)) return "zivo-sticker-love";
+  if (/sleep|relief/.test(id)) return "zivo-sticker-sleep";
+  if (/happy|smile|laugh|party|star|grin|thumbs|ok|cool|wow|scream/.test(id)) return "zivo-sticker-happy";
+  return "zivo-sticker-happy";
+}
+
+function getStickerMoodLabel(stickerId?: string): string {
+  const id = (stickerId ?? "").toLowerCase();
+  if (/sick|cry|sad/.test(id)) return "Crying mood";
+  if (/angry|fire|nope/.test(id)) return "Big emotion";
+  if (/love|heart|kiss/.test(id)) return "Love mood";
+  if (/sleep|relief/.test(id)) return "Calm mood";
+  if (/party|star|grin|laugh|happy|smile/.test(id)) return "Happy mood";
+  if (/wow|scream/.test(id)) return "Surprised mood";
+  return "Live sticker";
+}
+
+function readInstalledStickerPacks(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const value = window.localStorage.getItem(INSTALLED_STICKER_PACKS_KEY);
+    const parsed = value ? JSON.parse(value) : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveInstalledStickerPacks(packIds: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(INSTALLED_STICKER_PACKS_KEY, JSON.stringify(Array.from(new Set(packIds))));
 }
 
 function attachmentLabel(item: MediaItem): string {
@@ -135,6 +238,33 @@ function formatPostTime(value?: string | null): string {
   return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date);
 }
 
+function formatViewCount(count?: number): string {
+  const value = Math.max(0, Number(count ?? 0));
+  if (value < 1000) return value.toLocaleString();
+  if (value < 1_000_000) return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1).replace(/\.0$/, "")}K`;
+  return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
+}
+
+function PostMediaStatsOverlay({ views, time, pill = false }: { views: number; time: string; pill?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "pointer-events-none absolute bottom-1.5 right-2 inline-flex items-center gap-1.5 leading-none text-white",
+        // Stickers have no bubble behind them, so plain white text reads poorly
+        // over light artwork — wrap it in a dark Telegram-style pill instead.
+        pill
+          ? "rounded-full bg-black/45 px-2 py-1 text-[12px] font-medium backdrop-blur-sm"
+          : "text-[17px] font-medium",
+      )}
+      style={pill ? undefined : { textShadow: "0 1px 2px rgba(0,0,0,.55)" }}
+    >
+      <span>{formatViewCount(views)}</span>
+      <Eye className={cn("fill-white/30 stroke-[2.4]", pill ? "h-3.5 w-3.5" : "h-5 w-5")} />
+      {time && <span>{time}</span>}
+    </span>
+  );
+}
+
 function renderMessageText(text: string) {
   return text.split(/(https?:\/\/[^\s<>"')]+)/gi).map((part, index) => {
     const url = part.match(URL_PATTERN)?.[0]?.replace(/[),.;!?]+$/g, "");
@@ -182,6 +312,20 @@ function PostActionButton({
   );
 }
 
+function MeetPreviewArtwork() {
+  return (
+    <span className="relative block aspect-[1.08/1] overflow-hidden rounded-b-lg bg-white">
+      <span className="absolute left-[14%] top-[20%] h-[58%] w-[68%] rounded-[24%] bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-400" />
+      <span className="absolute left-[9%] top-[57%] h-[16%] w-[16%] rounded-full bg-white" />
+      <span
+        className="absolute right-[2%] top-[32%] h-[44%] w-[30%] bg-orange-400"
+        style={{ clipPath: "polygon(0 28%, 100% 0, 100% 100%, 0 72%)" }}
+      />
+      <span className="absolute left-[42%] top-[34%] h-[32%] w-[28%] rounded-full bg-pink-200/30 blur-2xl" />
+    </span>
+  );
+}
+
 export function ChannelPostCard({
   post,
   canManage = false,
@@ -191,10 +335,6 @@ export function ChannelPostCard({
   onPinChanged,
   highlight = false,
 }: Props) {
-  const [pinning, setPinning] = useState(false);
-  // Admin "more" menu — open/close + edit/delete state.
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body ?? "");
   const [savingEdit, setSavingEdit] = useState(false);
@@ -204,19 +344,21 @@ export function ChannelPostCard({
   const [localBody, setLocalBody] = useState<string | null>(post.body ?? null);
   const [deleted, setDeleted] = useState(false);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
+  // Stats/Comments are opened from the long-press action sheet (Telegram-style),
+  // not from always-visible buttons on the bubble.
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [tapReaction, setTapReaction] = useState<string | null>(null);
+  const [stickerPackOpen, setStickerPackOpen] = useState<IllustratedStickerPack | null>(null);
+  const [previewSticker, setPreviewSticker] = useState<IllustratedSticker | null>(null);
+  const [installedStickerPacks, setInstalledStickerPacks] = useState<string[]>(() => readInstalledStickerPacks());
   const longPressTimerRef = useRef<number | null>(null);
+  const tapReactionTimerRef = useRef<number | null>(null);
+  const suppressClickRef = useRef(false);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [menuOpen]);
+  const stickerPackInstalled = stickerPackOpen ? installedStickerPacks.includes(stickerPackOpen.id) : false;
 
   async function copyLink() {
-    setMenuOpen(false);
     setActionSheetOpen(false);
     const handle = (post as any).channel_handle as string | undefined;
     const path = handle ? `/c/${handle}?post=${post.id}` : `/c/?post=${post.id}`;
@@ -312,21 +454,16 @@ export function ChannelPostCard({
 
   async function togglePin() {
     setActionSheetOpen(false);
-    setPinning(true);
     try {
       const { error } = await (supabase as any).rpc("toggle_channel_post_pin", { p_post_id: post.id });
       if (error) throw error;
       onPinChanged?.();
     } catch (e: any) {
       toast.error(e?.message || "Could not pin");
-    } finally {
-      setPinning(false);
     }
   }
 
   const openActionSheet = () => {
-    setMenuOpen(false);
-    setReactionPickerOpen(false);
     setActionSheetOpen(true);
   };
   const clearLongPress = () => {
@@ -335,23 +472,49 @@ export function ChannelPostCard({
       longPressTimerRef.current = null;
     }
   };
+  const showTapReaction = (emoji = "❤️") => {
+    if (tapReactionTimerRef.current != null) {
+      window.clearTimeout(tapReactionTimerRef.current);
+    }
+    setTapReaction(null);
+    window.requestAnimationFrame(() => setTapReaction(emoji));
+    tapReactionTimerRef.current = window.setTimeout(() => {
+      setTapReaction(null);
+      tapReactionTimerRef.current = null;
+    }, 850);
+  };
+  const installStickerPack = () => {
+    if (!stickerPackOpen) return;
+    const next = Array.from(new Set([stickerPackOpen.id, ...installedStickerPacks]));
+    setInstalledStickerPacks(next);
+    saveInstalledStickerPacks(next);
+    toast.success(`${stickerPackOpen.name} saved to your stickers`);
+  };
   const startLongPress = (event: ReactPointerEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement | null)?.closest("a,button,textarea,audio,video")) return;
     clearLongPress();
-    longPressTimerRef.current = window.setTimeout(openActionSheet, 420);
+    longPressTimerRef.current = window.setTimeout(() => {
+      suppressClickRef.current = true;
+      openActionSheet();
+    }, 420);
   };
 
-  useEffect(() => clearLongPress, []);
+  useEffect(() => () => {
+    clearLongPress();
+    if (tapReactionTimerRef.current != null) window.clearTimeout(tapReactionTimerRef.current);
+  }, []);
 
   const ref = useRef<HTMLDivElement>(null);
   const [counted, setCounted] = useState(false);
   const [reactions, setReactions] = useState<Record<string, number>>(
     (post.reactions_count as Record<string, number>) ?? {}
   );
+  // Avatars of who reacted, keyed by emoji (Telegram-style chips). Lazily loaded
+  // only for posts that have reactions.
+  const [reactors, setReactors] = useState<Record<string, Reactor[]>>({});
   // Viewer's own reaction (one per post, Telegram-style). null = none.
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [reacting, setReacting] = useState(false);
-  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const allowedReactions = reactionPolicy === "some" ? REACTIONS.slice(0, 3) : REACTIONS;
   const firstUrl = useMemo(() => getFirstUrl(localBody ?? post.body), [localBody, post.body]);
@@ -383,11 +546,50 @@ export function ChannelPostCard({
     return () => { cancelled = true; };
   }, [post.id]);
 
+  // Pull the avatars of everyone who reacted so the chips can show faces
+  // (Telegram-style) instead of a bare count.
+  const loadReactors = async () => {
+    try {
+      const { data } = await (supabase as any)
+        .from("channel_post_reactions")
+        .select("user_id, emoji")
+        .eq("post_id", post.id);
+      const rows = (data ?? []) as { user_id: string; emoji: string }[];
+      if (rows.length === 0) { setReactors({}); return; }
+      const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+      const { data: profiles } = await (supabase as any)
+        .from("public_profiles")
+        .select("user_id, avatar_url, full_name, username")
+        .in("user_id", ids);
+      const pmap = new Map<string, any>((profiles ?? []).map((p: any) => [p.user_id, p]));
+      const next: Record<string, Reactor[]> = {};
+      for (const r of rows) {
+        const p = pmap.get(r.user_id);
+        (next[r.emoji] ??= []).push({
+          id: r.user_id,
+          url: p?.avatar_url ?? null,
+          name: String(p?.full_name || p?.username || "?"),
+        });
+      }
+      setReactors(next);
+    } catch {
+      // Non-fatal — chips fall back to a plain count.
+    }
+  };
+
+  useEffect(() => {
+    const hasReactions = Object.values((post.reactions_count as Record<string, number>) ?? {}).some(
+      (c) => (c ?? 0) > 0,
+    );
+    if (hasReactions) void loadReactors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id]);
+
   // Polls are inlined into post.media as `{ type: "poll", poll_id, ... }`
   // (no `url`). Voice notes use `{ type: "voice", url, duration_ms, ... }`.
   // Pull each out and render them with their own components; image/video
   // items go to the regular grid.
-  const allMedia: any[] = useMemo(() => (Array.isArray(post.media) ? post.media : []), [post.media]);
+  const allMedia: any[] = useMemo(() => normalizePostMedia(post.media), [post.media]);
   const pollAttachment = useMemo(
     () => allMedia.find((m) => m && m.type === "poll" && m.poll_id) ?? null,
     [allMedia],
@@ -404,10 +606,18 @@ export function ChannelPostCard({
     () => allMedia.filter((m) => m?.url && isFileAttachment(m)) as MediaItem[],
     [allMedia],
   );
+  const stickerItems: StickerItem[] = useMemo(
+    () =>
+      allMedia.filter((m) => {
+        const type = String(m?.type ?? "").toLowerCase();
+        return type === "sticker" && (typeof m?.sticker === "string" || typeof m?.url === "string");
+      }) as StickerItem[],
+    [allMedia],
+  );
   const media: MediaItem[] = useMemo(
     () =>
       allMedia.filter(
-        (m) => m?.url && m.type !== "poll" && !isVoiceAttachment(m) && !isMusicAttachment(m) && !isFileAttachment(m),
+        (m) => m?.url && m.type !== "poll" && m.type !== "sticker" && !isVoiceAttachment(m) && !isMusicAttachment(m) && !isFileAttachment(m),
       ) as MediaItem[],
     [allMedia],
   );
@@ -473,7 +683,6 @@ export function ChannelPostCard({
       if (next) out[next] = (out[next] ?? 0) + 1;
       return out;
     });
-    setReactionPickerOpen(false);
     setReacting(true);
     try {
       if (next == null) {
@@ -492,6 +701,7 @@ export function ChannelPostCard({
           );
         if (error) throw error;
       }
+      void loadReactors();
     } catch (e: any) {
       // Roll back on failure
       setMyReaction(previous);
@@ -525,6 +735,29 @@ export function ChannelPostCard({
 
   if (deleted) return null;
 
+  const messageText = localBody ?? post.body ?? "";
+  const hasBody = messageText.trim().length > 0;
+  const hasRichContent =
+    !!linkPreview ||
+    !!pollAttachment ||
+    voiceItems.length > 0 ||
+    musicItems.length > 0 ||
+    fileItems.length > 0 ||
+    stickerItems.length > 0 ||
+    media.length > 0;
+  const compactBubble = !hasRichContent && visibleReactions.length === 0;
+  const hasVisualContent = stickerItems.length > 0 || media.length > 0;
+  const stickerOnlyPost =
+    stickerItems.length > 0 &&
+    !hasBody &&
+    !linkPreview &&
+    !pollAttachment &&
+    voiceItems.length === 0 &&
+    musicItems.length === 0 &&
+    fileItems.length === 0 &&
+    media.length === 0;
+  const showBottomFooter = !compactBubble && (!hasVisualContent || visibleReactions.length > 0);
+
   return (
     <>
       <div
@@ -541,71 +774,53 @@ export function ChannelPostCard({
         }}
         onDoubleClick={(event) => {
           if (reactionPolicy === "none" || (event.target as HTMLElement | null)?.closest("a,button,textarea,audio,video")) return;
+          if (stickerOnlyPost) showTapReaction("❤️");
           void react("👍");
         }}
-        className={`scroll-mt-32 relative ml-auto max-w-[90%] rounded-[18px] rounded-br-md p-2.5 pb-1.5 shadow-sm shadow-emerald-900/5 ring-1 transition-shadow after:absolute after:bottom-0 after:-right-1.5 after:h-4 after:w-4 after:rounded-bl-full after:bg-[#d9fdd3] after:content-[''] ${
-          post.is_pinned
-            ? "bg-[#d9fdd3] ring-emerald-300/80 dark:bg-emerald-950/70 dark:ring-emerald-900"
-            : "bg-[#d9fdd3] ring-emerald-200/70 dark:bg-emerald-950/60 dark:ring-emerald-900/70"
-        } ${highlight ? "ring-2 ring-sky-400 ring-offset-2 ring-offset-[#dcefdc] dark:ring-offset-zinc-950" : ""}`}
+        onClick={(event) => {
+          if (suppressClickRef.current) {
+            suppressClickRef.current = false;
+            return;
+          }
+          if (!stickerOnlyPost || (event.target as HTMLElement | null)?.closest("a,button,textarea,audio,video")) return;
+          const firstPack = getStickerPack(stickerItems[0]);
+          if (firstPack) {
+            setStickerPackOpen(firstPack);
+            const currentStickerId = stickerItems[0]?.sticker;
+            setPreviewSticker(firstPack.stickers.find((sticker) => sticker.id === currentStickerId) ?? firstPack.stickers[0] ?? null);
+            return;
+          }
+          showTapReaction("❤️");
+        }}
+        className={cn(
+          "scroll-mt-32 relative ml-auto w-fit min-w-[5.5rem] overflow-visible rounded-[18px] rounded-br-md transition-shadow",
+          stickerOnlyPost
+            ? "max-w-[min(20rem,80%)] bg-transparent p-0 shadow-none ring-0"
+            : [
+                "shadow-sm shadow-emerald-900/5 ring-1 after:absolute after:bottom-0 after:-right-1.5 after:z-0 after:h-4 after:w-4 after:rounded-bl-full after:bg-[#d9fdd3] after:content-['']",
+                post.is_pinned
+                  ? "bg-[#d9fdd3] ring-emerald-300/80 dark:bg-emerald-950/70 dark:ring-emerald-900"
+                  : "bg-[#d9fdd3] ring-emerald-200/70 dark:bg-emerald-950/60 dark:ring-emerald-900/70",
+                compactBubble ? "max-w-[min(26rem,78%)] px-2.5 py-1.5" : "max-w-[min(30rem,calc(100%-4.75rem))] px-3 py-2 pb-1.5",
+              ],
+          highlight && "ring-2 ring-sky-400 ring-offset-2 ring-offset-[#dcefdc] dark:ring-offset-zinc-950",
+        )}
       >
-        {(post.is_pinned || canManage) && (
-          <div className="mb-1 flex items-center justify-between gap-2">
-            {post.is_pinned ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/45 px-2 py-0.5 text-[10px] font-bold text-emerald-900/70">
-                <Pin className="w-3 h-3" /> Pinned
-              </span>
-            ) : <span />}
-            {canManage && (
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={togglePin}
-                  disabled={pinning}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/35 text-emerald-900/70 transition hover:bg-white/60 hover:text-emerald-950 disabled:opacity-50"
-                  aria-label={post.is_pinned ? "Unpin post" : "Pin post"}
-                  title={post.is_pinned ? "Unpin" : "Pin"}
-                >
-                  {post.is_pinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-                </button>
-                <div ref={menuRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={openActionSheet}
-                    aria-haspopup="dialog"
-                    aria-label="Post actions"
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/35 text-emerald-900/70 transition hover:bg-white/60 hover:text-emerald-950"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                  {menuOpen && (
-                    <div className="absolute right-0 top-full mt-1 z-30 min-w-[170px] rounded-xl border border-border bg-card shadow-lg overflow-hidden text-sm">
-                      <button
-                        type="button"
-                        onClick={() => { setMenuOpen(false); setEditBody(localBody ?? post.body ?? ""); setEditing(true); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/50"
-                      >
-                        <Pencil className="w-3.5 h-3.5" /> Edit post
-                      </button>
-                      <button
-                        type="button"
-                        onClick={copyLink}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/50"
-                      >
-                        <LinkIcon className="w-3.5 h-3.5" /> Copy link
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setMenuOpen(false); setConfirmDelete(true); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-rose-500 hover:bg-muted/50 border-t border-border/40"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+        {tapReaction && (
+          <span
+            key={tapReaction}
+            className="pointer-events-none absolute -right-4 top-3 z-30 inline-flex h-12 w-12 animate-[ping_850ms_ease-out_forwards] items-center justify-center rounded-full bg-white text-2xl shadow-xl ring-1 ring-black/5"
+            aria-hidden
+          >
+            {tapReaction}
+          </span>
+        )}
+        <div className="relative z-10">
+        {post.is_pinned && (
+          <div className="mb-1 flex items-center">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/45 px-2 py-0.5 text-[10px] font-bold text-emerald-900/70">
+              <Pin className="w-3 h-3" /> Pinned
+            </span>
           </div>
         )}
         {editing ? (
@@ -638,11 +853,54 @@ export function ChannelPostCard({
             </div>
           </div>
         ) : (
-          (localBody ?? post.body) && (
-            <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-950">
-              {renderMessageText(localBody ?? post.body ?? "")}
+          hasBody && (
+            <p
+              className={cn(
+                "whitespace-pre-wrap break-words text-slate-950",
+                compactBubble ? "text-[16px] leading-6" : "text-[15px] leading-relaxed",
+              )}
+            >
+              {renderMessageText(messageText)}
+              {compactBubble && (
+                <span className="ml-2 inline-flex translate-y-[1px] items-center gap-1 whitespace-nowrap text-[11px] font-medium leading-none text-emerald-800/60">
+                  {postTimeLabel && <span>{postTimeLabel}</span>}
+                  {canManage && <CheckCheck className="h-3.5 w-3.5 text-sky-500" />}
+                </span>
+              )}
             </p>
           )
+        )}
+
+        {stickerItems.length > 0 && (
+          <div className={cn("flex flex-wrap items-center gap-2", hasBody ? "mt-2" : "")}>
+            {stickerItems.map((item, i) => {
+              const stickerImage = getStickerImage(item);
+              return (
+                <span
+                  key={`${item.sticker || item.url || "sticker"}-${i}`}
+                  className={cn(
+                    "relative inline-flex h-48 w-[18rem] max-w-[76vw] items-center justify-center overflow-hidden rounded-[18px] p-2 text-8xl leading-none",
+                    stickerOnlyPost ? "bg-transparent" : "bg-white/10",
+                  )}
+                  aria-label={getStickerLabel(item)}
+                >
+                  {stickerImage ? (
+                    <img
+                      src={stickerImage}
+                      alt=""
+                      className={cn("zivo-live-sticker h-full w-full object-contain drop-shadow-sm", getStickerMotionClass(item.sticker))}
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  ) : (
+                    item.sticker
+                  )}
+                  {i === stickerItems.length - 1 && <PostMediaStatsOverlay views={post.view_count} time={postTimeLabel} pill />}
+                </span>
+              );
+            })}
+          </div>
         )}
 
         {linkPreview && (
@@ -650,22 +908,30 @@ export function ChannelPostCard({
             href={firstUrl ?? undefined}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 flex gap-2 rounded-lg bg-emerald-100/55 p-2 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70"
+            className={cn(
+              "block overflow-hidden rounded-lg bg-emerald-100/60 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70",
+              hasBody ? "mt-1.5" : "mt-0",
+            )}
           >
-            <span className="w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] font-bold text-emerald-700 dark:text-emerald-300">{linkPreview.title}</span>
-              <span className="mt-0.5 line-clamp-3 block text-[12px] leading-4 text-slate-800 dark:text-zinc-300">{linkPreview.description}</span>
-              <span className="mt-1 block truncate text-[11px] text-emerald-700/70 dark:text-emerald-300/70">{linkPreview.host}</span>
+            <span className="flex gap-2 p-2.5">
+              <span className="w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-bold text-emerald-700 dark:text-emerald-300">{linkPreview.title}</span>
+                <span className="mt-0.5 line-clamp-3 block text-[15px] leading-5 text-slate-950 dark:text-zinc-200">{linkPreview.description}</span>
+                <span className="mt-1 block truncate text-[11px] text-emerald-700/70 dark:text-emerald-300/70">{linkPreview.host}</span>
+              </span>
+              <span
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/65 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-300",
+                  linkPreview.kind === "meet" && "bg-yellow-300 text-white dark:bg-yellow-400 dark:text-white",
+                )}
+              >
+                {linkPreview.kind === "meet" ? <Video className="h-5 w-5 fill-current" /> : <LinkIcon className="h-4 w-4" />}
+              </span>
             </span>
-            <span
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/65 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-300",
-                linkPreview.kind === "meet" && "bg-yellow-300 text-white dark:bg-yellow-400 dark:text-white",
-              )}
-            >
-              {linkPreview.kind === "meet" ? <Video className="h-5 w-5 fill-current" /> : <LinkIcon className="h-4 w-4" />}
-            </span>
+            {linkPreview.kind === "meet" && (
+              <MeetPreviewArtwork />
+            )}
           </a>
         )}
 
@@ -686,8 +952,8 @@ export function ChannelPostCard({
         {voiceItems.length > 0 && (
           <div className="mt-3 space-y-2">
             {voiceItems.map((v, i) => (
-              <div key={`v-${i}`} className="rounded-2xl border border-border bg-muted/40 p-3 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+              <div key={`v-${i}`} className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40">
+                <div className="h-9 w-9 rounded-full bg-emerald-500/15 text-emerald-700 flex items-center justify-center shrink-0">
                   <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3h-1a4 4 0 01-8 0H7a5 5 0 004 4.9V19h-2v2h6v-2h-2v-3.1A5 5 0 0017 11z" /></svg>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -709,9 +975,9 @@ export function ChannelPostCard({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 p-3 hover:bg-muted/60"
+                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700">
                   <Music className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -732,9 +998,9 @@ export function ChannelPostCard({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 p-3 hover:bg-muted/60"
+                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/55 text-emerald-700">
                   <FileText className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -810,100 +1076,77 @@ export function ChannelPostCard({
                       +{media.length - 6}
                     </div>
                   )}
+                  {i === Math.min(media.length, 6) - 1 && <PostMediaStatsOverlay views={post.view_count} time={postTimeLabel} />}
                 </button>
               );
             })}
           </div>
         )}
 
-        {reactionPolicy !== "none" && reactionPickerOpen && (
-          <div className="mt-2 flex justify-end">
-            <div className="flex gap-1 rounded-full bg-white/75 px-1.5 py-1 shadow-sm ring-1 ring-emerald-200/60 backdrop-blur">
-              {allowedReactions.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => react(emoji)}
-                  disabled={reacting}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-base transition active:scale-95 disabled:opacity-60 ${
-                    myReaction === emoji ? "bg-sky-100" : "hover:bg-white"
-                  }`}
-                  aria-label={`React ${emoji}`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-1.5 flex items-end justify-between gap-2">
+        {showBottomFooter && (
+        <div className="mt-1.5 flex items-end justify-between gap-3">
           <div className="flex min-w-0 flex-wrap gap-1">
-            {reactionPolicy !== "none" && (
-              <button
-                type="button"
-                onClick={() => setReactionPickerOpen((v) => !v)}
-                disabled={reacting}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/35 text-emerald-800/70 transition hover:bg-white/60 hover:text-emerald-950 disabled:opacity-60"
-                aria-label="Choose reaction"
-                title="React"
-              >
-                <Smile className="h-3.5 w-3.5" />
-              </button>
-            )}
-            {visibleReactions.map(({ emoji, count, mine }) => (
-              <button
+            {visibleReactions.map(({ emoji, count, mine }) => {
+              const shown = (reactors[emoji] ?? []).slice(0, 3);
+              return (
+                <button
                   type="button"
                   key={emoji}
                   onClick={() => react(emoji)}
                   disabled={reacting}
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 ${
+                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 ${
                     mine
                       ? "bg-white/75 ring-1 ring-primary/40 text-foreground"
                       : "bg-white/45 hover:bg-white/70"
                   }`}
                 >
-                  {emoji}
-                  {count > 0 && (
+                  <span>{emoji}</span>
+                  {shown.length > 0 && (
+                    <span className="ml-1 flex -space-x-1.5">
+                      {shown.map((p) => (
+                        <span
+                          key={p.id}
+                          className="flex h-4 w-4 items-center justify-center overflow-hidden rounded-full bg-emerald-200 text-[8px] font-bold text-emerald-900 ring-1 ring-white/80"
+                        >
+                          {p.url ? (
+                            <img src={p.url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            p.name.charAt(0).toUpperCase()
+                          )}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  {count > 0 && (shown.length === 0 || count > shown.length) && (
                     <span className={`ml-1 ${mine ? "text-primary font-semibold" : "text-muted-foreground"}`}>
                       {count}
                     </span>
                   )}
                 </button>
-            ))}
+              );
+            })}
           </div>
-          <div className="flex shrink-0 items-center gap-1 text-[10px] text-emerald-800/70 dark:text-emerald-200/80">
-            <button
-              type="button"
-              onClick={forwardToDm}
-              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/35 transition hover:bg-white/60 hover:text-emerald-950 active:scale-95"
-              aria-label="Forward to chat"
-              title="Forward to chat"
-            >
-              <Share2 className="h-3 w-3" />
-            </button>
-            <div className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white/30 px-1.5 py-0.5">
-              {post.view_count > 0 && (
-              <span className="inline-flex items-center gap-0.5">
-                <Eye className="h-3 w-3" /> {post.view_count}
+          {!hasVisualContent && (
+            <div className="flex shrink-0 items-center gap-1.5 self-end text-[11px] font-medium leading-none text-emerald-800/60 dark:text-emerald-200/65">
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                {postTimeLabel && <span>{postTimeLabel}</span>}
+                {canManage && <CheckCheck className="h-3.5 w-3.5 text-sky-500" />}
               </span>
-              )}
-              {postTimeLabel && <span>{postTimeLabel}</span>}
-              {canManage && <CheckCheck className="h-3.5 w-3.5 text-sky-500" />}
             </div>
-          </div>
+          )}
         </div>
+        )}
         {protectContent && media.length > 0 && (
           <p className="mt-2 text-[10px] text-muted-foreground/80">Protected content: download/save is disabled.</p>
         )}
 
-        {canManage && (
+        {canManage && insightsOpen && (
           <Suspense fallback={null}>
-            <ChannelPostInsights post={post} />
+            <ChannelPostInsights post={post} open={insightsOpen} onOpenChange={setInsightsOpen} />
           </Suspense>
         )}
 
-        {(post.comments_enabled !== false) && (
+        {(post.comments_enabled !== false) && commentsOpen && (
           <Suspense fallback={null}>
             <ChannelPostComments
               postId={post.id}
@@ -911,9 +1154,12 @@ export function ChannelPostCard({
               initialCount={post.comments_count ?? 0}
               canComment={canComment}
               canModerate={canManage}
+              open={commentsOpen}
+              onOpenChange={setCommentsOpen}
             />
           </Suspense>
         )}
+        </div>
       </div>
 
       {actionSheetOpen && (
@@ -960,8 +1206,20 @@ export function ChannelPostCard({
               <PostActionButton icon={Copy} label="Copy Text" onClick={() => void copyMessageText()} disabled={!(localBody ?? post.body)?.trim()} />
               <PostActionButton icon={LinkIcon} label="Copy Link" onClick={() => void copyLink()} />
               <PostActionButton icon={Share2} label="Forward" onClick={() => void forwardToDm()} />
+              {post.comments_enabled !== false && (
+                <PostActionButton
+                  icon={MessageCircle}
+                  label={(post.comments_count ?? 0) > 0 ? `Comments · ${post.comments_count}` : "Comments"}
+                  onClick={() => { setActionSheetOpen(false); setCommentsOpen(true); }}
+                />
+              )}
               {canManage && (
                 <>
+                  <PostActionButton
+                    icon={BarChart3}
+                    label="View Insights"
+                    onClick={() => { setActionSheetOpen(false); setInsightsOpen(true); }}
+                  />
                   <PostActionButton icon={post.is_pinned ? PinOff : Pin} label={post.is_pinned ? "Unpin Message" : "Pin Message"} onClick={() => void togglePin()} />
                   <PostActionButton
                     icon={Pencil}
@@ -983,6 +1241,107 @@ export function ChannelPostCard({
                   />
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {stickerPackOpen && (
+        <div
+          className="fixed inset-0 z-[1460] flex items-end justify-center bg-black/35 px-3 pb-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${stickerPackOpen.name} sticker pack`}
+          onClick={() => { setStickerPackOpen(null); setPreviewSticker(null); }}
+        >
+          <div
+            className="w-full max-w-[22.25rem] overflow-hidden rounded-[1.75rem] bg-white shadow-2xl dark:bg-white"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex h-[3.25rem] items-center gap-2.5 px-4 pt-1">
+              <button
+                type="button"
+                onClick={() => { setStickerPackOpen(null); setPreviewSticker(null); }}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95"
+                aria-label="Close sticker pack"
+              >
+                <X className="h-5 w-5 stroke-[2.2]" />
+              </button>
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-xl font-bold leading-none text-slate-950">{stickerPackOpen.name}</h2>
+                {stickerPackInstalled && (
+                  <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-emerald-600">
+                    <Check className="h-3 w-3" /> Saved
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95"
+                aria-label="Sticker pack options"
+              >
+                <span className="text-2xl leading-none">⋮</span>
+              </button>
+            </div>
+            {previewSticker && (
+              <div className="mx-5 mb-3 flex items-center gap-3 rounded-3xl bg-gradient-to-r from-rose-50 via-orange-50 to-sky-50 p-3 ring-1 ring-slate-950/5">
+                <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-[1.4rem] bg-white shadow-sm">
+                  <span className="absolute inset-x-5 bottom-2 h-3 rounded-full bg-slate-900/10 blur-md" aria-hidden />
+                  <img
+                    src={previewSticker.src}
+                    alt=""
+                    className={cn("zivo-live-sticker relative h-20 w-20 object-contain", getStickerMotionClass(previewSticker.id))}
+                    loading="eager"
+                    decoding="async"
+                    draggable={false}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] font-bold text-slate-950">{previewSticker.alt}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">{getStickerMoodLabel(previewSticker.id)}</p>
+                  <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-sky-600 shadow-sm">
+                    {stickerPackInstalled ? "Ready to use" : "Live motion"}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-4 gap-x-2 gap-y-3 px-6 pb-4 pt-1">
+              {stickerPackOpen.stickers.slice(0, 16).map((sticker) => (
+                <button
+                  key={sticker.id}
+                  type="button"
+                  className={cn(
+                    "flex aspect-square items-center justify-center rounded-2xl transition hover:bg-slate-100 active:scale-95",
+                    previewSticker?.id === sticker.id && "bg-sky-50 ring-2 ring-sky-300",
+                  )}
+                  aria-label={sticker.alt}
+                  onClick={() => setPreviewSticker(sticker)}
+                >
+                  <img
+                    src={sticker.src}
+                    alt=""
+                    className={cn("zivo-pack-sticker h-[4.35rem] w-[4.35rem] object-contain", getStickerMotionClass(sticker.id))}
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
+                </button>
+              ))}
+            </div>
+            <div className="px-5 pb-4">
+              <button
+                type="button"
+                className={cn(
+                  "flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wide shadow-sm transition active:scale-[.99]",
+                  stickerPackInstalled
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                    : "bg-[#3390ec] text-white hover:bg-[#2484df]",
+                )}
+                onClick={installStickerPack}
+              >
+                {stickerPackInstalled ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {stickerPackInstalled ? "Added to stickers" : `Add ${stickerPackOpen.stickers.length} stickers`}
+              </button>
             </div>
           </div>
         </div>

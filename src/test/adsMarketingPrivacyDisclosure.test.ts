@@ -15,6 +15,7 @@ describe("ads marketing privacy disclosure", () => {
     expect(cookiePolicy).toContain("Meta pixel");
     expect(cookiePolicy).toContain("Google Ads");
     expect(cookiePolicy).toContain("TikTok pixel");
+    expect(cookiePolicy).toContain("X pixel");
     expect(cookiePolicy).toContain("Consent-based advertising");
     expect(cookiePolicy).toContain("only when you allow marketing cookies");
     expect(cookiePolicy).toContain("reject optional cookies");
@@ -25,7 +26,7 @@ describe("ads marketing privacy disclosure", () => {
   it("keeps privacy policy disclosure aligned with optional targeted advertising sharing", () => {
     const privacyPolicy = read("src/pages/legal/PrivacyPolicy.tsx");
 
-    expect(privacyPolicy).toContain("Meta, Google Ads, and TikTok");
+    expect(privacyPolicy).toContain("Meta, Google Ads, TikTok, and X");
     expect(privacyPolicy).toContain("only when you consent to marketing cookies");
     expect(privacyPolicy).toContain("limited audience or conversion signals");
     expect(privacyPolicy).toContain("Do Not Sell or Share");
@@ -38,7 +39,7 @@ describe("ads marketing privacy disclosure", () => {
     const doNotSell = read("src/pages/legal/DoNotSell.tsx");
 
     expect(doNotSell).toContain("Does ZIVO Sell or Share Personal Information?");
-    expect(doNotSell).toContain("Meta, Google Ads, and TikTok");
+    expect(doNotSell).toContain("Meta, Google Ads, TikTok, and X");
     expect(doNotSell).toContain("Advertising signals");
     expect(doNotSell).toContain("campaign attribution");
     expect(doNotSell).toContain("Reject marketing cookies");

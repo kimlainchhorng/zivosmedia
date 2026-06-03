@@ -57,6 +57,11 @@ Deno.serve(withSecurity("channel-broadcast", async (req, ctx) => {
     const { channel_id, body: text, media, scheduled_for, comments_enabled } = body || {};
     const normalizedText = typeof text === "string" ? text.trim() : "";
     const normalizedMedia = Array.isArray(media) ? media.filter(Boolean) : [];
+    const mediaSummary = normalizedMedia.some((item: any) => item?.type === "sticker")
+      ? "Sent a sticker"
+      : normalizedMedia.some((item: any) => item?.type === "poll")
+        ? "Sent a poll"
+        : "Sent a new post";
     const scheduledFor = typeof scheduled_for === "string" && scheduled_for.trim() ? scheduled_for.trim() : null;
 
     if (!channel_id || (!normalizedText && normalizedMedia.length === 0)) {
@@ -180,7 +185,7 @@ Deno.serve(withSecurity("channel-broadcast", async (req, ctx) => {
           category: "social" as const,
           template: "channel_post",
           title: ch.name,
-          body: (normalizedText || "Sent a new post").slice(0, 140),
+          body: (normalizedText || mediaSummary).slice(0, 140),
           action_url: actionUrl,
           status: "sent" as const,
           metadata: { channel_id, post_id: post.id, handle: ch.handle },
@@ -201,7 +206,7 @@ Deno.serve(withSecurity("channel-broadcast", async (req, ctx) => {
               user_ids: recipients,
               notification_type: "channel_post",
               title: ch.name,
-              body: (normalizedText || "Sent a new post").slice(0, 140),
+              body: (normalizedText || mediaSummary).slice(0, 140),
               data: { channel_id, post_id: post.id, handle: ch.handle, url: actionUrl },
             }),
           });

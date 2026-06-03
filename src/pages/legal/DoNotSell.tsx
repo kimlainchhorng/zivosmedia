@@ -43,7 +43,7 @@ export default function DoNotSell() {
             <section>
               <h2 className="text-xl font-semibold mb-3">Does ZIVO Sell or Share Personal Information?</h2>
               <p className="text-muted-foreground leading-relaxed">
-                ZIVO does not sell personal information in the traditional sense. Under CCPA/CPRA, certain data-sharing activities may be considered a "sale" or "sharing," including limited audience, conversion, or campaign signals used for targeted advertising with partners such as Meta, Google Ads, and TikTok. These activities are optional and subject to your cookie, privacy, and marketing choices.
+                ZIVO does not sell personal information in the traditional sense. Under CCPA/CPRA, certain data-sharing activities may be considered a "sale" or "sharing," including limited audience, conversion, or campaign signals used for targeted advertising with partners such as Meta, Google Ads, TikTok, and X. These activities are optional and subject to your cookie, privacy, and marketing choices.
               </p>
             </section>
 
@@ -82,7 +82,7 @@ export default function DoNotSell() {
                 <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/20 hover:shadow-sm transition-all duration-200">
                   <h3 className="font-medium mb-1">1. Manage Cookie Preferences</h3>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Reject marketing cookies to disable optional Meta, Google Ads, TikTok, and campaign attribution sharing.
+                    Reject marketing cookies to disable optional Meta, Google Ads, TikTok, X, and campaign attribution sharing.
                   </p>
                   <Link to="/legal/cookies">
                     <Button variant="outline" size="sm" className="gap-2">

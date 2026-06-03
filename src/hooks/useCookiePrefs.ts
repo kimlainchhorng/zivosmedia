@@ -14,6 +14,7 @@ type WindowWithAnalyticsLoader = Window & {
 };
 
 export const COOKIE_CONSENT_STORAGE_KEY = "zivo_cookie_consent";
+const COOKIE_CONSENT_UPDATED_EVENT = "zivo:cookie-consent-updated";
 
 const defaults: CookiePrefs = {
   necessary: true,
@@ -32,6 +33,14 @@ function load(): CookiePrefs {
     return { ...defaults, ...(JSON.parse(raw) as Partial<CookiePrefs>), necessary: true };
   } catch {
     return defaults;
+  }
+}
+
+function notifyCookieConsentUpdated() {
+  try {
+    window.dispatchEvent(new Event(COOKIE_CONSENT_UPDATED_EVENT));
+  } catch {
+    // ignore environments without Event support
   }
 }
 
@@ -54,6 +63,7 @@ export function useCookiePrefs() {
       const next: CookiePrefs = { ...prev, [key]: value, updatedAt: new Date().toISOString() };
       try {
         window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(next));
+        notifyCookieConsentUpdated();
         if (next.analytics || next.marketing) {
           (window as WindowWithAnalyticsLoader).__zivoLoadAnalytics?.();
         }
@@ -76,6 +86,7 @@ export function useCookiePrefs() {
       };
       try {
         window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(next));
+        notifyCookieConsentUpdated();
         (window as WindowWithAnalyticsLoader).__zivoLoadAnalytics?.();
       } catch {
         // ignore quota errors
@@ -96,6 +107,7 @@ export function useCookiePrefs() {
       };
       try {
         window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(next));
+        notifyCookieConsentUpdated();
       } catch {
         // ignore quota errors
       }

@@ -130,7 +130,6 @@ import type { EffectType } from "./messageEffectUtils";
 import { detectMessageEffect } from "./messageEffectUtils";
 const MessageEffects = lazy(() => import("./MessageEffects"));
 import { toast } from "sonner";
-import { createPortal } from "react-dom";
 import { getChatMessageShareUrl } from "@/lib/getPublicOrigin";
 import { useChatPresence } from "@/hooks/useChatPresence";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";

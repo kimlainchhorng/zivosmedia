@@ -253,7 +253,7 @@ const PrivacyPolicy = () => {
                 <li>Payment processors (Stripe, PayPal) for transaction processing</li>
                 <li>Cloud service providers (AWS, Google Cloud) for data storage</li>
                 <li>Analytics providers for usage analysis</li>
-                <li>Advertising and marketing partners such as Meta, Google Ads, and TikTok only when you consent to marketing cookies or similar tracking</li>
+                <li>Advertising and marketing partners such as Meta, Google Ads, TikTok, and X only when you consent to marketing cookies or similar tracking</li>
               </ul>
 
               <h4 className="font-semibold text-foreground mt-6">3.3 For Legal Reasons</h4>
@@ -362,7 +362,7 @@ const PrivacyPolicy = () => {
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="font-medium">Marketing & Advertising Cookies</p>
-                  <p className="text-sm">Consent-based Meta, Google Ads, TikTok, and campaign attribution pixels. Can be disabled.</p>
+                  <p className="text-sm">Consent-based Meta, Google Ads, TikTok, X, and campaign attribution pixels. Can be disabled.</p>
                 </div>
               </div>
 

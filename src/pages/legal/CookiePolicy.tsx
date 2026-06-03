@@ -15,6 +15,15 @@ import { toast } from "sonner";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/hooks/useCookiePrefs";
 
 const COOKIE_CONSENT_DATE_STORAGE_KEY = "zivo_cookie_consent_date";
+const COOKIE_CONSENT_UPDATED_EVENT = "zivo:cookie-consent-updated";
+
+function notifyCookieConsentUpdated() {
+  try {
+    window.dispatchEvent(new Event(COOKIE_CONSENT_UPDATED_EVENT));
+  } catch {
+    // ignore environments without Event support
+  }
+}
 
 // Cookie categories with descriptions
 const cookieCategories = [
@@ -44,7 +53,7 @@ const cookieCategories = [
     title: "Marketing & Advertising Cookies",
     description: "Help us show relevant offers and measure campaigns when you consent.",
     required: false,
-    examples: ["Meta pixel", "Google Ads", "TikTok pixel", "Campaign attribution"],
+    examples: ["Meta pixel", "Google Ads", "TikTok pixel", "X pixel", "Campaign attribution"],
   },
 ];
 
@@ -75,6 +84,7 @@ const CookiePolicy = () => {
     // In production, this would save to localStorage and update tracking scripts
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(preferences));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
     if (preferences.analytics || preferences.marketing) {
       window.__zivoLoadAnalytics?.();
     }
@@ -86,6 +96,7 @@ const CookiePolicy = () => {
     setPreferences(allEnabled);
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(allEnabled));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
     window.__zivoLoadAnalytics?.();
     toast.success("All cookies accepted");
   };
@@ -95,6 +106,7 @@ const CookiePolicy = () => {
     setPreferences(minimalCookies);
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(minimalCookies));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
     toast.success("Optional cookies rejected");
   };
 
@@ -220,7 +232,7 @@ const CookiePolicy = () => {
                   <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <p className="text-sm text-muted-foreground">
                     <strong>Consent-based advertising:</strong> ZIVO may use advertising cookies and pixels from
-                    partners such as Meta, Google Ads, and TikTok only when you allow marketing cookies. You can
+                    partners such as Meta, Google Ads, TikTok, and X only when you allow marketing cookies. You can
                     reject optional cookies or change preferences at any time.
                   </p>
                 </div>
@@ -266,6 +278,7 @@ const CookiePolicy = () => {
                 {[
                   { name: "Google Analytics", purpose: "Usage analytics" },
                   { name: "Google Ads", purpose: "Consent-based conversion measurement" },
+                  { name: "X Ads", purpose: "Consent-based conversion measurement" },
                   { name: "Meta", purpose: "Consent-based campaign measurement" },
                   { name: "TikTok", purpose: "Consent-based campaign measurement" },
                   { name: "Stripe", purpose: "Payment processing" },

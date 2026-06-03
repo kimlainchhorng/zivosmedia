@@ -124,6 +124,42 @@ const isNewUser = (): boolean => {
   }
 };
 
+const isLocalTrackingFailure = (error: unknown): boolean => {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  if (!['localhost', '127.0.0.1', '::1'].includes(host)) return false;
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error !== null && 'message' in error
+        ? String((error as { message?: unknown }).message)
+        : String(error ?? '');
+
+  return message.includes('Failed to send a request to the Edge Function');
+};
+
+const reportTrackingFailure = (error: unknown): void => {
+  if (isLocalTrackingFailure(error)) return;
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const fnError = error as {
+      message?: unknown;
+      code?: unknown;
+      details?: unknown;
+    };
+    console.error(
+      '[Tracking] Failed to track event:',
+      fnError.message,
+      fnError.code,
+      fnError.details,
+    );
+    return;
+  }
+
+  console.error('[Tracking] Failed to track event:', error);
+};
+
 /**
  * Hook for tracking analytics events
  */
@@ -177,12 +213,13 @@ export function useEventTracking() {
         .invoke('analytics-event-track', { body: eventPayload })
         .then(({ error }) => {
           if (error) {
-            console.error('[Tracking] Failed to track event:', error.message, error.code, error.details);
+            reportTrackingFailure(error);
           }
-        });
+        })
+        .catch(reportTrackingFailure);
 
     } catch (error) {
-      console.error('[Tracking] Error tracking event:', error);
+      reportTrackingFailure(error);
     }
   }, [getUserId]);
 

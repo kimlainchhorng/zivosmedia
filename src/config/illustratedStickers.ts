@@ -360,7 +360,94 @@ export interface IllustratedStickerPack {
   stickers: IllustratedSticker[];
 }
 
+const peachSticker = (id: string, alt: string, face: string, accent = "#34d399") => {
+  const seed = Array.from(id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const lean = (seed % 17) - 8;
+  const squish = 1 + ((seed % 5) - 2) * 0.025;
+  const blush = seed % 3 === 0 ? "#ff7fa4" : "#ff6f91";
+  const mouth =
+    face === "🤮" ? '<path d="M96 141c15 11 33 11 48 0" stroke="#5b2436" stroke-width="8" stroke-linecap="round" fill="none"/><path d="M100 160c18 18 39 18 57 0" stroke="#39c879" stroke-width="13" stroke-linecap="round" fill="none"/><circle cx="128" cy="178" r="8" fill="#2dbf72"/>' :
+    face === "😭" || face === "😢" ? '<path d="M102 151c16-12 34-12 50 0" stroke="#5b2436" stroke-width="8" stroke-linecap="round" fill="none"/><path d="M86 120c-8 14-10 25-2 34" stroke="#5db8ff" stroke-width="9" stroke-linecap="round"/><path d="M166 120c8 14 10 25 2 34" stroke="#5db8ff" stroke-width="9" stroke-linecap="round"/>' :
+    face === "😂" ? '<path d="M91 144c21 23 55 23 77 0" fill="none" stroke="#5b2436" stroke-width="9" stroke-linecap="round"/><path d="M81 119c-8 9-12 19-10 30" stroke="#5db8ff" stroke-width="9" stroke-linecap="round"/><path d="M174 119c8 9 12 19 10 30" stroke="#5db8ff" stroke-width="9" stroke-linecap="round"/>' :
+    face === "😍" || face === "💖" ? '<path d="M98 143c18 20 43 20 62 0" fill="none" stroke="#5b2436" stroke-width="8" stroke-linecap="round"/>' :
+    face === "😡" ? '<path d="M100 153c18-12 40-12 58 0" fill="none" stroke="#5b2436" stroke-width="8" stroke-linecap="round"/>' :
+    face === "😮" || face === "😱" ? '<ellipse cx="128" cy="151" rx="17" ry="22" fill="#5b2436"/>' :
+    '<path d="M99 145c19 18 43 18 62 0" fill="none" stroke="#5b2436" stroke-width="8" stroke-linecap="round"/>';
+  const eyes =
+    face === "😍" || face === "💖" ? '<path d="M85 112c-12-14-33 2-10 20 23-18 2-34-10-20" fill="#5b2436"/><path d="M157 112c-12-14-33 2-10 20 23-18 2-34-10-20" fill="#5b2436"/>' :
+    face === "😴" ? '<path d="M72 119c15 8 29 8 43 0" stroke="#5b2436" stroke-width="8" stroke-linecap="round" fill="none"/><path d="M146 119c15 8 29 8 43 0" stroke="#5b2436" stroke-width="8" stroke-linecap="round" fill="none"/><text x="162" y="85" font-size="30" font-family="Arial" fill="#6d6cf0">Z</text>' :
+    face === "😎" ? '<path d="M63 106h50l-8 28H75zM144 106h50l-12 28h-30z" fill="#20243a"/><path d="M113 115h31" stroke="#20243a" stroke-width="8"/>' :
+    face === "😡" ? '<circle cx="87" cy="121" r="12" fill="#5b2436"/><circle cx="161" cy="121" r="12" fill="#5b2436"/><path d="M67 98l36 16M179 98l-36 16" stroke="#5b2436" stroke-width="8" stroke-linecap="round"/>' :
+    '<circle cx="87" cy="119" r="13" fill="#5b2436"/><circle cx="161" cy="119" r="13" fill="#5b2436"/><circle cx="82" cy="114" r="4" fill="white"/><circle cx="156" cy="114" r="4" fill="white"/>';
+  const prop =
+    face === "🔥" ? '<path d="M178 53c27 29 19 57-8 67 5-19-9-25-2-45-16 12-18 30-15 45-30-18-20-55 25-67z" fill="#ff7a22"/>' :
+    face === "👍" ? '<text x="164" y="80" font-size="44" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif">👍</text>' :
+    face === "🥳" ? '<path d="M73 44l50-17-9 55z" fill="#8b5cf6"/><circle cx="92" cy="44" r="5" fill="#facc15"/><circle cx="106" cy="39" r="5" fill="#34d399"/>' :
+    "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <defs>
+    <radialGradient id="skin" cx="38%" cy="34%" r="68%">
+      <stop offset="0" stop-color="#ffd9a8"/>
+      <stop offset=".55" stop-color="#ff9d8b"/>
+      <stop offset="1" stop-color="#ff677d"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="145%">
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#a93d58" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <path d="M135 46c20-26 53-29 71-21-11 28-34 42-66 36z" fill="#36d783" transform="rotate(${lean} 154 45)"/>
+  <path d="M134 48c9-26 30-43 53-45 1 27-13 48-44 64z" fill="#18bd78" transform="rotate(${lean} 154 45)"/>
+  ${prop}
+  <path d="M55 162c-20 5-31 17-33 34" fill="none" stroke="${accent}" stroke-width="9" stroke-linecap="round"/>
+  <path d="M190 161c20 5 31 17 33 34" fill="none" stroke="${accent}" stroke-width="9" stroke-linecap="round" opacity=".75"/>
+  <g filter="url(#shadow)" transform="rotate(${lean} 120 128) scale(${squish} 1)">
+    <path d="M112 45c48-2 83 34 85 80 3 56-42 93-91 89-48-4-82-42-80-91 2-45 37-78 86-78z" fill="url(#skin)"/>
+    <path d="M112 46c20 19 27 56 19 93-8 34-27 56-52 66" fill="none" stroke="#e85d75" stroke-width="6" stroke-linecap="round" opacity=".35"/>
+    <ellipse cx="82" cy="95" rx="18" ry="12" fill="#fff0d8" opacity=".44" transform="rotate(-24 82 95)"/>
+    <circle cx="78" cy="145" r="15" fill="${blush}" opacity=".42"/>
+    <circle cx="158" cy="143" r="15" fill="${blush}" opacity=".42"/>
+    ${eyes}
+    ${mouth}
+  </g>
+  <ellipse cx="92" cy="219" rx="15" ry="6" fill="#ce6770" opacity=".42"/>
+  <ellipse cx="144" cy="219" rx="15" ry="6" fill="#ce6770" opacity=".42"/>
+</svg>`;
+  return { id, src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, alt };
+};
+
+const LIFE_IS_A_PEACH_STICKERS: IllustratedSticker[] = [
+  peachSticker("life-peach-sick", "Peach Sick", "🤮", "#28d68e"),
+  peachSticker("life-peach-smile", "Peach Smile", "😊", "#60a5fa"),
+  peachSticker("life-peach-love", "Peach Love", "😍", "#f472b6"),
+  peachSticker("life-peach-wow", "Peach Wow", "😮", "#38bdf8"),
+  peachSticker("life-peach-cry", "Peach Cry", "😭", "#818cf8"),
+  peachSticker("life-peach-sleep", "Peach Sleep", "😴", "#a78bfa"),
+  peachSticker("life-peach-angry", "Peach Angry", "😡", "#fb7185"),
+  peachSticker("life-peach-laugh", "Peach Laugh", "😂", "#facc15"),
+  peachSticker("life-peach-cool", "Peach Cool", "😎", "#22c55e"),
+  peachSticker("life-peach-kiss", "Peach Kiss", "😘", "#fb7185"),
+  peachSticker("life-peach-shy", "Peach Shy", "☺️", "#f9a8d4"),
+  peachSticker("life-peach-party", "Peach Party", "🥳", "#c084fc"),
+  peachSticker("life-peach-thinking", "Peach Thinking", "🤔", "#f97316"),
+  peachSticker("life-peach-scream", "Peach Scream", "😱", "#0ea5e9"),
+  peachSticker("life-peach-star", "Peach Star", "🤩", "#f59e0b"),
+  peachSticker("life-peach-relief", "Peach Relief", "😌", "#10b981"),
+  peachSticker("life-peach-grin", "Peach Grin", "😁", "#84cc16"),
+  peachSticker("life-peach-sad", "Peach Sad", "😢", "#64748b"),
+  peachSticker("life-peach-heart", "Peach Heart", "💖", "#ec4899"),
+  peachSticker("life-peach-fire", "Peach Fire", "🔥", "#f97316"),
+  peachSticker("life-peach-thumbs", "Peach Thumbs", "👍", "#3b82f6"),
+  peachSticker("life-peach-nope", "Peach Nope", "🙅", "#ef4444"),
+  peachSticker("life-peach-ok", "Peach OK", "👌", "#14b8a6"),
+];
+
 export const ILLUSTRATED_PACKS: IllustratedStickerPack[] = [
+  {
+    id: "life-is-a-peach",
+    name: "Life's a Peach",
+    icon: "🍑",
+    stickers: LIFE_IS_A_PEACH_STICKERS,
+  },
   {
     id: "buddy-buddies",
     name: "Buddy Buddies",

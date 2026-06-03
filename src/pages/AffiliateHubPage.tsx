@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { toast } from "sonner";
+import { trackMarketingEvent } from "@/services/marketingTracking";
 
 const programs = [
   { title: "ZIVO Rides Referral", desc: "Earn $5 for every new rider you refer.", commission: "$5 per signup", icon: "🚗", status: "active", accent: "hsl(221 83% 53%)" },
@@ -75,6 +76,12 @@ export default function AffiliateHubPage() {
 
   const copyLink = () => {
     navigator.clipboard.writeText(`https://hizivo.com/ref/${referralCode}`);
+    trackMarketingEvent("Share", {
+      eventId: `affiliate-copy-${referralCode}`,
+      contentType: "affiliate_referral",
+      contentId: referralCode,
+      source: "affiliate_hub",
+    });
     toast.success("Referral link copied!");
   };
 
@@ -117,6 +124,12 @@ export default function AffiliateHubPage() {
             </button>
             <button type="button"
               onClick={() => {
+                trackMarketingEvent("Share", {
+                  eventId: `affiliate-share-${referralCode}`,
+                  contentType: "affiliate_referral",
+                  contentId: referralCode,
+                  source: "affiliate_hub",
+                });
                 if (navigator.share) navigator.share({ url: `https://hizivo.com/ref/${referralCode}`, title: "Join ZIVO" });
                 else copyLink();
               }}

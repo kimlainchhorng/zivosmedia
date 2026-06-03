@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { trackMarketingEvent } from "@/services/marketingTracking";
 
 type MetaEventName = "Purchase" | "CompleteRegistration" | "InitiateCheckout";
 
@@ -64,6 +65,13 @@ export async function trackInitiateCheckout(input: {
   sourceId?: string;
   payload?: Record<string, unknown>;
 }): Promise<void> {
+  trackMarketingEvent("InitiateCheckout", {
+    eventId: input.eventId,
+    value: input.value,
+    currency: input.currency,
+    contentType: input.sourceType,
+    contentId: input.sourceId,
+  });
   await sendMetaConversionEvent({
     eventName: "InitiateCheckout",
     eventId: input.eventId,
@@ -87,6 +95,13 @@ export async function trackPurchase(input: {
   sourceId?: string;
   payload?: Record<string, unknown>;
 }): Promise<void> {
+  trackMarketingEvent("Purchase", {
+    eventId: input.eventId,
+    value: input.value,
+    currency: input.currency,
+    contentType: input.sourceType,
+    contentId: input.sourceId,
+  });
   await sendMetaConversionEvent({
     eventName: "Purchase",
     eventId: input.eventId,

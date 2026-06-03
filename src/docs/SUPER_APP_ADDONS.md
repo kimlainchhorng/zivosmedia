@@ -42,7 +42,7 @@ Also adds:
 
 Required secrets:
 - `META_ACCESS_TOKEN`
-- Optional: `META_PIXEL_ID` (defaults to `2304266847061310`)
+- Optional: `META_PIXEL_ID` (uses your configured Meta pixel; no source-code default)
 
 ## Frontend Add-ons
 

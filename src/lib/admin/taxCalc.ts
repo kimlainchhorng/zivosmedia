@@ -63,3 +63,28 @@ export const computeDocTotals = (items: TaxableItem[], taxRatePct: unknown = 0):
   const total = preTax + tax;
   return { subtotal, discount, preTax, taxRate, tax, total };
 };
+
+/**
+ * Flat add-on charges that sit outside the line-item math on a shop invoice:
+ * sublet work, shop fees, EPA/disposal, and shop supplies. Stored in cents.
+ * They are added on top of the line-item total (after tax) to form the grand
+ * total — the editor, PDF, and preview all run them through here so the
+ * balance-due number is identical everywhere.
+ */
+export type ExtraCharges = {
+  subletCents?: number | null;
+  feesCents?: number | null;
+  epaCents?: number | null;
+  shopSuppliesCents?: number | null;
+};
+
+/** Sum of the add-on charges, in cents (negatives clamped to 0). */
+export const sumExtraChargeCents = (e?: ExtraCharges | null): number =>
+  Math.max(0, e?.subletCents ?? 0) +
+  Math.max(0, e?.feesCents ?? 0) +
+  Math.max(0, e?.epaCents ?? 0) +
+  Math.max(0, e?.shopSuppliesCents ?? 0);
+
+/** Grand total in dollars: line-item total (incl. tax) + add-on charges. */
+export const grandTotalWithExtras = (lineTotal: number, e?: ExtraCharges | null): number =>
+  lineTotal + sumExtraChargeCents(e) / 100;

@@ -2,6 +2,4 @@
 # REQUIRED by Google. Without a correct line below, AdSense shows
 # "Earnings at risk" and may stop serving ads.
 #
-# ▶ ACTION: replace pub-0000000000000000 with YOUR publisher id
-#   (the digits after "ca-pub-" in your AdSense account), then redeploy.
-google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+google.com, pub-6044002450999169, DIRECT, f08c47fec0942fa0

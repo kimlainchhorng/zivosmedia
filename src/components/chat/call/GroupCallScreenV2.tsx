@@ -128,7 +128,11 @@ export default function GroupCallScreenV2({
                   <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
                   <div>
                     <p className="font-semibold">
-                      {call.screenShareBlocked ? "Screen sharing is blocked" : "Permission is blocked"}
+                      {call.canScreenShare === false
+                        ? "Screen sharing is not available"
+                        : call.screenShareBlocked
+                        ? "Screen sharing is blocked"
+                        : "Permission is blocked"}
                     </p>
                     <p className="mt-0.5 text-xs leading-relaxed text-white/65">{call.mediaError}</p>
                   </div>
@@ -161,6 +165,7 @@ export default function GroupCallScreenV2({
         camEnabled={call.camEnabled}
         isScreenSharing={call.isScreenSharing}
         screenShareBlocked={call.screenShareBlocked}
+        canScreenShare={call.canScreenShare}
         handRaised={call.handRaised}
         isHost={call.isHost}
         isRecording={call.isRecording}

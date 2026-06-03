@@ -88,6 +88,7 @@ serve(withSecurity("store-profile-manage", async (req, ctx) => {
       .single();
     if (error) {
       console.error("[store-profile-manage:update]", error.message);
+      if (error.code === "23505") return json({ error: "That handle (store URL) is already taken" }, 409);
       return json({ error: "Could not update store profile" }, 500);
     }
     return json({ ok: true, store: data });
@@ -104,6 +105,7 @@ serve(withSecurity("store-profile-manage", async (req, ctx) => {
     .single();
   if (error) {
     console.error("[store-profile-manage:create]", error.message);
+    if (error.code === "23505") return json({ error: "That handle (store URL) is already taken" }, 409);
     return json({ error: "Could not create store profile" }, 500);
   }
   return json({ ok: true, store: data });
@@ -152,6 +154,7 @@ function cleanProfile(value: unknown, isAdmin: boolean):
     ["banner_url", 1000],
     ["market", 20],
     ["category", 120],
+    ["default_language", 12],
     ["address", 500],
     ["phone", 80],
     ["hours", 12000],

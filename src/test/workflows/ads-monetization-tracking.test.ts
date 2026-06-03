@@ -48,6 +48,8 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     expect(analytics).toContain("__resetAnalyticsDedupe");
     expect(analytics).not.toMatch(/from\("analytics_events"\)[\s\S]{0,120}\.insert/);
     expect(eventTracking).toContain("analytics-event-track");
+    expect(eventTracking).toContain("isLocalTrackingFailure");
+    expect(eventTracking).toContain("Failed to send a request to the Edge Function");
     expect(eventTracking).not.toMatch(/from\('analytics_events'\)[\s\S]{0,120}\.insert/);
     expect(affiliateTracking).toContain('functions.invoke("analytics-event-track"');
     expect(errorReporting).toContain("analytics-event-track");
@@ -90,6 +92,60 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     expect(adminPage).toContain("conversionId");
     expect(adminPage).toContain("conversionLabel");
     expect(adminPage).toContain("ad_campaigns");
+  });
+
+  it("keeps the unified marketing event pipeline connected to analytics and provider audit logs", () => {
+    const client = read("src/services/marketingTracking.ts");
+    const edge = read("supabase/functions/marketing-event-track/index.ts");
+    const config = read("supabase/config.toml");
+    const env = read(".env.example");
+    const adsAnalytics = read("src/pages/admin/AdminAdsAnalyticsPage.tsx");
+
+    expect(client).toContain('supabase.functions.invoke("marketing-event-track"');
+    expect(client).toContain("click_ids");
+    expect(client).toContain("zivo_gclid");
+    expect(client).toContain("cookieValue(\"_fbc\")");
+    expect(client).toContain("cookieValue(\"_fbp\")");
+    expect(client).toContain("mirrorServerMarketingEvent");
+
+    expect(edge).toContain('withSecurity("marketing-event-track"');
+    expect(edge).toContain('allowedMethods: ["POST"]');
+    expect(edge).toContain('from("analytics_events")');
+    expect(edge).toContain('from("conversion_events")');
+    expect(edge).toContain("META_ACCESS_TOKEN");
+    expect(edge).toContain("META_PIXEL_ID");
+    expect(edge).toContain("GOOGLE_ADS_CONVERSION_ACTION_ID_");
+    expect(edge).toContain("uploadClickConversions");
+    expect(edge).toContain("tiktok_browser_pixel");
+    expect(edge).toContain("x_browser_pixel");
+    expect(edge).toContain("avoids calling");
+    expect(edge).toContain("auditDiagnosticProviders");
+    expect(edge).toContain('status: "diagnostic"');
+    expect(edge).toContain("without sending provider network calls");
+
+    expect(config).toContain("[functions.marketing-event-track]");
+    expect(config).toContain("verify_jwt = false");
+    expect(env).toContain("GOOGLE_ADS_CONVERSION_ACTION_ID_PURCHASE");
+    expect(env).toContain("GOOGLE_ADS_CONVERSION_ACTION_ID_INITIATE_CHECKOUT");
+
+    expect(adsAnalytics).toContain('from("analytics_events")');
+    expect(adsAnalytics).toContain('like("event_name", "marketing_%")');
+    expect(adsAnalytics).toContain("tiktok_browser_pixel");
+    expect(adsAnalytics).toContain("x_browser_pixel");
+    expect(adsAnalytics).toContain("Provider Delivery Log");
+    expect(adsAnalytics).toContain("Internal Marketing Events");
+    expect(adsAnalytics).toContain("Monetization Readiness");
+    expect(adsAnalytics).toContain("Pipeline Test");
+    expect(adsAnalytics).toContain("Send Test Lead");
+    expect(adsAnalytics).toContain("without firing real ad-platform conversions");
+    expect(adsAnalytics).toContain('supabase.functions.invoke("marketing-event-track"');
+    expect(adsAnalytics).toContain('event_name: "Lead"');
+    expect(adsAnalytics).toContain('source: "admin_diagnostics"');
+    expect(adsAnalytics).toContain('fetch("/ads.txt"');
+    expect(adsAnalytics).toContain("pub-0000000000000000");
+    expect(adsAnalytics).toContain("VITE_GOOGLE_ADSENSE_CLIENT");
+    expect(adsAnalytics).toContain("VITE_ADSENSE_SLOT_HOME_FEED");
+    expect(adsAnalytics).toContain("value_cents");
   });
 
   it("keeps Meta server-side conversion events mapped to core revenue tables", () => {
@@ -477,13 +533,15 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     expect(payoutWorkflow).toContain("creator_payouts");
   });
 
-  it("documents the provider roadmap for Meta, Google Ads, and TikTok before scale-up", () => {
+  it("documents the provider roadmap for Meta, Google Ads, TikTok, and X before scale-up", () => {
     const roadmap = read("docs/zivo-full-platform-update-roadmap.md");
 
     expect(roadmap).toContain("Google Ads");
     expect(roadmap).toContain("Meta/Facebook/Instagram");
     expect(roadmap).toContain("TikTok");
+    expect(roadmap).toContain("X:");
     expect(roadmap).toContain("One event schema");
+    expect(roadmap).toContain("Meta, Google, TikTok, X");
     expect(roadmap).toContain("One Supabase Edge Function");
     expect(roadmap).toContain("Consent gates");
     expect(roadmap).toContain("Admin diagnostics page");

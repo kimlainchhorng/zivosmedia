@@ -1,7 +1,9 @@
 /**
  * Auto Repair — Document Preview Dialog
- * Print-ready preview with Print / Email / SMS share actions.
+ * Renders the generated shop-style invoice/estimate PDF inline. Preview, Print
+ * and Download all use the same PDF, so what you see is exactly what is sent.
  */
+import { useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer, Mail, MessageSquare, Download } from "lucide-react";
@@ -10,7 +12,7 @@ import { Capacitor } from "@capacitor/core";
 import { generateDocumentPdf, type PdfDoc } from "@/lib/admin/invoicePdf";
 import { exportBlob } from "@/lib/native/exportFile";
 import { openSystemUrl } from "@/lib/openExternalUrl";
-import { computeDocTotals } from "@/lib/admin/taxCalc";
+import { computeDocTotals, sumExtraChargeCents } from "@/lib/admin/taxCalc";
 
 type LineCategory = "labor" | "part" | "diagnosis";
 export type PreviewLineItem = {
@@ -45,19 +47,72 @@ export type PreviewDoc = {
   taxRate: number; // flat sales-tax percentage
   status: string;
   createdAt: string;
-};
-
-const lineAmount = (i: PreviewLineItem): number => {
-  const gross =
-    i.category === "labor" ? (i.hours ?? 0) * (i.price ?? 0) :
-    i.category === "part" ? (i.qty ?? 0) * (i.price ?? 0) :
-    (i.price ?? 0);
-  const discVal = Math.max(0, i.discount ?? 0);
-  if ((i.discountType ?? "pct") === "amt") return Math.max(0, gross - discVal);
-  return gross * (1 - Math.min(100, discVal) / 100);
+  // Shop-style additions — present when opened from the editor draft.
+  color?: string;
+  licensePlate?: string;
+  plateState?: string;
+  unitNumber?: string;
+  mileageIn?: string;
+  mileageOut?: string;
+  promisedAt?: string;
+  serviceWriter?: string;
+  technician?: string;
+  technicianCert?: string;
+  keytag?: string;
+  paymentMethod?: string;
+  tireFL?: string;
+  tireFR?: string;
+  tireRL?: string;
+  tireRR?: string;
+  sublet?: number;
+  fees?: number;
+  epa?: number;
+  shopSupplies?: number;
+  amountPaidCents?: number;
+  customerNotes?: string;
+  diagnosisNotes?: string;
 };
 
 const fmt = (n: number) => `$${n.toFixed(2)}`;
+const dollarsToCents = (v?: number | null): number | null => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+};
+const tirePressures = (d: PreviewDoc) => {
+  const psi = (s?: string) => { const n = parseInt(String(s ?? "").replace(/\D/g, ""), 10); return Number.isFinite(n) ? n : null; };
+  const fl = psi(d.tireFL), fr = psi(d.tireFR), rl = psi(d.tireRL), rr = psi(d.tireRR);
+  if (fl == null && fr == null && rl == null && rr == null) return null;
+  return { fl, fr, rl, rr };
+};
+
+const toPdfDoc = (doc: PreviewDoc): PdfDoc => ({
+  type: doc.type,
+  number: doc.number,
+  customer: doc.customer || `${doc.firstName} ${doc.lastName}`.trim() || "—",
+  phone: doc.phone,
+  email: doc.email,
+  address: doc.address,
+  vehicle: doc.vehicle || `${doc.year} ${doc.make} ${doc.model}`.trim() || "—",
+  vin: doc.vin,
+  year: doc.year, make: doc.make, model: doc.model, engine: doc.engine,
+  color: doc.color, licensePlate: doc.licensePlate, plateState: doc.plateState, unitNumber: doc.unitNumber,
+  mileageIn: doc.mileageIn, mileageOut: doc.mileageOut,
+  items: doc.items.map((i) => ({
+    category: i.category, description: i.description, qty: i.qty, price: i.price,
+    hours: i.hours, discount: i.discount, discountType: i.discountType,
+  })),
+  status: doc.status,
+  taxRate: doc.taxRate,
+  createdAt: doc.createdAt,
+  promisedAt: doc.promisedAt, serviceWriter: doc.serviceWriter,
+  technician: doc.technician, technicianCert: doc.technicianCert,
+  keytag: doc.keytag, paymentMethod: doc.paymentMethod,
+  customerNotes: doc.customerNotes, diagnosisNotes: doc.diagnosisNotes,
+  tirePressures: tirePressures(doc),
+  subletCents: dollarsToCents(doc.sublet), feesCents: dollarsToCents(doc.fees),
+  epaCents: dollarsToCents(doc.epa), shopSuppliesCents: dollarsToCents(doc.shopSupplies),
+  amountPaidCents: doc.amountPaidCents,
+});
 
 interface Props {
   open: boolean;
@@ -66,152 +121,57 @@ interface Props {
   storeName?: string;
   storeAddress?: string;
   storePhone?: string;
+  storePhone2?: string;
+  storeEmail?: string;
+  storeStateReg?: string;
+  storeLogo?: string;
+  storeTermsPolicy?: string;
 }
 
-export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, storeName, storeAddress, storePhone }: Props) {
+export default function AutoRepairDocPreviewDialog({
+  open, onOpenChange, doc,
+  storeName, storeAddress, storePhone, storePhone2, storeEmail, storeStateReg, storeLogo, storeTermsPolicy,
+}: Props) {
+  const buildBlob = () => generateDocumentPdf({
+    doc: toPdfDoc(doc as PreviewDoc),
+    storeName, storeAddress, storePhone, storePhone2, storeEmail, storeStateReg, storeLogo, storeTermsPolicy,
+  });
+
+  // Build a blob URL for the inline PDF preview; rebuilt whenever the doc or
+  // shop header changes, revoked on cleanup to avoid leaking object URLs.
+  const pdfUrl = useMemo(() => {
+    if (!doc) return null;
+    try { return URL.createObjectURL(buildBlob()); } catch { return null; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, storeName, storeAddress, storePhone, storePhone2, storeEmail, storeStateReg, storeLogo, storeTermsPolicy]);
+
+  useEffect(() => () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl); }, [pdfUrl]);
+
   if (!doc) return null;
 
-  const totals = computeDocTotals(doc.items, doc.taxRate);
-  const total = totals.total;
-  const labor = doc.items.filter(i => i.category === "labor").reduce((s, i) => s + lineAmount(i), 0);
-  const parts = doc.items.filter(i => i.category === "part").reduce((s, i) => s + lineAmount(i), 0);
-  const diag = doc.items.filter(i => i.category === "diagnosis").reduce((s, i) => s + lineAmount(i), 0);
-
   const docTypeLabel = doc.type === "estimate" ? "ESTIMATE" : "INVOICE";
-  const dateStr = new Date(doc.createdAt).toLocaleDateString();
-
-  const buildPrintableHtml = () => `
-<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${docTypeLabel} ${doc.number}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111;padding:32px;background:#fff}
-  .wrap{max-width:760px;margin:0 auto}
-  .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:24px}
-  .brand{font-size:22px;font-weight:800}
-  .sub{font-size:12px;color:#555;margin-top:2px}
-  .badge{display:inline-block;padding:4px 10px;border:1px solid #111;border-radius:999px;font-size:11px;letter-spacing:1px;font-weight:700}
-  h2{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:6px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
-  .box p{font-size:13px;line-height:1.5;color:#222}
-  .box .name{font-weight:600;font-size:14px;color:#111}
-  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
-  th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;font-weight:700;padding:8px 6px;border-bottom:1px solid #ddd}
-  td{padding:10px 6px;border-bottom:1px solid #f0f0f0;vertical-align:top}
-  td.r,th.r{text-align:right}
-  .cat{font-weight:600;background:#fafafa;padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#555;border-top:1px solid #ddd}
-  .totals{margin-top:18px;display:flex;justify-content:flex-end}
-  .totals table{width:280px}
-  .totals td{padding:6px 4px;border:none}
-  .totals .grand td{border-top:2px solid #111;padding-top:10px;font-weight:800;font-size:16px}
-  .notes{margin-top:24px;padding:12px;background:#fafafa;border-left:3px solid #111;font-size:12px;color:#444}
-  .foot{margin-top:32px;text-align:center;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:14px}
-  @media print{body{padding:0}}
-</style></head><body><div class="wrap">
-  <div class="head">
-    <div>
-      <div class="brand">${storeName || "AB Complete Car Care"}</div>
-      ${storeAddress ? `<div class="sub"><span style="color:#888;font-weight:600">Shop:</span> ${storeAddress}</div>` : ""}
-      ${storePhone ? `<div class="sub"><span style="color:#888;font-weight:600">Phone:</span> ${storePhone}</div>` : ""}
-    </div>
-    <div style="text-align:right">
-      <div class="badge">${docTypeLabel}</div>
-      <div style="font-size:18px;font-weight:700;margin-top:8px">${doc.number}</div>
-      <div class="sub">${dateStr}</div>
-    </div>
-  </div>
-  <div class="grid">
-    <div class="box">
-      <h2>Bill to</h2>
-      <p class="name">${doc.customer || `${doc.firstName} ${doc.lastName}`.trim() || "—"}</p>
-      <p>${doc.phone || ""}</p>
-      <p>${doc.email || ""}</p>
-      <p>${doc.address || ""}</p>
-    </div>
-    <div class="box">
-      <h2>Vehicle</h2>
-      <p class="name">${doc.vehicle || `${doc.year} ${doc.make} ${doc.model}`.trim() || "—"}</p>
-      <p>${[doc.trim, doc.engine, doc.driveType].filter(Boolean).join(" · ")}</p>
-      <p style="font-family:monospace;font-size:11px;color:#888">VIN ${doc.vin || "—"}</p>
-    </div>
-  </div>
-  <table>
-    <thead><tr><th>Description</th><th class="r">Qty / Hrs</th><th class="r">Rate</th><th class="r">Discount</th><th class="r">Amount</th></tr></thead>
-    <tbody>
-      ${(["labor","part","diagnosis"] as LineCategory[]).map(cat => {
-        const rows = doc.items.filter(i => i.category === cat);
-        if (rows.length === 0) return "";
-        const label = cat === "labor" ? "Labor" : cat === "part" ? "Parts & Materials" : "Diagnosis & Inspection";
-        return `<tr><td colspan="5" class="cat">${label}</td></tr>` + rows.map(it => {
-          const qtyHrs = cat === "labor" ? `${it.hours ?? 0} hr` : cat === "part" ? `${it.qty ?? 0}` : "—";
-          const rate = cat === "diagnosis" ? "—" : fmt(it.price ?? 0);
-          const discType = it.discountType ?? "pct";
-          const discTxt = !it.discount ? "—" : discType === "pct" ? `${it.discount}%` : fmt(it.discount);
-          return `<tr><td>${it.description || "—"}</td><td class="r">${qtyHrs}</td><td class="r">${rate}</td><td class="r">${discTxt}</td><td class="r">${fmt(lineAmount(it))}</td></tr>`;
-        }).join("");
-      }).join("")}
-    </tbody>
-  </table>
-  <div class="totals"><table>
-    ${labor > 0 ? `<tr><td>Labor</td><td class="r">${fmt(labor)}</td></tr>` : ""}
-    ${parts > 0 ? `<tr><td>Parts</td><td class="r">${fmt(parts)}</td></tr>` : ""}
-    ${diag > 0 ? `<tr><td>Diagnosis</td><td class="r">${fmt(diag)}</td></tr>` : ""}
-    <tr><td>Subtotal</td><td class="r">${fmt(totals.subtotal)}</td></tr>
-    ${totals.discount > 0 ? `<tr><td>Discount</td><td class="r">−${fmt(totals.discount)}</td></tr>` : ""}
-    <tr><td>Tax (${totals.taxRate}%)</td><td class="r">${fmt(totals.tax)}</td></tr>
-    <tr class="grand"><td>Total</td><td class="r">${fmt(total)}</td></tr>
-  </table></div>
-  <div class="notes">${doc.type === "estimate" ? "This is an estimate. Actual costs may vary based on inspection." : "Thank you for your business. Payment is due upon receipt unless otherwise agreed."}</div>
-  <div class="foot">${storeName || "AB Complete Car Care"} · Generated by ZIVO Partner</div>
-</div></body></html>`;
-
+  const totals = computeDocTotals(doc.items, doc.taxRate);
+  const grandTotal = totals.total + sumExtraChargeCents({
+    subletCents: dollarsToCents(doc.sublet), feesCents: dollarsToCents(doc.fees),
+    epaCents: dollarsToCents(doc.epa), shopSuppliesCents: dollarsToCents(doc.shopSupplies),
+  }) / 100;
   const pdfFilename = `${docTypeLabel}-${doc.number}.pdf`;
-  const buildPdfBlob = () => generateDocumentPdf({ doc: toPdfDoc(), storeName, storeAddress, storePhone });
 
   const handlePrint = async () => {
-    // Native WebViews have no print dialog — share the PDF so the OS share
-    // sheet can route to AirPrint / save.
     if (Capacitor.isNativePlatform()) {
-      try {
-        await exportBlob(buildPdfBlob(), pdfFilename, "Print or share");
-      } catch (e: any) {
-        toast.error(e?.message ?? "Failed to prepare document");
-      }
+      try { await exportBlob(buildBlob(), pdfFilename, "Print or share"); }
+      catch (e: any) { toast.error(e?.message ?? "Failed to prepare document"); }
       return;
     }
-    const html = buildPrintableHtml();
-    const w = window.open("", "_blank", "width=900,height=1000");
-    if (!w) { toast.error("Pop-up blocked. Allow pop-ups to print."); return; }
-    w.document.write(html);
-    w.document.close();
-    setTimeout(() => { w.focus(); w.print(); }, 300);
+    if (pdfUrl) {
+      const w = window.open(pdfUrl, "_blank");
+      if (!w) toast.error("Pop-up blocked. Allow pop-ups to print.");
+    }
   };
-
-  const toPdfDoc = (): PdfDoc => ({
-    type: doc.type,
-    number: doc.number,
-    customer: doc.customer || `${doc.firstName} ${doc.lastName}`.trim() || "—",
-    phone: doc.phone,
-    email: doc.email,
-    address: doc.address,
-    vehicle: doc.vehicle || `${doc.year} ${doc.make} ${doc.model}`.trim() || "—",
-    vin: doc.vin,
-    items: doc.items.map((i) => ({
-      category: i.category,
-      description: i.description,
-      qty: i.qty,
-      price: i.price,
-      hours: i.hours,
-      discount: i.discount,
-      discountType: i.discountType,
-    })),
-    status: doc.status,
-    taxRate: doc.taxRate,
-    createdAt: doc.createdAt,
-  });
 
   const handleDownload = async () => {
     try {
-      const shared = await exportBlob(buildPdfBlob(), pdfFilename, `${docTypeLabel} ${doc.number}`);
+      const shared = await exportBlob(buildBlob(), pdfFilename, `${docTypeLabel} ${doc.number}`);
       if (!shared) toast.success("PDF downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to generate PDF");
@@ -220,14 +180,12 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
 
   const handleEmail = () => {
     if (!doc.email) { toast.error("No customer email on file"); return; }
-    const subject = encodeURIComponent(`${docTypeLabel} ${doc.number} from ${storeName || "AB Complete Car Care"}`);
+    const subject = encodeURIComponent(`${docTypeLabel} ${doc.number}${storeName ? ` from ${storeName}` : ""}`);
     const body = encodeURIComponent(
       `Hello ${doc.firstName || doc.customer || ""},\n\n` +
       `Please find your ${docTypeLabel.toLowerCase()} ${doc.number} for ${doc.vehicle || "your vehicle"}.\n\n` +
-      `Subtotal: ${fmt(totals.preTax)}\n` +
-      `Tax (${totals.taxRate}%): ${fmt(totals.tax)}\n` +
-      `Total: ${fmt(total)}\n\n` +
-      `Thank you,\n${storeName || "AB Complete Car Care"}`
+      `Total: ${fmt(grandTotal)}\n\n` +
+      `Thank you,\n${storeName || ""}`
     );
     openSystemUrl(`mailto:${doc.email}?subject=${subject}&body=${body}`);
   };
@@ -235,7 +193,7 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
   const handleSms = () => {
     if (!doc.phone) { toast.error("No customer phone on file"); return; }
     const body = encodeURIComponent(
-      `${storeName || "AB Complete Car Care"}: Your ${docTypeLabel.toLowerCase()} ${doc.number} for ${doc.vehicle || "your vehicle"} — Total ${fmt(total)} (incl. ${fmt(totals.tax)} tax).`
+      `${storeName || "Your shop"}: ${docTypeLabel.toLowerCase()} ${doc.number} for ${doc.vehicle || "your vehicle"} — Total ${fmt(grandTotal)}.`
     );
     const tel = doc.phone.replace(/[^\d+]/g, "");
     openSystemUrl(`sms:${tel}?body=${body}`);
@@ -251,15 +209,18 @@ export default function AutoRepairDocPreviewDialog({ open, onOpenChange, doc, st
             <Button size="sm" variant="outline" onClick={handleDownload} className="gap-1.5"><Download className="w-3.5 h-3.5" /> Download</Button>
             <Button size="sm" variant="outline" onClick={handleEmail} className="gap-1.5"><Mail className="w-3.5 h-3.5" /> Email</Button>
             <Button size="sm" variant="outline" onClick={handleSms} className="gap-1.5"><MessageSquare className="w-3.5 h-3.5" /> SMS</Button>
-            
           </div>
         </DialogHeader>
         <div className="flex-1 overflow-auto bg-muted/30 p-4">
-          <iframe
-            title="document-preview"
-            srcDoc={buildPrintableHtml()}
-            className="w-full h-[75vh] bg-white rounded-lg shadow-md border border-border"
-          />
+          {pdfUrl ? (
+            <iframe
+              title="document-preview"
+              src={pdfUrl}
+              className="w-full h-[75vh] bg-white rounded-lg shadow-md border border-border"
+            />
+          ) : (
+            <div className="h-[75vh] flex items-center justify-center text-sm text-muted-foreground">Preparing preview…</div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

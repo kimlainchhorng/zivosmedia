@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type TouchEvent } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Bell, ChevronDown, ChevronLeft, Compass, Copy, Info, Pin, Share2, Users } from "lucide-react";
-import { useChannel, type ChannelPost } from "@/hooks/useChannel";
+import { Bell, ChevronDown, ChevronLeft, Compass, Copy, Info, Pin, Share2, Users, X } from "lucide-react";
+import { useChannel, type ChannelPost, type ChannelServiceEvent } from "@/hooks/useChannel";
 import { supabase } from "@/integrations/supabase/client";
 import { ChannelInfoSheet } from "@/components/channels/ChannelInfoSheet";
 import { ChannelPostCard } from "@/components/channels/ChannelPostCard";
@@ -20,14 +20,25 @@ function getPostTimestamp(post: ChannelPost): number {
   return Number.isNaN(value) ? 0 : value;
 }
 
+function getServiceEventTimestamp(event: ChannelServiceEvent): number {
+  const value = new Date(event.at).getTime();
+  return Number.isNaN(value) ? 0 : value;
+}
+
 function getPostDayKey(post: ChannelPost): string {
   const date = new Date(post.published_at ?? post.created_at);
   if (Number.isNaN(date.getTime())) return "unknown";
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
-function formatPostDay(post: ChannelPost): string {
-  const date = new Date(post.published_at ?? post.created_at);
+function getServiceEventDayKey(event: ChannelServiceEvent): string {
+  const date = new Date(event.at);
+  if (Number.isNaN(date.getTime())) return "unknown";
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+function formatTimelineDay(value: string | null | undefined): string {
+  const date = new Date(value ?? "");
   if (Number.isNaN(date.getTime())) return "Recent";
   const today = new Date();
   const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
@@ -38,6 +49,14 @@ function formatPostDay(post: ChannelPost): string {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
 }
 
+function formatPostDay(post: ChannelPost): string {
+  return formatTimelineDay(post.published_at ?? post.created_at);
+}
+
+function formatServiceEventDay(event: ChannelServiceEvent): string {
+  return formatTimelineDay(event.at);
+}
+
 export default function ChannelPage() {
   const { handle } = useParams<{ handle: string }>();
   const navigate = useNavigate();
@@ -45,11 +64,12 @@ export default function ChannelPage() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [swipeProgress, setSwipeProgress] = useState(0);
   const [showJumpToBottom, setShowJumpToBottom] = useState(false);
+  const [dismissedPinnedPostId, setDismissedPinnedPostId] = useState<string | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const pointerSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const mouseSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const timelineEndRef = useRef<HTMLDivElement>(null);
-  const { channel, posts, isSubscribed, notificationsOn, role, loading, userId, subscribe, unsubscribe, setNotifications, refresh } =
+  const { channel, posts, serviceEvents, isSubscribed, notificationsOn, role, loading, userId, subscribe, unsubscribe, setNotifications, refresh } =
     useChannel(handle);
 
   // Redeem an invite link (?invite=code): subscribe via the channel_redeem_invite
@@ -76,27 +96,51 @@ export default function ChannelPage() {
   }, [inviteCode, userId, channel?.id, isSubscribed]);
 
   const timelinePosts = useMemo(() => [...posts].sort((a, b) => getPostTimestamp(a) - getPostTimestamp(b)), [posts]);
+  const visibleServiceEvents = useMemo(
+    () => (channel?.hide_members ? [] : serviceEvents).slice(0, 5),
+    [channel?.hide_members, serviceEvents],
+  );
   const timelineItems = useMemo(() => {
     const items: Array<
       | { type: "day"; key: string; label: string }
+      | { type: "service"; event: ChannelServiceEvent }
       | { type: "post"; post: ChannelPost }
     > = [];
+    const serviceEventsByDay = new Map<string, ChannelServiceEvent[]>();
+    for (const event of visibleServiceEvents) {
+      const key = getServiceEventDayKey(event);
+      const events = serviceEventsByDay.get(key) ?? [];
+      events.push(event);
+      serviceEventsByDay.set(key, events);
+    }
     let lastDay = "";
+    const emittedServiceDays = new Set<string>();
     for (const post of timelinePosts) {
       const key = getPostDayKey(post);
       if (key !== lastDay) {
         items.push({ type: "day", key, label: formatPostDay(post) });
+        for (const event of serviceEventsByDay.get(key) ?? []) {
+          items.push({ type: "service", event });
+        }
+        emittedServiceDays.add(key);
         lastDay = key;
       }
       items.push({ type: "post", post });
     }
+    for (const event of visibleServiceEvents) {
+      const key = getServiceEventDayKey(event);
+      if (emittedServiceDays.has(key)) continue;
+      items.unshift({ type: "service", event });
+      items.unshift({ type: "day", key, label: formatServiceEventDay(event) });
+    }
     return items;
-  }, [timelinePosts]);
+  }, [timelinePosts, visibleServiceEvents]);
 
   const pinnedPost = useMemo(
     () => [...timelinePosts].filter((p) => p.is_pinned).sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a))[0],
     [timelinePosts],
   );
+  const showPinnedBar = !!pinnedPost && dismissedPinnedPostId !== pinnedPost.id;
   const targetPostId = searchParams.get("post");
 
   useEffect(() => {
@@ -366,45 +410,74 @@ export default function ChannelPage() {
           <button
             type="button"
             onClick={() => setInfoOpen(true)}
-            className="min-w-0 flex-1 rounded-full bg-white/80 py-1.5 pl-4 pr-1.5 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
+            className="min-w-0 flex-1 rounded-full bg-white/80 px-4 py-1.5 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
             aria-label="Open channel info"
           >
-            <span className="flex items-center gap-3">
-              <span className="min-w-0 flex-1 text-center">
-                <span className="block truncate text-[15px] font-bold leading-tight text-slate-950">{channel.name}</span>
-                <span className="block truncate text-[11px] leading-tight text-slate-500">
-                  {channel.subscriber_count.toLocaleString()} subscriber{channel.subscriber_count === 1 ? "" : "s"}
-                </span>
+            <span className="block min-w-0 text-center">
+              <span className="block truncate text-[15px] font-bold leading-tight text-slate-950">{channel.name}</span>
+              <span className="block truncate text-[11px] leading-tight text-slate-500">
+                {channel.subscriber_count.toLocaleString()} subscriber{channel.subscriber_count === 1 ? "" : "s"}
               </span>
-              <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white text-xs font-bold text-sky-700 ring-2 ring-white">
-                {channel.avatar_url ? (
-                  <img src={channel.avatar_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-sky-100">{channel.name.slice(0, 2).toUpperCase()}</span>
-                )}
-                <span className="absolute bottom-0 right-0 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200">
-                  <Info className="h-2.5 w-2.5" />
-                </span>
-              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setInfoOpen(true)}
+            className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/80 text-xs font-bold text-sky-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
+            aria-label="Open channel info"
+          >
+            {channel.avatar_url ? (
+              <img src={channel.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center bg-sky-100">{channel.name.slice(0, 2).toUpperCase()}</span>
+            )}
+            <span className="absolute bottom-0 right-0 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200">
+              <Info className="h-2.5 w-2.5" />
             </span>
           </button>
         </div>
 
       </div>
 
-      {pinnedPost && (
-        <button
-          type="button"
-          onClick={() => scrollToPost(pinnedPost.id)}
-          className="sticky top-[calc(var(--zivo-safe-top,0px)+4.75rem)] z-10 mx-3 mt-2 flex w-[calc(100%-1.5rem)] items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 text-left shadow-sm ring-1 ring-white/70 backdrop-blur transition-colors hover:bg-white/95 dark:bg-zinc-900/80 dark:ring-zinc-800"
-        >
-          <span className="h-9 w-1 rounded-full border-l-2 border-dashed border-sky-500" aria-hidden />
-          <span className="min-w-0 flex-1">
-            <span className="block text-[12px] font-bold text-slate-900 dark:text-zinc-50">Pinned Message</span>
-            <span className="block truncate text-[12px] text-slate-700 dark:text-zinc-300">{pinnedPost.body || "Pinned post"}</span>
-          </span>
-          <Pin className="h-4 w-4 shrink-0 text-slate-500" />
-        </button>
+      {showPinnedBar && pinnedPost && (
+        <div className="sticky top-[calc(var(--zivo-safe-top,0px)+4.75rem)] z-10 mx-3 mt-2 overflow-hidden rounded-[1.35rem] bg-white/86 shadow-sm ring-1 ring-white/75 backdrop-blur dark:bg-zinc-900/82 dark:ring-zinc-800">
+          <div className="flex min-h-[4.25rem] items-stretch">
+            <button
+              type="button"
+              onClick={() => scrollToPost(pinnedPost.id)}
+              className="flex min-w-0 flex-1 items-center gap-2.5 text-left transition hover:bg-white/45 dark:hover:bg-zinc-800/45"
+              aria-label="Open pinned message"
+            >
+              <span className="flex w-12 shrink-0 items-center justify-center self-stretch border-r border-sky-200/70 bg-sky-50/45 text-slate-500 dark:border-sky-950 dark:bg-sky-950/30">
+                <span className="relative flex h-full w-full items-center justify-center">
+                  <span className="absolute right-1.5 top-2 h-5 w-[3px] rounded-full bg-sky-300" aria-hidden />
+                  <Pin className="h-6 w-6 -rotate-12" />
+                </span>
+              </span>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-rose-500 via-fuchsia-500 to-amber-400 text-lg font-black text-white shadow-sm">
+                {channel.avatar_url ? (
+                  <img src={channel.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  channel.name.slice(0, 1).toUpperCase()
+                )}
+              </span>
+              <span className="min-w-0 flex-1 py-2">
+                <span className="block truncate text-[15px] font-bold leading-tight text-sky-500">Pinned Message</span>
+                <span className="mt-0.5 block truncate text-[15px] leading-tight text-slate-950 dark:text-zinc-100">
+                  {pinnedPost.body || "Pinned post"}
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDismissedPinnedPostId(pinnedPost.id)}
+              className="flex w-12 shrink-0 items-center justify-center text-slate-500 transition hover:bg-white/55 hover:text-slate-800 dark:hover:bg-zinc-800"
+              aria-label="Hide pinned message"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
       )}
 
       <div
@@ -421,12 +494,18 @@ export default function ChannelPage() {
           </div>
         )}
         {timelineItems.map((item) => item.type === "day" ? (
-          <div key={`day-${item.key}`} className="flex justify-center py-1">
-            <span className="rounded-full bg-emerald-700/45 px-3 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur">
-              {item.label}
-            </span>
-          </div>
-        ) : (
+            <div key={`day-${item.key}`} className="flex justify-center py-1">
+              <span className="rounded-full bg-emerald-700/45 px-3 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur">
+                {item.label}
+              </span>
+            </div>
+          ) : item.type === "service" ? (
+            <div key={item.event.id} className="flex justify-center py-1">
+              <span className="max-w-[min(21rem,88%)] rounded-full bg-emerald-800/35 px-3 py-1 text-center text-[15px] font-semibold leading-5 text-white shadow-sm backdrop-blur">
+                {item.event.display_name} {item.event.type === "member_left" ? "left the channel" : "joined the channel"}
+              </span>
+            </div>
+          ) : (
             <ChannelPostCard
               key={item.post.id}
               post={item.post}

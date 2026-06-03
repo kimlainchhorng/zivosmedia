@@ -20,8 +20,19 @@ export type Channel = {
   topics_enabled?: boolean;
   hide_members?: boolean;
   slow_mode_seconds?: number;
+  subscriber_permissions?: ChannelSubscriberPermissions | null;
   is_verified?: boolean;
   verified_at?: string | null;
+};
+
+export type ChannelSubscriberPermissions = {
+  sendMessages: boolean;
+  sendMedia: boolean;
+  addMembers: boolean;
+  pinMessages: boolean;
+  editOwnTags: boolean;
+  changeInfo: boolean;
+  chargeStars: boolean;
 };
 
 export type ChannelPost = {
@@ -41,9 +52,18 @@ export type ChannelPost = {
   comments_count?: number;
 };
 
+export type ChannelServiceEvent = {
+  id: string;
+  type: "member_joined" | "member_left";
+  at: string;
+  user_id: string;
+  display_name: string;
+};
+
 export function useChannel(handle: string | undefined) {
   const [channel, setChannel] = useState<Channel | null>(null);
   const [posts, setPosts] = useState<ChannelPost[]>([]);
+  const [serviceEvents, setServiceEvents] = useState<ChannelServiceEvent[]>([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [role, setRole] = useState<string | null>(null);
@@ -56,11 +76,12 @@ export function useChannel(handle: string | undefined) {
 
   const refresh = useCallback(async () => {
     if (!handle) return;
+    const normalizedHandle = decodeURIComponent(handle).replace(/^@+/, "").trim().toLowerCase();
     setLoading(true);
     const { data: ch } = await supabase
       .from("channels")
       .select("*")
-      .eq("handle", handle)
+      .eq("handle", normalizedHandle)
       .maybeSingle();
     if (!ch) {
       setChannel(null);
@@ -80,6 +101,74 @@ export function useChannel(handle: string | undefined) {
       .order("published_at", { ascending: false })
       .limit(50);
     setPosts((postsData ?? []) as any);
+
+    const { data: recentSubscribers } = await supabase
+      .from("channel_subscribers")
+      .select("user_id, joined_at, role")
+      .eq("channel_id", ch.id)
+      .neq("role", "pending")
+      .order("joined_at", { ascending: false })
+      .limit(5);
+    const { data: recentMemberActions } = await (supabase as any)
+      .from("channel_admin_log")
+      .select("id, actor_id, target_user_id, action, created_at")
+      .eq("channel_id", ch.id)
+      .in("action", ["member_left", "member_removed"])
+      .order("created_at", { ascending: false })
+      .limit(5);
+    const subscriberRows = (recentSubscribers ?? []) as Array<{ user_id: string; joined_at: string; role: string }>;
+    const memberActionRows = (recentMemberActions ?? []) as Array<{
+      id: string;
+      actor_id: string;
+      target_user_id: string | null;
+      action: "member_left" | "member_removed";
+      created_at: string;
+    }>;
+    const serviceProfileIds = Array.from(new Set([
+      ...subscriberRows.map((row) => row.user_id),
+      ...memberActionRows.map((row) => row.action === "member_removed" ? row.target_user_id : row.actor_id),
+    ].filter(Boolean) as string[]));
+    let profileMap = new Map<string, { full_name?: string | null }>();
+    if (serviceProfileIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("public_profiles")
+        .select("user_id, full_name")
+        .in("user_id", serviceProfileIds);
+      profileMap = new Map(
+        ((profiles ?? []) as Array<{ user_id: string; full_name?: string | null }>).map((profile) => [
+          profile.user_id,
+          profile,
+        ]),
+      );
+    }
+    const joinedEvents = subscriberRows.map((row) => {
+        const profile = profileMap.get(row.user_id);
+        const displayName = profile?.full_name?.trim() || "A member";
+        return {
+          id: `member-joined-${row.user_id}-${row.joined_at}`,
+          type: "member_joined" as const,
+          at: row.joined_at,
+          user_id: row.user_id,
+          display_name: displayName,
+        };
+      });
+    const leftEvents = memberActionRows.map((row) => {
+      const userIdForEvent = row.action === "member_removed" ? row.target_user_id : row.actor_id;
+      const profile = userIdForEvent ? profileMap.get(userIdForEvent) : undefined;
+      const displayName = profile?.full_name?.trim() || "A member";
+      return {
+        id: `member-left-${row.id}`,
+        type: "member_left" as const,
+        at: row.created_at,
+        user_id: userIdForEvent || row.actor_id,
+        display_name: displayName,
+      };
+    });
+    setServiceEvents(
+      [...joinedEvents, ...leftEvents]
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+        .slice(0, 8),
+    );
 
     const { data: u } = await supabase.auth.getUser();
     if (u.user) {
@@ -159,5 +248,5 @@ export function useChannel(handle: string | undefined) {
     }
   };
 
-  return { channel, posts, isSubscribed, notificationsOn, role, loading, userId, refresh, subscribe, unsubscribe, setNotifications };
+  return { channel, posts, serviceEvents, isSubscribed, notificationsOn, role, loading, userId, refresh, subscribe, unsubscribe, setNotifications };
 }

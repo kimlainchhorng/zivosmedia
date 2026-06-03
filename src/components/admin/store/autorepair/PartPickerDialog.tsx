@@ -27,6 +27,7 @@ export type PickedPart = {
   sku: string;
   brand: string;
   price: number;        // unit price in dollars
+  originalPrice?: number;
   qty: number;
   partId?: string;      // ar_parts.id — used to decrement stock after save
 };
@@ -57,7 +58,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ar_parts")
-        .select("id,sku,name,brand,category,price_cents,stock,oem_number,condition,fitment_notes")
+        .select("id,sku,name,brand,category,cost_cents,price_cents,stock,oem_number,condition,fitment_notes")
         .eq("store_id", storeId)
         .eq("active", true)
         .order("name");
@@ -85,6 +86,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
       sku: p.sku,
       brand: p.brand ?? "",
       price,
+      originalPrice: p.cost_cents > 0 ? p.cost_cents / 100 : undefined,
       qty: 1,
       partId: p.id,
     });

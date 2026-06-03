@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useRecordingPreflight } from "@/hooks/useRecordingPreflight";
+import { copyText } from "@/lib/native/clipboard";
 
 export interface CallLobbyResult {
   startMicMuted: boolean;
@@ -51,6 +52,10 @@ export default function CallLobby({
   const recordingRequested = record && bucketReady;
   const title = displayName?.trim() || (roomName.startsWith("group-") ? "Group call" : roomName);
   const showRecordingControls = canRecord && bucketStatus !== "unavailable";
+  const inviteUrl =
+    typeof window === "undefined"
+      ? ""
+      : `${window.location.origin}/chat/call/group/${encodeURIComponent(roomName)}${callType === "audio" ? "?audio=1" : ""}`;
 
   const stopPreview = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -106,7 +111,11 @@ export default function CallLobby({
         return;
       }
     }
-    if (streamRef.current?.getAudioTracks().length) setMicOn((v) => !v);
+    if (streamRef.current?.getAudioTracks().length) {
+      setMicOn((v) => !v);
+    } else {
+      toast.message("Microphone is blocked. Try permission again or join muted.");
+    }
   };
 
   const handleToggleCam = async () => {
@@ -117,7 +126,11 @@ export default function CallLobby({
         return;
       }
     }
-    if (streamRef.current?.getVideoTracks().length) setCamOn((v) => !v);
+    if (streamRef.current?.getVideoTracks().length) {
+      setCamOn((v) => !v);
+    } else {
+      toast.message("Camera is blocked. Try permission again or join with camera off.");
+    }
   };
 
   // Apply mic/cam preview toggles
@@ -142,8 +155,18 @@ export default function CallLobby({
     onCancel();
   };
 
+  const handleCopyInvite = async () => {
+    if (!inviteUrl) return;
+    try {
+      await copyText(inviteUrl);
+      toast.success("Invite link copied. Send it to anyone you want to join.");
+    } catch {
+      toast.message("Copy this invite link", { description: inviteUrl, duration: 10000 });
+    }
+  };
+
   const lobby = (
-    <div className="fixed inset-0 z-[1500] flex flex-col bg-zinc-950 text-white">
+    <div className="pointer-events-auto fixed inset-0 isolate z-[5000] flex flex-col bg-zinc-950 text-white">
       <header
         className="flex shrink-0 items-center justify-between px-4"
         style={{ paddingTop: "calc(var(--zivo-safe-top,0px) + 12px)", paddingBottom: 12 }}
@@ -157,24 +180,15 @@ export default function CallLobby({
               GroupCallEntryPage and join the same LiveKit room. */}
           <button
             type="button"
-            onClick={async () => {
-              const url = `${window.location.origin}/chat/call/group/${encodeURIComponent(roomName)}${callType === "audio" ? "?audio=1" : ""}`;
-              try {
-                await navigator.clipboard?.writeText(url);
-                const { toast } = await import("sonner");
-                toast.success("Invite link copied. Send it to anyone you want to join.");
-              } catch {
-                /* clipboard blocked */
-              }
-            }}
-            className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/20 inline-flex items-center gap-1.5"
+            onClick={() => void handleCopyInvite()}
+            className="inline-flex touch-manipulation items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/20"
             aria-label="Copy invite link"
           >
             Copy invite
           </button>
           <button type="button"
             onClick={handleCancel}
-            className="rounded-full bg-white/10 p-2 hover:bg-white/20"
+            className="touch-manipulation rounded-full bg-white/10 p-2 hover:bg-white/20"
             aria-label="Cancel"
           >
             <X className="h-4 w-4" />
@@ -199,8 +213,8 @@ export default function CallLobby({
 	            playsInline
 	            muted
 	            preload="none"
-	            className={`h-full w-full object-cover ${camOn ? "" : "opacity-0"}`}
-	          />
+            className={`h-full w-full object-cover ${camOn ? "" : "opacity-0"}`}
+          />
         ) : null}
         {mediaError ? (
           <div className="absolute inset-0 z-20 grid place-items-center px-5 text-center">
@@ -213,15 +227,16 @@ export default function CallLobby({
               <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
                 <button
                   type="button"
-                  onClick={() => void acquirePreview()}
-                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-white/90"
+	                  onClick={() => void acquirePreview()}
+	                  disabled={checkingMedia}
+	                  className="touch-manipulation rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-white/90 disabled:opacity-60"
                 >
                   Try permission again
                 </button>
                 <button
                   type="button"
                   onClick={handleJoin}
-                  className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+	                  className="touch-manipulation rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
                 >
                   Join with both off
                 </button>
@@ -240,10 +255,10 @@ export default function CallLobby({
         )}
 
         {/* In-preview controls */}
-        <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-3">
+        <div className="absolute inset-x-0 bottom-3 z-30 flex items-center justify-center gap-3">
           <button type="button"
             onClick={() => void handleToggleMic()}
-            className={`grid h-12 w-12 place-items-center rounded-full ${
+            className={`grid h-12 w-12 touch-manipulation place-items-center rounded-full ${
               micOn ? "bg-white/15 hover:bg-white/25" : "bg-rose-500 hover:bg-rose-600"
             }`}
             aria-label={micOn ? "Mute mic" : "Unmute mic"}
@@ -253,7 +268,7 @@ export default function CallLobby({
           {callType === "video" && (
             <button type="button"
               onClick={() => void handleToggleCam()}
-              className={`grid h-12 w-12 place-items-center rounded-full ${
+              className={`grid h-12 w-12 touch-manipulation place-items-center rounded-full ${
                 camOn ? "bg-white/15 hover:bg-white/25" : "bg-rose-500 hover:bg-rose-600"
               }`}
               aria-label={camOn ? "Turn camera off" : "Turn camera on"}

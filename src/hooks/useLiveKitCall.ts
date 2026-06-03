@@ -90,6 +90,9 @@ export function useLiveKitCall({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [screenShareBlocked, setScreenShareBlocked] = useState(false);
+  const canScreenShare =
+    typeof navigator !== "undefined" &&
+    typeof navigator.mediaDevices?.getDisplayMedia === "function";
   const [micEnabled, setMicEnabled] = useState(!startMicMuted);
   const [camEnabled, setCamEnabled] = useState(callType === "video" && !startCamOff);
   const [handRaised, setHandRaised] = useState(false);
@@ -97,13 +100,16 @@ export function useLiveKitCall({
 
   const formatDevicePermissionMessage = useCallback((device: "microphone" | "camera" | "screen") => {
     if (device === "screen") {
+      if (!canScreenShare) {
+        return "Screen sharing is not available in this browser. Open this call in Chrome, Safari desktop, or another browser that supports screen capture.";
+      }
       return "Screen sharing is blocked by browser or system permission. Allow screen sharing or Screen Recording permission for this browser, then try again.";
     }
     if (device === "microphone") {
       return getMicrophoneRecoveryHint();
     }
     return `${device[0].toUpperCase()}${device.slice(1)} permission is blocked. Allow browser permission, then try again.`;
-  }, []);
+  }, [canScreenShare]);
 
   /* ----------------- Refresh participant list ----------------- */
   const refreshParticipants = useCallback(() => {
@@ -221,7 +227,8 @@ export function useLiveKitCall({
         const { data, error: fnErr } = await supabase.functions.invoke("livekit-token", {
           body: { roomName, callType },
         });
-        if (fnErr) throw fnErr;
+        if (fnErr) throw new Error((data as any)?.error || fnErr.message);
+        if ((data as any)?.error) throw new Error((data as any).error);
         if (!data?.token || !data?.url) throw new Error("Missing token");
         if (cancelled) return;
 
@@ -360,6 +367,14 @@ export function useLiveKitCall({
   const toggleScreenShare = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
+    if (!canScreenShare) {
+      const message = formatDevicePermissionMessage("screen");
+      setIsScreenSharing(false);
+      setScreenShareBlocked(true);
+      setMediaError(message);
+      toast.error("Screen sharing is not available", { description: message });
+      return;
+    }
     try {
       const next = !isScreenSharing;
       await room.localParticipant.setScreenShareEnabled(next);
@@ -368,10 +383,12 @@ export function useLiveKitCall({
       setScreenShareBlocked(false);
     } catch (e) {
       setIsScreenSharing(false);
-      setMediaError(formatDevicePermissionMessage("screen"));
+      const message = formatDevicePermissionMessage("screen");
+      setMediaError(message);
       setScreenShareBlocked(true);
+      toast.error("Screen sharing is blocked", { description: message });
     }
-  }, [formatDevicePermissionMessage, isScreenSharing]);
+  }, [canScreenShare, formatDevicePermissionMessage, isScreenSharing]);
 
   const sendReaction = useCallback(
     async (emoji: string) => {
@@ -394,15 +411,29 @@ export function useLiveKitCall({
     const next = !handRaised;
     setHandRaised(next);
     const data = new TextEncoder().encode(JSON.stringify({ type: "hand", raised: next } satisfies DataMsg));
-    await room.localParticipant.publishData(data, { reliable: true });
+    try {
+      await room.localParticipant.publishData(data, { reliable: true });
+      toast.success(next ? "Hand raised" : "Hand lowered");
+    } catch (e) {
+      setHandRaised(!next);
+      toast.error("Could not update hand raise");
+    }
   }, [handRaised]);
 
   const clearMediaError = useCallback(() => {
     setMediaError(null);
+    setScreenShareBlocked(false);
   }, []);
 
   const startRecording = useCallback(async () => {
-    if (!sessionId || !isHost) return;
+    if (!isHost) {
+      toast.error("Only the host can record this call.");
+      return;
+    }
+    if (!sessionId) {
+      toast.error("Recording is not ready yet.");
+      return;
+    }
     const { error: e } = await supabase.functions.invoke("livekit-recording", {
       body: { sessionId, action: "start" },
     });
@@ -415,7 +446,14 @@ export function useLiveKitCall({
   }, [sessionId, isHost]);
 
   const stopRecording = useCallback(async () => {
-    if (!sessionId || !isHost) return;
+    if (!isHost) {
+      toast.error("Only the host can stop recording.");
+      return;
+    }
+    if (!sessionId) {
+      toast.error("Recording is not ready yet.");
+      return;
+    }
     const { error: e } = await supabase.functions.invoke("livekit-recording", {
       body: { sessionId, action: "stop" },
     });
@@ -450,6 +488,7 @@ export function useLiveKitCall({
     isRecording,
     isScreenSharing,
     screenShareBlocked,
+    canScreenShare,
     micEnabled,
     camEnabled,
     handRaised,

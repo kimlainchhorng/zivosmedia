@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/hooks/useCookiePrefs";
 
 const COOKIE_CONSENT_DATE_STORAGE_KEY = "zivo_cookie_consent_date";
+const COOKIE_CONSENT_UPDATED_EVENT = "zivo:cookie-consent-updated";
 
 interface CookiePreferences {
   essential: boolean;
@@ -44,6 +45,14 @@ const CookieConsent = () => {
     marketing: false,
   });
 
+  const notifyCookieConsentUpdated = () => {
+    try {
+      window.dispatchEvent(new Event(COOKIE_CONSENT_UPDATED_EVENT));
+    } catch {
+      // ignore environments without Event support
+    }
+  };
+
   useEffect(() => {
     // Never show cookie consent in native iOS/Android apps (App Store guideline 5.1.2i)
     // or on auth screens where it can block form fields on mobile.
@@ -66,6 +75,7 @@ const CookieConsent = () => {
     const allAccepted = { essential: true, functional: true, analytics: true, marketing: true };
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(allAccepted));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
     window.__zivoLoadAnalytics?.();
     setIsVisible(false);
   };
@@ -74,12 +84,14 @@ const CookieConsent = () => {
     const essentialOnly = { essential: true, functional: false, analytics: false, marketing: false };
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(essentialOnly));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
     setIsVisible(false);
   };
 
   const handleSavePreferences = () => {
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(preferences));
     localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
     if (preferences.analytics || preferences.marketing) {
       window.__zivoLoadAnalytics?.();
     }

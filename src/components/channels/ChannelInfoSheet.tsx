@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   Bell,
   BellOff,
@@ -6,6 +6,9 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Copy,
+  AlertTriangle,
+  Download,
   ExternalLink,
   Eye,
   FileText,
@@ -15,26 +18,32 @@ import {
   ImageIcon,
   Link as LinkIcon,
   Lock,
+  LogOut,
   MessageSquare,
   Mic,
   MinusCircle,
+  MoonStar,
   MoreHorizontal,
   Music,
+  Pencil,
   Pin,
   Play,
   Search,
   Settings,
+  Settings2,
   Shield,
   SlidersHorizontal,
   Sparkles,
+  Trash2,
   UserMinus,
   UserPlus,
   Users,
   Video,
   X,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import type { ComponentType, ReactNode } from "react";
-import type { Channel, ChannelPost } from "@/hooks/useChannel";
+import type { Channel, ChannelPost, ChannelSubscriberPermissions } from "@/hooks/useChannel";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -50,7 +59,9 @@ import { cn } from "@/lib/utils";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
 import { CHANNEL_WALLPAPERS, normalizeChannelWallpaper, type ChannelWallpaperStyle } from "@/lib/channels/channelWallpaper";
 import { copyText } from "@/lib/native/clipboard";
-import { getChannelShareUrl } from "@/lib/getPublicOrigin";
+import { getChannelShareUrl, getPublicOrigin } from "@/lib/getPublicOrigin";
+import { LOG_CATEGORY, logChannelAction, type ChannelLogAction } from "@/lib/channels/adminLog";
+import GroupCallLauncher from "@/components/chat/call/GroupCallLauncher";
 
 type ChannelInfoSheetProps = {
   open: boolean;
@@ -80,8 +91,53 @@ type InfoView =
   | "permissions"
   | "admins"
   | "removed"
-  | "actions";
+  | "actions"
+  | "search";
 type ProfileInfoTab = "members" | "media" | "voice" | "links" | "gif";
+
+const DEFAULT_CHANNEL_SUBSCRIBER_PERMISSIONS: ChannelSubscriberPermissions = {
+  sendMessages: true,
+  sendMedia: true,
+  addMembers: true,
+  pinMessages: false,
+  editOwnTags: true,
+  changeInfo: false,
+  chargeStars: false,
+};
+
+function normalizeSubscriberPermissions(value: unknown): ChannelSubscriberPermissions {
+  const source = value && typeof value === "object" ? value as Partial<ChannelSubscriberPermissions> : {};
+  return {
+    sendMessages: source.sendMessages ?? DEFAULT_CHANNEL_SUBSCRIBER_PERMISSIONS.sendMessages,
+    sendMedia: source.sendMedia ?? DEFAULT_CHANNEL_SUBSCRIBER_PERMISSIONS.sendMedia,
+    addMembers: source.addMembers ?? DEFAULT_CHANNEL_SUBSCRIBER_PERMISSIONS.addMembers,
+    pinMessages: source.pinMessages ?? DEFAULT_CHANNEL_SUBSCRIBER_PERMISSIONS.pinMessages,
+    editOwnTags: source.editOwnTags ?? DEFAULT_CHANNEL_SUBSCRIBER_PERMISSIONS.editOwnTags,
+    changeInfo: source.changeInfo ?? DEFAULT_CHANNEL_SUBSCRIBER_PERMISSIONS.changeInfo,
+    chargeStars: source.chargeStars ?? DEFAULT_CHANNEL_SUBSCRIBER_PERMISSIONS.chargeStars,
+  };
+}
+
+function getSubscriberPermissionsSummary(channel: Channel) {
+  return getSubscriberPermissionsCount(normalizeSubscriberPermissions(channel.subscriber_permissions));
+}
+
+function getSubscriberPermissionsCount(permissions: ChannelSubscriberPermissions) {
+  const enabled = Object.values(permissions).filter(Boolean).length;
+  return `${enabled}/7`;
+}
+
+const QR_THEME_CARDS = [
+  { label: "Home", emoji: "🏠", bg: "from-emerald-200 via-teal-100 to-sky-100", qr: "#256f5f", panel: "#c8f3e5" },
+  { label: "Duck", emoji: "🐥", bg: "from-lime-200 via-green-100 to-emerald-100", qr: "#68764c", panel: "#b7df9d" },
+  { label: "Snow", emoji: "☃", bg: "from-sky-200 via-blue-100 to-indigo-100", qr: "#496b92", panel: "#bfdcff" },
+  { label: "Gem", emoji: "💎", bg: "from-violet-200 via-sky-100 to-cyan-100", qr: "#6555a7", panel: "#d8d0ff" },
+] as const;
+
+function showManualCopyInvite(url: string) {
+  toast.message("Clipboard is blocked", { description: "Select and copy the invite link.", duration: 8000 });
+  window.setTimeout(() => window.prompt("Copy invite link", url), 50);
+}
 
 type InfoMember = {
   user_id: string;
@@ -99,6 +155,30 @@ type InfoRemovedUser = {
   removed_by_name: string | null;
 };
 
+type MemberPickerMode = "members" | "exceptions";
+
+type InfoActionRow = {
+  id: string;
+  actor_id: string;
+  action: string;
+  target_user_id: string | null;
+  meta: Record<string, any> | null;
+  created_at: string;
+};
+
+type InfoInviteLink = {
+  id: string;
+  code: string;
+  created_at: string;
+  revoked: boolean;
+  uses: number;
+};
+
+type InfoActorProfile = {
+  name?: string | null;
+  avatar?: string | null;
+};
+
 const TAB_META: Record<ChannelMediaTab, { label: string; icon: ComponentType<{ className?: string }>; empty: string }> = {
   media: { label: "Media", icon: ImageIcon, empty: "Photos and videos from this channel will show here." },
   files: { label: "Files", icon: FileText, empty: "Shared files will show here." },
@@ -111,9 +191,8 @@ const TAB_META: Record<ChannelMediaTab, { label: string; icon: ComponentType<{ c
 const PROFILE_INFO_TABS: Array<{ id: ProfileInfoTab; label: string; icon: ComponentType<{ className?: string }> }> = [
   { id: "members", label: "Members", icon: Users },
   { id: "media", label: "Media", icon: ImageIcon },
-  { id: "voice", label: "Voice", icon: Mic },
   { id: "links", label: "Links", icon: LinkIcon },
-  { id: "gif", label: "GIFs", icon: Play },
+  { id: "voice", label: "Voice", icon: Mic },
 ];
 
 export function ChannelInfoSheet({
@@ -142,6 +221,24 @@ export function ChannelInfoSheet({
   const [removedLoading, setRemovedLoading] = useState(false);
   const [removedReloadKey, setRemovedReloadKey] = useState(0);
   const [removedBusyId, setRemovedBusyId] = useState<string | null>(null);
+  const [channelCallOpen, setChannelCallOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [subscriberPermissions, setSubscriberPermissions] = useState(() => normalizeSubscriberPermissions(channel.subscriber_permissions));
+  const [permissionExceptions, setPermissionExceptions] = useState<InfoMember[]>([]);
+  const [exceptionsLoading, setExceptionsLoading] = useState(false);
+  const [memberPickerMode, setMemberPickerMode] = useState<MemberPickerMode | null>(null);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberResults, setMemberResults] = useState<InfoMember[]>([]);
+  const [memberSearching, setMemberSearching] = useState(false);
+  const [memberAddingId, setMemberAddingId] = useState<string | null>(null);
+  const [actionRows, setActionRows] = useState<InfoActionRow[]>([]);
+  const [actionProfiles, setActionProfiles] = useState<Map<string, InfoActorProfile>>(new Map());
+  const [actionsLoading, setActionsLoading] = useState(false);
+  const [inviteLinksOpen, setInviteLinksOpen] = useState(false);
+  const [inviteLinks, setInviteLinks] = useState<InfoInviteLink[]>([]);
+  const [inviteLinksLoading, setInviteLinksLoading] = useState(false);
+  const [inviteCreating, setInviteCreating] = useState(false);
+  const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
   const buckets = useMemo(() => buildChannelMediaBuckets(posts), [posts]);
   const profileMediaItems = profileTab === "members" ? [] : buckets[profileTab];
   const initials = channel.name.slice(0, 2).toUpperCase();
@@ -153,6 +250,28 @@ export function ChannelInfoSheet({
     .sort();
   const latestPostDate = postDates[postDates.length - 1];
   const adminMembers = members.filter((member) => member.role === "owner" || member.role === "admin");
+  const getInviteUrl = useCallback((code: string) => `${getPublicOrigin()}/c/${channel.handle}?invite=${code}`, [channel.handle]);
+
+  useEffect(() => {
+    setSubscriberPermissions(normalizeSubscriberPermissions(channel.subscriber_permissions));
+  }, [channel.id, channel.subscriber_permissions]);
+
+  const startVideoChat = () => {
+    if (!isSubscribed && !canManage) {
+      void onSubscribe();
+      return;
+    }
+    onOpenChange(false);
+    window.setTimeout(() => setChannelCallOpen(true), 180);
+  };
+  const copyQrInvite = async () => {
+    try {
+      await copyText(channelShareUrl);
+      toast.success("QR invite copied");
+    } catch {
+      showManualCopyInvite(channelShareUrl);
+    }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -194,7 +313,9 @@ export function ChannelInfoSheet({
             .select("user_id, full_name, avatar_url")
             .in("user_id", ids)
         : { data: [] };
-      const profileMap = new Map((profiles ?? []).map((profile: any) => [profile.user_id, profile]));
+      const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>(
+        (profiles ?? []).map((profile: any) => [profile.user_id, profile]),
+      );
       if (!cancelled) {
         const ownerPresent = rows.some((row) => row.user_id === channel.owner_id);
         const normalizedRows = ownerPresent
@@ -219,6 +340,265 @@ export function ChannelInfoSheet({
   const reloadMembers = () => setMembersReloadKey((key) => key + 1);
   const reloadRemovedUsers = () => setRemovedReloadKey((key) => key + 1);
 
+  const loadInviteLinks = useCallback(async () => {
+    if (!canManage || !channel.id) return;
+    setInviteLinksLoading(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("channel_invite_links")
+        .select("id, code, created_at, revoked, uses")
+        .eq("channel_id", channel.id)
+        .eq("revoked", false)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setInviteLinks((data ?? []) as InfoInviteLink[]);
+    } catch (error: any) {
+      toast.error(error?.message || "Could not load invite links");
+      setInviteLinks([]);
+    } finally {
+      setInviteLinksLoading(false);
+    }
+  }, [canManage, channel.id]);
+
+  useEffect(() => {
+    if (!inviteLinksOpen) return;
+    void loadInviteLinks();
+  }, [inviteLinksOpen, loadInviteLinks]);
+
+  const openInviteLinks = () => {
+    setInviteLinksOpen(true);
+  };
+
+  const createInviteLink = async () => {
+    if (inviteCreating) return;
+    setInviteCreating(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Sign in required");
+      const random = typeof crypto !== "undefined" && "getRandomValues" in crypto
+        ? Array.from(crypto.getRandomValues(new Uint8Array(9)), (byte) => byte.toString(36).padStart(2, "0")).join("").slice(0, 12)
+        : `${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 6)}`;
+      const code = random.toLowerCase();
+      const { data, error } = await (supabase as any)
+        .from("channel_invite_links")
+        .insert({ channel_id: channel.id, code, created_by: userData.user.id })
+        .select("id, code, created_at, revoked, uses")
+        .single();
+      if (error) throw error;
+      setInviteLinks((current) => [data as InfoInviteLink, ...current]);
+      toast.success("Invite link created");
+      void logChannelAction(channel.id, userData.user.id, "settings_changed", { meta: { invite_link: "created" } });
+    } catch (error: any) {
+      toast.error(error?.message || "Could not create invite link");
+    } finally {
+      setInviteCreating(false);
+    }
+  };
+
+  const copyInviteLink = async (code: string) => {
+    const url = getInviteUrl(code);
+    try {
+      await copyText(url);
+      toast.success("Invite link copied");
+    } catch {
+      showManualCopyInvite(url);
+    }
+  };
+
+  const revokeInviteLink = async (id: string) => {
+    if (inviteBusyId) return;
+    setInviteBusyId(id);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await (supabase as any)
+        .from("channel_invite_links")
+        .update({ revoked: true })
+        .eq("id", id)
+        .eq("channel_id", channel.id);
+      if (error) throw error;
+      setInviteLinks((current) => current.filter((link) => link.id !== id));
+      toast.success("Invite link revoked");
+      void logChannelAction(channel.id, userData.user?.id, "settings_changed", { meta: { invite_link: "revoked" } });
+    } catch (error: any) {
+      toast.error(error?.message || "Could not revoke invite link");
+    } finally {
+      setInviteBusyId(null);
+    }
+  };
+
+  const loadPermissionExceptions = useCallback(async () => {
+    if (!canManage || !channel.id) return;
+    setExceptionsLoading(true);
+    try {
+      const { data } = await (supabase as any)
+        .from("channel_permission_exceptions")
+        .select("user_id")
+        .eq("channel_id", channel.id)
+        .order("created_at", { ascending: false });
+      const ids = Array.from(new Set(((data ?? []) as Array<{ user_id: string }>).map((row) => row.user_id).filter(Boolean)));
+      const { data: profiles } = ids.length
+        ? await (supabase as any)
+            .from("profiles")
+            .select("user_id, full_name, avatar_url")
+            .in("user_id", ids)
+        : { data: [] };
+      const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>(
+        (profiles ?? []).map((profile: any) => [profile.user_id, profile]),
+      );
+      setPermissionExceptions(ids.map((id) => ({
+        user_id: id,
+        role: "exception",
+        display_name: profileMap.get(id)?.full_name ?? null,
+        avatar_url: profileMap.get(id)?.avatar_url ?? null,
+      })));
+    } catch {
+      setPermissionExceptions([]);
+    } finally {
+      setExceptionsLoading(false);
+    }
+  }, [canManage, channel.id]);
+
+  useEffect(() => {
+    if (!open || !canManage || view !== "permissions") return;
+    void loadPermissionExceptions();
+  }, [canManage, loadPermissionExceptions, open, view]);
+
+  useEffect(() => {
+    if (!open || !canManage || view !== "actions" || !channel.id) return;
+    let cancelled = false;
+    setActionsLoading(true);
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("channel_admin_log")
+        .select("id, actor_id, action, target_user_id, meta, created_at")
+        .eq("channel_id", channel.id)
+        .order("created_at", { ascending: false })
+        .limit(120);
+      if (cancelled) return;
+      const rows = (data ?? []) as InfoActionRow[];
+      setActionRows(rows);
+      const ids = Array.from(new Set(rows.flatMap((row) => [row.actor_id, row.target_user_id]).filter(Boolean))) as string[];
+      if (ids.length) {
+        const { data: profiles } = await (supabase as any)
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", ids);
+        if (cancelled) return;
+        setActionProfiles(new Map((profiles ?? []).map((profile: any) => [
+          profile.user_id,
+          { name: profile.full_name, avatar: profile.avatar_url },
+        ])));
+      } else {
+        setActionProfiles(new Map());
+      }
+      setActionsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [canManage, channel.id, open, view]);
+
+  const openMemberPicker = (mode: MemberPickerMode) => {
+    setMemberPickerMode(mode);
+    setMemberQuery("");
+    setMemberResults([]);
+  };
+
+  const searchAddableMembers = async (query: string) => {
+    setMemberQuery(query);
+    const normalized = query.trim();
+    if (normalized.length < 2) {
+      setMemberResults([]);
+      return;
+    }
+    setMemberSearching(true);
+    try {
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .ilike("full_name", `%${normalized}%`)
+        .limit(20);
+      const existingMembers = new Set(members.map((member) => member.user_id));
+      const existingExceptions = new Set(permissionExceptions.map((member) => member.user_id));
+      setMemberResults(
+        ((data ?? []) as Array<{ user_id: string; full_name: string | null; avatar_url: string | null }>)
+          .filter((profile) => profile.user_id !== channel.owner_id)
+          .filter((profile) => memberPickerMode === "members" ? !existingMembers.has(profile.user_id) : !existingExceptions.has(profile.user_id))
+          .map((profile) => ({
+            user_id: profile.user_id,
+            role: existingMembers.has(profile.user_id) ? "sub" : "candidate",
+            display_name: profile.full_name,
+            avatar_url: profile.avatar_url,
+          })),
+      );
+    } catch (error: any) {
+      toast.error(error?.message || "Could not search members");
+    } finally {
+      setMemberSearching(false);
+    }
+  };
+
+  const addPickedMember = async (member: InfoMember) => {
+    if (!memberPickerMode || memberAddingId) return;
+    setMemberAddingId(member.user_id);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Sign in required");
+      const alreadyMember = members.some((row) => row.user_id === member.user_id);
+      if (!alreadyMember) {
+        const { error: addError } = await (supabase as any).rpc("channel_add_member", {
+          p_channel_id: channel.id,
+          p_user_id: member.user_id,
+        });
+        if (addError) throw addError;
+        if (memberPickerMode !== "exceptions") {
+          void logChannelAction(channel.id, userData.user.id, "member_added", { targetUserId: member.user_id });
+        }
+      }
+      if (memberPickerMode === "exceptions") {
+        const { error: exceptionError } = await (supabase as any)
+          .from("channel_permission_exceptions")
+          .upsert({
+            channel_id: channel.id,
+            user_id: member.user_id,
+            created_by: userData.user.id,
+          }, { onConflict: "channel_id,user_id" });
+        if (exceptionError) throw exceptionError;
+        setPermissionExceptions((current) => [member, ...current.filter((row) => row.user_id !== member.user_id)]);
+        toast.success("Permission exception added");
+      } else {
+        toast.success("Member added");
+      }
+      setMemberResults((current) => current.filter((row) => row.user_id !== member.user_id));
+      reloadMembers();
+      await onRefresh?.();
+      if (memberPickerMode === "exceptions") void loadPermissionExceptions();
+    } catch (error: any) {
+      toast.error(error?.message || "Could not add member");
+    } finally {
+      setMemberAddingId(null);
+    }
+  };
+
+  const removePermissionException = async (member: InfoMember) => {
+    if (memberBusyId) return;
+    setMemberBusyId(member.user_id);
+    try {
+      const { error } = await (supabase as any)
+        .from("channel_permission_exceptions")
+        .delete()
+        .eq("channel_id", channel.id)
+        .eq("user_id", member.user_id);
+      if (error) throw error;
+      setPermissionExceptions((current) => current.filter((row) => row.user_id !== member.user_id));
+      toast.success("Exception removed");
+    } catch (error: any) {
+      toast.error(error?.message || "Could not remove exception");
+    } finally {
+      setMemberBusyId(null);
+    }
+  };
+
   useEffect(() => {
     if (!open || !canManage || !channel.id) return;
     let cancelled = false;
@@ -237,7 +617,9 @@ export function ChannelInfoSheet({
             .select("user_id, full_name, avatar_url")
             .in("user_id", ids)
         : { data: [] };
-      const profileMap = new Map((profiles ?? []).map((profile: any) => [profile.user_id, profile]));
+      const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>(
+        (profiles ?? []).map((profile: any) => [profile.user_id, profile]),
+      );
       if (!cancelled) {
         setRemovedUsers(rows.map((row) => ({
           user_id: row.user_id,
@@ -265,6 +647,8 @@ export function ChannelInfoSheet({
         .eq("channel_id", channel.id)
         .eq("user_id", member.user_id);
       if (error) throw error;
+      const { data: actor } = await supabase.auth.getUser();
+      void logChannelAction(channel.id, actor.user?.id, "role_changed", { targetUserId: member.user_id, meta: { role } });
       toast.success(role === "admin" ? "Member promoted to admin" : "Admin role removed");
       reloadMembers();
       await onRefresh?.();
@@ -295,6 +679,7 @@ export function ChannelInfoSheet({
           removed_by: u.user.id,
         }, { onConflict: "channel_id,user_id" });
       if (removedError) throw removedError;
+      void logChannelAction(channel.id, u.user.id, "member_removed", { targetUserId: member.user_id });
       toast.success("Member removed");
       reloadMembers();
       reloadRemovedUsers();
@@ -307,6 +692,7 @@ export function ChannelInfoSheet({
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" hideClose className="w-full overflow-hidden px-0 py-0 sm:max-w-md">
         <SheetHeader className="sr-only">
@@ -326,17 +712,11 @@ export function ChannelInfoSheet({
             backgroundSize: "72px 72px, 72px 72px, 34px 34px",
           }}
         >
-          <SheetClose
-            className="absolute right-3 top-[calc(var(--zivo-safe-top,0px)+0.75rem)] z-50 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/45 text-slate-500 outline-none backdrop-blur transition hover:bg-white/85 hover:text-slate-800 active:scale-95 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-            style={{ outline: "none", boxShadow: "none" }}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </SheetClose>
           {view !== "info" && (
             <TelegramSubview
               view={view}
               channel={channel}
+              canManage={canManage}
               members={members}
               membersLoading={membersLoading}
               memberBusyId={memberBusyId}
@@ -344,10 +724,14 @@ export function ChannelInfoSheet({
               removedUsers={removedUsers}
               removedLoading={removedLoading}
               removedBusyId={removedBusyId}
+              actionRows={actionRows}
+              actionProfiles={actionProfiles}
+              actionsLoading={actionsLoading}
               posts={posts}
               onPromote={(member) => void updateMemberRole(member, "admin")}
               onDemote={(member) => void updateMemberRole(member, "sub")}
               onRemove={(member) => void removeMember(member)}
+              onOpenMemberPicker={openMemberPicker}
               onAllowRejoin={async (user) => {
                 if (removedBusyId) return;
                 setRemovedBusyId(user.user_id);
@@ -358,6 +742,8 @@ export function ChannelInfoSheet({
                     .eq("channel_id", channel.id)
                     .eq("user_id", user.user_id);
                   if (error) throw error;
+                  const { data: actor } = await supabase.auth.getUser();
+                  void logChannelAction(channel.id, actor.user?.id, "member_unbanned", { targetUserId: user.user_id });
                   toast.success("User can rejoin");
                   reloadRemovedUsers();
                 } catch (error: any) {
@@ -370,41 +756,83 @@ export function ChannelInfoSheet({
               onBack={() => setView("info")}
               onClose={() => onOpenChange(false)}
               onView={setView}
+              subscriberPermissions={subscriberPermissions}
+              setSubscriberPermissions={setSubscriberPermissions}
+              permissionExceptions={permissionExceptions}
+              exceptionsLoading={exceptionsLoading}
+              onRemovePermissionException={(member) => void removePermissionException(member)}
+              onOpenInviteLinks={openInviteLinks}
             />
           )}
           {view === "info" && (
             <>
-          <div className="bg-white/82 px-4 pb-4 pr-14 pt-[calc(var(--zivo-safe-top,0px)+0.75rem)] shadow-sm ring-1 ring-white/70 backdrop-blur">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-16 w-16 shrink-0 border-4 border-white shadow-md">
-                <AvatarImage src={channel.avatar_url || undefined} alt={channel.name} />
-                <AvatarFallback className="bg-sky-100 text-lg font-bold text-sky-700">{initials}</AvatarFallback>
-              </Avatar>
-
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate text-xl font-bold leading-tight text-slate-950">{channel.name}</h2>
-                <p className="mt-0.5 truncate text-sm text-slate-500">@{channel.handle}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
-                    {channel.is_public ? <Globe2 className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-                    {channel.is_public ? "Public" : "Private"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {channel.description && <p className="mt-3 text-sm leading-5 text-slate-700">{channel.description}</p>}
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              <InfoMetric label={channel.subscriber_count === 1 ? "Subscriber" : "Subscribers"} value={channel.subscriber_count.toLocaleString()} icon={Users} />
-              <InfoMetric label="Posts" value={posts.length.toLocaleString()} icon={Hash} />
-              <InfoMetric label="Pinned" value={pinnedCount.toLocaleString()} icon={Pin} />
+          <ScrollArea className="min-h-0 flex-1 bg-[#f4f4f4]">
+            <div className="pb-5">
+          <div className="sticky top-0 z-30 bg-[#cfe4fb]/95 px-4 pb-3 pt-[calc(var(--zivo-safe-top,0px)+0.75rem)] shadow-sm backdrop-blur">
+            <div className="flex items-center justify-between">
+              <SheetClose
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 outline-none transition hover:bg-white/45 hover:text-slate-800 active:scale-95 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                style={{ outline: "none", boxShadow: "none" }}
+              >
+                <X className="h-7 w-7" />
+                <span className="sr-only">Close</span>
+              </SheetClose>
+              <p className="min-w-0 flex-1 truncate px-3 text-center text-[22px] font-bold leading-tight text-slate-950">Channel Info</p>
+              <button
+                type="button"
+                onClick={() => (canManage ? setView("edit") : onExternalShare())}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/45 hover:text-slate-800 active:scale-95"
+                aria-label={canManage ? "Edit channel info" : "Share channel"}
+              >
+                <Pencil className="h-6 w-6" />
+              </button>
             </div>
           </div>
+          <div className="bg-[#cfe4fb] px-4 pb-7 pt-4">
+            <Avatar className="mx-auto mt-5 h-32 w-32 border-0 shadow-none">
+              <AvatarImage src={channel.avatar_url || undefined} alt={channel.name} />
+              <AvatarFallback className="bg-gradient-to-br from-rose-500 via-fuchsia-500 to-amber-400 text-[5rem] font-black text-white">
+                {channel.name.slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <h2 className="mx-auto mt-5 max-w-[21rem] truncate text-center text-[27px] font-bold leading-tight text-slate-950">{channel.name}</h2>
+            <p className="mt-1 truncate text-center text-[17px] leading-tight text-slate-500">
+              {channel.subscriber_count.toLocaleString()} subscriber{channel.subscriber_count === 1 ? "" : "s"}
+            </p>
+          </div>
 
-          <ScrollArea className="min-h-0 flex-1">
-            <div className="space-y-4 px-4 py-4">
-              <InfoSection>
+            <div className="space-y-6 px-4 py-5">
+              <div className="-mx-4 -mt-5 space-y-3 bg-[#f4f4f4] px-4 pb-4 pt-5">
+              <InfoSection className="rounded-[1.7rem] bg-white shadow-sm ring-1 ring-black/5">
+                <div
+                  className="flex w-full items-center gap-4 border-b border-slate-100 px-5 py-4 text-left transition-colors hover:bg-slate-50/70 active:bg-sky-50/70"
+                >
+                  <button
+                    type="button"
+                    onClick={() => void onCopyLink()}
+                    className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                    aria-label="Copy channel invite link"
+                  >
+                    <LinkIcon className="h-7 w-7 shrink-0 text-slate-500" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[18px] font-medium leading-tight text-slate-950">{channelShareUrl.replace(/^https?:\/\//, "")}</span>
+                      <span className="mt-1 block text-[15px] leading-tight text-slate-500">Tap to copy invite link</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQrOpen(true);
+                    }}
+                    className="grid h-10 w-10 shrink-0 grid-cols-2 gap-1 rounded-full p-1.5 text-slate-500 transition hover:bg-sky-50 hover:text-sky-500 active:scale-95"
+                    aria-label="Open channel QR code"
+                  >
+                    <span className="rounded-[3px] border-2 border-current" />
+                    <span className="rounded-[3px] border-2 border-current" />
+                    <span className="rounded-[3px] border-2 border-current" />
+                    <span className="rounded-[3px] border-2 border-current" />
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -416,152 +844,113 @@ export function ChannelInfoSheet({
                     void onSetNotifications(!notificationsOn);
                   }}
                   disabled={joinPending}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/70 disabled:opacity-60"
+                  className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50/70 disabled:opacity-60"
                 >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-sky-500">
-                    {notificationsOn ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-                  </span>
+                  {notificationsOn ? <Bell className="h-7 w-7 shrink-0 text-slate-500" /> : <BellOff className="h-7 w-7 shrink-0 text-slate-500" />}
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-medium text-slate-950">
+                    <span className="block text-[18px] font-medium leading-tight text-slate-950">
                       {joinPending ? "Request pending" : !isSubscribed && !canManage ? "Join for notifications" : "Notifications"}
-                    </span>
-                    <span className="block text-xs text-slate-500">
-                      {joinPending
-                        ? "Admin approval required."
-                        : !isSubscribed && !canManage
-                        ? "Subscribe to receive new posts."
-                        : notificationsOn
-                          ? "Alerts are on."
-                          : "Alerts are muted."}
                     </span>
                   </span>
                   <span
                     className={cn(
-                      "relative h-7 w-12 rounded-full transition-colors",
+                      "relative h-8 w-14 rounded-full transition-colors",
                       notificationsOn && (isSubscribed || canManage) ? "bg-sky-500" : "bg-slate-200",
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                        notificationsOn && (isSubscribed || canManage) ? "translate-x-6" : "translate-x-1",
+                        "absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                        notificationsOn && (isSubscribed || canManage) ? "translate-x-7" : "translate-x-1",
                       )}
                     />
                   </span>
                 </button>
               </InfoSection>
 
-              <div className="grid grid-cols-4 gap-2">
-                <QuickAction icon={Video} label="video chat" onClick={() => toast.message("Video chat is not available for this channel yet")} />
-                <QuickAction
-                  icon={notificationsOn ? Bell : BellOff}
-                  label={notificationsOn ? "mute" : "unmute"}
-                  onClick={() => {
-                    if (!isSubscribed && !canManage) {
-                      void onSubscribe();
-                      return;
-                    }
-                    void onSetNotifications(!notificationsOn);
-                  }}
-                  disabled={joinPending}
-                />
-                <QuickAction icon={Search} label="search" onClick={() => toast.message("Channel search will use posted messages and shared media")} />
-                <QuickAction icon={MoreHorizontal} label="more" onClick={canManage ? () => setView("edit") : () => void onExternalShare()} />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => void onCopyLink()}
-                className="flex w-full items-center gap-3 rounded-2xl bg-white/86 px-4 py-3 text-left shadow-sm ring-1 ring-white/75 backdrop-blur"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm text-slate-700">share link</span>
-                  <span className="block truncate text-base font-medium text-sky-500">{channelShareUrl.replace(/^https?:\/\//, "")}</span>
-                </span>
-                <span className="grid h-9 w-9 shrink-0 grid-cols-2 gap-0.5 rounded-md text-sky-500">
-                  <span className="rounded-sm border-2 border-current" />
-                  <span className="rounded-sm border-2 border-current" />
-                  <span className="rounded-sm border-2 border-current" />
-                  <span className="rounded-sm border-2 border-current" />
-                </span>
-              </button>
-
-              {canManage && (
-                <div className="space-y-2">
-                  <InfoSection>
-                    <SettingsRow icon={Settings} label="Group Settings" onClick={() => setView("edit")} />
-                  </InfoSection>
-                  <SectionLabel>Admin</SectionLabel>
-                  <InfoSection>
-                    <SettingsRow icon={Settings} label="Settings" value="Edit" onClick={() => setView("edit")} />
-                  </InfoSection>
-                  <SectionLabel>Management</SectionLabel>
-                  <InfoSection>
-                    <SettingsRow icon={Users} label="Members" value={channel.subscriber_count.toLocaleString()} onClick={() => setView("members")} />
-                    <SettingsRow icon={Shield} label="Permissions" value="12/15" onClick={() => setView("permissions")} />
-                    <SettingsRow icon={Shield} label="Admins" value={Math.max(1, adminMembers.length).toLocaleString()} onClick={() => setView("admins")} />
-                    <SettingsRow icon={UserMinus} label="Removed Users" value={removedUsers.length.toLocaleString()} onClick={() => setView("removed")} />
-                    <SettingsRow icon={Eye} label="Recent Actions" onClick={() => setView("actions")} />
-                  </InfoSection>
-                </div>
-              )}
-
-              <div className="overflow-x-auto rounded-2xl bg-white/86 p-1 shadow-sm ring-1 ring-white/75 backdrop-blur scrollbar-hide">
-                <div className="flex min-w-max gap-1">
+              <div className="overflow-hidden rounded-[1.7rem] bg-white p-1 shadow-sm ring-1 ring-black/5">
+                <div className="grid grid-cols-4 gap-1">
                   {PROFILE_INFO_TABS.map((tab) => {
-                    const Icon = tab.icon;
                     const active = profileTab === tab.id;
-                    const count = tab.id === "members" ? members.length : buckets[tab.id].length;
                     return (
                       <button
                         key={tab.id}
                         type="button"
                         onClick={() => setProfileTab(tab.id)}
                         className={cn(
-                          "flex h-11 min-w-24 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition",
-                          active ? "bg-slate-100 text-slate-950 shadow-sm" : "text-slate-600 hover:bg-white/70",
+                          "flex h-12 min-w-0 items-center justify-center rounded-[1.35rem] px-1.5 text-[15px] font-semibold transition min-[380px]:text-[16px]",
+                          active ? "bg-sky-50 text-sky-500" : "text-slate-500 hover:bg-slate-50",
                         )}
                       >
-                        <Icon className="h-4 w-4" />
-                        <span>{tab.label}</span>
-                        {count > 0 && <span className="text-[11px] text-slate-400">{count}</span>}
+                        <span className="min-w-0 whitespace-nowrap">{tab.label}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
+              </div>
 
               {profileTab === "members" ? (
-                <InfoSection>
-                  {canManage && (
-                    <SettingsRow icon={UserPlus} label="Add Members" onClick={() => setView("members")} />
-                  )}
-                  {membersLoading ? (
-                    <div className="px-4 py-4 text-sm text-slate-500">Loading members...</div>
-                  ) : members.length > 0 ? (
-                    members.slice(0, 8).map((member) => (
-                      <MemberLine
-                        key={member.user_id}
-                        member={member}
-                        fallbackName={member.role === "owner" ? "Owner" : "Subscriber"}
-                        badge={member.role === "owner" ? "owner" : undefined}
-                      />
-                    ))
-                  ) : (
-                    <div className="px-4 py-4 text-sm text-slate-500">No visible members yet.</div>
-                  )}
-                  {members.length > 8 && (
-                    <button
-                      type="button"
-                      onClick={() => setView("members")}
-                      className="w-full px-4 py-3 text-left text-sm font-semibold text-sky-500"
-                    >
-                      Show all members
-                    </button>
-                  )}
-                </InfoSection>
+                <>
+                  {channel.description && <p className="px-2 text-sm leading-5 text-slate-600">{channel.description}</p>}
+
+                  <div className="grid grid-cols-4 gap-2">
+                    <QuickAction icon={Video} label="video chat" onClick={startVideoChat} />
+                    <QuickAction
+                      icon={notificationsOn ? Bell : BellOff}
+                      label={notificationsOn ? "mute" : "unmute"}
+                      onClick={() => {
+                        if (!isSubscribed && !canManage) {
+                          void onSubscribe();
+                          return;
+                        }
+                        void onSetNotifications(!notificationsOn);
+                      }}
+                      disabled={joinPending}
+                    />
+                    <QuickAction icon={Search} label="search" onClick={() => setView("search")} />
+                    <QuickAction icon={MoreHorizontal} label="more" onClick={canManage ? () => setView("edit") : () => void onExternalShare()} />
+                  </div>
+
+                  <InfoSection>
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                      <span className="text-sm font-bold uppercase tracking-wider text-slate-500">Members</span>
+                      <span className="text-sm font-semibold text-slate-400">{channel.subscriber_count.toLocaleString()}</span>
+                    </div>
+                    {canManage && (
+                      <SettingsRow icon={UserPlus} label="Add Members" onClick={() => openMemberPicker("members")} />
+                    )}
+                    {membersLoading ? (
+                      <div className="px-4 py-4 text-sm text-slate-500">Loading members...</div>
+                    ) : members.length > 0 ? (
+                      members.slice(0, 8).map((member) => (
+                        <MemberLine
+                          key={member.user_id}
+                          member={member}
+                          fallbackName={member.role === "owner" ? "Owner" : "Subscriber"}
+                          badge={member.role === "owner" ? "owner" : undefined}
+                        />
+                      ))
+                    ) : (
+                      <div className="px-4 py-4 text-sm text-slate-500">No visible members yet.</div>
+                    )}
+                    {(members.length > 8 || canManage) && (
+                      <button
+                        type="button"
+                        onClick={() => setView("members")}
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-sky-500"
+                      >
+                        Manage members
+                      </button>
+                    )}
+                  </InfoSection>
+                </>
               ) : (
                 <InfoSection>
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <span className="text-sm font-bold uppercase tracking-wider text-slate-500">{TAB_META[profileTab].label}</span>
+                    <span className="text-sm font-semibold text-slate-400">{profileMediaItems.length.toLocaleString()}</span>
+                  </div>
                   <div className="p-3">
                     {profileMediaItems.length > 0 ? (
                       profileTab === "media" || profileTab === "gif" ? (
@@ -597,12 +986,350 @@ export function ChannelInfoSheet({
                 </p>
               )}
             </div>
+            </div>
           </ScrollArea>
             </>
           )}
         </div>
+        {qrOpen && (
+          <ChannelQrPreview
+            channel={channel}
+            shareUrl={channelShareUrl}
+            onClose={() => setQrOpen(false)}
+            onCopy={() => void copyQrInvite()}
+          />
+        )}
       </SheetContent>
     </Sheet>
+    {memberPickerMode && (
+      <MemberPickerSheet
+        mode={memberPickerMode}
+        query={memberQuery}
+        results={memberResults}
+        searching={memberSearching}
+        addingId={memberAddingId}
+        onQueryChange={(query) => void searchAddableMembers(query)}
+        onPick={(member) => void addPickedMember(member)}
+        onClose={() => setMemberPickerMode(null)}
+      />
+    )}
+    {inviteLinksOpen && (
+      <InviteLinksSheet
+        channel={channel}
+        links={inviteLinks}
+        loading={inviteLinksLoading}
+        creating={inviteCreating}
+        busyId={inviteBusyId}
+        getInviteUrl={getInviteUrl}
+        onCreate={() => void createInviteLink()}
+        onCopy={(code) => void copyInviteLink(code)}
+        onRevoke={(id) => void revokeInviteLink(id)}
+        onClose={() => setInviteLinksOpen(false)}
+      />
+    )}
+    {channelCallOpen && (
+      <GroupCallLauncher
+        roomName={`channel-${channel.id}`}
+        callType="video"
+        meetingLabel={channel.name}
+        onEnded={() => setChannelCallOpen(false)}
+      />
+    )}
+    </>
+  );
+}
+
+function ChannelQrPreview({
+  channel,
+  shareUrl,
+  onClose,
+  onCopy,
+}: {
+  channel: Channel;
+  shareUrl: string;
+  onClose: () => void;
+  onCopy: () => void;
+}) {
+  const themeStorageKey = `zivo.channelQrTheme.${channel.id}`;
+  const [activeThemeLabel, setActiveThemeLabel] = useState<(typeof QR_THEME_CARDS)[number]["label"]>(() => {
+    if (typeof window === "undefined") return "Duck";
+    const storedTheme = window.localStorage.getItem(themeStorageKey);
+    return QR_THEME_CARDS.some((theme) => theme.label === storedTheme) ? (storedTheme as (typeof QR_THEME_CARDS)[number]["label"]) : "Duck";
+  });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const dragEnabledRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const qrCardRef = useRef<HTMLButtonElement | null>(null);
+  const activeTheme = QR_THEME_CARDS.find((theme) => theme.label === activeThemeLabel) ?? QR_THEME_CARDS[1];
+  const cycleTheme = () => {
+    const currentIndex = QR_THEME_CARDS.findIndex((theme) => theme.label === activeThemeLabel);
+    const nextTheme = QR_THEME_CARDS[(currentIndex + 1) % QR_THEME_CARDS.length];
+    setActiveThemeLabel(nextTheme.label);
+  };
+  useEffect(() => {
+    window.localStorage.setItem(themeStorageKey, activeThemeLabel);
+  }, [activeThemeLabel, themeStorageKey]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+  const runTapAction = (action: () => void) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    action();
+  };
+  const shareInvite = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: channel.name, text: `Join ${channel.name} on ZIVO`, url: shareUrl });
+        return;
+      } catch (error: any) {
+        if (error?.name === "AbortError") return;
+      }
+    }
+    onCopy();
+  };
+  const saveQrSvg = () => {
+    const svg = qrCardRef.current?.querySelector("svg");
+    if (!svg) {
+      onCopy();
+      return;
+    }
+    const serialized = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([serialized], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${channel.handle || "channel"}-qr.svg`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 500);
+    toast.success("QR code saved");
+  };
+  const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement | null;
+    const isControl = Boolean(target?.closest("button, a, input, textarea, select"));
+    dragEnabledRef.current = !isControl;
+    if (isControl) return;
+    dragStartRef.current = { x: event.clientX, y: event.clientY };
+    setDragging(true);
+    setDragOffset({ x: 0, y: 0 });
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragEnabledRef.current || !dragStartRef.current) return;
+    const next = {
+      x: event.clientX - dragStartRef.current.x,
+      y: event.clientY - dragStartRef.current.y,
+    };
+    if (Math.abs(next.x) > 7 || Math.abs(next.y) > 7) suppressClickRef.current = true;
+    setDragOffset(next);
+  };
+  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const current = dragOffset;
+    dragStartRef.current = null;
+    setDragging(false);
+    dragEnabledRef.current = false;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    const shouldClose = Math.abs(current.x) > 95 || Math.abs(current.y) > 105;
+    if (shouldClose) {
+      onClose();
+      return;
+    }
+    setDragOffset({ x: 0, y: 0 });
+  };
+  const cancelDrag = () => {
+    dragStartRef.current = null;
+    setDragging(false);
+    dragEnabledRef.current = false;
+    setDragOffset({ x: 0, y: 0 });
+  };
+
+  return (
+    <div
+      className="pointer-events-auto fixed inset-0 z-[2000] flex items-end justify-center bg-black/45 px-4 pb-4 pt-[calc(var(--zivo-safe-top,0px)+4.5rem)] sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="QR Code"
+      onClick={onClose}
+    >
+      <div
+        className="pointer-events-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-[21rem] touch-none overflow-y-auto rounded-[1.5rem] bg-white shadow-2xl shadow-slate-950/30 ring-1 ring-black/10 scrollbar-hide"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={cancelDrag}
+        style={{
+          transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0) rotate(${dragOffset.x / 42}deg)`,
+          transition: dragging ? "none" : "transform 180ms ease",
+        }}
+      >
+        <div
+          className="relative px-4 pb-5 pt-5"
+          style={{
+            backgroundColor: activeTheme.panel,
+            backgroundImage: [
+              "radial-gradient(circle at 22px 22px, rgba(255,255,255,.22) 0 2px, transparent 2.5px)",
+              "radial-gradient(circle at 46px 48px, rgba(67,112,86,.16) 0 3px, transparent 3.5px)",
+              "linear-gradient(135deg, rgba(255,244,134,.28) 0%, rgba(164,225,129,.35) 44%, rgba(112,206,184,.38) 100%)",
+            ].join(", "),
+            backgroundSize: "72px 72px, 72px 72px, 34px 34px",
+          }}
+        >
+          <div className="relative mx-auto mt-6 rounded-[1.65rem] bg-white px-4 pb-4 pt-9 shadow-xl shadow-teal-900/10">
+            <Avatar className="absolute left-1/2 top-0 h-16 w-16 -translate-x-1/2 -translate-y-1/2 border-[3px] border-white bg-white shadow-lg">
+              <AvatarImage src={channel.avatar_url || undefined} alt={channel.name} />
+              <AvatarFallback className="bg-gradient-to-br from-rose-500 via-fuchsia-500 to-amber-400 text-3xl font-black text-white">
+                {channel.name.slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              ref={qrCardRef}
+              type="button"
+              onClick={() => runTapAction(onCopy)}
+              className="pointer-events-auto relative mx-auto flex aspect-square w-full max-w-[11.5rem] items-center justify-center rounded-[1.35rem] bg-white transition active:scale-[.99]"
+              aria-label="Copy invite link from QR code"
+            >
+              <QRCodeSVG
+                value={shareUrl}
+                size={208}
+                level="H"
+                includeMargin={false}
+                fgColor={activeTheme.qr}
+                bgColor="#ffffff"
+                className="h-full w-full"
+              />
+              <span
+                className="absolute left-1/2 top-1/2 inline-flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-md"
+                style={{ backgroundColor: activeTheme.qr }}
+              >
+                <span className="-ml-0.5 mt-0.5 block h-0 w-0 border-y-[7px] border-l-[13px] border-y-transparent border-l-white" />
+              </span>
+            </button>
+            <p className="mt-2 truncate text-center text-[18px] font-bold leading-none" style={{ color: activeTheme.qr }}>
+              @{channel.handle.toUpperCase()}
+            </p>
+          </div>
+        </div>
+
+        <div className="-mt-1 border-t border-sky-300/70 bg-gradient-to-b from-[#d8ebff] to-[#eef7ff] px-4 pb-3 pt-2.5">
+          <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-slate-300/70" aria-hidden />
+          <div className="mb-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => runTapAction(onClose)}
+              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/55 hover:text-slate-800 active:scale-95"
+              aria-label="Close QR code"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <div className="min-w-0 text-center">
+              <h2 className="text-[20px] font-bold leading-none text-slate-950">QR Code</h2>
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Swipe to dismiss</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => runTapAction(cycleTheme)}
+              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/55 hover:text-slate-800 active:scale-95"
+              aria-label="Change QR theme"
+            >
+              <MoonStar className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="mb-3 grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => runTapAction(onCopy)}
+              aria-label="Copy invite link"
+              className="pointer-events-auto flex min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-white/80 px-2 py-2.5 text-sky-700 shadow-sm ring-1 ring-white/80 transition active:scale-95"
+            >
+              <Copy className="h-4 w-4" />
+              <span className="truncate text-xs font-bold">Copy link</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => runTapAction(shareInvite)}
+              aria-label="Share invite link"
+              className="pointer-events-auto flex min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-white/80 px-2 py-2.5 text-sky-700 shadow-sm ring-1 ring-white/80 transition active:scale-95"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="truncate text-xs font-bold">Share</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => runTapAction(saveQrSvg)}
+              aria-label="Save QR code"
+              className="pointer-events-auto flex min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-white/80 px-2 py-2.5 text-sky-700 shadow-sm ring-1 ring-white/80 transition active:scale-95"
+            >
+              <Download className="h-4 w-4" />
+              <span className="truncate text-xs font-bold">Save QR</span>
+            </button>
+          </div>
+
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Theme</span>
+            <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-bold text-slate-600 ring-1 ring-white/80">{activeTheme.label}</span>
+          </div>
+          <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-2.5">
+            {QR_THEME_CARDS.map((theme) => (
+              <button
+                key={theme.label}
+                type="button"
+                onClick={() => runTapAction(() => setActiveThemeLabel(theme.label))}
+                className={cn(
+                  "pointer-events-auto relative h-[4.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-[1.15rem] bg-gradient-to-br p-2 text-left shadow-sm ring-1 ring-white/80 transition active:scale-95",
+                  theme.bg,
+                  activeThemeLabel === theme.label && "outline outline-2 outline-offset-2 outline-emerald-500",
+                )}
+                aria-label={`${theme.label} QR theme`}
+                aria-pressed={activeThemeLabel === theme.label}
+              >
+                {activeThemeLabel === theme.label && (
+                  <span className="absolute right-1.5 top-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                    <Check className="h-3 w-3" />
+                  </span>
+                )}
+                <span className="block h-4 w-8 rounded-full bg-white/55" />
+                <span className="mt-2 block h-4 w-11 rounded-full bg-white/70" />
+                <span className="absolute bottom-5 left-1/2 -translate-x-1/2 text-xl">{theme.emoji}</span>
+                <span className="absolute inset-x-1.5 bottom-1.5 truncate text-center text-[10px] font-bold text-slate-700">{theme.label}</span>
+              </button>
+            ))}
+          </div>
+
+        </div>
+
+        <div className="bg-white px-4 pb-3 pt-2.5">
+          <button
+            type="button"
+            onClick={() => runTapAction(onCopy)}
+            aria-label="Copy QR code"
+            className="pointer-events-auto flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-[#2bb978] text-[15px] font-bold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/25 transition hover:bg-[#21aa6d] active:scale-[.98]"
+          >
+            <Copy className="h-5 w-5" />
+            Copy invite link
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -624,9 +1351,211 @@ function InfoMetric({
   );
 }
 
+function MemberPickerSheet({
+  mode,
+  query,
+  results,
+  searching,
+  addingId,
+  onQueryChange,
+  onPick,
+  onClose,
+}: {
+  mode: MemberPickerMode;
+  query: string;
+  results: InfoMember[];
+  searching: boolean;
+  addingId: string | null;
+  onQueryChange: (query: string) => void;
+  onPick: (member: InfoMember) => void;
+  onClose: () => void;
+}) {
+  const title = mode === "exceptions" ? "Add Exception" : "Add Members";
+  return (
+    <div
+      className="fixed inset-0 z-[1800] flex items-end justify-center bg-black/35 px-2 pb-2"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[78dvh] w-full max-w-md overflow-hidden rounded-[2rem] bg-[#f1f1f6] shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4">
+          <button type="button" onClick={onClose} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow">
+            Cancel
+          </button>
+          <h3 className="text-base font-bold text-slate-950">{title}</h3>
+          <span className="w-[76px]" />
+        </div>
+        <div className="px-5 pb-3">
+          <label className="flex h-10 items-center gap-2 rounded-full bg-white px-3 text-slate-400">
+            <Search className="h-4 w-4" />
+            <input
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              autoFocus
+              placeholder="Search people"
+              className="min-w-0 flex-1 bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400"
+            />
+          </label>
+        </div>
+        <ScrollArea className="max-h-[calc(78dvh-7.5rem)]">
+          <div className="pb-5">
+            <SectionLabel>{mode === "exceptions" ? "Choose User" : "People"}</SectionLabel>
+            <InfoSection className="mx-5">
+              {query.trim().length < 2 ? (
+                <div className="px-4 py-6 text-sm leading-5 text-slate-500">
+                  Type at least 2 letters to search profiles.
+                </div>
+              ) : searching ? (
+                <div className="px-4 py-6 text-sm text-slate-500">Searching...</div>
+              ) : results.length > 0 ? (
+                results.map((member) => (
+                  <button
+                    key={member.user_id}
+                    type="button"
+                    onClick={() => onPick(member)}
+                    disabled={addingId === member.user_id}
+                    className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 disabled:opacity-55"
+                  >
+                    <Avatar className="h-11 w-11">
+                      <AvatarImage src={member.avatar_url || undefined} alt={member.display_name || "Profile"} />
+                      <AvatarFallback className="bg-sky-100 font-bold text-sky-700">{(member.display_name || "P").slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-base font-semibold text-slate-950">{member.display_name || "ZIVO user"}</span>
+                      <span className="block truncate text-sm text-slate-500">
+                        {addingId === member.user_id ? "Adding..." : mode === "exceptions" ? "Add permission exception" : "Add to channel"}
+                      </span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-slate-300" />
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-6 text-sm text-slate-500">No matching profiles found.</div>
+              )}
+            </InfoSection>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}
+
+function InviteLinksSheet({
+  channel,
+  links,
+  loading,
+  creating,
+  busyId,
+  getInviteUrl,
+  onCreate,
+  onCopy,
+  onRevoke,
+  onClose,
+}: {
+  channel: Channel;
+  links: InfoInviteLink[];
+  loading: boolean;
+  creating: boolean;
+  busyId: string | null;
+  getInviteUrl: (code: string) => string;
+  onCreate: () => void;
+  onCopy: (code: string) => void;
+  onRevoke: (id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[1800] flex items-end justify-center bg-black/35 px-2 pb-2"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Invite links"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[82dvh] w-full max-w-md overflow-hidden rounded-[2rem] bg-[#f1f1f6] shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4">
+          <button type="button" onClick={onClose} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow">
+            Done
+          </button>
+          <h3 className="text-base font-bold text-slate-950">Invite Links</h3>
+          <span className="w-[66px]" />
+        </div>
+        <div className="px-5 pb-3">
+          <button
+            type="button"
+            onClick={onCreate}
+            disabled={creating}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-sky-500 px-4 text-sm font-bold text-white shadow-lg shadow-sky-500/20 disabled:opacity-60"
+          >
+            <LinkIcon className="h-5 w-5" />
+            {creating ? "Creating..." : "Create Invite Link"}
+          </button>
+        </div>
+        <ScrollArea className="max-h-[calc(82dvh-8rem)]">
+          <div className="pb-5">
+            <SectionLabel>Active Links</SectionLabel>
+            <InfoSection className="mx-5">
+              {loading ? (
+                <div className="px-4 py-6 text-sm text-slate-500">Loading invite links...</div>
+              ) : links.length > 0 ? (
+                links.map((link) => {
+                  const url = getInviteUrl(link.code);
+                  return (
+                    <div key={link.id} className="border-b border-slate-100 px-4 py-3 last:border-b-0">
+                      <button type="button" onClick={() => onCopy(link.code)} className="flex w-full items-start gap-3 text-left">
+                        <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-500">
+                          <LinkIcon className="h-5 w-5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-bold text-sky-600">{url.replace(/^https?:\/\//, "")}</span>
+                          <span className="mt-1 block text-xs text-slate-500">
+                            {link.uses.toLocaleString()} use{link.uses === 1 ? "" : "s"} · Created {formatInfoDate(link.created_at)}
+                          </span>
+                        </span>
+                        <Copy className="mt-2 h-4 w-4 shrink-0 text-slate-300" />
+                      </button>
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => onRevoke(link.id)}
+                          disabled={busyId === link.id}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-rose-50 px-3 text-xs font-bold text-rose-500 disabled:opacity-60"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {busyId === link.id ? "Revoking..." : "Revoke"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="px-4 py-7 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-sky-50 text-sky-500">
+                    <LinkIcon className="h-6 w-6" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-950">No active invite links</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Create one for {channel.name}, then copy or revoke it here.</p>
+                </div>
+              )}
+            </InfoSection>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}
+
 function TelegramSubview({
   view,
   channel,
+  canManage,
   members,
   membersLoading,
   memberBusyId,
@@ -634,18 +1563,29 @@ function TelegramSubview({
   removedUsers,
   removedLoading,
   removedBusyId,
+  actionRows,
+  actionProfiles,
+  actionsLoading,
   posts,
   onPromote,
   onDemote,
   onRemove,
+  onOpenMemberPicker,
   onAllowRejoin,
   onRefresh,
   onBack,
   onClose,
   onView,
+  subscriberPermissions,
+  setSubscriberPermissions,
+  permissionExceptions,
+  exceptionsLoading,
+  onRemovePermissionException,
+  onOpenInviteLinks,
 }: {
   view: Exclude<InfoView, "info">;
   channel: Channel;
+  canManage: boolean;
   members: InfoMember[];
   membersLoading: boolean;
   memberBusyId: string | null;
@@ -653,15 +1593,25 @@ function TelegramSubview({
   removedUsers: InfoRemovedUser[];
   removedLoading: boolean;
   removedBusyId: string | null;
+  actionRows: InfoActionRow[];
+  actionProfiles: Map<string, InfoActorProfile>;
+  actionsLoading: boolean;
   posts: ChannelPost[];
   onPromote: (member: InfoMember) => void;
   onDemote: (member: InfoMember) => void;
   onRemove: (member: InfoMember) => void;
+  onOpenMemberPicker: (mode: MemberPickerMode) => void;
   onAllowRejoin: (user: InfoRemovedUser) => void | Promise<void>;
   onRefresh?: () => void | Promise<void>;
   onBack: () => void;
   onClose: () => void;
   onView: (view: InfoView) => void;
+  subscriberPermissions: ChannelSubscriberPermissions;
+  setSubscriberPermissions: (permissions: ChannelSubscriberPermissions) => void;
+  permissionExceptions: InfoMember[];
+  exceptionsLoading: boolean;
+  onRemovePermissionException: (member: InfoMember) => void;
+  onOpenInviteLinks: () => void;
 }) {
   const [membersEditing, setMembersEditing] = useState(false);
   const titleMap: Record<Exclude<InfoView, "info">, string> = {
@@ -675,6 +1625,7 @@ function TelegramSubview({
     admins: "Chat Admins",
     removed: "Removed Users",
     actions: "Recent Actions",
+    search: "Search",
   };
 
   useEffect(() => {
@@ -703,8 +1654,16 @@ function TelegramSubview({
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-5 px-4 pb-8">
-          {view === "edit" && <EditSettingsView channel={channel} removedCount={removedUsers.length} onRefresh={onRefresh} onView={onView} />}
-          {view === "groupType" && <GroupTypeView channel={channel} onRefresh={onRefresh} />}
+          {view === "edit" && (
+            <EditSettingsView
+              channel={channel}
+              removedCount={removedUsers.length}
+              subscriberPermissions={subscriberPermissions}
+              onRefresh={onRefresh}
+              onView={onView}
+            />
+          )}
+          {view === "groupType" && <GroupTypeView channel={channel} onRefresh={onRefresh} onOpenInviteLinks={onOpenInviteLinks} />}
           {view === "reactions" && <ReactionsView channel={channel} onRefresh={onRefresh} />}
           {view === "appearance" && <AppearanceView channel={channel} onRefresh={onRefresh} />}
           {view === "topics" && <TopicsView channel={channel} onRefresh={onRefresh} />}
@@ -720,9 +1679,22 @@ function TelegramSubview({
               onPromote={onPromote}
               onDemote={onDemote}
               onRemove={onRemove}
+              onAddMembers={() => onOpenMemberPicker("members")}
             />
           )}
-          {view === "permissions" && <PermissionsView channel={channel} removedCount={removedUsers.length} onRefresh={onRefresh} onView={onView} />}
+          {view === "permissions" && (
+            <PermissionsView
+              channel={channel}
+              removedCount={removedUsers.length}
+              permissions={subscriberPermissions}
+              onPermissionsChange={setSubscriberPermissions}
+              onView={onView}
+              exceptions={permissionExceptions}
+              exceptionsLoading={exceptionsLoading}
+              onAddException={() => onOpenMemberPicker("exceptions")}
+              onRemoveException={onRemovePermissionException}
+            />
+          )}
           {view === "admins" && (
             <AdminsView
               members={adminMembers}
@@ -734,7 +1706,16 @@ function TelegramSubview({
             />
           )}
           {view === "removed" && <RemovedUsersView users={removedUsers} loading={removedLoading} busyId={removedBusyId} onAllowRejoin={onAllowRejoin} />}
-          {view === "actions" && <RecentActionsView channel={channel} posts={posts} />}
+          {view === "actions" && (
+            <RecentActionsView
+              channel={channel}
+              posts={posts}
+              rows={actionRows}
+              profiles={actionProfiles}
+              loading={actionsLoading}
+            />
+          )}
+          {view === "search" && <ChannelSearchView posts={posts} />}
         </div>
       </ScrollArea>
     </div>
@@ -744,11 +1725,13 @@ function TelegramSubview({
 function EditSettingsView({
   channel,
   removedCount,
+  subscriberPermissions,
   onRefresh,
   onView,
 }: {
   channel: Channel;
   removedCount: number;
+  subscriberPermissions: ChannelSubscriberPermissions;
   onRefresh?: () => void | Promise<void>;
   onView: (view: InfoView) => void;
 }) {
@@ -756,6 +1739,9 @@ function EditSettingsView({
   const [description, setDescription] = useState(channel.description ?? "");
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -821,6 +1807,24 @@ function EditSettingsView({
     } finally {
       setUploadingPhoto(false);
       if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  };
+
+  const deleteChannel = async () => {
+    if (deleteConfirm.trim() !== channel.name) {
+      toast.error(`Type "${channel.name}" to delete this channel`);
+      return;
+    }
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("channels").delete().eq("id", channel.id);
+      if (error) throw error;
+      toast.success("Channel deleted");
+      window.location.assign("/channels");
+    } catch (error: any) {
+      toast.error(error?.message || "Could not delete channel");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -892,7 +1896,7 @@ function EditSettingsView({
 
       <InfoSection>
         <SettingsRow icon={Users} label="Members" value={channel.subscriber_count.toLocaleString()} onClick={() => onView("members")} />
-        <SettingsRow icon={Shield} label="Permissions" value={channel.hide_members ? "Members hidden" : "12/15"} onClick={() => onView("permissions")} />
+        <SettingsRow icon={Shield} label="Permissions" value={getSubscriberPermissionsCount(subscriberPermissions)} onClick={() => onView("permissions")} />
         <SettingsRow icon={Shield} label="Administrators" value="1" onClick={() => onView("admins")} />
         <SettingsRow icon={UserMinus} label="Removed Users" value={removedCount.toLocaleString()} onClick={() => onView("removed")} />
         <SettingsRow icon={Eye} label="Recent Actions" onClick={() => onView("actions")} />
@@ -900,16 +1904,74 @@ function EditSettingsView({
 
       <button
         type="button"
-        onClick={() => toast.message("Delete channel confirmation is not enabled in this panel yet")}
+        onClick={() => setDeleteOpen(true)}
         className="w-full rounded-2xl bg-white px-4 py-4 text-left text-base text-rose-500"
       >
         Delete Channel
       </button>
+
+      {deleteOpen && (
+        <div
+          className="fixed inset-0 z-[1700] flex items-end justify-center bg-black/35 px-3 pb-3"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Delete channel confirmation"
+          onClick={() => !deleting && setDeleteOpen(false)}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-[1.75rem] bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="px-5 pb-5 pt-4">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-500">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-center text-lg font-bold text-slate-950">Delete {channel.name}?</h3>
+              <p className="mt-2 text-center text-sm leading-5 text-slate-500">
+                This removes the channel, posts, members, invite links, and settings. Type the channel name to confirm.
+              </p>
+              <input
+                value={deleteConfirm}
+                onChange={(event) => setDeleteConfirm(event.target.value)}
+                placeholder={channel.name}
+                className="mt-4 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center text-base font-semibold text-slate-950 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                aria-label="Type channel name to confirm delete"
+              />
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteOpen(false)}
+                  disabled={deleting}
+                  className="h-12 rounded-full bg-slate-100 text-sm font-bold text-slate-700 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void deleteChannel()}
+                  disabled={deleting || deleteConfirm.trim() !== channel.name}
+                  className="h-12 rounded-full bg-rose-500 text-sm font-bold text-white shadow-lg shadow-rose-500/20 disabled:opacity-45"
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
-function GroupTypeView({ channel, onRefresh }: { channel: Channel; onRefresh?: () => void | Promise<void> }) {
+function GroupTypeView({
+  channel,
+  onRefresh,
+  onOpenInviteLinks,
+}: {
+  channel: Channel;
+  onRefresh?: () => void | Promise<void>;
+  onOpenInviteLinks: () => void;
+}) {
   const [saving, setSaving] = useState<"public" | "private" | null>(null);
   const [savingRestrict, setSavingRestrict] = useState(false);
   const [savingApproval, setSavingApproval] = useState(false);
@@ -919,7 +1981,7 @@ function GroupTypeView({ channel, onRefresh }: { channel: Channel; onRefresh?: (
       await copyText(shareUrl);
       toast.success("Invite link copied");
     } catch {
-      toast.message("Copy this invite link", { description: shareUrl, duration: 10000 });
+      showManualCopyInvite(shareUrl);
     }
   };
 
@@ -993,7 +2055,7 @@ function GroupTypeView({ channel, onRefresh }: { channel: Channel; onRefresh?: (
       </InfoSection>
       <p className="-mt-3 px-4 text-xs leading-5 text-slate-500">People can share this link with others and find your channel.</p>
       <InfoSection>
-        <SettingsRow icon={LinkIcon} label="Manage Invite Links" onClick={() => void copyShareUrl()} />
+        <SettingsRow icon={LinkIcon} label="Manage Invite Links" onClick={onOpenInviteLinks} />
       </InfoSection>
       <InfoSection>
         <SwitchRow
@@ -1182,6 +2244,7 @@ function MembersView({
   onPromote,
   onDemote,
   onRemove,
+  onAddMembers,
 }: {
   channel: Channel;
   members: InfoMember[];
@@ -1193,6 +2256,7 @@ function MembersView({
   onPromote: (member: InfoMember) => void;
   onDemote: (member: InfoMember) => void;
   onRemove: (member: InfoMember) => void;
+  onAddMembers: () => void;
 }) {
   const [savingHidden, setSavingHidden] = useState(false);
   const ownerLike = members.find((member) => member.role === "owner") ?? members[0];
@@ -1228,7 +2292,7 @@ function MembersView({
       <p className="-mt-3 px-4 text-xs leading-5 text-slate-500">Switch this on to hide the list of subscribers in this channel. Admins will remain visible.</p>
       {canManage && (
         <InfoSection>
-          <SettingsRow icon={UserPlus} label="Add Members" onClick={() => toast.message("Member picker will open from contacts when contacts are connected")} />
+          <SettingsRow icon={UserPlus} label="Add Members" onClick={onAddMembers} />
         </InfoSection>
       )}
       {membersLoading && <p className="px-4 text-sm text-slate-500">Loading members...</p>}
@@ -1302,28 +2366,39 @@ const SLOW_MODE_OPTIONS = [
 function PermissionsView({
   channel,
   removedCount,
-  onRefresh,
+  permissions,
+  onPermissionsChange,
   onView,
+  exceptions,
+  exceptionsLoading,
+  onAddException,
+  onRemoveException,
 }: {
   channel: Channel;
   removedCount: number;
-  onRefresh?: () => void | Promise<void>;
+  permissions: ChannelSubscriberPermissions;
+  onPermissionsChange: (permissions: ChannelSubscriberPermissions) => void;
   onView: (view: InfoView) => void;
+  exceptions: InfoMember[];
+  exceptionsLoading: boolean;
+  onAddException: () => void;
+  onRemoveException: (member: InfoMember) => void;
 }) {
   const [savingSlowMode, setSavingSlowMode] = useState<number | null>(null);
-  const [localPermissions, setLocalPermissions] = useState({
-    sendMessages: true,
-    sendMedia: true,
-    addMembers: true,
-    pinMessages: false,
-    editOwnTags: true,
-    changeInfo: false,
-    chargeStars: false,
-  });
-  const currentSlowMode = SLOW_MODE_OPTIONS.some((option) => option.seconds === channel.slow_mode_seconds)
-    ? channel.slow_mode_seconds ?? 0
-    : 0;
+  const [savingPermission, setSavingPermission] = useState<keyof ChannelSubscriberPermissions | null>(null);
+  const [currentSlowMode, setCurrentSlowMode] = useState(() => (
+    SLOW_MODE_OPTIONS.some((option) => option.seconds === channel.slow_mode_seconds)
+      ? channel.slow_mode_seconds ?? 0
+      : 0
+  ));
   const selectedIndex = Math.max(0, SLOW_MODE_OPTIONS.findIndex((option) => option.seconds === currentSlowMode));
+  useEffect(() => {
+    setCurrentSlowMode(
+      SLOW_MODE_OPTIONS.some((option) => option.seconds === channel.slow_mode_seconds)
+        ? channel.slow_mode_seconds ?? 0
+        : 0,
+    );
+  }, [channel.slow_mode_seconds]);
   const setSlowMode = async (seconds: number) => {
     if (seconds === currentSlowMode || savingSlowMode !== null) return;
     setSavingSlowMode(seconds);
@@ -1334,31 +2409,47 @@ function PermissionsView({
         .eq("id", channel.id);
       if (error) throw error;
       const label = SLOW_MODE_OPTIONS.find((option) => option.seconds === seconds)?.label ?? "Off";
+      setCurrentSlowMode(seconds);
       toast.success(seconds > 0 ? `Slow mode set to ${label}` : "Slow mode disabled");
-      await onRefresh?.();
     } catch (error: any) {
       toast.error(error?.message || "Could not update slow mode");
     } finally {
       setSavingSlowMode(null);
     }
   };
-  const toggleLocalPermission = (key: keyof typeof localPermissions) => {
-    setLocalPermissions((current) => ({ ...current, [key]: !current[key] }));
+  const togglePermission = async (key: keyof ChannelSubscriberPermissions) => {
+    if (savingPermission) return;
+    const next = { ...permissions, [key]: !permissions[key] };
+    onPermissionsChange(next);
+    setSavingPermission(key);
+    try {
+      const { error } = await (supabase as any)
+        .from("channels")
+        .update({ subscriber_permissions: next })
+        .eq("id", channel.id);
+      if (error) throw error;
+      toast.success("Permission updated");
+    } catch (error: any) {
+      onPermissionsChange(permissions);
+      toast.error(error?.message || "Could not update permission");
+    } finally {
+      setSavingPermission(null);
+    }
   };
 
   return (
     <>
       <SectionLabel>What Can Subscribers Do?</SectionLabel>
       <InfoSection>
-        <SwitchRow label="Send Messages" checked={localPermissions.sendMessages} onClick={() => toggleLocalPermission("sendMessages")} />
-        <SwitchRow label="Send Media 10/10" checked={localPermissions.sendMedia} onClick={() => toggleLocalPermission("sendMedia")} />
-        <SwitchRow label="Add Members" checked={localPermissions.addMembers} onClick={() => toggleLocalPermission("addMembers")} />
-        <SwitchRow label="Pin Messages" checked={localPermissions.pinMessages} danger onClick={() => toggleLocalPermission("pinMessages")} />
-        <SwitchRow label="Edit Own Tags" checked={localPermissions.editOwnTags} danger onClick={() => toggleLocalPermission("editOwnTags")} />
-        <SwitchRow label="Change Channel Info" checked={localPermissions.changeInfo} danger onClick={() => toggleLocalPermission("changeInfo")} />
+        <SwitchRow label={savingPermission === "sendMessages" ? "Saving Messages..." : "Send Messages"} checked={permissions.sendMessages} onClick={() => void togglePermission("sendMessages")} />
+        <SwitchRow label={savingPermission === "sendMedia" ? "Saving Media..." : "Send Media 10/10"} checked={permissions.sendMedia} onClick={() => void togglePermission("sendMedia")} />
+        <SwitchRow label={savingPermission === "addMembers" ? "Saving Members..." : "Add Members"} checked={permissions.addMembers} onClick={() => void togglePermission("addMembers")} />
+        <SwitchRow label={savingPermission === "pinMessages" ? "Saving Pins..." : "Pin Messages"} checked={permissions.pinMessages} danger onClick={() => void togglePermission("pinMessages")} />
+        <SwitchRow label={savingPermission === "editOwnTags" ? "Saving Tags..." : "Edit Own Tags"} checked={permissions.editOwnTags} danger onClick={() => void togglePermission("editOwnTags")} />
+        <SwitchRow label={savingPermission === "changeInfo" ? "Saving Info..." : "Change Channel Info"} checked={permissions.changeInfo} danger onClick={() => void togglePermission("changeInfo")} />
       </InfoSection>
       <InfoSection>
-        <SwitchRow label="Charge Stars for Messages" checked={localPermissions.chargeStars} onClick={() => toggleLocalPermission("chargeStars")} />
+        <SwitchRow label={savingPermission === "chargeStars" ? "Saving Stars..." : "Charge Stars for Messages"} checked={permissions.chargeStars} onClick={() => void togglePermission("chargeStars")} />
       </InfoSection>
       <SectionLabel>Slow Mode</SectionLabel>
       <InfoSection>
@@ -1394,7 +2485,22 @@ function PermissionsView({
       </InfoSection>
       <SectionLabel>Exceptions</SectionLabel>
       <InfoSection>
-        <SettingsRow icon={UserPlus} label="Add Exception" onClick={() => toast.message("Permission exceptions will use the member picker")} />
+        <SettingsRow icon={UserPlus} label="Add Exception" onClick={onAddException} />
+        {exceptionsLoading ? (
+          <div className="px-4 py-4 text-sm text-slate-500">Loading exceptions...</div>
+        ) : exceptions.length > 0 ? exceptions.map((member) => (
+          <MemberLine
+            key={member.user_id}
+            member={member}
+            fallbackName="Exception"
+            badge="exception"
+            actions={[
+              { label: "Remove exception", destructive: true, onClick: () => onRemoveException(member) },
+            ]}
+          />
+        )) : (
+          <div className="px-4 py-4 text-sm text-slate-500">No permission exceptions yet.</div>
+        )}
       </InfoSection>
     </>
   );
@@ -1469,7 +2575,7 @@ function AdminsView({
             </div>
             <ScrollArea className="max-h-[calc(78dvh-7.5rem)]">
               <div className="pb-4">
-                <SectionLabel>Group Members</SectionLabel>
+                <SectionLabel>Channel Members</SectionLabel>
                 {candidates.length > 0 ? candidates.map((member) => (
                   <button
                     key={member.user_id}
@@ -1560,7 +2666,144 @@ function RemovedUsersView({
   );
 }
 
-function RecentActionsView({ channel, posts }: { channel: Channel; posts: ChannelPost[] }) {
+function ChannelSearchView({ posts }: { posts: ChannelPost[] }) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
+  const results = useMemo(() => {
+    const searchablePosts = posts.map((post) => {
+      const mediaText = Array.isArray(post.media)
+        ? post.media
+            .map((item: any) => [item?.name, item?.filename, item?.file_name, item?.title, item?.caption, item?.url].filter(Boolean).join(" "))
+            .join(" ")
+        : "";
+      return {
+        post,
+        text: [post.body, mediaText].filter(Boolean).join(" ").toLowerCase(),
+      };
+    });
+    if (!normalizedQuery) return searchablePosts.slice(0, 12).map((item) => item.post);
+    return searchablePosts
+      .filter((item) => item.text.includes(normalizedQuery))
+      .map((item) => item.post)
+      .slice(0, 30);
+  }, [normalizedQuery, posts]);
+
+  return (
+    <>
+      <InfoSection>
+        <label className="flex items-center gap-3 px-4 py-3">
+          <Search className="h-5 w-5 shrink-0 text-slate-400" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            autoFocus
+            placeholder="Search messages"
+            className="min-w-0 flex-1 bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400"
+          />
+        </label>
+      </InfoSection>
+
+      <InfoSection>
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <span className="text-sm font-bold uppercase tracking-wider text-slate-500">{normalizedQuery ? "Results" : "Recent Posts"}</span>
+          <span className="text-sm font-semibold text-slate-400">{results.length.toLocaleString()}</span>
+        </div>
+        {results.length > 0 ? (
+          results.map((post) => <SearchResultRow key={post.id} post={post} query={normalizedQuery} />)
+        ) : (
+          <div className="flex min-h-32 flex-col items-center justify-center px-5 py-8 text-center">
+            <Search className="mb-2 h-6 w-6 text-slate-400" />
+            <p className="text-sm font-semibold text-slate-950">No results found</p>
+            <p className="mt-1 max-w-56 text-xs leading-5 text-slate-500">Try another word from a channel post, link, file, or media caption.</p>
+          </div>
+        )}
+      </InfoSection>
+    </>
+  );
+}
+
+function SearchResultRow({ post, query }: { post: ChannelPost; query: string }) {
+  const mediaCount = Array.isArray(post.media) ? post.media.filter(Boolean).length : 0;
+  const body = post.body?.trim() || (mediaCount > 0 ? `${mediaCount} attachment${mediaCount === 1 ? "" : "s"}` : "Channel post");
+  const preview = query ? highlightQueryPreview(body, query) : body;
+  return (
+    <a
+      href={`#channel-post-${post.id}`}
+      className="block border-b border-slate-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-slate-50"
+    >
+      <span className="block line-clamp-2 text-base font-semibold text-slate-950">{preview}</span>
+      <span className="mt-1 block text-sm text-slate-500">{formatInfoDate(post.published_at || post.created_at)}</span>
+    </a>
+  );
+}
+
+function highlightQueryPreview(value: string, query: string): string {
+  if (!query) return value;
+  const index = value.toLowerCase().indexOf(query);
+  if (index < 0) return value;
+  const start = Math.max(0, index - 28);
+  const end = Math.min(value.length, index + query.length + 46);
+  return `${start > 0 ? "... " : ""}${value.slice(start, end)}${end < value.length ? " ..." : ""}`;
+}
+
+const ACTION_ICON: Record<string, ComponentType<{ className?: string }>> = {
+  member_joined: UserPlus,
+  member_left: LogOut,
+  member_added: UserPlus,
+  member_removed: UserMinus,
+  member_unbanned: UserPlus,
+  role_changed: Shield,
+  settings_changed: Settings2,
+  info_changed: Pencil,
+  post_canceled: Trash2,
+};
+
+function actionTimeLabel(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return formatInfoDate(iso);
+}
+
+function describeAction(row: InfoActionRow, nameOf: (id?: string | null) => string) {
+  const actor = nameOf(row.actor_id);
+  const target = row.target_user_id ? nameOf(row.target_user_id) : "";
+  switch (row.action) {
+    case "member_joined": return `${actor} joined the channel`;
+    case "member_left": return `${actor} left the channel`;
+    case "member_added": return `${actor} added ${target}`;
+    case "member_removed": return `${actor} removed ${target}`;
+    case "member_unbanned": return `${actor} allowed ${target} to rejoin`;
+    case "role_changed": return `${actor} changed ${target}'s role`;
+    case "settings_changed": {
+      const keys = row.meta ? Object.keys(row.meta) : [];
+      const pretty = keys.map((key) => key.replace(/_/g, " ")).join(", ");
+      return `${actor} changed ${pretty || "channel settings"}`;
+    }
+    case "info_changed": return `${actor} updated channel info`;
+    case "post_canceled": return `${actor} canceled a scheduled post`;
+    default: return `${actor} · ${row.action.replace(/_/g, " ")}`;
+  }
+}
+
+function RecentActionsView({
+  channel,
+  posts,
+  rows,
+  profiles,
+  loading,
+}: {
+  channel: Channel;
+  posts: ChannelPost[];
+  rows: InfoActionRow[];
+  profiles: Map<string, InfoActorProfile>;
+  loading: boolean;
+}) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     members: false,
@@ -1584,9 +2827,23 @@ function RecentActionsView({ channel, posts }: { channel: Channel; posts: Channe
     allAdmins: true,
     owner: true,
   });
-  const recentPosts = posts.slice(0, 3);
   const toggleChecked = (key: string) => setChecked((current) => ({ ...current, [key]: !current[key] }));
   const toggleExpanded = (key: string) => setExpanded((current) => ({ ...current, [key]: !current[key] }));
+  const nameOf = (id?: string | null) => (id ? profiles.get(id)?.name || "Someone" : "Someone");
+  const actorIds = Array.from(new Set(rows.map((row) => row.actor_id).filter(Boolean)));
+  const enabledCategories = new Set([
+    checked.members && "members",
+    checked.settings && "settings",
+    checked.messages && "messages",
+  ].filter(Boolean));
+  const filteredRows = rows.filter((row) => {
+    const category = LOG_CATEGORY[row.action as ChannelLogAction] ?? "settings";
+    if (!enabledCategories.has(category)) return false;
+    if (!checked.allAdmins && !checked.owner) return false;
+    return true;
+  });
+  const previewRows = filteredRows.slice(0, 5);
+  const filterLabel = enabledCategories.size === 3 ? "All" : `${enabledCategories.size}/3`;
 
   return (
     <>
@@ -1599,15 +2856,62 @@ function RecentActionsView({ channel, posts }: { channel: Channel; posts: Channe
         }}
       >
         <p className="text-sm font-bold">{channel.name}</p>
-        <p className="text-xs opacity-80">All Actions</p>
-        <div className="mt-24 space-y-2">
-          <ActionPill text="Today" />
-          <ActionPill text="Channel settings were updated" />
-          {recentPosts.map((post) => <ActionPill key={post.id} text={post.body ? `Post created: ${post.body.slice(0, 32)}` : "Media post created"} />)}
+        <p className="text-xs opacity-80">{filterLabel === "All" ? "All Actions" : "Filtered Actions"}</p>
+        <div className="mt-20 space-y-2">
+          {loading ? (
+            <>
+              <ActionPill text="Loading actions..." />
+              <ActionPill text="Checking admin log" />
+            </>
+          ) : previewRows.length > 0 ? (
+            previewRows.map((row) => <ActionPill key={row.id} text={describeAction(row, nameOf)} />)
+          ) : (
+            <>
+              <ActionPill text="No recent actions" />
+              {posts[0] && <ActionPill text={`Latest post ${formatInfoDate(posts[0].published_at || posts[0].created_at)}`} />}
+            </>
+          )}
         </div>
       </div>
       <InfoSection>
-        <SettingsRow icon={SlidersHorizontal} label="Filter Recent Actions" value="All" onClick={() => setFilterOpen(true)} />
+        <SettingsRow icon={SlidersHorizontal} label="Filter Recent Actions" value={filterLabel} onClick={() => setFilterOpen(true)} />
+      </InfoSection>
+      <InfoSection>
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <span className="text-sm font-bold uppercase tracking-wider text-slate-500">Admin Log</span>
+          <span className="text-sm font-semibold text-slate-400">{filteredRows.length.toLocaleString()}</span>
+        </div>
+        {loading ? (
+          <div className="space-y-2 p-3">
+            {[0, 1, 2].map((index) => <div key={index} className="h-14 animate-pulse rounded-2xl bg-slate-100" />)}
+          </div>
+        ) : filteredRows.length > 0 ? (
+          filteredRows.slice(0, 30).map((row) => {
+            const Icon = ACTION_ICON[row.action] ?? Settings2;
+            const profile = profiles.get(row.actor_id);
+            return (
+              <div key={row.id} className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={profile?.avatar || undefined} alt={nameOf(row.actor_id)} />
+                  <AvatarFallback className="bg-sky-100 text-sm font-bold text-sky-700">{nameOf(row.actor_id).slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1">
+                  <span className="block line-clamp-2 text-[15px] font-semibold leading-snug text-slate-950">{describeAction(row, nameOf)}</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">{actionTimeLabel(row.created_at)}</span>
+                </span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500">
+                  <Icon className="h-4 w-4" />
+                </span>
+              </div>
+            );
+          })
+        ) : (
+          <div className="flex min-h-32 flex-col items-center justify-center px-5 py-8 text-center">
+            <Settings2 className="mb-2 h-6 w-6 text-slate-400" />
+            <p className="text-sm font-semibold text-slate-950">No recent actions</p>
+            <p className="mt-1 max-w-56 text-xs leading-5 text-slate-500">Admin activity in this channel will show here.</p>
+          </div>
+        )}
       </InfoSection>
       {filterOpen && (
         <div
@@ -1637,7 +2941,7 @@ function RecentActionsView({ channel, posts }: { channel: Channel; posts: Channe
                 <InfoSection>
                   <ActionFilterGroup
                     label="Members and Admins"
-                    count="4/4"
+                    count={checked.members ? "4/4" : "0/4"}
                     checked={checked.members}
                     expanded={expanded.members}
                     onToggleChecked={() => toggleChecked("members")}
@@ -1652,8 +2956,8 @@ function RecentActionsView({ channel, posts }: { channel: Channel; posts: Channe
                     </div>
                   )}
                   <ActionFilterGroup
-                    label="Group Settings"
-                    count="3/3"
+                    label="Channel Settings"
+                    count={checked.settings ? "3/3" : "0/3"}
                     checked={checked.settings}
                     expanded={expanded.settings}
                     onToggleChecked={() => toggleChecked("settings")}
@@ -1661,14 +2965,14 @@ function RecentActionsView({ channel, posts }: { channel: Channel; posts: Channe
                   />
                   {expanded.settings && (
                     <div className="pl-14">
-                      <ActionFilterChild label="Group Info" checked={checked.groupInfo} onClick={() => toggleChecked("groupInfo")} />
+                      <ActionFilterChild label="Channel Info" checked={checked.groupInfo} onClick={() => toggleChecked("groupInfo")} />
                       <ActionFilterChild label="Invite Links" checked={checked.inviteLinks} onClick={() => toggleChecked("inviteLinks")} />
                       <ActionFilterChild label="Video Chats" checked={checked.videoChats} onClick={() => toggleChecked("videoChats")} />
                     </div>
                   )}
                   <ActionFilterGroup
                     label="Messages"
-                    count="3/3"
+                    count={checked.messages ? "3/3" : "0/3"}
                     checked={checked.messages}
                     expanded={expanded.messages}
                     onToggleChecked={() => toggleChecked("messages")}
@@ -1686,9 +2990,16 @@ function RecentActionsView({ channel, posts }: { channel: Channel; posts: Channe
                 <SectionLabel>Filter Actions By Admins</SectionLabel>
                 <InfoSection>
                   <ActionFilterChild label="Show Actions by All Admins" checked={checked.allAdmins} onClick={() => toggleChecked("allAdmins")} />
-                  <div className="pl-14">
-                    <ActionFilterChild label="Kim" checked={checked.owner} onClick={() => toggleChecked("owner")} avatar="K" />
-                  </div>
+                  {actorIds.slice(0, 6).map((actorId) => (
+                    <div key={actorId} className="pl-14">
+                      <ActionFilterChild
+                        label={nameOf(actorId)}
+                        checked={checked.owner}
+                        onClick={() => toggleChecked("owner")}
+                        avatar={nameOf(actorId).slice(0, 1).toUpperCase()}
+                      />
+                    </div>
+                  ))}
                 </InfoSection>
               </div>
             </ScrollArea>
@@ -1777,8 +3088,12 @@ function ActionFilterChild({
   );
 }
 
-function InfoSection({ children }: { children: ReactNode }) {
-  return <div className="overflow-hidden rounded-2xl bg-white/88 shadow-sm ring-1 ring-white/70 backdrop-blur">{children}</div>;
+function InfoSection({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn("overflow-hidden rounded-2xl bg-white/88 shadow-sm ring-1 ring-white/70 backdrop-blur", className)}>
+      {children}
+    </div>
+  );
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {

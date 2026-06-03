@@ -83,6 +83,11 @@ Needed platform connections:
 
 - Google Ads:
   - Google tag / Google Ads conversion actions.
+  - AdSense publisher client plus per-placement slot IDs through deployment env:
+    `VITE_GOOGLE_ADSENSE_CLIENT`, `VITE_ADSENSE_SLOT_HOME_FEED`,
+    `VITE_ADSENSE_SLOT_SEARCH_RESULTS`, and `VITE_ADSENSE_SLOT_ARTICLE_INLINE`.
+  - `public/ads.txt` must be updated from the placeholder `pub-0000000000000000`
+    to the real AdSense publisher number before live revenue can be trusted.
   - Enhanced conversions for web where consent allows first-party user data.
   - Purchase, booking, lead, subscribe, and app install/open events.
   - Source: https://developers.google.com/google-ads/api/docs/conversions/enhanced-conversions/web
@@ -98,11 +103,16 @@ Needed platform connections:
   - Events API for server-to-server web/app/offline event sharing.
   - Source: https://ads.tiktok.com/help/article/events-api
 
+- X:
+  - X Pixel for consent-based web conversion measurement.
+  - Lead, checkout, purchase, share, and app-install campaign attribution.
+  - Source: https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites.html
+
 ZIVO already has evidence of ads/marketing surfaces and Meta bridge functions. Next update should be a unified event pipeline:
 
 - One event schema: `view_content`, `search`, `lead`, `add_to_cart`, `checkout_start`, `purchase`, `booking`, `subscribe`, `tip`, `video_view`, `creator_follow`.
 - One frontend tracker.
-- One Supabase Edge Function that fans out allowed events to Meta, Google, TikTok, and internal analytics.
+- One Supabase Edge Function that fans out allowed events to Meta, Google, TikTok, X, and internal analytics.
 - Consent gates for marketing, tracking, email, SMS, and push.
 - Admin diagnostics page showing which providers received each event.
 

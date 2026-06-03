@@ -16428,6 +16428,7 @@ export type Database = {
           restrict_saving_content: boolean
           slow_mode_seconds: number
           subscriber_count: number
+          subscriber_permissions: Json
           topics_enabled: boolean
           updated_at: string
           verified_at: string | null
@@ -16451,6 +16452,7 @@ export type Database = {
           restrict_saving_content?: boolean
           slow_mode_seconds?: number
           subscriber_count?: number
+          subscriber_permissions?: Json
           topics_enabled?: boolean
           updated_at?: string
           verified_at?: string | null
@@ -16474,6 +16476,7 @@ export type Database = {
           restrict_saving_content?: boolean
           slow_mode_seconds?: number
           subscriber_count?: number
+          subscriber_permissions?: Json
           topics_enabled?: boolean
           updated_at?: string
           verified_at?: string | null

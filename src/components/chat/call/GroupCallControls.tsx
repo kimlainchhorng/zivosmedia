@@ -18,6 +18,7 @@ interface Props {
   camEnabled: boolean;
   isScreenSharing: boolean;
   screenShareBlocked?: boolean;
+  canScreenShare?: boolean;
   handRaised: boolean;
   isHost: boolean;
   isRecording: boolean;
@@ -90,11 +91,11 @@ export default function GroupCallControls(props: Props) {
 
   return (
     <div
-      className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-end gap-3 bg-black/75 px-3 sm:px-6 backdrop-blur-xl"
+      className="grid shrink-0 grid-cols-[auto_1fr_auto] items-end gap-2 bg-black/75 px-3 backdrop-blur-xl sm:gap-3 sm:px-6"
       style={{ paddingTop: 14, paddingBottom: "calc(var(--zivo-safe-bottom,0px) + 18px)" }}
     >
       {/* Left: time + meeting label */}
-      <div className="flex items-center gap-2 text-[13px] text-white/85 min-w-0">
+      <div className="min-w-0 text-[12px] leading-tight text-white/85 sm:flex sm:items-center sm:gap-2 sm:text-[13px]">
         <span className="tabular-nums">{clock}</span>
         {props.meetingLabel && (
           <>
@@ -105,7 +106,7 @@ export default function GroupCallControls(props: Props) {
       </div>
 
       {/* Center: primary controls */}
-      <div className="flex items-start gap-1.5 sm:gap-2">
+      <div className="flex min-w-0 items-start justify-center gap-1.5 sm:gap-2">
         <CtrlBtn onClick={props.onToggleMic} muted={!props.micEnabled} label="Toggle microphone" shortLabel="Mic">
           {props.micEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
         </CtrlBtn>
@@ -115,13 +116,15 @@ export default function GroupCallControls(props: Props) {
         <CtrlBtn
           onClick={props.onToggleScreen}
           active={props.isScreenSharing}
-          warning={props.screenShareBlocked}
+          warning={props.screenShareBlocked || props.canScreenShare === false}
           label={
-            props.screenShareBlocked
+            props.canScreenShare === false
+              ? "Screen sharing is not available in this browser."
+              : props.screenShareBlocked
               ? "Screen sharing is blocked. Allow screen sharing permission, then try again."
               : "Share screen"
           }
-          shortLabel={props.screenShareBlocked ? "Retry" : "Share"}
+          shortLabel={props.canScreenShare === false ? "N/A" : props.screenShareBlocked ? "Retry" : "Share"}
         >
           {props.isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <MonitorUp className="h-5 w-5" />}
         </CtrlBtn>
@@ -153,7 +156,7 @@ export default function GroupCallControls(props: Props) {
           aria-label="Leave call"
           title="Leave call"
           onClick={props.onLeave}
-          className="flex h-11 items-center gap-2 rounded-full bg-rose-500 px-4 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-600 active:scale-95 sm:h-12 sm:px-6"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-500 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-600 active:scale-95 sm:h-12 sm:w-auto sm:px-6"
         >
           <PhoneOff className="h-5 w-5" />
           <span className="hidden sm:inline">Leave</span>

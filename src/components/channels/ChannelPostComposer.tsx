@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { ILLUSTRATED_PACKS, type IllustratedSticker } from "@/config/illustratedStickers";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -59,7 +60,10 @@ type EmojiMode = "GIFs" | "Stickers" | "Emoji";
 
 const CHANNEL_VOICE_MAX_MS = 5 * 60 * 1000;
 const EMOJI_CHOICES = ["😀", "😂", "😍", "👍", "🙏", "🔥", "🎉", "❤️", "😎", "😭", "👏", "💯", "🤝", "✨", "✅", "🚀"];
-const STICKER_CHOICES = ["🐣", "🍩", "😺", "🐶", "🦊", "🐸", "🐵", "🐼", "🐯", "🐨", "🧸", "🌟"];
+type ChannelSticker = IllustratedSticker & { packName: string };
+const STICKER_CHOICES: ChannelSticker[] = ILLUSTRATED_PACKS.flatMap((pack) =>
+  pack.stickers.map((sticker) => ({ ...sticker, packName: pack.name })),
+).slice(0, 32);
 const GIF_LABELS = ["Wave", "Thanks", "OK", "Laugh", "Fire", "Celebrate", "Done", "Love"];
 
 function getUploadMediaType(file: File, kind: UploadKind): MediaItem["type"] | null {
@@ -98,6 +102,11 @@ function formatFileSize(bytes?: number | null): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
+function formatDateTimeLocal(value: Date): string {
+  const pad = (num: number) => String(num).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
 }
 
 async function getFunctionErrorMessage(error: unknown, fallback = "Couldn't publish"): Promise<string> {
@@ -140,6 +149,8 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
   const voice = useVoiceRecorder();
   const [voicePanelOpen, setVoicePanelOpen] = useState(false);
   const [voiceUploading, setVoiceUploading] = useState(false);
+  const panelPointerGuardRef = useRef(0);
+  const actionPointerGuardRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -163,9 +174,76 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
   const toggleComposerPanel = (panel: Exclude<ComposerPanel, null>) => {
     setComposerPanel((current) => (current === panel ? null : panel));
   };
+  const handlePanelPointerDown = (
+    event: PointerEvent<HTMLButtonElement>,
+    panel: Exclude<ComposerPanel, null>,
+  ) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    panelPointerGuardRef.current = Date.now();
+    toggleComposerPanel(panel);
+  };
+  const handlePanelClick = (panel: Exclude<ComposerPanel, null>) => {
+    if (Date.now() - panelPointerGuardRef.current < 350) return;
+    toggleComposerPanel(panel);
+  };
+  const handlePanelKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    panel: Exclude<ComposerPanel, null>,
+  ) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    toggleComposerPanel(panel);
+  };
   const appendDraftText = (value: string) => {
     setBody((current) => `${current}${value}`);
     window.requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const sendStickerPost = async (sticker: ChannelSticker) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) {
+        toast.error("Sign in required");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("channel-broadcast", {
+        body: {
+          channel_id: channelId,
+          body: null,
+          media: [{
+            type: "sticker",
+            sticker: sticker.id,
+            url: sticker.src,
+            name: sticker.alt,
+            pack: sticker.packName,
+          }],
+          scheduled_for: null,
+          comments_enabled: !disableComments,
+        },
+      });
+
+      if (error || (data as any)?.error) {
+        const message = (data as any)?.message ?? (data as any)?.error ?? await getFunctionErrorMessage(error);
+        toast.error(message);
+        return;
+      }
+
+      setBody("");
+      setWhen("");
+      setScheduled(false);
+      setMedia([]);
+      setPoll(null);
+      setDisableComments(false);
+      setComposerPanel(null);
+      toast.success("Sticker posted");
+      onPosted?.();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const fmtElapsed = (ms: number) => {
@@ -348,6 +426,17 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
       toast.error("Write something, add media, or attach a poll");
       return;
     }
+    if (scheduled) {
+      if (!when) {
+        toast.error("Choose when to schedule this post");
+        return;
+      }
+      const scheduledAt = new Date(when);
+      if (!Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) {
+        toast.error("Schedule time must be in the future");
+        return;
+      }
+    }
     if (poll) {
       if (!poll.question.trim()) { toast.error("Poll needs a question"); return; }
       const validOptions = poll.options.map((o) => o.trim()).filter(Boolean);
@@ -417,7 +506,7 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
         channel_id: channelId,
         body: body.trim() || null,
         media: mediaPayload,
-        scheduled_for: scheduled && when ? new Date(when).toISOString() : null,
+        scheduled_for: scheduled ? new Date(when).toISOString() : null,
         comments_enabled: !disableComments,
       },
     });
@@ -481,7 +570,13 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
         setComposerPanel(null);
         break;
       case "schedule":
-        setScheduled((v) => !v);
+        if (scheduled) {
+          setScheduled(false);
+          setWhen("");
+        } else {
+          setWhen((current) => current || formatDateTimeLocal(new Date(Date.now() + 5 * 60 * 1000)));
+          setScheduled(true);
+        }
         setComposerPanel(null);
         break;
       case "comments":
@@ -489,6 +584,27 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
         setComposerPanel(null);
         break;
     }
+  };
+  const handleActionPointerDown = (
+    event: PointerEvent<HTMLButtonElement>,
+    id: AttachmentActionId,
+  ) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    actionPointerGuardRef.current[id] = Date.now();
+    handleAttachmentAction(id);
+  };
+  const handleActionClick = (id: AttachmentActionId) => {
+    if (Date.now() - (actionPointerGuardRef.current[id] ?? 0) < 350) return;
+    handleAttachmentAction(id);
+  };
+  const handleActionKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    id: AttachmentActionId,
+  ) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    handleAttachmentAction(id);
   };
 
   const attachmentActions: Array<{
@@ -791,7 +907,9 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
                 <button
                   key={action.ariaLabel}
                   type="button"
-                  onClick={() => handleAttachmentAction(action.id)}
+                  onPointerDown={(event) => handleActionPointerDown(event, action.id)}
+                  onClick={() => handleActionClick(action.id)}
+                  onKeyDown={(event) => handleActionKeyDown(event, action.id)}
                   disabled={action.disabled}
                   aria-label={action.ariaLabel}
                   aria-pressed={action.active}
@@ -820,13 +938,14 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
             <div className="flex gap-1 overflow-x-auto px-3 py-2 scrollbar-hide">
               {STICKER_CHOICES.slice(0, 10).map((item) => (
                 <button
-                  key={`top-${item}`}
+                  key={`top-${item.id}`}
                   type="button"
-                  onClick={() => appendDraftText(item)}
-                  className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lime-50 text-xl transition hover:bg-lime-100 active:scale-95"
-                  aria-label={`Add sticker ${item}`}
+                  onClick={() => void sendStickerPost(item)}
+                  disabled={submitting}
+                  className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime-50 p-1.5 transition hover:bg-lime-100 active:scale-95 disabled:opacity-50"
+                  aria-label={`Send ${item.alt}`}
                 >
-                  {item}
+                  <img src={item.src} alt="" className="h-full w-full object-contain" draggable={false} />
                   <span className="absolute -right-0.5 -top-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[10px] font-bold text-emerald-600 shadow-sm">
                     +
                   </span>
@@ -870,13 +989,14 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
                   <div className="grid grid-cols-4 gap-2">
                     {STICKER_CHOICES.map((item) => (
                       <button
-                        key={item}
+                        key={item.id}
                         type="button"
-                        onClick={() => appendDraftText(item)}
-                        className="flex aspect-square items-center justify-center rounded-2xl bg-lime-50 text-4xl shadow-sm transition hover:bg-lime-100 active:scale-95"
-                        aria-label={`Add sticker ${item}`}
+                        onClick={() => void sendStickerPost(item)}
+                        disabled={submitting}
+                        className="flex aspect-square items-center justify-center rounded-2xl bg-lime-50 p-3 shadow-sm transition hover:bg-lime-100 active:scale-95 disabled:opacity-50"
+                        aria-label={`Send ${item.alt}`}
                       >
-                        {item}
+                        <img src={item.src} alt="" className="h-full w-full object-contain drop-shadow-sm" draggable={false} />
                       </button>
                     ))}
                   </div>
@@ -918,7 +1038,7 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
           </div>
         )}
 
-        {(media.length > 0 || poll || disableComments) && (
+        {(media.length > 0 || poll) && (
           <div className="flex flex-wrap gap-1.5 px-2">
             {media.length > 0 && (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
@@ -926,14 +1046,15 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
               </span>
             )}
             {poll && <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-600">Poll attached</span>}
-            {disableComments && <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600">Comments off</span>}
           </div>
         )}
 
         <div className="flex items-end gap-2">
           <button
             type="button"
-            onClick={() => toggleComposerPanel("attachments")}
+            onPointerDown={(event) => handlePanelPointerDown(event, "attachments")}
+            onClick={() => handlePanelClick("attachments")}
+            onKeyDown={(event) => handlePanelKeyDown(event, "attachments")}
             className={cn(
               "inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/95 text-slate-800 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 outline-none backdrop-blur transition focus:outline-none focus-visible:outline-none focus-visible:ring-0",
               attachmentsOpen ? "text-sky-600" : "hover:text-sky-600",
@@ -966,7 +1087,9 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
             />
             <button
               type="button"
-              onClick={() => toggleComposerPanel("emoji")}
+              onPointerDown={(event) => handlePanelPointerDown(event, "emoji")}
+              onClick={() => handlePanelClick("emoji")}
+              onKeyDown={(event) => handlePanelKeyDown(event, "emoji")}
               aria-expanded={emojiPanelOpen}
               className={cn(
                 "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-slate-100 hover:text-sky-600",
@@ -993,14 +1116,6 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
             </button>
           </div>
         </div>
-        {scheduled && (
-          <Input
-            type="datetime-local"
-            value={when}
-            onChange={(e) => setWhen(e.target.value)}
-            className="w-full shrink-0 rounded-2xl border-0 bg-white/95 shadow-lg shadow-slate-900/10 ring-1 ring-white/80 backdrop-blur sm:w-[220px]"
-          />
-        )}
       </div>
     </div>
   );
