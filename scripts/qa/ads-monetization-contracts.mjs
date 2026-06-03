@@ -58,13 +58,16 @@ const contracts = [
     check() {
       const analyticsPath = "src/lib/analytics.ts";
       const trackerPath = "supabase/functions/analytics-event-track/index.ts";
+      const configPath = "supabase/config.toml";
       const analytics = source(analyticsPath);
       for (const needle of [
         "analytics-event-track",
         "event_id",
         "zivo:analytics_queue",
         "MAX_QUEUE = 200",
+        "VITE_ANALYTICS_EVENT_TRACK_ENABLED",
         "flushQueue",
+        "trackRawAnalyticsEvent",
         "online",
         "dedupeMs",
         "__resetAnalyticsDedupe",
@@ -80,6 +83,8 @@ const contracts = [
       ]) {
         requireContains(this.id, source(trackerPath), needle, trackerPath);
       }
+      requireContains(this.id, source(configPath), "[functions.analytics-event-track]", configPath);
+      requireMatch(this.id, source(configPath), /\[functions\.analytics-event-track\]\s+verify_jwt = false/, configPath);
     },
   },
   {

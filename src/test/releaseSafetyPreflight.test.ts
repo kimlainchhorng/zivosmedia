@@ -33,6 +33,14 @@ describe("release safety preflight contracts", () => {
         linkedHistoryDisconnected: expect.any(Boolean),
       }),
     );
+    expect(summary.edgeFunctions).toEqual(
+      expect.objectContaining({
+        deployContractFailures: expect.any(Number),
+        slotReadinessMode: expect.any(String),
+        missingLiveCritical: expect.any(Array),
+        browserGateFailures: expect.any(Number),
+      }),
+    );
     expect(summary.artifactSummary).toEqual(
       expect.objectContaining({
         total: expect.any(Number),
@@ -44,6 +52,9 @@ describe("release safety preflight contracts", () => {
     expect(summary.steps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "secrets", title: "Security scan" }),
+        expect.objectContaining({ id: "edge-function-deploy-contracts", title: "Edge Function deploy contracts" }),
+        expect.objectContaining({ id: "edge-function-slot-readiness", title: "Edge Function slot readiness" }),
+        expect.objectContaining({ id: "edge-function-browser-gates", title: "Edge Function browser gates" }),
       ]),
     );
     expect(schemaCheck).toContain("productionBlockers: Array.isArray(summary.blockers.production)");
@@ -149,11 +160,17 @@ describe("release safety preflight contracts", () => {
     expect(plan).toContain("Secret scanning blocks Supabase management access tokens before commit/deploy.");
     expect(preflight).toContain('"Security scan"');
     expect(preflight).toContain('"security:scan"');
+    expect(preflight).toContain('"Edge Function deploy contracts"');
+    expect(preflight).toContain('"scripts/qa/edge-function-slot-readiness.mjs"');
+    expect(preflight).toContain("edgeFunctionMissingLiveCritical");
+    expect(preflight).toContain("edgeFunctions");
     expect(source("docs/production-preflight-report.md")).toContain("- Command: `npm run security:scan`");
+    expect(source("docs/production-preflight-report.md")).toContain("- Edge Function browser gates: gatedFunctions=6, failures=0");
     expect(packageJson).toContain('"security:check-secrets:local"');
     expect(packageJson).toContain('"security:check-supabase-token-fragments"');
     expect(packageJson).toContain('"platform:audit": "npm run security:scan && npm run qa:platform-readiness');
-    expect(packageJson).toContain('"release:gate": "npm run deploy:preflight:test-summary-schema && npm run deploy:preflight:check-artifacts && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run security:scan"');
+    expect(packageJson).toContain('"release:gate": "npm run deploy:preflight:test-summary-schema && npm run deploy:preflight:check-artifacts && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run qa:edge-function-deploy-contracts && npm run qa:edge-function-slot-readiness && npm run qa:edge-function-browser-gates && npm run security:scan"');
+    expect(packageJson).toContain("npm run qa:edge-function-browser-gates");
     expect(packageJson).toContain('"release:production-gate": "npm run release:gate && npm run deploy:preflight:check-production-summary"');
     expect(packageJson).toContain("npm run qa:platform-readiness && npm run qa:platform-readiness:check");
     expect(packageJson).toContain("npm run qa:workflow-coverage && npm run qa:workflow-coverage:check");

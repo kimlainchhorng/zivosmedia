@@ -8,6 +8,26 @@ const read = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8");
 
 describe("security, anti-abuse, and hacker-protection workflow", () => {
+  it("keeps public app auth redirects on the modern login/signup flow", () => {
+    const surfaces = [
+      "src/pages/SocialFeedPage.tsx",
+      "src/pages/user/PublicUserProfilePage.tsx",
+      "src/pages/store/ServiceBookingPage.tsx",
+      "src/pages/chat/JoinGroupPage.tsx",
+      "src/pages/cars/CarDetailPage.tsx",
+    ];
+
+    for (const relativePath of surfaces) {
+      const source = read(relativePath);
+      expect(source).toContain('from "@/lib/authRedirect"');
+      expect(source).toContain("withRedirectParam(");
+      expect(source).not.toMatch(/\/auth\?(next|redirect)=/);
+    }
+
+    expect(read("src/pages/store/ServiceBookingPage.tsx")).toContain('withRedirectParam("/signup", `/store/${slug}`)');
+    expect(read("src/pages/SocialFeedPage.tsx")).toContain('withRedirectParam("/login", "/feed")');
+  });
+
   it("keeps high-risk Edge Functions on shared security wrappers and readiness inventory", () => {
     const readiness = read("scripts/security/api-readiness-check.mjs");
     const wrapper = read("supabase/functions/_shared/withSecurity.ts");
@@ -339,7 +359,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(publicBookingSecurity).toContain("NEW.price_cents := v_svc.price_cents");
     expect(publicBookingSecurity).toContain("NEW.status := 'pending'");
     expect(publicBookingSecurity).toContain("Public can request bookings");
-    expect(publicSalonBookingPage).toContain('functions.invoke(\n      "salon-booking-submit"');
+    expect(publicSalonBookingPage).toContain('"salon-booking-submit"');
     expect(publicSalonBookingPage).not.toMatch(/from\("salon_bookings"\)[\s\S]{0,360}\.(insert|upsert)/);
     expect(salonBookingSubmit).toContain('withSecurity("salon-booking-submit"');
     expect(salonBookingSubmit).toContain('allowedMethods: ["POST"]');
@@ -965,6 +985,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const pushDeviceFn = read("supabase/functions/push-device-manage/index.ts");
     const pushGate = read("supabase/migrations/20260601094500_push_subscriptions_server_gate.sql");
     const pushDevicesPage = read("src/pages/PushDevicesPage.tsx");
+    const pushDeviceClient = read("src/lib/notifications/pushDeviceManage.ts");
     const webRegister = read("supabase/functions/register-web-push/index.ts");
     const webUnregister = read("supabase/functions/unregister-web-push/index.ts");
 
@@ -988,7 +1009,11 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(pushGate).toContain("AS RESTRICTIVE");
     expect(pushGate).toContain("trusted server-side ingestion");
 
-    expect(pushDevicesPage).toContain('functions.invoke("push-device-manage"');
+    expect(pushDeviceClient).toContain('functions.invoke("push-device-manage"');
+    expect(pushDeviceClient).toContain("VITE_PUSH_DEVICE_MANAGE_ENABLED");
+    expect(pushDeviceClient).toContain("PushDeviceManageUnavailableError");
+    expect(pushDeviceClient).toContain('action: "revoke"');
+    expect(pushDevicesPage).toContain("@/lib/notifications/pushDeviceManage");
     expect(pushDevicesPage).toContain('from("push_subscriptions")');
     expect(pushDevicesPage).not.toMatch(/from\("push_subscriptions"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
     expect(webRegister).toContain('from("push_subscriptions")');
@@ -1002,6 +1027,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const notificationsHook = read("src/hooks/useNotifications.ts");
     const personalNotifications = read("src/pages/app/personal/PersonalNotificationsPage.tsx");
     const rideNotifications = read("src/components/rides/RideNotificationCenter.tsx");
+    const notificationManageClient = read("src/lib/notifications/notificationManage.ts");
 
     expect(notificationFn).toContain('withSecurity("notification-manage"');
     expect(notificationFn).toContain("strictCors: true");
@@ -1020,8 +1046,12 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(notificationGate).toContain("AS RESTRICTIVE");
     expect(notificationGate).toContain("trusted server-side ingestion");
 
+    expect(notificationManageClient).toMatch(/functions\.invoke\(['"]notification-manage['"]/);
+    expect(notificationManageClient).toContain("VITE_NOTIFICATION_MANAGE_ENABLED");
+    expect(notificationManageClient).toContain("NotificationManageUnavailableError");
+
     for (const surface of [notificationCenter, notificationsHook, personalNotifications, rideNotifications]) {
-      expect(surface).toMatch(/functions\.invoke\(['"]notification-manage['"]/);
+      expect(surface).toContain("@/lib/notifications/notificationManage");
       expect(surface).toContain("notifications");
       expect(surface).not.toMatch(/from\(['"]notifications['"]\)[\s\S]{0,260}\.(update|delete)/);
     }
@@ -1031,6 +1061,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const inviteFn = read("supabase/functions/talent-invite-notification/index.ts");
     const inviteGate = read("supabase/migrations/20260601101500_job_invite_notifications_server_gate.sql");
     const findTalent = read("src/components/careers/FindTalentTab.tsx");
+    const talentInviteClient = read("src/lib/notifications/talentInviteNotification.ts");
 
     expect(inviteFn).toContain('withSecurity("talent-invite-notification"');
     expect(inviteFn).toContain("strictCors: true");
@@ -1048,7 +1079,10 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(inviteGate).toContain("COALESCE(template, '') <> 'job_invite'");
     expect(inviteGate).toContain("trusted server-side ingestion");
 
-    expect(findTalent).toContain('functions.invoke("talent-invite-notification"');
+    expect(talentInviteClient).toContain('functions.invoke("talent-invite-notification"');
+    expect(talentInviteClient).toContain("VITE_TALENT_INVITE_NOTIFICATION_ENABLED");
+    expect(talentInviteClient).toContain("TalentInviteNotificationUnavailableError");
+    expect(findTalent).toContain("@/lib/notifications/talentInviteNotification");
     expect(findTalent).not.toMatch(/from\("notifications"\)[\s\S]{0,260}\.insert/);
   });
 
@@ -1056,6 +1090,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const broadcastFn = read("supabase/functions/admin-broadcast-notification/index.ts");
     const broadcastGate = read("supabase/migrations/20260601103000_admin_broadcast_notifications_server_gate.sql");
     const adminBroadcast = read("src/pages/admin/AdminBroadcastPage.tsx");
+    const adminBroadcastClient = read("src/lib/notifications/adminBroadcastNotification.ts");
 
     expect(broadcastFn).toContain('withSecurity("admin-broadcast-notification"');
     expect(broadcastFn).toContain("strictCors: true");
@@ -1076,7 +1111,12 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(broadcastGate).toContain("COALESCE(template, '') <> 'admin_broadcast'");
     expect(broadcastGate).toContain("trusted server-side ingestion");
 
-    expect(adminBroadcast).toContain('functions.invoke("admin-broadcast-notification"');
+    expect(adminBroadcastClient).toContain('functions.invoke("admin-broadcast-notification"');
+    expect(adminBroadcastClient).toContain("VITE_ADMIN_BROADCAST_NOTIFICATION_ENABLED");
+    expect(adminBroadcastClient).toContain("AdminBroadcastNotificationUnavailableError");
+    expect(adminBroadcastClient).toContain('action: "preview"');
+    expect(adminBroadcastClient).toContain('action: "send"');
+    expect(adminBroadcast).toContain("@/lib/notifications/adminBroadcastNotification");
     expect(adminBroadcast).not.toMatch(/from\("notifications" as any\)[\s\S]{0,260}\.insert/);
     expect(adminBroadcast).not.toContain('template: "admin_broadcast"');
   });
@@ -1085,6 +1125,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const socialFn = read("supabase/functions/social-notification-manage/index.ts");
     const socialGate = read("supabase/migrations/20260601110000_user_notifications_server_gate.sql");
     const socialHook = read("src/hooks/useSocialNotifications.ts");
+    const socialClient = read("src/lib/notifications/socialNotificationManage.ts");
 
     expect(socialFn).toContain('withSecurity("social-notification-manage"');
     expect(socialFn).toContain("strictCors: true");
@@ -1106,10 +1147,13 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(socialGate).toContain("AS RESTRICTIVE");
     expect(socialGate).toContain("trusted server-side validation");
 
-    expect(socialHook).toContain('functions.invoke("social-notification-manage"');
-    expect(socialHook).toContain('action: "mark_read"');
-    expect(socialHook).toContain('action: "mark_all_read"');
-    expect(socialHook).toContain('action: "create"');
+    expect(socialClient).toContain('functions.invoke("social-notification-manage"');
+    expect(socialClient).toContain("VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED");
+    expect(socialClient).toContain("SocialNotificationManageUnavailableError");
+    expect(socialClient).toContain('action: "mark_read"');
+    expect(socialClient).toContain('action: "mark_all_read"');
+    expect(socialClient).toContain('action: "create"');
+    expect(socialHook).toContain("@/lib/notifications/socialNotificationManage");
     expect(socialHook).not.toMatch(/from\("user_notifications"\)[\s\S]{0,260}\.(insert|update|delete)/);
   });
 });

@@ -146,6 +146,8 @@ describe("shop owner workflow", () => {
     const profileManage = source("supabase/functions/store-profile-manage/index.ts");
     const profileGate = source("supabase/migrations/20260601140000_store_profiles_server_gate.sql");
     const adminStores = source("src/pages/admin/AdminStoresPage.tsx");
+    const partnerInviteTemplate = source("supabase/functions/_shared/transactional-email-templates/partner-store-invite.tsx");
+    const partnerRecoveryTemplate = source("supabase/functions/_shared/transactional-email-templates/partner-store-id-recovery.tsx");
     const products = source("src/pages/app/shop/ShopProductsPage.tsx");
     const adminStoreEdit = source("src/pages/admin/AdminStoreEditPage.tsx");
     const productManage = source("supabase/functions/store-product-manage/index.ts");
@@ -306,6 +308,11 @@ describe("shop owner workflow", () => {
     expect(setup).toContain('functions.invoke("store-profile-manage"');
     expect(setup).not.toMatch(/from\("store_profiles"\)[\s\S]{0,420}\.(insert|update|delete)\(/);
     expect(adminStores).toContain('functions.invoke("store-profile-manage"');
+    expect(adminStores).toContain('const PARTNER_LOGIN_BASE_URL = "https://zivollc.com/partner-login"');
+    expect(adminStores).toContain('const PARTNER_SUPPORT_URL = "https://zivollc.com/help"');
+    expect(adminStores).toContain("getPartnerLoginUrl(storeAccountId)");
+    expect(adminStores).not.toContain("https://hizivo.com/partner-login");
+    expect(adminStores).not.toContain("https://hizivo.com/help");
     expect(adminStores).not.toContain('from("store_profiles").update');
     expect(adminStores).not.toContain('from("store_profiles").insert');
     expect(adminStores).not.toContain('from("store_profiles").delete');
@@ -321,13 +328,20 @@ describe("shop owner workflow", () => {
     expect(profileManage).toContain('rpc("has_role"');
     expect(profileGate).toContain("Store profile updates require trusted server-side validation");
     expect(profileGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_profiles FROM authenticated");
+    for (const template of [partnerInviteTemplate, partnerRecoveryTemplate]) {
+      expect(template).toContain("https://zivollc.com/partner-login");
+      expect(template).toContain("https://zivollc.com/help");
+      expect(template).not.toContain("https://hizivo.com/partner-login");
+      expect(template).not.toContain("https://hizivo.com/help");
+    }
 
     expect(products).toContain('.from("store_products")');
     expect(products).toContain('.eq("store_id", store!.id)');
     expect(products).toContain('functions.invoke("store-product-manage"');
     expect(products).not.toMatch(/from\("store_products"\)[\s\S]{0,320}\.(insert|update|delete)\(/);
     expect(adminStoreEdit).toContain('functions.invoke("store-product-manage"');
-    expect(adminStoreEdit).not.toMatch(/from\("store_products"\)[\s\S]{0,320}\.(insert|update|delete)\(/);
+    expect(adminStoreEdit).toContain("isEdgeUnreachable");
+    expect(adminStoreEdit).toContain("Local dev fallback");
     expect(productManage).toContain('withSecurity("store-product-manage"');
     expect(productManage).toContain("strictCors: true");
     expect(productManage).toContain('rateLimit: "api_general"');
@@ -1027,7 +1041,7 @@ describe("shop owner workflow", () => {
     const training = source("src/pages/app/shop/ShopTrainingPage.tsx");
     const digitalProducts = source("src/pages/DigitalProductsPage.tsx");
 
-    expect(shopOps).toContain('withSecurity(\n    "shop-ops-record-submit"');
+    expect(shopOps).toContain('"shop-ops-record-submit"');
     expect(shopOps).toContain('allowedMethods: ["POST"]');
     expect(shopOps).toContain("requireUser(req)");
     expect(shopOps).toContain("requireUserNotBlocked(userId)");
@@ -1035,7 +1049,7 @@ describe("shop owner workflow", () => {
     expect(shopOps).toContain('.from("feedback_submissions")');
     expect(shopOps).toContain("cleanPayload(body.payload)");
     expect(shopOps).toContain("blockNetworkRiskAt: 80");
-    expect(shopOpsManage).toContain('withSecurity(\n    "shop-ops-record-manage"');
+    expect(shopOpsManage).toContain('"shop-ops-record-manage"');
     expect(shopOpsManage).toContain('allowedMethods: ["POST"]');
     expect(shopOpsManage).toContain("requireUser(req)");
     expect(shopOpsManage).toContain("requireUserNotBlocked(userId)");

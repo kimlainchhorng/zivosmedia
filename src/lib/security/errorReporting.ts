@@ -13,8 +13,9 @@ async function getSupabase() {
 }
 
 async function logAnalyticsEvent(payload: Record<string, unknown>): Promise<void> {
-  const supabase = await getSupabase();
-  await supabase.functions.invoke("analytics-event-track", { body: payload });
+  await getSupabase();
+  const { trackRawAnalyticsEvent } = await import("@/lib/analytics");
+  await trackRawAnalyticsEvent(payload as Parameters<typeof trackRawAnalyticsEvent>[0]);
 }
 
 interface ErrorReport {

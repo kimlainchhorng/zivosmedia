@@ -47,9 +47,15 @@ const contracts = [
       for (const needle of ['path="/auth/accept-invite"', 'path="/personal-dashboard"']) {
         requireContains(this.id, app, needle, appPath);
       }
-      for (const needle of ["claim_employee_invite", "/auth?next=", 'navigate("/personal-dashboard")']) {
+      for (const needle of [
+        "claim_employee_invite",
+        'from "@/lib/authRedirect"',
+        'withRedirectParam("/login", inviteReturnPath)',
+        'navigate("/personal-dashboard")',
+      ]) {
         requireContains(this.id, acceptInvite, needle, acceptPath);
       }
+      requireNotMatch(this.id, acceptInvite, /\/auth\?next=/, acceptPath);
       for (const needle of [
         "CREATE TABLE IF NOT EXISTS public.store_employee_invites",
         "token text NOT NULL UNIQUE",
@@ -95,10 +101,14 @@ const contracts = [
           "store.owner_id !== user.id",
           "not_store_owner",
           '.from("store_employee_invites")',
+          'Deno.env.get("PUBLIC_APP_URL")',
+          'Deno.env.get("SITE_URL")',
+          '"https://zivollc.com"',
           "/auth/accept-invite?token=",
         ]) {
           requireContains(this.id, text, needle, relativePath);
         }
+        requireNotMatch(this.id, text, /https:\/\/hizivo\.com\/auth/, relativePath);
       }
 
       requireContains(this.id, smsInvite, "rate_limited", smsInvitePath);

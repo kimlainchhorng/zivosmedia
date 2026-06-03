@@ -18,6 +18,13 @@ import { useMutedThreads, MUTE_DURATIONS, formatMuteLabel, type MuteDurationId }
 import { useAllowMessageRequests } from "@/hooks/useAllowMessageRequests";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
+import {
+  deleteNotificationById,
+  deleteNotificationsById,
+  markAllNotificationsRead,
+  markNotificationRead,
+  markNotificationsRead,
+} from "@/lib/notifications/notificationManage";
 
 const ProfilePreviewSheet = lazy(() => import("@/components/profile/ProfilePreviewSheet"));
 
@@ -278,33 +285,53 @@ export default function NotificationCenterPage() {
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_all_read" } });
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    toast.success("All notifications marked as read");
+    try {
+      await markAllNotificationsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      toast.success("All notifications marked as read");
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
   };
 
   const markRead = async (id: string) => {
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_id: id } });
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    try {
+      await markNotificationRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
   };
 
   const markReadMany = async (ids: string[]) => {
     if (!ids.length) return;
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_ids: ids } });
-    const set = new Set(ids);
-    setNotifications(prev => prev.map(n => set.has(n.id) ? { ...n, isRead: true } : n));
+    try {
+      await markNotificationsRead(ids);
+      const set = new Set(ids);
+      setNotifications(prev => prev.map(n => set.has(n.id) ? { ...n, isRead: true } : n));
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
   };
 
   const deleteNotif = async (id: string) => {
-    await supabase.functions.invoke("notification-manage", { body: { action: "delete", notification_id: id } });
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    try {
+      await deleteNotificationById(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
   };
 
   const deleteMany = async (ids: string[]) => {
     if (!ids.length) return;
-    await supabase.functions.invoke("notification-manage", { body: { action: "delete", notification_ids: ids } });
-    const set = new Set(ids);
-    setNotifications(prev => prev.filter(n => !set.has(n.id)));
+    try {
+      await deleteNotificationsById(ids);
+      const set = new Set(ids);
+      setNotifications(prev => prev.filter(n => !set.has(n.id)));
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
   };
 
   const sendReply = async () => {

@@ -15,6 +15,9 @@ export type AnalyticsProps = Record<string, unknown>;
 const QUEUE_KEY = "zivo:analytics_queue";
 const MAX_QUEUE = 200;
 const FLUSH_BATCH = 25;
+const ANALYTICS_EDGE_ENABLED =
+  ((import.meta as any).env?.MODE === "test") ||
+  ((import.meta as any).env?.VITE_ANALYTICS_EVENT_TRACK_ENABLED === "true");
 
 interface QueuedEvent {
   event_name: string;
@@ -66,18 +69,57 @@ function enqueue(ev: QueuedEvent) {
   }
 }
 
-async function writeAnalyticsEvent(payload: {
+export type AnalyticsEventPayload = {
   event_name: string;
   session_id?: string;
   page?: string | null;
   meta?: AnalyticsProps;
   created_at?: string;
-}) {
+  order_id?: string;
+  value?: number;
+  device_type?: string;
+  traffic_source?: string;
+  is_new_user?: boolean;
+  country?: string;
+};
+
+async function writeAnalyticsEvent(payload: AnalyticsEventPayload) {
   return supabase.functions.invoke("analytics-event-track", { body: payload });
+}
+
+export async function trackRawAnalyticsEvent(payload: AnalyticsEventPayload): Promise<void> {
+  if (!ANALYTICS_EDGE_ENABLED) {
+    enqueue({
+      event_name: payload.event_name,
+      properties: payload.meta ?? {},
+      created_at: payload.created_at ?? new Date().toISOString(),
+    });
+    return;
+  }
+
+  try {
+    const res = await writeAnalyticsEvent(payload);
+    if (res?.error) {
+      enqueue({
+        event_name: payload.event_name,
+        properties: payload.meta ?? {},
+        created_at: payload.created_at ?? new Date().toISOString(),
+      });
+    } else {
+      void flushQueue();
+    }
+  } catch {
+    enqueue({
+      event_name: payload.event_name,
+      properties: payload.meta ?? {},
+      created_at: payload.created_at ?? new Date().toISOString(),
+    });
+  }
 }
 
 let flushing = false;
 async function flushQueue() {
+  if (!ANALYTICS_EDGE_ENABLED) return;
   if (flushing) return;
   flushing = true;
   try {
@@ -165,25 +207,12 @@ export function track(event: string, props: AnalyticsProps = {}) {
   const page = typeof window !== "undefined" ? window.location.pathname : null;
 
   try {
-    void writeAnalyticsEvent({
+    void trackRawAnalyticsEvent({
       event_name: event,
       meta: properties,
       page,
       created_at,
-    })
-      .then(
-        (res: any) => {
-          if (res?.error) {
-            enqueue({ event_name: event, properties, created_at });
-          } else {
-            // Lazy drain on success.
-            void flushQueue();
-          }
-        },
-        () => {
-          enqueue({ event_name: event, properties, created_at });
-        },
-      );
+    });
   } catch {
     enqueue({ event_name: event, properties, created_at });
   }

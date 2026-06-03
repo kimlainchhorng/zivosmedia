@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { revokePushDevice } from "@/lib/notifications/pushDeviceManage";
 
 type DeviceType = "web" | "ios" | "android";
 
@@ -80,11 +81,13 @@ export default function PushDevicesPage() {
 
   const revoke = async (id: string) => {
     qc.setQueryData<PushRow[]>(["push-subscriptions-me", user?.id], (old) => (old ?? []).filter((s) => s.id !== id));
-    const { error } = await supabase.functions.invoke("push-device-manage", {
-      body: { action: "revoke", subscription_id: id },
-    });
-    if (error) { toast.error("Couldn't revoke"); qc.invalidateQueries({ queryKey: ["push-subscriptions-me", user?.id] }); }
-    else toast.success("Revoked");
+    try {
+      await revokePushDevice(id);
+      toast.success("Revoked");
+    } catch {
+      toast.error("Push device management is temporarily unavailable");
+      qc.invalidateQueries({ queryKey: ["push-subscriptions-me", user?.id] });
+    }
   };
 
   return (

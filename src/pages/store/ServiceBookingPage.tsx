@@ -17,6 +17,7 @@ import { CalendarIcon, ArrowLeft, Wrench, Car, User, Clock, CheckCircle2, Calend
 import { cn } from "@/lib/utils";
 import { getServiceImage } from "@/config/autoRepairServiceImages";
 import { getPublicOrigin } from "@/lib/getPublicOrigin";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 const TIME_SLOTS = [
   "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM",
@@ -399,7 +400,7 @@ export default function ServiceBookingPage() {
                     </p>
                     <Button
                       size="sm"
-                      onClick={() => navigate(`/auth?redirect=${encodeURIComponent(`/store/${slug}`)}`)}
+                      onClick={() => navigate(withRedirectParam("/signup", `/store/${slug}`))}
                       className="rounded-lg font-bold h-9"
                     >
                       Create Free Account

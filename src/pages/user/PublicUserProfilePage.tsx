@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
+import { withRedirectParam } from "@/lib/authRedirect";
 import UserPlus from "lucide-react/dist/esm/icons/user-plus";
 import UserCheck from "lucide-react/dist/esm/icons/user-check";
 import UserX from "lucide-react/dist/esm/icons/user-x";
@@ -306,7 +307,7 @@ export default function PublicUserProfilePage() {
                     </a>
                   )}
                   <button type="button"
-                    onClick={() => navigate(`/auth?redirect=${encodeURIComponent(`/user/${profile.user_id}`)}`)}
+                    onClick={() => navigate(withRedirectParam("/login", `/user/${profile.user_id}`))}
                     className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-semibold active:scale-[0.98]"
                   >
                     Sign in instead

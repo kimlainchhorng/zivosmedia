@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { inviteTalentToApply } from "@/lib/notifications/talentInviteNotification";
 
 type Talent = {
   user_id: string;
@@ -61,12 +62,14 @@ export default function FindTalentTab() {
     if (!user) return toast.error("You must be signed in.");
     if (inviting === t.user_id) return;
     setInviting(t.user_id);
-    const { error } = await supabase.functions.invoke("talent-invite-notification", {
-      body: { target_user_id: t.user_id },
-    });
-    setInviting(null);
-    if (error) return toast.error("Could not send invite.");
-    toast.success(`Invite sent to ${t.full_name ?? "talent"}`);
+    try {
+      await inviteTalentToApply({ target_user_id: t.user_id });
+      toast.success(`Invite sent to ${t.full_name ?? "talent"}`);
+    } catch {
+      toast.error("Talent invites are temporarily unavailable");
+    } finally {
+      setInviting(null);
+    }
   };
 
   return (

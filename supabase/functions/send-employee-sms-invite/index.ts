@@ -109,7 +109,8 @@ Deno.serve(withSecurity("send-employee-sms-invite", async (req, ctx) => {
     });
     if (insErr) return json(500, { error: "invite_insert_failed", detail: insErr.message }, inviteHeaders);
 
-    const link = `https://hizivo.com/auth/accept-invite?token=${inviteToken}`;
+    const appUrl = Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || "https://zivollc.com";
+    const link = `${appUrl}/auth/accept-invite?token=${inviteToken}`;
     const messageBody = `You're invited to join ${store.name || storeName} on ZIVO as ${role}. Set up your account: ${link}`;
 
     // Send via Twilio Messages API

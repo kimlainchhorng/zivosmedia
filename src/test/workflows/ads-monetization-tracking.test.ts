@@ -37,22 +37,23 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     const errorReporting = read("src/lib/security/errorReporting.ts");
     const analyticsGate = read("supabase/migrations/20260601010000_analytics_events_server_gate.sql");
     const analyticsFn = read("supabase/functions/analytics-event-track/index.ts");
+    const supabaseConfig = read("supabase/config.toml");
 
     expect(analytics).toContain('functions.invoke("analytics-event-track"');
     expect(analytics).toContain("event_id");
     expect(analytics).toContain("zivo:analytics_queue");
     expect(analytics).toContain("MAX_QUEUE = 200");
+    expect(analytics).toContain("VITE_ANALYTICS_EVENT_TRACK_ENABLED");
     expect(analytics).toContain("flushQueue");
+    expect(analytics).toContain("trackRawAnalyticsEvent");
     expect(analytics).toContain("online");
     expect(analytics).toContain("dedupeMs");
     expect(analytics).toContain("__resetAnalyticsDedupe");
     expect(analytics).not.toMatch(/from\("analytics_events"\)[\s\S]{0,120}\.insert/);
-    expect(eventTracking).toContain("analytics-event-track");
-    expect(eventTracking).toContain("isLocalTrackingFailure");
-    expect(eventTracking).toContain("Failed to send a request to the Edge Function");
+    expect(eventTracking).toContain("trackRawAnalyticsEvent");
     expect(eventTracking).not.toMatch(/from\('analytics_events'\)[\s\S]{0,120}\.insert/);
-    expect(affiliateTracking).toContain('functions.invoke("analytics-event-track"');
-    expect(errorReporting).toContain("analytics-event-track");
+    expect(affiliateTracking).toContain("trackRawAnalyticsEvent");
+    expect(errorReporting).toContain("trackRawAnalyticsEvent");
     expect(errorReporting).not.toMatch(/from\("analytics_events"\)[\s\S]{0,120}\.insert/);
     expect(analyticsGate).toContain('DROP POLICY IF EXISTS "Anyone can insert analytics events"');
     expect(analyticsGate).toContain('DROP POLICY IF EXISTS "analytics_insert_anon"');
@@ -63,6 +64,8 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     expect(analyticsFn).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(analyticsFn).toContain("MAX_META_JSON");
     expect(analyticsFn).toContain("strictCors: true");
+    expect(supabaseConfig).toContain("[functions.analytics-event-track]");
+    expect(supabaseConfig).toMatch(/\[functions\.analytics-event-track\]\s+verify_jwt = false/);
   });
 
   it("keeps Google Ads click conversion upload connected from frontend to Edge Function to audit log", () => {

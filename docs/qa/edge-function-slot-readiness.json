@@ -1,0 +1,124 @@
+{
+  "generated": "2026-06-03T21:59:24.137Z",
+  "mode": "local-plus-known-live-gap",
+  "counts": {
+    "configuredFunctions": 76,
+    "localConfiguredFunctions": 76,
+    "liveFunctions": null,
+    "knownMissingLiveFunctions": 6,
+    "criticalFunctions": 6,
+    "missingLiveCritical": 6,
+    "warnings": 1,
+    "failures": 0
+  },
+  "slotPolicy": {
+    "conservativeSlotLimit": 25,
+    "source": "Supabase hosted limits are plan-dependent; set SUPABASE_EDGE_FUNCTION_SLOT_LIMIT for the project plan.",
+    "deployBlocker": "Do not enable browser calls for a missing live function; resolve plan/spend-cap/function-slot capacity first."
+  },
+  "knownLiveGap": {
+    "path": "docs/qa/edge-function-live-gap-2026-06-03.json",
+    "generated": "2026-06-03T21:20:00.000Z",
+    "projectId": "slirphzzwcogdbkeicff",
+    "missing": [
+      "analytics-event-track",
+      "notification-manage",
+      "social-notification-manage",
+      "push-device-manage",
+      "talent-invite-notification",
+      "admin-broadcast-notification"
+    ]
+  },
+  "readiness": [
+    {
+      "slug": "analytics-event-track",
+      "why": "browser analytics telemetry",
+      "verifyJwt": false,
+      "configPresent": true,
+      "localPresent": true,
+      "livePresent": false,
+      "browserFeatureFlag": "VITE_ANALYTICS_EVENT_TRACK_ENABLED",
+      "envDefaults": {
+        ".env.example": "false",
+        ".env.deploy.example": "false"
+      }
+    },
+    {
+      "slug": "notification-manage",
+      "why": "notification read/delete/snooze mutations",
+      "verifyJwt": true,
+      "configPresent": true,
+      "localPresent": true,
+      "livePresent": false,
+      "browserFeatureFlag": "VITE_NOTIFICATION_MANAGE_ENABLED",
+      "envDefaults": {
+        ".env.example": "false",
+        ".env.deploy.example": "false"
+      }
+    },
+    {
+      "slug": "social-notification-manage",
+      "why": "social notification mutations",
+      "verifyJwt": true,
+      "configPresent": true,
+      "localPresent": true,
+      "livePresent": false,
+      "browserFeatureFlag": "VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED",
+      "envDefaults": {
+        ".env.example": "false",
+        ".env.deploy.example": "false"
+      }
+    },
+    {
+      "slug": "push-device-manage",
+      "why": "push device revocation",
+      "verifyJwt": true,
+      "configPresent": true,
+      "localPresent": true,
+      "livePresent": false,
+      "browserFeatureFlag": "VITE_PUSH_DEVICE_MANAGE_ENABLED",
+      "envDefaults": {
+        ".env.example": "false",
+        ".env.deploy.example": "false"
+      }
+    },
+    {
+      "slug": "talent-invite-notification",
+      "why": "talent invite notification creation",
+      "verifyJwt": true,
+      "configPresent": true,
+      "localPresent": true,
+      "livePresent": false,
+      "browserFeatureFlag": "VITE_TALENT_INVITE_NOTIFICATION_ENABLED",
+      "envDefaults": {
+        ".env.example": "false",
+        ".env.deploy.example": "false"
+      }
+    },
+    {
+      "slug": "admin-broadcast-notification",
+      "why": "admin broadcast notification creation",
+      "verifyJwt": true,
+      "configPresent": true,
+      "localPresent": true,
+      "livePresent": false,
+      "browserFeatureFlag": "VITE_ADMIN_BROADCAST_NOTIFICATION_ENABLED",
+      "envDefaults": {
+        ".env.example": "false",
+        ".env.deploy.example": "false"
+      }
+    }
+  ],
+  "missingLiveCritical": [
+    "analytics-event-track",
+    "notification-manage",
+    "social-notification-manage",
+    "push-device-manage",
+    "talent-invite-notification",
+    "admin-broadcast-notification"
+  ],
+  "warnings": [
+    "using known live-gap artifact docs/qa/edge-function-live-gap-2026-06-03.json; replace with --live-snapshot after the next Supabase deploy"
+  ],
+  "failures": []
+}

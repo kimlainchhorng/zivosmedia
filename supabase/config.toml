@@ -103,6 +103,18 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.meta-conversion-handler]
     verify_jwt = false
+  [functions.analytics-event-track]
+    verify_jwt = false
+  [functions.notification-manage]
+    verify_jwt = true
+  [functions.social-notification-manage]
+    verify_jwt = true
+  [functions.push-device-manage]
+    verify_jwt = true
+  [functions.talent-invite-notification]
+    verify_jwt = true
+  [functions.admin-broadcast-notification]
+    verify_jwt = true
   [functions.marketing-event-track]
     verify_jwt = false
   [functions.notifications-summary]

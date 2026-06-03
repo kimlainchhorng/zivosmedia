@@ -32,6 +32,9 @@ describe("client, staff, and employee workflow", () => {
   it("keeps invite acceptance authenticated and routed to the workplace", () => {
     const app = read("src/App.tsx");
     const acceptInvite = read("src/pages/auth/AcceptInvitePage.tsx");
+    const employeeInviteTemplate = read("supabase/functions/_shared/transactional-email-templates/employee-invite.tsx");
+    const adminEmployees = read("src/pages/admin/AdminEmployeesPage.tsx");
+    const contract = read("scripts/qa/client-staff-contracts.mjs");
     const inviteMigration = read(
       "supabase/migrations/20260428032513_d1827e5d-276e-4738-bf5f-7cbfee35c8a4.sql",
     );
@@ -39,8 +42,16 @@ describe("client, staff, and employee workflow", () => {
     expect(app).toContain('path="/auth/accept-invite"');
     expect(app).toContain('path="/personal-dashboard"');
     expect(acceptInvite).toContain("claim_employee_invite");
-    expect(acceptInvite).toContain("/auth?next=");
+    expect(acceptInvite).toContain('from "@/lib/authRedirect"');
+    expect(acceptInvite).toContain('withRedirectParam("/login", inviteReturnPath)');
+    expect(acceptInvite).not.toContain("/auth?next=");
     expect(acceptInvite).toContain("navigate(\"/personal-dashboard\")");
+    expect(contract).toContain('withRedirectParam("/login", inviteReturnPath)');
+    expect(contract).not.toContain('"/auth?next="');
+    expect(employeeInviteTemplate).toContain("https://zivollc.com/login?redirect=%2Fpersonal-dashboard");
+    expect(employeeInviteTemplate).not.toContain("https://hizivo.com/auth");
+    expect(adminEmployees).toContain('const ADMIN_EMPLOYEE_LOGIN_URL = "https://zivollc.com/login?redirect=%2Fpersonal-dashboard";');
+    expect(adminEmployees).not.toContain("https://hizivo.com/auth");
 
     expect(inviteMigration).toContain("CREATE TABLE IF NOT EXISTS public.store_employee_invites");
     expect(inviteMigration).toContain("token text NOT NULL UNIQUE");
@@ -85,7 +96,11 @@ describe("client, staff, and employee workflow", () => {
       expect(source).toContain("store.owner_id !== user.id");
       expect(source).toContain("not_store_owner");
       expect(source).toContain(".from(\"store_employee_invites\")");
+      expect(source).toContain('Deno.env.get("PUBLIC_APP_URL")');
+      expect(source).toContain('Deno.env.get("SITE_URL")');
+      expect(source).toContain('"https://zivollc.com"');
       expect(source).toContain("/auth/accept-invite?token=");
+      expect(source).not.toContain("https://hizivo.com/auth");
     }
 
     expect(smsInvite).toContain("rate_limited");

@@ -62,6 +62,13 @@ const emptyStore = {
 
 const PROTECTED_THIRD_PARTY_MEDIA_RE = /(^https?:\/\/)?([^/]+\.)?(booking\.com|bstatic\.com)\//i;
 const BOOKING_PROFILE_THUMB_RE = /\/xdata\/images\/hotel\/square240\//i;
+const PARTNER_LOGIN_BASE_URL = "https://zivollc.com/partner-login";
+const PARTNER_SUPPORT_URL = "https://zivollc.com/help";
+
+function getPartnerLoginUrl(storeAccountId: string) {
+  const params = new URLSearchParams({ store_id: storeAccountId });
+  return `${PARTNER_LOGIN_BASE_URL}?${params.toString()}`;
+}
 
 function mediaRefUrl(entry: unknown): string | null {
   if (!entry) return null;
@@ -371,7 +378,7 @@ export default function AdminStoresPage() {
 
       // Send invite email with store login link
       const storeAccountId = getStoreAccountId(ownerDialog.storeId);
-      const loginUrl = `https://hizivo.com/partner-login?store_id=${storeAccountId}`;
+      const loginUrl = getPartnerLoginUrl(storeAccountId);
       try {
         await supabase.functions.invoke("send-transactional-email", {
           body: {
@@ -382,7 +389,7 @@ export default function AdminStoresPage() {
               storeName: ownerDialog.storeName,
               storeAccountId,
               loginUrl,
-              supportUrl: "https://hizivo.com/help",
+              supportUrl: PARTNER_SUPPORT_URL,
             },
           },
         });
@@ -403,7 +410,7 @@ export default function AdminStoresPage() {
 
   const handleCopyInviteLink = () => {
     if (!inviteDialog) return;
-    const link = `https://hizivo.com/partner-login?store_id=${inviteDialog.storeAccountId}`;
+    const link = getPartnerLoginUrl(inviteDialog.storeAccountId);
     navigator.clipboard.writeText(link);
     setInviteCopied(true);
     toast.success("Invite link copied!");
@@ -979,7 +986,7 @@ export default function AdminStoresPage() {
               <div className="flex gap-2">
                 <Input
                   readOnly
-                  value={inviteDialog ? `https://hizivo.com/partner-login?store_id=${inviteDialog.storeAccountId}` : ""}
+                  value={inviteDialog ? getPartnerLoginUrl(inviteDialog.storeAccountId) : ""}
                   className="text-xs font-mono"
                 />
                 <Button size="sm" variant="outline" onClick={handleCopyInviteLink} className="shrink-0 gap-1.5">

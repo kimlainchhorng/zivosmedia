@@ -5,6 +5,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToPooledPostgresChanges } from '@/services/chatRealtimePool';
+import {
+  clearInAppNotifications,
+  deleteNotificationsById,
+  markAllNotificationsRead,
+  markNotificationsRead,
+  snoozeNotificationById,
+} from '@/lib/notifications/notificationManage';
 
 const NOTIFICATIONS_MARK_ALL_READ_EVENT = 'zivo:notifications:mark-all-read';
 
@@ -103,11 +110,7 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     setUnreadCount(prev => Math.max(0, prev - unreadDelta));
 
     try {
-      const { error: updateError } = await supabase.functions.invoke('notification-manage', {
-        body: { action: 'mark_read', notification_ids: notificationIds },
-      });
-
-      if (updateError) throw updateError;
+      await markNotificationsRead(notificationIds);
     } catch (err: any) {
       // Rollback on failure
       setNotifications(prevSnapshot);
@@ -126,11 +129,7 @@ export function useNotifications(limit = 50): UseNotificationsResult {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) return;
 
-      const { error: updateError } = await supabase.functions.invoke('notification-manage', {
-        body: { action: 'mark_all_read' },
-      });
-
-      if (updateError) throw updateError;
+      await markAllNotificationsRead();
 
       // Update local state
       setNotifications(prev => 
@@ -168,10 +167,7 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     setUnreadCount(prev => Math.max(0, prev - removedUnread));
 
     try {
-      const { error: delError } = await supabase.functions.invoke('notification-manage', {
-        body: { action: 'delete', notification_ids: notificationIds },
-      });
-      if (delError) throw delError;
+      await deleteNotificationsById(notificationIds);
     } catch (err: any) {
       setNotifications(prevSnapshot);
       setUnreadCount(prev => prev + removedUnread);
@@ -206,11 +202,9 @@ export function useNotifications(limit = 50): UseNotificationsResult {
       setNotifications([]);
       setUnreadCount(0);
 
-      const { error: delError } = await supabase.functions.invoke('notification-manage', {
-        body: { action: 'clear_in_app' },
-      });
-
-      if (delError) {
+      try {
+        await clearInAppNotifications();
+      } catch (delError) {
         setNotifications(prevSnapshot);
         setUnreadCount(prevSnapshot.filter(n => !n.is_read).length);
         throw delError;
@@ -241,10 +235,7 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
 
     try {
-      const { error: updErr } = await supabase.functions.invoke('notification-manage', {
-        body: { action: 'snooze', notification_id: notificationId, snoozed_until: until },
-      });
-      if (updErr) throw updErr;
+      await snoozeNotificationById(notificationId, until);
 
       const minutes = Math.round(durationMs / 60000);
       const label = minutes >= 60

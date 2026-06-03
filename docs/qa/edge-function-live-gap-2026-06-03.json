@@ -1,0 +1,43 @@
+{
+  "generated": "2026-06-03T21:20:00.000Z",
+  "projectId": "slirphzzwcogdbkeicff",
+  "source": "Supabase MCP get_edge_function checks",
+  "criticalFunctions": [
+    {
+      "slug": "analytics-event-track",
+      "liveStatus": "not_found",
+      "impact": "browser analytics stays queued while VITE_ANALYTICS_EVENT_TRACK_ENABLED=false"
+    },
+    {
+      "slug": "notification-manage",
+      "liveStatus": "not_found",
+      "impact": "new notification mutation helper cannot be enabled against production until deployed"
+    },
+    {
+      "slug": "social-notification-manage",
+      "liveStatus": "not_found",
+      "impact": "social notification mutation endpoint must be deployed before production traffic uses it"
+    },
+    {
+      "slug": "push-device-manage",
+      "liveStatus": "not_found",
+      "impact": "server-side push device revocation endpoint must be deployed before production traffic uses it"
+    },
+    {
+      "slug": "talent-invite-notification",
+      "liveStatus": "not_found",
+      "impact": "talent invite notification creation endpoint must be deployed before production traffic uses it"
+    },
+    {
+      "slug": "admin-broadcast-notification",
+      "liveStatus": "not_found",
+      "impact": "admin broadcast notification creation endpoint must be deployed before production traffic uses it"
+    }
+  ],
+  "requiredBeforeEnablement": [
+    "Resolve Supabase hosted function capacity or spend-cap blocker.",
+    "Deploy the six critical functions with the verify_jwt values declared in supabase/config.toml.",
+    "Run OPTIONS and POST smoke checks for each function.",
+    "Only then enable any browser feature flag or production traffic path that depends on these functions."
+  ]
+}

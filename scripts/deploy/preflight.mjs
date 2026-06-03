@@ -18,6 +18,8 @@ const skipBuild = args.has("--skip-build");
 const skipTypeCheck = args.has("--skip-type-check");
 const reportPath = path.join(root, "docs", "production-preflight-report.md");
 const reportJsonPath = path.join(root, "docs", "production-preflight-summary.json");
+const npmCommand = process.platform === "win32" ? "cmd.exe" : "npm";
+const npmArgsPrefix = process.platform === "win32" ? ["/d", "/s", "/c", "npm"] : [];
 
 const results = [];
 
@@ -67,7 +69,7 @@ function runStep(id, title, command, commandArgs, options = {}) {
   results.push({
     id,
     title,
-    command: commandLabel(command, commandArgs),
+    command: options.label ?? commandLabel(command, commandArgs),
     status: result.status === 0 ? "passed" : "failed",
     failureMeta,
     output,
@@ -122,7 +124,7 @@ function artifactSummary(meta) {
   };
 }
 
-function renderMachineSummary({ api, database, drift, env, runtimeSettings, productionBlockers, currentGateBlockers, failedCommands }) {
+function renderMachineSummary({ api, database, drift, env, runtimeSettings, edgeDeploy, edgeSlots, edgeBrowser, productionBlockers, currentGateBlockers, failedCommands }) {
   const artifacts = {
     markdown: rel(reportPath),
     json: rel(reportJsonPath),
@@ -157,6 +159,9 @@ function renderMachineSummary({ api, database, drift, env, runtimeSettings, prod
       environmentWarnings: env?.warnings ?? null,
       databaseBlockers: database?.blockers ?? null,
       databaseWarnings: database?.warnings ?? null,
+      edgeFunctionDeployFailures: edgeDeploy?.counts?.failures ?? null,
+      edgeFunctionMissingLiveCritical: edgeSlots?.counts?.missingLiveCritical ?? null,
+      edgeFunctionBrowserGateFailures: edgeBrowser?.counts?.failures ?? null,
       failedCommands: failedCommands.length,
       productionBlockers: productionBlockers.length,
       currentGateBlockers: currentGateBlockers.length,
@@ -184,6 +189,15 @@ function renderMachineSummary({ api, database, drift, env, runtimeSettings, prod
       reviewBuckets: reconciliation.reviewBuckets,
     },
     pendingMigrationGates: drift?.pendingLocalRiskGates ?? null,
+    edgeFunctions: {
+      deployContractFailures: edgeDeploy?.counts?.failures ?? null,
+      slotReadinessMode: edgeSlots?.mode ?? null,
+      missingLiveCritical: edgeSlots?.missingLiveCritical ?? null,
+      slotReadinessWarnings: edgeSlots?.counts?.warnings ?? null,
+      slotReadinessFailures: edgeSlots?.counts?.failures ?? null,
+      browserGateFailures: edgeBrowser?.counts?.failures ?? null,
+      browserGatedFunctions: edgeBrowser?.counts?.gatedFunctions ?? null,
+    },
     blockers: {
       production: productionBlockers,
       currentGate: currentGateBlockers,
@@ -295,7 +309,7 @@ function reconciliationSummary(drift) {
   };
 }
 
-function renderReport({ api, database, drift, env, runtimeSettings, productionBlockers, currentGateBlockers, failedCommands }) {
+function renderReport({ api, database, drift, env, runtimeSettings, edgeDeploy, edgeSlots, edgeBrowser, productionBlockers, currentGateBlockers, failedCommands }) {
   const reconciliation = reconciliationSummary(drift);
   const reconciliationReviewOrder = reconciliation.reviewBuckets.map((bucket) => `${bucket.label} (${bucket.count})`).join(" -> ");
   const lines = [
@@ -323,6 +337,9 @@ function renderReport({ api, database, drift, env, runtimeSettings, productionBl
     `- Environment readiness: critical=${env?.critical ?? "unknown"}, warnings=${env?.warnings ?? "unknown"}`,
     `- Runtime settings SQL: ${runtimeSettings?.status ?? "unknown"}`,
     `- Database readiness: blockers=${database?.blockers ?? "unknown"}, warnings=${database?.warnings ?? "unknown"}`,
+    `- Edge Function deploy contracts: failures=${edgeDeploy?.counts?.failures ?? "unknown"}`,
+    `- Edge Function slot readiness: mode=${edgeSlots?.mode ?? "unknown"}, missingLiveCritical=${edgeSlots?.counts?.missingLiveCritical ?? "unknown"}, warnings=${edgeSlots?.counts?.warnings ?? "unknown"}, failures=${edgeSlots?.counts?.failures ?? "unknown"}`,
+    `- Edge Function browser gates: gatedFunctions=${edgeBrowser?.counts?.gatedFunctions ?? "unknown"}, failures=${edgeBrowser?.counts?.failures ?? "unknown"}`,
     `- Supabase auth: envAccessToken=${env?.checked?.supabaseAccessToken ? "yes" : "no"}, driftAccessToken=${drift?.supabaseAccessToken ? "yes" : "no"}`,
     `- Supabase remote migration history read: ${drift && !drift.remoteError ? "yes" : "no"}`,
     `- Supabase remote migration history status: ${remoteMigrationHistoryStatus(drift)}`,
@@ -406,8 +423,9 @@ function renderReport({ api, database, drift, env, runtimeSettings, productionBl
 runStep(
   "secrets",
   "Security scan",
-  "npm",
-  ["run", "security:scan"],
+  npmCommand,
+  [...npmArgsPrefix, "run", "security:scan"],
+  { label: "npm run security:scan" },
 );
 
 const env = runStep(
@@ -447,6 +465,30 @@ const api = runStep(
   "API readiness",
   "node",
   ["scripts/security/api-readiness-check.mjs", "--write-report"],
+  { capture: true, parseJson: true },
+);
+
+const edgeDeploy = runStep(
+  "edge-function-deploy-contracts",
+  "Edge Function deploy contracts",
+  "node",
+  ["scripts/qa/edge-function-deploy-contracts.mjs"],
+  { capture: true, parseJson: true },
+);
+
+const edgeSlots = runStep(
+  "edge-function-slot-readiness",
+  "Edge Function slot readiness",
+  "node",
+  ["scripts/qa/edge-function-slot-readiness.mjs", "--write-report"],
+  { capture: true, parseJson: true },
+);
+
+const edgeBrowser = runStep(
+  "edge-function-browser-gates",
+  "Edge Function browser gates",
+  "node",
+  ["scripts/qa/edge-function-browser-gates.mjs"],
   { capture: true, parseJson: true },
 );
 
@@ -498,6 +540,9 @@ writeFileSync(
     drift,
     env,
     runtimeSettings,
+    edgeDeploy,
+    edgeSlots,
+    edgeBrowser,
     productionBlockers,
     currentGateBlockers: hardBlockers,
     failedCommands,
@@ -512,6 +557,9 @@ writeMachineSummary(
     drift,
     env,
     runtimeSettings,
+    edgeDeploy,
+    edgeSlots,
+    edgeBrowser,
     productionBlockers,
     currentGateBlockers: hardBlockers,
     failedCommands,

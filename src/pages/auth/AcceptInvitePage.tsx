@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 export default function AcceptInvitePage() {
   const [params] = useSearchParams();
@@ -23,8 +24,8 @@ export default function AcceptInvitePage() {
       return;
     }
     if (!user) {
-      // Send to /auth, preserve intent
-      navigate(`/auth?next=${encodeURIComponent(`/auth/accept-invite?token=${token}`)}`, { replace: true });
+      const inviteReturnPath = `/auth/accept-invite?${new URLSearchParams({ token }).toString()}`;
+      navigate(withRedirectParam("/login", inviteReturnPath), { replace: true });
       return;
     }
     (async () => {

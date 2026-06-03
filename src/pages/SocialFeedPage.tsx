@@ -55,6 +55,7 @@ import { copyText } from "@/lib/native/clipboard";
 import { normalizeSupabaseMediaUrl } from "@/utils/normalizeSupabaseMediaUrl";
 import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
 import { reportFeedQueryError } from "@/lib/feedQueryTelemetry";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 const FeedStoryRing = lazy(() => import("@/components/social/FeedStoryRing"));
 const ZivoMobileNav = lazy(() => import("@/components/app/ZivoMobileNav"));
@@ -248,7 +249,7 @@ export default function SocialFeedPage() {
   }, [feedError, hasFeedError, tab, user?.id]);
 
   const goAuth = () => {
-    navigate("/auth?next=" + encodeURIComponent("/feed"));
+    navigate(withRedirectParam("/login", "/feed"));
   };
 
   return (
@@ -541,7 +542,7 @@ function PostFooter({ post }: { post: FeedPost }) {
     setSaved(!!post.viewer_has_saved);
   }, [post.id, post.viewer_has_liked, post.viewer_has_saved]);
 
-  const goAuth = () => navigate("/auth?next=" + encodeURIComponent("/feed"));
+  const goAuth = () => navigate(withRedirectParam("/login", "/feed"));
 
   const handleLike = async () => {
     if (!user?.id) return goAuth();
@@ -785,7 +786,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   };
 
   const handleHidePost = async () => {
-    if (!user?.id) return navigate("/auth?next=" + encodeURIComponent("/feed"));
+    if (!user?.id) return navigate(withRedirectParam("/login", "/feed"));
     try {
       const { error } = await (supabase as any)
         .from("hidden_posts")
@@ -801,7 +802,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   };
 
   const handleMuteAuthor = async () => {
-    if (!user?.id) return navigate("/auth?next=" + encodeURIComponent("/feed"));
+    if (!user?.id) return navigate(withRedirectParam("/login", "/feed"));
     try {
       const { error } = await (supabase as any)
         .from("muted_users")
@@ -817,7 +818,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   };
 
   const handleReport = async () => {
-    if (!user?.id) return navigate("/auth?next=" + encodeURIComponent("/feed"));
+    if (!user?.id) return navigate(withRedirectParam("/login", "/feed"));
     const reason = window.prompt("Why are you reporting this post?");
     if (!reason || !reason.trim()) return;
     try {
@@ -1096,7 +1097,7 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
   if (isSelf || isBusiness === null || following === null || friendStatus === null) return null;
 
   const handleFollow = async () => {
-    if (!user?.id) { navigate("/auth?next=" + encodeURIComponent("/feed")); return; }
+    if (!user?.id) { navigate(withRedirectParam("/login", "/feed")); return; }
     if (followBusy) return;
     setFollowBusy(true);
     const wasFollowing = following;
@@ -1140,7 +1141,7 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
   };
 
   const handleFriend = async () => {
-    if (!user?.id) { navigate("/auth?next=" + encodeURIComponent("/feed")); return; }
+    if (!user?.id) { navigate(withRedirectParam("/login", "/feed")); return; }
     if (friendBusy) return;
     setFriendBusy(true);
     const prev = friendStatus;

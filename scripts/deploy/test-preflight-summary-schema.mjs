@@ -30,6 +30,9 @@ const requiredStepIds = [
   "migration-drift",
   "database-upgrade",
   "api-readiness",
+  "edge-function-deploy-contracts",
+  "edge-function-slot-readiness",
+  "edge-function-browser-gates",
   "media-readiness",
 ];
 const requiredStepTitles = {
@@ -112,6 +115,7 @@ if (!existsSync(summaryPath)) {
     if (!isPlainObject(summary.options)) fail("options must be an object.");
     if (!isPlainObject(summary.supabase)) fail("supabase must be an object.");
     if (!isPlainObject(summary.reconciliation)) fail("reconciliation must be an object.");
+    if (!isPlainObject(summary.edgeFunctions)) fail("edgeFunctions must be an object.");
     if (!isPlainObject(summary.blockers)) fail("blockers must be an object.");
     if (!isPlainObject(summary.artifacts)) fail("artifacts must be an object.");
     if (!isPlainObject(summary.artifactMeta)) fail("artifactMeta must be an object.");
@@ -208,6 +212,26 @@ if (!existsSync(summaryPath)) {
           const expectedCount = summary.reconciliation[expectedReconciliationReviewBucketCountKeys[index]];
           if (bucket.count !== expectedCount) fail(`reconciliation.reviewBuckets[${index}].count must be ${expectedCount}.`);
         }
+      }
+    }
+
+    if (summary.edgeFunctions) {
+      for (const key of [
+        "deployContractFailures",
+        "slotReadinessWarnings",
+        "slotReadinessFailures",
+        "browserGateFailures",
+        "browserGatedFunctions",
+      ]) {
+        if (summary.edgeFunctions[key] !== null && typeof summary.edgeFunctions[key] !== "number") {
+          fail(`edgeFunctions.${key} must be number or null.`);
+        }
+      }
+      if (summary.edgeFunctions.slotReadinessMode !== null && typeof summary.edgeFunctions.slotReadinessMode !== "string") {
+        fail("edgeFunctions.slotReadinessMode must be string or null.");
+      }
+      if (summary.edgeFunctions.missingLiveCritical !== null && !Array.isArray(summary.edgeFunctions.missingLiveCritical)) {
+        fail("edgeFunctions.missingLiveCritical must be an array or null.");
       }
     }
 

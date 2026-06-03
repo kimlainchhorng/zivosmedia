@@ -24,6 +24,7 @@ type Employee = {
 };
 
 const STAFF_ROLES = ["admin", "moderator", "support", "operations"] as const;
+const ADMIN_EMPLOYEE_LOGIN_URL = "https://zivollc.com/login?redirect=%2Fpersonal-dashboard";
 
 export default function AdminEmployeesPage() {
   const queryClient = useQueryClient();
@@ -126,7 +127,7 @@ export default function AdminEmployeesPage() {
             templateData: {
               email: normalizedEmail,
               role,
-              loginUrl: "https://hizivo.com/auth",
+              loginUrl: ADMIN_EMPLOYEE_LOGIN_URL,
             },
           },
         });
@@ -157,7 +158,7 @@ export default function AdminEmployeesPage() {
         body: {
           templateName: "employee-invite",
           recipientEmail: inv.email,
-          templateData: { email: inv.email, role: inv.role, loginUrl: "https://hizivo.com/auth" },
+          templateData: { email: inv.email, role: inv.role, loginUrl: ADMIN_EMPLOYEE_LOGIN_URL },
         },
       });
     },

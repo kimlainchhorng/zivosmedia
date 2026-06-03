@@ -4,11 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import type { Database } from './types';
 
-const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
-const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fg8w8pb-X7w_UMuohTrcgw_zVVgVurY";
-
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 const REMEMBER_ME_KEY = "zivo_remember_me";
 const SUPABASE_PROJECT_REF =
   import.meta.env.VITE_SUPABASE_PROJECT_ID ||

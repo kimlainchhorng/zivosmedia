@@ -140,7 +140,8 @@ describe("deploy workflow gates", () => {
     const rotationRunbook = read("docs/supabase-secret-rotation-runbook.md");
 
     expect(packageJson.scripts["deploy:production-relevance"]).toBe("node scripts/deploy/production-deploy-relevance.mjs");
-    expect(packageJson.scripts["release:gate"]).toBe("npm run deploy:preflight:test-summary-schema && npm run deploy:preflight:check-artifacts && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run security:scan");
+    expect(packageJson.scripts["release:gate"]).toBe("npm run deploy:preflight:test-summary-schema && npm run deploy:preflight:check-artifacts && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run qa:edge-function-deploy-contracts && npm run qa:edge-function-slot-readiness && npm run qa:edge-function-browser-gates && npm run security:scan");
+    expect(packageJson.scripts["release:gate"]).toContain("npm run qa:edge-function-browser-gates");
     expect(packageJson.scripts["release:production-gate"]).toBe("npm run release:gate && npm run deploy:preflight:check-production-summary");
     expect(packageJson.scripts["security:check-secrets:local"]).toBe("node scripts/security/check-secrets.mjs --include-local-env");
     expect(packageJson.scripts["security:check-supabase-token-fragments"]).toBe("node scripts/security/check-supabase-token-fragments.mjs");

@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useWebPush } from "@/hooks/useWebPush";
+import { markNotificationRead, markNotificationsRead } from "@/lib/notifications/notificationManage";
 
 const PUSH_DISMISS_KEY = "zivo_push_dismissed";
 const PUSH_DISMISS_MAX = 3;
@@ -333,21 +334,29 @@ export default function PersonalNotificationsPage() {
   });
 
   const markRead = async (id: string) => {
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_id: id } });
-    queryClient.invalidateQueries({ queryKey: ["personal-notifications-list"] });
-    queryClient.invalidateQueries({ queryKey: ["personal-dashboard-recent-notifs"] });
-    queryClient.invalidateQueries({ queryKey: ["personal-dashboard-stats"] });
+    try {
+      await markNotificationRead(id);
+      queryClient.invalidateQueries({ queryKey: ["personal-notifications-list"] });
+      queryClient.invalidateQueries({ queryKey: ["personal-dashboard-recent-notifs"] });
+      queryClient.invalidateQueries({ queryKey: ["personal-dashboard-stats"] });
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
   };
 
   const markAllRead = async () => {
     if (!user) return;
     const unread = (notifs ?? []).filter((n) => !n.is_read).map((n) => n.id);
     if (unread.length === 0) return;
-    await supabase.functions.invoke("notification-manage", { body: { action: "mark_read", notification_ids: unread } });
-    queryClient.invalidateQueries({ queryKey: ["personal-notifications-list"] });
-    queryClient.invalidateQueries({ queryKey: ["personal-dashboard-recent-notifs"] });
-    queryClient.invalidateQueries({ queryKey: ["personal-dashboard-stats"] });
-    toast.success(`Marked ${unread.length} as read`);
+    try {
+      await markNotificationsRead(unread);
+      queryClient.invalidateQueries({ queryKey: ["personal-notifications-list"] });
+      queryClient.invalidateQueries({ queryKey: ["personal-dashboard-recent-notifs"] });
+      queryClient.invalidateQueries({ queryKey: ["personal-dashboard-stats"] });
+      toast.success(`Marked ${unread.length} as read`);
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
   };
 
   const grouped = useMemo(() => {

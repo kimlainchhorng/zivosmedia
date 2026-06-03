@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { format, addDays, differenceInDays } from "date-fns";
 import { useP2PVehicleDetail, useBookingPricing, useVehicleReviews } from "@/hooks/useP2PBooking";
 import { useAuth } from "@/contexts/AuthContext";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 export default function CarDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -98,7 +99,7 @@ export default function CarDetailPage() {
 
   const handleBookNow = () => {
     if (!user) {
-      navigate(`/auth?redirect=/cars/${id}`);
+      navigate(withRedirectParam("/login", `/cars/${id}`));
       return;
     }
     navigate(`/cars/${id}/checkout?pickup=${format(pickupDate!, "yyyy-MM-dd")}&return=${format(returnDate!, "yyyy-MM-dd")}`);

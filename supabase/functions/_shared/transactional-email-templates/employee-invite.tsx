@@ -88,7 +88,7 @@ const footer = {
 function EmployeeInviteEmail({
   email = 'employee@example.com',
   role = 'support',
-  loginUrl = 'https://hizivo.com/auth',
+  loginUrl = 'https://zivollc.com/login?redirect=%2Fpersonal-dashboard',
 }: EmployeeInviteProps) {
   return (
     <Html>
@@ -131,6 +131,6 @@ export const template: TemplateEntry<EmployeeInviteProps> = {
   previewData: {
     email: 'newemployee@example.com',
     role: 'moderator',
-    loginUrl: 'https://hizivo.com/auth',
+    loginUrl: 'https://zivollc.com/login?redirect=%2Fpersonal-dashboard',
   },
 }

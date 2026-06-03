@@ -1,23 +1,23 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-01T04:21:28.560Z
+Generated: 2026-06-03T21:46:24.027Z
 
 ## Summary
 
 - Supabase CLI: 2.100.0
-- Local migrations: 1048
+- Local migrations: 1073
 - Invalid migration filenames: 0
-- Duplicate migration versions: 0
+- Duplicate migration versions: 4
 - Allowed legacy duplicate migration versions: 0
-- New duplicate migration versions: 0
+- New duplicate migration versions: 4
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1048, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1048, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-06-01T04:21:28.194Z
-- Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Last linked drift report: local=1073, remote=1515, matched=0, near5s=585, near60s=616, oneToOne5s=584, oneToOne60s=614, unmatchedLocal=459, unmatchedRemote=901, localAfterRemoteRange=15, sharedDays=86, remoteError=no, generated=2026-06-03T21:46:22.957Z
+- Pending local migration gates: createsTables=2, withoutRls=0, withoutGrants=1, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=1, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 892
+- Public tables created in migrations: 899
 - Public tables needing RLS review: 0
-- Recent public tables needing Data API grant review: 0
+- Recent public tables needing Data API grant review: 7
 - Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
 - Hardcoded Supabase URLs in migrations: 35
@@ -30,15 +30,19 @@ Generated: 2026-06-01T04:21:28.560Z
 
 ## Blockers
 
-- None
+- 4 new duplicate migration version(s) need reconciliation before db push/pull.
+- Local and remote migration histories have zero exact matches, with near-timestamp pairs indicating version-id drift.
 
 ## Warnings
 
-- None
+- 7 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
 
 ## Duplicate Versions
 
-- None
+- 20260601000000: 20260601000000_revoke_anon_execute_admin_rpcs.sql, 20260601000000_salon_color_formulas.sql (needs reconciliation)
+- 20260601194500: 20260601194500_bus_booking_schema.sql, 20260601194500_car_rental_reservations_server_gate.sql (needs reconciliation)
+- 20260601210000: 20260601210000_bus_my_bookings_rpc.sql, 20260601210000_car_dealership_expenses_server_gate.sql (needs reconciliation)
+- 20260601211500: 20260601211500_car_dealership_financing_server_gate.sql, 20260601211500_fix_bus_rls_store_owner.sql (needs reconciliation)
 
 ## Postgres 17 Extension Review
 
@@ -50,7 +54,13 @@ Generated: 2026-06-01T04:21:28.560Z
 
 ## Data API Grant Review Candidates
 
-- None
+- bus_routes: supabase/migrations/20260601194500_bus_booking_schema.sql
+- bus_trips: supabase/migrations/20260601194500_bus_booking_schema.sql
+- bus_bookings: supabase/migrations/20260601194500_bus_booking_schema.sql
+- channel_removed_users: supabase/migrations/20260602033500_add_channel_removed_users.sql
+- channel_admin_log: supabase/migrations/20260602034000_add_channel_admin_log.sql
+- channel_invite_links: supabase/migrations/20260602035000_add_channel_invite_links.sql
+- channel_permission_exceptions: supabase/migrations/20260611000500_add_channel_permission_exceptions.sql
 
 ## View Review Candidates
 

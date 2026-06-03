@@ -12,6 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Bell, Send, Users, CheckCircle2, Loader2, Radio } from "lucide-react";
 import { toast } from "sonner";
+import {
+  previewAdminBroadcastAudience,
+  sendAdminBroadcastNotification,
+} from "@/lib/notifications/adminBroadcastNotification";
 
 const ROLES = ["all", "user", "driver", "merchant", "admin"] as const;
 
@@ -47,11 +51,10 @@ export default function AdminBroadcastPage() {
   const getAudiencePreview = async () => {
     setPreviewing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-broadcast-notification", {
-        body: { action: "preview", role },
-      });
-      if (error) throw error;
+      const data = await previewAdminBroadcastAudience(role);
       setPreview(data?.count ?? 0);
+    } catch (e: any) {
+      toast.error(e.message || "Broadcast preview is temporarily unavailable");
     } finally {
       setPreviewing(false);
     }
@@ -64,16 +67,12 @@ export default function AdminBroadcastPage() {
     }
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-broadcast-notification", {
-        body: {
-          action: "send",
-          title,
-          body,
-          role,
-          channel,
-        },
+      const data = await sendAdminBroadcastNotification({
+        title,
+        body,
+        role,
+        channel,
       });
-      if (error) throw error;
 
       qc.invalidateQueries({ queryKey: ["admin-broadcasts"] });
       toast.success(`Broadcast queued for ${data?.count ?? 0} users`);

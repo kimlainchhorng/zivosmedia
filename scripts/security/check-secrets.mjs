@@ -77,7 +77,7 @@ function isLocalEnvFile(name) {
 function walk(dir) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
-    const rel = full.slice(ROOT.length + 1);
+    const rel = full.slice(ROOT.length + 1).replace(/\\/g, "/");
     let stats;
     try { stats = statSync(full); } catch { continue; }
     if (stats.isDirectory()) {

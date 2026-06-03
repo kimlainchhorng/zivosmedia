@@ -1148,7 +1148,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     { label: "Payments", icon: CreditCard, onClick: () => onNavigate?.("ar-fin-payments") },
   ];
 
-  const fieldCls = "h-7 text-xs";
+  const fieldCls = "h-6 px-2 text-[11px]";
 
   // ── Hub workflow connectors ──
   const searchAndLoad = async (mode: "estimate" | "invoice", q: string) => {
@@ -1287,10 +1287,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       </div>
 
       {/* ── Customer / Vehicle header ── */}
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="rounded-xl border bg-card p-2">
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="grid gap-1.5 sm:grid-cols-2">
+        <div className="rounded-lg border bg-card p-1.5">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Search className="h-3 w-3" /> Customer
             </p>
             <div className="flex items-center gap-1.5">
@@ -1318,14 +1318,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <button type="button" onClick={() => setCustEdit(true)} className="ml-2 shrink-0 text-[10px] font-semibold text-primary hover:underline">EDIT</button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-1">
               <Input className={fieldCls} placeholder="First name" value={header.customer_first_name}
                 onChange={(e) => setH({ customer_first_name: e.target.value, customer_name: [e.target.value, header.customer_last_name].filter(Boolean).join(" ") })} />
               <Input className={fieldCls} placeholder="Last name" value={header.customer_last_name}
                 onChange={(e) => setH({ customer_last_name: e.target.value, customer_name: [header.customer_first_name, e.target.value].filter(Boolean).join(" ") })} />
               <Input className={fieldCls} placeholder="Phone" value={header.customer_phone} onChange={(e) => setH({ customer_phone: e.target.value })} />
               <Input className={fieldCls} placeholder="Email" type="email" autoComplete="email" value={header.customer_email} onChange={(e) => setH({ customer_email: e.target.value })} />
-              <Input className={`${fieldCls} col-span-2`} placeholder="Street address" autoComplete="street-address"
+              <Input className={fieldCls} placeholder="Street address" autoComplete="street-address"
                 value={header.customer_street} onChange={(e) => setH({ customer_street: e.target.value })} />
               <Input className={fieldCls} placeholder="City" autoComplete="address-level2"
                 value={header.customer_city} onChange={(e) => setH({ customer_city: e.target.value })} />
@@ -1339,9 +1339,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             </div>
           )}
         </div>
-        <div className="rounded-xl border bg-card p-2">
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="rounded-lg border bg-card p-1.5">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Car className="h-3 w-3" /> Vehicle
             </p>
             <div className="flex items-center gap-2">
@@ -1398,7 +1398,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </div>
             </dl>
           ) : (
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-1">
             <Input className={fieldCls} placeholder="Year" value={header.vehicle_year}
               onChange={(e) => setH({ vehicle_year: e.target.value, vehicle_label: [e.target.value, header.vehicle_make, header.vehicle_model].filter(Boolean).join(" ") })} />
             <Input className={fieldCls} placeholder="Make" value={header.vehicle_make}
@@ -1407,7 +1407,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               onChange={(e) => setH({ vehicle_model: e.target.value, vehicle_label: [header.vehicle_year, header.vehicle_make, e.target.value].filter(Boolean).join(" ") })} />
             <Input className={fieldCls} placeholder="Engine (e.g. 5.0L V8)" value={header.vehicle_engine}
               onChange={(e) => setH({ vehicle_engine: e.target.value })} />
-            <Input className={`${fieldCls} col-span-2`} placeholder="Transmission (e.g. 6-Speed Auto)" value={header.vehicle_transmission}
+            <Input className={fieldCls} placeholder="Transmission (e.g. 6-Speed Auto)" value={header.vehicle_transmission}
               onChange={(e) => setH({ vehicle_transmission: e.target.value })} />
             <Input className={fieldCls} placeholder="License plate" value={header.license_plate} onChange={(e) => setH({ license_plate: e.target.value })} />
             <Input className={fieldCls} type="number" placeholder="Mileage in" value={header.mileage_in} onChange={(e) => setH({ mileage_in: e.target.value })} />
@@ -1469,7 +1469,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 <tr className="border-b bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground">
                   <th className="px-2 py-1.5 text-left font-semibold">Type</th>
                   <th className="px-2 py-1.5 text-left font-semibold">Description</th>
-                  <th className="px-2 py-1.5 text-left font-semibold">Misc.</th>
+                  <th className="px-2 py-1.5 text-left font-semibold">Vendor</th>
                   <th className="px-2 py-1.5 text-right font-semibold">Price</th>
                   <th className="px-2 py-1.5 text-right font-semibold">Qty</th>
                   <th className="px-2 py-1.5 text-right font-semibold">Disc</th>
@@ -1503,10 +1503,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                       const Icon = KIND_META[l.kind].icon;
                       const accent = KIND_ACCENT[l.kind];
                       return (
-                        <tr key={l.id} className={`border-b border-l-2 last:border-b-0 hover:bg-muted/20 ${accent.border} ${l.declined ? "opacity-40" : ""}`}>
-                          <td className="px-2 py-1">
+                        <tr key={l.id} className={`group border-b border-l-2 last:border-b-0 hover:bg-muted/20 ${accent.border} ${l.declined ? "opacity-40" : ""}`}>
+                          <td className="px-2 py-1 align-middle">
                             <Select value={l.kind} onValueChange={(v: LineKind) => patchLine(l.id, { kind: v })}>
-                              <SelectTrigger className={`h-7 w-[84px] text-[11px] font-medium ${accent.text}`}>
+                              <SelectTrigger className={`h-7 w-[84px] border-transparent bg-transparent px-1.5 text-[11px] font-semibold shadow-none hover:border-border hover:bg-background ${accent.text}`}>
                                 <span className="flex items-center gap-1"><Icon className="h-3 w-3" /><SelectValue /></span>
                               </SelectTrigger>
                               <SelectContent>
@@ -1514,13 +1514,26 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                               </SelectContent>
                             </Select>
                           </td>
-                          <td className="px-2 py-1">
-                            <Input className="h-7 min-w-[150px] text-xs" placeholder="Description" value={l.description}
-                              onChange={(e) => patchLine(l.id, { description: e.target.value })} />
+                          <td className="px-2 py-1 align-middle">
+                            <div className="flex min-w-[260px] items-center gap-1.5">
+                              <Input className="h-7 min-w-[170px] flex-1 border-transparent bg-transparent px-1.5 text-xs font-semibold shadow-none hover:border-border hover:bg-background focus:bg-background" placeholder="Description" value={l.description}
+                                onChange={(e) => patchLine(l.id, { description: e.target.value })} />
+                              {(l.kind === "part" || l.kind === "tire") && (
+                                <label className="flex h-7 w-[112px] shrink-0 items-center gap-1 rounded border border-transparent bg-transparent px-1.5 text-[10px] font-semibold text-muted-foreground hover:border-border hover:bg-background">
+                                  <span>P/N</span>
+                                  <input
+                                    className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-foreground outline-none"
+                                    placeholder="#"
+                                    value={l.part_number || l.misc}
+                                    onChange={(e) => patchLine(l.id, { part_number: e.target.value, misc: e.target.value })}
+                                  />
+                                </label>
+                              )}
+                            </div>
                             {l.kind === "part" && (
                               <div className="mt-0.5 flex items-center gap-1 pl-1">
                                 <select
-                                  className="h-5 max-w-[150px] rounded border bg-background px-1 text-[10px] text-muted-foreground"
+                                  className="hidden"
                                   value={l.vendor || ""}
                                   onChange={(e) => patchLine(l.id, { vendor: e.target.value })}
                                 >
@@ -1534,46 +1547,62 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                                   )}
                                 </select>
                                 {l.ordered ? (
-                                  <span className="flex items-center gap-0.5 text-[9px] uppercase tracking-wide text-emerald-600">
+                                  <span className="flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-700">
                                     <CheckCircle2 className="h-3 w-3" /> Ordered
                                   </span>
                                 ) : (
-                                  <span className="flex items-center gap-0.5 text-[9px] font-medium uppercase tracking-wide text-amber-500">
+                                  <span className="flex items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-600">
                                     <Clock className="h-3 w-3" /> Pending Order
                                   </span>
                                 )}
                               </div>
                             )}
                           </td>
-                          <td className="px-2 py-1">
-                            <Input className="h-7 w-[90px] text-xs" placeholder="Part #/note" value={l.misc}
-                              onChange={(e) => patchLine(l.id, { misc: e.target.value })} />
-                          </td>
-                          <td className="px-2 py-1">
-                            {(l.kind === "part" || l.kind === "tire") && (
-                              <Input className="mb-0.5 h-6 w-[78px] text-right text-[10px] text-muted-foreground" type="number" placeholder="cost →"
-                                title="Cost — auto-prices Sell from the Parts Matrix"
-                                value={centsToDollars(l.cost_cents)}
-                                onChange={(e) => { const c = dollarsToCents(e.target.value); patchLine(l.id, { cost_cents: c, unit_cents: sellFromCostCents(c, partsMatrix) }); }} />
+                          <td className="px-2 py-1 align-middle">
+                            {l.kind === "part" || l.kind === "tire" ? (
+                              <select
+                                className="h-7 w-[112px] rounded border border-transparent bg-transparent px-1.5 text-xs font-medium text-muted-foreground hover:border-border hover:bg-background"
+                                value={l.vendor || ""}
+                                onChange={(e) => patchLine(l.id, { vendor: e.target.value })}
+                              >
+                                <option value="">Vendor...</option>
+                                {connectedVendors.map((v) => (
+                                  <option key={v.id} value={v.name}>{v.name}{v.account ? ` (#${v.account})` : ""}</option>
+                                ))}
+                                {l.vendor && !connectedVendors.some((v) => v.name === l.vendor) && (
+                                  <option value={l.vendor}>{l.vendor}</option>
+                                )}
+                              </select>
+                            ) : (
+                              <Input className="h-7 w-[96px] border-transparent bg-transparent px-1.5 text-xs font-medium shadow-none hover:border-border hover:bg-background focus:bg-background" placeholder="Note" value={l.misc}
+                                onChange={(e) => patchLine(l.id, { misc: e.target.value })} />
                             )}
-                            <Input className="h-7 w-[78px] text-right text-xs" type="number" placeholder="0.00"
-                              value={centsToDollars(l.unit_cents)} onChange={(e) => patchLine(l.id, { unit_cents: dollarsToCents(e.target.value) })} />
                           </td>
-                          <td className="px-2 py-1">
-                            <Input className="h-7 w-[56px] text-right text-xs" type="number" placeholder="1"
+                          <td className="px-2 py-1 text-right align-middle">
+                            {(l.kind === "part" || l.kind === "tire") && l.cost_cents > 0 && (
+                              <div className="text-[10px] font-medium tabular-nums text-muted-foreground">
+                                Cost {money(l.cost_cents)}
+                              </div>
+                            )}
+                            <div className="text-xs font-semibold tabular-nums">
+                              {money(l.unit_cents)}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1 align-middle">
+                            <Input className="h-7 w-[52px] border-transparent bg-transparent px-1.5 text-right text-xs shadow-none hover:border-border hover:bg-background focus:bg-background" type="number" placeholder="1"
                               value={l.qty || ""} onChange={(e) => patchLine(l.id, { qty: Number(e.target.value) || 0 })} />
                           </td>
-                          <td className="px-2 py-1">
+                          <td className="px-2 py-1 align-middle">
                             <div className="flex items-center gap-0.5">
-                              <Input className="h-7 w-[48px] text-right text-xs" type="number" placeholder="0"
+                              <Input className="h-7 w-[44px] border-transparent bg-transparent px-1.5 text-right text-xs shadow-none hover:border-border hover:bg-background focus:bg-background" type="number" placeholder="0"
                                 value={l.disc || ""} onChange={(e) => patchLine(l.id, { disc: Number(e.target.value) || 0 })} />
-                              <button type="button" className="h-7 w-6 rounded border text-[11px] text-muted-foreground hover:bg-muted"
+                              <button type="button" className="h-7 w-6 rounded border border-transparent text-[11px] text-muted-foreground hover:border-border hover:bg-muted"
                                 onClick={() => patchLine(l.id, { disc_type: l.disc_type === "%" ? "$" : "%" })}>
                                 {l.disc_type}
                               </button>
                             </div>
                           </td>
-                          <td className="px-2 py-1 text-center">
+                          <td className="px-2 py-1 text-center align-middle">
                             <button type="button"
                               title={l.taxable ? "Taxable (R1) — click to exempt" : "Tax-exempt — click to tax"}
                               onClick={() => patchLine(l.id, { taxable: !l.taxable })}
@@ -1583,8 +1612,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                               {l.taxable ? "R1" : "N"}
                             </button>
                           </td>
-                          <td className={`px-2 py-1 text-right font-semibold tabular-nums ${accent.text}`}>{money(lineTotalCents(l))}</td>
-                          <td className="px-1 py-1">
+                          <td className={`px-2 py-1 text-right align-middle font-bold tabular-nums ${accent.text}`}>{money(lineTotalCents(l))}</td>
+                          <td className="px-1 py-1 align-middle">
                             <div className="flex items-center gap-0.5">
                               <button type="button" title={l.declined ? "Restore work" : "Mark declined"}
                                 className={l.declined ? "text-destructive" : "text-muted-foreground hover:text-destructive"}
@@ -1619,6 +1648,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           <BuildROLineComposer
             job={activeJob}
             laborRateCents={laborRateC}
+            partsMatrix={partsMatrix}
             storeId={storeId}
             onAdd={addComposedLine}
             onOpenCatalog={() => setOpenCatalog(true)}

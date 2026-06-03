@@ -2,6 +2,7 @@
  * Affiliate tracking — logs clicks through the affiliate-click-log Edge Function.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { trackRawAnalyticsEvent } from "@/lib/analytics";
 
 export interface AffiliateClick {
   id: string;
@@ -82,13 +83,11 @@ export const trackAffiliateClick = (data: Omit<AffiliateClick, "id" | "timestamp
 };
 
 export const trackPageView = (page: string, _metadata?: Record<string, any>) => {
-  supabase.functions.invoke("analytics-event-track", { body: {
+  void trackRawAnalyticsEvent({
     event_name: "page_view",
     page,
     session_id: getSessionId(),
     device_type: getDeviceType(),
-  } }).then(({ error }) => {
-    if (error) console.warn("[AffiliateTracking] Page view log error:", error);
   });
 };
 

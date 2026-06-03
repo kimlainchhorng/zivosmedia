@@ -4,6 +4,11 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  createManagedSocialNotification,
+  markAllSocialNotificationsRead,
+  markSocialNotificationsRead,
+} from "@/lib/notifications/socialNotificationManage";
 
 export interface SocialNotification {
   id: string;
@@ -90,21 +95,27 @@ export function useSocialNotifications(limit = 30) {
   }, [fetch]);
 
   const markAsRead = async (ids: string[]) => {
-    await supabase.functions.invoke("social-notification-manage", {
-      body: { action: "mark_read", ids },
-    });
-    setNotifications((prev) => prev.map((n) => ids.includes(n.id) ? { ...n, is_read: true } : n));
-    setUnreadCount((prev) => Math.max(0, prev - ids.length));
+    try {
+      await markSocialNotificationsRead(ids);
+      const idsSet = new Set(ids);
+      const readDelta = notifications.filter((n) => idsSet.has(n.id) && !n.is_read).length;
+      setNotifications((prev) => prev.map((n) => idsSet.has(n.id) ? { ...n, is_read: true } : n));
+      setUnreadCount((prev) => Math.max(0, prev - readDelta));
+    } catch {
+      // Keep local state unchanged while the deploy-gated function is unavailable.
+    }
   };
 
   const markAllAsRead = async () => {
     const { data: session } = await supabase.auth.getSession();
     if (!session?.session?.user) return;
-    await supabase.functions.invoke("social-notification-manage", {
-      body: { action: "mark_all_read" },
-    });
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    setUnreadCount(0);
+    try {
+      await markAllSocialNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch {
+      // Keep local state unchanged while the deploy-gated function is unavailable.
+    }
   };
 
   return { notifications, unreadCount, loading, markAsRead, markAllAsRead, refetch: fetch };
@@ -121,14 +132,11 @@ export async function createSocialNotification(params: {
 }) {
   // Don't notify yourself
   if (params.userId === params.actorId) return;
-  await supabase.functions.invoke("social-notification-manage", {
-    body: {
-      action: "create",
-      user_id: params.userId,
-      type: params.type,
-      entity_id: params.entityId || null,
-      entity_type: params.entityType || null,
-      message: params.message,
-    },
+  await createManagedSocialNotification({
+    user_id: params.userId,
+    type: params.type,
+    entity_id: params.entityId || null,
+    entity_type: params.entityType || null,
+    message: params.message,
   });
 }

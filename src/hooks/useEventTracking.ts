@@ -5,6 +5,7 @@
 
 import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { trackRawAnalyticsEvent } from '@/lib/analytics';
 
 // Analytics event types
 export type TrackingEventName =
@@ -124,24 +125,7 @@ const isNewUser = (): boolean => {
   }
 };
 
-const isLocalTrackingFailure = (error: unknown): boolean => {
-  if (typeof window === 'undefined') return false;
-  const host = window.location.hostname;
-  if (!['localhost', '127.0.0.1', '::1'].includes(host)) return false;
-
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === 'object' && error !== null && 'message' in error
-        ? String((error as { message?: unknown }).message)
-        : String(error ?? '');
-
-  return message.includes('Failed to send a request to the Edge Function');
-};
-
 const reportTrackingFailure = (error: unknown): void => {
-  if (isLocalTrackingFailure(error)) return;
-
   if (typeof error === 'object' && error !== null && 'message' in error) {
     const fnError = error as {
       message?: unknown;
@@ -208,15 +192,7 @@ export function useEventTracking() {
         is_new_user: isNewUser(),
       };
 
-      // Fire and forget - don't block UI
-      supabase.functions
-        .invoke('analytics-event-track', { body: eventPayload })
-        .then(({ error }) => {
-          if (error) {
-            reportTrackingFailure(error);
-          }
-        })
-        .catch(reportTrackingFailure);
+      void trackRawAnalyticsEvent(eventPayload).catch(reportTrackingFailure);
 
     } catch (error) {
       reportTrackingFailure(error);
