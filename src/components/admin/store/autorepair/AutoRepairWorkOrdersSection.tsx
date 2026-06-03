@@ -19,6 +19,7 @@ import {
   User, Pencil, Receipt, Timer, CheckCheck, Link2, BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
+import { assignDocNumber, assignWorkOrderNumber } from "@/lib/admin/invoiceActions";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
 import ServiceCatalogPickerDialog from "./ServiceCatalogPickerDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
@@ -132,9 +133,10 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
 
   const save = useMutation({
     mutationFn: async () => {
+      const woNumber = form.number?.trim() || (editId ? "" : await assignWorkOrderNumber(storeId));
       const payload: any = {
         store_id: storeId,
-        number: form.number || `WO-${Date.now().toString().slice(-6)}`,
+        number: woNumber || `WO-${Date.now().toString().slice(-6)}`,
         customer_name: form.customer_name || null,
         customer_phone: form.customer_phone || null,
         customer_email: form.customer_email || null,
@@ -235,7 +237,7 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
 
       const { error } = await supabase.from("ar_invoices" as any).insert({
         store_id: storeId,
-        number: `INV-${Date.now().toString().slice(-6)}`,
+        number: await assignDocNumber(storeId, "invoice"),
         status: "draft",
         customer_name: o.customer_name,
         customer_phone: o.customer_phone,

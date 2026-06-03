@@ -42,15 +42,21 @@ import BuildROSaveCannedDialog from "./BuildROSaveCannedDialog";
 import BuildROPartsMatrixDialog from "./BuildROPartsMatrixDialog";
 import BuildROImportPartsDialog, { type ImportedPart } from "./BuildROImportPartsDialog";
 import BuildROIconToolbar from "./BuildROIconToolbar";
+import BuildROProfitDialog from "./BuildROProfitDialog";
+import AutoRepairDocPreviewDialog, { type PreviewDoc } from "./AutoRepairDocPreviewDialog";
+import { useStorePdfHeader } from "@/lib/admin/useStorePdfHeader";
+import { buildROPreviewDoc } from "@/lib/admin/buildROPreview";
+import BuildROVoiceButton from "./BuildROVoiceButton";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
+import { assignDocNumber, assignWorkOrderNumber } from "@/lib/admin/invoiceActions";
 import { type MatrixTier, DEFAULT_PARTS_MATRIX, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, ShieldCheck, ChevronDown,
   Link2, X, UserPlus, Sparkles, Ban, ShoppingCart, Mail, MessageSquare, ArrowRightCircle,
-  Download, Star, CheckCircle2, Send, PhoneCall, Home, Percent, Clock,
+  Download, Star, CheckCircle2, Send, PhoneCall, Home, Percent, Clock, Eye,
 } from "lucide-react";
 
 type GarageVehicle = {
@@ -106,6 +112,18 @@ const KIND_META: Record<LineKind, { label: string; icon: typeof Wrench }> = {
   note: { label: "Note", icon: StickyNote },
   diagnosis: { label: "Diag", icon: Search },
   concern: { label: "Concern", icon: AlertTriangle },
+};
+
+// Per-type color accent for the line grid (VSM groups jobs and color-codes rows).
+const KIND_ACCENT: Record<LineKind, { text: string; border: string }> = {
+  labor: { text: "text-orange-600", border: "border-l-orange-400" },
+  part: { text: "text-blue-600", border: "border-l-blue-400" },
+  tire: { text: "text-cyan-600", border: "border-l-cyan-400" },
+  fee: { text: "text-violet-600", border: "border-l-violet-400" },
+  sublet: { text: "text-teal-600", border: "border-l-teal-400" },
+  note: { text: "text-slate-500", border: "border-l-slate-300" },
+  diagnosis: { text: "text-amber-600", border: "border-l-amber-400" },
+  concern: { text: "text-rose-600", border: "border-l-rose-400" },
 };
 
 const RAIL: LineKind[] = ["labor", "part", "tire", "fee", "sublet", "note", "diagnosis", "concern"];
@@ -195,6 +213,7 @@ const blankHeader = {
   diagnosis: "",
   recommendation: "",
   warranty: "",
+  note: "",
   internal: "",
 };
 type HeaderForm = typeof blankHeader;
@@ -203,6 +222,9 @@ const NOTE_TABS = [
   { key: "customer_request", label: "Customer Request" },
   { key: "diagnosis", label: "Diagnosis" },
   { key: "recommendation", label: "Recommendation" },
+  { key: "warranty", label: "Warranty" },
+  { key: "note", label: "Note" },
+  { key: "internal", label: "Internal Note" },
 ] as const;
 
 /** Compose the structured intake notes into the single `ar_estimates.notes` column (Phase 1, no schema change). */
@@ -212,6 +234,7 @@ const composeNotes = (h: HeaderForm) => {
   if (h.diagnosis.trim()) parts.push(`Diagnosis: ${h.diagnosis.trim()}`);
   if (h.recommendation.trim()) parts.push(`Recommendation: ${h.recommendation.trim()}`);
   if (h.warranty.trim()) parts.push(`Warranty: ${h.warranty.trim()}`);
+  if (h.note.trim()) parts.push(`Note: ${h.note.trim()}`);
   if (h.internal.trim()) parts.push(`Internal: ${h.internal.trim()}`);
   return parts.join("\n\n");
 };
@@ -221,7 +244,7 @@ const parseNotes = (notes: string | null): Partial<HeaderForm> => {
   if (!notes) return out;
   const map: Record<string, keyof HeaderForm> = {
     "Customer Request": "customer_request", Diagnosis: "diagnosis",
-    Recommendation: "recommendation", Warranty: "warranty", Internal: "internal",
+    Recommendation: "recommendation", Warranty: "warranty", Note: "note", Internal: "internal",
   };
   const blocks = notes.split(/\n\n+/);
   let matchedAny = false;
@@ -343,6 +366,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [historyOpen, setHistoryOpen] = useState(false);
   const [carfaxOpen, setCarfaxOpen] = useState(false);
   const [statusDlgOpen, setStatusDlgOpen] = useState(false);
+  const [custEdit, setCustEdit] = useState(true); // Customer card: form vs compact summary
+  const [vehEdit, setVehEdit] = useState(true); // Vehicle card: form vs compact summary (typed/unbound)
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printCopies, setPrintCopies] = useState(1);
   const [smsMenuOpen, setSmsMenuOpen] = useState(false);
@@ -356,6 +381,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [openCanned, setOpenCanned] = useState(false);
   const [openMatrix, setOpenMatrix] = useState(false);
   const [openImport, setOpenImport] = useState(false);
+  const [openGP, setOpenGP] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
+  const { storeInfo, storeLogoData } = useStorePdfHeader(storeId);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
   const [view, setView] = useState<"hub" | "builder">("hub");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -727,6 +755,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setDroppedOff(false);
     setStatus("draft");
     setWorkflowStage("awaiting");
+    setCustEdit(true);
+    setVehEdit(true);
     setCreatedAt(null);
     unbind();
     setCustSearch("");
@@ -765,7 +795,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       payment_method: e.payment_method ?? "",
       promised_at: e.promised_at ?? "",
       po_number: e.po_number ?? "",
-      labor_rate: shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate,
+      labor_rate: (e as any).labor_rate_cents != null ? String((e as any).labor_rate_cents / 100) : (shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate),
+      appointment_type: (e as any).appointment_type ?? blankHeader.appointment_type,
       ...parseNotes(e.notes ?? null),
       // Prefer the dedicated note columns when present (fall back to parsed notes for older estimates).
       ...(e.customer_notes ? { customer_request: e.customer_notes } : {}),
@@ -785,6 +816,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setTaxRate(e.tax_rate != null ? Number(e.tax_rate) : 0);
     setStatus(e.status ?? "draft");
     setWorkflowStage((e as any).workflow_stage ?? "awaiting");
+    setCustEdit(!((e.customer_name ?? "").trim()));
+    setVehEdit(!((e.vehicle_label ?? "").trim()));
     setOpenLoad(false);
     // Re-bind the saved garage vehicle so History / linked features work on load.
     if (e.vehicle_id) {
@@ -812,9 +845,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   // ── Save ──
   const save = useMutation({
     mutationFn: async (authorize: boolean) => {
+      // Reuse the existing number on update; allocate an authoritative sequential
+      // EST-#### for a brand-new estimate (shared counter with the Estimates list).
+      const docNumber = header.number?.trim() || (editId ? "" : await assignDocNumber(storeId, "estimate"));
       const payload: any = {
         store_id: storeId,
-        number: header.number || `EST-${Date.now().toString().slice(-6)}`,
+        number: docNumber || `EST-${Date.now().toString().slice(-6)}`,
         customer_name: header.customer_name || null,
         customer_phone: header.customer_phone || null,
         customer_email: header.customer_email || null,
@@ -842,6 +878,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         payment_method: header.payment_method || null,
         promised_at: header.promised_at || null,
         po_number: header.po_number || null,
+        labor_rate_cents: header.labor_rate ? dollarsToCents(header.labor_rate) : null,
+        appointment_type: header.appointment_type || null,
         // line_items keep both the extended fields and the legacy {name} alias.
         line_items: lines.map((l) => ({ ...l, name: l.description })),
         subtotal_cents: t.lineSubtotal,
@@ -946,6 +984,20 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     }
   };
 
+  // Persist one or more header columns immediately (auto-saving the RO first).
+  // Skips creating an RO just to store empty values.
+  const persistHeader = async (patch: Record<string, any>) => {
+    const hasValue = Object.values(patch).some((v) => v !== "" && v != null);
+    if (!editId && !hasValue) return;
+    try {
+      const id = await ensureSavedId();
+      const { error } = await supabase.from("ar_estimates" as any).update(patch).eq("id", id);
+      if (error) throw error;
+    } catch {
+      toast.error("Couldn't save change");
+    }
+  };
+
   const convertWO = useMutation({
     mutationFn: async () => {
       const id = await save.mutateAsync(true);
@@ -955,7 +1007,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       const { data, error } = await supabase.from("ar_work_orders" as any).insert({
         store_id: storeId,
         estimate_id: id,
-        number: `WO-${Date.now().toString().slice(-6)}`,
+        number: await assignWorkOrderNumber(storeId),
         status: "awaiting",
         parts_used: partsUsed,
         total_cents: t.total,
@@ -989,7 +1041,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       }));
       const { error } = await supabase.from("ar_invoices" as any).insert({
         store_id: storeId,
-        number: `INV-${Date.now().toString().slice(-6)}`,
+        number: await assignDocNumber(storeId, "invoice"),
         estimate_id: id,
         status: "draft",
         customer_name: header.customer_name || null,
@@ -1096,7 +1148,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     { label: "Payments", icon: CreditCard, onClick: () => onNavigate?.("ar-fin-payments") },
   ];
 
-  const fieldCls = "h-8 text-xs";
+  const fieldCls = "h-7 text-xs";
 
   // ── Hub workflow connectors ──
   const searchAndLoad = async (mode: "estimate" | "invoice", q: string) => {
@@ -1146,13 +1198,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* ── VSM top icon toolbar (quick-nav) ── */}
       <BuildROIconToolbar
         onNew={() => { resetAll(); }}
         onHub={() => setView("hub")}
         onPrint={printRO}
         onNavigate={onNavigate}
+        onProfit={() => setOpenGP(true)}
       />
 
       {/* ── VSM header strip: created · last viewed · service writer · due date · PO# · EST# ── */}
@@ -1160,14 +1213,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         <span><span className="text-muted-foreground">Created:</span> <b className="ml-1">{createdAt ? new Date(createdAt).toLocaleDateString() : "New"}</b></span>
         <span className="hidden sm:inline"><span className="text-muted-foreground">Last viewed:</span> <b className="ml-1">{createdAt ? new Date().toLocaleDateString() : "—"}</b></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">S.W.:</span>
-          <Input className="h-6 w-28 text-xs" placeholder="Service writer" value={header.service_writer} onChange={(e) => setH({ service_writer: e.target.value })} /></span>
+          <Input className="h-6 w-28 text-xs" placeholder="Service writer" value={header.service_writer} onChange={(e) => setH({ service_writer: e.target.value })} onBlur={() => persistHeader({ service_writer: header.service_writer || null })} /></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Due:</span>
-          <Input type="date" className="h-6 w-[130px] text-xs" value={header.promised_at} onChange={(e) => setH({ promised_at: e.target.value })} /></span>
+          <Input type="date" className="h-6 w-[130px] text-xs" value={header.promised_at} onChange={(e) => setH({ promised_at: e.target.value })} onBlur={() => persistHeader({ promised_at: header.promised_at || null })} /></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">PO #:</span>
-          <Input list="ar-ro-pos" className="h-6 w-24 text-xs" placeholder="PO number" value={header.po_number} onChange={(e) => setH({ po_number: e.target.value })} />
+          <Input list="ar-ro-pos" className="h-6 w-24 text-xs" placeholder="PO number" value={header.po_number} onChange={(e) => setH({ po_number: e.target.value })} onBlur={() => persistHeader({ po_number: header.po_number || null })} />
           <datalist id="ar-ro-pos">{poNumbers.map((p) => <option key={p} value={p} />)}</datalist></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Rate $:</span>
-          <Input className="h-6 w-16 text-xs" type="number" value={header.labor_rate} onChange={(e) => setH({ labor_rate: e.target.value })} /></span>
+          <Input className="h-6 w-16 text-xs" type="number" value={header.labor_rate} onChange={(e) => setH({ labor_rate: e.target.value })} onBlur={() => persistHeader({ labor_rate_cents: header.labor_rate ? dollarsToCents(header.labor_rate) : null })} /></span>
         <span className="ml-auto font-mono text-sm font-semibold">EST # {header.number || "NEW"}</span>
       </div>
 
@@ -1217,6 +1270,13 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </div>
             )}
           </div>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5" title="See the finished invoice / estimate"
+            onClick={() => setPreviewDoc(buildROPreviewDoc({
+              header, lines, createdAt, status,
+              taxRate, feesCents: feesC, epaCents: epaC, suppliesCents: suppliesC, discountCents: discountC,
+            }))}>
+            <Eye className="h-3.5 w-3.5" /> Preview
+          </Button>
           <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => setPrintModalOpen(true)}>
             <Printer className="h-3.5 w-3.5" /> Print
           </Button>
@@ -1228,7 +1288,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
 
       {/* ── Customer / Vehicle header ── */}
       <div className="grid gap-2 sm:grid-cols-2">
-        <div className="rounded-xl border bg-card p-2.5">
+        <div className="rounded-xl border bg-card p-2">
           <div className="mb-1.5 flex items-center justify-between">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Search className="h-3 w-3" /> Customer
@@ -1246,24 +1306,40 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            <Input className={fieldCls} placeholder="First name" value={header.customer_first_name}
-              onChange={(e) => setH({ customer_first_name: e.target.value, customer_name: [e.target.value, header.customer_last_name].filter(Boolean).join(" ") })} />
-            <Input className={fieldCls} placeholder="Last name" value={header.customer_last_name}
-              onChange={(e) => setH({ customer_last_name: e.target.value, customer_name: [header.customer_first_name, e.target.value].filter(Boolean).join(" ") })} />
-            <Input className={fieldCls} placeholder="Phone" value={header.customer_phone} onChange={(e) => setH({ customer_phone: e.target.value })} />
-            <Input className={fieldCls} placeholder="Email" type="email" autoComplete="email" value={header.customer_email} onChange={(e) => setH({ customer_email: e.target.value })} />
-            <Input className={`${fieldCls} col-span-2`} placeholder="Street address" autoComplete="street-address"
-              value={header.customer_street} onChange={(e) => setH({ customer_street: e.target.value })} />
-            <Input className={fieldCls} placeholder="City" autoComplete="address-level2"
-              value={header.customer_city} onChange={(e) => setH({ customer_city: e.target.value })} />
-            <Input className={fieldCls} placeholder="State" autoComplete="address-level1"
-              value={header.customer_state} onChange={(e) => setH({ customer_state: e.target.value })} />
-            <Input className={fieldCls} placeholder="Zip code" autoComplete="postal-code"
-              value={header.customer_zip} onChange={(e) => setH({ customer_zip: e.target.value })} />
-          </div>
+          {header.customer_name.trim() && !custEdit ? (
+            <div className="flex items-start justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
+              <div className="min-w-0">
+                <p className="font-semibold">{header.customer_name}</p>
+                <p className="text-muted-foreground">{[header.customer_phone, header.customer_email].filter(Boolean).join(" · ") || "—"}</p>
+                {[header.customer_street, header.customer_city, header.customer_state, header.customer_zip].some(Boolean) && (
+                  <p className="truncate text-muted-foreground">{[header.customer_street, [header.customer_city, header.customer_state, header.customer_zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</p>
+                )}
+              </div>
+              <button type="button" onClick={() => setCustEdit(true)} className="ml-2 shrink-0 text-[10px] font-semibold text-primary hover:underline">EDIT</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1.5">
+              <Input className={fieldCls} placeholder="First name" value={header.customer_first_name}
+                onChange={(e) => setH({ customer_first_name: e.target.value, customer_name: [e.target.value, header.customer_last_name].filter(Boolean).join(" ") })} />
+              <Input className={fieldCls} placeholder="Last name" value={header.customer_last_name}
+                onChange={(e) => setH({ customer_last_name: e.target.value, customer_name: [header.customer_first_name, e.target.value].filter(Boolean).join(" ") })} />
+              <Input className={fieldCls} placeholder="Phone" value={header.customer_phone} onChange={(e) => setH({ customer_phone: e.target.value })} />
+              <Input className={fieldCls} placeholder="Email" type="email" autoComplete="email" value={header.customer_email} onChange={(e) => setH({ customer_email: e.target.value })} />
+              <Input className={`${fieldCls} col-span-2`} placeholder="Street address" autoComplete="street-address"
+                value={header.customer_street} onChange={(e) => setH({ customer_street: e.target.value })} />
+              <Input className={fieldCls} placeholder="City" autoComplete="address-level2"
+                value={header.customer_city} onChange={(e) => setH({ customer_city: e.target.value })} />
+              <Input className={fieldCls} placeholder="State" autoComplete="address-level1"
+                value={header.customer_state} onChange={(e) => setH({ customer_state: e.target.value })} />
+              <Input className={fieldCls} placeholder="Zip code" autoComplete="postal-code"
+                value={header.customer_zip} onChange={(e) => setH({ customer_zip: e.target.value })} />
+              {header.customer_name.trim() && (
+                <button type="button" onClick={() => setCustEdit(false)} className="col-span-2 mt-0.5 text-left text-[10px] font-semibold text-primary hover:underline">▴ Collapse</button>
+              )}
+            </div>
+          )}
         </div>
-        <div className="rounded-xl border bg-card p-2.5">
+        <div className="rounded-xl border bg-card p-2">
           <div className="mb-1.5 flex items-center justify-between">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Car className="h-3 w-3" /> Vehicle
@@ -1293,7 +1369,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </button>
             </div>
           </div>
-          {boundVehicle ? (
+          {(boundVehicle || (header.vehicle_label.trim() && !vehEdit)) ? (
             <dl className="space-y-1 rounded-lg bg-muted/40 px-3 py-2 text-xs">
               <div className="flex gap-2">
                 <dt className="w-16 shrink-0 font-medium text-muted-foreground">Vehicle</dt>
@@ -1305,7 +1381,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </div>
               <div className="flex gap-2">
                 <dt className="w-16 shrink-0 font-medium text-muted-foreground">VIN</dt>
-                <dd className="font-mono">{boundVehicle.vin || "—"}</dd>
+                <dd className="font-mono">{boundVehicle?.vin || "—"}</dd>
               </div>
               {header.license_plate && (
                 <div className="flex gap-2">
@@ -1318,7 +1394,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 <Input className="h-7 w-24 text-xs" type="number" placeholder="Enter Mileage" value={header.mileage_in} onChange={(e) => setH({ mileage_in: e.target.value })} />
                 <span className="shrink-0 font-medium text-muted-foreground">Key tag</span>
                 <Input className="h-7 w-20 text-xs" placeholder="Key tag" value={header.keytag} onChange={(e) => setH({ keytag: e.target.value })} />
-                <button type="button" onClick={unbind} className="ml-auto text-[10px] font-semibold text-primary hover:underline">EDIT</button>
+                <button type="button" onClick={() => { unbind(); setVehEdit(true); }} className="ml-auto text-[10px] font-semibold text-primary hover:underline">EDIT</button>
               </div>
             </dl>
           ) : (
@@ -1336,46 +1412,16 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             <Input className={fieldCls} placeholder="License plate" value={header.license_plate} onChange={(e) => setH({ license_plate: e.target.value })} />
             <Input className={fieldCls} type="number" placeholder="Mileage in" value={header.mileage_in} onChange={(e) => setH({ mileage_in: e.target.value })} />
             <Input className={fieldCls} placeholder="Key tag" value={header.keytag} onChange={(e) => setH({ keytag: e.target.value })} />
+            {header.vehicle_label.trim() && (
+              <button type="button" onClick={() => setVehEdit(false)} className="col-span-2 mt-0.5 text-left text-[10px] font-semibold text-primary hover:underline">▴ Collapse</button>
+            )}
           </div>
           )}
         </div>
       </div>
 
       {/* ── Main 3-column workspace ── */}
-      <div className="grid gap-2 lg:grid-cols-[64px_1fr_300px]">
-        {/* Left item-type rail */}
-        <div className="flex flex-row flex-wrap gap-1.5 rounded-xl border bg-card p-1.5 lg:flex-col">
-          <div className="hidden rounded-lg bg-muted/60 px-1 py-1 text-center lg:block">
-            <p className={`text-[11px] font-bold ${t.margin < 0 ? "text-destructive" : "text-emerald-500"}`}>{t.margin.toFixed(0)}%</p>
-            <p className="text-[8px] uppercase tracking-wide text-muted-foreground">Margin</p>
-          </div>
-          {RAIL.map((k) => {
-            const Icon = KIND_META[k].icon;
-            const onClick = k === "part" ? () => setOpenParts(true) : () => addLine(k);
-            return (
-              <button
-                key={k}
-                type="button"
-                onClick={onClick}
-                title={`Add ${KIND_META[k].label}`}
-                className="flex flex-1 flex-col items-center gap-0.5 rounded-lg border border-transparent bg-muted/40 px-1 py-1.5 text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary lg:flex-none"
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="text-[9px] font-medium">{KIND_META[k].label}</span>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setOpenPicker(true)}
-            title="Canned Job — from Price Book"
-            className="flex flex-1 flex-col items-center gap-0.5 rounded-lg border border-primary/30 bg-primary/5 px-1 py-1.5 text-primary transition hover:bg-primary/15 lg:flex-none"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            <span className="text-[9px] font-medium">Canned</span>
-          </button>
-        </div>
-
+      <div className="grid gap-2 lg:grid-cols-[1fr_300px]">
         {/* Center: jobs + line grid + notes */}
         <div className="min-w-0 space-y-2">
           {/* Job tabs */}
@@ -1433,23 +1479,34 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 </tr>
               </thead>
               <tbody>
-                {lines.filter((l) => l.job === activeJob).length === 0 ? (
+                {lines.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">
-                      No lines in Job {activeJob}. Use the left rail or a preset below to add work.
+                      No lines yet. Use the left rail or a preset below to add work.
                     </td>
                   </tr>
                 ) : (
-                  <>
-                  {lines
-                    .filter((l) => l.job === activeJob)
-                    .map((l) => {
+                  jobs.flatMap((j) => {
+                    const jobLines = lines.filter((l) => l.job === j);
+                    const jobSubtotal = jobLines.filter((l) => !l.declined).reduce((s, l) => s + lineTotalCents(l), 0);
+                    const jobHours = jobLines.filter((l) => (l.kind === "labor" || l.kind === "diagnosis") && !l.declined).reduce((s, l) => s + (Number(l.qty) || 0), 0);
+                    return [
+                      <tr key={`job-${j}`} className="bg-primary/5">
+                        <td colSpan={9} className="px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary">
+                          Job {j}
+                          {jobHours > 0 && <span className="ml-2 font-medium normal-case text-muted-foreground">· {jobHours.toFixed(1)} hrs labor</span>}
+                        </td>
+                      </tr>,
+                      ...(jobLines.length === 0
+                        ? [<tr key={`empty-${j}`}><td colSpan={9} className="px-3 py-3 text-center text-[11px] text-muted-foreground">No lines in this job yet — set Job {j} active and Add below.</td></tr>]
+                        : jobLines.map((l) => {
                       const Icon = KIND_META[l.kind].icon;
+                      const accent = KIND_ACCENT[l.kind];
                       return (
-                        <tr key={l.id} className={`border-b last:border-0 hover:bg-muted/20 ${l.declined ? "opacity-40" : ""}`}>
+                        <tr key={l.id} className={`border-b border-l-2 last:border-b-0 hover:bg-muted/20 ${accent.border} ${l.declined ? "opacity-40" : ""}`}>
                           <td className="px-2 py-1">
                             <Select value={l.kind} onValueChange={(v: LineKind) => patchLine(l.id, { kind: v })}>
-                              <SelectTrigger className="h-7 w-[84px] text-[11px]">
+                              <SelectTrigger className={`h-7 w-[84px] text-[11px] font-medium ${accent.text}`}>
                                 <span className="flex items-center gap-1"><Icon className="h-3 w-3" /><SelectValue /></span>
                               </SelectTrigger>
                               <SelectContent>
@@ -1526,7 +1583,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                               {l.taxable ? "R1" : "N"}
                             </button>
                           </td>
-                          <td className="px-2 py-1 text-right font-semibold tabular-nums">{money(lineTotalCents(l))}</td>
+                          <td className={`px-2 py-1 text-right font-semibold tabular-nums ${accent.text}`}>{money(lineTotalCents(l))}</td>
                           <td className="px-1 py-1">
                             <div className="flex items-center gap-0.5">
                               <button type="button" title={l.declined ? "Restore work" : "Mark declined"}
@@ -1541,28 +1598,21 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                           </td>
                         </tr>
                       );
-                    })}
-                  {/* Job subtotal */}
-                  <tr className="border-t bg-muted/30">
-                    <td colSpan={7} className="px-3 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Job {activeJob} SubTotal
-                    </td>
-                    <td className="px-2 py-1.5 text-right font-bold tabular-nums">
-                      {money(lines.filter((l) => l.job === activeJob && !l.declined).reduce((s, l) => s + lineTotalCents(l), 0))}
-                    </td>
-                    <td />
-                  </tr>
-                  </>
+                    })),
+                      <tr key={`sub-${j}`} className="border-t-2 bg-muted/40">
+                        <td colSpan={7} className="px-3 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Job {j} SubTotal
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-bold tabular-nums">
+                          {money(jobSubtotal)}
+                        </td>
+                        <td />
+                      </tr>,
+                    ];
+                  })
                 )}
               </tbody>
             </table>
-            <div className="flex items-center gap-1.5 border-t bg-muted/20 px-2 py-1.5">
-              {(["labor", "part", "tire", "fee"] as LineKind[]).map((k) => (
-                <Button key={k} size="sm" variant="ghost" className="h-6 gap-1 text-[11px]" onClick={() => addLine(k)}>
-                  <Plus className="h-3 w-3" /> {KIND_META[k].label}
-                </Button>
-              ))}
-            </div>
           </div>
 
           {/* VSM-style line composer (Part / Labor entry) */}
@@ -1615,7 +1665,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <span className="text-muted-foreground">Tech:</span>
               <button type="button" onClick={() => setStatusDlgOpen(true)} className="h-6 rounded border px-2 text-xs font-medium hover:bg-muted" title="Status & technician">{header.technician || "Select Technician"}</button>
             </span>
-            <Select value={header.appointment_type} onValueChange={(v) => setH({ appointment_type: v })}>
+            <Select value={header.appointment_type} onValueChange={(v) => { setH({ appointment_type: v }); persistHeader({ appointment_type: v }); }}>
               <SelectTrigger className="h-6 w-[150px] text-xs"><SelectValue placeholder="Appointment type" /></SelectTrigger>
               <SelectContent>{APPOINTMENT_TYPES.map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}</SelectContent>
             </Select>
@@ -1624,8 +1674,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             </Button>
           </div>
 
-          {/* Notes */}
-          <div className="rounded-xl border bg-card p-2.5">
+          {/* Notes — VSM-style: six categories, AI ReWrite + voice dictation */}
+          <div className="rounded-xl border bg-card p-2">
             <div className="mb-1.5 flex flex-wrap items-center gap-1">
               {NOTE_TABS.map((n) => (
                 <button key={n.key} type="button" onClick={() => setNoteTab(n.key)}
@@ -1633,16 +1683,15 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                   {n.label}
                 </button>
               ))}
-              <button type="button" onClick={rewriteNote} title="Tidy shorthand, casing & punctuation"
-                className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10">
-                <Sparkles className="h-3 w-3" /> ReWrite
-              </button>
             </div>
-            <Textarea rows={2} className="text-xs" placeholder={NOTE_TABS.find((n) => n.key === noteTab)?.label}
+            <Textarea rows={3} className="text-xs" placeholder={NOTE_TABS.find((n) => n.key === noteTab)?.label}
               value={header[noteTab]} onChange={(e) => setH({ [noteTab]: e.target.value } as Partial<HeaderForm>)} />
-            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-              <Input className={fieldCls} placeholder="Warranty" value={header.warranty} onChange={(e) => setH({ warranty: e.target.value })} />
-              <Input className={fieldCls} placeholder="Internal note" value={header.internal} onChange={(e) => setH({ internal: e.target.value })} />
+            <div className="mt-1 flex items-center justify-end gap-1">
+              <BuildROVoiceButton onTranscript={(t) => setH({ [noteTab]: (header[noteTab].trim() ? header[noteTab].trim() + " " : "") + t } as Partial<HeaderForm>)} />
+              <button type="button" onClick={rewriteNote} title="Tidy shorthand, casing & punctuation"
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10">
+                <Sparkles className="h-3 w-3" /> AI ReWrite
+              </button>
             </div>
           </div>
         </div>
@@ -1650,7 +1699,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         {/* Right: estimate summary */}
         <div className="space-y-2">
           {/* Estimate Summary */}
-          <div className="rounded-xl border bg-card p-2.5">
+          <div className="rounded-xl border bg-card p-2">
             <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <FileSignature className="h-3 w-3" /> Estimate Summary
             </p>
@@ -1658,13 +1707,13 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               {[
                 ["Parts", t.parts], ["Tires", t.tires], ["Labor", t.labor], ["Sublet", t.sublet],
               ].map(([k, v]) => (
-                <div key={k as string} className="flex justify-between">
-                  <dt className="text-muted-foreground">{k}</dt>
-                  <dd className="tabular-nums">{money(v as number)}</dd>
+                <div key={k as string} className="flex items-center justify-between gap-2">
+                  <dt className="min-w-0 truncate text-muted-foreground">{k}</dt>
+                  <dd className="shrink-0 tabular-nums">{money(v as number)}</dd>
                 </div>
               ))}
-              <div className="flex justify-between border-t pt-1 font-medium">
-                <dt>SubTotal</dt><dd className="tabular-nums">{money(t.lineSubtotal)}</dd>
+              <div className="flex items-center justify-between gap-2 border-t pt-1 font-medium">
+                <dt className="min-w-0 truncate">SubTotal</dt><dd className="shrink-0 tabular-nums">{money(t.lineSubtotal)}</dd>
               </div>
               {([
                 ["Fees", feesC, setFeesC],
@@ -1672,18 +1721,18 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 ["Shop Supplies", suppliesC, (n: number) => { setSuppliesTouched(true); setSuppliesC(n); }],
                 ["Discount", discountC, setDiscountC],
               ] as [string, number, (n: number) => void][]).map(([label, val, setter]) => (
-                <div key={label as string} className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="flex items-center justify-end gap-0.5"><span className="text-[10px] text-muted-foreground">$</span><input className="h-6 w-16 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number"
+                <div key={label as string} className="flex items-center justify-between gap-2">
+                  <dt className="min-w-0 truncate text-muted-foreground">{label}</dt>
+                  <dd className="flex shrink-0 items-center justify-end gap-0.5"><span className="text-[10px] text-muted-foreground">$</span><input className="h-6 w-16 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number"
                       value={centsToDollars(val as number)}
                       onChange={(e) => (setter as (n: number) => void)(dollarsToCents(e.target.value))}
                     />
                   </dd>
                 </div>
               ))}
-              <div className="flex items-center justify-between">
-                <dt className="text-muted-foreground">Tax %</dt>
-                <dd className="flex items-center gap-1">
+              <div className="flex items-center justify-between gap-2">
+                <dt className="min-w-0 truncate text-muted-foreground">Tax %</dt>
+                <dd className="flex shrink-0 items-center gap-1">
                   <input className="h-6 w-12 rounded border border-input bg-background px-1.5 text-right text-xs tabular-nums" type="number" value={taxRate || ""} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} /><span className="text-[10px] text-muted-foreground">%</span>
                   <span className="tabular-nums text-muted-foreground">{money(t.tax)}</span>
                 </dd>
@@ -1693,6 +1742,13 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <span className="text-sm font-semibold">Total</span>
               <span className="text-lg font-bold tabular-nums text-primary">{money(t.total)}</span>
             </div>
+            {t.lineSubtotal > 0 && (
+              <button type="button" onClick={() => setOpenGP(true)} title="View profit breakdown"
+                className="mt-1.5 flex w-full items-center justify-between rounded-md bg-emerald-50 px-2 py-1 text-[11px] transition hover:bg-emerald-100">
+                <span className="font-medium text-emerald-700">Gross profit</span>
+                <span className="shrink-0 font-semibold tabular-nums text-emerald-700">{money(Math.round((t.lineSubtotal * t.margin) / 100))} · {Math.round(t.margin)}%</span>
+              </button>
+            )}
             <label className="mt-2 flex items-center gap-2 text-xs">
               <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={droppedOff} onChange={(e) => setDroppedOff(e.target.checked)} />
               Dropped off
@@ -1866,6 +1922,23 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         open={openImport}
         onOpenChange={setOpenImport}
         onImport={importParts}
+        matrix={partsMatrix}
+      />
+
+      <BuildROProfitDialog open={openGP} onOpenChange={setOpenGP} lines={lines} />
+
+      <AutoRepairDocPreviewDialog
+        open={!!previewDoc}
+        onOpenChange={(v) => !v && setPreviewDoc(null)}
+        doc={previewDoc}
+        storeName={storeInfo.name}
+        storeAddress={storeInfo.address}
+        storePhone={storeInfo.phone}
+        storePhone2={storeInfo.phone2}
+        storeEmail={storeInfo.email}
+        storeStateReg={storeInfo.stateReg}
+        storeLogo={storeLogoData}
+        storeTermsPolicy={storeInfo.termsPolicy}
       />
 
       {/* ── Print / Review modal ── */}

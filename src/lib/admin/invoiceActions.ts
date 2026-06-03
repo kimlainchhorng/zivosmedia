@@ -104,6 +104,20 @@ export async function assignDocNumber(storeId: string, type: DocType): Promise<s
   return data as string;
 }
 
+/**
+ * Allocate the authoritative, per-store sequential WORK ORDER number (WO-####)
+ * via the same atomic counter RPC. Falls back to a timestamp number so saving
+ * never hard-fails on numbering alone.
+ */
+export async function assignWorkOrderNumber(storeId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("ar_next_doc_number" as any, {
+    _store_id: storeId,
+    _doc_type: "workorder",
+  });
+  if (error || !data) return `WO-${Date.now().toString().slice(-6)}`;
+  return data as string;
+}
+
 /** Create a public share link valid for N days. */
 export async function createShareLink(opts: {
   storeId: string;

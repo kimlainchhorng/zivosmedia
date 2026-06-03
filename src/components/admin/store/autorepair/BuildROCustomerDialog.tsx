@@ -1,14 +1,13 @@
 /**
- * Build R.O. — "Create New Customer" dialog (VSM-styled).
- * Collects the customer record (name, address, contacts, rating, memo).
+ * Build R.O. — "Create New Customer" dialog (light, modern).
+ * Collects the customer record (first/last name, address, contacts, rating, memo).
  * There's no separate customers table — this draft is carried on the R.O. and
  * written onto the ar_customer_vehicles row when the vehicle is saved.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { UserPlus, Search, Star, X } from "lucide-react";
+import { UserPlus, ScanLine, X, Car, FileText } from "lucide-react";
 
 export type CustomerDraft = {
   name: string; street: string; city: string; state: string; zip: string;
@@ -28,30 +27,40 @@ interface Props {
   onSave: (c: CustomerDraft, addVehicle: boolean) => void;
 }
 
-const row = "flex items-center gap-3";
-const label = "w-20 shrink-0 text-right text-sm font-semibold text-slate-300";
-const field = "flex-1 bg-slate-800/60 border-slate-600 text-slate-100 placeholder:text-slate-500 h-9";
+const inp =
+  "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[#1e90ff] focus:outline-none focus:ring-2 focus:ring-[#1e90ff]/20";
+const lbl = "text-[11px] font-semibold uppercase tracking-wide text-slate-500";
 
 export default function BuildROCustomerDialog({ open, onOpenChange, initial, onSave }: Props) {
   const [f, setF] = useState<CustomerDraft>(blankCustomer);
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
   const [showMemo, setShowMemo] = useState(false);
 
   useEffect(() => {
-    if (open) { setF({ ...blankCustomer, ...initial }); setShowMemo(Boolean(initial?.memo)); }
+    if (open) {
+      const init = { ...blankCustomer, ...initial };
+      setF(init);
+      const parts = (init.name || "").trim().split(/\s+/).filter(Boolean);
+      if (parts.length > 1) { setFirst(parts.slice(0, -1).join(" ")); setLast(parts[parts.length - 1]); }
+      else { setFirst(parts[0] || ""); setLast(""); }
+      setShowMemo(Boolean(initial?.memo));
+    }
   }, [open, initial]);
 
   const set = (p: Partial<CustomerDraft>) => setF((s) => ({ ...s, ...p }));
+  const fullName = useMemo(() => [first.trim(), last.trim()].filter(Boolean).join(" "), [first, last]);
 
   const submit = (addVehicle: boolean) => {
-    if (!f.name.trim()) { toast.error("Customer name is required"); return; }
-    onSave({ ...f, name: f.name.trim() }, addVehicle);
+    if (!fullName) { toast.error("First name is required"); return; }
+    onSave({ ...f, name: fullName }, addVehicle);
   };
 
   // Print a #10 envelope with the customer's mailing address in the standard spot.
   const printEnvelope = () => {
-    if (!f.name.trim()) { toast.error("Enter the customer name first"); return; }
-    const lines = [f.name.trim(), f.street.trim(), [f.city.trim(), f.state.trim(), f.zip.trim()].filter(Boolean).join(", ")].filter(Boolean);
-    const html = `<html><head><title>Envelope — ${f.name.trim()}</title>
+    if (!fullName) { toast.error("Enter the customer name first"); return; }
+    const lines = [fullName, f.street.trim(), [f.city.trim(), f.state.trim(), f.zip.trim()].filter(Boolean).join(", ")].filter(Boolean);
+    const html = `<html><head><title>Envelope — ${fullName}</title>
       <style>@page{size:9.5in 4.125in;margin:0}body{margin:0;font-family:system-ui,Arial,sans-serif}
       .env{width:9.5in;height:4.125in;position:relative}
       .to{position:absolute;left:4.3in;top:1.9in;font-size:13pt;line-height:1.5}</style></head>
@@ -64,71 +73,122 @@ export default function BuildROCustomerDialog({ open, onOpenChange, initial, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl gap-0 overflow-hidden border-slate-700 bg-[#0b1220] p-0 text-slate-100">
+      <DialogContent className="flex max-h-[88vh] max-w-2xl flex-col gap-0 overflow-hidden border-slate-200 bg-white p-0 text-slate-900">
         <DialogTitle className="sr-only">Create New Customer</DialogTitle>
-        {/* Title bar */}
-        <div className="flex items-center gap-3 bg-slate-800/80 px-5 py-3">
-          <span className="font-serif text-lg italic tracking-wide text-slate-300">VIP</span>
-          <span className="text-base font-bold">Customer Information:</span>
+
+        {/* Header */}
+        <div className="flex items-center gap-3 bg-gradient-to-br from-[#1e90ff] to-[#1577e0] px-5 py-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
+            <UserPlus className="h-5 w-5 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold leading-tight text-white">Create New Customer</h2>
+            <p className="text-xs text-white/80">Capture contact details — you can add the vehicle next</p>
+          </div>
+          <button onClick={() => onOpenChange(false)} className="rounded-lg bg-black/15 p-1.5 text-white transition hover:bg-black/25" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <div className="bg-gradient-to-b from-[#1e90ff] to-[#1577e0] py-2 text-center">
-          <span className="font-serif text-lg italic text-white">Create New Customer</span>
+
+        <div className="flex-1 space-y-4 overflow-y-auto bg-white px-6 py-5">
+          {/* Scan driver license (optional, future) */}
+          <div className="flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5">
+            <ScanLine className="h-4 w-4 shrink-0 text-slate-400" />
+            <input
+              className="flex-1 bg-transparent text-sm text-slate-600 placeholder:text-slate-400 focus:outline-none disabled:cursor-not-allowed"
+              placeholder="Scan Driver License to auto-fill (scanner not connected)"
+              disabled
+            />
+            <span className="shrink-0 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500">Optional</span>
+          </div>
+
+          {/* Name — first + last */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className={lbl}>First name <span className="text-rose-500">*</span></label>
+              <input autoFocus className={inp} placeholder="John" value={first}
+                onChange={(e) => setFirst(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submit(false); }} />
+            </div>
+            <div className="space-y-1">
+              <label className={lbl}>Last name</label>
+              <input className={inp} placeholder="Smith" value={last}
+                onChange={(e) => setLast(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submit(false); }} />
+            </div>
+          </div>
+
+          {/* Contacts */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className={lbl}>Cell phone</label>
+              <input className={inp} type="tel" placeholder="(555) 123-4567" value={f.cell} onChange={(e) => set({ cell: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className={lbl}>Work phone</label>
+              <input className={inp} type="tel" placeholder="(555) 123-4567" value={f.work} onChange={(e) => set({ work: e.target.value })} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className={lbl}>Email</label>
+            <input className={inp} type="email" placeholder="name@example.com" value={f.email} onChange={(e) => set({ email: e.target.value })} />
+          </div>
+
+          {/* Address */}
+          <div className="space-y-1">
+            <label className={lbl}>Street address</label>
+            <input className={inp} autoComplete="street-address" placeholder="123 Main St" value={f.street} onChange={(e) => set({ street: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-[2fr_1fr_1fr] gap-3">
+            <div className="space-y-1">
+              <label className={lbl}>City</label>
+              <input className={inp} autoComplete="address-level2" value={f.city} onChange={(e) => set({ city: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className={lbl}>State</label>
+              <input className={inp} autoComplete="address-level1" value={f.state} onChange={(e) => set({ state: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className={lbl}>Zip</label>
+              <input className={inp} autoComplete="postal-code" value={f.zip} onChange={(e) => set({ zip: e.target.value })} />
+            </div>
+          </div>
+
+          {/* Memo */}
+          <div>
+            <button type="button" onClick={() => setShowMemo((v) => !v)}
+              className="flex items-center gap-1.5 text-xs font-medium text-[#1e90ff] hover:text-[#1577e0]">
+              <FileText className="h-3.5 w-3.5" /> {showMemo ? "Hide memo" : "Add a memo"}
+            </button>
+            {showMemo && (
+              <textarea
+                className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1e90ff] focus:outline-none focus:ring-2 focus:ring-[#1e90ff]/20"
+                rows={2} placeholder="Internal note about this customer…" value={f.memo} onChange={(e) => set({ memo: e.target.value })}
+              />
+            )}
+          </div>
         </div>
 
-        <div className="space-y-5 px-6 py-6">
-          {/* Scan driver license */}
-          <div className="mx-auto flex max-w-md items-center rounded-md border border-slate-300 bg-white">
-            <Search className="ml-3 h-4 w-4 text-slate-400" />
-            <Input className="flex-1 border-0 bg-transparent text-slate-800 focus-visible:ring-0" placeholder="Scan Driver License" disabled />
-            <button className="m-1 rounded bg-slate-100 px-3 py-1.5 text-slate-600"><Search className="h-4 w-4" /></button>
+        {/* Footer actions */}
+        <div className="space-y-2 border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button onClick={() => submit(false)}
+              className="flex-1 rounded-lg bg-[#1e90ff] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1577e0]">
+              Save
+            </button>
+            <button onClick={() => submit(true)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+              <Car className="h-4 w-4" /> Save &amp; Add Vehicle
+            </button>
+            <button onClick={() => onOpenChange(false)}
+              className="flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white px-5 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">
+              <X className="h-4 w-4" /> Cancel
+            </button>
           </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {/* Left — address */}
-            <div className="space-y-2.5">
-              <div className={row}><span className={label}>Name:</span><Input className={field} value={f.name} onChange={(e) => set({ name: e.target.value })} /></div>
-              <div className={row}><span className={label}>Street:</span><Input className={field} value={f.street} onChange={(e) => set({ street: e.target.value })} /></div>
-              <div className={row}><span className={label}>City:</span><Input className={field} value={f.city} onChange={(e) => set({ city: e.target.value })} /></div>
-              <div className={row}><span className={label}>State:</span><Input className={field} value={f.state} onChange={(e) => set({ state: e.target.value })} /></div>
-              <div className={row}><span className={label}>Zip Code:</span><Input className={field} value={f.zip} onChange={(e) => set({ zip: e.target.value })} /></div>
-            </div>
-            {/* Right — contacts */}
-            <div className="space-y-2.5">
-              <div className={row}><span className="w-16 shrink-0 rounded bg-slate-700 px-2 py-1.5 text-sm font-semibold text-amber-300">Cell</span><Input className={field} placeholder="(___) ___-____" value={f.cell} onChange={(e) => set({ cell: e.target.value })} /></div>
-              <div className={row}><span className="w-16 shrink-0 rounded bg-slate-700 px-2 py-1.5 text-sm font-semibold text-amber-300">Work</span><Input className={field} placeholder="(___) ___-____" value={f.work} onChange={(e) => set({ work: e.target.value })} /></div>
-              <div className={row}><span className="w-16 shrink-0 rounded bg-slate-700 px-2 py-1.5 text-sm font-semibold text-amber-300">Email</span><Input className={field} type="email" value={f.email} onChange={(e) => set({ email: e.target.value })} /></div>
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button className="text-xs text-sky-400 underline" onClick={() => setShowMemo((v) => !v)}>Add Memo</button>
-              </div>
-              {showMemo && (
-                <textarea className="w-full rounded border border-slate-600 bg-slate-800/60 p-2 text-sm text-slate-100" rows={2}
-                  placeholder="Memo" value={f.memo} onChange={(e) => set({ memo: e.target.value })} />
-              )}
-            </div>
-          </div>
-
-          <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-red-400">
-            Note: Each customer has a unique ID. Do not replace with a different customer.
-          </p>
-
-          {/* Rating */}
-          <div className="flex justify-center gap-1.5">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n} type="button" onClick={() => set({ rating: n === f.rating ? 0 : n })}>
-                <Star className={`h-8 w-8 ${n <= f.rating ? "fill-amber-400 text-amber-400" : "text-amber-500/60"}`} />
-              </button>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-center gap-3 rounded-lg border border-slate-700 bg-slate-900/60 p-3">
-            <button onClick={() => submit(false)} className="rounded bg-[#1e90ff] px-8 py-2.5 font-semibold text-white hover:bg-[#1577e0]">Save</button>
-            <button onClick={() => submit(true)} className="rounded border border-slate-600 bg-slate-800 px-6 py-2.5 font-serif italic text-slate-200 hover:bg-slate-700">Save &amp; Add Vehicle →</button>
-            <button onClick={() => onOpenChange(false)} className="flex items-center gap-1.5 rounded border border-red-500/60 bg-slate-800 px-6 py-2.5 font-semibold text-red-400 hover:bg-slate-700"><X className="h-4 w-4" /> Cancel</button>
-          </div>
-
           <div className="flex justify-end">
-            <button type="button" onClick={printEnvelope} className="text-xs text-sky-400 underline hover:text-sky-300">Print Envelopes</button>
+            <button type="button" onClick={printEnvelope} className="text-[11px] text-slate-400 underline transition hover:text-slate-600">
+              Print envelope
+            </button>
           </div>
         </div>
       </DialogContent>

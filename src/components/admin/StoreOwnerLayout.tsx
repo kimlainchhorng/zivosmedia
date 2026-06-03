@@ -519,7 +519,16 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                 variant="ghost"
                 size="sm"
                 className="gap-1 -ml-1 px-2"
-                onClick={() => navigate(-1)}
+                onClick={() => {
+                  // In an Auto Repair sub-tab, "Back" returns to the Auto Repair
+                  // Dashboard (the shop's home) rather than the browser history,
+                  // which can land on a blank/unrelated page.
+                  if (isAutoRepair && onTabChange && activeTab && activeTab !== "ar-dashboard") {
+                    onTabChange("ar-dashboard");
+                  } else {
+                    navigate(-1);
+                  }
+                }}
                 aria-label="Go back"
                 title="Go back"
               >
