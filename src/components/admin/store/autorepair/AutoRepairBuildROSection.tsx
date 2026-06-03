@@ -26,12 +26,13 @@ import { toast } from "sonner";
 import ServiceCatalogPickerDialog, { type ServiceCatalogPick } from "./ServiceCatalogPickerDialog";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
 import VehicleHistoryDialog from "./VehicleHistoryDialog";
+import PartPickerDialog, { type PickedPart } from "./PartPickerDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, Gauge, ShieldCheck, ChevronDown,
-  Link2, X, UserPlus,
+  Link2, X, UserPlus, Sparkles,
 } from "lucide-react";
 
 type GarageVehicle = {
@@ -202,6 +203,42 @@ const coerceLine = (raw: any, idx: number): ROLine => {
   };
 };
 
+// Professional "ReWrite" for shop notes — expand common auto-repair shorthand,
+// fix casing, and tidy spacing. Deterministic (no network) so it works offline.
+const SHOP_ABBR: [RegExp, string][] = [
+  [/\bcust\b/gi, "customer"],
+  [/\bc\/o\b/gi, "complains of"],
+  [/\bveh\b/gi, "vehicle"],
+  [/\bw\//gi, "with"],
+  [/\bb\/c\b/gi, "because"],
+  [/\blf\b/gi, "left front"],
+  [/\brf\b/gi, "right front"],
+  [/\blr\b/gi, "left rear"],
+  [/\brr\b/gi, "right rear"],
+  [/\bbrk(s)?\b/gi, "brake$1"],
+  [/\brotr(s)?\b/gi, "rotor$1"],
+  [/\brepl\b/gi, "replace"],
+  [/\breplcd\b/gi, "replaced"],
+  [/\bdiag\b/gi, "diagnose"],
+  [/\beng\b/gi, "engine"],
+  [/\btrans\b/gi, "transmission"],
+  [/\bsusp\b/gi, "suspension"],
+  [/\balign\b/gi, "alignment"],
+  [/\btemp\b/gi, "temperature"],
+  [/\bfl\b/gi, "fluid"],
+  [/\bmi\b/gi, "miles"],
+];
+const tidyNote = (raw: string): string => {
+  let s = raw.replace(/\s+/g, " ").trim();
+  if (!s) return s;
+  for (const [re, rep] of SHOP_ABBR) s = s.replace(re, rep);
+  // Capitalize the first letter of each sentence.
+  s = s.replace(/(^\s*|[.!?]\s+)([a-z])/g, (_, p, c) => p + c.toUpperCase());
+  // Ensure terminal punctuation.
+  if (!/[.!?]$/.test(s)) s += ".";
+  return s;
+};
+
 export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props) {
   const qc = useQueryClient();
   const [editId, setEditId] = useState<string | null>(null);
@@ -212,6 +249,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [activeJob, setActiveJob] = useState(1);
   const [openPicker, setOpenPicker] = useState(false);
   const [openLabor, setOpenLabor] = useState(false);
+  const [openParts, setOpenParts] = useState(false);
   const [openLoad, setOpenLoad] = useState(false);
 
   const setH = (patch: Partial<HeaderForm>) => setHeader((h) => ({ ...h, ...patch }));
@@ -378,6 +416,31 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       ...a,
       ...picks.map((p) => ({ ...blankLine(activeJob, p.kind), description: p.name, qty: p.qty, unit_cents: p.unit_cents })),
     ]);
+  };
+
+  const addPartFromCatalog = (p: PickedPart) => {
+    setLines((a) => [
+      ...a,
+      {
+        ...blankLine(activeJob, "part"),
+        description: p.description,
+        qty: p.qty || 1,
+        unit_cents: Math.round((p.price || 0) * 100),
+        part_number: p.sku || "",
+        vendor: p.brand || "",
+        misc: p.sku || "",
+        taxable: true,
+      },
+    ]);
+    toast.success(`Added ${p.description}${p.brand ? ` (${p.brand})` : ""}`);
+  };
+
+  const rewriteNote = () => {
+    const current = header[noteTab];
+    if (!current.trim()) { toast.info("Nothing to rewrite yet"); return; }
+    const tidied = tidyNote(current);
+    setH({ [noteTab]: tidied } as Partial<HeaderForm>);
+    if (tidied !== current) toast.success("Note rewritten");
   };
 
   // ── Presets (canned jobs). Phase 3 wires these to real templates; for now they seed sensible lines. ──
@@ -689,8 +752,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           </div>
           {RAIL.map((k) => {
             const Icon = KIND_META[k].icon;
-            const onClick = k === "part" ? () => { addLine("part"); }
-              : () => addLine(k);
+            const onClick = k === "part" ? () => setOpenParts(true) : () => addLine(k);
             return (
               <button
                 key={k}
@@ -733,7 +795,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={addJob}>
               <Plus className="h-3 w-3" /> Job
             </Button>
-            <span className="ml-auto flex gap-1.5">
+            <span className="ml-auto flex flex-wrap gap-1.5">
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenParts(true)}>
+                <Package className="h-3 w-3" /> Parts Catalog
+              </Button>
               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenPicker(true)}>
                 <BookOpen className="h-3 w-3" /> Price Book
               </Button>
@@ -786,6 +851,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                           <td className="px-2 py-1">
                             <Input className="h-7 min-w-[150px] text-xs" placeholder="Description" value={l.description}
                               onChange={(e) => patchLine(l.id, { description: e.target.value })} />
+                            {l.kind === "part" && l.vendor && (
+                              <p className="mt-0.5 pl-1 text-[9px] uppercase tracking-wide text-muted-foreground truncate">Vendor: {l.vendor}</p>
+                            )}
                           </td>
                           <td className="px-2 py-1">
                             <Input className="h-7 w-[90px] text-xs" placeholder="Part #/note" value={l.misc}
@@ -836,13 +904,17 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
 
           {/* Notes */}
           <div className="rounded-xl border bg-card p-2.5">
-            <div className="mb-1.5 flex flex-wrap gap-1">
+            <div className="mb-1.5 flex flex-wrap items-center gap-1">
               {NOTE_TABS.map((n) => (
                 <button key={n.key} type="button" onClick={() => setNoteTab(n.key)}
                   className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${noteTab === n.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
                   {n.label}
                 </button>
               ))}
+              <button type="button" onClick={rewriteNote} title="Tidy shorthand, casing & punctuation"
+                className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10">
+                <Sparkles className="h-3 w-3" /> ReWrite
+              </button>
             </div>
             <Textarea rows={2} className="text-xs" placeholder={NOTE_TABS.find((n) => n.key === noteTab)?.label}
               value={header[noteTab]} onChange={(e) => setH({ [noteTab]: e.target.value } as Partial<HeaderForm>)} />
@@ -995,6 +1067,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         onOpenChange={setHistoryOpen}
         storeId={storeId}
         vehicle={boundVehicle}
+      />
+      <PartPickerDialog
+        open={openParts}
+        onOpenChange={setOpenParts}
+        storeId={storeId}
+        onPick={addPartFromCatalog}
       />
     </div>
   );
