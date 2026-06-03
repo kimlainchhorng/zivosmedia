@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Plus, Trash2, RotateCcw } from "lucide-react";
 import { type MatrixTier, DEFAULT_PARTS_MATRIX, multiplierOf, normalizeMatrix } from "@/lib/admin/partsMatrix";
 
 interface Props {
@@ -32,6 +33,15 @@ export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, 
     setRows((r) => r.map((t, idx) => (idx === i ? { ...t, markup: Number(v) || 0 } : t)));
   const setBound = (i: number, key: "start" | "end", v: string) =>
     setRows((r) => r.map((t, idx) => (idx === i ? { ...t, [key]: v === "" ? (key === "end" ? null : 0) : Number(v) } : t)));
+
+  const addTier = () =>
+    setRows((r) => {
+      const last = r[r.length - 1];
+      const start = last?.end != null ? Number((last.end + 0.01).toFixed(2)) : Number(((last?.start ?? 0) + 0.01).toFixed(2));
+      return [...r, { start, end: null, markup: 30 }];
+    });
+  const removeTier = (i: number) => setRows((r) => (r.length > 1 ? r.filter((_, idx) => idx !== i) : r));
+  const resetDefaults = () => { setRows(DEFAULT_PARTS_MATRIX); toast.info("Reset to default tiers — Save to apply"); };
 
   const valid = useMemo(() => rows.every((t) => !isNaN(t.start) && !isNaN(t.markup)), [rows]);
 
@@ -67,6 +77,7 @@ export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, 
                 <th className="px-2 py-1.5 text-left font-semibold">End Cost</th>
                 <th className="px-2 py-1.5 text-center font-semibold">Multiplier</th>
                 <th className="px-2 py-1.5 text-center font-semibold">Markup</th>
+                <th className="px-1 py-1.5" />
               </tr>
             </thead>
             <tbody>
@@ -91,10 +102,26 @@ export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, 
                       <span className="text-muted-foreground">%</span>
                     </div>
                   </td>
+                  <td className="px-1 py-1 text-center">
+                    <button type="button" title="Remove tier" disabled={rows.length <= 1}
+                      className="text-muted-foreground hover:text-destructive disabled:opacity-30"
+                      onClick={() => removeTier(i)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="flex items-center justify-center gap-2">
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addTier}>
+            <Plus className="h-3.5 w-3.5" /> Add Tier
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-muted-foreground" onClick={resetDefaults}>
+            <RotateCcw className="h-3.5 w-3.5" /> Reset to defaults
+          </Button>
         </div>
 
         <p className="text-center text-[11px] text-muted-foreground">
