@@ -2,12 +2,15 @@
  * Build R.O. — "Existing Customer" picker.
  * Searchable list of the shop's garage (ar_customer_vehicles). Picking a row
  * binds that customer + vehicle to the R.O. Receives the already-loaded garage
- * from AutoRepairBuildROSection to avoid a duplicate query.
+ * from AutoRepairBuildROSection to avoid a duplicate query, and pulls a light
+ * service-history summary (visits / last visit / lifetime spend) per vehicle.
  */
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Search, User, Car, Phone, X } from "lucide-react";
+import { Search, User, Car, Phone, History, X } from "lucide-react";
 
 type Vehicle = {
   id: string;
@@ -25,12 +28,47 @@ type Vehicle = {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  storeId: string;
   garage: Vehicle[];
   onPick: (v: Vehicle) => void;
 }
 
-export default function BuildROExistingCustomerDialog({ open, onOpenChange, garage, onPick }: Props) {
+const money = (cents: number) =>
+  `$${((cents ?? 0) / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+const labelOf = (v: Vehicle) => [v.year, v.make, v.model].filter(Boolean).join(" ");
+
+export default function BuildROExistingCustomerDialog({ open, onOpenChange, storeId, garage, onPick }: Props) {
   const [q, setQ] = useState("");
+
+  // Light service-history summary — invoices keyed by vehicle_label.
+  const { data: invoices = [] } = useQuery({
+    queryKey: ["ar-existing-cust-history", storeId],
+    enabled: open && !!storeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_invoices" as any)
+        .select("vehicle_label, created_at, total_cents, amount_paid_cents, status")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const statsByLabel = useMemo(() => {
+    const m = new Map<string, { count: number; lastDate: string | null; paid: number }>();
+    for (const inv of invoices) {
+      const label = (inv.vehicle_label || "").trim();
+      if (!label) continue;
+      const cur = m.get(label) || { count: 0, lastDate: null as string | null, paid: 0 };
+      cur.count += 1;
+      if (!cur.lastDate || inv.created_at > cur.lastDate) cur.lastDate = inv.created_at;
+      cur.paid += inv.status === "paid" ? (inv.total_cents ?? 0) : (inv.amount_paid_cents ?? 0);
+      m.set(label, cur);
+    }
+    return m;
+  }, [invoices]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -65,25 +103,37 @@ export default function BuildROExistingCustomerDialog({ open, onOpenChange, gara
             </p>
           ) : (
             <div className="space-y-1">
-              {filtered.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => { onPick(v); onOpenChange(false); }}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2.5 text-left transition hover:border-emerald-500 hover:bg-slate-800"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate font-semibold text-slate-100">{v.owner_name}</span>
-                    <span className="flex items-center gap-1.5 truncate text-xs text-slate-400">
-                      <Car className="h-3 w-3" /> {[v.year, v.make, v.model].filter(Boolean).join(" ")}
-                      {v.plate ? ` · ${v.plate}` : ""}
+              {filtered.map((v) => {
+                const stats = statsByLabel.get(labelOf(v));
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => { onPick(v); onOpenChange(false); }}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2.5 text-left transition hover:border-emerald-500 hover:bg-slate-800"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold text-slate-100">{v.owner_name}</span>
+                      <span className="flex items-center gap-1.5 truncate text-xs text-slate-400">
+                        <Car className="h-3 w-3" /> {labelOf(v)}{v.plate ? ` · ${v.plate}` : ""}
+                      </span>
+                      {stats ? (
+                        <span className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-emerald-400/90">
+                          <History className="h-2.5 w-2.5" />
+                          {stats.count} visit{stats.count === 1 ? "" : "s"}
+                          {stats.lastDate ? ` · last ${new Date(stats.lastDate).toLocaleDateString()}` : ""}
+                          {stats.paid > 0 ? ` · ${money(stats.paid)} lifetime` : ""}
+                        </span>
+                      ) : (
+                        <span className="mt-0.5 block text-[10px] text-slate-500">No prior visits</span>
+                      )}
                     </span>
-                  </span>
-                  {v.owner_phone && (
-                    <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400"><Phone className="h-3 w-3" /> {v.owner_phone}</span>
-                  )}
-                </button>
-              ))}
+                    {v.owner_phone && (
+                      <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400"><Phone className="h-3 w-3" /> {v.owner_phone}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

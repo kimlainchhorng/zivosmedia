@@ -1432,6 +1432,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       <BuildROExistingCustomerDialog
         open={openExisting}
         onOpenChange={setOpenExisting}
+        storeId={storeId}
         garage={garage}
         onPick={(v) => bindVehicle(v as GarageVehicle)}
       />
