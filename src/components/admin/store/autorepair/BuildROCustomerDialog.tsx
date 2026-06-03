@@ -47,6 +47,21 @@ export default function BuildROCustomerDialog({ open, onOpenChange, initial, onS
     onSave({ ...f, name: f.name.trim() }, addVehicle);
   };
 
+  // Print a #10 envelope with the customer's mailing address in the standard spot.
+  const printEnvelope = () => {
+    if (!f.name.trim()) { toast.error("Enter the customer name first"); return; }
+    const lines = [f.name.trim(), f.street.trim(), [f.city.trim(), f.state.trim(), f.zip.trim()].filter(Boolean).join(", ")].filter(Boolean);
+    const html = `<html><head><title>Envelope — ${f.name.trim()}</title>
+      <style>@page{size:9.5in 4.125in;margin:0}body{margin:0;font-family:system-ui,Arial,sans-serif}
+      .env{width:9.5in;height:4.125in;position:relative}
+      .to{position:absolute;left:4.3in;top:1.9in;font-size:13pt;line-height:1.5}</style></head>
+      <body><div class="env"><div class="to">${lines.join("<br/>")}</div></div></body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { toast.error("Pop-up blocked"); return; }
+    w.document.write(html); w.document.close(); w.focus();
+    setTimeout(() => w.print(), 300);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl gap-0 overflow-hidden border-slate-700 bg-[#0b1220] p-0 text-slate-100">
@@ -110,6 +125,10 @@ export default function BuildROCustomerDialog({ open, onOpenChange, initial, onS
             <button onClick={() => submit(false)} className="rounded bg-[#1e90ff] px-8 py-2.5 font-semibold text-white hover:bg-[#1577e0]">Save</button>
             <button onClick={() => submit(true)} className="rounded border border-slate-600 bg-slate-800 px-6 py-2.5 font-serif italic text-slate-200 hover:bg-slate-700">Save &amp; Add Vehicle →</button>
             <button onClick={() => onOpenChange(false)} className="flex items-center gap-1.5 rounded border border-red-500/60 bg-slate-800 px-6 py-2.5 font-semibold text-red-400 hover:bg-slate-700"><X className="h-4 w-4" /> Cancel</button>
+          </div>
+
+          <div className="flex justify-end">
+            <button type="button" onClick={printEnvelope} className="text-xs text-sky-400 underline hover:text-sky-300">Print Envelopes</button>
           </div>
         </div>
       </DialogContent>
