@@ -31,6 +31,7 @@ import PartPickerDialog, { type PickedPart } from "./PartPickerDialog";
 import BuildROCustomerDialog, { type CustomerDraft, blankCustomer } from "./BuildROCustomerDialog";
 import BuildROVehicleDialog from "./BuildROVehicleDialog";
 import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
+import BuildROHub from "./BuildROHub";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import {
@@ -38,7 +39,7 @@ import {
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, Gauge, ShieldCheck, ChevronDown,
   Link2, X, UserPlus, Sparkles, Ban, ShoppingCart, Mail, MessageSquare, ArrowRightCircle,
-  Download, Star, CheckCircle2, Send, PhoneCall,
+  Download, Star, CheckCircle2, Send, PhoneCall, Home,
 } from "lucide-react";
 
 type GarageVehicle = {
@@ -304,6 +305,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [openVehicleDlg, setOpenVehicleDlg] = useState(false);
   const [openCatalog, setOpenCatalog] = useState(false);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
+  const [view, setView] = useState<"hub" | "builder">("hub");
 
   const { data: garage = [] } = useQuery({
     queryKey: ["ar-build-ro-garage", storeId],
@@ -769,6 +771,53 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
 
   const fieldCls = "h-8 text-xs";
 
+  // ── Hub workflow connectors ──
+  const searchAndLoad = async (mode: "estimate" | "invoice", q: string) => {
+    const term = q.trim();
+    if (!term) { toast.info("Enter an estimate or invoice number"); return; }
+    if (mode === "estimate") {
+      const { data, error } = await supabase.from("ar_estimates" as any)
+        .select("*").eq("store_id", storeId).ilike("number", `%${term}%`)
+        .order("created_at", { ascending: false }).limit(1);
+      if (error) { toast.error(error.message); return; }
+      if (data?.[0]) { loadEstimate(data[0]); setView("builder"); }
+      else toast.error(`No estimate matching "${term}"`);
+    } else {
+      const { data, error } = await supabase.from("ar_invoices" as any)
+        .select("id, number, estimate_id").eq("store_id", storeId).ilike("number", `%${term}%`).limit(1);
+      if (error) { toast.error(error.message); return; }
+      const inv: any = data?.[0];
+      if (inv?.estimate_id) {
+        const { data: est } = await supabase.from("ar_estimates" as any).select("*").eq("id", inv.estimate_id).single();
+        if (est) { loadEstimate(est); setView("builder"); return; }
+      }
+      if (inv) { toast.info(`Invoice ${inv.number} — opening Invoices`); onNavigate?.("ar-invoices"); }
+      else toast.error(`No invoice matching "${term}"`);
+    }
+  };
+
+  const requestInfoBySms = (phone: string) => {
+    const msg = encodeURIComponent("Hi! Please reply with your name, vehicle (year/make/model) and the service you need so we can prepare your estimate. Thank you!");
+    window.open(`sms:${phone}?body=${msg}`, "_blank");
+    toast.success("Opening your text app…");
+  };
+
+  if (view === "hub") {
+    return (
+      <BuildROHub
+        storeId={storeId}
+        recent={recent}
+        onCreateNew={() => { resetAll(); setView("builder"); }}
+        onExistingCustomer={() => { resetAll(); setView("builder"); setSearchOpen(true); toast.info("Search the customer in the Customer panel"); }}
+        onNewCustomer={() => { resetAll(); setView("builder"); setOpenCustomer(true); }}
+        onOpenTicket={(e) => { loadEstimate(e); setView("builder"); }}
+        onRequestInfoSms={requestInfoBySms}
+        onSearch={searchAndLoad}
+        onNavigate={onNavigate}
+      />
+    );
+  }
+
   return (
     <div className="space-y-3">
       {/* ── Top action bar ── */}
@@ -782,6 +831,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           {editId && <Badge variant="secondary" className="text-[10px]">saved</Badge>}
         </div>
         <div className="flex items-center gap-1.5">
+          <Button size="sm" variant="ghost" className="h-8 gap-1.5" onClick={() => setView("hub")} title="Back to start screen">
+            <Home className="h-3.5 w-3.5" /> Start
+          </Button>
           <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={resetAll}>
             <FilePlus2 className="h-3.5 w-3.5" /> New
           </Button>
