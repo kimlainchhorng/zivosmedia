@@ -147,7 +147,12 @@ const authStorage = isNativePlatform ? nativeAuthStorage : webAuthStorage;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+// Fall back to harmless placeholders when env vars are missing so createClient
+// doesn't throw at module load (a throw here blanks out the whole React tree).
+const SAFE_URL = SUPABASE_URL || "https://missing-env.supabase.co";
+const SAFE_KEY = SUPABASE_PUBLISHABLE_KEY || "missing-env-key";
+
+export const supabase = createClient<Database>(SAFE_URL, SAFE_KEY, {
   db: {
     schema: "public",
   },
