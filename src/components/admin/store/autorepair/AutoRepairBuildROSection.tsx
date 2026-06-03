@@ -30,20 +30,23 @@ import VehicleHistoryDialog from "./VehicleHistoryDialog";
 import PartPickerDialog, { type PickedPart } from "./PartPickerDialog";
 import BuildROCustomerDialog, { type CustomerDraft, blankCustomer } from "./BuildROCustomerDialog";
 import BuildROVehicleDialog from "./BuildROVehicleDialog";
+import BuildROCarfaxDialog from "./BuildROCarfaxDialog";
 import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
 import { listConnectedVendors } from "./AutoRepairPartSuppliersSection";
 import BuildROHub from "./BuildROHub";
 import BuildROExistingCustomerDialog from "./BuildROExistingCustomerDialog";
 import BuildROBarcode from "./BuildROBarcode";
 import BuildROSaveCannedDialog from "./BuildROSaveCannedDialog";
+import BuildROPartsMatrixDialog from "./BuildROPartsMatrixDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
+import { type MatrixTier, DEFAULT_PARTS_MATRIX, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, ShieldCheck, ChevronDown,
   Link2, X, UserPlus, Sparkles, Ban, ShoppingCart, Mail, MessageSquare, ArrowRightCircle,
-  Download, Star, CheckCircle2, Send, PhoneCall, Home,
+  Download, Star, CheckCircle2, Send, PhoneCall, Home, Percent,
 } from "lucide-react";
 
 type GarageVehicle = {
@@ -313,6 +316,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [custSearch, setCustSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [carfaxOpen, setCarfaxOpen] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printCopies, setPrintCopies] = useState(1);
   const [smsMenuOpen, setSmsMenuOpen] = useState(false);
@@ -324,6 +328,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [openCatalog, setOpenCatalog] = useState(false);
   const [openExisting, setOpenExisting] = useState(false);
   const [openCanned, setOpenCanned] = useState(false);
+  const [openMatrix, setOpenMatrix] = useState(false);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
   const [view, setView] = useState<"hub" | "builder">("hub");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -371,9 +376,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       const taxRaw = Number(s.tax_rate);
       const taxPct = !isNaN(taxRaw) && taxRaw > 0 ? (taxRaw <= 1 ? taxRaw * 100 : taxRaw) : 0;
       const labor = parseFloat(String(s.labor_rate ?? "")) || 0;
-      return { taxPct, labor };
+      const matrix = normalizeMatrix(s.parts_matrix);
+      return { taxPct, labor, matrix };
     },
   });
+  const partsMatrix: MatrixTier[] = shopDefaults?.matrix ?? DEFAULT_PARTS_MATRIX;
 
   const searchResults = useMemo(() => {
     const s = custSearch.trim().toLowerCase();
@@ -744,9 +751,6 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       if (!w) toast.error("Pop-up blocked — allow pop-ups to open the portal");
     }
     toast.success(`${ids.length} part${ids.length === 1 ? "" : "s"} marked ordered`);
-    // Auto-close once nothing is left to order.
-    const remaining = lines.filter((l) => l.kind === "part" && !l.ordered && !l.declined && !ids.includes(l.id)).length;
-    if (remaining === 0) setPlaceOrderOpen(false);
   };
 
   const ensureSavedId = async () => editId ?? (await save.mutateAsync(false));
@@ -1066,10 +1070,16 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
             </p>
             <div className="flex items-center gap-2">
               {boundVehicle ? (
+                <>
                 <button type="button" onClick={() => setHistoryOpen(true)}
                   className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline">
                   <History className="h-3 w-3" /> History
                 </button>
+                <button type="button" onClick={() => setCarfaxOpen(true)} title="Carfax service history"
+                  className="flex items-center rounded border border-slate-800 bg-white px-1.5 py-0.5 text-[9px] font-black leading-none tracking-tight text-slate-900 hover:bg-slate-100">
+                  CARFA<span className="text-sky-600">X</span>
+                </button>
+                </>
               ) : (
                 <button type="button" disabled={saveToGarage.isPending} onClick={() => saveToGarage.mutate()}
                   className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline disabled:opacity-50">
@@ -1161,6 +1171,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenParts(true)}>
                 <Package className="h-3 w-3" /> Inventory
               </Button>
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenMatrix(true)} title="Cost → Sell markup tiers">
+                <Percent className="h-3 w-3" /> Matrix
+              </Button>
               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOpenPicker(true)}>
                 <BookOpen className="h-3 w-3" /> Price Book
               </Button>
@@ -1240,6 +1253,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                               onChange={(e) => patchLine(l.id, { misc: e.target.value })} />
                           </td>
                           <td className="px-2 py-1">
+                            {(l.kind === "part" || l.kind === "tire") && (
+                              <Input className="mb-0.5 h-6 w-[78px] text-right text-[10px] text-muted-foreground" type="number" placeholder="cost →"
+                                title="Cost — auto-prices Sell from the Parts Matrix"
+                                value={centsToDollars(l.cost_cents)}
+                                onChange={(e) => { const c = dollarsToCents(e.target.value); patchLine(l.id, { cost_cents: c, unit_cents: sellFromCostCents(c, partsMatrix) }); }} />
+                            )}
                             <Input className="h-7 w-[78px] text-right text-xs" type="number" placeholder="0.00"
                               value={centsToDollars(l.unit_cents)} onChange={(e) => patchLine(l.id, { unit_cents: dollarsToCents(e.target.value) })} />
                           </td>
@@ -1484,6 +1503,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         storeId={storeId}
         vehicle={boundVehicle}
       />
+      <BuildROCarfaxDialog
+        open={carfaxOpen}
+        onOpenChange={setCarfaxOpen}
+        storeId={storeId}
+        vehicle={boundVehicle}
+      />
       <PartPickerDialog
         open={openParts}
         onOpenChange={setOpenParts}
@@ -1524,6 +1549,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         onOpenChange={setOpenCanned}
         storeId={storeId}
         lines={lines.map((l) => ({ kind: l.kind, description: l.description, qty: l.qty, unit_cents: l.unit_cents }))}
+      />
+      <BuildROPartsMatrixDialog
+        open={openMatrix}
+        onOpenChange={setOpenMatrix}
+        storeId={storeId}
+        initial={partsMatrix}
       />
 
       {/* ── Print / Review modal ── */}
