@@ -1428,6 +1428,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         open={openCatalog}
         onOpenChange={setOpenCatalog}
         storeId={storeId}
+        vehicleLabel={header.vehicle_label || undefined}
+        vin={boundVehicle?.vin || undefined}
+        plate={header.license_plate || undefined}
       />
       <BuildROExistingCustomerDialog
         open={openExisting}
