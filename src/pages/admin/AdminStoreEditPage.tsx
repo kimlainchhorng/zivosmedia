@@ -5004,6 +5004,7 @@ export default function AdminStoreEditPage() {
                     notes: "",
                     line_items: [],
                   }));
+                  sessionStorage.setItem("ar_embed_back", "ar-vehicles");
                   handleTabChange("ar-estimates");
                   toast.success(`Estimate prefilled for ${vehicleLabel}`);
                 }}

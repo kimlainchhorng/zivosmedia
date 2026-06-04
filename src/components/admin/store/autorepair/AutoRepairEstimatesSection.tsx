@@ -4,6 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { copyText } from "@/lib/native/clipboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
-  FileSignature, Plus, Send, ArrowRightCircle, Search, Trash2,
+  FileSignature, Plus, Send, ArrowRightCircle, ArrowLeft, Search, Trash2,
   ClipboardList, Download, Pencil, ChevronDown, ChevronUp,
   Link2, CheckCircle2, XCircle, BookOpen, Mail, MessageSquare, Loader2, Copy, Wrench,
 } from "lucide-react";
@@ -73,6 +74,21 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
     } catch { /* ignore */ }
     sessionStorage.removeItem("ar_estimate_prefill");
   }, []);
+
+  // When reached from another embedded view (e.g. the Vehicles popup's "Estimate"
+  // button), it leaves a back-origin tab so we can offer a "Back" button that
+  // returns there. lodge-set-tab is handled by this page instance's tab router.
+  const [backTab, setBackTab] = useState<string | null>(null);
+  useEffect(() => {
+    const b = sessionStorage.getItem("ar_embed_back");
+    if (b) { setBackTab(b); sessionStorage.removeItem("ar_embed_back"); }
+  }, []);
+  const backLabel = backTab === "ar-vehicles" ? "Back to Vehicles"
+    : backTab === "ar-invoices" ? "Back to Invoices"
+    : "Back";
+  const goBack = () => {
+    if (backTab) window.dispatchEvent(new CustomEvent("lodge-set-tab", { detail: { tab: backTab } }));
+  };
 
   const { data: estimates = [], isLoading } = useQuery({
     queryKey: ["ar-estimates", storeId],
@@ -252,7 +268,7 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
       qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
     }
     const url = `${window.location.origin}/estimate/${token}`;
-    await navigator.clipboard.writeText(url);
+    await copyText(url);
     toast.success("Approval link copied — send it to your customer", { duration: 4000 });
     setSendingId(null);
   };
@@ -332,9 +348,16 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileSignature className="w-4 h-4" /> Estimates & Quotes
-          </CardTitle>
+          <div className="flex items-center gap-2 min-w-0">
+            {backTab && (
+              <Button size="sm" variant="ghost" className="gap-1.5 shrink-0 -ml-2 text-muted-foreground hover:text-foreground" onClick={goBack}>
+                <ArrowLeft className="w-4 h-4" /> {backLabel}
+              </Button>
+            )}
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileSignature className="w-4 h-4" /> Estimates & Quotes
+            </CardTitle>
+          </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openInBuildRO("new")} title="Open the VSM Build R.O. console">
               <Wrench className="w-3.5 h-3.5" /> Build R.O.
