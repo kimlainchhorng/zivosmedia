@@ -855,6 +855,35 @@ export default function AdminStoreEditPage() {
     }
   }, [store, activeTab, searchParams, handleTabChange]);
 
+  // Scroll the Settings page to a requested section. The Build R.O. Settings
+  // menu stows the target id in sessionStorage before navigating here; retry
+  // until the anchor renders, then clear the request.
+  useEffect(() => {
+    if (activeTab !== "settings") return;
+    const section = sessionStorage.getItem("ar_settings_scroll");
+    if (!section) return;
+    sessionStorage.removeItem("ar_settings_scroll");
+    const scrollToSection = () => {
+      const el = document.getElementById(`settings-${section}`);
+      if (!el) return;
+      // <main> carries overflow-y-auto but isn't actually scrollable here (it
+      // grows with content), so scrollIntoView no-ops. Find the ancestor that
+      // really overflows; otherwise scroll the window.
+      let sp: HTMLElement | null = el.parentElement;
+      while (sp) {
+        const oy = getComputedStyle(sp).overflowY;
+        if ((oy === "auto" || oy === "scroll") && sp.scrollHeight > sp.clientHeight) break;
+        sp = sp.parentElement;
+      }
+      if (sp) sp.scrollTop += el.getBoundingClientRect().top - sp.getBoundingClientRect().top - 16;
+      else window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 88, behavior: "auto" });
+    };
+    // The Settings page is long and keeps reflowing as cards mount, so re-run at
+    // increasing delays; the final pass lands correctly once layout settles.
+    const timers = [150, 400, 800, 1300, 1900].map((d) => window.setTimeout(scrollToSection, d));
+    return () => timers.forEach(window.clearTimeout);
+  }, [activeTab]);
+
   const saveProfile = useMutation({
     mutationFn: async () => {
       const { rating, booking_days, booking_start_time, booking_end_time, booking_duration, booking_note, ...profileData } = form;
@@ -3339,7 +3368,7 @@ export default function AdminStoreEditPage() {
           {/* Settings Tab — Store Information */}
           <TabsContent value="settings">
             <div className="space-y-4">
-            <Card>
+            <Card id="settings-store-information" className="scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base">{t("admin.store.store_info")}</CardTitle>
               </CardHeader>
@@ -3817,7 +3846,7 @@ export default function AdminStoreEditPage() {
             </Card>
 
             {/* Store Visibility Control */}
-            <Card>
+            <Card id="settings-store-visibility" className="scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Eye className="h-4 w-4 text-primary" />
@@ -3849,7 +3878,7 @@ export default function AdminStoreEditPage() {
             </Card>
 
             {/* SEO & Discoverability */}
-            <Card>
+            <Card id="settings-seo" className="scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Globe className="h-4 w-4 text-primary" />
@@ -3898,7 +3927,7 @@ export default function AdminStoreEditPage() {
             </Card>
 
             {/* Notification Preferences */}
-            <Card>
+            <Card id="settings-notifications" className="scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Bell className="h-4 w-4 text-primary" />
@@ -3927,7 +3956,7 @@ export default function AdminStoreEditPage() {
             </Card>
 
             {/* Store ID & Account Info */}
-            <Card>
+            <Card id="settings-account-information" className="scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Info className="h-4 w-4 text-primary" />
@@ -3964,7 +3993,7 @@ export default function AdminStoreEditPage() {
 
             {/* Auto Repair Settings */}
             {isAutoRepair && (
-              <Card>
+              <Card id="settings-auto-repair-settings" className="scroll-mt-20">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Car className="h-4 w-4 text-primary" />
@@ -4605,7 +4634,7 @@ export default function AdminStoreEditPage() {
             )}
 
             {/* Danger Zone */}
-            <Card className="border-destructive/30">
+            <Card id="settings-danger-zone" className="border-destructive/30 scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base text-destructive flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />

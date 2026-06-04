@@ -28,6 +28,7 @@ import { useFocusTrap } from "./useFocusTrap";
 import { useFocusReturn } from "./ads/useFocusReturn";
 import { isLodgingStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { isAutoRepairTab, isCafeTab, isCarRentalTab, isCarDealershipTab } from "@/lib/admin/storeTabRouting";
+import BuildROIconToolbar from "./store/autorepair/BuildROIconToolbar";
 import type { LodgingCompletionItem } from "@/lib/lodging/lodgingCompletion";
 import { useLodgingSidebarBadges } from "@/hooks/lodging/useLodgingSidebarBadges";
 import { useSalonSidebarBadges } from "@/hooks/salon/useSalonSidebarBadges";
@@ -454,6 +455,11 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
     { id: "employee-rules", label: "Employee Rules", icon: Shield },
   ];
 
+  // Embedded mode (?embed=1): render only the section content — no sidebar or
+  // top header — so the page can be shown inside an iframe dialog (e.g. the
+  // Build R.O. toolbar opening another section as a popup).
+  const isEmbedded = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "1";
+
   return (
     <>
       <Helmet>
@@ -496,13 +502,13 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
           document.body
         )}
 
-        {/* Desktop sticky sidebar — hidden on the Build R.O. tab, where the top icon bar is the nav. */}
-        <aside className={`${activeTab === "ar-build-ro" ? "hidden" : "hidden lg:flex"} sticky top-0 left-0 z-30 h-[100dvh] w-48 xl:w-52 bg-card border-r border-border flex-col overflow-hidden`}>
+        {/* Desktop sticky sidebar — hidden on the Build R.O. tab (the top icon bar is the nav) and in embedded mode. */}
+        <aside className={`${isEmbedded || activeTab === "ar-build-ro" ? "hidden" : "hidden lg:flex"} sticky top-0 left-0 z-30 h-[100dvh] w-48 xl:w-52 bg-card border-r border-border flex-col overflow-hidden`}>
           {renderSidebarContent({ isMobile: false })}
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="min-h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+          <header className={`min-h-16 bg-card border-b border-border items-center justify-between px-4 sm:px-6 sticky top-0 z-30 ${isEmbedded ? "hidden" : "flex"}`}>
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -535,6 +541,25 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                 <ChevronLeft className="w-4 h-4" /> Back
               </Button>
               <h1 className="text-lg font-bold text-foreground">{title}</h1>
+            </div>
+            {/* Right-side header actions: the Build R.O. quick-nav toolbar. On the
+                Build R.O. tab the section portals its own (richer) toolbar into the
+                slot below; on every other Auto Repair tab the layout renders a
+                navigation copy whose R.O.-specific buttons jump to Build R.O. */}
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-1 pl-3">
+              {isAutoRepair && activeTab !== "ar-build-ro" && (
+                <BuildROIconToolbar
+                  group="nav"
+                  onNew={() => onTabChange?.("ar-build-ro")}
+                  onHub={() => onTabChange?.("ar-build-ro")}
+                  onPrint={() => onTabChange?.("ar-build-ro")}
+                  onProfit={() => onTabChange?.("ar-build-ro")}
+                  onNavigate={(tab) => onTabChange?.(tab)}
+                  onNavigateMain={(tab) => onTabChange?.(tab)}
+                  onNewIntake={() => onTabChange?.("ar-build-ro")}
+                />
+              )}
+              <div id="store-owner-header-actions" className="flex items-center gap-1 min-w-0 overflow-x-auto" />
             </div>
           </header>
 

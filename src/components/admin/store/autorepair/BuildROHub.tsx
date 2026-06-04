@@ -46,15 +46,15 @@ export default function BuildROHub({
   const lastOpened = recent[0];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 py-3">
+    <div className="mx-auto max-w-xl space-y-3 py-2">
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 px-0.5">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1e90ff] to-[#1577e0] text-white shadow-lg shadow-[#1e90ff]/25">
-          <Wrench className="h-5 w-5" />
+      <div className="flex items-center gap-2.5 px-0.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e90ff] to-[#1577e0] text-white shadow-lg shadow-[#1e90ff]/25">
+          <Wrench className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-lg font-bold leading-tight tracking-tight">Build a Repair Order</h2>
-          <p className="text-xs text-muted-foreground">Start a fresh estimate or jump back into an open ticket.</p>
+          <h2 className="text-sm font-bold leading-tight tracking-tight">Build a Repair Order</h2>
+          <p className="text-[11px] text-muted-foreground">Start a fresh estimate or jump back into an open ticket.</p>
         </div>
         {openTickets.length > 0 && (
           <span className="ml-auto shrink-0 rounded-full bg-[#16596b]/10 px-3 py-1 text-xs font-semibold text-[#16596b] dark:bg-[#16596b]/20 dark:text-cyan-300">
@@ -67,20 +67,20 @@ export default function BuildROHub({
       <button
         type="button"
         onClick={onCreateNew}
-        className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#1e90ff] to-[#0f6fd4] p-5 text-left text-white shadow-lg shadow-[#1e90ff]/25 transition hover:shadow-xl hover:shadow-[#1e90ff]/35"
+        className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-[#1e90ff] to-[#0f6fd4] p-3.5 text-left text-white shadow-md shadow-[#1e90ff]/25 transition hover:shadow-lg hover:shadow-[#1e90ff]/35"
       >
         {/* decorative glow */}
         <span className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
         <span className="pointer-events-none absolute -bottom-12 right-12 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-            <Plus className="h-7 w-7" />
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+            <Plus className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xl font-bold tracking-tight">Create New Estimate</p>
-            <p className="text-sm text-white/80">Blank repair order — add customer, vehicle &amp; line items</p>
+            <p className="text-base font-bold tracking-tight">Create New Estimate</p>
+            <p className="text-xs text-white/80">Blank repair order — add customer, vehicle &amp; line items</p>
           </div>
-          <ArrowRight className="h-5 w-5 shrink-0 text-white/80 transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-4 w-4 shrink-0 text-white/80 transition-transform group-hover:translate-x-1" />
         </div>
       </button>
 
@@ -96,35 +96,35 @@ export default function BuildROHub({
         <button
           type="button"
           onClick={onExistingCustomer}
-          className="group rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#3aa76d]/50 hover:shadow-md"
+          className="group rounded-xl border bg-card p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#3aa76d]/50 hover:shadow-md"
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#3aa76d]/12 text-[#3aa76d] transition group-hover:bg-[#3aa76d] group-hover:text-white">
-            <User className="h-5 w-5" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3aa76d]/12 text-[#3aa76d] transition group-hover:bg-[#3aa76d] group-hover:text-white">
+            <User className="h-4 w-4" />
           </div>
-          <p className="mt-3 font-semibold">Existing Customer</p>
-          <p className="text-xs text-muted-foreground">Search your garage by name, phone or plate</p>
+          <p className="mt-2 text-sm font-semibold">Existing Customer</p>
+          <p className="text-[11px] text-muted-foreground">Search your garage by name, phone or plate</p>
         </button>
         <button
           type="button"
           onClick={onNewCustomer}
-          className="group rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#f0871e]/50 hover:shadow-md"
+          className="group rounded-xl border bg-card p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#f0871e]/50 hover:shadow-md"
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f0871e]/12 text-[#f0871e] transition group-hover:bg-[#f0871e] group-hover:text-white">
-            <UserPlus className="h-5 w-5" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f0871e]/12 text-[#f0871e] transition group-hover:bg-[#f0871e] group-hover:text-white">
+            <UserPlus className="h-4 w-4" />
           </div>
-          <p className="mt-3 font-semibold">New Customer</p>
-          <p className="text-xs text-muted-foreground">Capture contact details &amp; vehicle</p>
+          <p className="mt-2 text-sm font-semibold">New Customer</p>
+          <p className="text-[11px] text-muted-foreground">Capture contact details &amp; vehicle</p>
         </button>
       </div>
 
       {/* ── Open Tickets ── */}
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <button
           type="button"
           onClick={() => setShowTickets((v) => !v)}
-          className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-muted/40"
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-muted/40"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#16596b]/10 text-[#16596b] dark:bg-[#16596b]/20 dark:text-cyan-300">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#16596b]/10 text-[#16596b] dark:bg-[#16596b]/20 dark:text-cyan-300">
             <RotateCcw className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
@@ -168,13 +168,13 @@ export default function BuildROHub({
       </div>
 
       {/* ── Request customer info via SMS ── */}
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <button
           type="button"
           onClick={() => setSmsOpen((v) => !v)}
-          className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-muted/40"
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-muted/40"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#16596b]/10 text-[#16596b] dark:bg-[#16596b]/20 dark:text-cyan-300">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#16596b]/10 text-[#16596b] dark:bg-[#16596b]/20 dark:text-cyan-300">
             <Send className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
@@ -206,7 +206,7 @@ export default function BuildROHub({
       </div>
 
       {/* ── Resume last + inventory ── */}
-      <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
+      <div className="space-y-2.5 rounded-xl border bg-card p-3 shadow-sm">
         <button
           type="button"
           disabled={!lastOpened}
@@ -241,7 +241,7 @@ export default function BuildROHub({
       </div>
 
       {/* ── Search ── */}
-      <div className="flex items-center gap-2 rounded-2xl border bg-card p-2 shadow-sm">
+      <div className="flex items-center gap-2 rounded-xl border bg-card p-2 shadow-sm">
         <Select value={searchMode} onValueChange={(v: "estimate" | "invoice") => setSearchMode(v)}>
           <SelectTrigger className="h-10 w-32 shrink-0 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>

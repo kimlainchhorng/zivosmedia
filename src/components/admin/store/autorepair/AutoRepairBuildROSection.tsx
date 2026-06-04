@@ -15,6 +15,8 @@
  * the print/share flows keep working). No database changes — clean note/PO round-tripping lands in Phase 2.
  */
 import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import BuildROSectionDialog from "./BuildROSectionDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -384,6 +386,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [openGP, setOpenGP] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
   const { storeInfo, storeLogoData } = useStorePdfHeader(storeId);
+  // The nav group of the toolbar is portaled into the shared page header; grab
+  // that slot once the surrounding layout has mounted.
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setHeaderSlot(document.getElementById("store-owner-header-actions"));
+  }, []);
+  // Cross-section toolbar icon → open that section as a popup over Build R.O.
+  const [sectionTab, setSectionTab] = useState<string | null>(null);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
   const [view, setView] = useState<"hub" | "builder">("hub");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -1181,32 +1191,52 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     toast.success("Opening your text app…");
   };
 
+  // Quick-nav toolbar (portaled into the page header) + the section popup dialog,
+  // shared by BOTH the hub (start screen) and the builder view so the toolbar is
+  // present on every Build R.O. screen.
+  const toolbarHandlers = {
+    onNew: () => { resetAll(); setView("builder"); },
+    onHub: () => setView("hub"),
+    onPrint: printRO,
+    onNavigate: (tab: string) => setSectionTab(tab),
+    onNavigateMain: onNavigate, // client-side switch the main window (e.g. open the Settings page)
+    onProfit: () => setOpenGP(true),
+    onNewIntake: (type: string) => { resetAll(); setH({ appointment_type: type }); setView("builder"); },
+  };
+  // The nav icons live in the page header (portal); the five document / intake
+  // actions (Estimates, Invoices, Drop off, Towing, Warranty Networks) stay in
+  // the Build R.O. content.
+  const headerToolbar = (
+    <>
+      {headerSlot && createPortal(<BuildROIconToolbar group="nav" {...toolbarHandlers} />, headerSlot)}
+      <BuildROIconToolbar group="docs" {...toolbarHandlers} />
+      <BuildROSectionDialog storeId={storeId} tab={sectionTab} onOpenChange={(o) => { if (!o) setSectionTab(null); }} />
+    </>
+  );
+
   if (view === "hub") {
     return (
-      <BuildROHub
-        storeId={storeId}
-        recent={recent}
-        onCreateNew={() => { resetAll(); setView("builder"); }}
-        onExistingCustomer={() => { resetAll(); setView("builder"); setOpenExisting(true); }}
-        onNewCustomer={() => { resetAll(); setView("builder"); setOpenCustomer(true); }}
-        onOpenTicket={(e) => { loadEstimate(e); setView("builder"); }}
-        onRequestInfoSms={requestInfoBySms}
-        onSearch={searchAndLoad}
-        onNavigate={onNavigate}
-      />
+      <>
+        {headerToolbar}
+        <BuildROHub
+          storeId={storeId}
+          recent={recent}
+          onCreateNew={() => { resetAll(); setView("builder"); }}
+          onExistingCustomer={() => { resetAll(); setView("builder"); setOpenExisting(true); }}
+          onNewCustomer={() => { resetAll(); setView("builder"); setOpenCustomer(true); }}
+          onOpenTicket={(e) => { loadEstimate(e); setView("builder"); }}
+          onRequestInfoSms={requestInfoBySms}
+          onSearch={searchAndLoad}
+          onNavigate={onNavigate}
+        />
+      </>
     );
   }
 
   return (
     <div className="space-y-2">
-      {/* ── VSM top icon toolbar (quick-nav) ── */}
-      <BuildROIconToolbar
-        onNew={() => { resetAll(); }}
-        onHub={() => setView("hub")}
-        onPrint={printRO}
-        onNavigate={onNavigate}
-        onProfit={() => setOpenGP(true)}
-      />
+      {/* Quick-nav toolbar (header) + section popup dialog — shared headerToolbar. */}
+      {headerToolbar}
 
       {/* ── VSM header strip: created · last viewed · service writer · due date · PO# · EST# ── */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border bg-muted/30 px-3 py-1.5 text-xs">
