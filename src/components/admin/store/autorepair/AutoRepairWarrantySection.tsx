@@ -11,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShieldAlert, Plus, Network, Search, Trash2 } from "lucide-react";
+import { ShieldAlert, Plus, Network, Search, Trash2, Phone, Globe, Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { WARRANTY_NETWORKS, getWarrantyNetwork } from "@/config/warrantyNetworks";
+import { copyText } from "@/lib/native/clipboard";
+import { WARRANTY_NETWORKS, getWarrantyNetwork, getNetworkWebsite, type WarrantyNetwork } from "@/config/warrantyNetworks";
 import WarrantyNetworkLogo from "./WarrantyNetworkLogo";
 
 interface Props { storeId: string }
@@ -21,6 +22,7 @@ interface Props { storeId: string }
 export default function AutoRepairWarrantySection({ storeId }: Props) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [contactNet, setContactNet] = useState<WarrantyNetwork | null>(null);
   const [networkFilter, setNetworkFilter] = useState<string>("all");
   const [networkQuery, setNetworkQuery] = useState("");
   const [warrantySearch, setWarrantySearch] = useState("");
@@ -267,7 +269,8 @@ export default function AutoRepairWarrantySection({ storeId }: Props) {
             {filteredNetworks.map((n) => (
               <button type="button"
                 key={n.id}
-                onClick={() => { setForm((f) => ({ ...f, network_id: n.id })); setOpen(true); }}
+                onClick={() => setContactNet(n)}
+                title={`${n.name} — contact details`}
                 className="flex items-center gap-2.5 text-left text-[12px] border border-border rounded-md px-2 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors"
               >
                 <WarrantyNetworkLogo network={n} size="md" />
@@ -283,6 +286,70 @@ export default function AutoRepairWarrantySection({ storeId }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Provider contact card */}
+      <Dialog open={!!contactNet} onOpenChange={(v) => !v && setContactNet(null)}>
+        <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+          <DialogTitle className="sr-only">{contactNet?.name ?? "Provider"} contact</DialogTitle>
+          {contactNet && (() => {
+            const n = contactNet;
+            const website = getNetworkWebsite(n);
+            const websiteShort = website ? website.replace(/^https?:\/\//, "").replace(/\/$/, "") : null;
+            const telHref = n.phone ? `tel:${n.phone.replace(/[^0-9+]/g, "")}` : null;
+            return (
+              <>
+                <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-5 py-4">
+                  <WarrantyNetworkLogo network={n} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate text-base font-bold">{n.name}</h2>
+                    {n.category && <p className="text-xs text-muted-foreground">{n.category}</p>}
+                  </div>
+                </div>
+                <div className="space-y-3 p-5">
+                  {/* Phone */}
+                  <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><Phone className="h-4 w-4" /></div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Phone{n.phoneNote ? ` · ${n.phoneNote}` : ""}</p>
+                      {n.phone
+                        ? <p className="text-sm font-semibold tabular-nums">{n.phone}</p>
+                        : <p className="text-sm text-muted-foreground">Not on file</p>}
+                    </div>
+                    {n.phone && (
+                      <div className="flex shrink-0 gap-1">
+                        <Button size="sm" variant="outline" className="h-8" onClick={() => window.open(telHref!)}>Call</Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Copy phone" onClick={() => { copyText(n.phone!); toast.success("Phone copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
+                      </div>
+                    )}
+                  </div>
+                  {/* Website */}
+                  <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-600"><Globe className="h-4 w-4" /></div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website</p>
+                      {websiteShort
+                        ? <p className="truncate text-sm font-semibold">{websiteShort}</p>
+                        : <p className="text-sm text-muted-foreground">Not on file</p>}
+                    </div>
+                    {website && (
+                      <div className="flex shrink-0 gap-1">
+                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => window.open(website, "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5" /> Visit</Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Copy website" onClick={() => { copyText(website); toast.success("Website copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <DialogFooter className="border-t border-border bg-muted/30 px-5 py-3">
+                  <Button variant="outline" onClick={() => setContactNet(null)}>Close</Button>
+                  <Button className="gap-1.5" onClick={() => { setForm((f) => ({ ...f, network_id: n.id })); setContactNet(null); setOpen(true); }}>
+                    <Plus className="h-3.5 w-3.5" /> Add Warranty
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
