@@ -214,6 +214,8 @@ const blankHeader = {
   appointment_type: "Stay With Vehicle",
   payment_method: "",
   promised_at: "",
+  estimate_date: "",
+  start_date: "",
   po_number: "",
   labor_rate: "100",
   customer_request: "",
@@ -224,6 +226,12 @@ const blankHeader = {
   internal: "",
 };
 type HeaderForm = typeof blankHeader;
+
+/** Local YYYY-MM-DD for <input type="date"> (avoids UTC off-by-one from toISOString). */
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 const NOTE_TABS = [
   { key: "customer_request", label: "Customer Request" },
@@ -326,7 +334,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const qc = useQueryClient();
   const [editId, setEditId] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
-  const [header, setHeader] = useState<HeaderForm>(blankHeader);
+  const [header, setHeader] = useState<HeaderForm>(() => ({ ...blankHeader, estimate_date: todayStr() }));
   const [lines, setLines] = useState<ROLine[]>([]);
   const [jobs, setJobs] = useState<number[]>([1]);
   const [noteTab, setNoteTab] = useState<(typeof NOTE_TABS)[number]["key"]>("customer_request");
@@ -770,7 +778,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const resetAll = () => {
     setEditId(null);
     // Prefill the shop's default labor rate (Auto Repair Settings) onto a fresh R.O.
-    setHeader({ ...blankHeader, labor_rate: shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate });
+    setHeader({ ...blankHeader, estimate_date: todayStr(), labor_rate: shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate });
     setLines([]);
     setJobs([1]);
     setActiveJob(1);
@@ -818,6 +826,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       technician_cert: e.technician_cert ?? "",
       payment_method: e.payment_method ?? "",
       promised_at: e.promised_at ?? "",
+      estimate_date: e.estimate_date ?? "",
+      start_date: e.start_date ?? "",
       po_number: e.po_number ?? "",
       labor_rate: (e as any).labor_rate_cents != null ? String((e as any).labor_rate_cents / 100) : (shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate),
       appointment_type: (e as any).appointment_type ?? blankHeader.appointment_type,
@@ -877,6 +887,30 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     try {
       const p = JSON.parse(raw);
       resetAll();
+      // From the Customers list ("New R.O." on a customer): prefill the header with
+      // that person (and their first vehicle, if we can parse a "YYYY Make Model" label).
+      if (p.customer) {
+        const cu = p.customer;
+        const nm = String(cu.name || "").trim();
+        const parts = nm.split(/\s+/).filter(Boolean);
+        const label = String(cu.vehicleLabel || "").trim();
+        const toks = label.split(/\s+/).filter(Boolean);
+        const year = toks[0] && /^\d{4}$/.test(toks[0]) ? toks[0] : "";
+        const make = year ? (toks[1] ?? "") : (toks[0] ?? "");
+        const model = year ? toks.slice(2).join(" ") : toks.slice(1).join(" ");
+        setH({
+          customer_name: nm,
+          customer_first_name: parts.length > 1 ? parts.slice(0, -1).join(" ") : nm,
+          customer_last_name: parts.length > 1 ? parts[parts.length - 1] : "",
+          customer_phone: String(cu.phone || ""),
+          customer_email: String(cu.email || ""),
+          customer_street: String(cu.street || ""),
+          customer_city: String(cu.city || ""),
+          customer_state: String(cu.state || ""),
+          customer_zip: String(cu.zip || ""),
+          ...(label ? { vehicle_label: label, vehicle_year: year, vehicle_make: make, vehicle_model: model } : {}),
+        } as Partial<HeaderForm>);
+      }
       if (p.vehicle) bindVehicle(p.vehicle as GarageVehicle);
       setView("builder");
       if (p.mode === "invoice") toast.info("Add the work, then tap Invoice to bill this vehicle");
@@ -919,6 +953,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         technician_cert: header.technician_cert || null,
         payment_method: header.payment_method || null,
         promised_at: header.promised_at || null,
+        estimate_date: header.estimate_date || null,
+        start_date: header.start_date || null,
         po_number: header.po_number || null,
         labor_rate_cents: header.labor_rate ? dollarsToCents(header.labor_rate) : null,
         appointment_type: header.appointment_type || null,
@@ -1063,6 +1099,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       technician: header.technician || null,
       keytag: header.keytag || null,
       promised_at: header.promised_at || null,
+      estimate_date: header.estimate_date || null,
+      start_date: header.start_date || null,
       po_number: header.po_number || null,
       payment_method: header.payment_method || null,
       items,
@@ -1232,6 +1270,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         technician: header.technician || null,
         keytag: header.keytag || null,
         promised_at: header.promised_at || null,
+        estimate_date: header.estimate_date || null,
+        start_date: header.start_date || null,
         po_number: header.po_number || null,
         payment_method: header.payment_method || null,
         items,
@@ -1420,6 +1460,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         <span className="hidden sm:inline"><span className="text-muted-foreground">Last viewed:</span> <b className="ml-1">{createdAt ? new Date().toLocaleDateString() : "—"}</b></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">S.W.:</span>
           <Input className="h-6 w-28 text-xs" placeholder="Service writer" value={header.service_writer} onChange={(e) => setH({ service_writer: e.target.value })} onBlur={() => persistHeader({ service_writer: header.service_writer || null })} /></span>
+        <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Date:</span>
+          <Input type="date" className="h-6 w-[130px] text-xs" value={header.estimate_date} onChange={(e) => setH({ estimate_date: e.target.value })} onBlur={() => persistHeader({ estimate_date: header.estimate_date || null })} /></span>
+        <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Start:</span>
+          <Input type="date" className="h-6 w-[130px] text-xs" value={header.start_date} onChange={(e) => setH({ start_date: e.target.value })} onBlur={() => persistHeader({ start_date: header.start_date || null })} /></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Due:</span>
           <Input type="date" className="h-6 w-[130px] text-xs" value={header.promised_at} onChange={(e) => setH({ promised_at: e.target.value })} onBlur={() => persistHeader({ promised_at: header.promised_at || null })} /></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">PO #:</span>

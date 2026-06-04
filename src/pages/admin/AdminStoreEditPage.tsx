@@ -4922,7 +4922,7 @@ export default function AdminStoreEditPage() {
           {/* Customers Tab */}
           <TabsContent value="customers">
             {form.category === "auto-repair"
-              ? <AutoRepairCustomersSection storeId={storeId!} />
+              ? <AutoRepairCustomersSection storeId={storeId!} onNavigate={handleTabChange} />
               : <StoreCustomersSection storeId={storeId!} />}
           </TabsContent>
 
@@ -5036,7 +5036,7 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-fin-pnl"><div><FinanceProfitLossSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-fin-tax"><div><FinanceTaxPayoutsSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-parts-suppliers"><div><AutoRepairPartSuppliersSection storeId={storeId!} /></div></TabsContent>
-              <TabsContent value="ar-dashboard"><AutoRepairDashboardSection storeId={storeId!} /></TabsContent>
+              <TabsContent value="ar-dashboard"><AutoRepairDashboardSection storeId={storeId!} onNavigate={handleTabChange} /></TabsContent>
               <TabsContent value="ar-build-ro"><div><AutoRepairBuildROSection storeId={storeId!} onNavigate={handleTabChange} /></div></TabsContent>
               <TabsContent value="ar-service-catalog"><AutoRepairServiceCatalogSection storeId={storeId!} /></TabsContent>
             </>

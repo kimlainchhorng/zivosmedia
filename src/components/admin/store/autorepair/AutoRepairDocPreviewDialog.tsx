@@ -55,6 +55,8 @@ export type PreviewDoc = {
   mileageIn?: string;
   mileageOut?: string;
   promisedAt?: string;
+  estimateDate?: string;
+  startDate?: string;
   serviceWriter?: string;
   technician?: string;
   technicianCert?: string;
@@ -104,7 +106,7 @@ const toPdfDoc = (doc: PreviewDoc): PdfDoc => ({
   status: doc.status,
   taxRate: doc.taxRate,
   createdAt: doc.createdAt,
-  promisedAt: doc.promisedAt, serviceWriter: doc.serviceWriter,
+  promisedAt: doc.promisedAt, estimateDate: doc.estimateDate, startDate: doc.startDate, serviceWriter: doc.serviceWriter,
   technician: doc.technician, technicianCert: doc.technicianCert,
   keytag: doc.keytag, paymentMethod: doc.paymentMethod,
   customerNotes: doc.customerNotes, diagnosisNotes: doc.diagnosisNotes,

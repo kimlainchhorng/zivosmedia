@@ -2,7 +2,7 @@
  * Auto Repair — Work Orders
  * List + Kanban, tech assignment, edit, KPI strip, Convert to Invoice.
  */
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { copyText } from "@/lib/native/clipboard";
@@ -57,12 +57,20 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
   const [form, setForm] = useState(blankForm);
   const [guideOpen, setGuideOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
+  // When the dashboard's job-board card is clicked, it stashes the WO id here so
+  // we can auto-open that work order's edit/workflow once the list has loaded.
+  const pendingOpenId = useRef<string | null>(null);
 
   useEffect(() => {
     const search = sessionStorage.getItem("ar_workorder_search");
     if (search) {
       setQ(search);
       sessionStorage.removeItem("ar_workorder_search");
+    }
+    const openId = sessionStorage.getItem("ar_workorder_open");
+    if (openId) {
+      pendingOpenId.current = openId;
+      sessionStorage.removeItem("ar_workorder_open");
     }
   }, []);
 
@@ -131,6 +139,15 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
     });
     setOpen(true);
   };
+
+  // Auto-open the work order requested from the dashboard job board, once loaded.
+  useEffect(() => {
+    if (!pendingOpenId.current || orders.length === 0) return;
+    const target = orders.find((o: any) => o.id === pendingOpenId.current);
+    pendingOpenId.current = null;
+    if (target) openEdit(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
 
   const save = useMutation({
     mutationFn: async () => {

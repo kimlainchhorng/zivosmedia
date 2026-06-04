@@ -76,6 +76,8 @@ type Doc = {
   vehicle: string;
   // Service order header
   promisedAt: string;     // promised completion date (YYYY-MM-DD)
+  estimateDate?: string;  // issue date (YYYY-MM-DD)
+  startDate?: string;     // planned start date (YYYY-MM-DD)
   serviceWriter: string;
   technician: string;
   technicianCert: string;
@@ -221,6 +223,8 @@ export function docToPdfDoc(d: Doc): PdfDoc {
     taxRate: d.taxRate,
     createdAt: d.createdAt,
     promisedAt: d.promisedAt,
+    estimateDate: d.estimateDate,
+    startDate: d.startDate,
     serviceWriter: d.serviceWriter,
     technician: d.technician,
     technicianCert: d.technicianCert,
@@ -423,6 +427,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           unitNumber: row.unit_number || "",
           vehicle: row.vehicle_label || "",
           promisedAt: row.promised_at ? String(row.promised_at).slice(0, 10) : "",
+          estimateDate: row.estimate_date ? String(row.estimate_date).slice(0, 10) : "",
+          startDate: row.start_date ? String(row.start_date).slice(0, 10) : "",
           serviceWriter: row.service_writer || "",
           technician: row.technician || "",
           technicianCert: row.technician_cert || "",
@@ -476,6 +482,8 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           unitNumber: row.unit_number || "",
           vehicle: row.vehicle_label || "",
           promisedAt: row.promised_at ? String(row.promised_at).slice(0, 10) : "",
+          estimateDate: row.estimate_date ? String(row.estimate_date).slice(0, 10) : "",
+          startDate: row.start_date ? String(row.start_date).slice(0, 10) : "",
           serviceWriter: row.service_writer || "",
           technician: row.technician || "",
           technicianCert: row.technician_cert || "",
@@ -547,6 +555,14 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     // Intentionally not in deps — should run once on mount, matching the
     // workorder_search pattern in AutoRepairWorkOrdersSection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Hand-off from the Customers history list ("open" an invoice/estimate): stash the
+  // target id, then open it for editing once the documents have loaded.
+  const invoiceOpenRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = sessionStorage.getItem("ar_invoice_open");
+    if (id) { invoiceOpenRef.current = id; sessionStorage.removeItem("ar_invoice_open"); }
   }, []);
 
   // Load fleet accounts for this store (used by the invoice form to pick a fleet billing target).
@@ -684,6 +700,15 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
     setSaveState("idle");
     setCreating(true);
   };
+
+  // Open the invoice/estimate requested from the customer history, once docs are loaded.
+  useEffect(() => {
+    if (!invoiceOpenRef.current || docs.length === 0) return;
+    const target = docs.find((d) => d.id === invoiceOpenRef.current);
+    invoiceOpenRef.current = null;
+    if (target) startEdit(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docs]);
 
   const startDuplicate = (doc: Doc) => {
     skipNextSave.current = true;

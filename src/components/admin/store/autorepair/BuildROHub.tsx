@@ -92,28 +92,28 @@ export default function BuildROHub({
       </div>
 
       {/* ── Customer cards ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={onExistingCustomer}
-          className="group rounded-xl border bg-card p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#3aa76d]/50 hover:shadow-md"
+          className="group rounded-xl border bg-card p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#3aa76d]/50 hover:shadow-md"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3aa76d]/12 text-[#3aa76d] transition group-hover:bg-[#3aa76d] group-hover:text-white">
-            <User className="h-4 w-4" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3aa76d]/12 text-[#3aa76d] transition group-hover:bg-[#3aa76d] group-hover:text-white">
+            <User className="h-3.5 w-3.5" />
           </div>
-          <p className="mt-2 text-sm font-semibold">Existing Customer</p>
-          <p className="text-[11px] text-muted-foreground">Search your garage by name, phone or plate</p>
+          <p className="mt-1.5 text-[13px] font-semibold">Existing Customer</p>
+          <p className="text-[10px] leading-tight text-muted-foreground">Search your garage by name, phone or plate</p>
         </button>
         <button
           type="button"
           onClick={onNewCustomer}
-          className="group rounded-xl border bg-card p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#f0871e]/50 hover:shadow-md"
+          className="group rounded-xl border bg-card p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#f0871e]/50 hover:shadow-md"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f0871e]/12 text-[#f0871e] transition group-hover:bg-[#f0871e] group-hover:text-white">
-            <UserPlus className="h-4 w-4" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f0871e]/12 text-[#f0871e] transition group-hover:bg-[#f0871e] group-hover:text-white">
+            <UserPlus className="h-3.5 w-3.5" />
           </div>
-          <p className="mt-2 text-sm font-semibold">New Customer</p>
-          <p className="text-[11px] text-muted-foreground">Capture contact details &amp; vehicle</p>
+          <p className="mt-1.5 text-[13px] font-semibold">New Customer</p>
+          <p className="text-[10px] leading-tight text-muted-foreground">Capture contact details &amp; vehicle</p>
         </button>
       </div>
 

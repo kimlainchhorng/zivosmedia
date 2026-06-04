@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,10 @@ import {
   CalendarIcon, User, Car, Clock, Phone, Mail, FileText,
   Search, MessageSquareText, CalendarClock, ExternalLink,
   CheckCircle2, XCircle, AlertCircle, TrendingUp, RefreshCw,
-  ChevronDown, ChevronUp, Wrench, Star, BarChart3, Download,
-  Filter, SortAsc, SortDesc, Eye, Bell, Zap, Plus, Trash2
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Wrench, Star, BarChart3, Download,
+  Filter, SortAsc, SortDesc, Eye, Zap, Plus, Trash2
 } from "lucide-react";
-import { format, isToday, isThisWeek, isThisMonth, parseISO, differenceInDays } from "date-fns";
+import { format, isToday, isThisMonth, parseISO, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +50,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(undefined);
+  const [calMonth, setCalMonth] = useState<Date>(new Date());
   const [newDialog, setNewDialog] = useState<{
     open: boolean;
     customer_name: string;
@@ -121,6 +122,15 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
   };
 
   useEffect(() => { fetchBookings(); }, [storeId, sortOrder]);
+
+  // On first load, jump the calendar to the month of the most recent booking
+  // so the day-count indicators are visible right away.
+  const calInit = useRef(false);
+  useEffect(() => {
+    if (calInit.current || bookings.length === 0) return;
+    const dates = bookings.map((b) => b.preferred_date).filter(Boolean).sort();
+    if (dates.length) { setCalMonth(parseISO(dates[dates.length - 1])); calInit.current = true; }
+  }, [bookings]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -248,6 +258,31 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     fetchBookings();
   };
 
+  // Drag-to-reschedule: drop a booking on a calendar day to move it there,
+  // keeping its time. Optimistic update, then persist via the same backend
+  // reschedule action and refetch.
+  const moveBooking = async (bookingId: string, newDateStr: string) => {
+    const b = bookings.find((x) => x.id === bookingId);
+    if (!b || b.preferred_date === newDateStr) return;
+    const prevDate = b.preferred_date;
+    setBookings((list) => list.map((x) => x.id === bookingId ? { ...x, preferred_date: newDateStr } : x));
+    const { error } = await supabase.functions.invoke("service-booking-manage", {
+      body: {
+        action: "reschedule",
+        booking_id: bookingId,
+        preferred_date: newDateStr,
+        preferred_time: b.preferred_time || "09:00",
+      },
+    });
+    if (error) {
+      setBookings((list) => list.map((x) => x.id === bookingId ? { ...x, preferred_date: prevDate } : x));
+      toast.error("Couldn't move booking");
+      return;
+    }
+    toast.success(`Moved to ${format(parseISO(newDateStr), "MMM d")}`);
+    fetchBookings();
+  };
+
   const filtered = useMemo(() => {
     return bookings
       .filter(b => filter === "all" || b.status === filter)
@@ -269,9 +304,6 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
   const cancelledCount = bookings.filter(b => b.status === "cancelled").length;
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const todayCount = bookings.filter(b => b.preferred_date === todayStr).length;
-  const thisWeekCount = bookings.filter(b => {
-    try { return isThisWeek(parseISO(b.preferred_date)); } catch { return false; }
-  }).length;
   const thisMonthCount = bookings.filter(b => {
     try { return isThisMonth(parseISO(b.preferred_date)); } catch { return false; }
   }).length;
@@ -289,17 +321,6 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
         } catch { return false; }
       })
       .sort((a, b) => a.preferred_date.localeCompare(b.preferred_date));
-  }, [bookings]);
-
-  // Popular services
-  const popularServices = useMemo(() => {
-    const counts: Record<string, number> = {};
-    bookings.forEach(b => {
-      if (b.service_name) counts[b.service_name] = (counts[b.service_name] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5);
   }, [bookings]);
 
   const completionRate = bookings.length > 0
@@ -363,79 +384,63 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       </div>
 
       {/* ── Enhanced Stats Grid ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         <Card className="overflow-hidden border-l-4 border-l-primary/60">
-          <CardContent className="p-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <BarChart3 className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground leading-none">{bookings.length}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Total Bookings</p>
+          <CardContent className="p-2.5 sm:p-2.5 pt-2.5">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-none text-foreground">{bookings.length}</p>
+                <p className="text-[10px] text-muted-foreground truncate">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border-l-4 border-l-amber-400">
-          <CardContent className="p-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-amber-100">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-700 leading-none">{pendingCount}</p>
-                <p className="text-[11px] text-amber-600 mt-0.5">Pending</p>
+          <CardContent className="p-2.5 sm:p-2.5 pt-2.5">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-none text-amber-700">{pendingCount}</p>
+                <p className="text-[10px] text-amber-600 truncate">Pending</p>
               </div>
             </div>
-            {pendingCount > 0 && (
-              <div className="mt-2 flex items-center gap-1">
-                <Bell className="h-3 w-3 text-amber-500 animate-pulse" />
-                <span className="text-[10px] text-amber-600 font-medium">Needs attention</span>
-              </div>
-            )}
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border-l-4 border-l-blue-400">
-          <CardContent className="p-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <CalendarIcon className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-700 leading-none">{todayCount}</p>
-                <p className="text-[11px] text-blue-600 mt-0.5">Today</p>
+          <CardContent className="p-2.5 sm:p-2.5 pt-2.5">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4 shrink-0 text-blue-600" />
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-none text-blue-700">{todayCount}</p>
+                <p className="text-[10px] text-blue-600 truncate">Today</p>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">{thisWeekCount} this week</p>
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border-l-4 border-l-green-400">
-          <CardContent className="p-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-700 leading-none">{completedCount}</p>
-                <p className="text-[11px] text-green-600 mt-0.5">Completed</p>
+          <CardContent className="p-2.5 sm:p-2.5 pt-2.5">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-none text-green-700">{completedCount}</p>
+                <p className="text-[10px] text-green-600 truncate">Completed</p>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">{completionRate}% completion rate</p>
           </CardContent>
         </Card>
       </div>
 
       {/* ── Quick Insights Row ── */}
-      {(upcomingBookings.length > 0 || popularServices.length > 0) && (
+      {upcomingBookings.length > 0 && (
         <div className="grid sm:grid-cols-2 gap-3">
           {/* Upcoming */}
           {upcomingBookings.length > 0 && (
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-4 sm:p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="h-4 w-4 text-amber-500" />
                   <p className="text-sm font-semibold text-foreground">Upcoming ({upcomingBookings.length})</p>
@@ -461,36 +466,6 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
             </Card>
           )}
 
-          {/* Popular Services */}
-          {popularServices.length > 0 && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-semibold text-foreground">Top Services</p>
-                </div>
-                <div className="space-y-2">
-                  {popularServices.map(([name, count], i) => (
-                    <div key={name} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-bold text-muted-foreground w-4">#{i + 1}</span>
-                        <span className="truncate text-foreground">{name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-primary/60"
-                            style={{ width: `${(count / bookings.length) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground w-6 text-right">{count}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
 
@@ -541,29 +516,20 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
           bookingDates.set(key, existing);
         });
 
-        const datesWithBookings = Array.from(bookingDates.keys()).map(d => parseISO(d));
-
         return (
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-4 sm:p-4">
               <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 flex justify-center">
-                  <Calendar
-                    mode="single"
+                <div className="flex-1">
+                  <BookingsCalendar
+                    month={calMonth}
+                    onMonthChange={setCalMonth}
                     selected={calendarDate}
-                    onSelect={(d) => setCalendarDate(d)}
-                    className="rounded-md pointer-events-auto"
-                    modifiers={{
-                      booked: datesWithBookings,
-                    }}
-                    modifiersStyles={{
-                      booked: {
-                        fontWeight: "bold",
-                        backgroundColor: "hsl(var(--primary) / 0.15)",
-                        borderRadius: "6px",
-                      },
-                    }}
+                    onSelect={setCalendarDate}
+                    bookingDates={bookingDates}
+                    onDropBooking={moveBooking}
                   />
+                  <p className="mt-2 text-center text-[11px] text-muted-foreground">Tip: drag a booking onto a day to reschedule it.</p>
                 </div>
                 <div className="flex-1">
                   <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -590,8 +556,11 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                             return (
                               <div
                                 key={b.id}
-                                className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors cursor-pointer"
+                                draggable
+                                onDragStart={(e) => { e.dataTransfer.setData("text/plain", b.id); e.dataTransfer.effectAllowed = "move"; }}
+                                className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors cursor-grab active:cursor-grabbing"
                                 onClick={() => { setExpandedId(b.id); }}
+                                title="Drag to a day to reschedule"
                               >
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-foreground truncate">{b.service_name}</p>
@@ -674,7 +643,6 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
           {filtered.map(b => {
             const isExpanded = expandedId === b.id;
             const StatusIcon = STATUS_ICONS[b.status] || AlertCircle;
-            const timeLabel = getTimeLabel(b);
 
             return (
               <Card
@@ -685,22 +653,24 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                   isExpanded && "shadow-md"
                 )}
               >
-                <CardContent className="p-0">
+                <CardContent className="p-0 sm:p-0">
                   {/* Main Row */}
                   <div
-                    className="flex items-center gap-3 p-4 cursor-pointer"
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.setData("text/plain", b.id); e.dataTransfer.effectAllowed = "move"; }}
+                    className="flex items-center gap-2.5 p-2.5 cursor-pointer"
                     onClick={() => setExpandedId(isExpanded ? null : b.id)}
                   >
                     {/* Status indicator */}
                     <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                      "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
                       b.status === "pending" && "bg-amber-100",
                       b.status === "confirmed" && "bg-blue-100",
                       b.status === "completed" && "bg-green-100",
                       b.status === "cancelled" && "bg-red-100",
                     )}>
                       <StatusIcon className={cn(
-                        "h-5 w-5",
+                        "h-3.5 w-3.5",
                         b.status === "pending" && "text-amber-600",
                         b.status === "confirmed" && "text-blue-600",
                         b.status === "completed" && "text-green-600",
@@ -708,48 +678,36 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                       )} />
                     </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground truncate">{b.service_name}</p>
-                        {b.admin_notes && <MessageSquareText className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                        <User className="h-3 w-3" />
-                        <span className="truncate">{b.customer_name}</span>
-                        <span className="text-border">•</span>
-                        <CalendarIcon className="h-3 w-3" />
-                        <span>{format(new Date(b.preferred_date), "MMM d")}</span>
-                        <span className="text-border">•</span>
-                        <Clock className="h-3 w-3" />
-                        <span>{b.preferred_time}</span>
-                      </div>
+                    {/* Info — single line: service · customer · date · time */}
+                    <div className="flex flex-1 min-w-0 items-center gap-2">
+                      <p className="shrink-0 max-w-[40%] truncate text-sm font-semibold text-foreground">{b.service_name}</p>
+                      {b.admin_notes && <MessageSquareText className="h-3 w-3 shrink-0 text-amber-500" />}
+                      <span className="truncate text-xs text-muted-foreground">
+                        {b.customer_name} · {format(new Date(b.preferred_date), "MMM d")} · {b.preferred_time}
+                      </span>
                     </div>
 
                     {/* Right side */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      {timeLabel && (
-                        <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">{timeLabel}</Badge>
-                      )}
-                      <Badge className={cn("text-[11px]", STATUS_COLORS[b.status])}>{b.status}</Badge>
-                      {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge className={cn("text-[10px] px-1.5 py-0", STATUS_COLORS[b.status])}>{b.status}</Badge>
+                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>
                   </div>
 
                   {/* Expanded Details */}
                   {isExpanded && (
                     <div className="border-t border-border">
-                      <div className="p-4 space-y-4">
+                      <div className="p-3 space-y-2.5">
                         {/* Customer Details Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="flex items-center gap-2.5 text-sm bg-muted/30 rounded-lg px-3 py-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="flex items-center gap-2 text-xs bg-muted/30 rounded-lg px-2.5 py-1.5">
                             <User className="h-4 w-4 text-muted-foreground shrink-0" />
                             <div>
                               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Customer</p>
                               <p className="font-medium text-foreground">{b.customer_name}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2.5 text-sm bg-muted/30 rounded-lg px-3 py-2.5">
+                          <div className="flex items-center gap-2 text-xs bg-muted/30 rounded-lg px-2.5 py-1.5">
                             <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                             <div>
                               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phone</p>
@@ -758,7 +716,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                               </a>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2.5 text-sm bg-muted/30 rounded-lg px-3 py-2.5">
+                          <div className="flex items-center gap-2 text-xs bg-muted/30 rounded-lg px-2.5 py-1.5">
                             <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                             <div>
                               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Email</p>
@@ -768,7 +726,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                             </div>
                           </div>
                           {(b.vehicle_make || b.vehicle_model) && (
-                            <div className="flex items-center gap-2.5 text-sm bg-muted/30 rounded-lg px-3 py-2.5">
+                            <div className="flex items-center gap-2 text-xs bg-muted/30 rounded-lg px-2.5 py-1.5">
                               <Car className="h-4 w-4 text-muted-foreground shrink-0" />
                               <div>
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Vehicle</p>
@@ -779,7 +737,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                         </div>
 
                         {/* Schedule info */}
-                        <div className="flex items-center gap-4 text-sm bg-primary/5 rounded-lg px-3 py-2.5">
+                        <div className="flex items-center gap-3 text-xs bg-primary/5 rounded-lg px-2.5 py-1.5">
                           <div className="flex items-center gap-2">
                             <CalendarIcon className="h-4 w-4 text-primary" />
                             <span className="font-medium">{format(new Date(b.preferred_date), "EEEE, MMMM d, yyyy")}</span>
@@ -792,8 +750,8 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
 
                         {/* Customer notes */}
                         {b.notes && (
-                          <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
-                            <FileText className="h-4 w-4 mt-0.5 shrink-0" />
+                          <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
+                            <FileText className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                             <div>
                               <p className="text-[10px] uppercase tracking-wider font-medium mb-0.5">Customer Note</p>
                               <p>{b.notes}</p>
@@ -803,8 +761,8 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
 
                         {/* Admin notes */}
                         {b.admin_notes && (
-                          <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                            <MessageSquareText className="h-4 w-4 mt-0.5 shrink-0" />
+                          <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                            <MessageSquareText className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                             <div>
                               <p className="text-[10px] uppercase tracking-wider font-medium mb-0.5">Admin Note</p>
                               <p>{b.admin_notes}</p>
@@ -913,7 +871,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       {/* ── Summary Footer ── */}
       {bookings.length > 0 && (
         <Card className="bg-muted/30">
-          <CardContent className="p-3 flex items-center justify-between text-xs text-muted-foreground">
+          <CardContent className="p-3 sm:p-3 flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-4">
               <span>Showing {filtered.length} of {bookings.length}</span>
               <span>•</span>
@@ -1087,6 +1045,90 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ── Interactive month calendar: shows a booking count per day and accepts a
+// dragged booking onto any day to reschedule it (touch users can still use the
+// per-booking Reschedule action). Status mix tints the day's count dot.
+function BookingsCalendar({
+  month, onMonthChange, selected, onSelect, bookingDates, onDropBooking,
+}: {
+  month: Date;
+  onMonthChange: (d: Date) => void;
+  selected: Date | undefined;
+  onSelect: (d: Date) => void;
+  bookingDates: Map<string, { count: number; statuses: string[] }>;
+  onDropBooking: (bookingId: string, dateStr: string) => void;
+}) {
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const gridStart = startOfWeek(startOfMonth(month));
+  const gridEnd = endOfWeek(endOfMonth(month));
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
+  const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  return (
+    <div className="rounded-xl border border-border p-2">
+      {/* Header */}
+      <div className="mb-1 flex items-center justify-between px-1">
+        <button type="button" onClick={() => onMonthChange(addMonths(month, -1))} aria-label="Previous month" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-semibold text-foreground">{format(month, "MMMM yyyy")}</span>
+        <button type="button" onClick={() => onMonthChange(addMonths(month, 1))} aria-label="Next month" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+      {/* Weekday labels */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {weekdays.map((w) => (
+          <div key={w} className="py-1 text-center text-[10px] font-medium text-muted-foreground">{w}</div>
+        ))}
+      </div>
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {days.map((day) => {
+          const dateStr = format(day, "yyyy-MM-dd");
+          const info = bookingDates.get(dateStr);
+          const inMonth = isSameMonth(day, month);
+          const isSel = selected && isSameDay(day, selected);
+          const isDragOver = dragOverKey === dateStr;
+          return (
+            <button
+              key={dateStr}
+              type="button"
+              onClick={() => onSelect(day)}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverKey(dateStr); }}
+              onDragLeave={() => setDragOverKey((k) => (k === dateStr ? null : k))}
+              onDrop={(e) => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData("text/plain");
+                setDragOverKey(null);
+                if (id) onDropBooking(id, dateStr);
+              }}
+              className={cn(
+                "relative flex aspect-square flex-col items-center justify-center rounded-lg text-xs transition-colors",
+                !inMonth && "text-muted-foreground/40",
+                inMonth && "text-foreground hover:bg-muted",
+                isToday(day) && !isSel && "bg-accent",
+                isSel && "bg-primary text-primary-foreground",
+                isDragOver && "ring-2 ring-primary ring-offset-1 bg-primary/10",
+              )}
+            >
+              <span className={cn("leading-none", info && "font-bold")}>{format(day, "d")}</span>
+              {info && (
+                <span className={cn(
+                  "mt-0.5 rounded-full px-1 text-[8px] font-bold leading-tight",
+                  isSel ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary",
+                )}>
+                  {info.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -48,6 +48,8 @@ export type PdfDoc = {
   createdAt: string;
   closedAt?: string;       // invoice closed / paid date
   promisedAt?: string;     // promised completion date
+  estimateDate?: string;   // issue date (defaults to today)
+  startDate?: string;      // planned work start date
   serviceWriter?: string;
   technician?: string;
   technicianCert?: string;
@@ -200,6 +202,8 @@ export function generateDocumentPdf(opts: {
   kv("Technician", doc.technician, M_LABEL, M_COLON, y + 26);
   kv("Service Writer", doc.serviceWriter, L_LABEL, L_COLON, y + 39);
   kv("Technician Cert #", doc.technicianCert, M_LABEL, M_COLON, y + 39);
+  kv("Date", dateOnly(doc.estimateDate), L_LABEL, L_COLON, y + 52);
+  kv("Start Date", dateOnly(doc.startDate), M_LABEL, M_COLON, y + 52);
 
   const invBc = barcodeDataUrl(doc.number);
   if (invBc) {
@@ -209,7 +213,7 @@ export function generateDocumentPdf(opts: {
     pdf.setTextColor(60);
     pdf.text(`*${docNoLabel}${doc.number}*`, bcX + bcW / 2, y + 38, { align: "center" });
   }
-  y += 45;
+  y += 58;
   thinRule(y); y += 12;
 
   // ---- customer band ---------------------------------------------------------

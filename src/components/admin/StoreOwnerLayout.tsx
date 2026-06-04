@@ -11,8 +11,8 @@ import {
   LogOut, ChevronLeft, ChevronDown, Menu, Home, Store,
   Package, CreditCard, Users, Megaphone, ClipboardList, Settings,
   Wallet, Calendar, Clock, Shield, ShieldCheck, CalendarCheck, GraduationCap, FolderOpen, Radio,
-  FileText, ScanSearch, Wrench, ClipboardCheck, Car,
-  FileSignature, Hammer, HardHat, BellRing, CircleDot, ShieldAlert, Truck, BarChart3,
+  ScanSearch, Wrench, ClipboardCheck, Car,
+  FileSignature, Hammer, HardHat, BellRing, CircleDot, Truck, BarChart3,
   BedDouble, CalendarRange, CalendarDays, KeyRound, Sparkles, Hotel, LayoutDashboard, Images, Search,
   PackagePlus, Utensils, Palmtree, HeartPulse, MessageSquareText, ListChecks, DollarSign,
   Inbox, BadgeCheck, Star, Building2, Tag, Tv, Briefcase, BookOpen, UserCog, Banknote, Download,
@@ -209,11 +209,8 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
 
   const navItems = [
     ...(!isBus ? [{ id: "profile", label: "Profile", icon: Store }] : []),
-    ...(isAutoRepair ? [
-      { id: "ar-invoices", label: "Invoices", icon: FileText },
-    ] : []),
-    // Salon / Cafe / Car Rental / Car Dealership replace "Orders" with their dedicated tickets view.
-    ...(!isSalon && !isCafe && !isCarRental && !isCarDealership && !isBus ? [
+    // Salon / Cafe / Car Rental / Car Dealership / Auto Repair replace "Orders" with their own views.
+    ...(!isSalon && !isCafe && !isCarRental && !isCarDealership && !isBus && !isAutoRepair ? [
       { id: "orders", label: `Orders${orderCount ? ` (${orderCount})` : ""}`, icon: ClipboardList },
     ] : []),
     // Lodging uses the dedicated "Rooms & Rates" entry under HOTEL OPS.
@@ -232,13 +229,10 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
       { id: "ar-dashboard", label: "Auto Repair Dashboard", icon: LayoutDashboard },
       { id: "_ar_frontdesk_label", label: "AUTO REPAIR FRONT DESK", icon: ClipboardList, divider: true },
       { id: "ar-build-ro", label: "Build R.O.", icon: Wrench },
-      { id: "customer-bookings", label: "Customer Bookings", icon: CalendarCheck },
       { id: "ar-service-catalog", label: "Service Catalog", icon: BookOpen },
       { id: "ar-vehicles", label: "Customer Vehicles", icon: Car },
       { id: "ar-autocheck", label: "Auto Check (VIN)", icon: ScanSearch },
       { id: "_ar_carecare_label", label: "AUTO REPAIR CUSTOMER CARE", icon: ShieldCheck, divider: true },
-      { id: "ar-warranty", label: "Warranty & Comebacks", icon: ShieldAlert },
-      { id: "ar-fleet", label: "Fleet Accounts", icon: Truck },
       { id: "ar-reviews", label: "Reviews & Ratings", icon: Star },
       { id: "ar-inbox", label: "Customer Inbox", icon: Inbox },
       { id: "_ar_digital_label", label: "DIGITAL", icon: Globe, divider: true },
@@ -416,8 +410,8 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
       { id: "customers", label: "Customers", icon: Users },
       { id: "marketing", label: "Marketing & Ads", icon: Megaphone },
     ] : []),
-    // Live Stream is hidden for salons & cafes & car rental & dealerships & bus — not relevant to those workflows.
-    ...(!isSalon && !isCafe && !isCarRental && !isCarDealership && !isBus ? [
+    // Live Stream is hidden for salons & cafes & car rental & dealerships & bus & auto-repair — not relevant to those workflows.
+    ...(!isSalon && !isCafe && !isCarRental && !isCarDealership && !isBus && !isAutoRepair ? [
       { id: "livestream", label: "Live Stream", icon: Tv },
     ] : []),
   ];

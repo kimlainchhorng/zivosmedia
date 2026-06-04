@@ -56,6 +56,8 @@ export type ROHeaderInput = {
   technician_cert?: string;
   payment_method?: string;
   promised_at?: string;
+  estimate_date?: string;
+  start_date?: string;
   customer_request?: string;
   diagnosis?: string;
 };
@@ -149,6 +151,8 @@ export function buildROPreviewDoc(args: {
     unitNumber: h.unit_number || undefined,
     mileageIn: h.mileage_in || undefined,
     promisedAt: h.promised_at || undefined,
+    estimateDate: h.estimate_date || undefined,
+    startDate: h.start_date || undefined,
     serviceWriter: h.service_writer || undefined,
     technician: h.technician || undefined,
     technicianCert: h.technician_cert || undefined,

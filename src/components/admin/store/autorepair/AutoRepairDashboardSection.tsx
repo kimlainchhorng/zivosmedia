@@ -17,7 +17,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 
-interface Props { storeId: string }
+interface Props { storeId: string; onNavigate?: (tab: string) => void }
 
 const fmt = (cents: number) =>
   `$${((cents ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -37,7 +37,16 @@ const BOOKING_STATUS_COLOR: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800",
 };
 
-export default function AutoRepairDashboardSection({ storeId }: Props) {
+export default function AutoRepairDashboardSection({ storeId, onNavigate }: Props) {
+  // Open a job-board card in the Work Orders workflow: focus the list on this WO
+  // and auto-open its editor so it can be viewed, updated and built.
+  const openWorkOrder = (w: any) => {
+    try {
+      sessionStorage.setItem("ar_workorder_search", w.number ?? "");
+      sessionStorage.setItem("ar_workorder_open", w.id);
+    } catch { /* ignore */ }
+    onNavigate?.("ar-workorders");
+  };
   const qc = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -281,9 +290,17 @@ export default function AutoRepairDashboardSection({ storeId }: Props) {
                 const meta = STATUS_META[w.status] ?? STATUS_META.awaiting;
                 const Icon = meta.icon;
                 return (
-                  <div key={w.id} className={`p-3 rounded-xl border ${meta.ring} bg-background space-y-1.5`}>
+                  <div
+                    key={w.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openWorkOrder(w)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openWorkOrder(w); } }}
+                    title={`Open ${w.number || "work order"} workflow`}
+                    className={`group p-3 rounded-xl border ${meta.ring} bg-background space-y-1.5 cursor-pointer transition hover:shadow-md hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-sm">{w.number}</span>
+                      <span className="font-semibold text-sm group-hover:text-primary transition-colors">{w.number}</span>
                       <div className={`flex items-center gap-1 text-[10px] font-medium ${meta.color}`}>
                         <Icon className="w-3 h-3" />
                         {meta.label}

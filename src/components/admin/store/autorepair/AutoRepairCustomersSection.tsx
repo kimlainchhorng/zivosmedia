@@ -11,22 +11,30 @@
  * and "(225) 555-0142"). Each row shows name, phone, and address.
  */
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Users, Search, Phone, MapPin, Mail, Car, DollarSign,
   ShoppingBag, TrendingUp, Loader2, Download, ChevronRight, Calendar, Clock,
+  MoreVertical, Pencil, Trash2, Plus, AlertTriangle,
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface Props {
   storeId: string;
+  /** Jump to another AR tab (used to open Build R.O. with this customer prefilled). */
+  onNavigate?: (tab: string) => void;
 }
 
 type Customer = {
@@ -57,10 +65,22 @@ const pushUniq = (arr: string[], v?: string | null) => {
   if (t && !arr.includes(t)) arr.push(t);
 };
 
-export default function AutoRepairCustomersSection({ storeId }: Props) {
+// Badge styling for the clickable document history in the customer detail popup.
+const DOC_META: Record<string, { label: string; cls: string }> = {
+  invoice:   { label: "INV", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  estimate:  { label: "EST", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  workorder: { label: "WO",  cls: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
+};
+
+export default function AutoRepairCustomersSection({ storeId, onNavigate }: Props) {
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [sortBy, setSortBy] = useState<"recent" | "spent" | "orders">("recent");
+  const [editing, setEditing] = useState<Customer | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "" });
+  const [deleting, setDeleting] = useState<Customer | null>(null);
+  const [deleteCounts, setDeleteCounts] = useState<{ invoices: number; estimates: number; workorders: number; vehicles: number } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["ar-customers", storeId],
@@ -177,6 +197,146 @@ export default function AutoRepairCustomersSection({ storeId }: Props) {
     URL.revokeObjectURL(url);
   };
 
+  // The directory is aggregated from four tables keyed by normalized phone, so to
+  // edit or delete a "customer" we resolve the real source-row ids for that phone.
+  const fetchCustomerRowIds = async (key: string) => {
+    const grab = async (table: string, phoneCol: string) => {
+      const { data } = await supabase.from(table as any).select(`id, ${phoneCol}`).eq("store_id", storeId);
+      return (data ?? []).filter((r: any) => onlyDigits(r[phoneCol]) === key).map((r: any) => r.id as string);
+    };
+    const [invoices, estimates, workorders, vehicles] = await Promise.all([
+      grab("ar_invoices", "customer_phone"),
+      grab("ar_estimates", "customer_phone"),
+      grab("ar_work_orders", "customer_phone"),
+      grab("ar_customer_vehicles", "owner_phone"),
+    ]);
+    return { invoices, estimates, workorders, vehicles };
+  };
+
+  const openEdit = (c: Customer) => {
+    setSelected(null);
+    setEditForm({ name: c.name, phone: c.phone, email: c.email ?? "" });
+    setEditing(c);
+  };
+
+  const openDelete = async (c: Customer) => {
+    setSelected(null);
+    setDeleting(c);
+    setDeleteCounts(null);
+    try {
+      const ids = await fetchCustomerRowIds(c.key);
+      setDeleteCounts({ invoices: ids.invoices.length, estimates: ids.estimates.length, workorders: ids.workorders.length, vehicles: ids.vehicles.length });
+    } catch {
+      setDeleteCounts({ invoices: 0, estimates: 0, workorders: 0, vehicles: 0 });
+    }
+  };
+
+  // Start a fresh R.O. in Build R.O., prefilled with this customer + their first vehicle.
+  const startNewRO = (c: Customer) => {
+    const payload = {
+      customer: {
+        name: c.name,
+        phone: c.phone,
+        email: c.email ?? "",
+        street: c.addresses[0] ?? "",
+        vehicleLabel: c.vehicles[0] ?? "",
+      },
+    };
+    try { sessionStorage.setItem("ar_buildro_prefill", JSON.stringify(payload)); } catch { /* ignore */ }
+    if (onNavigate) onNavigate("ar-build-ro");
+    else toast.error("Open Build R.O. to start a new repair order");
+  };
+
+  // Documents for the currently-open customer — clickable history in the detail popup.
+  const { data: history = [], isLoading: historyLoading } = useQuery({
+    queryKey: ["ar-customer-history", storeId, selected?.key ?? ""],
+    enabled: !!selected,
+    queryFn: async () => {
+      const key = selected!.key;
+      const cols = "id, number, status, total_cents, created_at, vehicle_label, customer_phone";
+      const pull = async (table: string, type: "invoice" | "estimate" | "workorder", soft: boolean) => {
+        let q = supabase.from(table as any).select(cols).eq("store_id", storeId);
+        if (soft) q = q.is("deleted_at", null);
+        const { data } = await q.order("created_at", { ascending: false });
+        return (data ?? [])
+          .filter((r: any) => onlyDigits(r.customer_phone) === key)
+          .map((r: any) => ({ ...r, _type: type }));
+      };
+      const [inv, est, wo] = await Promise.all([
+        pull("ar_invoices", "invoice", true),
+        pull("ar_estimates", "estimate", true),
+        pull("ar_work_orders", "workorder", false),
+      ]);
+      return [...inv, ...est, ...wo].sort((a: any, b: any) =>
+        String(b.created_at || "").localeCompare(String(a.created_at || "")));
+    },
+  });
+
+  // Open a document's workflow: work orders → Work Orders; invoices/estimates → Invoices.
+  const openDoc = (row: any) => {
+    if (row._type === "workorder") {
+      try {
+        sessionStorage.setItem("ar_workorder_open", row.id);
+        sessionStorage.setItem("ar_workorder_search", row.number ?? "");
+      } catch { /* ignore */ }
+      onNavigate?.("ar-workorders");
+    } else {
+      try { sessionStorage.setItem("ar_invoice_open", row.id); } catch { /* ignore */ }
+      onNavigate?.("ar-invoices");
+    }
+    setSelected(null);
+  };
+
+  const editMut = useMutation({
+    mutationFn: async () => {
+      if (!editing) return;
+      const nm = editForm.name.trim();
+      const ph = editForm.phone.trim();
+      const em = editForm.email.trim() || null;
+      if (!nm) throw new Error("Name is required");
+      if (onlyDigits(ph).length < 7) throw new Error("A valid phone number is required");
+      const ids = await fetchCustomerRowIds(editing.key);
+      const run = async (p: any) => { const { error } = await p; if (error) throw error; };
+      const ops: Promise<void>[] = [];
+      if (ids.invoices.length) ops.push(run(supabase.from("ar_invoices" as any).update({ customer_name: nm, customer_phone: ph, customer_email: em }).in("id", ids.invoices)));
+      if (ids.estimates.length) ops.push(run(supabase.from("ar_estimates" as any).update({ customer_name: nm, customer_phone: ph, customer_email: em }).in("id", ids.estimates)));
+      if (ids.workorders.length) ops.push(run(supabase.from("ar_work_orders" as any).update({ customer_name: nm, customer_phone: ph, customer_email: em }).in("id", ids.workorders)));
+      if (ids.vehicles.length) ops.push(run(supabase.from("ar_customer_vehicles" as any).update({ owner_name: nm, owner_phone: ph, owner_email: em }).in("id", ids.vehicles)));
+      if (ops.length === 0) throw new Error("No records found for this customer");
+      await Promise.all(ops);
+    },
+    onSuccess: () => {
+      toast.success("Customer updated");
+      qc.invalidateQueries({ queryKey: ["ar-customers", storeId] });
+      setEditing(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Update failed"),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      if (!deleting) return;
+      const ids = await fetchCustomerRowIds(deleting.key);
+      // Sequential, leaf documents first; abort on the first error to avoid silent partial loss.
+      const del = async (table: string, rowIds: string[]) => {
+        if (!rowIds.length) return;
+        const { error } = await supabase.from(table as any).delete().in("id", rowIds);
+        if (error) throw error;
+      };
+      await del("ar_invoices", ids.invoices);
+      await del("ar_estimates", ids.estimates);
+      await del("ar_work_orders", ids.workorders);
+      await del("ar_customer_vehicles", ids.vehicles);
+    },
+    onSuccess: () => {
+      toast.success("Customer deleted");
+      qc.invalidateQueries({ queryKey: ["ar-customers", storeId] });
+      setDeleting(null);
+      setDeleteCounts(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
+  });
+
   return (
     <div className="space-y-4">
       {/* Stats */}
@@ -278,11 +438,36 @@ export default function AutoRepairCustomersSection({ storeId }: Props) {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
+                      <div className="flex flex-col items-end gap-0.5 shrink-0">
                         <p className="text-[11px] text-muted-foreground">
                           {days == null ? "" : days === 0 ? "Today" : days === 1 ? "Yesterday" : `${days}d ago`}
                         </p>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/50 ml-auto mt-1" />
+                        <div className="flex items-center gap-0.5">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
+                                aria-label="Customer actions"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onSelect={() => startNewRO(c)}>
+                                <Plus className="w-3.5 h-3.5 mr-2" /> New R.O.
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => openEdit(c)}>
+                                <Pencil className="w-3.5 h-3.5 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => openDelete(c)}>
+                                <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -347,7 +532,61 @@ export default function AutoRepairCustomersSection({ storeId }: Props) {
                   </div>
                 )}
 
+                <div className="mt-3">
+                  <p className="text-xs font-semibold mb-1.5">History</p>
+                  {historyLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+                    </div>
+                  ) : history.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No invoices, estimates, or work orders yet.</p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                      {history.map((row: any) => {
+                        const meta = DOC_META[row._type] ?? DOC_META.invoice;
+                        return (
+                          <button
+                            key={`${row._type}-${row.id}`}
+                            type="button"
+                            onClick={() => openDoc(row)}
+                            title={`Open ${row.number || "document"}`}
+                            className="w-full text-left flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-muted hover:border-primary/50 transition"
+                          >
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${meta.cls}`}>{meta.label}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium truncate">{row.number || "—"}</span>
+                                <span className="text-[10px] text-muted-foreground shrink-0">
+                                  {row.created_at ? format(parseISO(row.created_at), "MMM d, yyyy") : ""}
+                                </span>
+                              </div>
+                              {row.vehicle_label && <p className="text-[10px] text-muted-foreground truncate">{row.vehicle_label}</p>}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-xs font-semibold">${(((row.total_cents ?? 0) / 100)).toFixed(2)}</p>
+                              {row.status && <p className="text-[9px] text-muted-foreground capitalize">{String(row.status).replace(/_/g, " ")}</p>}
+                            </div>
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-2 mt-4">
+                  <Button size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => startNewRO(c)}>
+                    <Plus className="w-3.5 h-3.5" /> New R.O.
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1 gap-1.5 text-xs" onClick={() => openEdit(c)}>
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => openDelete(c)}>
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </Button>
+                </div>
+
+                <div className="flex gap-2 mt-2">
                   <Button size="sm" variant="outline" className="flex-1 gap-1.5 text-xs" onClick={() => window.open(`tel:${c.phone}`)}>
                     <Phone className="w-3.5 h-3.5" /> Call
                   </Button>
@@ -358,6 +597,73 @@ export default function AutoRepairCustomersSection({ storeId }: Props) {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit customer */}
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Edit customer</DialogTitle></DialogHeader>
+          <div className="space-y-3 mt-1">
+            <div className="space-y-1">
+              <Label className="text-xs">Name</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} placeholder="Full name" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Phone</Label>
+              <Input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} placeholder="(225) 555-0142" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Email</Label>
+              <Input type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} placeholder="name@email.com" />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Updates this customer everywhere — their invoices, estimates, work orders, and saved vehicles.
+            </p>
+          </div>
+          <DialogFooter className="mt-3 gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button size="sm" onClick={() => editMut.mutate()} disabled={editMut.isPending}>
+              {editMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete customer (everything) */}
+      <Dialog open={!!deleting} onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteCounts(null); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" /> Delete customer?
+            </DialogTitle>
+          </DialogHeader>
+          {deleting && (
+            <div className="space-y-3 mt-1 text-sm">
+              <p>
+                This permanently deletes <span className="font-semibold">{deleting.name}</span> and all of their records.
+                This can&apos;t be undone.
+              </p>
+              {deleteCounts === null ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Checking records…
+                </div>
+              ) : (
+                <ul className="text-xs rounded-lg border bg-muted/40 p-3 space-y-1">
+                  <li className="flex justify-between"><span className="text-muted-foreground">Invoices</span><span className="font-medium">{deleteCounts.invoices}</span></li>
+                  <li className="flex justify-between"><span className="text-muted-foreground">Estimates</span><span className="font-medium">{deleteCounts.estimates}</span></li>
+                  <li className="flex justify-between"><span className="text-muted-foreground">Work orders</span><span className="font-medium">{deleteCounts.workorders}</span></li>
+                  <li className="flex justify-between"><span className="text-muted-foreground">Saved vehicles</span><span className="font-medium">{deleteCounts.vehicles}</span></li>
+                </ul>
+              )}
+            </div>
+          )}
+          <DialogFooter className="mt-3 gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setDeleting(null); setDeleteCounts(null); }}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending || deleteCounts === null}>
+              {deleteMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete everything"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
