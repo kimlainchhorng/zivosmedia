@@ -218,6 +218,18 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
     },
   });
 
+  const { data: adPages = [] } = useQuery({
+    queryKey: ["store-ad-pages", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("store_ad_pages" as any)
+        .select("platform, external_id, name, is_default")
+        .eq("store_id", storeId);
+      if (error) throw error;
+      return ((data as any[]) || []) as Array<{ platform: string; external_id: string | null; name: string | null; is_default: boolean | null }>;
+    },
+  });
+
   // Store profile for slug
   const { data: storeProfile } = useQuery({
     queryKey: ["store-profile-slug", storeId],
@@ -384,6 +396,12 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
     if (status === "published" || status === "active") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
     if (status === "needs_connection") return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
     return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+  };
+
+  const platformConnectionName = (platform: DistributionJob["platform"]) => {
+    if (platform === "facebook") return "meta";
+    if (platform === "google_ads") return "google";
+    return platform;
   };
 
   return (
@@ -1178,26 +1196,51 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   onClick={async () => {
                     setBoosting(true);
                     try {
+                      const { data: userData, error: userError } = await supabase.auth.getUser();
+                      if (userError || !userData.user) throw userError || new Error("Login required");
                       const total = boostForm.daily_budget * boostForm.days;
-                      const { data, error } = await supabase.functions.invoke("store-post-distribute", {
-                        body: {
+                      const connectedPlatforms = new Set(adPages.map((page) => String(page.platform)));
+                      const rows = boostForm.platforms.flatMap((platform) => {
+                        const connectionPlatform = platformConnectionName(platform);
+                        const isConnected = connectedPlatforms.has(connectionPlatform);
+                        return boostForm.actions.map((action) => ({
+                          store_id: storeId,
                           post_id: boostPost.id,
-                          platforms: boostForm.platforms,
-                          actions: boostForm.actions,
-                          boost: {
-                            daily_budget_usd: boostForm.actions.includes("boost_ad") ? boostForm.daily_budget : 0,
+                          platform,
+                          action,
+                          status: isConnected ? "queued" : "needs_connection",
+                          daily_budget_cents: action === "boost_ad" ? Math.round(boostForm.daily_budget * 100) : 0,
+                          total_budget_cents: action === "boost_ad" ? Math.round(boostForm.daily_budget * boostForm.days * 100) : 0,
+                          objective: boostForm.objective,
+                          audience: boostForm.audience,
+                          scheduled_at: new Date().toISOString(),
+                          request_payload: {
+                            post_caption: boostPost.caption,
+                            media_urls: boostPost.media_urls || [],
+                            media_type: boostPost.media_type,
                             days: boostForm.days,
-                            audience: boostForm.audience,
-                            objective: boostForm.objective,
+                            destination_url: storeUrl || bookingUrl || null,
+                            connection_platform: connectionPlatform,
+                            platform_connected: isConnected,
                           },
-                          destination_url: storeUrl || bookingUrl || null,
-                        },
+                          platform_response: isConnected
+                            ? { queued_by: "store_owner_dashboard" }
+                            : { reason: "platform_not_connected", connection_platform: connectionPlatform },
+                          error_message: isConnected ? null : "Connect this platform before publishing or boosting.",
+                          created_by: userData.user.id,
+                        }));
                       });
+
+                      const { data, error } = await supabase
+                        .from("store_post_distribution_jobs" as any)
+                        .upsert(rows, { onConflict: "post_id,platform,action" })
+                        .select("*");
                       if (error) {
                         throw error;
                       }
-                      const queued = Number((data as any)?.queued || 0);
-                      const needsConnection = Number((data as any)?.needs_connection || 0);
+                      const jobs = ((data as any[]) || []) as DistributionJob[];
+                      const queued = jobs.filter((job) => job.status === "queued").length;
+                      const needsConnection = jobs.filter((job) => job.status === "needs_connection").length;
                       toast.success(
                         needsConnection > 0
                           ? `${queued} queued, ${needsConnection} need platform connection`
