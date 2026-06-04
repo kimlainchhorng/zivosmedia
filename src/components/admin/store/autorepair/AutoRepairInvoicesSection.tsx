@@ -297,7 +297,9 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   // Authoritative DB rows for invoices and estimates (drives KPIs + status badges).
   const [dbInvoices, setDbInvoices] = useState<any[]>([]);
   const [dbEstimates, setDbEstimates] = useState<any[]>([]);
-  const [tab, setTab] = useState<"estimate" | "invoice">("estimate");
+  // This is the Invoices view — default to the Invoices sub-tab (estimates have
+  // their own dedicated section). Prefill/draft flows below still switch as needed.
+  const [tab, setTab] = useState<"estimate" | "invoice">("invoice");
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null); // null = new doc
   const [resumedDraftActive, setResumedDraftActive] = useState(false);
