@@ -221,25 +221,18 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
     ...(!isLodging && !isSalon && !isCafe && !isCarRental && !isCarDealership && !isBus ? [
       { id: "products", label: `${productsLabel}${productCount != null ? ` (${productCount})` : ""}`, icon: isAutoRepair ? Package : Package },
     ] : []),
-    // Cafe / Car Rental / Car Dealership / Bus have their own Finance tabs; hide the generic Payment.
-    ...(!isCafe && !isCarRental && !isCarDealership && !isBus ? [
+    // Cafe / Car Rental / Car Dealership / Bus / Auto Repair have their own module tabs; hide the generic Payment.
+    ...(!isCafe && !isCarRental && !isCarDealership && !isBus && !isAutoRepair ? [
       { id: "payment", label: paymentLabel, icon: isAutoRepair ? Calendar : isLodging ? CalendarRange : CreditCard },
     ] : []),
     ...(isAutoRepair ? [
       { id: "ar-dashboard", label: "Auto Repair Dashboard", icon: LayoutDashboard },
-      { id: "_ar_frontdesk_label", label: "AUTO REPAIR FRONT DESK", icon: ClipboardList, divider: true },
-      { id: "ar-build-ro", label: "Build R.O.", icon: Wrench },
-      { id: "ar-service-catalog", label: "Service Catalog", icon: BookOpen },
-      { id: "ar-vehicles", label: "Customer Vehicles", icon: Car },
-      { id: "ar-autocheck", label: "Auto Check (VIN)", icon: ScanSearch },
       { id: "_ar_carecare_label", label: "AUTO REPAIR CUSTOMER CARE", icon: ShieldCheck, divider: true },
       { id: "ar-reviews", label: "Reviews & Ratings", icon: Star },
       { id: "ar-inbox", label: "Customer Inbox", icon: Inbox },
-      { id: "_ar_digital_label", label: "DIGITAL", icon: Globe, divider: true },
       { id: "ar-booking-link", label: "Online Booking Link", icon: Globe },
       { id: "ar-qr", label: "QR Check-In", icon: QrCode },
       { id: "_ar_insights_label", label: "INSIGHTS", icon: BarChart3, divider: true },
-      { id: "ar-reports", label: "Reports & Analytics", icon: BarChart3 },
     ] : []),
     ...(isLodging ? [
       { id: "lodge-overview", label: "Dashboard", icon: LayoutDashboard },
@@ -406,8 +399,11 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
     // Cafe has its own Customers / Reviews / Loyalty tabs under GROWTH.
     // Car Rental has its own Customers tab under CUSTOMERS.
     // Car Dealership has its own Customers tab under CUSTOMERS.
-    ...(!isCafe && !isCarRental && !isCarDealership && !isBus ? [
+    // Auto Repair uses the top toolbar/customer-care flow instead of this generic Customers item.
+    ...(!isCafe && !isCarRental && !isCarDealership && !isBus && !isAutoRepair ? [
       { id: "customers", label: "Customers", icon: Users },
+    ] : []),
+    ...(!isCafe && !isCarRental && !isCarDealership && !isBus ? [
       { id: "marketing", label: "Marketing & Ads", icon: Megaphone },
     ] : []),
     // Live Stream is hidden for salons & cafes & car rental & dealerships & bus & auto-repair — not relevant to those workflows.
@@ -597,6 +593,26 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
             <p id="sidebar-group-manage" className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70">
               {isAutoRepair ? "Auto Repair" : isSalon ? "Salon" : isCafe ? "Cafe" : isCarRental ? "Car Rental" : isCarDealership ? "Car Dealership" : isBus ? "Bus Operator" : "Manage"}
             </p>
+            {isAutoRepair && (
+              <button
+                type="button"
+                onClick={() => { onTabChange?.("ar-build-ro"); closeSidebar(); }}
+                className={cn(
+                  "mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left shadow-sm transition-colors active:scale-[0.99]",
+                  activeTab === "ar-build-ro"
+                    ? "border-primary/35 bg-primary/12 text-primary"
+                    : "border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10"
+                )}
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Wrench className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-bold leading-tight">Build R.O.</span>
+                  <span className="mt-0.5 block text-[11px] font-medium text-muted-foreground">Start a repair order</span>
+                </span>
+              </button>
+            )}
           </div>
           {isLodging && (
             <div className="mb-1.5 rounded-md border border-primary/15 bg-primary/5 px-2 py-1 text-primary">

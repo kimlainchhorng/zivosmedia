@@ -2,7 +2,7 @@ const { app, BrowserWindow, shell } = require("electron");
 
 const STORE_ID = "a914b90d-c249-4794-ba5e-3fdac0deed44";
 const DEFAULT_LOCAL_URL = `http://localhost:8081/desktop/auto-repair/${STORE_ID}`;
-const DEFAULT_PRODUCTION_URL = `https://hizivo.com/desktop/auto-repair/${STORE_ID}`;
+const DEFAULT_PRODUCTION_URL = `https://zivosoftware.com/desktop/auto-repair/${STORE_ID}`;
 
 const getDashboardUrl = () => {
   const cliUrl = process.argv.find((arg) => arg.startsWith("--zivo-url="))?.slice("--zivo-url=".length);

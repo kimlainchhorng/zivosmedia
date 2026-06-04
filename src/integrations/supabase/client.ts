@@ -160,11 +160,9 @@ export const supabase = createClient<Database>(EFFECTIVE_SUPABASE_URL, EFFECTIVE
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    // Use an in-memory lock instead of the Web Locks API. navigator.locks can
-    // deadlock inside a native WebView (auth calls hang forever, e.g. the SSO
-    // "Connecting with ZIVO…" spinner). processLock is Supabase's recommended
-    // lock for non-browser / mobile runtimes.
-    lock: processLock,
+    // Native WebViews can deadlock on navigator.locks; use Supabase's process
+    // lock there, and let regular browsers use the default browser lock.
+    lock: isNativePlatform ? processLock : undefined,
   },
   global: {
     // Keep TCP connection alive across requests to avoid cold-start latency

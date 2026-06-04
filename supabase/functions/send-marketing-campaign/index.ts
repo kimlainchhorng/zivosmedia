@@ -217,10 +217,10 @@ Deno.serve(withSecurity("send-marketing-campaign", async (req, ctx) => {
       recipientIds = ((members as any[]) || []).map((m: any) => m.user_id).filter(Boolean);
     } else {
       // Fallback: all profiles in city, or all
-      const q = admin.from("profiles").select("id").limit(10000);
+      const q = admin.from("profiles").select("user_id").limit(10000);
       if (campaign.target_city) q.eq("city", campaign.target_city);
       const { data: profiles } = await q;
-      recipientIds = ((profiles as any[]) || []).map((p: any) => p.id);
+      recipientIds = ((profiles as any[]) || []).map((p: any) => p.user_id).filter(Boolean);
     }
 
     let sent = 0;

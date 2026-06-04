@@ -6,6 +6,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import { withRedirectParam } from "@/lib/authRedirect";
 import AccessDenied from "@/components/auth/AccessDenied";
 import { supabase } from "@/integrations/supabase/client";
+import { AUTO_REPAIR_STORE_ID, isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
 const isLodgingCategory = (category?: string | null) => {
   const normalized = (category || "").toLowerCase().replace(/&/g, "and").replace(/[\/_-]+/g, " ").replace(/\s+/g, " ").trim();
@@ -29,6 +30,13 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   const { user, isLoading, isAdmin } = useAuth();
   const location = useLocation();
   const { storeId } = useParams<{ storeId?: string }>();
+  const isAutoRepairSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const isAutoRepairSoftwareRoute =
+    !!storeId &&
+    storeId === AUTO_REPAIR_STORE_ID &&
+    (location.pathname.startsWith("/desktop/auto-repair/") ||
+      (isAutoRepairSoftwareDomain && location.pathname === `/admin/stores/${AUTO_REPAIR_STORE_ID}`));
   const shouldCheckStoreOwner = requireAdmin && allowStoreOwner && !!storeId && !!user?.id && !isAdmin;
 
   // Support-role accounts may enter admin-gated routes that opt in via
@@ -85,7 +93,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   }
 
   if (!user) {
-    if (allowStoreOwner && storeId) {
+    if (allowStoreOwner && storeId && !isAutoRepairSoftwareRoute) {
       if (!publicStoreResolved && location.pathname.startsWith("/admin/stores/")) {
         return <Navigate to={`/hotel/${storeId}`} replace />;
       }
@@ -133,6 +141,13 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
       }
 
       if (ownerAccessAllowed) return <>{children}</>;
+      if (isAutoRepairSoftwareRoute) {
+        return (
+          <AccessDenied
+            message="You don't have permission to access this auto repair workspace. Contact the shop owner or ZIVO support to request access."
+          />
+        );
+      }
       if (!publicStoreResolved) {
         return (
           <div className="min-h-screen flex items-center justify-center bg-background">

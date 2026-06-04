@@ -36,6 +36,25 @@ const AUTH_FALLBACK: AuthContextType = {
   signOut: async () => {},
 };
 
+const withAuthTimeout = async <T,>(
+  label: string,
+  promise: Promise<T>,
+  timeoutMs = 15_000,
+): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out. Please try again.`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -223,14 +242,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           msg.includes("delayed connect") ||
           msg.includes("failed to fetch") ||
           msg.includes("network") ||
-          msg.includes("timeout")
+          msg.includes("timeout") ||
+          msg.includes("pgrst202") ||
+          msg.includes("schema cache") ||
+          (msg.includes("function") && msg.includes("not found"))
         );
       };
 
-      const { data: precheckData, error: precheckError } = await (supabase as any).rpc("auth_precheck_login", {
-        _identifier: normalizedEmail,
-        _device_fingerprint: deviceFingerprint,
-      });
+      const { data: precheckData, error: precheckError } = await withAuthTimeout(
+        "Login security check",
+        (supabase as any).rpc("auth_precheck_login", {
+          _identifier: normalizedEmail,
+          _device_fingerprint: deviceFingerprint,
+        }) as Promise<{ data: any; error: { message?: string } | null }>,
+        12_000,
+      );
 
       if (precheckError) {
         const message = precheckError.message || "Security precheck failed";
@@ -249,17 +275,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const emailExists = precheck?.email_exists ?? true;
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      });
+      const { error } = await withAuthTimeout(
+        "Supabase sign-in",
+        supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        }),
+        20_000,
+      );
 
       try {
-        await (supabase as any).rpc("auth_record_login_attempt", {
-          _identifier: normalizedEmail,
-          _success: !error,
-          _device_fingerprint: deviceFingerprint,
-        });
+        await withAuthTimeout(
+          "Login audit write",
+          (supabase as any).rpc("auth_record_login_attempt", {
+            _identifier: normalizedEmail,
+            _success: !error,
+            _device_fingerprint: deviceFingerprint,
+          }),
+          8_000,
+        );
       } catch {
         // non-critical, ignore
       }
@@ -273,11 +307,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!error) {
         // Block driver accounts from signing into the passenger app
         try {
-          const { data: { user: signedInUser } } = await supabase.auth.getUser();
+          const { data: { user: signedInUser } } = await withAuthTimeout(
+            "User lookup",
+            supabase.auth.getUser(),
+            10_000,
+          );
           if (signedInUser) {
-            const { data: isDriver } = await (supabase as any).rpc("is_driver", {
-              p_user_id: signedInUser.id,
-            });
+            const { data: isDriver } = await withAuthTimeout(
+              "Driver account check",
+              (supabase as any).rpc("is_driver", {
+                p_user_id: signedInUser.id,
+              }) as Promise<{ data: boolean | null; error: unknown }>,
+              8_000,
+            );
             if (isDriver) {
               await supabase.auth.signOut();
               return { error: new Error("DRIVER_ACCOUNT") };
@@ -294,7 +336,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // MFA step-up — if the user has TOTP enrolled, gate access until verified.
         try {
-          const challenge = await getMfaChallenge();
+          const challenge = await withAuthTimeout("MFA challenge check", getMfaChallenge(), 10_000);
           if (challenge.required) {
             setMfaPending(challenge);
           }

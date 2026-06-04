@@ -76,6 +76,7 @@ export function useUnifiedPerformance(
       const ads = (adsEv.data as any[]) || [];
       const mkt = ((mktEv.data as any[]) || []);
       const spend = (adsSpend.data as any[]) || [];
+      const cartEventTypes = new Set(["add_to_cart", "cart", "checkout_started"]);
 
       const adsRevenue = ads
         .filter((e) => e.event_type === "purchase")
@@ -112,7 +113,7 @@ export function useUnifiedPerformance(
           date: bucketEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
           ads: adsR / 100,
           marketing: mktR / 100,
-          organic: Math.floor(Math.random() * 80) + 20,
+          organic: 0,
         });
       }
 
@@ -123,7 +124,9 @@ export function useUnifiedPerformance(
       const clicks =
         ads.filter((e) => e.event_type === "click").length +
         spend.reduce((s, r) => s + (r.clicks || 0), 0);
-      const addToCart = Math.floor(clicks * 0.18);
+      const addToCart =
+        ads.filter((e) => cartEventTypes.has(e.event_type)).length +
+        mkt.filter((e) => cartEventTypes.has(e.event_type)).length;
       const purchases =
         ads.filter((e) => e.event_type === "purchase").length +
         mkt.filter((e) => e.event_type === "converted").length +
@@ -133,7 +136,7 @@ export function useUnifiedPerformance(
       const mix = [
         { name: "Ads", value: adsRevenue / 100 },
         { name: "Marketing", value: mktRevenue / 100 },
-        { name: "Organic", value: Math.max(0, ((adsRevenue + mktRevenue) / 100) * 0.3) },
+        { name: "Organic", value: 0 },
       ];
 
       const totalRevenueCents = adsRevenue + mktRevenue;

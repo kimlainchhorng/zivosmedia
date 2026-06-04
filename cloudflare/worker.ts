@@ -36,6 +36,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://www.zivollc.com",
   "https://app.zivollc.com",
   "https://preview.zivollc.com",
+  "https://zivosoftware.com",
+  "https://www.zivosoftware.com",
   "https://myzivo.com",
   "https://www.myzivo.com",
   "https://app.myzivo.com",

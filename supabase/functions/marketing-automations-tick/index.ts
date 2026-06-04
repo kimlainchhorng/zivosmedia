@@ -53,11 +53,11 @@ Deno.serve(withSecurity("marketing-automations-tick", async (req, ctx) => {
         if (trigger.type === "first_order") {
           const { data } = await admin
             .from("food_orders")
-            .select("user_id")
+            .select("customer_id")
             .eq("restaurant_id", auto.store_id)
             .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
             .limit(500);
-          candidateIds = ((data as any[]) || []).map((r) => r.user_id).filter(Boolean);
+          candidateIds = ((data as any[]) || []).map((r) => r.customer_id).filter(Boolean);
         } else if (trigger.type === "cart_abandoned") {
           const minutes = Number(trigger.config?.minutes ?? 30);
           const { data } = await admin
@@ -66,7 +66,17 @@ Deno.serve(withSecurity("marketing-automations-tick", async (req, ctx) => {
             .lte("searched_at", new Date(Date.now() - minutes * 60 * 1000).toISOString())
             .eq("checkout_initiated", false)
             .limit(500);
-          candidateIds = ((data as any[]) || []).map((r) => r.email).filter(Boolean);
+          const emails = ((data as any[]) || [])
+            .map((r) => String(r.email || "").trim().toLowerCase())
+            .filter(Boolean);
+          if (emails.length) {
+            const { data: profiles } = await admin
+              .from("profiles")
+              .select("user_id")
+              .in("email", emails)
+              .limit(500);
+            candidateIds = ((profiles as any[]) || []).map((r) => r.user_id).filter(Boolean);
+          }
         }
 
         if (candidateIds.length) {
@@ -145,7 +155,23 @@ Deno.serve(withSecurity("marketing-automations-tick", async (req, ctx) => {
           } else if (step.type === "apply_promo") {
             const code = step.config?.code;
             if (code) {
-              await admin.from("marketing_promo_codes").update({}).eq("code", code).limit(1);
+              const { data: promo } = await admin
+                .from("marketing_promo_codes")
+                .select("id")
+                .eq("store_id", auto.store_id)
+                .eq("code", code)
+                .maybeSingle();
+              if (promo?.id) {
+                await admin.from("marketing_promo_redemptions").upsert(
+                  {
+                    promo_code_id: promo.id,
+                    user_id: enroll.user_id,
+                    discount_cents: 0,
+                    idempotency_key: `automation:${auto.id}:${enroll.user_id}:${promo.id}`,
+                  },
+                  { onConflict: "idempotency_key", ignoreDuplicates: true }
+                );
+              }
             }
           } else if (step.type === "add_to_segment") {
             const segId = step.config?.segment_id;
@@ -153,9 +179,10 @@ Deno.serve(withSecurity("marketing-automations-tick", async (req, ctx) => {
               await admin
                 .from("marketing_segment_members" as any)
                 .upsert(
-                  { segment_id: segId, user_id: enroll.user_id },
+                  { segment_id: segId, user_id: enroll.user_id, source: `automation:${auto.id}` },
                   { onConflict: "segment_id,user_id", ignoreDuplicates: true }
                 );
+              await admin.rpc("refresh_marketing_segment_count" as any, { p_segment_id: segId });
             }
           }
         } catch (e) {

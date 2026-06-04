@@ -131,6 +131,7 @@ const getLoginErrorFacts = (error: Error) => {
       msg.includes("load failed") ||
       msg.includes("network") ||
       msg.includes("timeout") ||
+      msg.includes("timed out") ||
       msg.includes("transport failure"),
     message,
   };

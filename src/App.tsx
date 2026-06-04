@@ -118,6 +118,12 @@ import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
 import { P2P_TRANSFER_EVENT, hasPendingP2PTransfer, subscribeP2PTransferMount } from "@/lib/p2pTransfer";
 import { recordRequestIssue } from "@/lib/requestHealth";
 import RequestHealthBadge from "@/components/dev/RequestHealthBadge";
+import {
+  AUTO_REPAIR_DASHBOARD_PATH,
+  AUTO_REPAIR_SOFTWARE_PATH,
+  AUTO_REPAIR_STORE_ID,
+  isAutoRepairSoftwareHost,
+} from "@/config/autoRepairDomain";
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
@@ -1364,6 +1370,47 @@ function DirectThreadRedirect() {
   return <Navigate to={`/chat${query ? `?${query}` : ""}${location.hash}`} replace />;
 }
 
+function AutoRepairSoftwareHostGate() {
+  const location = useLocation();
+
+  if (typeof window === "undefined" || !isAutoRepairSoftwareHost(window.location.hostname)) {
+    return null;
+  }
+
+  const pathname = location.pathname;
+  const authPaths = [
+    "/login",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+    "/verify-otp",
+    "/verify-new-device",
+    "/auth-callback",
+  ];
+  const isAuthPath = authPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  const isAutoRepairPath =
+    pathname === AUTO_REPAIR_SOFTWARE_PATH ||
+    pathname === `/admin/stores/${AUTO_REPAIR_STORE_ID}` ||
+    pathname.startsWith(`/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}/`);
+  const isOperationalAsset =
+    pathname.startsWith("/downloads/auto-repair/") ||
+    pathname.startsWith("/assets/") ||
+    pathname.startsWith("/pwa-icons/") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/robots.txt";
+
+  if (pathname === "/") {
+    return <Navigate to={AUTO_REPAIR_DASHBOARD_PATH} replace />;
+  }
+
+  if (isAuthPath || isAutoRepairPath || isOperationalAsset) {
+    return null;
+  }
+
+  return <Navigate to={AUTO_REPAIR_DASHBOARD_PATH} replace />;
+}
+
 const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
@@ -1387,6 +1434,7 @@ const App = () => (
 
                 <DeferredPageViewTracker />
                 <DeferredGeoDetector />
+                <AutoRepairSoftwareHostGate />
                 <RoutePerfTracker />
                 <NativeDeepLinkHandler />
                 <OTAUpdateBootstrap />

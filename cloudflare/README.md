@@ -17,6 +17,7 @@ Supabase remains the main backend for database, auth, RLS, realtime, and existin
 - Pages project: `zivo-preview`
 - Pages preview URL: `https://zivo-preview.pages.dev`
 - Custom preview domain: `https://preview.zivollc.com`
+- Auto repair software domain: `https://zivosoftware.com`
 - R2 buckets: `zivo-media` and `zivo-media-dev`
 - Migrated R2 object: `downloads/auto-repair/ZIVO Auto Repair Software-1.0.0-arm64.dmg`
 
@@ -89,6 +90,25 @@ The Pages deploy script removes `dist/downloads` before upload because Cloudflar
 `npm run cloudflare:check` runs the same local gate before the Worker dry-run. Both Cloudflare deploy scripts run `npm run security:scan` and `npm run deploy:preflight:local` before publishing, so local/preview deploys use the same safety gates as the Netlify preview path.
 
 Your production domain is `zivollc.com`. The safe preview domain is `preview.zivollc.com`, pointed from Lovable DNS to `zivo-preview.pages.dev`.
+
+The dedicated auto repair software domain is `zivosoftware.com`. Point both `zivosoftware.com` and `www.zivosoftware.com` to the same Cloudflare-hosted app. The React app restricts that host to the auto repair workspace for store `a914b90d-c249-4794-ba5e-3fdac0deed44`, and `/` redirects to:
+
+```txt
+/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair
+```
+
+Supabase Auth must also allow the software domain as a post-login destination. In Supabase Dashboard → Authentication → URL Configuration, keep the main Site URL on `https://zivollc.com`, then add these Redirect URLs:
+
+```txt
+https://zivosoftware.com/auth-callback
+https://www.zivosoftware.com/auth-callback
+https://zivosoftware.com/auth-callback**
+https://www.zivosoftware.com/auth-callback**
+https://zivosoftware.com/reset-password**
+https://www.zivosoftware.com/reset-password**
+```
+
+Keep the existing `zivollc.com` entries so main-app login continues to work. Supabase only redirects to URLs that are present in this allowlist.
 
 Public DNS for `zivollc.com` is currently served by Name.com nameservers. The Cloudflare zone exists but is still initializing. To activate Cloudflare DNS, update the domain nameservers at Name.com to:
 

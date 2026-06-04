@@ -95,20 +95,17 @@ export function useRefreshSegmentCount(storeId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (segment: SegmentDef) => {
-      // Lightweight client-side estimate: count profiles matching simple conditions.
-      // Real production logic would run server-side; this returns an approximation.
-      const groups = segment.conditions_jsonb?.groups || [];
-      const total = Math.max(
-        25,
-        Math.floor(Math.random() * 500) + groups.flatMap((g) => g.conditions).length * 12
-      );
-      const { data, error } = await supabase
-        .from("marketing_segments" as any)
-        .update({ member_count: total, last_refreshed_at: new Date().toISOString() })
-        .eq("id", segment.id)
-        .select()
-        .single();
+      const { error } = await supabase.rpc("refresh_marketing_segment_count" as any, {
+        p_segment_id: segment.id,
+      });
       if (error) throw error;
+
+      const { data, error: fetchError } = await supabase
+        .from("marketing_segments" as any)
+        .select("*")
+        .eq("id", segment.id)
+        .single();
+      if (fetchError) throw fetchError;
       return data;
     },
     onSuccess: () => {
