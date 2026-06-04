@@ -168,6 +168,7 @@ const StoreDocumentsSection = React.lazy(() => import("@/components/admin/store/
 const StoreEmployeeRulesSection = React.lazy(() => import("@/components/admin/store/StoreEmployeeRulesSection"));
 const StoreOrdersSection = React.lazy(() => import("@/components/admin/StoreOrdersSection"));
 const AutoRepairInvoicesSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairInvoicesSection"));
+const AutoRepairCustomersSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairCustomersSection"));
 const AutoRepairAutoCheckSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairAutoCheckSection"));
 const AutoRepairPartShopSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairPartShopSection"));
 const AutoRepairInspectionsSection = React.lazy(() => import("@/components/admin/store/autorepair/AutoRepairInspectionsSection"));
@@ -4920,7 +4921,9 @@ export default function AdminStoreEditPage() {
 
           {/* Customers Tab */}
           <TabsContent value="customers">
-            <StoreCustomersSection storeId={storeId!} />
+            {form.category === "auto-repair"
+              ? <AutoRepairCustomersSection storeId={storeId!} />
+              : <StoreCustomersSection storeId={storeId!} />}
           </TabsContent>
 
           {/* Marketing Tab */}
