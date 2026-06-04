@@ -13,6 +13,7 @@
  *    tab, and walks the user through pasting username then password.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { copyText } from "@/lib/native/clipboard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,9 +36,13 @@ import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
 import Search from "lucide-react/dist/esm/icons/search";
 import Globe from "lucide-react/dist/esm/icons/globe";
+import PlusCircle from "lucide-react/dist/esm/icons/plus-circle";
 import PartsSupplierLogo from "./PartsSupplierLogo";
 import { type PartsSupplier, getSupplierSearchUrl } from "@/config/partsSuppliers";
-import { SUPABASE_URL } from "@/integrations/supabase/client";
+import { SUPABASE_URL, supabase } from "@/integrations/supabase/client";
+
+/** A part the user captured from a supplier portal, to drop onto the R.O. as a line. */
+export type CapturedPart = { description: string; sku: string; brand: string; price: number; qty: number };
 
 interface Props {
   storeId: string;
@@ -45,6 +50,8 @@ interface Props {
   query?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When provided, shows an "Add part to R.O." capture bar that feeds the open R.O. */
+  onAddPart?: (p: CapturedPart) => void;
 }
 
 type SavedCreds = { email: string; password: string; updatedAt: string };
@@ -66,6 +73,37 @@ function saveCreds(storeId: string, supplierId: string, c: SavedCreds) {
 }
 function clearCreds(storeId: string, supplierId: string) {
   localStorage.removeItem(credKey(storeId, supplierId));
+}
+
+// ── Backend sync (ar_supplier_credentials) ─────────────────────────────────
+// Credentials live in the DB (RLS-locked to the store) so they're shared across
+// every device/staff member in the shop. localStorage above stays as an offline
+// cache for instant paint; the DB is the source of truth.
+async function fetchCredsRemote(storeId: string, supplierId: string): Promise<SavedCreds | null> {
+  try {
+    const { data, error } = await supabase
+      .from("ar_supplier_credentials" as any)
+      .select("email,password,updated_at")
+      .eq("store_id", storeId)
+      .eq("supplier_id", supplierId)
+      .maybeSingle();
+    if (error || !data) return null;
+    const row = data as unknown as { email: string | null; password: string | null; updated_at: string | null };
+    return { email: row.email ?? "", password: row.password ?? "", updatedAt: row.updated_at ?? "" };
+  } catch { return null; }
+}
+async function saveCredsRemote(storeId: string, supplierId: string, c: SavedCreds): Promise<void> {
+  try {
+    await supabase.from("ar_supplier_credentials" as any).upsert(
+      { store_id: storeId, supplier_id: supplierId, email: c.email, password: c.password, updated_at: c.updatedAt },
+      { onConflict: "store_id,supplier_id" },
+    );
+  } catch { /* offline / RLS — localStorage cache still holds it */ }
+}
+async function clearCredsRemote(storeId: string, supplierId: string): Promise<void> {
+  try {
+    await supabase.from("ar_supplier_credentials" as any).delete().eq("store_id", storeId).eq("supplier_id", supplierId);
+  } catch { /* ignore */ }
 }
 
 /** Fetch the proxied HTML as JSON and create a local blob URL.
@@ -91,7 +129,7 @@ async function fetchBlobUrl(
   return URL.createObjectURL(blob);
 }
 
-export default function SupplierBrowserModal({ storeId, supplier, query, open, onOpenChange }: Props) {
+export default function SupplierBrowserModal({ storeId, supplier, query, open, onOpenChange, onAddPart }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blobUrlRef = useRef<string | null>(null);
@@ -122,6 +160,12 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
 
   // Search
   const [searchQ, setSearchQ] = useState(query ?? "");
+
+  // "Add part to R.O." capture form (shown when onAddPart is provided)
+  const [partDesc, setPartDesc] = useState("");
+  const [partSku, setPartSku] = useState("");
+  const [partPrice, setPartPrice] = useState("");
+  const [partQty, setPartQty] = useState("1");
 
   const isSkipEmbed = !!supplier?.skipEmbed;
 
@@ -155,6 +199,19 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     setLaunchStep("idle");
     setLoginBlocked(false);
 
+    // Pull the shared copy from the backend. If present it wins over the local
+    // cache (another device may have updated it) and refreshes the cache.
+    let cancelled = false;
+    fetchCredsRemote(storeId, supplier.id).then((remote) => {
+      if (cancelled || !remote?.email) return;
+      saveCreds(storeId, supplier.id, remote);
+      setSaved(remote);
+      setEmail(remote.email);
+      setPassword(remote.password);
+      setShowCreds(true);
+      setEditCreds(false);
+    });
+
     if (isSkipEmbed) {
       setLoadState("failed");
       setIframeSrc(null);
@@ -168,6 +225,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
         setFrameKey(k => k + 1);
       }).catch(() => setLoadState("failed"));
     }
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, supplier, storeId]);
 
@@ -254,9 +312,10 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     if (!email.trim()) { toast.error("Email is required"); return; }
     const c: SavedCreds = { email: email.trim(), password, updatedAt: new Date().toISOString() };
     saveCreds(storeId, supplier.id, c);
+    void saveCredsRemote(storeId, supplier.id, c);
     setSaved(c);
     setEditCreds(false);
-    toast.success("Account saved on this device");
+    toast.success("Account saved for the shop");
     const win = iframeRef.current?.contentWindow;
     if (win && loadState === "ready") {
       setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, "*"), 200);
@@ -265,15 +324,16 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
 
   const handleClearCreds = () => {
     clearCreds(storeId, supplier.id);
+    void clearCredsRemote(storeId, supplier.id);
     setSaved(null); setEmail(""); setPassword("");
     setEditCreds(true);
-    toast.success("Account removed");
+    toast.success("Account removed for the shop");
   };
 
   const copyToClipboard = async (value: string, kind: "email" | "password") => {
     if (!value) return false;
     try {
-      await navigator.clipboard.writeText(value);
+      await copyText(value);
       setCopied(kind);
       setTimeout(() => setCopied(null), 2000);
       return true;
@@ -359,6 +419,64 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     }
     if (!opened) openInCurrentTab(url);
   };
+
+  const handleAddPart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onAddPart || !supplier) return;
+    const desc = partDesc.trim();
+    if (!desc) { toast.error("Enter the part description first"); return; }
+    onAddPart({
+      description: desc,
+      sku: partSku.trim(),
+      brand: supplier.shortName ?? supplier.name,
+      price: Number(partPrice) || 0,
+      qty: Math.max(1, Number(partQty) || 1),
+    });
+    setPartDesc(""); setPartSku(""); setPartPrice(""); setPartQty("1");
+  };
+
+  // Slim capture bar: type what you found on the portal and it lands on the R.O.
+  const addPartBar = onAddPart ? (
+    <form onSubmit={handleAddPart} className="shrink-0 border-t bg-card px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+          <PlusCircle className="h-4 w-4" /> Add to R.O.
+        </span>
+        <Input
+          className="h-8 text-xs flex-1 min-w-[160px]"
+          placeholder={`Part found on ${displayName}…`}
+          value={partDesc}
+          onChange={(e) => setPartDesc(e.target.value)}
+        />
+        <Input
+          className="h-8 text-xs w-28"
+          placeholder="Part #"
+          value={partSku}
+          onChange={(e) => setPartSku(e.target.value)}
+        />
+        <div className="relative w-24">
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+          <Input
+            className="h-8 text-xs pl-5"
+            type="number" min="0" step="0.01" inputMode="decimal"
+            placeholder="Price"
+            value={partPrice}
+            onChange={(e) => setPartPrice(e.target.value)}
+          />
+        </div>
+        <Input
+          className="h-8 text-xs w-16"
+          type="number" min="1" step="1" inputMode="numeric"
+          placeholder="Qty"
+          value={partQty}
+          onChange={(e) => setPartQty(e.target.value)}
+        />
+        <Button type="submit" size="sm" className="h-8 gap-1.5 text-xs shrink-0" disabled={!partDesc.trim()}>
+          <PlusCircle className="h-3.5 w-3.5" /> Add line
+        </Button>
+      </div>
+    </form>
+  ) : null;
 
   // ──────────────────────────────────────────────
   // CREDENTIAL LAUNCHER (skipEmbed or failed embed)
@@ -746,6 +864,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
             )}
           </div>
         )}
+        {addPartBar}
       </DialogContent>
     </Dialog>
   );

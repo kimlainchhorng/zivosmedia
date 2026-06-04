@@ -8,7 +8,7 @@ import { cloneElement } from "react";
 import {
   Plus, Home, Calendar, Users, Car, Gauge, Clock, Calculator,
   MessageSquare, BarChart3, Printer, Settings, TrendingUp,
-  FileText, Receipt, KeyRound, Truck, ShieldCheck,
+  FileText, Receipt, KeyRound, Truck, ShieldCheck, Package,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -46,9 +46,37 @@ export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, 
     { icon: Car, label: "Vehicles", onClick: nav("ar-vehicles") },
     { icon: Gauge, label: "Dashboard", onClick: nav("ar-dashboard") },
     { icon: Clock, label: "Labor time", onClick: nav("ar-labor-time") },
-    { icon: Calculator, label: "Finance", onClick: nav("ar-fin-income") },
+    {
+      icon: Package, label: "Inventory", onClick: nav("ar-parts"),
+      submenu: [
+        { label: "Part Shop", tab: "ar-parts" },
+        { label: "Tire Inventory", tab: "ar-tires" },
+        { label: "Parts Suppliers", tab: "ar-parts-suppliers" },
+      ],
+    },
+    {
+      icon: Calculator, label: "Finance", onClick: nav("ar-fin-income"),
+      submenu: [
+        { label: "Income & Revenue", tab: "ar-fin-income" },
+        { label: "Expenses & Bills", tab: "ar-fin-expenses" },
+        { label: "Payments Received", tab: "ar-fin-payments" },
+        { label: "Profit & Loss", tab: "ar-fin-pnl" },
+        { label: "Tax & Payouts", tab: "ar-fin-tax" },
+      ],
+    },
     ...(onProfit ? [{ icon: TrendingUp, label: "Profit / GP", onClick: onProfit, accent: "text-emerald-600" }] : []),
-    { icon: MessageSquare, label: "SMS & email", onClick: nav("ar-campaigns") },
+    {
+      icon: MessageSquare, label: "Marketing", onClick: nav("ar-campaigns"),
+      submenu: [
+        { label: "Promotions & Deals", tab: "ar-promos" },
+        { label: "SMS & Email", tab: "ar-campaigns" },
+        { label: "Service Reminders", tab: "ar-reminders" },
+        { label: "Gift Cards", tab: "ar-gift-cards" },
+        { label: "Reviews & Ratings", tab: "ar-reviews" },
+        { label: "Online Booking Link", tab: "ar-booking-link" },
+        { label: "QR Check-In", tab: "ar-qr" },
+      ],
+    },
     { icon: BarChart3, label: "Reports", onClick: nav("ar-reports") },
     { icon: Printer, label: "Print", onClick: onPrint },
     {

@@ -1,6 +1,6 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-03T22:11:19.799Z
+Generated: 2026-06-03T22:15:25.308Z
 
 ## Summary
 
@@ -11,17 +11,17 @@ Generated: 2026-06-03T22:11:19.799Z
 - Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 4
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1073, remote=1515, matched=0, near5s=585, near60s=616, oneToOne5s=584, oneToOne60s=614, unmatchedLocal=459, unmatchedRemote=901, localAfterRemoteRange=15, sharedDays=86, remoteError=no, generated=2026-06-03T22:11:17.662Z
-- Pending local migration gates: createsTables=2, withoutRls=0, withoutGrants=1, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=1, legacyAnonJwts=0
+- Last linked drift report: local=1073, remote=1515, matched=0, near5s=585, near60s=616, oneToOne5s=584, oneToOne60s=614, unmatchedLocal=459, unmatchedRemote=901, localAfterRemoteRange=15, sharedDays=86, remoteError=no, generated=2026-06-03T22:14:21.600Z
+- Pending local migration gates: createsTables=2, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
 - Public tables created in migrations: 899
 - Public tables needing RLS review: 0
-- Recent public tables needing Data API grant review: 7
+- Recent public tables needing Data API grant review: 6
 - Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
-- Hardcoded Supabase URLs in migrations: 35
-- Hardcoded scheduled/function endpoint URLs: 19
+- Hardcoded Supabase URLs in migrations: 34
+- Hardcoded scheduled/function endpoint URLs: 18
 - Cron function URL remediation migration present: yes
 - Hardcoded legacy anon JWTs in migrations: 14
 - Hardcoded legacy anon JWTs in scheduled/function SQL: 13
@@ -35,7 +35,7 @@ Generated: 2026-06-03T22:11:19.799Z
 
 ## Warnings
 
-- 7 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
+- 6 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
 
 ## Duplicate Versions
 
@@ -60,7 +60,6 @@ Generated: 2026-06-03T22:11:19.799Z
 - channel_removed_users: supabase/migrations/20260602033500_add_channel_removed_users.sql
 - channel_admin_log: supabase/migrations/20260602034000_add_channel_admin_log.sql
 - channel_invite_links: supabase/migrations/20260602035000_add_channel_invite_links.sql
-- channel_permission_exceptions: supabase/migrations/20260611000500_add_channel_permission_exceptions.sql
 
 ## View Review Candidates
 
@@ -102,7 +101,6 @@ Generated: 2026-06-03T22:11:19.799Z
 - project-url: supabase/migrations/20260509200000_grouped_social_notifications.sql:75 (https://slirphzzwcogdbkeicff.supabase.co)
 - project-url: supabase/migrations/20260509210000_notifications_snooze.sql:42 (https://slirphzzwcogdbkeicff.supabase.co)
 - scheduled-function-endpoint: supabase/migrations/20260527144000_ar_reminders_dispatch_cron.sql:11 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ar-reminders-dispatch)
-- scheduled-function-endpoint: supabase/migrations/20260609000000_ar_reminders_secure_cron.sql:14 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ar-reminders-dispatch)
 
 For new cron/function SQL, prefer `current_setting('app.settings.supabase_url', true)` with a deploy-time setting instead of embedding a project URL.
 

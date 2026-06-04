@@ -86,13 +86,31 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
     },
   });
 
+  // Collapse duplicate vehicles that share the same VIN — show one per VIN,
+  // preferring an entry that has a real owner name over "Unknown"/blank.
+  const deduped = useMemo(() => {
+    const byVin = new Map<string, Vehicle>();
+    const noVin: Vehicle[] = [];
+    const ownerScore = (v: Vehicle) => {
+      const n = (v.owner_name ?? "").trim().toLowerCase();
+      return n && n !== "unknown" ? 1 : 0;
+    };
+    for (const v of vehicles) {
+      const key = (v.vin ?? "").trim().toUpperCase();
+      if (!key) { noVin.push(v); continue; }
+      const existing = byVin.get(key);
+      if (!existing || ownerScore(v) > ownerScore(existing)) byVin.set(key, v);
+    }
+    return [...byVin.values(), ...noVin];
+  }, [vehicles]);
+
   const filtered = useMemo(() => {
-    if (!q) return vehicles;
+    if (!q) return deduped;
     const s = q.toLowerCase();
-    return vehicles.filter(v =>
+    return deduped.filter(v =>
       `${v.year ?? ""} ${v.make} ${v.model} ${v.plate ?? ""} ${v.vin ?? ""} ${v.owner_name}`.toLowerCase().includes(s)
     );
-  }, [vehicles, q]);
+  }, [deduped, q]);
 
   // Tracks the VIN last decoded by the auto-fill effect below, so we only run
   // a network call once per unique 17-char VIN. Manual Decode button still works
@@ -224,25 +242,25 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
+        <CardHeader className="flex flex-row items-center justify-between p-3">
+          <CardTitle className="text-sm flex items-center gap-2">
             <Car className="w-4 h-4" /> Customer Vehicles
-            <Badge variant="secondary" className="ml-1">{vehicles.length}</Badge>
+            <Badge variant="secondary" className="ml-1">{deduped.length}</Badge>
           </CardTitle>
-          <Button size="sm" className="gap-1.5" onClick={startNew}>
+          <Button size="sm" className="h-8 gap-1.5" onClick={startNew}>
             <Plus className="w-3.5 h-3.5" /> Add Vehicle
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-3 pt-0">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search by owner, plate, VIN, make, or model" className="pl-9" value={q} onChange={e => setQ(e.target.value)} />
+            <Input placeholder="Search by owner, plate, VIN, make, or model" className="pl-9 h-9" value={q} onChange={e => setQ(e.target.value)} />
           </div>
         </CardContent>
       </Card>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           {[0,1,2,3].map(i => <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
@@ -252,59 +270,44 @@ export default function AutoRepairVehiclesSection({ storeId, onNewEstimate, onNe
           {vehicles.length === 0 && <Button size="sm" onClick={startNew} className="gap-1.5"><Plus className="w-3.5 h-3.5" /> Add the first vehicle</Button>}
         </CardContent></Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-2">
           {filtered.map(v => {
             const dotClass = colorDotClass(v.color);
             return (
               <Card key={v.id}>
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        {dotClass && (
-                          <span className={`inline-block w-3 h-3 rounded-full border shrink-0 ${dotClass}`} title={v.color ?? ""} />
-                        )}
-                        <p className="font-semibold truncate">{[v.year, v.make, v.model].filter(Boolean).join(" ")}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">{v.owner_name}{v.plate ? ` · ${v.plate}` : ""}</p>
-                    </div>
-                    {!!v.mileage && <Badge variant="secondary" className="text-[10px] font-mono shrink-0">{v.mileage.toLocaleString()} mi</Badge>}
+                <CardContent className="flex flex-wrap items-center gap-x-3 gap-y-2 p-2.5 sm:p-2.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    {dotClass && (
+                      <span className={`inline-block w-2.5 h-2.5 rounded-full border shrink-0 ${dotClass}`} title={v.color ?? ""} />
+                    )}
+                    <span className="text-sm font-semibold shrink-0">{[v.year, v.make, v.model].filter(Boolean).join(" ")}</span>
+                    <span className="text-xs text-muted-foreground truncate">{v.owner_name}{v.plate ? ` · ${v.plate}` : ""}</span>
+                    {v.vin && <span className="hidden md:inline text-[11px] text-muted-foreground font-mono truncate">VIN: {v.vin}</span>}
+                    {!!v.mileage && <Badge variant="secondary" className="hidden sm:inline-flex text-[10px] font-mono shrink-0">{v.mileage.toLocaleString()} mi</Badge>}
                   </div>
-                  {v.vin && <p className="text-[11px] text-muted-foreground font-mono truncate">VIN: {v.vin}</p>}
-                  {v.owner_phone && (
-                    <a href={`tel:${v.owner_phone}`} className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline">
-                      <Phone className="w-3 h-3" /> {v.owner_phone}
-                    </a>
-                  )}
-                  {v.owner_email && (
-                    <a href={`mailto:${v.owner_email}`} className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
-                      <Mail className="w-3 h-3" /> {v.owner_email}
-                    </a>
-                  )}
-                  {v.notes && <p className="text-[11px] text-muted-foreground line-clamp-2">{v.notes}</p>}
-                  <div className="flex gap-2 pt-1 flex-wrap">
-                    <Button size="sm" variant="default" className="flex-1 h-8 gap-1.5" onClick={() => setHistoryVehicle(v)}>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Button size="sm" variant="default" className="h-7 gap-1.5" onClick={() => setHistoryVehicle(v)}>
                       <History className="w-3 h-3" /> History
                     </Button>
                     {onNewEstimate && (
-                      <Button size="sm" variant="secondary" className="flex-1 h-8 gap-1.5" onClick={() => onNewEstimate(v)}>
+                      <Button size="sm" variant="secondary" className="h-7 gap-1.5" onClick={() => onNewEstimate(v)}>
                         <FileSignature className="w-3 h-3" /> Estimate
                       </Button>
                     )}
                     {onNewInvoice && (
-                      <Button size="sm" variant="secondary" className="flex-1 h-8 gap-1.5" onClick={() => onNewInvoice(v)}>
+                      <Button size="sm" variant="secondary" className="h-7 gap-1.5" onClick={() => onNewInvoice(v)}>
                         <Receipt className="w-3 h-3" /> Invoice
                       </Button>
                     )}
                     {onViewWorkOrders && (
-                      <Button size="sm" variant="outline" className="flex-1 h-8 gap-1.5" onClick={() => onViewWorkOrders(v)}>
+                      <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => onViewWorkOrders(v)}>
                         <ClipboardList className="w-3 h-3" /> WOs
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => startEdit(v)}>
+                    <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => startEdit(v)}>
                       <Pencil className="w-3 h-3" /> Edit
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-8 text-destructive" onClick={() => {
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={() => {
                       if (confirm(`Delete ${v.year ?? ""} ${v.make} ${v.model}?`)) remove.mutate(v.id);
                     }}>
                       <Trash2 className="w-3.5 h-3.5" />

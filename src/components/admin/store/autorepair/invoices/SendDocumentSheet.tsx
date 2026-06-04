@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { copyText } from "@/lib/native/clipboard";
 import { Copy, Mail, MessageSquare, Link2, Loader2 } from "lucide-react";
 import { createShareLink, markSent, type DocType } from "@/lib/admin/invoiceActions";
 
@@ -53,7 +54,7 @@ export default function SendDocumentSheet({
   };
 
   const copyLink = async () => {
-    try { await navigator.clipboard.writeText(url); toast.success("Link copied"); await stamp(); }
+    try { await copyText(url); toast.success("Link copied"); await stamp(); }
     catch { toast.error("Could not copy link"); }
   };
 

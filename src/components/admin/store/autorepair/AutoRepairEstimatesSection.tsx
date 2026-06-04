@@ -16,8 +16,11 @@ import { Label } from "@/components/ui/label";
 import {
   FileSignature, Plus, Send, ArrowRightCircle, ArrowLeft, Search, Trash2,
   ClipboardList, Download, Pencil, ChevronDown, ChevronUp,
-  Link2, CheckCircle2, XCircle, BookOpen, Mail, MessageSquare, Loader2, Copy, Wrench,
+  Link2, CheckCircle2, XCircle, BookOpen, Mail, MessageSquare, Loader2, Copy, Wrench, MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
 import ServiceCatalogPickerDialog from "./ServiceCatalogPickerDialog";
@@ -409,78 +412,67 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
                       </div>
                       <div className="text-right shrink-0 flex items-center gap-2">
                         <p className="font-bold text-sm tabular-nums">{fmt(e.total_cents)}</p>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Print / PDF"
-                            onClick={() => printEstimate(e)}>
-                            <Download className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Edit"
-                            onClick={() => openEdit(e)}>
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" title="Open in Build R.O. console"
-                            onClick={() => openInBuildRO(e.id)}>
-                            <Wrench className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Duplicate as new estimate"
-                            onClick={() => duplicateEstimate(e)}>
-                            <Copy className="w-3.5 h-3.5" />
-                          </Button>
-                          {(e.status === "draft" || e.status === "sent") && (
-                            <>
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-600" title="Copy customer approval link"
-                                disabled={sendingId === e.id}
-                                onClick={() => sendToCustomer(e)}>
-                                <Link2 className="w-3.5 h-3.5" />
-                              </Button>
-                              {e.customer_email && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7"
-                                  title={`Email estimate to ${e.customer_email}`}
-                                  disabled={sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "email"}
-                                  onClick={() => sendByChannel.mutate({ id: e.id, channel: "email" })}
-                                >
-                                  {sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "email"
-                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    : <Mail className="w-3.5 h-3.5" />}
-                                </Button>
-                              )}
-                              {e.customer_phone && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7"
-                                  title={`SMS estimate to ${e.customer_phone}`}
-                                  disabled={sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "sms"}
-                                  onClick={() => sendByChannel.mutate({ id: e.id, channel: "sms" })}
-                                >
-                                  {sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "sms"
-                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    : <MessageSquare className="w-3.5 h-3.5" />}
-                                </Button>
-                              )}
-                            </>
-                          )}
-                          {!e.converted_workorder_id && e.status !== "declined" && e.status !== "expired" && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7" title="Convert to Work Order"
-                              onClick={() => convertToWO.mutate(e)}>
-                              <ArrowRightCircle className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
+                        <div className="flex items-center gap-1.5">
                           <Select value={e.status} onValueChange={(v) => setStatus.mutate({ id: e.id, status: v })}>
                             <SelectTrigger className="h-7 w-[100px] text-[11px]"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {STATUSES.map((s) => <SelectItem key={s} value={s} className="capitalize text-xs">{s}</SelectItem>)}
                             </SelectContent>
                           </Select>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                            title="Delete" onClick={() => { if (confirm("Delete this estimate?")) removeEstimate.mutate(e.id); }}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline" className="h-7 gap-1.5 px-2.5 text-xs">
+                                <MoreHorizontal className="w-3.5 h-3.5" /> Actions
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              <DropdownMenuItem className="gap-2" onClick={() => printEstimate(e)}>
+                                <Download className="w-4 h-4" /> Print / PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2" onClick={() => openEdit(e)}>
+                                <Pencil className="w-4 h-4" /> Edit estimate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2" onClick={() => openInBuildRO(e.id)}>
+                                <Wrench className="w-4 h-4" /> Open in Build R.O.
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2" onClick={() => duplicateEstimate(e)}>
+                                <Copy className="w-4 h-4" /> Duplicate
+                              </DropdownMenuItem>
+                              {(e.status === "draft" || e.status === "sent") && (
+                                <>
+                                  <DropdownMenuItem className="gap-2" disabled={sendingId === e.id} onClick={() => sendToCustomer(e)}>
+                                    <Link2 className="w-4 h-4" /> Copy approval link
+                                  </DropdownMenuItem>
+                                  {e.customer_email && (
+                                    <DropdownMenuItem className="gap-2"
+                                      disabled={sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "email"}
+                                      onClick={() => sendByChannel.mutate({ id: e.id, channel: "email" })}>
+                                      <Mail className="w-4 h-4" /> Email estimate
+                                    </DropdownMenuItem>
+                                  )}
+                                  {e.customer_phone && (
+                                    <DropdownMenuItem className="gap-2"
+                                      disabled={sendByChannel.isPending && sendByChannel.variables?.id === e.id && sendByChannel.variables?.channel === "sms"}
+                                      onClick={() => sendByChannel.mutate({ id: e.id, channel: "sms" })}>
+                                      <MessageSquare className="w-4 h-4" /> Text (SMS) estimate
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              )}
+                              {!e.converted_workorder_id && e.status !== "declined" && e.status !== "expired" && (
+                                <DropdownMenuItem className="gap-2" onClick={() => convertToWO.mutate(e)}>
+                                  <ArrowRightCircle className="w-4 h-4" /> Convert to Work Order
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive"
+                                onClick={() => { if (confirm("Delete this estimate?")) removeEstimate.mutate(e.id); }}>
+                                <Trash2 className="w-4 h-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button size="icon" variant="ghost" className="h-7 w-7"
-                            onClick={() => setExpandedId(isExpanded ? null : e.id)}>
+                            onClick={() => setExpandedId(isExpanded ? null : e.id)} title={isExpanded ? "Collapse" : "Expand details"}>
                             {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                           </Button>
                         </div>

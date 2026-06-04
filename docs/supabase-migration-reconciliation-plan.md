@@ -1,6 +1,6 @@
 # Supabase Migration Reconciliation Plan
 
-Generated: 2026-06-03T22:11:17.717Z
+Generated: 2026-06-03T22:14:21.614Z
 
 This plan is diagnostic only. It does not repair migration history or change the remote schema.
 
@@ -25,13 +25,13 @@ This plan is diagnostic only. It does not repair migration history or change the
 - Likely pending local migrations: 15
 - Creates tables: 2
 - Creates tables without RLS: 0
-- Creates tables without explicit grants: 1
+- Creates tables without explicit grants: 0
 - Sequence-backed ids: 0
 - Sequence-backed ids without sequence grants: 0
 - SECURITY DEFINER migrations: 1
 - SECURITY DEFINER without search_path: 0
 - Cron migrations: 1
-- Hardcoded Supabase URLs: 1
+- Hardcoded Supabase URLs: 0
 - Legacy anon JWTs: 0
 
 ## Review Files

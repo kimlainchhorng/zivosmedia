@@ -9,6 +9,8 @@ create table if not exists public.channel_permission_exceptions (
 
 alter table public.channel_permission_exceptions enable row level security;
 
+grant select, insert, update, delete on public.channel_permission_exceptions to authenticated;
+
 drop policy if exists channel_permission_exceptions_managers_select on public.channel_permission_exceptions;
 create policy channel_permission_exceptions_managers_select
 on public.channel_permission_exceptions

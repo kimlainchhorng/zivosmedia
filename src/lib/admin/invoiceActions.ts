@@ -90,6 +90,35 @@ export function nextDocNumber(type: DocType): string {
 }
 
 /**
+ * Preview the number a NEW document WILL get, without consuming one.
+ *
+ * The authoritative counter (ar_doc_counters) is RLS-locked — only the
+ * SECURITY DEFINER allocator can read it — so we derive the next number the
+ * same way that counter was seeded: max numeric suffix of existing docs + 1,
+ * floored at 1000 (→ first number 1001). This is DISPLAY-ONLY; the real,
+ * guaranteed-unique number is still allocated atomically by assignDocNumber()
+ * at save time, so two open drafts can never collide.
+ */
+export async function peekDocNumber(storeId: string, type: DocType): Promise<string> {
+  // Include soft-deleted rows: the atomic counter is seeded from the max of ALL
+  // docs and never decrements on delete, so counting them mirrors it most closely.
+  const { data, error } = await supabase
+    .from(TABLE[type] as any)
+    .select("number")
+    .eq("store_id", storeId);
+  if (error || !data) return `${NUMBER_PREFIX[type]}1001`;
+  let max = 1000;
+  for (const row of data as any[]) {
+    const digits = String(row?.number ?? "").replace(/\D/g, "");
+    if (digits.length >= 1 && digits.length <= 5) {
+      const n = parseInt(digits, 10);
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+  }
+  return `${NUMBER_PREFIX[type]}${max + 1}`;
+}
+
+/**
  * Allocate the authoritative, per-store sequential number for a NEW document
  * via the ar_next_doc_number RPC (atomic counter + UNIQUE constraint at the DB).
  * Falls back to a provisional number if the RPC is unavailable so saving never

@@ -10,12 +10,13 @@
  * box, or use their "Shop Without Vehicle" option.
  */
 import { useState } from "react";
+import { copyText } from "@/lib/native/clipboard";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PARTS_SUPPLIERS, type PartsSupplier } from "@/config/partsSuppliers";
 import PartsSupplierLogo from "./PartsSupplierLogo";
-import SupplierBrowserModal from "./SupplierBrowserModal";
+import SupplierBrowserModal, { type CapturedPart } from "./SupplierBrowserModal";
 import { toast } from "sonner";
-import { X, Car, Copy } from "lucide-react";
+import { X, Car, Copy, Search } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -24,6 +25,8 @@ interface Props {
   vehicleLabel?: string;
   vin?: string;
   plate?: string;
+  /** Captured part from a supplier portal → dropped onto the open R.O. as a line. */
+  onAddPart?: (p: CapturedPart) => void;
 }
 
 const REFERENCE_LINKS: { label: string; url: string }[] = [
@@ -34,11 +37,15 @@ const REFERENCE_LINKS: { label: string; url: string }[] = [
   { label: "Gmail", url: "https://mail.google.com" },
 ];
 
-export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId, vehicleLabel, vin, plate }: Props) {
+export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId, vehicleLabel, vin, plate, onAddPart }: Props) {
   const [supplier, setSupplier] = useState<PartsSupplier | null>(null);
+  const [query, setQuery] = useState("");
+  const filtered = PARTS_SUPPLIERS.filter((s) =>
+    `${s.name} ${s.shortName ?? ""} ${s.description ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()),
+  );
 
   const copy = async (value: string, label: string) => {
-    try { await navigator.clipboard.writeText(value); toast.success(`${label} copied — paste it into the supplier's vehicle box`); }
+    try { await copyText(value); toast.success(`${label} copied — paste it into the supplier's vehicle box`); }
     catch { toast.error("Copy failed"); }
   };
 
@@ -81,21 +88,37 @@ export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId,
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {PARTS_SUPPLIERS.map((s) => (
+            {/* Search */}
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search suppliers…"
+                className="w-full rounded-lg border border-slate-600 bg-slate-800/60 py-2 pl-9 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400/40"
+              />
+            </div>
+
+            {/* Supplier logo tiles */}
+            <div className="grid max-h-[52vh] grid-cols-3 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-4 lg:grid-cols-5">
+              {filtered.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => setSupplier(s)}
-                  className="flex items-center gap-2.5 rounded-lg border border-slate-600 bg-white px-3 py-2.5 text-left transition hover:border-sky-400 hover:shadow-md"
+                  title={s.name}
+                  className="group flex flex-col items-center justify-center gap-2 rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-black/5 transition duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/70"
                 >
-                  <PartsSupplierLogo supplier={s} size="md" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-800">{s.shortName ?? s.name}</span>
-                    {s.description && <span className="block truncate text-[10px] text-slate-500">{s.description}</span>}
-                  </span>
+                  <div className="flex h-12 w-12 items-center justify-center">
+                    <PartsSupplierLogo supplier={s} size="lg" />
+                  </div>
+                  <span className="block w-full truncate text-xs font-semibold text-slate-800">{s.shortName ?? s.name}</span>
+                  {s.description && <span className="block w-full truncate text-[9px] leading-tight text-slate-500">{s.description}</span>}
                 </button>
               ))}
+              {filtered.length === 0 && (
+                <p className="col-span-full py-10 text-center text-sm text-slate-400">No suppliers match “{query}”.</p>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-slate-700 pt-4 text-sm">
@@ -116,6 +139,7 @@ export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId,
         query={vin || plate || vehicleLabel}
         open={!!supplier}
         onOpenChange={(o) => { if (!o) setSupplier(null); }}
+        onAddPart={onAddPart}
       />
     </>
   );

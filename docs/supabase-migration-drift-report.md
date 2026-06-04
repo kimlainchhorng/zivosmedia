@@ -1,6 +1,6 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-06-03T22:11:17.662Z
+Generated: 2026-06-03T22:14:21.600Z
 
 ## Summary
 
@@ -27,10 +27,10 @@ Generated: 2026-06-03T22:11:17.662Z
 - Unmatched remote versions before local range: 0
 - Pending local creates tables: 2
 - Pending local creates tables without RLS: 0
-- Pending local creates tables without explicit grants: 1
+- Pending local creates tables without explicit grants: 0
 - Pending local sequence-backed ids without sequence grants: 0
 - Pending local SECURITY DEFINER without search_path: 0
-- Pending local hardcoded Supabase URLs: 1
+- Pending local hardcoded Supabase URLs: 0
 - Pending local legacy anon JWTs: 0
 - Shared migration calendar days: 86
 - Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv

@@ -28,43 +28,31 @@ export default function EstimateApprovalPage() {
   useEffect(() => {
     if (!token) { setNotFound(true); setLoading(false); return; }
     (async () => {
-      const { data, error } = await supabase
-        .from("ar_estimates" as any)
-        .select("*")
-        .eq("share_token", token)
-        .single();
-      if (error || !data) { setNotFound(true); setLoading(false); return; }
-      setEst(data);
+      // Token-scoped SECURITY DEFINER RPC — anon has no direct read on ar_estimates.
+      const { data, error } = await supabase.rpc("ar_get_estimate_by_share_token" as any, { _token: token });
+      const payload = data as { estimate?: any; store?: any } | null;
+      if (error || !payload?.estimate) { setNotFound(true); setLoading(false); return; }
+      const estimate = payload.estimate;
+      setEst(estimate);
+      setStore(payload.store ?? null); // branding comes back with the estimate
       // Mark as viewed (fire and forget)
-      if (!(data as any).customer_viewed_at) {
-        supabase.from("ar_estimates" as any)
-          .update({ customer_viewed_at: new Date().toISOString() })
-          .eq("share_token", token);
-      }
-      // Load store info for branding
-      if ((data as any).store_id) {
-        const { data: sp } = await supabase
-          .from("store_profiles")
-          .select("name, logo_url, phone, address")
-          .eq("id", (data as any).store_id)
-          .single();
-        setStore(sp);
+      if (!estimate.customer_viewed_at) {
+        supabase.rpc("ar_mark_estimate_viewed" as any, { _token: token });
       }
       setLoading(false);
       // Pre-fill done state if already responded
-      if ((data as any).status === "approved") setDone("approved");
-      if ((data as any).status === "declined") setDone("declined");
+      if (estimate.status === "approved") setDone("approved");
+      if (estimate.status === "declined") setDone("declined");
     })();
   }, [token]);
 
   const respond = async (decision: "approved" | "declined") => {
     setResponding(true);
-    const now = new Date().toISOString();
-    await supabase.from("ar_estimates" as any)
-      .update({ status: decision, customer_responded_at: now })
-      .eq("share_token", token!);
-    setDone(decision);
+    // Token-scoped SECURITY DEFINER RPC — anon has no direct update on ar_estimates.
+    const { error } = await supabase.rpc("ar_respond_to_estimate" as any, { _token: token!, _decision: decision });
     setResponding(false);
+    if (error) return; // leave the buttons active so the customer can retry
+    setDone(decision);
   };
 
   if (loading) {

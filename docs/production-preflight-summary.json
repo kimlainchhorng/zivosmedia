@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-06-03T22:11:27.396Z",
+  "generated": "2026-06-03T22:14:31.631Z",
   "mode": "soft",
   "options": {
     "strict": false,
@@ -11,7 +11,7 @@
   "readyForProductionGate": false,
   "counts": {
     "apiCritical": 0,
-    "apiWarnings": 4,
+    "apiWarnings": 2,
     "environmentCritical": 0,
     "environmentWarnings": 0,
     "databaseBlockers": 2,
@@ -80,10 +80,10 @@
   "pendingMigrationGates": {
     "createsTables": 2,
     "withoutRls": 0,
-    "withoutGrants": 1,
+    "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
     "definerWithoutSearchPath": 0,
-    "hardcodedUrls": 1,
+    "hardcodedUrls": 0,
     "legacyAnonJwts": 0
   },
   "edgeFunctions": {
@@ -106,7 +106,7 @@
     "production": [
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
-      "API readiness has 4 warning(s).",
+      "API readiness has 2 warning(s).",
       "Database readiness has 2 blocker(s).",
       "Database readiness has 1 warning(s).",
       "Supabase linked migration history is disconnected: local and remote have zero exact version matches.",
@@ -199,12 +199,12 @@
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
       "exists": true,
-      "bytes": 13554
+      "bytes": 13272
     },
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 2995
+      "bytes": 2672
     },
     "reconciliationPlan": {
       "path": "docs\\supabase-migration-reconciliation-plan.md",
@@ -224,7 +224,7 @@
     "pendingLocalReview": {
       "path": "docs\\supabase-migration-pending-local-review.csv",
       "exists": true,
-      "bytes": 2957
+      "bytes": 2958
     },
     "unmatchedLocal": {
       "path": "docs\\supabase-migration-unmatched-local.csv",
@@ -241,6 +241,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 484134
+    "bytes": 483530
   }
 }

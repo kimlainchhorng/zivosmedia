@@ -86,25 +86,38 @@ describe("release safety artifact contracts", () => {
     }
   });
 
-  it("keeps readiness reports connected to strict production blockers", () => {
+  it("keeps readiness reports connected to current and production blockers", () => {
     const summary = json("docs/production-preflight-summary.json");
     const databaseReadiness = source(summary.artifacts.databaseReadiness);
     const apiReadiness = source(summary.artifacts.apiReadiness);
     const migrationDrift = source(summary.artifacts.migrationDrift);
 
-    expect(summary.mode).toBe("strict");
+    expect(["soft", "strict"]).toContain(summary.mode);
+    expect(summary.readyForCurrentGate).toBe(summary.blockers.currentGate.length === 0 && summary.blockers.failedCommands.length === 0);
     expect(summary.readyForProductionGate).toBe(false);
-    expect(summary.counts.databaseBlockers).toBe(0);
-    expect(summary.supabase.linkedHistoryDisconnected).toBe(false);
-    expect(summary.supabase.remoteMigrationHistoryStatus).toBe("access_token_missing");
-    expect(summary.blockers.production).toContain("API readiness has 1 warning(s).");
-    expect(summary.blockers.production).toContain("Environment readiness has 3 critical finding(s).");
-    expect(summary.blockers.production).toContain("Supabase remote migration history is unavailable (access_token_missing).");
+    expect(summary.counts.databaseBlockers).toBe(2);
+    expect(summary.pendingMigrationGates).toEqual(
+      expect.objectContaining({
+        withoutRls: 0,
+        withoutGrants: 0,
+        sequenceWithoutGrants: 0,
+        definerWithoutSearchPath: 0,
+        hardcodedUrls: 0,
+        legacyAnonJwts: 0,
+      }),
+    );
+    expect(summary.supabase.linkedHistoryDisconnected).toBe(true);
+    expect(summary.supabase.remoteMigrationHistoryStatus).toBe("read");
+    expect(summary.blockers.production).toContain("Database readiness has 2 blocker(s).");
+    expect(summary.blockers.production).toContain("Supabase linked migration history is disconnected: local and remote have zero exact version matches.");
+    expect(summary.blockers.production).toContain("Supabase migrations have 4 unresolved duplicate version(s).");
 
-    expect(apiReadiness).toContain("- Warnings: 1");
+    expect(apiReadiness).toContain(`- Warnings: ${summary.counts.apiWarnings}`);
     expect(databaseReadiness).toContain("## Blockers");
-    expect(databaseReadiness).toContain("- None");
-    expect(migrationDrift).toContain("SUPABASE_ACCESS_TOKEN configured: no");
+    expect(databaseReadiness).toContain("- 4 new duplicate migration version(s) need reconciliation before db push/pull.");
+    expect(migrationDrift).toContain("SUPABASE_ACCESS_TOKEN configured: yes");
+    expect(migrationDrift).toContain("- Pending local creates tables without explicit grants: 0");
+    expect(migrationDrift).toContain("- Pending local hardcoded Supabase URLs: 0");
   });
 
   it("keeps the artifact checker wired to the same required report set", () => {

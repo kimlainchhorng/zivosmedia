@@ -4992,44 +4992,17 @@ export default function AdminStoreEditPage() {
                 storeId={storeId!}
                 onNewEstimate={(v) => {
                   const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" ");
-                  sessionStorage.setItem("ar_estimate_prefill", JSON.stringify({
-                    vehicle_label: vehicleLabel,
-                    vin: v.vin || "",
-                    year: v.year ? String(v.year) : "",
-                    make: v.make || "",
-                    model: v.model || "",
-                    customer_name: v.owner_name || "",
-                    customer_phone: v.owner_phone || "",
-                    customer_email: v.owner_email || "",
-                    notes: "",
-                    line_items: [],
-                  }));
-                  sessionStorage.setItem("ar_embed_back", "ar-vehicles");
-                  handleTabChange("ar-estimates");
-                  toast.success(`Estimate prefilled for ${vehicleLabel}`);
+                  // Build estimates in the VSM "Build R.O." console, pre-bound to this vehicle.
+                  sessionStorage.setItem("ar_buildro_prefill", JSON.stringify({ mode: "estimate", vehicle: v }));
+                  handleTabChange("ar-build-ro");
+                  toast.success(`New estimate for ${vehicleLabel}`);
                 }}
                 onNewInvoice={(v) => {
                   const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" ");
-                  // Split owner_name into first/last for the invoice form's fields.
-                  const parts = (v.owner_name || "").trim().split(/\s+/);
-                  const firstName = parts[0] || "";
-                  const lastName = parts.slice(1).join(" ");
-                  sessionStorage.setItem("ar_invoice_prefill", JSON.stringify({
-                    type: "invoice",
-                    vehicle_label: vehicleLabel,
-                    vin: v.vin || "",
-                    year: v.year ? String(v.year) : "",
-                    make: v.make || "",
-                    model: v.model || "",
-                    customer_name: v.owner_name || "",
-                    firstName,
-                    lastName,
-                    phone: v.owner_phone || "",
-                    email: v.owner_email || "",
-                    address: "",
-                  }));
-                  handleTabChange("ar-invoices");
-                  toast.success(`Invoice prefilled for ${vehicleLabel}`);
+                  // Invoices start from the same "Build R.O." console (build → Invoice to convert).
+                  sessionStorage.setItem("ar_buildro_prefill", JSON.stringify({ mode: "invoice", vehicle: v }));
+                  handleTabChange("ar-build-ro");
+                  toast.success(`New invoice for ${vehicleLabel}`);
                 }}
                 onViewWorkOrders={(v) => {
                   const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" ");

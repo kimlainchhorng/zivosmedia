@@ -1,11 +1,11 @@
 # API Readiness Report
 
-Generated: 2026-06-03T22:12:10.318Z
+Generated: 2026-06-03T22:14:26.058Z
 
 ## Summary
 
 - Critical findings: 0
-- Warnings: 4
+- Warnings: 2
 - Edge Functions inventoried: 400
 - High-risk Edge Functions: 136
 - Functions using withSecurity(): 400
@@ -19,7 +19,7 @@ Generated: 2026-06-03T22:12:10.318Z
 - API operations runbook: present (0 missing topics)
 - Supabase migration drift: reportLocal=1073, currentLocal=1073, remote=1515, matched=0, duplicateVersions=4, allowedDuplicateVersions=0, newDuplicateVersions=4, remoteError=no
 - Supabase migration near-match diagnostics: near5s=585, near60s=616, oneToOne5s=584, oneToOne60s=614, unmatchedLocal=459, unmatchedRemote=901, localAfterRemoteRange=15, sharedDays=86
-- Pending local migration risk gates: createsTables=2, withoutRls=0, withoutGrants=1, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=1, legacyAnonJwts=0
+- Pending local migration risk gates: createsTables=2, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Critical
 
@@ -29,8 +29,6 @@ Generated: 2026-06-03T22:12:10.318Z
 
 - [duplicate-migration-versions] Local Supabase migrations contain 4 new duplicate version(s). (docs/supabase-migration-drift-report.md)
 - [migration-history-disconnected] Local and remote Supabase migration histories have no exact matches, but 616 local migrations have a remote timestamp within one minute. Treat db push/pull as risky until version-id drift is reconciled. (docs/supabase-migration-drift-report.md)
-- [pending-local-table-without-grant] 1 likely pending local migration(s) create public tables without detected explicit grants. (docs/supabase-migration-drift-report.md)
-- [pending-local-hardcoded-supabase-url] 1 likely pending local migration(s) contain hardcoded Supabase URLs. (docs/supabase-migration-drift-report.md)
 
 ## High-Risk Functions Missing withSecurity()
 

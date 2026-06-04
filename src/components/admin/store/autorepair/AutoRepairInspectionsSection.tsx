@@ -5,6 +5,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { copyText } from "@/lib/native/clipboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,7 +165,7 @@ export default function AutoRepairInspectionsSection({ storeId, onCreateEstimate
   const copyShare = (token: string | null) => {
     if (!token) return;
     const url = `${window.location.origin}/inspection/${token}`;
-    navigator.clipboard.writeText(url).then(
+    copyText(url).then(
       () => toast.success("Customer link copied"),
       () => toast.error("Could not copy")
     );

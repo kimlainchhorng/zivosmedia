@@ -14,7 +14,7 @@
  * fields ride along; the legacy {kind,name,qty,unit_cents} keys are kept so the simple Estimates list and
  * the print/share flows keep working). No database changes — clean note/PO round-tripping lands in Phase 2.
  */
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import BuildROSectionDialog from "./BuildROSectionDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,7 +39,6 @@ import BuildROPartsCatalogDialog from "./BuildROPartsCatalogDialog";
 import { listConnectedVendors } from "./AutoRepairPartSuppliersSection";
 import BuildROHub from "./BuildROHub";
 import BuildROExistingCustomerDialog from "./BuildROExistingCustomerDialog";
-import BuildROBarcode from "./BuildROBarcode";
 import BuildROSaveCannedDialog from "./BuildROSaveCannedDialog";
 import BuildROPartsMatrixDialog from "./BuildROPartsMatrixDialog";
 import BuildROImportPartsDialog, { type ImportedPart } from "./BuildROImportPartsDialog";
@@ -52,14 +51,15 @@ import BuildROVoiceButton from "./BuildROVoiceButton";
 import BuildROIntakeQueueDialog from "./BuildROIntakeQueueDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
-import { assignDocNumber, assignWorkOrderNumber } from "@/lib/admin/invoiceActions";
+import { assignDocNumber, assignWorkOrderNumber, peekDocNumber } from "@/lib/admin/invoiceActions";
+import { copyText } from "@/lib/native/clipboard";
 import { type MatrixTier, DEFAULT_PARTS_MATRIX, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
   Plus, Trash2, Search, Car, FileSignature, Printer, Save, FilePlus2, FolderOpen,
   History, ClipboardCheck, Activity, CreditCard, ShieldCheck, ChevronDown,
   Link2, X, UserPlus, Sparkles, Ban, ShoppingCart, Mail, MessageSquare, ArrowRightCircle,
-  Download, Star, CheckCircle2, Send, PhoneCall, Home, Percent, Clock, Eye,
+  Download, Star, CheckCircle2, Send, PhoneCall, Home, Percent, Clock, Eye, Copy,
 } from "lucide-react";
 
 type GarageVehicle = {
@@ -155,6 +155,10 @@ const money = (cents: number) =>
 const dollarsToCents = (v: string | number) => Math.round((Number(v) || 0) * 100);
 const centsToDollars = (c: number) => (c ? (c / 100).toString() : "");
 const uid = () => `${Date.now().toString(36)}${Math.floor(performance.now() % 1000).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+// Only a real UUID may go into a Postgres uuid column; placeholder/seed ids (e.g. "test-veh-1")
+// from handoffs become null so the save links by the denormalized vehicle fields instead of crashing.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const asUuid = (v: unknown): string | null => (typeof v === "string" && UUID_RE.test(v) ? v : null);
 
 const blankLine = (job: number, kind: LineKind): ROLine => ({
   id: uid(),
@@ -321,6 +325,7 @@ const tidyNote = (raw: string): string => {
 export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props) {
   const qc = useQueryClient();
   const [editId, setEditId] = useState<string | null>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
   const [header, setHeader] = useState<HeaderForm>(blankHeader);
   const [lines, setLines] = useState<ROLine[]>([]);
   const [jobs, setJobs] = useState<number[]>([1]);
@@ -369,7 +374,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [carfaxOpen, setCarfaxOpen] = useState(false);
   const [statusDlgOpen, setStatusDlgOpen] = useState(false);
   const [custEdit, setCustEdit] = useState(false); // Customer card: form (adding/editing) vs summary/prompt
-  const [vehEdit, setVehEdit] = useState(true); // Vehicle card: form vs compact summary (typed/unbound)
+  const [vehEdit, setVehEdit] = useState(false); // Vehicle card: form (adding/editing) vs summary/prompt
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printCopies, setPrintCopies] = useState(1);
   const [smsMenuOpen, setSmsMenuOpen] = useState(false);
@@ -464,6 +469,15 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     },
   });
 
+  // Preview the EST # a brand-new repair order will receive (display-only — the
+  // real number is still allocated atomically at save). Only runs for a fresh,
+  // unsaved R.O.; once saved, header.number takes over.
+  const { data: previewNumber } = useQuery({
+    queryKey: ["ar-build-ro-peek", storeId],
+    queryFn: () => peekDocNumber(storeId, "estimate"),
+    enabled: !editId && !header.number,
+  });
+
   // Shop-level defaults (labor rate, tax rate) from store_profiles.ar_settings — prefill new R.O.s.
   const { data: shopDefaults } = useQuery({
     queryKey: ["ar-build-ro-defaults", storeId],
@@ -511,7 +525,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   }, [garage, custSearch]);
 
   const bindVehicle = (v: GarageVehicle) => {
-    setVehicleId(v.id);
+    setVehicleId(asUuid(v.id));
     setBoundVehicle(v);
     setHeader((h) => ({
       ...h,
@@ -592,7 +606,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       return data as unknown as GarageVehicle;
     },
     onSuccess: (v) => {
-      setVehicleId(v.id);
+      setVehicleId(asUuid(v.id));
       setBoundVehicle(v);
       qc.invalidateQueries({ queryKey: ["ar-build-ro-garage", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-customer-vehicles", storeId] });
@@ -766,7 +780,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setStatus("draft");
     setWorkflowStage("awaiting");
     setCustEdit(false);
-    setVehEdit(true);
+    setVehEdit(false);
     setCreatedAt(null);
     unbind();
     setCustSearch("");
@@ -827,7 +841,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setStatus(e.status ?? "draft");
     setWorkflowStage((e as any).workflow_stage ?? "awaiting");
     setCustEdit(false);
-    setVehEdit(!((e.vehicle_label ?? "").trim()));
+    setVehEdit(false);
     setOpenLoad(false);
     // Re-bind the saved garage vehicle so History / linked features work on load.
     if (e.vehicle_id) {
@@ -849,6 +863,24 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       if (!error && data) { loadEstimate(data); setView("builder"); }
       else { resetAll(); setView("builder"); }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handoff from the Vehicles list ("Estimate" / "Invoice" on a vehicle card):
+  // open a fresh R.O. here, pre-bound to that vehicle + its customer. The same
+  // builder backs both — an estimate is saved with "Build R.O.", and the
+  // "Invoice" button converts it, so both buttons land in the one workflow.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("ar_buildro_prefill");
+    if (!raw) return;
+    sessionStorage.removeItem("ar_buildro_prefill");
+    try {
+      const p = JSON.parse(raw);
+      resetAll();
+      if (p.vehicle) bindVehicle(p.vehicle as GarageVehicle);
+      setView("builder");
+      if (p.mode === "invoice") toast.info("Add the work, then tap Invoice to bill this vehicle");
+    } catch { /* ignore malformed prefill */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -907,21 +939,23 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         customer_notes: header.customer_request || null,
         diagnosis_notes: header.diagnosis || null,
         // Link the bound garage vehicle by id for robust history matching.
-        vehicle_id: vehicleId,
+        vehicle_id: asUuid(vehicleId),
       };
       if (editId) {
         if (authorize) payload.status = "approved";
         const { error } = await supabase.from("ar_estimates" as any).update(payload).eq("id", editId);
         if (error) throw error;
-        return editId;
+        return { id: editId, number: payload.number as string };
       }
       payload.status = authorize ? "approved" : "draft";
       const { data, error } = await supabase.from("ar_estimates" as any).insert(payload).select("id, number").single();
       if (error) throw error;
-      return (data as any).id as string;
+      return { id: (data as any).id as string, number: (data as any).number as string };
     },
-    onSuccess: (id, authorize) => {
-      setEditId(id);
+    onSuccess: (res, authorize) => {
+      setEditId(res.id);
+      // Surface the authoritative EST # right away (was only visible after reload).
+      if (res.number) setH({ number: res.number });
       if (authorize) setStatus("approved");
       qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
@@ -963,14 +997,104 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     toast.success(`${ids.length} part${ids.length === 1 ? "" : "s"} marked ordered`);
   };
 
-  const ensureSavedId = async () => editId ?? (await save.mutateAsync(false));
+  const ensureSavedId = async () => editId ?? (await save.mutateAsync(false)).id;
+
+  // Idempotent work-order creation, driven by the status stepper. Reuses any
+  // existing linked WO (no duplicates) and skips empty ROs so advancing a blank
+  // stage doesn't spawn a blank work order. vehicle_id links it to the garage
+  // vehicle so it shows in that vehicle's service history.
+  const ensureWorkOrder = async (estimateId: string): Promise<string | null> => {
+    const { data: est } = await supabase.from("ar_estimates" as any)
+      .select("converted_workorder_id").eq("id", estimateId).maybeSingle();
+    const existing = (est as any)?.converted_workorder_id as string | null;
+    if (existing) return existing;
+    if (!lines.length) return null;
+    const partsUsed = lines.filter((l) => l.kind === "part" && !l.declined)
+      .map((l) => ({ name: l.description, qty: l.qty, unit_cents: l.unit_cents }));
+    const { data, error } = await supabase.from("ar_work_orders" as any).insert({
+      store_id: storeId,
+      estimate_id: estimateId,
+      number: await assignWorkOrderNumber(storeId),
+      status: "in_progress",
+      parts_used: partsUsed,
+      total_cents: t.total,
+      customer_name: header.customer_name || null,
+      customer_phone: header.customer_phone || null,
+      customer_email: header.customer_email || null,
+      vehicle_label: header.vehicle_label || null,
+      vehicle_id: asUuid(vehicleId),
+    }).select("id").single();
+    if (error) throw error;
+    const woId = (data as any).id as string;
+    await supabase.from("ar_estimates" as any).update({ converted_workorder_id: woId }).eq("id", estimateId);
+    qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+    qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
+    return woId;
+  };
+
+  // Idempotent invoice creation, driven by the status stepper. Links back to the
+  // estimate (converted_invoice_id) and carries VIN/label so it lands in the
+  // Invoices list and the vehicle's service history.
+  const ensureInvoice = async (estimateId: string): Promise<string | null> => {
+    const { data: est } = await supabase.from("ar_estimates" as any)
+      .select("converted_invoice_id").eq("id", estimateId).maybeSingle();
+    const existing = (est as any)?.converted_invoice_id as string | null;
+    if (existing) return existing;
+    if (!lines.length) return null;
+    const items = lines.filter((l) => !l.declined).map((l) => ({
+      category: l.kind, description: l.description, qty: l.qty, price: l.unit_cents / 100,
+    }));
+    const invNumber = await assignDocNumber(storeId, "invoice");
+    const { data, error } = await supabase.from("ar_invoices" as any).insert({
+      store_id: storeId,
+      number: invNumber,
+      estimate_id: estimateId,
+      status: "draft",
+      customer_name: header.customer_name || null,
+      customer_phone: header.customer_phone || null,
+      customer_email: header.customer_email || null,
+      vehicle_label: header.vehicle_label || null,
+      vin: boundVehicle?.vin || null,
+      license_plate: header.license_plate || null,
+      vehicle_color: header.vehicle_color || null,
+      unit_number: header.unit_number || null,
+      mileage_in: header.mileage_in ? Number(header.mileage_in) : null,
+      service_writer: header.service_writer || null,
+      technician: header.technician || null,
+      keytag: header.keytag || null,
+      promised_at: header.promised_at || null,
+      po_number: header.po_number || null,
+      payment_method: header.payment_method || null,
+      items,
+      subtotal_cents: t.lineSubtotal,
+      sublet_cents: t.sublet,
+      fees_cents: feesC,
+      epa_cents: epaC,
+      shop_supplies_cents: suppliesC,
+      discount_cents: discountC,
+      tax_rate: taxRate,
+      tax_cents: t.tax,
+      total_cents: t.total,
+      amount_paid_cents: 0,
+      customer_notes: header.customer_request || null,
+      diagnosis_notes: [header.diagnosis, header.recommendation].filter(Boolean).join("\n") || null,
+    }).select("id").single();
+    if (error) throw error;
+    const invId = (data as any).id as string;
+    await supabase.from("ar_estimates" as any).update({ converted_invoice_id: invId }).eq("id", estimateId);
+    qc.invalidateQueries({ queryKey: ["ar-invoices", storeId] });
+    qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
+    return invId;
+  };
 
   // Advance/set the shop-floor workflow stage. Auto-saves (creates) the RO if needed
-  // so the status always persists to the backend on click.
+  // so the status always persists to the backend on click, then drives the workflow:
+  // starting work spins up a work order; reaching Ready / Picked-up bills it out.
   const setWorkStatus = async (value: string) => {
     setWorkflowStage(value);
+    let id: string;
     try {
-      const id = await ensureSavedId();
+      id = await ensureSavedId();
       const { error } = await supabase.from("ar_estimates" as any).update({ workflow_stage: value }).eq("id", id);
       if (error) throw error;
     } catch {
@@ -979,6 +1103,17 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     }
     const label = WORK_STAGES.find((w) => w.value === value)?.label ?? value;
     toast.success(`Status: ${label}`);
+    // Drive backend workflow records off the stage (idempotent; only when there are lines).
+    try {
+      if (value === "in_progress") {
+        if (await ensureWorkOrder(id)) toast.success("Work order created");
+      } else if (value === "ready" || value === "picked_up") {
+        await ensureWorkOrder(id); // ensure a WO exists for history even if In Progress was skipped
+        if (await ensureInvoice(id)) toast.success("Invoice created");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't update workflow records");
+    }
   };
 
   // Persist the main technician immediately (auto-saving the RO first). Avoids
@@ -1008,9 +1143,38 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     }
   };
 
+  // Catalog part capture → append a line and persist it so it survives reloads
+  // and flows into the estimate → work order → invoice. A flag + effect persists
+  // the committed lines (with fresh totals) rather than a stale snapshot.
+  const pendingPartPersist = useRef(false);
+  const addPartFromCatalogAndPersist = (p: PickedPart) => {
+    addPartFromCatalog(p);
+    pendingPartPersist.current = true;
+  };
+  useEffect(() => {
+    if (!pendingPartPersist.current) return;
+    pendingPartPersist.current = false;
+    (async () => {
+      try {
+        if (!editId) { await ensureSavedId(); return; } // creates the RO including the new line
+        const { error } = await supabase.from("ar_estimates" as any).update({
+          line_items: lines.map((l) => ({ ...l, name: l.description })),
+          subtotal_cents: t.lineSubtotal,
+          sublet_cents: t.sublet,
+          tax_cents: t.tax,
+          total_cents: t.total,
+        }).eq("id", editId);
+        if (error) throw error;
+        qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
+        qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
+      } catch { /* will persist on the next manual save */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines]);
+
   const convertWO = useMutation({
     mutationFn: async () => {
-      const id = await save.mutateAsync(true);
+      const id = (await save.mutateAsync(true)).id;
       const partsUsed = lines
         .filter((l) => l.kind === "part" && !l.declined)
         .map((l) => ({ name: l.description, qty: l.qty, unit_cents: l.unit_cents }));
@@ -1025,7 +1189,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         customer_phone: header.customer_phone || null,
         customer_email: header.customer_email || null,
         vehicle_label: header.vehicle_label || null,
-        vehicle_id: vehicleId,
+        vehicle_id: asUuid(vehicleId),
       }).select("id").single();
       if (error) throw error;
       await supabase.from("ar_estimates" as any)
@@ -1044,20 +1208,22 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
 
   const convertInvoice = useMutation({
     mutationFn: async () => {
-      const id = await save.mutateAsync(true);
+      const id = (await save.mutateAsync(true)).id;
       // ar_invoices uses `items` (dollars) — map kind→category and cents→dollars.
       const items = lines.filter((l) => !l.declined).map((l) => ({
         category: l.kind, description: l.description, qty: l.qty, price: l.unit_cents / 100,
       }));
-      const { error } = await supabase.from("ar_invoices" as any).insert({
+      const invNumber = await assignDocNumber(storeId, "invoice");
+      const { data: invRow, error } = await supabase.from("ar_invoices" as any).insert({
         store_id: storeId,
-        number: await assignDocNumber(storeId, "invoice"),
+        number: invNumber,
         estimate_id: id,
         status: "draft",
         customer_name: header.customer_name || null,
         customer_phone: header.customer_phone || null,
         customer_email: header.customer_email || null,
         vehicle_label: header.vehicle_label || null,
+        vin: boundVehicle?.vin || null,
         license_plate: header.license_plate || null,
         vehicle_color: header.vehicle_color || null,
         unit_number: header.unit_number || null,
@@ -1081,14 +1247,16 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         amount_paid_cents: 0,
         customer_notes: header.customer_request || null,
         diagnosis_notes: [header.diagnosis, header.recommendation].filter(Boolean).join("\n") || null,
-      });
+      }).select("id").single();
       if (error) throw error;
-      await supabase.from("ar_estimates" as any).update({ status: "approved" }).eq("id", id);
+      await supabase.from("ar_estimates" as any)
+        .update({ status: "approved", converted_invoice_id: (invRow as any)?.id ?? null }).eq("id", id);
+      return invNumber;
     },
-    onSuccess: () => {
+    onSuccess: (invNumber) => {
       setStatus("approved");
       qc.invalidateQueries({ queryKey: ["ar-invoices", storeId] });
-      toast.success("Converted to Invoice");
+      toast.success(`Converted to Invoice ${invNumber}`);
       onNavigate?.("ar-invoices");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to convert"),
@@ -1103,9 +1271,17 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         token = crypto.randomUUID();
         await supabase.from("ar_estimates" as any).update({ share_token: token, status: "sent" }).eq("id", id);
       }
-      await navigator.clipboard.writeText(`${window.location.origin}/estimate/${token}`);
+      const url = `${window.location.origin}/estimate/${token}`;
       setStatus("sent");
-      toast.success("Approval link copied");
+      try {
+        // copyText tries the synchronous execCommand path first, then the async
+        // Clipboard API. We've awaited DB calls above, so the click's user-gesture
+        // window may be gone — if every path is blocked, fall back to a dialog.
+        await copyText(url);
+        toast.success("Approval link copied");
+      } catch {
+        setShareLink(url);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Failed");
     }
@@ -1251,7 +1427,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           <datalist id="ar-ro-pos">{poNumbers.map((p) => <option key={p} value={p} />)}</datalist></span>
         <span className="flex items-center gap-1.5"><span className="text-muted-foreground">Rate $:</span>
           <Input className="h-6 w-16 text-xs" type="number" value={header.labor_rate} onChange={(e) => setH({ labor_rate: e.target.value })} onBlur={() => persistHeader({ labor_rate_cents: header.labor_rate ? dollarsToCents(header.labor_rate) : null })} /></span>
-        <span className="ml-auto font-mono text-sm font-semibold">EST # {header.number || "NEW"}</span>
+        <span className="ml-auto font-mono text-sm font-semibold">EST # {header.number || previewNumber || "NEW"}</span>
       </div>
 
       {/* ── Top action bar ── */}
@@ -1260,7 +1436,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           <Wrench className="h-4 w-4 text-primary" />
           <span className="font-semibold text-sm">Build R.O.</span>
           <Badge variant="outline" className="font-mono text-[11px]">
-            EST # {header.number || "NEW"}
+            EST # {header.number || previewNumber || "NEW"}
           </Badge>
           {editId && <Badge variant="secondary" className="text-[10px]">saved</Badge>}
         </div>
@@ -1402,7 +1578,24 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </button>
             </div>
           </div>
-          {(boundVehicle || (header.vehicle_label.trim() && !vehEdit)) ? (
+          {vehEdit ? (
+            <div className="grid grid-cols-2 gap-1">
+              <Input className={fieldCls} placeholder="Year" value={header.vehicle_year}
+                onChange={(e) => setH({ vehicle_year: e.target.value, vehicle_label: [e.target.value, header.vehicle_make, header.vehicle_model].filter(Boolean).join(" ") })} />
+              <Input className={fieldCls} placeholder="Make" value={header.vehicle_make}
+                onChange={(e) => setH({ vehicle_make: e.target.value, vehicle_label: [header.vehicle_year, e.target.value, header.vehicle_model].filter(Boolean).join(" ") })} />
+              <Input className={fieldCls} placeholder="Model" value={header.vehicle_model}
+                onChange={(e) => setH({ vehicle_model: e.target.value, vehicle_label: [header.vehicle_year, header.vehicle_make, e.target.value].filter(Boolean).join(" ") })} />
+              <Input className={fieldCls} placeholder="Engine (e.g. 5.0L V8)" value={header.vehicle_engine}
+                onChange={(e) => setH({ vehicle_engine: e.target.value })} />
+              <Input className={fieldCls} placeholder="Transmission (e.g. 6-Speed Auto)" value={header.vehicle_transmission}
+                onChange={(e) => setH({ vehicle_transmission: e.target.value })} />
+              <Input className={fieldCls} placeholder="License plate" value={header.license_plate} onChange={(e) => setH({ license_plate: e.target.value })} />
+              <Input className={fieldCls} type="number" placeholder="Mileage in" value={header.mileage_in} onChange={(e) => setH({ mileage_in: e.target.value })} />
+              <Input className={fieldCls} placeholder="Key tag" value={header.keytag} onChange={(e) => setH({ keytag: e.target.value })} />
+              <button type="button" onClick={() => setVehEdit(false)} className="col-span-2 mt-0.5 text-left text-[10px] font-semibold text-primary hover:underline">▴ Done</button>
+            </div>
+          ) : (boundVehicle || header.vehicle_label.trim()) ? (
             <dl className="space-y-1 rounded-lg bg-muted/40 px-3 py-2 text-xs">
               <div className="flex gap-2">
                 <dt className="w-16 shrink-0 font-medium text-muted-foreground">Vehicle</dt>
@@ -1431,24 +1624,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </div>
             </dl>
           ) : (
-          <div className="grid grid-cols-2 gap-1">
-            <Input className={fieldCls} placeholder="Year" value={header.vehicle_year}
-              onChange={(e) => setH({ vehicle_year: e.target.value, vehicle_label: [e.target.value, header.vehicle_make, header.vehicle_model].filter(Boolean).join(" ") })} />
-            <Input className={fieldCls} placeholder="Make" value={header.vehicle_make}
-              onChange={(e) => setH({ vehicle_make: e.target.value, vehicle_label: [header.vehicle_year, e.target.value, header.vehicle_model].filter(Boolean).join(" ") })} />
-            <Input className={fieldCls} placeholder="Model" value={header.vehicle_model}
-              onChange={(e) => setH({ vehicle_model: e.target.value, vehicle_label: [header.vehicle_year, header.vehicle_make, e.target.value].filter(Boolean).join(" ") })} />
-            <Input className={fieldCls} placeholder="Engine (e.g. 5.0L V8)" value={header.vehicle_engine}
-              onChange={(e) => setH({ vehicle_engine: e.target.value })} />
-            <Input className={fieldCls} placeholder="Transmission (e.g. 6-Speed Auto)" value={header.vehicle_transmission}
-              onChange={(e) => setH({ vehicle_transmission: e.target.value })} />
-            <Input className={fieldCls} placeholder="License plate" value={header.license_plate} onChange={(e) => setH({ license_plate: e.target.value })} />
-            <Input className={fieldCls} type="number" placeholder="Mileage in" value={header.mileage_in} onChange={(e) => setH({ mileage_in: e.target.value })} />
-            <Input className={fieldCls} placeholder="Key tag" value={header.keytag} onChange={(e) => setH({ keytag: e.target.value })} />
-            {header.vehicle_label.trim() && (
-              <button type="button" onClick={() => setVehEdit(false)} className="col-span-2 mt-0.5 text-left text-[10px] font-semibold text-primary hover:underline">▴ Collapse</button>
-            )}
-          </div>
+            <button type="button" onClick={() => setVehEdit(true)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[11px] font-medium text-muted-foreground transition hover:border-primary/40 hover:text-primary">
+              <Car className="h-3.5 w-3.5" /> Add vehicle details
+            </button>
           )}
         </div>
       </div>
@@ -1496,7 +1675,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
           </div>
 
           {/* Line grid */}
-          <div className="overflow-x-auto rounded-xl border bg-card">
+          <div className="min-h-[260px] overflow-x-auto rounded-xl border bg-card">
             <table className="w-full min-w-[680px] text-xs">
               <thead>
                 <tr className="border-b bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -1514,8 +1693,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               <tbody>
                 {lines.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">
-                      No lines yet. Use the left rail or a preset below to add work.
+                    <td colSpan={9} className="px-3 py-24 text-center text-muted-foreground">
+                      No lines yet — pick a type in the composer below and Add, or use a preset.
                     </td>
                   </tr>
                 ) : (
@@ -1617,13 +1796,25 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                                 Cost {money(l.cost_cents)}
                               </div>
                             )}
-                            <div className="text-xs font-semibold tabular-nums">
-                              {money(l.unit_cents)}
-                            </div>
+                            {l.kind === "labor" || l.kind === "diagnosis" ? (
+                              <div className="flex items-center justify-end gap-0.5" title="Labor rate (per hour)">
+                                <span className="text-[9px] text-muted-foreground">$</span>
+                                <Input className="h-7 w-[58px] border-transparent bg-transparent px-1 text-right text-xs font-semibold shadow-none hover:border-border hover:bg-background focus:bg-background" type="number" placeholder="0"
+                                  value={l.unit_cents ? l.unit_cents / 100 : ""} onChange={(e) => patchLine(l.id, { unit_cents: dollarsToCents(e.target.value) })} />
+                                <span className="text-[9px] text-muted-foreground">/hr</span>
+                              </div>
+                            ) : (
+                              <div className="text-xs font-semibold tabular-nums">
+                                {money(l.unit_cents)}
+                              </div>
+                            )}
                           </td>
                           <td className="px-2 py-1 align-middle">
-                            <Input className="h-7 w-[52px] border-transparent bg-transparent px-1.5 text-right text-xs shadow-none hover:border-border hover:bg-background focus:bg-background" type="number" placeholder="1"
-                              value={l.qty || ""} onChange={(e) => patchLine(l.id, { qty: Number(e.target.value) || 0 })} />
+                            <div className="flex items-center justify-end gap-0.5" title={l.kind === "labor" || l.kind === "diagnosis" ? "Labor hours" : "Quantity"}>
+                              <Input className="h-7 w-[52px] border-transparent bg-transparent px-1.5 text-right text-xs shadow-none hover:border-border hover:bg-background focus:bg-background" type="number" placeholder={l.kind === "labor" || l.kind === "diagnosis" ? "0" : "1"}
+                                value={l.qty || ""} onChange={(e) => patchLine(l.id, { qty: Number(e.target.value) || 0 })} />
+                              {(l.kind === "labor" || l.kind === "diagnosis") && <span className="text-[9px] text-muted-foreground">hrs</span>}
+                            </div>
                           </td>
                           <td className="px-2 py-1 align-middle">
                             <div className="flex items-center gap-0.5">
@@ -1874,14 +2065,6 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         </div>
       </div>
 
-      {/* ── EST barcode / keytag strip ── */}
-      <div className="flex items-center justify-between gap-4 rounded-xl border bg-card px-4 py-2">
-        <span className="shrink-0 text-xs font-medium text-muted-foreground">EST # {header.number || "NEW"}</span>
-        {header.number
-          ? <BuildROBarcode value={header.number} className="h-10 w-auto max-w-[60%]" />
-          : <span className="text-[11px] text-muted-foreground">Barcode appears once saved</span>}
-        <span className="shrink-0 text-xs font-medium text-muted-foreground">KEYTAG: <b className="text-foreground">{header.keytag || "—"}</b></span>
-      </div>
 
       {/* ── Bottom preset bar ── */}
       <div className="flex flex-wrap items-center gap-1.5 rounded-xl border bg-card px-3 py-2">
@@ -1976,6 +2159,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
         vehicleLabel={header.vehicle_label || undefined}
         vin={boundVehicle?.vin || undefined}
         plate={header.license_plate || undefined}
+        onAddPart={addPartFromCatalogAndPersist}
       />
       <BuildROExistingCustomerDialog
         open={openExisting}
@@ -2004,6 +2188,41 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       />
 
       <BuildROProfitDialog open={openGP} onOpenChange={setOpenGP} lines={lines} />
+
+      {/* Fallback when the clipboard is blocked (focus/permission) — show the link to copy manually. */}
+      <Dialog open={!!shareLink} onOpenChange={(o) => !o && setShareLink(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-primary" /> Customer approval link
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-sm text-muted-foreground">
+              Your browser blocked automatic copying. Copy this link and send it to your customer to approve the estimate.
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={shareLink ?? ""}
+                onFocus={(e) => e.currentTarget.select()}
+                className="font-mono text-xs"
+              />
+              <Button
+                size="sm"
+                className="gap-1.5 shrink-0"
+                onClick={async () => {
+                  if (!shareLink) return;
+                  try { await copyText(shareLink); toast.success("Link copied"); setShareLink(null); }
+                  catch { toast.error("Select the link and press Ctrl/Cmd + C"); }
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" /> Copy
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BuildROIntakeQueueDialog
         open={openQueue}

@@ -5,6 +5,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { copyText } from "@/lib/native/clipboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -275,7 +276,7 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
       qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
     }
     const url = `${window.location.origin}/repair/${token}`;
-    await navigator.clipboard.writeText(url);
+    await copyText(url);
     toast.success("Status link copied — send it to your customer", { duration: 4000 });
   };
 

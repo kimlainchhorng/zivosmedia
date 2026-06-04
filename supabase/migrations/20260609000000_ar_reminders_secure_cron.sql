@@ -11,7 +11,7 @@ select cron.schedule(
   '*/15 * * * *',
   $$
     select net.http_post(
-      url := 'https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ar-reminders-dispatch',
+      url := NULLIF(current_setting('app.settings.supabase_url', true), '') || '/functions/v1/ar-reminders-dispatch',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'CRON_SECRET')

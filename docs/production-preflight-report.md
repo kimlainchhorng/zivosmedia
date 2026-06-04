@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-03T22:11:27.389Z
+Generated: 2026-06-03T22:14:31.625Z
 Mode: soft
 Options: strict=no, skipBuild=yes, skipTypeCheck=yes
 
@@ -18,7 +18,7 @@ Options: strict=no, skipBuild=yes, skipTypeCheck=yes
 - Override JSON freshness window: append `-- --max-age-minutes=60`
 - Require a strict-mode summary: append `-- --require-mode=strict`
 - TypeScript SIGTERM/resource notes: `docs/typescript-preflight-resource-notes.md`
-- API readiness: critical=0, warnings=4
+- API readiness: critical=0, warnings=2
 - Environment readiness: critical=0, warnings=0
 - Runtime settings SQL: passed
 - Database readiness: blockers=2, warnings=1
@@ -31,7 +31,7 @@ Options: strict=no, skipBuild=yes, skipTypeCheck=yes
 - Migration drift: duplicateVersions=4, allowedDuplicateVersions=0, newDuplicateVersions=4, linkedHistoryDisconnected=yes, remoteError=no
 - Reconciliation: candidates=614, highConfidence=584, mediumConfidence=30, unmatchedLocal=459, unmatchedRemote=901, likelyPendingLocal=15
 - Reconciliation review order: high-confidence candidate mappings (584) -> medium-confidence candidate mappings (30) -> unmatched local migrations after candidates (459) -> unmatched remote versions after candidates (901) -> likely pending local migrations after remote range (15)
-- Pending migration gates: createsTables=2, withoutRls=0, withoutGrants=1, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=1, legacyAnonJwts=0
+- Pending migration gates: createsTables=2, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Steps
 
@@ -109,19 +109,19 @@ select pg_reload_conf();
   "pendingLocalRiskGates": {
     "createsTables": 2,
     "withoutRls": 0,
-    "withoutGrants": 1,
+    "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
     "definerWithoutSearchPath": 0,
-    "hardcodedUrls": 1,
+    "hardcodedUrls": 0,
     "legacyAnonJwts": 0
   },
-  "pendingLocalRiskGateFailures": 2,
+  "pendingLocalRiskGateFailures": 0,
   "pendingLocalRiskGateDetails": {
     "withoutRls": 0,
-    "withoutGrants": 1,
+    "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
     "definerWithoutSearchPath": 0,
-    "hardcodedUrls": 1,
+    "hardcodedUrls": 0,
     "legacyAnonJwts": 0
   },
   "pendingRisk": {
@@ -156,11 +156,11 @@ select pg_reload_conf();
   "duplicateHashes": 0,
   "unsupportedPg17Extensions": 0,
   "publicTablesNeedingRlsReview": 0,
-  "dataApiGrantReviewCandidates": 7,
+  "dataApiGrantReviewCandidates": 6,
   "viewsNeedingSecurityInvokerReview": 0,
   "securityDefinerFilesNeedingSearchPathReview": 0,
-  "hardcodedSupabaseUrls": 35,
-  "hardcodedScheduledFunctionUrls": 19,
+  "hardcodedSupabaseUrls": 34,
+  "hardcodedScheduledFunctionUrls": 18,
   "cronFunctionUrlRemediation": true,
   "hardcodedLegacyAnonJwts": 14,
   "hardcodedCronLegacyAnonJwts": 13,
@@ -169,10 +169,10 @@ select pg_reload_conf();
   "pendingLocalMigrationGates": {
     "createsTables": 2,
     "withoutRls": 0,
-    "withoutGrants": 1,
+    "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
     "definerWithoutSearchPath": 0,
-    "hardcodedUrls": 1,
+    "hardcodedUrls": 0,
     "legacyAnonJwts": 0
   },
   "supabaseCli": "2.100.0",
@@ -188,7 +188,7 @@ select pg_reload_conf();
 ```json
 {
   "critical": 0,
-  "warnings": 4,
+  "warnings": 2,
   "edgeFunctions": {
     "total": 400,
     "highRisk": 136,
@@ -223,10 +223,10 @@ select pg_reload_conf();
     "unmatchedRemoteBeforeLocalRange": 0,
     "pendingCreatesTables": 2,
     "pendingCreatesTablesWithoutRls": 0,
-    "pendingCreatesTablesWithoutGrants": 1,
+    "pendingCreatesTablesWithoutGrants": 0,
     "pendingSequenceBackedIdsWithoutSequenceGrants": 0,
     "pendingSecurityDefinersWithoutSearchPath": 0,
-    "pendingHardcodedSupabaseUrls": 1,
+    "pendingHardcodedSupabaseUrls": 0,
     "pendingLegacyAnonJwts": 0,
     "sharedDays": 86,
     "remoteError": false,
@@ -248,7 +248,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-03T22:11:21.920Z",
+  "generated": "2026-06-03T22:14:26.168Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -296,7 +296,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-03T22:11:22.016Z",
+  "generated": "2026-06-03T22:14:26.325Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 76,
@@ -428,7 +428,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-03T22:11:26.783Z",
+  "generated": "2026-06-03T22:14:31.073Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2768,
@@ -515,7 +515,7 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
-- API readiness has 4 warning(s).
+- API readiness has 2 warning(s).
 - Database readiness has 2 blocker(s).
 - Database readiness has 1 warning(s).
 - Supabase linked migration history is disconnected: local and remote have zero exact version matches.

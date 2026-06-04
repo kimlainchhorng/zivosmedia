@@ -10,6 +10,7 @@ import CheckCheck from "lucide-react/dist/esm/icons/check-check";
 import Download from "lucide-react/dist/esm/icons/download";
 import Printer from "lucide-react/dist/esm/icons/printer";
 import { useRef, useState } from "react";
+import { copyText } from "@/lib/native/clipboard";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 
@@ -69,7 +70,7 @@ export default function AutoRepairBookingLinkSection({ storeId }: Props) {
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(bookingUrl);
+      await copyText(bookingUrl);
       toast.success("Booking link copied!");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -80,7 +81,7 @@ export default function AutoRepairBookingLinkSection({ storeId }: Props) {
 
   const copyEmbed = async () => {
     try {
-      await navigator.clipboard.writeText(embedCode);
+      await copyText(embedCode);
       toast.success("Embed code copied!");
       setEmbedCopied(true);
       setTimeout(() => setEmbedCopied(false), 2000);

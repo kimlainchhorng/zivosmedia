@@ -1,6 +1,6 @@
 /**
  * Renders a parts supplier's real brand logo.
- * Uses a fallback chain: Google S2 favicons → DuckDuckGo icons → icon.horse → monogram.
+ * Uses a live fallback chain: icon.horse → DuckDuckGo icons → Google S2 favicons → monogram.
  */
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -15,10 +15,13 @@ const SIZE_MAP: Record<Size, { box: string; text: string; px: number }> = {
 };
 
 function buildSources(domain: string, px: number): string[] {
+  // Clearbit's free logo API was sunset; use live icon services that return the real brand mark.
+  // icon.horse gives the fullest logo; DuckDuckGo serves a hi-res apple-touch icon; Google is the
+  // reliable favicon fallback (request 128px so it stays crisp in the tiles).
   return [
-    `https://www.google.com/s2/favicons?domain=${domain}&sz=${Math.max(px, 64)}`,
-    `https://icons.duckduckgo.com/ip3/${domain}.ico`,
     `https://icon.horse/icon/${domain}`,
+    `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+    `https://www.google.com/s2/favicons?domain=${domain}&sz=${Math.max(px, 128)}`,
   ];
 }
 
