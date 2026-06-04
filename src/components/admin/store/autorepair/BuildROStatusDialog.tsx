@@ -1,5 +1,5 @@
 /**
- * Build R.O. — Status & Technician popup (VSM-styled, picture 3).
+ * Build R.O. — Status & Technician popup (light, modern).
  *
  * Opened from the "Tech:" button in the status strip. Sets the shop-floor status
  * (reusing the parent's setWorkStatus), assigns the main technician, shows total
@@ -10,10 +10,9 @@
  */
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { X, Printer, ChevronDown } from "lucide-react";
+import { X, Printer, ChevronDown, Clock, Wrench, PauseCircle, CheckCircle2, PackageCheck, User, Activity, Timer } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -28,11 +27,26 @@ interface Props {
   technicians?: string[];
 }
 
-const PRIMARY = [
-  { value: "awaiting", label: "Awaiting Start", bg: "#2563eb" },
-  { value: "in_progress", label: "In Progress", bg: "#f87171" },
-  { value: "on_hold", label: "On Hold", bg: "#64748b" },
-] as const;
+type Accent = "sky" | "amber" | "orange" | "emerald";
+
+const STATUSES: { value: string; label: string; icon: typeof Clock; accent: Accent }[] = [
+  { value: "awaiting", label: "Awaiting Start", icon: Clock, accent: "sky" },
+  { value: "in_progress", label: "In Progress", icon: Wrench, accent: "amber" },
+  { value: "on_hold", label: "On Hold", icon: PauseCircle, accent: "orange" },
+  { value: "ready", label: "Ready for Checkout", icon: CheckCircle2, accent: "emerald" },
+];
+
+const MORE: { value: string; label: string; icon: typeof Clock }[] = [
+  { value: "picked_up", label: "Picked Up", icon: PackageCheck },
+];
+
+// Static class strings (kept literal so Tailwind keeps them in the build).
+const ACCENT: Record<Accent, { card: string; badge: string; text: string; sub: string; check: string }> = {
+  sky: { card: "border-sky-300 bg-sky-50", badge: "bg-sky-500 text-white", text: "text-sky-900", sub: "text-sky-600", check: "text-sky-500" },
+  amber: { card: "border-amber-300 bg-amber-50", badge: "bg-amber-500 text-white", text: "text-amber-900", sub: "text-amber-600", check: "text-amber-500" },
+  orange: { card: "border-orange-300 bg-orange-50", badge: "bg-orange-500 text-white", text: "text-orange-900", sub: "text-orange-600", check: "text-orange-500" },
+  emerald: { card: "border-emerald-300 bg-emerald-50", badge: "bg-emerald-500 text-white", text: "text-emerald-900", sub: "text-emerald-600", check: "text-emerald-500" },
+};
 
 export default function BuildROStatusDialog({
   open, onOpenChange, roNumber, status, onSetStatus, technician, onSetTechnician, onCommitTechnician, soldHours, technicians = [],
@@ -47,6 +61,8 @@ export default function BuildROStatusDialog({
   }, [soldHours]);
 
   const pick = (value: string) => { onSetStatus(value); setMoreOpen(false); };
+
+  const moreLabel = MORE.find((m) => m.value === status)?.label;
 
   const print = () => {
     const html = `<html><head><title>Tech Assignment ${roNumber || ""}</title>
@@ -66,75 +82,142 @@ export default function BuildROStatusDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl gap-0 overflow-hidden border-slate-700 bg-[#0b1220] p-0 text-slate-100">
+      <DialogContent className="flex max-h-[92vh] max-w-xl flex-col gap-0 overflow-hidden border-slate-200 bg-white p-0 text-slate-900">
         <DialogTitle className="sr-only">Repair Order Status &amp; Technician</DialogTitle>
-        <div className="flex items-center justify-between bg-slate-800/80 px-5 py-2.5">
-          <span className="text-sm font-bold">Repair Order Status &amp; Technician</span>
-          <button onClick={() => onOpenChange(false)} className="rounded border border-red-500/60 px-2.5 py-0.5 text-red-400 hover:bg-red-500/10" aria-label="Close">
+
+        {/* Header */}
+        <div className="flex items-center gap-3 bg-gradient-to-br from-[#1e90ff] to-[#1577e0] px-5 py-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
+            <Activity className="h-5 w-5 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold leading-tight text-white">Repair Order Status</h2>
+            <p className="text-xs text-white/80">{roNumber ? `RO ${roNumber} · ` : ""}Set shop-floor status &amp; assign your technician</p>
+          </div>
+          <button onClick={() => onOpenChange(false)} className="rounded-lg bg-black/15 p-1.5 text-white transition hover:bg-black/25" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="space-y-4 p-6">
-          {/* Primary status buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {PRIMARY.map((s) => (
-              <button key={s.value} type="button" onClick={() => pick(s.value)}
-                className={`min-w-[150px] rounded-md px-6 py-3 text-sm font-semibold text-white transition ${status === s.value ? "ring-2 ring-white/70" : "opacity-90 hover:opacity-100"}`}
-                style={{ backgroundColor: s.bg }}>
-                {s.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex-1 space-y-5 overflow-y-auto bg-white px-6 py-5">
+          {/* Status selector */}
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Shop-Floor Status</p>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {STATUSES.map((s) => {
+                const active = status === s.value;
+                const a = ACCENT[s.accent];
+                return (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => pick(s.value)}
+                    className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition ${active ? `${a.card} shadow-sm` : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}
+                  >
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? a.badge : "bg-slate-100"}`}>
+                      <s.icon className={`h-5 w-5 ${active ? "" : "text-slate-400"}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-semibold leading-tight ${active ? a.text : "text-slate-700"}`}>{s.label}</p>
+                      <p className={`mt-0.5 text-[11px] ${active ? a.sub : "text-slate-400"}`}>{active ? "Current status" : "Tap to set"}</p>
+                    </div>
+                    {active && <CheckCircle2 className={`h-4 w-4 shrink-0 ${a.check}`} />}
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* More options + Ready for checkout */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <div className="relative">
-              <button type="button" onClick={() => setMoreOpen((v) => !v)}
-                className="flex min-w-[150px] items-center justify-center gap-2 rounded-md bg-pink-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-pink-600">
-                More Options <ChevronDown className="h-4 w-4" />
+            {/* More statuses */}
+            <div className="relative mt-2.5 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setMoreOpen((v) => !v)}
+                className={`flex items-center gap-1.5 rounded-lg border px-4 py-1.5 text-xs font-medium transition ${moreLabel ? "border-slate-300 bg-slate-100 text-slate-700" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}
+              >
+                {moreLabel ? `Status: ${moreLabel}` : "More statuses"}
+                <ChevronDown className={`h-3.5 w-3.5 transition ${moreOpen ? "rotate-180" : ""}`} />
               </button>
               {moreOpen && (
-                <div className="absolute left-0 z-20 mt-1 w-full overflow-hidden rounded-md border border-slate-600 bg-slate-800 shadow-lg">
-                  {[{ v: "picked_up", l: "Picked Up" }, { v: "ready", l: "Ready" }].map((o) => (
-                    <button key={o.v} type="button" onClick={() => pick(o.v)} className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-700">{o.l}</button>
+                <div className="absolute top-full z-20 mt-1 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                  {MORE.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => pick(o.value)}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${status === o.value ? "font-semibold text-slate-900" : "text-slate-600"}`}
+                    >
+                      <o.icon className="h-4 w-4 text-slate-400" /> {o.label}
+                    </button>
                   ))}
                 </div>
               )}
             </div>
-            <button type="button" onClick={() => pick("ready")}
-              className={`min-w-[200px] rounded-md bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 ${status === "ready" ? "ring-2 ring-white/70" : ""}`}>
-              Ready for Checkout
-            </button>
           </div>
 
           {/* Technician assignment */}
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-3">
-            <span className="font-serif text-sm font-semibold italic text-slate-200">Assign Main Technician</span>
-            <Input list="ar-status-techs" className="h-9 w-52 border-slate-600 bg-slate-800/60 text-sm text-slate-100" placeholder="Select Technician"
-              value={technician} onChange={(e) => onSetTechnician(e.target.value)} onBlur={(e) => onCommitTechnician?.(e.target.value)} />
-            <datalist id="ar-status-techs">{technicians.map((t) => <option key={t} value={t} />)}</datalist>
-            <label className="flex items-center gap-1.5 text-xs text-slate-300">
-              <input type="checkbox" className="h-4 w-4 accent-sky-500" checked={techMode} onChange={(e) => setTechMode(e.target.checked)} />
-              Tech Mode
-            </label>
-            <Select onValueChange={(v) => toast.info(`Technician action: ${v} (coming soon)`)}>
-              <SelectTrigger className="ml-auto h-9 w-44 border-0 bg-rose-500 text-sm font-semibold text-white"><SelectValue placeholder="Technician Actions" /></SelectTrigger>
-              <SelectContent>
-                {["Clock In", "Clock Out", "Reassign", "Split Labor"].map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Main Technician</label>
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-slate-600">
+                <input type="checkbox" className="h-4 w-4 accent-[#1e90ff]" checked={techMode} onChange={(e) => setTechMode(e.target.checked)} />
+                Tech Mode
+              </label>
+            </div>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  list="ar-status-techs"
+                  className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[#1e90ff] focus:outline-none focus:ring-2 focus:ring-[#1e90ff]/20"
+                  placeholder="Select or type technician name"
+                  value={technician}
+                  onChange={(e) => onSetTechnician(e.target.value)}
+                  onBlur={(e) => onCommitTechnician?.(e.target.value)}
+                />
+                <datalist id="ar-status-techs">{technicians.map((t) => <option key={t} value={t} />)}</datalist>
+              </div>
+              <Select onValueChange={(v) => toast.info(`Technician action: ${v} (coming soon)`)}>
+                <SelectTrigger className="h-10 w-full border-slate-300 bg-white text-sm font-medium text-slate-600 sm:w-48">
+                  <SelectValue placeholder="Technician Actions" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["Clock In", "Clock Out", "Reassign", "Split Labor"].map((a) => <SelectItem key={a} value={a} className="text-sm">{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+        </div>
 
-          {/* Footer info */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm">
-            <span className="font-semibold text-amber-500">Total Sold Hours : <span className="tabular-nums">{soldHours.toFixed(1)}</span></span>
-            <span className="text-slate-500">————</span>
-            <span className="font-semibold text-amber-500">Estimated Completion Time : <span className="tabular-nums">{eta}</span></span>
-            <button type="button" onClick={print} className="flex items-center gap-1.5 text-sky-400 hover:underline">
-              <Printer className="h-3.5 w-3.5" /> Print Tech Assignment
-            </button>
+        {/* Footer: sold hours / ETA / print */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-6 py-3.5">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                <Timer className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Sold Hours</p>
+                <p className="text-base font-bold leading-tight tabular-nums text-slate-800">{soldHours.toFixed(1)}</p>
+              </div>
+            </div>
+            <div className="h-9 w-px bg-slate-200" />
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-600">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Est. Completion</p>
+                <p className="text-base font-bold leading-tight tabular-nums text-slate-800">{eta}</p>
+              </div>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={print}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            <Printer className="h-4 w-4" /> Print Assignment
+          </button>
         </div>
       </DialogContent>
     </Dialog>
