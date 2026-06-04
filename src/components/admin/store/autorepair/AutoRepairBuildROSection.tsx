@@ -49,6 +49,7 @@ import AutoRepairDocPreviewDialog, { type PreviewDoc } from "./AutoRepairDocPrev
 import { useStorePdfHeader } from "@/lib/admin/useStorePdfHeader";
 import { buildROPreviewDoc } from "@/lib/admin/buildROPreview";
 import BuildROVoiceButton from "./BuildROVoiceButton";
+import BuildROIntakeQueueDialog from "./BuildROIntakeQueueDialog";
 import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import { assignDocNumber, assignWorkOrderNumber } from "@/lib/admin/invoiceActions";
@@ -341,7 +342,6 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   // Once the user hand-edits EPA / Shop Supplies, stop auto-applying the shop default.
   const [epaTouched, setEpaTouched] = useState(false);
   const [suppliesTouched, setSuppliesTouched] = useState(false);
-  const [droppedOff, setDroppedOff] = useState(false);
   const [status, setStatus] = useState<string>("draft");
   const [workflowStage, setWorkflowStage] = useState<string>("awaiting");
 
@@ -368,7 +368,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [historyOpen, setHistoryOpen] = useState(false);
   const [carfaxOpen, setCarfaxOpen] = useState(false);
   const [statusDlgOpen, setStatusDlgOpen] = useState(false);
-  const [custEdit, setCustEdit] = useState(true); // Customer card: form vs compact summary
+  const [custEdit, setCustEdit] = useState(false); // Customer card: form (adding/editing) vs summary/prompt
   const [vehEdit, setVehEdit] = useState(true); // Vehicle card: form vs compact summary (typed/unbound)
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printCopies, setPrintCopies] = useState(1);
@@ -384,6 +384,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   const [openMatrix, setOpenMatrix] = useState(false);
   const [openImport, setOpenImport] = useState(false);
   const [openGP, setOpenGP] = useState(false);
+  const [openQueue, setOpenQueue] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
   const { storeInfo, storeLogoData } = useStorePdfHeader(storeId);
   // The nav group of the toolbar is portaled into the shared page header; grab
@@ -762,10 +763,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setFeesC(0); setEpaC(0); setSuppliesC(0); setDiscountC(0);
     setEpaTouched(false); setSuppliesTouched(false); // re-apply shop defaults on a fresh RO
     setTaxRate(shopDefaults?.taxPct ?? 0);
-    setDroppedOff(false);
     setStatus("draft");
     setWorkflowStage("awaiting");
-    setCustEdit(true);
+    setCustEdit(false);
     setVehEdit(true);
     setCreatedAt(null);
     unbind();
@@ -826,7 +826,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
     setTaxRate(e.tax_rate != null ? Number(e.tax_rate) : 0);
     setStatus(e.status ?? "draft");
     setWorkflowStage((e as any).workflow_stage ?? "awaiting");
-    setCustEdit(!((e.customer_name ?? "").trim()));
+    setCustEdit(false);
     setVehEdit(!((e.vehicle_label ?? "").trim()));
     setOpenLoad(false);
     // Re-bind the saved garage vehicle so History / linked features work on load.
@@ -1336,18 +1336,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
               </button>
             </div>
           </div>
-          {header.customer_name.trim() && !custEdit ? (
-            <div className="flex items-start justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
-              <div className="min-w-0">
-                <p className="font-semibold">{header.customer_name}</p>
-                <p className="text-muted-foreground">{[header.customer_phone, header.customer_email].filter(Boolean).join(" · ") || "—"}</p>
-                {[header.customer_street, header.customer_city, header.customer_state, header.customer_zip].some(Boolean) && (
-                  <p className="truncate text-muted-foreground">{[header.customer_street, [header.customer_city, header.customer_state, header.customer_zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</p>
-                )}
-              </div>
-              <button type="button" onClick={() => setCustEdit(true)} className="ml-2 shrink-0 text-[10px] font-semibold text-primary hover:underline">EDIT</button>
-            </div>
-          ) : (
+          {custEdit ? (
             <div className="grid grid-cols-2 gap-1">
               <Input className={fieldCls} placeholder="First name" value={header.customer_first_name}
                 onChange={(e) => setH({ customer_first_name: e.target.value, customer_name: [e.target.value, header.customer_last_name].filter(Boolean).join(" ") })} />
@@ -1363,10 +1352,24 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 value={header.customer_state} onChange={(e) => setH({ customer_state: e.target.value })} />
               <Input className={fieldCls} placeholder="Zip code" autoComplete="postal-code"
                 value={header.customer_zip} onChange={(e) => setH({ customer_zip: e.target.value })} />
-              {header.customer_name.trim() && (
-                <button type="button" onClick={() => setCustEdit(false)} className="col-span-2 mt-0.5 text-left text-[10px] font-semibold text-primary hover:underline">▴ Collapse</button>
-              )}
+              <button type="button" onClick={() => setCustEdit(false)} className="col-span-2 mt-0.5 text-left text-[10px] font-semibold text-primary hover:underline">▴ Done</button>
             </div>
+          ) : header.customer_name.trim() ? (
+            <div className="flex items-start justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
+              <div className="min-w-0">
+                <p className="font-semibold">{header.customer_name}</p>
+                <p className="text-muted-foreground">{[header.customer_phone, header.customer_email].filter(Boolean).join(" · ") || "—"}</p>
+                {[header.customer_street, header.customer_city, header.customer_state, header.customer_zip].some(Boolean) && (
+                  <p className="truncate text-muted-foreground">{[header.customer_street, [header.customer_city, header.customer_state, header.customer_zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</p>
+                )}
+              </div>
+              <button type="button" onClick={() => setCustEdit(true)} className="ml-2 shrink-0 text-[10px] font-semibold text-primary hover:underline">EDIT</button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setCustEdit(true)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[11px] font-medium text-muted-foreground transition hover:border-primary/40 hover:text-primary">
+              <UserPlus className="h-3.5 w-3.5" /> Add customer details
+            </button>
           )}
         </div>
         <div className="rounded-lg border bg-card p-1.5">
@@ -1809,12 +1812,27 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
                 <span className="shrink-0 font-semibold tabular-nums text-emerald-700">{money(Math.round((t.lineSubtotal * t.margin) / 100))} · {Math.round(t.margin)}%</span>
               </button>
             )}
-            <label className="mt-2 flex items-center gap-2 text-xs">
-              <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={droppedOff} onChange={(e) => setDroppedOff(e.target.checked)} />
-              Dropped off
-            </label>
-            <Button className="mt-2 w-full gap-1.5" disabled={save.isPending} onClick={() => save.mutate(true)}>
-              <ShieldCheck className="h-4 w-4" /> Authorize
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <span className="text-muted-foreground">Intake:</span>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" className="h-3.5 w-3.5 accent-primary"
+                  checked={header.appointment_type === "Drop Off"}
+                  onChange={(e) => { const v = e.target.checked ? "Drop Off" : "Stay With Vehicle"; setH({ appointment_type: v }); persistHeader({ appointment_type: v }); }} />
+                Dropped off
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" className="h-3.5 w-3.5 accent-primary"
+                  checked={header.appointment_type === "Towed In"}
+                  onChange={(e) => { const v = e.target.checked ? "Towed In" : "Stay With Vehicle"; setH({ appointment_type: v }); persistHeader({ appointment_type: v }); }} />
+                Towed in
+              </label>
+              <button type="button" onClick={() => setOpenQueue(true)} title="See all dropped-off & towed-in vehicles"
+                className="ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10">
+                Queue →
+              </button>
+            </div>
+            <Button className="mt-2 w-full gap-1.5" disabled={convertInvoice.isPending || save.isPending || !lines.length} onClick={() => convertInvoice.mutate()}>
+              <ShieldCheck className="h-4 w-4" /> {convertInvoice.isPending ? "Authorizing…" : "Authorize & Invoice"}
             </Button>
             <div className="mt-1.5 grid grid-cols-2 gap-1.5">
               <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" disabled={convertWO.isPending || !lines.length} onClick={() => convertWO.mutate()}>
@@ -1986,6 +2004,13 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
       />
 
       <BuildROProfitDialog open={openGP} onOpenChange={setOpenGP} lines={lines} />
+
+      <BuildROIntakeQueueDialog
+        open={openQueue}
+        onOpenChange={setOpenQueue}
+        storeId={storeId}
+        onPick={(e) => { loadEstimate(e); setView("builder"); }}
+      />
 
       <AutoRepairDocPreviewDialog
         open={!!previewDoc}
