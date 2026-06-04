@@ -300,6 +300,10 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   // This is the Invoices view — default to the Invoices sub-tab (estimates have
   // their own dedicated section). Prefill/draft flows below still switch as needed.
   const [tab, setTab] = useState<"estimate" | "invoice">("invoice");
+  // Embedded = opened as the Build R.O. "Invoices" popup (?embed=1). There we show
+  // a clean browse list only — no KPI strip, tab switcher, or create buttons, since
+  // documents are created from Build R.O. The standalone admin tab keeps full chrome.
+  const isEmbedded = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "1";
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null); // null = new doc
   const [resumedDraftActive, setResumedDraftActive] = useState(false);
@@ -1949,11 +1953,13 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base flex items-center gap-2"><FileText className="w-4 h-4" /> Estimates & Invoices</CardTitle>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => startNew("estimate")} className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> New Estimate</Button>
-          <Button size="sm" onClick={() => startNew("invoice")} className="gap-1.5"><Receipt className="w-3.5 h-3.5" /> New Invoice</Button>
-        </div>
+        <CardTitle className="text-base flex items-center gap-2"><FileText className="w-4 h-4" /> {isEmbedded ? "Invoices" : "Estimates & Invoices"}</CardTitle>
+        {!isEmbedded && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => startNew("estimate")} className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> New Estimate</Button>
+            <Button size="sm" onClick={() => startNew("invoice")} className="gap-1.5"><Receipt className="w-3.5 h-3.5" /> New Invoice</Button>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {savedDraftPreview && (
@@ -1982,13 +1988,15 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
           </div>
         )}
 
-        {tab === "invoice" && <InvoiceKpiStrip invoices={dbInvoices} />}
+        {!isEmbedded && tab === "invoice" && <InvoiceKpiStrip invoices={dbInvoices} />}
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList className="grid w-full max-w-sm grid-cols-2 mb-3">
-            <TabsTrigger value="estimate">Estimates</TabsTrigger>
-            <TabsTrigger value="invoice">Invoices</TabsTrigger>
-          </TabsList>
+          {!isEmbedded && (
+            <TabsList className="grid w-full max-w-sm grid-cols-2 mb-3">
+              <TabsTrigger value="estimate">Estimates</TabsTrigger>
+              <TabsTrigger value="invoice">Invoices</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value={tab} className="space-y-2">
             <InvoiceFilterBar
