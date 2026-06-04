@@ -46,6 +46,7 @@ interface BusTrip {
   id: string;
   storeId: string;
   operator: string;
+  logoUrl: string | null;
   rating: number;
   reviewCount: number;
   departTime: string;
@@ -134,6 +135,7 @@ const buildTrips = (from: string, to: string, date: string): BusTrip[] => {
       id: `${date}-${i}`,
       storeId: "",
       operator: op.name,
+      logoUrl: null,
       rating: op.rating,
       reviewCount: 0,
       departTime: departBase[i],
@@ -173,6 +175,7 @@ const labelToIndex = (label: string): number => {
 // Map a search_bus_trips RPC row into the UI trip shape.
 type RpcTripRow = {
   trip_id: string; store_id: string; operator: string | null; arrive_time: string | null;
+  logo_url?: string | null;
   depart_time: string; duration_mins: number | null; price_cents: number | null;
   bus_type: string | null; total_seats: number | null; seats_left: number | null;
   amenities: unknown; rating: number | null; review_count: number | null;
@@ -181,6 +184,7 @@ const mapRpcTrip = (r: RpcTripRow): BusTrip => ({
   id: r.trip_id,
   storeId: r.store_id,
   operator: r.operator || "Operator",
+  logoUrl: r.logo_url || null,
   rating: Number(r.rating) || 0,
   reviewCount: Number(r.review_count) || 0,
   departTime: (r.depart_time || "").slice(0, 5),
@@ -194,6 +198,29 @@ const mapRpcTrip = (r: RpcTripRow): BusTrip => ({
   real: true,
 });
 
+const enrichTripsWithStoreLogos = async (rows: BusTrip[]): Promise<BusTrip[]> => {
+  const missingStoreIds = [...new Set(rows.filter((trip) => trip.real && !trip.logoUrl && trip.storeId).map((trip) => trip.storeId))];
+  if (missingStoreIds.length === 0) return rows;
+  try {
+    const { data } = await (supabase as unknown as { from: (t: string) => any })
+      .from("store_profiles")
+      .select("id, name, logo_url")
+      .in("id", missingStoreIds);
+    const stores = new Map((data || []).map((store: { id: string; name: string | null; logo_url: string | null }) => [store.id, store]));
+    return rows.map((trip) => {
+      const store = stores.get(trip.storeId);
+      if (!store) return trip;
+      return {
+        ...trip,
+        operator: trip.operator || store.name || "Operator",
+        logoUrl: store.logo_url || trip.logoUrl,
+      };
+    });
+  } catch {
+    return rows;
+  }
+};
+
 const todayISO = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -203,6 +230,47 @@ const seatLabel = (index: number) => {
   const row = Math.floor(index / SEATS_PER_ROW) + 1;
   const col = "ABCD"[index % SEATS_PER_ROW];
   return `${row}${col}`;
+};
+
+const operatorInitials = (name: string) => name
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0]?.toUpperCase())
+  .join("") || "ZB";
+
+const operatorLogoColors = (name: string) => {
+  const palettes = [
+    ["#0f766e", "#ecfeff"],
+    ["#1d4ed8", "#eff6ff"],
+    ["#b45309", "#fffbeb"],
+    ["#7c3aed", "#f5f3ff"],
+    ["#be123c", "#fff1f2"],
+  ] as const;
+  return palettes[hashString(name) % palettes.length];
+};
+
+const BusOperatorLogo = ({ trip, size = "md" }: { trip: BusTrip; size?: "sm" | "md" }) => {
+  const [fg, bg] = operatorLogoColors(trip.operator);
+  const dimensions = size === "sm" ? "h-7 w-7 rounded-lg text-[10px]" : "h-10 w-10 rounded-xl text-xs";
+
+  if (trip.logoUrl) {
+    return (
+      <span className={cn("shrink-0 overflow-hidden border border-border bg-background", dimensions)}>
+        <img src={trip.logoUrl} alt={`${trip.operator} logo`} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={cn("flex shrink-0 items-center justify-center border font-black tracking-wide shadow-sm", dimensions)}
+      style={{ backgroundColor: bg, borderColor: `${fg}33`, color: fg }}
+      aria-label={`${trip.operator} logo`}
+    >
+      {operatorInitials(trip.operator)}
+    </span>
+  );
 };
 
 export default function BusBookingPage() {
@@ -300,7 +368,8 @@ export default function BusBookingPage() {
       const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: RpcTripRow[] | null; error: unknown }> })
         .rpc("search_bus_trips", { p_from: from.trim(), p_to: to.trim(), p_date: date });
       const real = !error && Array.isArray(data) && data.length > 0;
-      setTrips(real ? (data as RpcTripRow[]).map(mapRpcTrip) : buildTrips(from.trim(), to.trim(), date));
+      const nextTrips = real ? await enrichTripsWithStoreLogos((data as RpcTripRow[]).map(mapRpcTrip)) : buildTrips(from.trim(), to.trim(), date);
+      setTrips(nextTrips);
     } catch {
       setTrips(buildTrips(from.trim(), to.trim(), date));
     } finally {
@@ -674,16 +743,19 @@ export default function BusBookingPage() {
                       className="w-full rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition-colors hover:border-primary/40"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-black text-foreground">{trip.operator}</span>
-                            <span className="flex items-center gap-0.5 text-[11px] font-bold text-amber-500">
-                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                              {trip.rating.toFixed(1)}
-                              {trip.reviewCount > 0 && <span className="font-semibold text-muted-foreground">({trip.reviewCount})</span>}
-                            </span>
+                        <div className="flex min-w-0 items-start gap-3">
+                          <BusOperatorLogo trip={trip} />
+                          <div className="min-w-0">
+                            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="max-w-[12rem] truncate text-sm font-black text-foreground sm:max-w-none">{trip.operator}</span>
+                              <span className="flex items-center gap-0.5 text-[11px] font-bold text-amber-500">
+                                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                {trip.rating.toFixed(1)}
+                                {trip.reviewCount > 0 && <span className="font-semibold text-muted-foreground">({trip.reviewCount})</span>}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{trip.busType}</p>
                           </div>
-                          <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{trip.busType}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-black leading-none text-foreground">${trip.priceUsd}</p>
@@ -738,11 +810,14 @@ export default function BusBookingPage() {
               {/* ── SEATS ── */}
               {step === "seats" && selectedTrip && (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-border bg-card p-3">
-                    <p className="text-sm font-black text-foreground">{selectedTrip.operator}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {from} → {to} · {selectedTrip.departTime} · {selectedTrip.busType}
-                    </p>
+                  <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+                    <BusOperatorLogo trip={selectedTrip} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-foreground">{selectedTrip.operator}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {from} → {to} · {selectedTrip.departTime} · {selectedTrip.busType}
+                      </p>
+                    </div>
                   </div>
 
                   <p className="text-center text-xs font-semibold text-muted-foreground">
@@ -814,7 +889,7 @@ export default function BusBookingPage() {
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-center gap-2">
-                      <Bus className="h-4 w-4 text-primary" />
+                      <BusOperatorLogo trip={selectedTrip} size="sm" />
                       <p className="text-sm font-black text-foreground">{selectedTrip.operator}</p>
                     </div>
                     <div className="mt-3 space-y-2 text-sm">

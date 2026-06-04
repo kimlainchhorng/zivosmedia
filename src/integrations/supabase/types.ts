@@ -78600,6 +78600,7 @@ export type Database = {
           depart_time: string
           destination: string
           duration_mins: number
+          logo_url: string | null
           operator: string
           origin: string
           price_cents: number

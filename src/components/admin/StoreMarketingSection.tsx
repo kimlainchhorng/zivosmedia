@@ -97,6 +97,17 @@ interface DistributionJob {
   created_at: string;
 }
 
+interface PostTemplate {
+  id: string;
+  label: string;
+  caption: string;
+  hashtags: string;
+  objective: string;
+  audience: string;
+  daily_budget: number;
+  days: number;
+}
+
 const DISTRIBUTION_PLATFORMS = [
   { id: "facebook", label: "Facebook", short: "FB" },
   { id: "tiktok", label: "TikTok", short: "TT" },
@@ -108,6 +119,94 @@ const DISTRIBUTION_ACTIONS = [
   { id: "organic_post", label: "Auto post" },
   { id: "boost_ad", label: "Boost ads" },
 ] as const;
+
+function parseHashtags(value: string): string[] {
+  return value
+    .split(/[\s,]+/)
+    .map((tag) => tag.trim().replace(/^#/, ""))
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function servicePostTemplates(category: string | undefined, name: string): PostTemplate[] {
+  if (category === "auto-repair") {
+    return [
+      {
+        id: "oil-change",
+        label: "Oil change special",
+        caption: `${name} has oil change appointments open this week. Keep your engine protected with fresh oil, filter check, and a quick courtesy inspection. Book your spot today.`,
+        hashtags: "oilchange, autorepair, carcare, localshop",
+        objective: "traffic",
+        audience: "local",
+        daily_budget: 8,
+        days: 5,
+      },
+      {
+        id: "brake-check",
+        label: "Brake safety check",
+        caption: `Hearing squeaks, grinding, or feeling vibration when braking? ${name} can inspect pads, rotors, and brake fluid before it becomes a bigger repair.`,
+        hashtags: "brakes, safety, autorepair, localmechanic",
+        objective: "messages",
+        audience: "local",
+        daily_budget: 10,
+        days: 7,
+      },
+      {
+        id: "ac-service",
+        label: "A/C service",
+        caption: `A/C not blowing cold? ${name} can check leaks, refrigerant level, cabin air flow, and cooling performance so your drive feels right again.`,
+        hashtags: "acrepair, carservice, autorepair, comfort",
+        objective: "traffic",
+        audience: "local",
+        daily_budget: 10,
+        days: 7,
+      },
+      {
+        id: "diagnostics",
+        label: "Check engine light",
+        caption: `Check engine light on? ${name} can run diagnostics and explain what needs attention before small issues turn into expensive repairs.`,
+        hashtags: "diagnostics, checkengine, autorepair, carcare",
+        objective: "messages",
+        audience: "local",
+        daily_budget: 12,
+        days: 7,
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "new-service",
+      label: "Featured service",
+      caption: `${name} has openings this week. See our latest service options and message us if you want help choosing the right one.`,
+      hashtags: "localbusiness, service, zivo",
+      objective: "messages",
+      audience: "local",
+      daily_budget: 8,
+      days: 5,
+    },
+    {
+      id: "local-offer",
+      label: "Local offer",
+      caption: `New local offer from ${name}. Stop by or book online and let our team take care of the rest.`,
+      hashtags: "localoffer, community, smallbusiness",
+      objective: "traffic",
+      audience: "local",
+      daily_budget: 10,
+      days: 7,
+    },
+    {
+      id: "customer-reminder",
+      label: "Customer reminder",
+      caption: `Need help this week? ${name} is ready. Message us, book a time, or visit our store page to get started.`,
+      hashtags: "customercare, booking, localservice",
+      objective: "messages",
+      audience: "followers",
+      daily_budget: 6,
+      days: 4,
+    },
+  ];
+}
 
 /* ───── Helper: generate random promo code ───── */
 function generatePromoCode(prefix = "ZIVO"): string {
@@ -153,6 +252,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
   const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [deletePromoId, setDeletePromoId] = useState<string | null>(null);
+  const [postDialogOpen, setPostDialogOpen] = useState(false);
   const [boostPost, setBoostPost] = useState<StorePost | null>(null);
   const [boostForm, setBoostForm] = useState({
     daily_budget: 10,
@@ -171,6 +271,13 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
     discount_value: 10, min_order_amount: 0, max_discount: 0,
     usage_limit: 0, per_user_limit: 1,
     starts_at: "", ends_at: "", is_active: true,
+  });
+  const [postForm, setPostForm] = useState({
+    caption: "",
+    media_url: "",
+    media_type: "image",
+    hashtags: "",
+    is_published: true,
   });
 
   /* ───── Queries ───── */
@@ -249,6 +356,8 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
   const isAutoRepair = storeCategory === "auto-repair";
   const storeUrl = slug ? `https://hizivo.com/store/${slug}` : "";
   const bookingUrl = slug ? `https://hizivo.com/book/${slug}` : "";
+  const postTemplates = useMemo(() => servicePostTemplates(storeCategory, name), [storeCategory, name]);
+  const serviceWorkflowLabel = isAutoRepair ? "Auto repair workflow" : "Service workflow";
 
   /* ───── Analytics computed from posts ───── */
   const analytics = useMemo(() => {
@@ -330,6 +439,48 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
     },
   });
 
+  const createPost = useMutation({
+    mutationFn: async () => {
+      const caption = postForm.caption.trim();
+      const mediaUrl = postForm.media_url.trim();
+      if (!caption && !mediaUrl) {
+        throw new Error("Add a caption or media URL");
+      }
+
+      const payload = {
+        store_id: storeId,
+        caption: caption || null,
+        media_urls: mediaUrl ? [mediaUrl] : [],
+        media_type: postForm.media_type,
+        hashtags: parseHashtags(postForm.hashtags),
+        is_published: postForm.is_published,
+      };
+
+      if (!postForm.is_published) {
+        const { error } = await supabase.from("store_posts").insert(payload);
+        if (error) throw error;
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from("store_posts")
+        .insert(payload)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as StorePost;
+    },
+    onSuccess: (createdPost) => {
+      qc.invalidateQueries({ queryKey: ["store-posts", storeId] });
+      toast.success(postForm.is_published ? "Post created" : "Draft saved");
+      setPostDialogOpen(false);
+      if (createdPost) {
+        setBoostPost(createdPost);
+      }
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to create post"),
+  });
+
   /* ───── Handlers ───── */
   const openCreatePromo = () => {
     setEditingPromo(null);
@@ -357,6 +508,44 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
       is_active: p.is_active ?? true,
     });
     setPromoDialogOpen(true);
+  };
+
+  const openCreatePost = () => {
+    setPostForm({
+      caption: "",
+      media_url: "",
+      media_type: "image",
+      hashtags: "",
+      is_published: true,
+    });
+    setBoostForm({
+      daily_budget: 10,
+      days: 7,
+      audience: "local",
+      objective: isAutoRepair ? "messages" : "traffic",
+      platforms: ["facebook", "tiktok", "google_ads", "x"],
+      actions: ["organic_post", "boost_ad"],
+    });
+    setPostDialogOpen(true);
+  };
+
+  const applyPostTemplate = (template: PostTemplate) => {
+    setPostForm({
+      caption: template.caption,
+      media_url: "",
+      media_type: "text",
+      hashtags: template.hashtags,
+      is_published: true,
+    });
+    setBoostForm({
+      daily_budget: template.daily_budget,
+      days: template.days,
+      audience: template.audience,
+      objective: template.objective,
+      platforms: ["facebook", "tiktok", "google_ads", "x"],
+      actions: ["organic_post", "boost_ad"],
+    });
+    setPostDialogOpen(true);
   };
 
   const copyToClipboard = (text: string, label = "Copied") => {
@@ -403,6 +592,12 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
     if (platform === "google_ads") return "google";
     return platform;
   };
+
+  const connectedPlatformKeys = new Set(adPages.map((page) => String(page.platform)));
+  const queuedWorkflowCount = distributionJobs.filter((job) => job.status === "queued" || job.status === "processing").length;
+  const activeWorkflowCount = distributionJobs.filter((job) => job.status === "published" || job.status === "active").length;
+  const needsConnectionCount = distributionJobs.filter((job) => job.status === "needs_connection").length;
+  const totalBoostBudgetCents = distributionJobs.reduce((sum, job) => sum + (job.action === "boost_ad" ? job.total_budget_cents : 0), 0);
 
   return (
     <MarketingPreviewProvider>
@@ -700,7 +895,122 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               <h3 className="text-sm font-semibold">Store Posts</h3>
               <p className="text-xs text-muted-foreground">{posts.length} posts</p>
             </div>
+            <Button size="sm" onClick={openCreatePost} className="gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> New Post
+            </Button>
           </div>
+
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Rocket className="w-4 h-4 text-primary" /> {serviceWorkflowLabel}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">Auto-post and boost every store post from one queue.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg border px-3 py-2">
+                    <p className="text-sm font-bold">{queuedWorkflowCount}</p>
+                    <p className="text-[10px] text-muted-foreground">Queued</p>
+                  </div>
+                  <div className="rounded-lg border px-3 py-2">
+                    <p className="text-sm font-bold">{activeWorkflowCount}</p>
+                    <p className="text-[10px] text-muted-foreground">Live</p>
+                  </div>
+                  <div className="rounded-lg border px-3 py-2">
+                    <p className="text-sm font-bold">${(totalBoostBudgetCents / 100).toFixed(0)}</p>
+                    <p className="text-[10px] text-muted-foreground">Budget</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                {DISTRIBUTION_PLATFORMS.map((platform) => {
+                  const connectionKey = platformConnectionName(platform.id);
+                  const isConnected = connectedPlatformKeys.has(connectionKey);
+                  const platformJobs = distributionJobs.filter((job) => job.platform === platform.id);
+                  const platformNeedsConnection = platformJobs.some((job) => job.status === "needs_connection");
+                  return (
+                    <div key={platform.id} className="rounded-xl border p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold">{platform.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{platformJobs.length} workflow jobs</p>
+                        </div>
+                        {isConnected ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        )}
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] ${isConnected ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+                      >
+                        {isConnected ? "Connected" : platformNeedsConnection ? "Needs connection" : "Not connected"}
+                      </Badge>
+                      {!isConnected && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 w-full text-[11px]"
+                          onClick={() => setActiveSubTab("ads")}
+                        >
+                          Connect
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {needsConnectionCount > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  {needsConnectionCount} workflow job{needsConnectionCount === 1 ? "" : "s"} will start after the matching platform is connected.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" /> Service-ready posts
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {isAutoRepair
+                      ? "Use repair-specific presets with local audience and message-ready ad defaults."
+                      : "Use service presets with local audience and ad defaults already prepared."}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="text-[10px] shrink-0">
+                  {isAutoRepair ? "Auto repair" : "Services"}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                {postTemplates.map((template) => (
+                  <Button
+                    key={template.id}
+                    type="button"
+                    variant="outline"
+                    className="h-auto justify-start py-3 text-left"
+                    onClick={() => applyPostTemplate(template)}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold truncate">{template.label}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {template.audience} · ${template.daily_budget}/day · {template.days}d
+                      </p>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {loadingPosts ? (
             <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
@@ -711,7 +1021,10 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   <ImageIcon className="w-7 h-7 text-primary" />
                 </div>
                 <p className="font-medium text-sm">No posts yet</p>
-                <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">Your store posts and social content will appear here</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">Create one post, then queue auto-posting and boosted ads across Facebook, TikTok, Google Ads, and X.</p>
+                <Button className="mt-4 gap-1.5" size="sm" onClick={openCreatePost}>
+                  <Plus className="w-3.5 h-3.5" /> Create First Post
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -1052,6 +1365,137 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                 }
               }}>
                 <QrCode className="w-3.5 h-3.5" /> Download
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ New Store Post Dialog ═══ */}
+      <Dialog open={postDialogOpen} onOpenChange={setPostDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-primary" /> New Post
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-xl border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold">{serviceWorkflowLabel} presets</p>
+                <Badge variant="secondary" className="text-[10px]">
+                  Auto setup
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {postTemplates.map((template) => (
+                  <Button
+                    key={template.id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => applyPostTemplate(template)}
+                  >
+                    {template.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Caption</Label>
+              <Textarea
+                value={postForm.caption}
+                onChange={(e) => setPostForm({ ...postForm, caption: e.target.value })}
+                placeholder={`What's new at ${name}?`}
+                className="mt-1 min-h-[110px] resize-none"
+                maxLength={2200}
+              />
+              <div className="mt-1 text-right text-[10px] text-muted-foreground">
+                {postForm.caption.length}/2200
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Media URL</Label>
+              <Input
+                value={postForm.media_url}
+                onChange={(e) => setPostForm({ ...postForm, media_url: e.target.value })}
+                placeholder="https://..."
+                className="mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Media type</Label>
+                <Select value={postForm.media_type} onValueChange={(v) => setPostForm({ ...postForm, media_type: v })}>
+                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="image">Image</SelectItem>
+                    <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="text">Text only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Hashtags</Label>
+                <Input
+                  value={postForm.hashtags}
+                  onChange={(e) => setPostForm({ ...postForm, hashtags: e.target.value })}
+                  placeholder="repair, local"
+                  className="mt-1 h-9"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border p-3">
+              <div>
+                <Label className="text-xs font-semibold">Publish now</Label>
+                <p className="text-[11px] text-muted-foreground">Published posts can be queued for social posting and ads next.</p>
+              </div>
+              <Switch
+                checked={postForm.is_published}
+                onCheckedChange={(checked) => setPostForm({ ...postForm, is_published: checked })}
+              />
+            </div>
+
+            <div className="rounded-xl border bg-muted/30 p-3">
+              <p className="text-[11px] font-medium text-muted-foreground">Workflow after create</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {DISTRIBUTION_PLATFORMS.map((platform) => (
+                  <Badge key={platform.id} variant="secondary" className="text-[10px]">
+                    {platform.label}
+                  </Badge>
+                ))}
+                <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
+                  Auto post
+                </Badge>
+                <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
+                  Boost ads
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setPostDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 gap-1.5"
+                disabled={createPost.isPending || (!postForm.caption.trim() && !postForm.media_url.trim())}
+                onClick={() => createPost.mutate()}
+              >
+                {createPost.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    {postForm.is_published ? "Create + Boost" : "Save Draft"}
+                  </>
+                )}
               </Button>
             </div>
           </div>

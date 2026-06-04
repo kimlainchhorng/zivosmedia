@@ -38,6 +38,7 @@ import { useCafeRealtimeNotifications } from "@/hooks/cafe/useCafeRealtimeNotifi
 import { useCarRentalSidebarBadges } from "@/hooks/car-rental/useCarRentalSidebarBadges";
 import { useCarRentalRealtimeNotifications } from "@/hooks/car-rental/useCarRentalRealtimeNotifications";
 import { useDealershipSidebarBadges } from "@/hooks/car-dealership/useDealershipSidebarBadges";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
 interface StoreOwnerLayoutProps {
   children: ReactNode;
@@ -64,6 +65,8 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   const scrollMemoryRef = useRef<Record<string, number>>({});
   const employeeIds = ["employees", "payroll", "employee-schedule", "time-clock", "attendance", "training", "documents", "employee-rules"];
   const [employeesOpen, setEmployeesOpen] = useState(employeeIds.includes(activeTab || ""));
+  const isAutoRepairSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
 
   const tabKey = activeTab || "_default";
 
@@ -735,13 +738,15 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
             Software & Apps
           </button>
           </>}
-          <button type="button"
-            onClick={() => navigate("/")}
-            className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-[12px] text-foreground/75 hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <Home className="w-3.5 h-3.5" />
-            Back to App
-          </button>
+          {!isAutoRepairSoftwareDomain && (
+            <button type="button"
+              onClick={() => navigate("/")}
+              className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-[12px] text-foreground/75 hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Home className="w-3.5 h-3.5" />
+              Back to App
+            </button>
+          )}
           <button type="button"
             onClick={() => signOut()}
             className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-[12px] text-destructive hover:bg-destructive/10 transition-colors"

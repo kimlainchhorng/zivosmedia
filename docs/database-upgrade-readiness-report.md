@@ -1,21 +1,21 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-03T22:15:25.308Z
+Generated: 2026-06-04T22:32:32.304Z
 
 ## Summary
 
 - Supabase CLI: 2.100.0
-- Local migrations: 1073
+- Local migrations: 1080
 - Invalid migration filenames: 0
-- Duplicate migration versions: 4
+- Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 0
-- New duplicate migration versions: 4
+- New duplicate migration versions: 6
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1073, remote=1515, matched=0, near5s=585, near60s=616, oneToOne5s=584, oneToOne60s=614, unmatchedLocal=459, unmatchedRemote=901, localAfterRemoteRange=15, sharedDays=86, remoteError=no, generated=2026-06-03T22:14:21.600Z
-- Pending local migration gates: createsTables=2, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Last linked drift report: local=1080, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1080, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-06-04T22:32:31.619Z
+- Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 899
+- Public tables created in migrations: 901
 - Public tables needing RLS review: 0
 - Recent public tables needing Data API grant review: 6
 - Views needing security_invoker review: 0
@@ -30,8 +30,7 @@ Generated: 2026-06-03T22:15:25.308Z
 
 ## Blockers
 
-- 4 new duplicate migration version(s) need reconciliation before db push/pull.
-- Local and remote migration histories have zero exact matches, with near-timestamp pairs indicating version-id drift.
+- 6 new duplicate migration version(s) need reconciliation before db push/pull.
 
 ## Warnings
 
@@ -43,6 +42,8 @@ Generated: 2026-06-03T22:15:25.308Z
 - 20260601194500: 20260601194500_bus_booking_schema.sql, 20260601194500_car_rental_reservations_server_gate.sql (needs reconciliation)
 - 20260601210000: 20260601210000_bus_my_bookings_rpc.sql, 20260601210000_car_dealership_expenses_server_gate.sql (needs reconciliation)
 - 20260601211500: 20260601211500_car_dealership_financing_server_gate.sql, 20260601211500_fix_bus_rls_store_owner.sql (needs reconciliation)
+- 20260612000200: 20260612000200_add_ar_estimate_issue_and_start_dates.sql, 20260612000200_ar_invoices_estimates_mileage.sql (needs reconciliation)
+- 20260612000300: 20260612000300_add_ar_invoice_issue_and_start_dates.sql, 20260612000300_ar_invoices_estimates_vsm_fields.sql (needs reconciliation)
 
 ## Postgres 17 Extension Review
 
