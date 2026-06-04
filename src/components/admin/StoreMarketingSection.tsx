@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -83,6 +84,31 @@ interface StorePost {
   hashtags: string[] | null;
 }
 
+interface DistributionJob {
+  id: string;
+  post_id: string;
+  platform: "facebook" | "tiktok" | "google_ads" | "x";
+  action: "organic_post" | "boost_ad";
+  status: "queued" | "needs_connection" | "processing" | "published" | "active" | "failed" | "cancelled";
+  daily_budget_cents: number;
+  total_budget_cents: number;
+  scheduled_at: string;
+  error_message: string | null;
+  created_at: string;
+}
+
+const DISTRIBUTION_PLATFORMS = [
+  { id: "facebook", label: "Facebook", short: "FB" },
+  { id: "tiktok", label: "TikTok", short: "TT" },
+  { id: "google_ads", label: "Google Ads", short: "G" },
+  { id: "x", label: "X", short: "X" },
+] as const;
+
+const DISTRIBUTION_ACTIONS = [
+  { id: "organic_post", label: "Auto post" },
+  { id: "boost_ad", label: "Boost ads" },
+] as const;
+
 /* ───── Helper: generate random promo code ───── */
 function generatePromoCode(prefix = "ZIVO"): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -128,7 +154,14 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [deletePromoId, setDeletePromoId] = useState<string | null>(null);
   const [boostPost, setBoostPost] = useState<StorePost | null>(null);
-  const [boostForm, setBoostForm] = useState({ daily_budget: 10, days: 7, audience: "broad", objective: "reach" });
+  const [boostForm, setBoostForm] = useState({
+    daily_budget: 10,
+    days: 7,
+    audience: "broad",
+    objective: "reach",
+    platforms: ["facebook", "tiktok", "google_ads", "x"] as DistributionJob["platform"][],
+    actions: ["organic_post", "boost_ad"] as DistributionJob["action"][],
+  });
   const [boosting, setBoosting] = useState(false);
 
   // Promo form state
@@ -168,6 +201,20 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         .limit(20);
       if (error) throw error;
       return (data || []) as StorePost[];
+    },
+  });
+
+  const { data: distributionJobs = [] } = useQuery({
+    queryKey: ["store-post-distribution-jobs", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("store_post_distribution_jobs" as any)
+        .select("*")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return ((data as any[]) || []) as DistributionJob[];
     },
   });
 
@@ -312,6 +359,31 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
     if (p.ends_at && isAfter(now, parseISO(p.ends_at))) return { label: "Expired", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
     if (p.usage_limit && (p.usage_count || 0) >= p.usage_limit) return { label: "Maxed Out", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
     return { label: "Active", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" };
+  };
+
+  const toggleBoostPlatform = (platform: DistributionJob["platform"]) => {
+    setBoostForm((form) => ({
+      ...form,
+      platforms: form.platforms.includes(platform)
+        ? form.platforms.filter((value) => value !== platform)
+        : [...form.platforms, platform],
+    }));
+  };
+
+  const toggleBoostAction = (action: DistributionJob["action"]) => {
+    setBoostForm((form) => ({
+      ...form,
+      actions: form.actions.includes(action)
+        ? form.actions.filter((value) => value !== action)
+        : [...form.actions, action],
+    }));
+  };
+
+  const jobStatusColor = (status: DistributionJob["status"]) => {
+    if (status === "queued" || status === "processing") return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+    if (status === "published" || status === "active") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
+    if (status === "needs_connection") return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
+    return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
   };
 
   return (
@@ -626,52 +698,77 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
             </Card>
           ) : (
             <div className="space-y-3">
-              {posts.map(post => (
-                <Card key={post.id} className="overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex gap-3">
-                      {post.media_urls?.[0] && (
-	                        <img
-	                          src={post.media_urls[0]}
-	                          alt=""
-	                          className="w-16 h-16 rounded-xl object-cover shrink-0 bg-muted"
-	                          loading="lazy"
-	                          decoding="async"
-	                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm line-clamp-2">{post.caption || "(No caption)"}</p>
-                        {post.hashtags && post.hashtags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {post.hashtags.slice(0, 5).map(tag => (
-                              <span key={tag} className="text-[10px] text-primary font-medium">#{tag}</span>
-                            ))}
-                          </div>
+              {posts.map(post => {
+                const postJobs = distributionJobs.filter((job) => job.post_id === post.id);
+                return (
+                  <Card key={post.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex gap-3">
+                        {post.media_urls?.[0] && (
+                          <img
+                            src={post.media_urls[0]}
+                            alt=""
+                            className="w-16 h-16 rounded-xl object-cover shrink-0 bg-muted"
+                            loading="lazy"
+                            decoding="async"
+                          />
                         )}
-                        <div className="flex items-center gap-4 mt-2 text-[11px] text-muted-foreground">
-                          <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{post.view_count || 0}</span>
-                          <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{post.likes_count || 0}</span>
-                          <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{post.comments_count || 0}</span>
-                          <span className="flex items-center gap-1"><Share2 className="w-3 h-3" />{post.shares_count}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm line-clamp-2">{post.caption || "(No caption)"}</p>
+                          {post.hashtags && post.hashtags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {post.hashtags.slice(0, 5).map(tag => (
+                                <span key={tag} className="text-[10px] text-primary font-medium">#{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{post.view_count || 0}</span>
+                            <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{post.likes_count || 0}</span>
+                            <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{post.comments_count || 0}</span>
+                            <span className="flex items-center gap-1"><Share2 className="w-3 h-3" />{post.shares_count}</span>
+                          </div>
+                          {postJobs.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {postJobs.slice(0, 6).map((job) => {
+                                const platform = DISTRIBUTION_PLATFORMS.find((item) => item.id === job.platform);
+                                return (
+                                  <Badge key={job.id} variant="secondary" className={`text-[10px] ${jobStatusColor(job.status)}`}>
+                                    {platform?.short || job.platform} · {job.action === "boost_ad" ? "Ad" : "Post"} · {job.status.replace("_", " ")}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          <Badge variant={post.is_published ? "default" : "secondary"} className="text-[10px]">
+                            {post.is_published ? "Published" : "Draft"}
+                          </Badge>
+                          <p className="text-[10px] text-muted-foreground">{format(parseISO(post.created_at), "MMM d")}</p>
+                          <Button
+                            size="sm"
+                            className="h-7 px-2.5 gap-1 text-[11px] bg-gradient-to-r from-primary to-emerald-500 hover:opacity-90"
+                            onClick={() => {
+                              setBoostPost(post);
+                              setBoostForm({
+                                daily_budget: 10,
+                                days: 7,
+                                audience: "broad",
+                                objective: "reach",
+                                platforms: ["facebook", "tiktok", "google_ads", "x"],
+                                actions: ["organic_post", "boost_ad"],
+                              });
+                            }}
+                          >
+                            <Rocket className="w-3 h-3" /> Post + Boost
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <Badge variant={post.is_published ? "default" : "secondary"} className="text-[10px]">
-                          {post.is_published ? "Published" : "Draft"}
-                        </Badge>
-                        <p className="text-[10px] text-muted-foreground">{format(parseISO(post.created_at), "MMM d")}</p>
-                        <Button
-                          size="sm"
-                          className="h-7 px-2.5 gap-1 text-[11px] bg-gradient-to-r from-primary to-emerald-500 hover:opacity-90"
-                          onClick={() => { setBoostPost(post); setBoostForm({ daily_budget: 10, days: 7, audience: "broad", objective: "reach" }); }}
-                        >
-                          <Rocket className="w-3 h-3" /> Boost
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>
@@ -948,7 +1045,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-primary" /> Boost Post
+              <Rocket className="w-5 h-5 text-primary" /> Post + Boost
             </DialogTitle>
           </DialogHeader>
 
@@ -971,6 +1068,38 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                     <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{boostPost.view_count || 0}</span>
                     <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{boostPost.likes_count || 0}</span>
                   </div>
+                </div>
+              </div>
+
+              {/* Platforms */}
+              <div>
+                <Label className="text-xs">Platforms</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {DISTRIBUTION_PLATFORMS.map((platform) => (
+                    <label key={platform.id} className="flex items-center gap-2 rounded-lg border p-2 text-xs font-medium">
+                      <Checkbox
+                        checked={boostForm.platforms.includes(platform.id)}
+                        onCheckedChange={() => toggleBoostPlatform(platform.id)}
+                      />
+                      <span>{platform.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div>
+                <Label className="text-xs">Workflow</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {DISTRIBUTION_ACTIONS.map((action) => (
+                    <label key={action.id} className="flex items-center gap-2 rounded-lg border p-2 text-xs font-medium">
+                      <Checkbox
+                        checked={boostForm.actions.includes(action.id)}
+                        onCheckedChange={() => toggleBoostAction(action.id)}
+                      />
+                      <span>{action.label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -1027,11 +1156,17 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               <div className="rounded-xl border bg-primary/5 p-3 space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Total budget</span>
-                  <span className="font-semibold">${(boostForm.daily_budget * boostForm.days).toFixed(2)}</span>
+                  <span className="font-semibold">
+                    {boostForm.actions.includes("boost_ad") ? `$${(boostForm.daily_budget * boostForm.days).toFixed(2)}` : "$0.00"}
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Estimated reach</span>
-                  <span className="font-semibold">{(boostForm.daily_budget * boostForm.days * 180).toLocaleString()}–{(boostForm.daily_budget * boostForm.days * 520).toLocaleString()} people</span>
+                  <span className="font-semibold">
+                    {boostForm.actions.includes("boost_ad")
+                      ? `${(boostForm.daily_budget * boostForm.days * 180).toLocaleString()}-${(boostForm.daily_budget * boostForm.days * 520).toLocaleString()} people`
+                      : "Organic only"}
+                  </span>
                 </div>
               </div>
 
@@ -1039,31 +1174,46 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                 <Button variant="outline" className="flex-1" onClick={() => setBoostPost(null)}>Cancel</Button>
                 <Button
                   className="flex-1 gap-1.5 bg-gradient-to-r from-primary to-emerald-500"
-                  disabled={boosting}
+                  disabled={boosting || boostForm.platforms.length === 0 || boostForm.actions.length === 0}
                   onClick={async () => {
                     setBoosting(true);
                     try {
-                      // Best-effort: write to ad_campaigns / restaurant_ads if schema available; otherwise toast.
                       const total = boostForm.daily_budget * boostForm.days;
-                      const { error } = await (supabase as any)
-                        .from("store_posts")
-                        .update({ is_boosted: true, boost_budget_cents: Math.round(total * 100), boost_ends_at: new Date(Date.now() + boostForm.days * 86400_000).toISOString() })
-                        .eq("id", boostPost.id);
+                      const { data, error } = await supabase.functions.invoke("store-post-distribute", {
+                        body: {
+                          post_id: boostPost.id,
+                          platforms: boostForm.platforms,
+                          actions: boostForm.actions,
+                          boost: {
+                            daily_budget_usd: boostForm.actions.includes("boost_ad") ? boostForm.daily_budget : 0,
+                            days: boostForm.days,
+                            audience: boostForm.audience,
+                            objective: boostForm.objective,
+                          },
+                          destination_url: storeUrl || bookingUrl || null,
+                        },
+                      });
                       if (error) {
-                        // Schema may not include boost cols — that's OK for v1
-                        console.warn("Boost flag not persisted:", error.message);
+                        throw error;
                       }
-                      toast.success(`Post boosted — $${total.toFixed(2)} over ${boostForm.days} day${boostForm.days > 1 ? "s" : ""}`);
+                      const queued = Number((data as any)?.queued || 0);
+                      const needsConnection = Number((data as any)?.needs_connection || 0);
+                      toast.success(
+                        needsConnection > 0
+                          ? `${queued} queued, ${needsConnection} need platform connection`
+                          : `Queued ${queued} platform job${queued === 1 ? "" : "s"}${boostForm.actions.includes("boost_ad") ? ` — $${total.toFixed(2)} budget` : ""}`
+                      );
                       qc.invalidateQueries({ queryKey: ["store-posts", storeId] });
+                      qc.invalidateQueries({ queryKey: ["store-post-distribution-jobs", storeId] });
                       setBoostPost(null);
                     } catch (e: any) {
-                      toast.error(e.message || "Failed to boost post");
+                      toast.error(e.message || "Failed to queue post workflow");
                     } finally {
                       setBoosting(false);
                     }
                   }}
                 >
-                  {boosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Rocket className="w-4 h-4" /> Boost now</>}
+                  {boosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Rocket className="w-4 h-4" /> Queue workflow</>}
                 </Button>
               </div>
             </div>

@@ -1,6 +1,5 @@
 // Queue store post distribution jobs across social and ad platforms.
-import { createClient } from "../_shared/deps.ts";
-import { withSecurity } from "../_shared/withSecurity.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.106.0";
 
 type Platform = "facebook" | "tiktok" | "google_ads" | "x";
 type Action = "organic_post" | "boost_ad";
@@ -11,6 +10,17 @@ const PLATFORM_TO_CONNECTION = {
   google_ads: "google",
   x: "x",
 } satisfies Record<Platform, string>;
+
+const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type";
+
+function corsHeaders(req: Request): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": req.headers.get("origin") || "*",
+    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
 
 const json = (data: unknown, status = 200, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(data), {
@@ -30,13 +40,14 @@ function cleanActions(input: unknown): Action[] {
   return Array.from(new Set(values.filter((value): value is Action => allowed.has(value))));
 }
 
-Deno.serve(withSecurity("store-post-distribute", async (req, ctx) => {
-  const corsHeaders = ctx.corsHeaders;
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  const headers = corsHeaders(req);
+  if (req.method === "OPTIONS") return new Response(null, { headers });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, headers);
 
   try {
     const auth = req.headers.get("Authorization");
-    if (!auth?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401, corsHeaders);
+    if (!auth?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401, headers);
 
     const url = Deno.env.get("SUPABASE_URL")!;
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -46,7 +57,7 @@ Deno.serve(withSecurity("store-post-distribute", async (req, ctx) => {
 
     const { data: userRes, error: userErr } = await userClient.auth.getUser();
     const user = userRes?.user;
-    if (userErr || !user) return json({ error: "Unauthorized" }, 401, corsHeaders);
+    if (userErr || !user) return json({ error: "Unauthorized" }, 401, headers);
 
     const body = await req.json().catch(() => ({}));
     const postId = String(body?.post_id || "");
@@ -60,14 +71,14 @@ Deno.serve(withSecurity("store-post-distribute", async (req, ctx) => {
     const audience = String(boost.audience || "broad").slice(0, 64);
     const scheduledAt = body?.scheduled_at ? new Date(body.scheduled_at) : new Date();
 
-    if (!postId) return json({ error: "post_id required" }, 400, corsHeaders);
-    if (!platforms.length) return json({ error: "Choose at least one platform" }, 400, corsHeaders);
-    if (!actions.length) return json({ error: "Choose post, boost, or both" }, 400, corsHeaders);
+    if (!postId) return json({ error: "post_id required" }, 400, headers);
+    if (!platforms.length) return json({ error: "Choose at least one platform" }, 400, headers);
+    if (!actions.length) return json({ error: "Choose post, boost, or both" }, 400, headers);
     if (actions.includes("boost_ad") && dailyBudgetCents <= 0) {
-      return json({ error: "Boost daily budget must be greater than 0" }, 400, corsHeaders);
+      return json({ error: "Boost daily budget must be greater than 0" }, 400, headers);
     }
     if (Number.isNaN(scheduledAt.getTime())) {
-      return json({ error: "Invalid scheduled_at" }, 400, corsHeaders);
+      return json({ error: "Invalid scheduled_at" }, 400, headers);
     }
 
     const { data: post, error: postErr } = await admin
@@ -76,7 +87,7 @@ Deno.serve(withSecurity("store-post-distribute", async (req, ctx) => {
       .eq("id", postId)
       .maybeSingle();
     if (postErr) throw postErr;
-    if (!post) return json({ error: "Post not found" }, 404, corsHeaders);
+    if (!post) return json({ error: "Post not found" }, 404, headers);
 
     const { data: ownerAllowed } = await admin.rpc("is_store_owner", {
       _store_id: post.store_id,
@@ -84,7 +95,7 @@ Deno.serve(withSecurity("store-post-distribute", async (req, ctx) => {
     });
     const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
     const isAdmin = ((roles as any[]) || []).some((role) => role.role === "admin" || role.role === "super_admin");
-    if (!ownerAllowed && !isAdmin) return json({ error: "Forbidden" }, 403, corsHeaders);
+    if (!ownerAllowed && !isAdmin) return json({ error: "Forbidden" }, 403, headers);
 
     const { data: pageRows } = await admin
       .from("store_ad_pages")
@@ -159,9 +170,9 @@ Deno.serve(withSecurity("store-post-distribute", async (req, ctx) => {
       queued: ((jobs as any[]) || []).filter((job) => job.status === "queued").length,
       needs_connection: ((jobs as any[]) || []).filter((job) => job.status === "needs_connection").length,
       jobs,
-    }, 200, corsHeaders);
+    }, 200, headers);
   } catch (e) {
     console.error("[store-post-distribute] error:", e);
-    return json({ error: (e as Error).message }, 500, corsHeaders);
+    return json({ error: (e as Error).message }, 500, headers);
   }
-}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "admin_action", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+});

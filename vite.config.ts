@@ -87,6 +87,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8081,
+    allowedHosts: ["zivosoftware.com", "www.zivosoftware.com"],
     headers: {
       "Cache-Control": "no-store, max-age=0",
       "Pragma": "no-cache",
