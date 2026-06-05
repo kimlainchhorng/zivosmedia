@@ -33,11 +33,9 @@ export const isZivoSoftwareBusinessPath = (pathname?: string | null) => {
 
 export const isZivoSoftwareRedirectTarget = (target?: string | null) => {
   const value = target || "";
-  if (isZivoSoftwareBusinessPath(value)) return true;
-
   try {
     const url = new URL(value);
-    return isZivoSoftwareHost(url.hostname) || isZivoSoftwareBusinessPath(url.pathname);
+    return isZivoSoftwareHost(url.hostname) && isZivoSoftwareBusinessPath(url.pathname);
   } catch {
     return false;
   }
