@@ -16,6 +16,7 @@ import {
   isAutoRepairSoftwareHost,
   isZivoSoftwareRedirectTarget,
 } from "@/config/autoRepairDomain";
+import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
 import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
@@ -293,11 +294,17 @@ const Login = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const mediaConnected = params.get("connected") === "zivosmedia";
-  const isZivoSoftwareHost =
-    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
+  const isZivoSoftwareHost = isAutoRepairSoftwareHost(currentHostname);
+  const isZivoChatDomain = isZivoChatHost(currentHostname);
   const rawRedirect = params.get("redirect");
   const redirect = getSafeRedirectTarget(
-    rawRedirect || (isZivoSoftwareHost || mediaConnected ? ZIVO_SOFTWARE_AUTH_REDIRECT_PATH : "/"),
+    rawRedirect ||
+      (isZivoSoftwareHost || mediaConnected
+        ? ZIVO_SOFTWARE_AUTH_REDIRECT_PATH
+        : isZivoChatDomain
+          ? ZIVO_CHAT_HOME_PATH
+          : undefined),
   );
   const isZivoSoftwareDomain =
     isZivoSoftwareHost ||
@@ -621,8 +628,8 @@ const Login = () => {
       isZivoSoftwareDomain ? "bg-[#f4f8f6] text-[#101412]" : "bg-white dark:bg-black"
     }`}>
       <SEOHead
-        title={isZivoSoftwareDomain ? "Sign in to ZIVO Software" : "Sign in to ZIVO"}
-        description={isZivoSoftwareDomain ? "Sign in to your ZIVO Software business workspace." : "Sign in to your ZIVO account"}
+        title={isZivoSoftwareDomain ? "Sign in to ZIVO Software" : isZivoChatDomain ? "Sign in to ZIVO Chat" : "Sign in to ZIVO"}
+        description={isZivoSoftwareDomain ? "Sign in to your ZIVO Software business workspace." : isZivoChatDomain ? "Sign in with your ZIVO Media account for chat." : "Sign in to your ZIVO account"}
       />
 
       {isZivoSoftwareDomain ? (
@@ -677,12 +684,19 @@ const Login = () => {
                 <div className="relative w-16 h-16 rounded-2xl bg-ig-gradient flex items-center justify-center mb-5 shadow-lg shadow-rose-500/20">
                   <span className="brand-script-mark text-white font-black text-3xl tracking-tight italic">Z</span>
                 </div>
-                <h1 className="text-center text-3xl font-black tracking-[0.12em] text-zinc-900 dark:text-white">Zivo</h1>
+                <h1 className="text-center text-3xl font-black tracking-[0.12em] text-zinc-900 dark:text-white">
+                  {isZivoChatDomain ? "ZIVO Chat" : "Zivo"}
+                </h1>
               </>
             )}
             {isZivoSoftwareDomain && (
               <p className="mt-2 max-w-[14rem] text-center text-xs font-semibold leading-5 text-zinc-500 dark:text-zinc-400">
                 Sign in to manage your business workspace.
+              </p>
+            )}
+            {isZivoChatDomain && (
+              <p className="mt-2 max-w-[14rem] text-center text-xs font-semibold leading-5 text-zinc-500 dark:text-zinc-400">
+                Use your ZIVO Media account.
               </p>
             )}
             {isZivoSoftwareDomain && <ZivoSoftwareMiniScene mode="login" />}

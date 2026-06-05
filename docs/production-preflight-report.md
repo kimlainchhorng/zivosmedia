@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-05T15:35:01.004Z
+Generated: 2026-06-05T15:44:17.613Z
 Mode: soft
 Options: strict=no, skipBuild=no, skipTypeCheck=yes
 
@@ -251,7 +251,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T15:34:36.352Z",
+  "generated": "2026-06-05T15:43:48.618Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -299,7 +299,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T15:34:36.439Z",
+  "generated": "2026-06-05T15:43:48.709Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 81,
@@ -431,7 +431,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T15:34:40.416Z",
+  "generated": "2026-06-05T15:43:52.670Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2783,
@@ -488,24 +488,24 @@ select pg_reload_conf();
 Media readiness report: 31 issue(s) across 6 file(s).
 
 src\pages\Login.tsx
-  48: img missing loading="lazy"/SmartImage
-  48: img missing decoding="async"/SmartImage
-  49: img missing loading="lazy"/SmartImage
-  49: img missing decoding="async"/SmartImage
-  113: img missing loading="lazy"/SmartImage
-  113: img missing decoding="async"/SmartImage
-  114: img missing loading="lazy"/SmartImage
-  114: img missing decoding="async"/SmartImage
+  52: img missing loading="lazy"/SmartImage
+  52: img missing decoding="async"/SmartImage
+  53: img missing loading="lazy"/SmartImage
+  53: img missing decoding="async"/SmartImage
+  117: img missing loading="lazy"/SmartImage
+  117: img missing decoding="async"/SmartImage
+  118: img missing loading="lazy"/SmartImage
+  118: img missing decoding="async"/SmartImage
 
 src\pages\Signup.tsx
-  48: img missing loading="lazy"/SmartImage
-  48: img missing decoding="async"/SmartImage
-  49: img missing loading="lazy"/SmartImage
-  49: img missing decoding="async"/SmartImage
-  113: img missing loading="lazy"/SmartImage
-  113: img missing decoding="async"/SmartImage
-  114: img missing loading="lazy"/SmartImage
-  114: img missing decoding="async"/SmartImage
+  52: img missing loading="lazy"/SmartImage
+  52: img missing decoding="async"/SmartImage
+  53: img missing loading="lazy"/SmartImage
+  53: img missing decoding="async"/SmartImage
+  117: img missing loading="lazy"/SmartImage
+  117: img missing decoding="async"/SmartImage
+  118: img missing loading="lazy"/SmartImage
+  118: img missing decoding="async"/SmartImage
 
 src\pages\app\BusOperatorConsole.tsx
   1130: img missing loading="lazy"/SmartImage

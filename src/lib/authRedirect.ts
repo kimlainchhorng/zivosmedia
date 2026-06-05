@@ -1,3 +1,5 @@
+import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
+
 type RedirectLocation = {
   hash?: string;
   pathname?: string;
@@ -25,14 +27,22 @@ const normalizeRedirectTarget = (value: string) => {
 const isTrustedZivoAuthHost = (hostname: string) =>
   TRUSTED_ZIVO_AUTH_HOSTS.has(hostname.toLowerCase());
 
+const authFallbackForHost = (hostname: string) =>
+  isZivoChatHost(hostname) ? ZIVO_CHAT_HOME_PATH : "/";
+
 export const getSafeRedirectTargetForHost = (
   value?: string | null,
   currentHostname?: string | null,
 ) => {
+  const currentHost = (
+    currentHostname ??
+    (typeof window !== "undefined" ? window.location.hostname : "")
+  ).toLowerCase();
+  const fallbackTarget = authFallbackForHost(currentHost);
   const normalizedValue = value?.trim();
 
   if (!normalizedValue) {
-    return "/";
+    return fallbackTarget;
   }
 
   let safeValue = normalizedValue;
@@ -40,10 +50,6 @@ export const getSafeRedirectTargetForHost = (
   if (/^https?:\/\//i.test(normalizedValue)) {
     try {
       const url = new URL(normalizedValue);
-      const currentHost = (
-        currentHostname ??
-        (typeof window !== "undefined" ? window.location.hostname : "")
-      ).toLowerCase();
 
       if (!currentHost) {
         return "/";
@@ -61,17 +67,21 @@ export const getSafeRedirectTargetForHost = (
       }
 
       if (isTrustedZivoBridge) {
+        if (isZivoChatHost(currentHost)) {
+          return ZIVO_CHAT_HOME_PATH;
+        }
+
         return url.toString();
       }
 
       safeValue = `${url.pathname}${url.search}${url.hash}`;
     } catch {
-      return "/";
+      return fallbackTarget;
     }
   }
 
   if (!safeValue.startsWith("/") || safeValue.startsWith("//")) {
-    return "/";
+    return fallbackTarget;
   }
 
   const isAuthRoute = AUTH_ROUTES.some(
@@ -81,7 +91,7 @@ export const getSafeRedirectTargetForHost = (
       safeValue.startsWith(`${route}#`),
   );
 
-  return isAuthRoute ? "/" : normalizeRedirectTarget(safeValue);
+  return isAuthRoute ? fallbackTarget : normalizeRedirectTarget(safeValue);
 };
 
 export const getSafeRedirectTarget = (value?: string | null) =>

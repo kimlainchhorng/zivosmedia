@@ -17,6 +17,7 @@ import {
   isAutoRepairSoftwareHost,
   isZivoSoftwareRedirectTarget,
 } from "@/config/autoRepairDomain";
+import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
 import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
@@ -147,11 +148,17 @@ function ZivoSoftwareLegalLinks({ connectHref }: { connectHref?: string }) {
 const Signup = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const isZivoSoftwareHost =
-    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
+  const isZivoSoftwareHost = isAutoRepairSoftwareHost(currentHostname);
+  const isZivoChatDomain = isZivoChatHost(currentHostname);
   const rawRedirect = params.get("redirect");
   const redirect = getSafeRedirectTarget(
-    rawRedirect || (isZivoSoftwareHost ? ZIVO_SOFTWARE_AUTH_REDIRECT_PATH : "/"),
+    rawRedirect ||
+      (isZivoSoftwareHost
+        ? ZIVO_SOFTWARE_AUTH_REDIRECT_PATH
+        : isZivoChatDomain
+          ? ZIVO_CHAT_HOME_PATH
+          : undefined),
   );
   const isZivoSoftwareDomain =
     isZivoSoftwareHost ||
@@ -336,10 +343,12 @@ const Signup = () => {
       isZivoSoftwareDomain ? "bg-[#f4f8f6] text-[#101412]" : "bg-white dark:bg-black"
     }`}>
       <SEOHead
-        title={isZivoSoftwareDomain ? "Create your ZIVO Software account" : "Create your ZIVO account"}
+        title={isZivoSoftwareDomain ? "Create your ZIVO Software account" : isZivoChatDomain ? "Create your ZIVO Chat account" : "Create your ZIVO account"}
         description={
           isZivoSoftwareDomain
             ? "Create a ZIVO Software account to launch and manage your business workspace."
+            : isZivoChatDomain
+              ? "Create a ZIVO Media account for ZIVO Chat."
             : "Sign up for ZIVO to search flights, hotels and more."
         }
       />
@@ -376,12 +385,16 @@ const Signup = () => {
                 <div className="relative w-14 h-14 rounded-2xl bg-ig-gradient flex items-center justify-center mb-4 shadow-lg shadow-rose-500/20">
                   <span className="brand-script-mark text-white font-black text-2xl tracking-tight italic">Z</span>
                 </div>
-                <h1 className="text-center text-3xl font-black tracking-[0.12em] text-zinc-900 dark:text-white">Zivo</h1>
+                <h1 className="text-center text-3xl font-black tracking-[0.12em] text-zinc-900 dark:text-white">
+                  {isZivoChatDomain ? "ZIVO Chat" : "Zivo"}
+                </h1>
               </>
             )}
             <p className="text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2 leading-snug">
               {isZivoSoftwareDomain ? (
                 <>Create your account to launch<br />a business workspace.</>
+              ) : isZivoChatDomain ? (
+                <>Create your ZIVO Media account<br />for chat.</>
               ) : (
                 <>Sign up to see photos and videos<br />from your friends.</>
               )}
@@ -593,7 +606,7 @@ const Signup = () => {
           </p>
         </div>
 
-        {!isZivoSoftwareDomain && (
+        {!isZivoSoftwareDomain && !isZivoChatDomain && (
           <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-500 mt-6">
             Want to drive?{" "}
             <a
