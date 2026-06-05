@@ -35,18 +35,12 @@ jobs:
 
       - run: npm ci --no-audit --no-fund
 
-      - name: Security scan
-        run: npm run security:scan
-
-      - name: Local deploy preflight
+      - name: Netlify preview build gate
         env:
+          NETLIFY: "true"
+          CONTEXT: deploy-preview
           NODE_OPTIONS: "--max-old-space-size=8192"
-        run: npm run deploy:preflight:local
-
-      - name: Build
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
-        run: npm run build
+        run: node scripts/deploy/netlify-build.mjs
 
       - name: Check Netlify secrets
         id: netlify-secrets
