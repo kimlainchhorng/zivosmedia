@@ -41,6 +41,7 @@ import Tv from "lucide-react/dist/esm/icons/tv";
 import { BUS_AMENITIES, type BusVehicleAmenity } from "@/config/busVehicleTypes";
 import BusInlinePaymentForm from "@/components/bus/BusInlinePaymentForm";
 import KHQRPaymentModal from "@/components/shop/KHQRPaymentModal";
+import { PageTransition } from "@/components/zivo-travel/PageTransition";
 
 type Step = "search" | "results" | "seats" | "summary" | "pay" | "confirmed";
 type PayMethod = "card" | "khqr";
@@ -79,6 +80,14 @@ type PopularBusRoute = {
   minPriceCents: number | null;
   currency: string | null;
   real: boolean;
+};
+
+type CommandLayer = {
+  title: string;
+  eyebrow: string;
+  body: string;
+  icon: typeof Bus;
+  tone: string;
 };
 
 const AMENITY_KEYS: BusVehicleAmenity[] = BUS_AMENITIES.map((a) => a.value);
@@ -533,6 +542,108 @@ const BusOperatorLogo = ({ trip, size = "md" }: { trip: BusTrip; size?: "sm" | "
   );
 };
 
+const busCommandLayers: CommandLayer[] = [
+  {
+    title: "Search",
+    eyebrow: "01 Route",
+    body: "Origin, destination, date, and passenger count stay in one trip layer.",
+    icon: MapPin,
+    tone: "from-sky-500/18 to-cyan-400/10 text-sky-600",
+  },
+  {
+    title: "Choose seats",
+    eyebrow: "02 Seat map",
+    body: "Pick exact seats with a live hold before checkout.",
+    icon: Ticket,
+    tone: "from-emerald-500/18 to-teal-400/10 text-emerald-600",
+  },
+  {
+    title: "Pay",
+    eyebrow: "03 Secure",
+    body: "Card and KHQR paths connect into booking records.",
+    icon: CreditCard,
+    tone: "from-violet-500/18 to-fuchsia-400/10 text-violet-600",
+  },
+  {
+    title: "Travel",
+    eyebrow: "04 Ticket",
+    body: "Ticket, route, seats, and operator details stay together.",
+    icon: ShieldCheck,
+    tone: "from-orange-500/18 to-amber-400/10 text-orange-600",
+  },
+];
+
+const BusCommandLayerCard = ({ layer, index }: { layer: CommandLayer; index: number }) => {
+  const Icon = layer.icon;
+  return (
+    <motion.div
+      className={cn(
+        "group relative min-h-[8.5rem] overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-[0_22px_54px_rgba(15,23,42,0.10)]",
+        "before:absolute before:inset-0 before:bg-gradient-to-br before:opacity-100",
+        layer.tone,
+      )}
+      whileHover={{ y: -4, rotateX: 2, rotateY: index % 2 === 0 ? -2 : 2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 180, damping: 18 }}
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      <div className="relative z-10 flex h-full flex-col justify-between gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <span className="rounded-full bg-white/78 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm">
+            {layer.eyebrow}
+          </span>
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/88 shadow-[0_12px_28px_rgba(15,23,42,0.12)]">
+            <Icon className="h-5 w-5" />
+          </span>
+        </div>
+        <div>
+          <p className="text-base font-black text-slate-950">{layer.title}</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{layer.body}</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const BusTripCommandStrip = ({
+  from,
+  to,
+  date,
+  passengers,
+}: {
+  from: string;
+  to: string;
+  date: string;
+  passengers: number;
+}) => {
+  const displayDate = new Date(`${date}T00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return (
+    <section className="relative overflow-hidden rounded-[1.6rem] border border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f8fbff_55%,#eef8ff)] p-3 shadow-[0_24px_70px_rgba(15,23,42,0.10)] sm:p-4">
+      <div className="pointer-events-none absolute -right-16 -top-24 h-52 w-52 rounded-full bg-emerald-300/24 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -bottom-24 left-12 h-52 w-52 rounded-full bg-sky-300/24 blur-3xl" aria-hidden />
+
+      <div className="relative z-10 mb-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-center">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-600">Bus trip stack</p>
+          <h2 className="mt-1 text-xl font-black leading-tight text-slate-950 sm:text-2xl">
+            Search, seat map, payment, and ticket in one flow.
+          </h2>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white/78 px-3 py-2 shadow-sm">
+          <p className="truncate text-xs font-black text-slate-950">{from || "From"} → {to || "To"}</p>
+          <p className="mt-0.5 text-[11px] font-bold text-slate-500">{displayDate} · {passengers} {passengers > 1 ? "passengers" : "passenger"}</p>
+        </div>
+      </div>
+
+      <div className="relative z-10 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {busCommandLayers.map((layer, index) => (
+          <BusCommandLayerCard key={layer.title} layer={layer} index={index} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 export default function BusBookingPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -838,7 +949,7 @@ export default function BusBookingPage() {
         noIndex={!isTravelHost}
       />
       <AppLayout title={stepTitle[step]} showBack onBack={handleBack}>
-        <div className="mx-auto w-full max-w-6xl px-3 pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] pt-2 sm:px-4 sm:pb-28 sm:pt-4 lg:pb-6">
+        <PageTransition className="mx-auto w-full max-w-6xl px-3 pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] pt-2 sm:px-4 sm:pb-28 sm:pt-4 lg:pb-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -873,6 +984,7 @@ export default function BusBookingPage() {
                 <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-4">
                   <div className="space-y-3 sm:space-y-4">
                     <TravelBusHero from={from} to={to} date={date} passengers={passengers} />
+                    <BusTripCommandStrip from={from} to={to} date={date} passengers={passengers} />
 
                     {/* From / To */}
                     <div className="relative rounded-xl border border-border bg-card p-1.5 sm:rounded-2xl sm:p-2">
@@ -1394,7 +1506,7 @@ export default function BusBookingPage() {
               )}
             </motion.div>
           </AnimatePresence>
-        </div>
+        </PageTransition>
 
         {/* KHQR / ABA PayWay QR payment */}
         <KHQRPaymentModal
