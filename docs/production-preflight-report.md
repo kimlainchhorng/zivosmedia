@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-05T18:03:59.253Z
+Generated: 2026-06-05T18:14:46.611Z
 Mode: soft
 Options: strict=no, skipBuild=no, skipTypeCheck=yes
 
@@ -18,7 +18,7 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
 - Override JSON freshness window: append `-- --max-age-minutes=60`
 - Require a strict-mode summary: append `-- --require-mode=strict`
 - TypeScript SIGTERM/resource notes: `docs/typescript-preflight-resource-notes.md`
-- API readiness: critical=1, warnings=14
+- API readiness: critical=0, warnings=14
 - Environment readiness: critical=0, warnings=0
 - Runtime settings SQL: passed
 - Database readiness: blockers=1, warnings=1
@@ -139,7 +139,7 @@ select pg_reload_conf();
   "reconciliationPlan": "docs/supabase-migration-reconciliation-plan.md",
   "pendingLocalReviewReport": "docs/supabase-migration-pending-local-review.csv",
   "reconciliationRepairDraft": "docs/supabase-migration-reconciliation-repair-draft.sql",
-  "remoteError": "Initialising login role...\n2026/06/05 11:03:48 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable."
+  "remoteError": "Initialising login role...\n2026/06/05 11:14:34 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable."
 }
 ```
 
@@ -190,28 +190,22 @@ select pg_reload_conf();
 
 ```json
 {
-  "critical": 1,
+  "critical": 0,
   "warnings": 14,
   "edgeFunctions": {
     "total": 402,
     "highRisk": 136,
-    "withSecurity": 401,
-    "strictCors": 401,
-    "methodGated": 401,
+    "withSecurity": 402,
+    "strictCors": 402,
+    "methodGated": 402,
     "serviceRole": 345,
     "highRiskMissingSecurity": [],
     "highRiskMissingMethodGate": [],
-    "missingWithSecurity": [
-      "supabase/functions/software-media-handoff/index.ts"
-    ],
-    "missingStrictCors": [
-      "supabase/functions/software-media-handoff/index.ts"
-    ],
+    "missingWithSecurity": [],
+    "missingStrictCors": [],
     "missingMethodGate": [],
     "wildcardCors": [],
-    "looseRouteBacklog": [
-      "supabase/functions/software-media-handoff/index.ts"
-    ]
+    "looseRouteBacklog": []
   },
   "migrationDrift": {
     "local": 1097,
@@ -257,7 +251,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:03:49.537Z",
+  "generated": "2026-06-05T18:14:35.608Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -305,7 +299,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:03:49.579Z",
+  "generated": "2026-06-05T18:14:35.649Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 82,
@@ -437,7 +431,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:03:50.204Z",
+  "generated": "2026-06-05T18:14:36.279Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2786,
@@ -560,7 +554,6 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Production Blockers
 
-- API readiness has 1 critical finding(s).
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
 - Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
@@ -572,4 +565,4 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Current Gate Blockers
 
-- API readiness has 1 critical finding(s).
+- None

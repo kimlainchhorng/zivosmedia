@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-06-05T18:03:59.255Z",
+  "generated": "2026-06-05T18:14:46.626Z",
   "mode": "soft",
   "options": {
     "strict": false,
     "skipBuild": false,
     "skipTypeCheck": true
   },
-  "readyForCurrentGate": false,
+  "readyForCurrentGate": true,
   "readyForProductionGate": false,
   "counts": {
-    "apiCritical": 1,
+    "apiCritical": 0,
     "apiWarnings": 14,
     "environmentCritical": 0,
     "environmentWarnings": 0,
@@ -20,8 +20,8 @@
     "edgeFunctionMissingLiveCritical": 6,
     "edgeFunctionBrowserGateFailures": 0,
     "failedCommands": 0,
-    "productionBlockers": 9,
-    "currentGateBlockers": 1
+    "productionBlockers": 8,
+    "currentGateBlockers": 0
   },
   "supabase": {
     "envAccessToken": false,
@@ -104,7 +104,6 @@
   },
   "blockers": {
     "production": [
-      "API readiness has 1 critical finding(s).",
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
       "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
@@ -114,9 +113,7 @@
       "Supabase remote migration history is unavailable (access_token_missing).",
       "Supabase migrations have 6 unresolved duplicate version(s)."
     ],
-    "currentGate": [
-      "API readiness has 1 critical finding(s)."
-    ],
+    "currentGate": [],
     "failedCommands": []
   },
   "steps": [
@@ -193,12 +190,12 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 18930
+      "bytes": 18659
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 7259
+      "bytes": 7154
     },
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
@@ -213,7 +210,7 @@
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 4808
+      "bytes": 4675
     },
     "reconciliationPlan": {
       "path": "docs/supabase-migration-reconciliation-plan.md",
@@ -250,6 +247,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 180145
+    "bytes": 179636
   }
 }

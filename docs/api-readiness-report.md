@@ -1,18 +1,18 @@
 # API Readiness Report
 
-Generated: 2026-06-05T18:03:49.505Z
+Generated: 2026-06-05T18:14:35.574Z
 
 ## Summary
 
-- Critical findings: 1
+- Critical findings: 0
 - Warnings: 14
 - Edge Functions inventoried: 402
 - High-risk Edge Functions: 136
-- Functions using withSecurity(): 401
-- Functions using strictCorsHeaders(): 401
-- Method-gated Edge Functions: 401
+- Functions using withSecurity(): 402
+- Functions using strictCorsHeaders(): 402
+- Method-gated Edge Functions: 402
 - Functions using service role: 345
-- Loose Edge Function security backlog: 1
+- Loose Edge Function security backlog: 0
 - Method gate backlog: 0
 - Required public env documented: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
 - Recommended backend env documented: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
@@ -23,7 +23,7 @@ Generated: 2026-06-05T18:03:49.505Z
 
 ## Critical
 
-- [edge-function-security-backlog] Every Edge Function must use withSecurity(), strict CORS, and avoid literal wildcard origins.
+- No critical API readiness issues found.
 
 ## Warnings
 
@@ -52,7 +52,7 @@ Generated: 2026-06-05T18:03:49.505Z
 
 ## Loose Edge Function Security Backlog
 
-- supabase/functions/software-media-handoff/index.ts
+- None
 
 ## Next Hardening Moves
 
