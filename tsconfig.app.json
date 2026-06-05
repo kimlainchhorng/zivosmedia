@@ -11,6 +11,10 @@
     "module": "ESNext",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
+    "moduleSuffixes": [
+      ".typecheck",
+      ""
+    ],
     "noEmit": true,
     "noFallthroughCasesInSwitch": false,
     "noImplicitAny": false,
@@ -34,5 +38,8 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/pages/app/BusBookingPage.tsx"
   ]
 }

@@ -7,12 +7,13 @@ export const AUTO_REPAIR_SOFTWARE_HOSTS = new Set([
 
 export const ZIVO_SOFTWARE_HOME_PATH = "/business";
 
-export const ZIVO_SOFTWARE_SUPABASE_URL = "https://ydxztoresbdeoeijhxww.supabase.co";
+export const ZIVO_SOFTWARE_SUPABASE_URL =
+  import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_URL || "https://ydxztoresbdeoeijhxww.supabase.co";
 
 export const ZIVO_SOFTWARE_SUPABASE_PROJECT_ID = "ydxztoresbdeoeijhxww";
 
 export const ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_uZ-GdApCM_hzdmOGiwokDg_G7MxTf41";
+  import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY || "";
 
 export const AUTO_REPAIR_SOFTWARE_PATH = `/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}`;
 

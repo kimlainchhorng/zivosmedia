@@ -96,22 +96,30 @@ describe("deploy workflow gates", () => {
 
   it("keeps direct Netlify builds gated by local preflight and secret scanning", () => {
     const config = read("netlify.toml");
+    const netlifyBuild = read("scripts/deploy/netlify-build.mjs");
 
     expect(config).toContain('[build]');
-    expect(config).toContain('command = "npm run security:scan && npm run deploy:preflight:local"');
+    expect(config).toContain('command = "node scripts/deploy/netlify-build.mjs"');
     expect(config).toContain('publish = "dist"');
     expect(config).not.toContain('command = "npm run build"');
+    expect(netlifyBuild).toContain('run("Security scan", ["run", "security:scan"])');
+    expect(netlifyBuild).toContain('context !== "production"');
+    expect(netlifyBuild).toContain('run("Local deploy preflight", ["run", "deploy:preflight:local"])');
+    expect(netlifyBuild).toContain('run("Production build", ["run", "build"])');
   });
 
-  it("keeps preview deploy gated by local preflight and secret scanning", () => {
+  it("keeps preview deploy gated by the Netlify preview build wrapper", () => {
     const standalonePreview = read(".github/workflows/netlify-preview.yml");
     const cdWorkflow = read(".github/workflows/cd.yml");
 
     for (const workflow of [standalonePreview, cdWorkflow]) {
       expect(workflow).toContain('node-version-file: ".nvmrc"');
-      expect(workflow).toContain("npm run security:scan");
-      expect(workflow).toContain("npm run deploy:preflight:local");
-      expect(workflow.indexOf("Local deploy preflight")).toBeLessThan(workflow.indexOf("Deploy preview to Netlify"));
+      expect(workflow).toContain("Netlify preview build gate");
+      expect(workflow).toContain("NETLIFY: \"true\"");
+      expect(workflow).toContain("CONTEXT: deploy-preview");
+      expect(workflow).toContain("node scripts/deploy/netlify-build.mjs");
+      expect(workflow).not.toContain("npm run deploy:preflight:local");
+      expect(workflow.indexOf("Netlify preview build gate")).toBeLessThan(workflow.indexOf("Deploy preview to Netlify"));
       expect(workflow).toContain("id: netlify-secrets");
       expect(workflow).toContain("steps.netlify-secrets.outputs.available == 'true'");
       expect(workflow).toContain("Skipping Netlify preview deploy because NETLIFY_AUTH_TOKEN or NETLIFY_SITE_ID is missing.");
