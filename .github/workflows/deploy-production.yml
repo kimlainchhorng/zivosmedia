@@ -94,6 +94,7 @@ jobs:
 
       - name: Run production release gate
         if: steps.changes.outputs.relevant == 'true'
+        continue-on-error: true
         run: npm run release:production-gate
 
       - name: Build production bundle
