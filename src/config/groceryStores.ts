@@ -14,6 +14,7 @@ export type StoreName =
   | "Kroger";
 
 export type StoreCategory =
+  | "software"
   | "grocery"
   | "food-market"
   | "fashion"
@@ -53,58 +54,7 @@ export type StoreCategory =
   | "other";
 
 export const STORE_CATEGORY_OPTIONS: { value: StoreCategory; label: string; group?: string }[] = [
-  // 🏨 Stay
-  { value: "hotel", label: "Hotel", group: "Hotels & Resorts" },
-  { value: "resort", label: "Resort", group: "Hotels & Resorts" },
-  { value: "guesthouse", label: "Guesthouse / B&B", group: "Hotels & Resorts" },
-
-  // 🍽️ Food & Drink
-  { value: "restaurant", label: "Restaurant", group: "Food & Drink" },
-  { value: "cafe", label: "Coffee Shop / Café", group: "Food & Drink" },
-  { value: "bakery", label: "Bakery", group: "Food & Drink" },
-  { value: "drink", label: "Bar / Drinks", group: "Food & Drink" },
-
-  // 🛒 Shopping & Markets
-  { value: "grocery", label: "Grocery", group: "Shopping & Markets" },
-  { value: "supermarket", label: "Supermarket", group: "Shopping & Markets" },
-  { value: "convenience", label: "Convenience Store", group: "Shopping & Markets" },
-  { value: "food-market", label: "Food Market", group: "Shopping & Markets" },
-  { value: "mall", label: "Mall", group: "Shopping & Markets" },
-  { value: "fashion", label: "Fashion / Clothing", group: "Shopping & Markets" },
-  { value: "electronics", label: "Electronics", group: "Shopping & Markets" },
-  { value: "pharmacy", label: "Pharmacy", group: "Shopping & Markets" },
-  { value: "hardware", label: "Hardware Store", group: "Shopping & Markets" },
-  { value: "florist", label: "Florist", group: "Shopping & Markets" },
-  { value: "bookstore", label: "Bookstore", group: "Shopping & Markets" },
-  { value: "jewelry", label: "Jewelry", group: "Shopping & Markets" },
-  { value: "pet-shop", label: "Pet Shop", group: "Shopping & Markets" },
-  { value: "toys", label: "Toy Store", group: "Shopping & Markets" },
-  { value: "furniture", label: "Furniture", group: "Shopping & Markets" },
-  { value: "home-decor", label: "Home Decor", group: "Shopping & Markets" },
-  { value: "sporting-goods", label: "Sporting Goods", group: "Shopping & Markets" },
-
-  // 🚗 Auto
-  { value: "car-rental", label: "Rental Car", group: "Auto" },
-  { value: "car-dealership", label: "Car Dealership", group: "Auto" },
-  { value: "auto-repair", label: "Auto Repair", group: "Auto" },
-  { value: "tire-shop", label: "Tire Shop", group: "Auto" },
-  { value: "auto-parts", label: "Auto Parts", group: "Auto" },
-  { value: "gas-station", label: "Gas Station", group: "Auto" },
-
-  // 🚌 Transport
-  { value: "bus", label: "Bus", group: "Transport" },
-  { value: "van", label: "Van / Minivan", group: "Transport" },
-
-  // 💆 Beauty & Wellness
-  { value: "salon", label: "Salon / Barber", group: "Beauty & Wellness" },
-  { value: "spa", label: "Spa & Massage", group: "Beauty & Wellness" },
-  { value: "gym", label: "Gym & Fitness", group: "Beauty & Wellness" },
-
-  // 🧺 Services
-  { value: "laundry", label: "Laundry & Dry Clean", group: "Services" },
-
-  // Misc
-  { value: "other", label: "Other", group: "Other" },
+  { value: "software", label: "Software Business Page", group: "Software" },
 ];
 
 export const GROCERY_MARKETPLACE_CATEGORIES: StoreCategory[] = [
