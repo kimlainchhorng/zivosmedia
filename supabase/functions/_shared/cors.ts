@@ -37,6 +37,8 @@ const ALLOWED_ORIGINS = new Set<string>([
   "https://www.zivosmedia.com",
   "https://app.zivosmedia.com",
   "https://preview.zivosmedia.com",
+  "https://zivoschat.com",
+  "https://www.zivoschat.com",
   "https://zivosoftware.com",
   "https://www.zivosoftware.com",
   "https://zivo-web.myzivo.workers.dev",
@@ -51,6 +53,7 @@ const ALLOWED_ORIGINS = new Set<string>([
 // Domains whose origin prefixes are allowed (e.g. branch previews).
 const ALLOWED_ORIGIN_SUFFIXES = [
   ".zivosmedia.com",
+  ".zivoschat.com",
   ".zivosoftware.com",
   ".myzivo.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),

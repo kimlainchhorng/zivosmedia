@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-05T12:57:22.361Z
+Generated: 2026-06-05T14:29:27.646Z
 Mode: soft
 Options: strict=no, skipBuild=no, skipTypeCheck=yes
 
@@ -18,20 +18,20 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
 - Override JSON freshness window: append `-- --max-age-minutes=60`
 - Require a strict-mode summary: append `-- --require-mode=strict`
 - TypeScript SIGTERM/resource notes: `docs/typescript-preflight-resource-notes.md`
-- API readiness: critical=0, warnings=6
+- API readiness: critical=0, warnings=7
 - Environment readiness: critical=0, warnings=0
 - Runtime settings SQL: passed
-- Database readiness: blockers=1, warnings=1
+- Database readiness: blockers=2, warnings=1
 - Edge Function deploy contracts: failures=0
 - Edge Function slot readiness: mode=local-plus-known-live-gap, missingLiveCritical=6, warnings=1, failures=0
 - Edge Function browser gates: gatedFunctions=6, failures=0
-- Supabase auth: envAccessToken=no, driftAccessToken=no
-- Supabase remote migration history read: no
-- Supabase remote migration history status: access_token_missing
-- Migration drift: duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, linkedHistoryDisconnected=no, remoteError=yes
-- Reconciliation: candidates=0, highConfidence=0, mediumConfidence=0, unmatchedLocal=1094, unmatchedRemote=0, likelyPendingLocal=0
-- Reconciliation review order: high-confidence candidate mappings (0) -> medium-confidence candidate mappings (0) -> unmatched local migrations after candidates (1094) -> unmatched remote versions after candidates (0) -> likely pending local migrations after remote range (0)
-- Pending migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Supabase auth: envAccessToken=yes, driftAccessToken=yes
+- Supabase remote migration history read: yes
+- Supabase remote migration history status: read
+- Migration drift: duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, linkedHistoryDisconnected=yes, remoteError=no
+- Reconciliation: candidates=616, highConfidence=584, mediumConfidence=32, unmatchedLocal=480, unmatchedRemote=915, likelyPendingLocal=17
+- Reconciliation review order: high-confidence candidate mappings (584) -> medium-confidence candidate mappings (32) -> unmatched local migrations after candidates (480) -> unmatched remote versions after candidates (915) -> likely pending local migrations after remote range (17)
+- Pending migration gates: createsTables=3, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Steps
 
@@ -51,12 +51,15 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
   "warnings": 0,
   "checked": {
     "viteSupabaseUrl": true,
+    "zivoSoftwareSupabaseUrl": true,
+    "zivoSoftwarePublishableKey": true,
+    "zivoSoftwareDomainRequired": false,
     "backendSupabaseUrl": false,
     "publishableKey": true,
     "anonKey": false,
     "runtimeSettingsSqlInputs": false,
     "serviceRoleKey": false,
-    "supabaseAccessToken": false,
+    "supabaseAccessToken": true,
     "channelOgUrl": false
   },
   "findings": []
@@ -72,7 +75,7 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
 -- Supabase runtime settings for database-side Edge Function calls
 -- Review before running in the Supabase SQL editor.
 -- Preview mode used VITE_SUPABASE_PUBLISHABLE_KEY; use SUPABASE_ANON_KEY with --strict for production cron auth.
-alter database postgres set "app.settings.supabase_url" = 'https://slirphzzwcogdbkeicff.supabase.co';
+alter database postgres set "app.settings.supabase_url" = 'https://ydxztoresbdeoeijhxww.supabase.co';
 alter database postgres set "app.settings.supabase_anon_key" = '<redacted: set SUPABASE_ANON_KEY and rerun with --emit-secrets>';
 select pg_reload_conf();
 ```
@@ -84,30 +87,30 @@ select pg_reload_conf();
 
 ```json
 {
-  "localMigrations": 1094,
+  "localMigrations": 1096,
   "invalidFilenames": 0,
   "duplicateVersions": 6,
   "allowedDuplicateVersions": 0,
   "newDuplicateVersions": 6,
   "duplicateHashes": 0,
-  "supabaseAccessToken": false,
-  "remoteMigrations": 0,
+  "supabaseAccessToken": true,
+  "remoteMigrations": 1531,
   "matchedVersions": 0,
-  "linkedHistoryDisconnected": false,
-  "localOnlyPending": 1094,
-  "remoteOnlyMissingLocally": 0,
-  "nearTimestampPairsWithinFiveSeconds": 0,
-  "nearTimestampPairsWithinOneMinute": 0,
-  "oneToOneReconciliationCandidatesWithinFiveSeconds": 0,
-  "oneToOneReconciliationCandidatesWithinOneMinute": 0,
-  "sharedMigrationCalendarDays": 0,
-  "reconciliationCandidates": 0,
-  "unmatchedLocalAfterReconciliationCandidates": 1094,
-  "unmatchedRemoteAfterReconciliationCandidates": 0,
-  "unmatchedLocalAfterRemoteRange": 0,
+  "linkedHistoryDisconnected": true,
+  "localOnlyPending": 1096,
+  "remoteOnlyMissingLocally": 1531,
+  "nearTimestampPairsWithinFiveSeconds": 585,
+  "nearTimestampPairsWithinOneMinute": 618,
+  "oneToOneReconciliationCandidatesWithinFiveSeconds": 584,
+  "oneToOneReconciliationCandidatesWithinOneMinute": 616,
+  "sharedMigrationCalendarDays": 88,
+  "reconciliationCandidates": 616,
+  "unmatchedLocalAfterReconciliationCandidates": 480,
+  "unmatchedRemoteAfterReconciliationCandidates": 915,
+  "unmatchedLocalAfterRemoteRange": 17,
   "unmatchedRemoteBeforeLocalRange": 0,
   "pendingLocalRiskGates": {
-    "createsTables": 0,
+    "createsTables": 3,
     "withoutRls": 0,
     "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
@@ -125,18 +128,18 @@ select pg_reload_conf();
     "legacyAnonJwts": 0
   },
   "pendingRisk": {
-    "high": 1018,
+    "high": 1020,
     "medium": 53,
     "low": 23
   },
-  "report": "docs/supabase-migration-drift-report.md",
-  "reconciliationCandidatesReport": "docs/supabase-migration-reconciliation-candidates.csv",
-  "unmatchedLocalReport": "docs/supabase-migration-unmatched-local.csv",
-  "unmatchedRemoteReport": "docs/supabase-migration-unmatched-remote.csv",
-  "reconciliationPlan": "docs/supabase-migration-reconciliation-plan.md",
-  "pendingLocalReviewReport": "docs/supabase-migration-pending-local-review.csv",
-  "reconciliationRepairDraft": "docs/supabase-migration-reconciliation-repair-draft.sql",
-  "remoteError": "Initialising login role...\n2026/06/05 05:57:08 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable."
+  "report": "docs\\supabase-migration-drift-report.md",
+  "reconciliationCandidatesReport": "docs\\supabase-migration-reconciliation-candidates.csv",
+  "unmatchedLocalReport": "docs\\supabase-migration-unmatched-local.csv",
+  "unmatchedRemoteReport": "docs\\supabase-migration-unmatched-remote.csv",
+  "reconciliationPlan": "docs\\supabase-migration-reconciliation-plan.md",
+  "pendingLocalReviewReport": "docs\\supabase-migration-pending-local-review.csv",
+  "reconciliationRepairDraft": "docs\\supabase-migration-reconciliation-repair-draft.sql",
+  "remoteError": null
 }
 ```
 
@@ -147,9 +150,9 @@ select pg_reload_conf();
 
 ```json
 {
-  "blockers": 1,
+  "blockers": 2,
   "warnings": 1,
-  "localMigrations": 1094,
+  "localMigrations": 1096,
   "duplicateVersions": 6,
   "allowedDuplicateVersions": 0,
   "newDuplicateVersions": 6,
@@ -167,7 +170,7 @@ select pg_reload_conf();
   "cronAnonKeyRemediation": true,
   "cronRemediationRegexIssues": 0,
   "pendingLocalMigrationGates": {
-    "createsTables": 0,
+    "createsTables": 3,
     "withoutRls": 0,
     "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
@@ -188,7 +191,7 @@ select pg_reload_conf();
 ```json
 {
   "critical": 0,
-  "warnings": 6,
+  "warnings": 7,
   "edgeFunctions": {
     "total": 401,
     "highRisk": 136,
@@ -205,32 +208,32 @@ select pg_reload_conf();
     "looseRouteBacklog": []
   },
   "migrationDrift": {
-    "local": 1094,
+    "local": 1096,
     "duplicateVersions": 6,
     "allowedDuplicateVersions": 0,
     "newDuplicateVersions": 6,
-    "remote": 0,
+    "remote": 1531,
     "matched": 0,
-    "localOnly": 1094,
-    "remoteOnly": 0,
-    "nearFiveSeconds": 0,
-    "nearOneMinute": 0,
-    "oneToOneNearFiveSeconds": 0,
-    "oneToOneNearOneMinute": 0,
-    "unmatchedLocalAfterCandidates": 1094,
-    "unmatchedRemoteAfterCandidates": 0,
-    "unmatchedLocalAfterRemoteRange": 0,
+    "localOnly": 1096,
+    "remoteOnly": 1531,
+    "nearFiveSeconds": 585,
+    "nearOneMinute": 618,
+    "oneToOneNearFiveSeconds": 584,
+    "oneToOneNearOneMinute": 616,
+    "unmatchedLocalAfterCandidates": 480,
+    "unmatchedRemoteAfterCandidates": 915,
+    "unmatchedLocalAfterRemoteRange": 17,
     "unmatchedRemoteBeforeLocalRange": 0,
-    "pendingCreatesTables": 0,
+    "pendingCreatesTables": 3,
     "pendingCreatesTablesWithoutRls": 0,
     "pendingCreatesTablesWithoutGrants": 0,
     "pendingSequenceBackedIdsWithoutSequenceGrants": 0,
     "pendingSecurityDefinersWithoutSearchPath": 0,
     "pendingHardcodedSupabaseUrls": 0,
     "pendingLegacyAnonJwts": 0,
-    "sharedDays": 0,
-    "remoteError": true,
-    "currentLocal": 1094
+    "sharedDays": 88,
+    "remoteError": false,
+    "currentLocal": 1096
   },
   "operations": {
     "present": true,
@@ -248,7 +251,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T12:57:10.809Z",
+  "generated": "2026-06-05T14:28:57.166Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -296,7 +299,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T12:57:10.932Z",
+  "generated": "2026-06-05T14:28:57.276Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 81,
@@ -428,7 +431,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T12:57:12.336Z",
+  "generated": "2026-06-05T14:29:02.002Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2781,
@@ -484,7 +487,7 @@ select pg_reload_conf();
 ```text
 Media readiness report: 31 issue(s) across 6 file(s).
 
-src/pages/Login.tsx
+src\pages\Login.tsx
   48: img missing loading="lazy"/SmartImage
   48: img missing decoding="async"/SmartImage
   49: img missing loading="lazy"/SmartImage
@@ -494,7 +497,7 @@ src/pages/Login.tsx
   114: img missing loading="lazy"/SmartImage
   114: img missing decoding="async"/SmartImage
 
-src/pages/Signup.tsx
+src\pages\Signup.tsx
   48: img missing loading="lazy"/SmartImage
   48: img missing decoding="async"/SmartImage
   49: img missing loading="lazy"/SmartImage
@@ -504,24 +507,24 @@ src/pages/Signup.tsx
   114: img missing loading="lazy"/SmartImage
   114: img missing decoding="async"/SmartImage
 
-src/pages/app/BusOperatorConsole.tsx
+src\pages\app\BusOperatorConsole.tsx
   1130: img missing loading="lazy"/SmartImage
   1130: img missing decoding="async"/SmartImage
 
-src/pages/business/BusinessLandingPage.tsx
-  314: img missing decoding="async"/SmartImage
+src\pages\business\BusinessLandingPage.tsx
+  281: img missing decoding="async"/SmartImage
 
-src/pages/business/BusinessSoftwarePortalPage.tsx
-  382: img missing loading="lazy"/SmartImage
-  382: img missing decoding="async"/SmartImage
-  441: img missing loading="lazy"/SmartImage
-  441: img missing decoding="async"/SmartImage
+src\pages\business\BusinessSoftwarePortalPage.tsx
+  350: img missing loading="lazy"/SmartImage
+  350: img missing decoding="async"/SmartImage
+  409: img missing loading="lazy"/SmartImage
+  409: img missing decoding="async"/SmartImage
+  483: img missing loading="lazy"/SmartImage
+  483: img missing decoding="async"/SmartImage
   515: img missing loading="lazy"/SmartImage
   515: img missing decoding="async"/SmartImage
-  547: img missing loading="lazy"/SmartImage
-  547: img missing decoding="async"/SmartImage
 
-src/pages/channels/ChannelPage.tsx
+src\pages\channels\ChannelPage.tsx
   430: img missing loading="lazy"/SmartImage
   430: img missing decoding="async"/SmartImage
   459: img missing loading="lazy"/SmartImage
@@ -541,23 +544,22 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Migration Reconciliation
 
-- Candidate mappings: 0
-- High-confidence candidates: 0
-- Medium-confidence candidates: 0
-- Unmatched local after candidates: 1094
-- Unmatched remote after candidates: 0
-- Likely pending local after remote range: 0
-- Review order: high-confidence candidate mappings (0) -> medium-confidence candidate mappings (0) -> unmatched local migrations after candidates (1094) -> unmatched remote versions after candidates (0) -> likely pending local migrations after remote range (0)
+- Candidate mappings: 616
+- High-confidence candidates: 584
+- Medium-confidence candidates: 32
+- Unmatched local after candidates: 480
+- Unmatched remote after candidates: 915
+- Likely pending local after remote range: 17
+- Review order: high-confidence candidate mappings (584) -> medium-confidence candidate mappings (32) -> unmatched local migrations after candidates (480) -> unmatched remote versions after candidates (915) -> likely pending local migrations after remote range (17)
 
 ## Production Blockers
 
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
-- Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
-- API readiness has 6 warning(s).
-- Database readiness has 1 blocker(s).
+- API readiness has 7 warning(s).
+- Database readiness has 2 blocker(s).
 - Database readiness has 1 warning(s).
-- Supabase remote migration history is unavailable (access_token_missing).
+- Supabase linked migration history is disconnected: local and remote have zero exact version matches.
 - Supabase migrations have 6 unresolved duplicate version(s).
 
 ## Current Gate Blockers

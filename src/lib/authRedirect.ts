@@ -8,6 +8,8 @@ const AUTH_ROUTES = ["/login", "/verify-otp", "/auth-callback"];
 const TRUSTED_ZIVO_AUTH_HOSTS = new Set([
   "zivosmedia.com",
   "www.zivosmedia.com",
+  "zivoschat.com",
+  "www.zivoschat.com",
   "zivosoftware.com",
   "www.zivosoftware.com",
 ]);

@@ -6,10 +6,17 @@ const buckets = new Map();
 const allowedOrigins = new Set([
   "https://zivosmedia.com",
   "https://www.zivosmedia.com",
+  "https://zivoschat.com",
+  "https://www.zivoschat.com",
   "https://zivosoftware.com",
   "https://www.zivosoftware.com",
   "https://zivollc.com",
   "https://www.zivollc.com",
+]);
+
+const CHAT_HOSTS = new Set([
+  "zivoschat.com",
+  "www.zivoschat.com",
 ]);
 
 const CSP_BASE =
@@ -17,6 +24,8 @@ const CSP_BASE =
 const CSP_REPORT_BY_HOST = new Map([
   ["zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
   ["www.zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
+  ["zivoschat.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
+  ["www.zivoschat.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
   ["zivosmedia.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
   ["www.zivosmedia.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
 ]);
@@ -47,6 +56,26 @@ function isRateLimited(request, url) {
 
   current.count += 1;
   return current.count > limit;
+}
+
+function chatHomeRedirect(request, url) {
+  if ((request.method !== "GET" && request.method !== "HEAD") || !CHAT_HOSTS.has(url.hostname)) {
+    return null;
+  }
+
+  if (url.pathname !== "/") {
+    return null;
+  }
+
+  const target = new URL(url.toString());
+  target.pathname = "/chat";
+  return new Response(null, {
+    status: 302,
+    headers: {
+      "cache-control": "no-store",
+      "location": target.toString(),
+    },
+  });
 }
 
 function securityHeaders(request, url) {
@@ -108,6 +137,11 @@ export default {
 
     if (isRateLimited(request, url)) {
       return json({ error: "Too many requests" }, 429, request, url);
+    }
+
+    const chatRedirect = chatHomeRedirect(request, url);
+    if (chatRedirect) {
+      return withSecurityHeaders(chatRedirect, request, url);
     }
 
     const response = await env.ASSETS.fetch(request);

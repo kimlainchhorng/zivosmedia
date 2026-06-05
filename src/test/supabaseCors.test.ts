@@ -9,6 +9,9 @@ describe("Supabase strict CORS origin allowlist", () => {
     expect(isOriginAllowed("https://myzivo.com")).toBe(true);
     expect(isOriginAllowed("https://www.myzivo.com")).toBe(true);
     expect(isOriginAllowed("https://app.myzivo.com")).toBe(true);
+    expect(isOriginAllowed("https://zivoschat.com")).toBe(true);
+    expect(isOriginAllowed("https://www.zivoschat.com")).toBe(true);
+    expect(isOriginAllowed("https://app.zivoschat.com")).toBe(true);
     expect(isOriginAllowed("https://zivosoftware.com")).toBe(true);
     expect(isOriginAllowed("https://www.zivosoftware.com")).toBe(true);
     expect(isOriginAllowed("https://app.zivosoftware.com")).toBe(true);

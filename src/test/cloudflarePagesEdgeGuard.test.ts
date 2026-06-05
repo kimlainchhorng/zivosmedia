@@ -38,12 +38,16 @@ describe("Cloudflare Pages edge guard", () => {
   it("routes CSP reports to the matching production Supabase project", async () => {
     const media = await worker.fetch(request("/"), env);
     const software = await worker.fetch(request("/", { headers: { host: "zivosoftware.com" } }), env);
+    const chat = await worker.fetch(request("/chat", { headers: { host: "zivoschat.com" } }), env);
 
     expect(media.headers.get("content-security-policy")).toContain(
       "report-uri https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report",
     );
     expect(software.headers.get("content-security-policy")).toContain(
       "report-uri https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report",
+    );
+    expect(chat.headers.get("content-security-policy")).toContain(
+      "report-uri https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report",
     );
   });
 
@@ -60,6 +64,21 @@ describe("Cloudflare Pages edge guard", () => {
     expect(allowed.headers.get("access-control-allow-origin")).toBe("https://zivosoftware.com");
     expect(allowed.headers.get("vary")).toBe("Origin");
     expect(rejected.headers.get("access-control-allow-origin")).toBe("https://zivosmedia.com");
+  });
+
+  it("allows the dedicated chat domain and redirects its root to /chat", async () => {
+    const cors = await worker.fetch(
+      request("/chat", { headers: { host: "zivoschat.com", Origin: "https://zivoschat.com" } }),
+      env,
+    );
+    const root = await worker.fetch(request("/", { headers: { host: "zivoschat.com" } }), env);
+
+    expect(cors.headers.get("access-control-allow-origin")).toBe("https://zivoschat.com");
+    expect(root.status).toBe(302);
+    expect(root.headers.get("location")).toBe("https://zivoschat.com/chat");
+    expect(root.headers.get("content-security-policy")).toContain(
+      "report-uri https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report",
+    );
   });
 
   it("blocks common secret and scanner paths before hitting static assets", async () => {

@@ -31,6 +31,9 @@ function getStorageKey() {
   if (host === "zivosoftware.com" || host === "www.zivosoftware.com") {
     return `${BASE_STORAGE_KEY}:software`;
   }
+  if (host === "zivoschat.com" || host === "www.zivoschat.com") {
+    return `${BASE_STORAGE_KEY}:chat`;
+  }
   if (host === "zivosmedia.com" || host === "www.zivosmedia.com") {
     return `${BASE_STORAGE_KEY}:media`;
   }

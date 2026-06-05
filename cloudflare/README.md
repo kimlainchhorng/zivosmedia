@@ -104,6 +104,17 @@ The Pages deploy script removes `dist/downloads` before upload because Cloudflar
 
 Your production domain is `zivosmedia.com`. The safe preview domain is `preview.zivosmedia.com`, pointed from Lovable DNS to `zivo-preview.pages.dev`.
 
+The dedicated chat domain is `zivoschat.com`. Point both `zivoschat.com` and
+`www.zivoschat.com` to the same Cloudflare-hosted app. The edge worker redirects
+the domain root to:
+
+```txt
+/chat
+```
+
+The React app keeps that host focused on chat, auth, legal, and account support
+routes so unrelated product surfaces redirect back to `/chat`.
+
 The dedicated business software domain is `zivosoftware.com`. Point both `zivosoftware.com` and `www.zivosoftware.com` to the same Cloudflare-hosted app. The React app restricts that host to business software flows only: the category portal, business setup, business software downloads, auth callbacks, and the auto repair workspace for store `a914b90d-c249-4794-ba5e-3fdac0deed44`. Consumer app routes such as Home, Reels, Chat, and Profile redirect back to:
 
 ```txt

@@ -1,0 +1,4 @@
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTimed out waiting for authorization code, please try again.[0m
+
+
+🪵  Logs were written to "C:\Users\chhor\AppData\Roaming\xdg.config\.wrangler\logs\wrangler-2026-06-05_14-42-49_630.log"

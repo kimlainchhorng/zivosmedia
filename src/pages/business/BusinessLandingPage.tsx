@@ -9,64 +9,31 @@ import {
   ArrowRight,
   BadgeCheck,
   BarChart3,
-  Car,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
   CreditCard,
-  Hotel,
   LayoutDashboard,
   LockKeyhole,
   MessageCircle,
   PackageCheck,
   Plus,
-  Scissors,
   ShieldCheck,
-  ShoppingBag,
   Sparkles,
-  Store,
-  Utensils,
-  Wrench,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { STORE_CATEGORY_OPTIONS } from "@/config/groceryStores";
-import bgCafe from "@/assets/bg-cafe.jpg";
 import bgOffice from "@/assets/bg-office.jpg";
-import hotelResort from "@/assets/hotel-resort.jpg";
-import serviceCars from "@/assets/service-cars.jpg";
-import serviceShopping from "@/assets/service-shopping.png";
-import serviceTire from "@/assets/service-tire.jpg";
-import zivoShopping from "@/assets/zivo-shopping.webp";
 
-const allowedGroups = [
-  "Hotels & Resorts",
-  "Food & Drink",
-  "Shopping & Markets",
-  "Auto",
-  "Transport",
-  "Beauty & Wellness",
-  "Services",
-];
+const allowedGroups = ["Software"];
 
 const groupImages: Record<string, string> = {
-  "Hotels & Resorts": hotelResort,
-  "Food & Drink": bgCafe,
-  "Shopping & Markets": zivoShopping,
-  Auto: serviceCars,
-  Transport: serviceShopping,
-  "Beauty & Wellness": bgOffice,
-  Services: serviceTire,
+  Software: bgOffice,
 };
 
-const groupIcons: Record<string, typeof Store> = {
-  "Hotels & Resorts": Hotel,
-  "Food & Drink": Utensils,
-  "Shopping & Markets": ShoppingBag,
-  Auto: Car,
-  Transport: Store,
-  "Beauty & Wellness": Scissors,
-  Services: Wrench,
+const groupIcons: Record<string, typeof LayoutDashboard> = {
+  Software: LayoutDashboard,
 };
 
 const groupedCategories = allowedGroups
@@ -79,7 +46,7 @@ const groupedCategories = allowedGroups
 const workflow = [
   {
     title: "Setup",
-    copy: "Create the business profile, choose an industry, invite staff, and connect the workspace.",
+    copy: "Create the software business profile, invite staff, and connect the workspace.",
     icon: Plus,
   },
   {
@@ -173,7 +140,7 @@ export default function BusinessLandingPage() {
         <title>ZIVO Software | Business Workspaces</title>
         <meta
           name="description"
-          content="Launch a ZIVO Software workspace for hotels, food, retail, auto, transport, wellness, and local service businesses."
+          content="Launch a software-only ZIVO Business Page with setup, dashboard access, customer records, invoices, reports, and secure team workflows."
         />
       </Helmet>
 
@@ -186,7 +153,7 @@ export default function BusinessLandingPage() {
               <div>
                 <div className="mb-16 flex justify-between gap-8 overflow-hidden">
                   {groupedCategories.map((entry) => {
-                    const Icon = groupIcons[entry.group] || Store;
+                    const Icon = groupIcons[entry.group] || LayoutDashboard;
                     return (
                       <a key={entry.group} href="#industries" className="group text-center">
                         <span className="ring-ig-gradient inline-flex h-[120px] w-[120px] items-center justify-center rounded-full p-[4px]">
@@ -204,13 +171,13 @@ export default function BusinessLandingPage() {
 
                 <p className="mb-9 inline-flex items-center gap-4 rounded-full border border-zinc-200 bg-white px-7 py-4 text-[23px] font-black shadow-sm">
                   <Sparkles className="h-7 w-7 text-pink-500" />
-                  Desktop-first software for local operators
+                  Desktop-first Software Business Page
                 </p>
                 <h1 className="max-w-[1230px] text-[86px] font-black leading-[0.93] tracking-normal text-zinc-950 md:text-[118px]">
-                  ZIVO Software for every local business workflow
+                  ZIVO Software for one focused business page
                 </h1>
                 <p className="mt-16 max-w-[1220px] text-[31px] font-medium leading-[1.55] text-zinc-600">
-                  Build a business workspace with setup, dashboard, bookings, work orders, payments,
+                  Build a software-only business workspace with setup, dashboard, bookings, work orders, payments,
                   customers, employees, reports, and secure account access from one clean website.
                 </p>
                 <div className="mt-16 flex flex-col gap-6 sm:flex-row">
@@ -221,13 +188,13 @@ export default function BusinessLandingPage() {
                     </Link>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="h-[90px] rounded-full border-zinc-300 bg-white px-12 text-[27px] font-black">
-                    <a href="#industries">Explore industries</a>
+                    <a href="#industries">View Business Page</a>
                   </Button>
                 </div>
                 <div className="mt-12 grid max-w-[600px] grid-cols-3 gap-4">
                   {[
-                    ["7", "Industry groups"],
-                    ["30+", "Business types"],
+                    ["1", "Business page"],
+                    ["1", "Software setup"],
                     ["1", "Software domain"],
                   ].map(([value, label]) => (
                     <div key={label} className="rounded-[22px] border border-zinc-200 bg-white p-5 shadow-sm">
@@ -275,7 +242,7 @@ export default function BusinessLandingPage() {
                   <p className="text-sm font-black uppercase tracking-[0.24em] text-pink-600">Workflow</p>
                   <h2 className="mt-3 text-4xl font-black tracking-normal">Setup, operate, and grow without leaving the workspace</h2>
                   <p className="mt-5 text-lg font-medium leading-8 text-zinc-600">
-                    The website path guides owners from sign up to setup, then sends them into the dashboard that matches their business type.
+                    The website path guides owners from sign up to setup, then sends them into the software dashboard for their Business Page.
                   </p>
                 </div>
                 <div className="grid gap-5 md:grid-cols-3">
@@ -302,12 +269,12 @@ export default function BusinessLandingPage() {
           <section id="industries" className="py-20">
             <div className="mx-auto max-w-[1280px] px-6">
               <div className="mb-10">
-                <p className="text-sm font-black uppercase tracking-[0.24em] text-sky-600">Industries</p>
-                <h2 className="mt-3 text-4xl font-black tracking-normal">Only the business software categories you asked for</h2>
+                <p className="text-sm font-black uppercase tracking-[0.24em] text-sky-600">Business Page</p>
+                <h2 className="mt-3 text-4xl font-black tracking-normal">Only the Software Business Page you asked for</h2>
               </div>
               <div className="grid gap-5 lg:grid-cols-7">
                 {groupedCategories.map((entry) => {
-                  const Icon = groupIcons[entry.group] || Store;
+                  const Icon = groupIcons[entry.group] || LayoutDashboard;
                   return (
                     <article key={entry.group} className="overflow-hidden rounded-[26px] border border-zinc-200 bg-white shadow-sm lg:col-span-1">
                       <div className="relative h-28">
@@ -365,7 +332,7 @@ export default function BusinessLandingPage() {
                   </div>
                 </div>
                 <div className="mt-6 space-y-3">
-                  {["Owner signs in", "Setup opens", "Dashboard routes by business type", "Backend checks role and store access"].map((item) => (
+                  {["Owner signs in", "Setup opens", "Dashboard opens software tools", "Backend checks role and store access"].map((item) => (
                     <div key={item} className="flex items-center gap-3 rounded-[18px] bg-white/[0.07] px-4 py-3">
                       <CheckCircle2 className="h-5 w-5 text-emerald-300" />
                       <span className="font-bold text-white/82">{item}</span>

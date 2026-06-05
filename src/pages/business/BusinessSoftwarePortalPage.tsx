@@ -7,28 +7,20 @@ import {
   BarChart3,
   Building2,
   CalendarCheck,
-  Car,
   CheckCircle2,
   ChevronRight,
   CircleDollarSign,
   ClipboardList,
   CreditCard,
-  Dumbbell,
   FileText,
   Gauge,
-  Hotel,
   Layers3,
   LayoutDashboard,
   Loader2,
   LockKeyhole,
   PackageCheck,
   Plus,
-  Scissors,
-  ShieldCheck,
-  ShoppingBag,
   Sparkles,
-  Store,
-  Utensils,
   Users,
   Wrench,
 } from "lucide-react";
@@ -38,45 +30,21 @@ import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStor
 import { useAuth } from "@/contexts/AuthContext";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
-import bgCafe from "@/assets/bg-cafe.jpg";
 import bgOffice from "@/assets/bg-office.jpg";
 import hotelBusiness from "@/assets/hotel-business.jpg";
-import hotelResort from "@/assets/hotel-resort.jpg";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
 import serviceTire from "@/assets/service-tire.jpg";
-import storeRideBg from "@/assets/store-ride-bg.jpg";
 import svcEatsPremium from "@/assets/svc-eats-premium.jpg";
-import zivoShopping from "@/assets/zivo-shopping.webp";
 
-const ALLOWED_GROUPS = [
-  "Hotels & Resorts",
-  "Food & Drink",
-  "Shopping & Markets",
-  "Auto",
-  "Transport",
-  "Beauty & Wellness",
-  "Services",
-];
+const ALLOWED_GROUPS = ["Software"];
 
 const GROUP_ICONS: Record<string, typeof Building2> = {
-  "Hotels & Resorts": Hotel,
-  "Food & Drink": Utensils,
-  "Shopping & Markets": ShoppingBag,
-  Auto: Car,
-  Transport: Store,
-  "Beauty & Wellness": Scissors,
-  Services: Dumbbell,
+  Software: LayoutDashboard,
 };
 
 const GROUP_IMAGES: Record<string, string> = {
-  "Hotels & Resorts": hotelResort,
-  "Food & Drink": bgCafe,
-  "Shopping & Markets": zivoShopping,
-  Auto: serviceCars,
-  Transport: storeRideBg,
-  "Beauty & Wellness": hotelBusiness,
-  Services: bgOffice,
+  Software: bgOffice,
 };
 
 const softwareCategories = STORE_CATEGORY_OPTIONS.filter(
@@ -112,8 +80,8 @@ const forceNavigate = (path: string) => (event: MouseEvent<HTMLAnchorElement>) =
 
 const workflowSteps = [
   {
-    title: "Choose industry",
-    description: "Start with the operating model that fits your team.",
+    title: "Choose software page",
+    description: "Start with the Software Business Page category.",
     icon: ClipboardList,
   },
   {
@@ -143,10 +111,10 @@ const operatingModules = [
 ];
 
 const pictureRail = [
-  { src: hotelBusiness, label: "Hospitality desk" },
-  { src: svcEatsPremium, label: "Food service" },
-  { src: serviceShopping, label: "Retail checkout" },
-  { src: serviceTire, label: "Auto shop" },
+  { src: hotelBusiness, label: "Business dashboard" },
+  { src: svcEatsPremium, label: "Customer workflow" },
+  { src: serviceShopping, label: "Sales and invoices" },
+  { src: serviceTire, label: "Service operations" },
 ];
 
 const suiteModules = [
@@ -225,7 +193,7 @@ export default function BusinessSoftwarePortalPage() {
         <title>ZIVO Software | Business Management Software</title>
         <meta
           name="description"
-          content="ZIVO Software for business operators. Create software workspaces for hotels, restaurants, shops, auto, transport, beauty, wellness, and services."
+          content="Create a software-only ZIVO Business Page with setup, dashboard access, customer records, invoices, reports, and secure team workflows."
         />
       </Helmet>
 
@@ -243,7 +211,7 @@ export default function BusinessSoftwarePortalPage() {
             <nav className="hidden items-center gap-8 text-sm font-semibold text-[#3f4742] md:flex" aria-label="ZIVO Software sections">
               <a href="#software" className="transition-colors hover:text-[#111412]">Software</a>
               <a href="#workflow" className="transition-colors hover:text-[#111412]">Workflow</a>
-              <a href="#industries" className="transition-colors hover:text-[#111412]">Industries</a>
+              <a href="#industries" className="transition-colors hover:text-[#111412]">Business Page</a>
               <a href="#security" className="transition-colors hover:text-[#111412]">Security</a>
             </nav>
 
@@ -292,10 +260,10 @@ export default function BusinessSoftwarePortalPage() {
           <div className="relative mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-8 px-5 py-10 sm:px-6 md:grid-cols-[0.92fr_1.08fr] lg:gap-12 lg:px-8 lg:py-16">
             <div className="max-w-2xl">
               <h1 className="max-w-4xl text-4xl font-black leading-[0.96] tracking-normal text-[#111412] sm:text-5xl lg:text-7xl">
-                Business software for every local operator
+                Software Business Page for local operators
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-[#58625d]">
-                Launch a dedicated workspace for hotels, food service, retail, auto, transport, wellness, and service teams.
+                Launch one software-only business workspace for setup, customers, invoices, operations, reports, and secure team access.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -306,14 +274,14 @@ export default function BusinessSoftwarePortalPage() {
                   </a>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="h-12 rounded-lg border-black/15 bg-white/80 px-6 text-[#111412] hover:bg-white">
-                  <a href="#industries">Explore industries</a>
+                  <a href="#industries">View Business Page</a>
                 </Button>
               </div>
 
               <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
                 {[
-                  ["7", "industry groups"],
-                  ["30+", "business types"],
+                  ["1", "business page"],
+                  ["1", "software setup"],
                   ["1", "software domain"],
                 ].map(([value, label]) => (
                   <div key={label} className="rounded-lg border border-black/10 bg-white/70 p-3 shadow-sm backdrop-blur lg:p-4">
@@ -392,7 +360,7 @@ export default function BusinessSoftwarePortalPage() {
               <div>
                 <h2 className="text-3xl font-black tracking-normal sm:text-4xl">Build the whole workflow</h2>
                 <p className="mt-4 max-w-lg text-base leading-7 text-white/62">
-                  ZIVO Software turns a business type into a working operating system: setup, daily work, payments, and reports.
+                  ZIVO Software turns one Business Page into a working operating system: setup, daily work, payments, and reports.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -420,7 +388,7 @@ export default function BusinessSoftwarePortalPage() {
               <div>
                 <h2 className="text-3xl font-black tracking-normal sm:text-4xl">One software suite for the workday</h2>
                 <p className="mt-3 max-w-xl text-base leading-7 text-[#58625d]">
-                  ZIVO Software gives each operator the right daily tools, then keeps customer, payment, and reporting data connected.
+                  ZIVO Software gives each business page the right daily tools, then keeps customer, payment, and reporting data connected.
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-2 rounded-lg border border-black/10 bg-[#f7f8f6] p-2">
@@ -458,12 +426,12 @@ export default function BusinessSoftwarePortalPage() {
         <section className="bg-[#e8f0ec] px-5 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto grid w-full max-w-7xl gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div>
-              <h2 className="text-3xl font-black tracking-normal text-[#111412] sm:text-4xl">A launch board for every business type</h2>
+              <h2 className="text-3xl font-black tracking-normal text-[#111412] sm:text-4xl">A launch board for your Software Business Page</h2>
               <p className="mt-4 max-w-xl text-base leading-7 text-[#58625d]">
-                The setup flow turns a category into a working command center with services, team roles, customer records, and finance tracking.
+                The setup flow creates one software business record, then opens the command center for services, team roles, customer records, and finance tracking.
               </p>
               <div className="mt-7 flex flex-wrap gap-2">
-                {["Industry setup", "Team roles", "Payments", "Reports"].map((item) => (
+                {["Software setup", "Team roles", "Payments", "Reports"].map((item) => (
                   <span key={item} className="rounded-md border border-black/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#51605a]">
                     {item}
                   </span>
@@ -477,7 +445,7 @@ export default function BusinessSoftwarePortalPage() {
                 <div className="flex items-center justify-between border-b border-black/10 pb-4">
                   <div>
                     <div className="text-xs font-black uppercase tracking-[0.14em] text-[#6b746f]">Launch board</div>
-                    <div className="mt-1 text-2xl font-black text-[#111412]">Repair shop</div>
+                    <div className="mt-1 text-2xl font-black text-[#111412]">Software page</div>
                   </div>
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#48e7af] text-[#102018]">
                     <Layers3 className="h-5 w-5" />
@@ -527,13 +495,13 @@ export default function BusinessSoftwarePortalPage() {
           <div className="mx-auto w-full max-w-7xl">
             <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-3xl font-black tracking-normal sm:text-4xl">Industries ready to launch</h2>
+                <h2 className="text-3xl font-black tracking-normal sm:text-4xl">Software Business Page ready to launch</h2>
                 <p className="mt-3 max-w-2xl text-base leading-7 text-[#58625d]">
-                  Pick a business type and start with the right workspace structure from day one.
+                  Start with the software-only business page category and keep the dashboard focused on business operations.
                 </p>
               </div>
               <Button asChild variant="outline" className="rounded-lg border-black/15 bg-white text-[#111412] hover:bg-black/5">
-                <a href={startPath()} onClick={forceNavigate(startPath())}>View all types</a>
+                <a href={startPath()} onClick={forceNavigate(startPath())}>Start setup</a>
               </Button>
             </div>
 
@@ -544,7 +512,7 @@ export default function BusinessSoftwarePortalPage() {
               return (
                 <section key={group} className="overflow-hidden rounded-lg border border-black/10 bg-[#fbfcfb] shadow-[0_18px_50px_rgba(18,28,24,0.06)]">
                   <div className="relative h-40 overflow-hidden bg-[#111412]">
-                    <img src={image} alt={`${group} business software`} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                    <img src={image} alt={`${group} business page software`} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
                     <div className="absolute bottom-4 left-4 flex items-center gap-2 text-white">
                       <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/16 backdrop-blur">
@@ -622,7 +590,7 @@ export default function BusinessSoftwarePortalPage() {
             <div>
               <h2 className="max-w-3xl text-3xl font-black tracking-normal sm:text-4xl">Start with the right business software today</h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-white/62">
-                Create a workspace for the category you need, then sign in from the software domain whenever the team comes back.
+                Create the software business page, then sign in from the software domain whenever the team comes back.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">

@@ -34,6 +34,8 @@ type Env = {
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://zivosmedia.com",
   "https://www.zivosmedia.com",
+  "https://zivoschat.com",
+  "https://www.zivoschat.com",
   "https://zivosoftware.com",
   "https://www.zivosoftware.com",
   "https://zivollc.com",
@@ -50,6 +52,11 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:8081",
   "http://localhost:5173",
 ];
+
+const CHAT_HOSTS = new Set([
+  "zivoschat.com",
+  "www.zivoschat.com",
+]);
 
 const immutableCache = "public, max-age=31536000, immutable";
 
@@ -90,6 +97,26 @@ function withCors(response: Response, request: Request, env: Env) {
   const headers = new Headers(response.headers);
   corsHeaders(request, env).forEach((value, key) => headers.set(key, value));
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+function chatHomeRedirect(request: Request, url: URL) {
+  if ((request.method !== "GET" && request.method !== "HEAD") || !CHAT_HOSTS.has(url.hostname)) {
+    return null;
+  }
+
+  if (url.pathname !== "/") {
+    return null;
+  }
+
+  const target = new URL(url.toString());
+  target.pathname = "/chat";
+  return new Response(null, {
+    status: 302,
+    headers: {
+      "cache-control": "no-store",
+      "location": target.toString(),
+    },
+  });
 }
 
 function safeObjectKey(raw: string) {
@@ -257,6 +284,11 @@ export default {
 
     if (url.pathname === "/healthz") {
       return json({ ok: true, service: "zivo-web", media: Boolean(env.ZIVO_MEDIA) });
+    }
+
+    const chatRedirect = chatHomeRedirect(request, url);
+    if (chatRedirect) {
+      return chatRedirect;
     }
 
     if (url.pathname === "/media" || url.pathname.startsWith("/media/")) {

@@ -125,6 +125,11 @@ import {
   isZivoSoftwareDashboardPath,
   ZIVO_SOFTWARE_HOME_PATH,
 } from "@/config/autoRepairDomain";
+import {
+  isZivoChatHost,
+  isZivoChatPath,
+  ZIVO_CHAT_HOME_PATH,
+} from "@/config/zivoChatDomain";
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
@@ -1209,6 +1214,10 @@ function isCurrentZivoSoftwareHost() {
   return typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
 }
 
+function isCurrentZivoChatHost() {
+  return typeof window !== "undefined" && isZivoChatHost(window.location.hostname);
+}
+
 function RouteAwareGlobalUI() {
   const location = useLocation();
   const { user } = useAuth();
@@ -1282,7 +1291,7 @@ function LazyP2PTransferSheetHost() {
 
 function DeferredGlobalSheets() {
   const ready = useAfterFirstPaint(2400);
-  if (isCurrentZivoSoftwareHost()) return null;
+  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1299,7 +1308,7 @@ function DeferredGlobalSheets() {
 
 function DeferredCurrencyPicker() {
   const ready = useAfterFirstPaint(2400);
-  if (isCurrentZivoSoftwareHost()) return null;
+  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost()) return null;
   return ready ? <Suspense fallback={null}><CurrencyPickerSheet /></Suspense> : null;
 }
 
@@ -1336,6 +1345,7 @@ function DesktopNavBootstrap() {
   // customer-facing and must not be overlapped by the Feed/Reels/Chat bar.
   if (
     isCurrentZivoSoftwareHost() ||
+    isCurrentZivoChatHost() ||
     location.pathname.startsWith("/desktop/auto-repair") ||
     location.pathname.startsWith("/d/")
   ) return null;
@@ -1436,6 +1446,64 @@ function ZivoSoftwareHostGate() {
   return <Navigate to={ZIVO_SOFTWARE_HOME_PATH} replace />;
 }
 
+function ZivoChatHostGate() {
+  const location = useLocation();
+
+  if (typeof window === "undefined" || !isZivoChatHost(window.location.hostname)) {
+    return null;
+  }
+
+  const pathname = location.pathname;
+  const authPaths = [
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+    "/verify-otp",
+    "/verify-new-device",
+    "/auth-callback",
+    "/auth/meta/callback",
+    "/auth/google-ads/callback",
+    "/setup",
+    "/onboarding",
+  ];
+  const accountPaths = [
+    "/account/settings",
+    "/account/security",
+    "/account/sessions",
+    "/account/username",
+    "/account/profile-edit",
+    "/account/notifications",
+    "/account/data-rights",
+    "/profile/delete-account",
+  ];
+  const isAuthPath = authPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  const isAccountPath = accountPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  const isLegalPath =
+    pathname === "/legal/terms" ||
+    pathname === "/legal/privacy" ||
+    pathname === "/terms-of-service" ||
+    pathname === "/privacy-policy" ||
+    pathname === "/account/legal";
+  const isOperationalAsset =
+    pathname.startsWith("/assets/") ||
+    pathname.startsWith("/pwa-icons/") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/robots.txt";
+
+  if (pathname === "/") {
+    return <Navigate to={ZIVO_CHAT_HOME_PATH} replace />;
+  }
+
+  if (isAuthPath || isAccountPath || isLegalPath || isZivoChatPath(pathname) || isOperationalAsset) {
+    return null;
+  }
+
+  return <Navigate to={ZIVO_CHAT_HOME_PATH} replace />;
+}
+
 const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
@@ -1459,6 +1527,7 @@ const App = () => (
 
                 <DeferredPageViewTracker />
                 <DeferredGeoDetector />
+                <ZivoChatHostGate />
                 <ZivoSoftwareHostGate />
                 <RoutePerfTracker />
                 <NativeDeepLinkHandler />
