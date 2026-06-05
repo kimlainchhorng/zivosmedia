@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-06-05T15:12:50.686Z",
+  "generated": "2026-06-05T15:35:01.010Z",
   "mode": "soft",
   "options": {
     "strict": false,
@@ -11,7 +11,7 @@
   "readyForProductionGate": false,
   "counts": {
     "apiCritical": 0,
-    "apiWarnings": 7,
+    "apiWarnings": 14,
     "environmentCritical": 0,
     "environmentWarnings": 0,
     "databaseBlockers": 2,
@@ -106,7 +106,7 @@
     "production": [
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
-      "API readiness has 7 warning(s).",
+      "API readiness has 14 warning(s).",
       "Database readiness has 2 blocker(s).",
       "Database readiness has 1 warning(s).",
       "Supabase linked migration history is disconnected: local and remote have zero exact version matches.",
@@ -189,12 +189,12 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 18477
+      "bytes": 18480
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 7111
+      "bytes": 7113
     },
     "migrationDrift": {
       "path": "docs\\supabase-migration-drift-report.md",
@@ -209,7 +209,7 @@
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 3556
+      "bytes": 4713
     },
     "reconciliationPlan": {
       "path": "docs\\supabase-migration-reconciliation-plan.md",
@@ -246,6 +246,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 492749
+    "bytes": 493911
   }
 }

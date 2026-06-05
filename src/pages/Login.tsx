@@ -11,7 +11,11 @@ import { supabase, setRememberMePreference } from "@/integrations/supabase/clien
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
-import { isAutoRepairSoftwareHost, isZivoSoftwareRedirectTarget } from "@/config/autoRepairDomain";
+import {
+  ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
+  isAutoRepairSoftwareHost,
+  isZivoSoftwareRedirectTarget,
+} from "@/config/autoRepairDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
 import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
@@ -288,10 +292,15 @@ const getLoginErrorFacts = (error: Error) => {
 const Login = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = getSafeRedirectTarget(params.get("redirect") || "/");
   const mediaConnected = params.get("connected") === "zivosmedia";
+  const isZivoSoftwareHost =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const rawRedirect = params.get("redirect");
+  const redirect = getSafeRedirectTarget(
+    rawRedirect || (isZivoSoftwareHost || mediaConnected ? ZIVO_SOFTWARE_AUTH_REDIRECT_PATH : "/"),
+  );
   const isZivoSoftwareDomain =
-    (typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname)) ||
+    isZivoSoftwareHost ||
     isZivoSoftwareRedirectTarget(redirect);
   const zivoMediaConnectHref = useMemo(() => {
     const softwareReturn = new URL("https://zivosoftware.com/login");

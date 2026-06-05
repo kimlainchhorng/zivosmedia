@@ -3,6 +3,7 @@ import {
   AUTO_REPAIR_DASHBOARD_PATH,
   AUTO_REPAIR_SOFTWARE_PATH,
   AUTO_REPAIR_STORE_ID,
+  ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
   ZIVO_SOFTWARE_SUPABASE_PROJECT_ID,
   ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY,
   ZIVO_SOFTWARE_SUPABASE_URL,
@@ -35,6 +36,7 @@ describe("auto repair software domain config", () => {
 
   it("uses zivosoftware.com as the business software home", () => {
     expect(ZIVO_SOFTWARE_HOME_PATH).toBe("/business");
+    expect(ZIVO_SOFTWARE_AUTH_REDIRECT_PATH).toBe("/business/new");
     expect(isZivoSoftwareHost("zivosoftware.com")).toBe(true);
     expect(isZivoSoftwareHost("zivosmedia.com")).toBe(false);
   });

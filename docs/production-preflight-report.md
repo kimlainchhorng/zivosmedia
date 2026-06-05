@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-05T15:12:50.681Z
+Generated: 2026-06-05T15:35:01.004Z
 Mode: soft
 Options: strict=no, skipBuild=no, skipTypeCheck=yes
 
@@ -18,7 +18,7 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
 - Override JSON freshness window: append `-- --max-age-minutes=60`
 - Require a strict-mode summary: append `-- --require-mode=strict`
 - TypeScript SIGTERM/resource notes: `docs/typescript-preflight-resource-notes.md`
-- API readiness: critical=0, warnings=7
+- API readiness: critical=0, warnings=14
 - Environment readiness: critical=0, warnings=0
 - Runtime settings SQL: passed
 - Database readiness: blockers=2, warnings=1
@@ -191,7 +191,7 @@ select pg_reload_conf();
 ```json
 {
   "critical": 0,
-  "warnings": 7,
+  "warnings": 14,
   "edgeFunctions": {
     "total": 401,
     "highRisk": 136,
@@ -251,7 +251,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T15:12:22.776Z",
+  "generated": "2026-06-05T15:34:36.352Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -299,7 +299,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T15:12:22.886Z",
+  "generated": "2026-06-05T15:34:36.439Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 81,
@@ -431,7 +431,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T15:12:27.676Z",
+  "generated": "2026-06-05T15:34:40.416Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2783,
@@ -556,7 +556,7 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
-- API readiness has 7 warning(s).
+- API readiness has 14 warning(s).
 - Database readiness has 2 blocker(s).
 - Database readiness has 1 warning(s).
 - Supabase linked migration history is disconnected: local and remote have zero exact version matches.

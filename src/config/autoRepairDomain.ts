@@ -6,6 +6,7 @@ export const AUTO_REPAIR_SOFTWARE_HOSTS = new Set([
 ]);
 
 export const ZIVO_SOFTWARE_HOME_PATH = "/business";
+export const ZIVO_SOFTWARE_AUTH_REDIRECT_PATH = "/business/new";
 
 export const ZIVO_SOFTWARE_SUPABASE_URL =
   import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_URL || "https://ydxztoresbdeoeijhxww.supabase.co";

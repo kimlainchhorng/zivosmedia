@@ -58,6 +58,18 @@ const CHAT_HOSTS = new Set([
   "www.zivoschat.com",
 ]);
 
+const CSP_BASE =
+  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
+
+const CSP_REPORT_BY_HOST = new Map([
+  ["zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
+  ["www.zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
+  ["zivoschat.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
+  ["www.zivoschat.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
+  ["zivosmedia.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
+  ["www.zivosmedia.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
+]);
+
 const immutableCache = "public, max-age=31536000, immutable";
 
 function json(data: unknown, init: ResponseInit = {}) {
@@ -97,6 +109,56 @@ function withCors(response: Response, request: Request, env: Env) {
   const headers = new Headers(response.headers);
   corsHeaders(request, env).forEach((value, key) => headers.set(key, value));
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+function allowedOriginForRequest(request: Request, url: URL, env: Env) {
+  const requestOrigin = request.headers.get("origin");
+  const origins = allowedOrigins(env);
+
+  if (origins.includes("*")) return "*";
+  if (requestOrigin && origins.includes(requestOrigin)) return requestOrigin;
+  if (origins.includes(url.origin)) return url.origin;
+  return "";
+}
+
+function securityHeaders(request: Request, url: URL, env: Env) {
+  const headers = new Headers();
+  const allowOrigin = allowedOriginForRequest(request, url, env);
+  const cspReportUri =
+    CSP_REPORT_BY_HOST.get(url.hostname) ?? "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report";
+
+  if (allowOrigin) {
+    headers.set("access-control-allow-origin", allowOrigin);
+    if (request.headers.get("origin")) {
+      headers.set("vary", "Origin");
+    }
+  }
+
+  headers.set("strict-transport-security", "max-age=63072000; includeSubDomains; preload");
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("x-frame-options", "SAMEORIGIN");
+  headers.set("x-permitted-cross-domain-policies", "none");
+  headers.set("x-dns-prefetch-control", "on");
+  headers.set("content-security-policy", `${CSP_BASE}; report-uri ${cspReportUri}`);
+  headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  headers.set(
+    "permissions-policy",
+    "camera=(self), microphone=(self), geolocation=(self), payment=(self), accelerometer=(), gyroscope=(self), magnetometer=(), usb=(), bluetooth=(), midi=(), serial=(), interest-cohort=(), display-capture=(), document-domain=()",
+  );
+  headers.set("cross-origin-opener-policy", "same-origin-allow-popups");
+  headers.set("cross-origin-resource-policy", "same-site");
+  return headers;
+}
+
+function withSecurityHeaders(response: Response, request: Request, env: Env) {
+  const url = new URL(request.url);
+  const headers = new Headers(response.headers);
+  securityHeaders(request, url, env).forEach((value, key) => headers.set(key, value));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function chatHomeRedirect(request: Request, url: URL) {
@@ -288,7 +350,7 @@ export default {
 
     const chatRedirect = chatHomeRedirect(request, url);
     if (chatRedirect) {
-      return chatRedirect;
+      return withSecurityHeaders(chatRedirect, request, env);
     }
 
     if (url.pathname === "/media" || url.pathname.startsWith("/media/")) {
@@ -304,7 +366,7 @@ export default {
     }
 
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      return withSecurityHeaders(await env.ASSETS.fetch(request), request, env);
     }
 
     return json({ error: "Not found" }, { status: 404 });
