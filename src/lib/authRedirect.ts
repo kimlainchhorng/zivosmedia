@@ -1,4 +1,10 @@
 import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
+import {
+  AUTO_REPAIR_DASHBOARD_PATH,
+  AUTO_REPAIR_STORE_ID,
+  isAutoRepairSoftwareHost,
+  isZivoMediaHost,
+} from "@/config/autoRepairDomain";
 
 type RedirectLocation = {
   hash?: string;
@@ -20,7 +26,18 @@ const WORKSPACE_REDIRECTS: Record<string, string> = {
   "/business": "/business/dashboard",
 };
 
-const normalizeRedirectTarget = (value: string) => {
+const isLegacySoftwareMediaDashboardUrl = (url: URL) =>
+  isZivoMediaHost(url.hostname) &&
+  url.pathname === `/admin/stores/${AUTO_REPAIR_STORE_ID}`;
+
+const normalizeRedirectTarget = (value: string, currentHost?: string | null) => {
+  if (
+    isAutoRepairSoftwareHost(currentHost) &&
+    (value === "/business" || value === "/business/dashboard")
+  ) {
+    return AUTO_REPAIR_DASHBOARD_PATH;
+  }
+
   return WORKSPACE_REDIRECTS[value] ?? value;
 };
 
@@ -71,6 +88,10 @@ export const getSafeRedirectTargetForHost = (
           return ZIVO_CHAT_HOME_PATH;
         }
 
+        if (isAutoRepairSoftwareHost(currentHost) && isLegacySoftwareMediaDashboardUrl(url)) {
+          return `${url.pathname}${url.search}${url.hash}`;
+        }
+
         return url.toString();
       }
 
@@ -91,7 +112,7 @@ export const getSafeRedirectTargetForHost = (
       safeValue.startsWith(`${route}#`),
   );
 
-  return isAuthRoute ? fallbackTarget : normalizeRedirectTarget(safeValue);
+  return isAuthRoute ? fallbackTarget : normalizeRedirectTarget(safeValue, currentHost);
 };
 
 export const getSafeRedirectTarget = (value?: string | null) =>
