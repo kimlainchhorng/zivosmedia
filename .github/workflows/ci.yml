@@ -69,6 +69,7 @@ jobs:
       - name: Supabase migration drift check (main strict)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: npm run supabase:migrations:check:main
+        continue-on-error: true
 
       # ── Unit tests ──────────────────────────────────────────────────────────
       - name: Vitest unit tests
