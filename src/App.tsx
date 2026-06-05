@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useState, forwardRef } from "react";
+import type { ReactNode } from "react";
 // Admin nav configs are resolved inside AdminShellRoute (a lazy chunk) so
 // their lucide icons aren't pulled into the root bundle.
 import { usePageViewTracker } from "@/hooks/usePageViewTracker";
@@ -1231,6 +1232,11 @@ function isCurrentZivoTravelHost() {
   return typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
 }
 
+function ZivoTravelHotelGate({ children }: { children: ReactNode }) {
+  if (isCurrentZivoTravelHost()) return <>{children}</>;
+  return <CambodiaOnlyGate>{children}</CambodiaOnlyGate>;
+}
+
 function RouteAwareGlobalUI() {
   const location = useLocation();
   const { user } = useAuth();
@@ -1965,12 +1971,12 @@ const App = () => (
                 {/* /checkout removed — partners block iframe; redirect model used instead */}
 
                 {/* Hotels */}
-                <Route path="/hotels/:city" element={<RouteErrorBoundary section="Hotels"><CambodiaOnlyGate><HotelCityLandingPage /></CambodiaOnlyGate></RouteErrorBoundary>} />
-                <Route path="/hotel/:storeId" element={<RouteErrorBoundary section="HotelDetail"><CambodiaOnlyGate><HotelResortDetailPage /></CambodiaOnlyGate></RouteErrorBoundary>} />
-                <Route path="/hotel/:storeId/book" element={<ProtectedRoute><RouteErrorBoundary section="HotelCheckout"><CambodiaOnlyGate><HotelRoomCheckoutPage /></CambodiaOnlyGate></RouteErrorBoundary></ProtectedRoute>} />
-                <Route path="/hotel/:storeId/booking-confirmed" element={<ProtectedRoute><RouteErrorBoundary section="HotelBookingConfirmed"><CambodiaOnlyGate><HotelBookingConfirmedPage /></CambodiaOnlyGate></RouteErrorBoundary></ProtectedRoute>} />
-                <Route path="/hotels" element={<RouteErrorBoundary section="HotelsLanding"><CambodiaOnlyGate><HotelsLandingPage /></CambodiaOnlyGate></RouteErrorBoundary>} />
-                <Route path="/hotels-list" element={<RouteErrorBoundary section="HotelsDirectory"><CambodiaOnlyGate><HotelsResortsDirectoryPage /></CambodiaOnlyGate></RouteErrorBoundary>} />
+                <Route path="/hotels/:city" element={<RouteErrorBoundary section="Hotels"><ZivoTravelHotelGate><HotelCityLandingPage /></ZivoTravelHotelGate></RouteErrorBoundary>} />
+                <Route path="/hotel/:storeId" element={<RouteErrorBoundary section="HotelDetail"><ZivoTravelHotelGate><HotelResortDetailPage /></ZivoTravelHotelGate></RouteErrorBoundary>} />
+                <Route path="/hotel/:storeId/book" element={<ProtectedRoute><RouteErrorBoundary section="HotelCheckout"><ZivoTravelHotelGate><HotelRoomCheckoutPage /></ZivoTravelHotelGate></RouteErrorBoundary></ProtectedRoute>} />
+                <Route path="/hotel/:storeId/booking-confirmed" element={<ProtectedRoute><RouteErrorBoundary section="HotelBookingConfirmed"><ZivoTravelHotelGate><HotelBookingConfirmedPage /></ZivoTravelHotelGate></RouteErrorBoundary></ProtectedRoute>} />
+                <Route path="/hotels" element={<RouteErrorBoundary section="HotelsLanding"><ZivoTravelHotelGate><HotelsLandingPage /></ZivoTravelHotelGate></RouteErrorBoundary>} />
+                <Route path="/hotels-list" element={<RouteErrorBoundary section="HotelsDirectory"><ZivoTravelHotelGate><HotelsResortsDirectoryPage /></ZivoTravelHotelGate></RouteErrorBoundary>} />
                 {/* /hotels and /hotels/in-:city removed */}
 
                 {/* Bus */}

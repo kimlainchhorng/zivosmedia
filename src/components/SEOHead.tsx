@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { isZivoTravelHost, ZIVO_TRAVEL_ORIGIN } from '@/config/zivoTravelDomain';
 
 const SITE_URL = 'https://zivosmedia.com';
 
@@ -34,11 +35,16 @@ export default function SEOHead({
   const location = useLocation();
 
   useEffect(() => {
+    const origin =
+      typeof window !== 'undefined' && isZivoTravelHost(window.location.hostname)
+        ? ZIVO_TRAVEL_ORIGIN
+        : SITE_URL;
     const canonicalUrl = canonical
-      ? (canonical.startsWith('http') ? canonical : `${SITE_URL}${canonical}`)
-      : `${SITE_URL}${location.pathname}`;
+      ? (canonical.startsWith('http') ? canonical : `${origin}${canonical}`)
+      : `${origin}${location.pathname}`;
 
-    const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`;
+    const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${origin}${ogImage}`;
+    const siteName = origin === ZIVO_TRAVEL_ORIGIN ? 'Zivo Travel' : 'ZIVO';
 
     // robots
     let robotsMeta = document.querySelector('meta[name="robots"]');
@@ -71,7 +77,7 @@ export default function SEOHead({
     setMeta('property', 'og:image:width', '1200');
     setMeta('property', 'og:image:height', '630');
     setMeta('property', 'og:image:alt', title);
-    setMeta('property', 'og:site_name', 'ZIVO');
+    setMeta('property', 'og:site_name', siteName);
     setMeta('property', 'og:locale', 'en_US');
     if (import.meta.env.VITE_META_APP_ID) {
       setMeta('property', 'fb:app_id', import.meta.env.VITE_META_APP_ID);
@@ -109,11 +115,32 @@ export default function SEOHead({
         existingScript.id = SCRIPT_ID;
         document.head.appendChild(existingScript);
       }
-      existingScript.textContent = JSON.stringify(
-        Array.isArray(structuredData) ? structuredData : structuredData
-      );
+      const data = origin === SITE_URL
+        ? structuredData
+        : JSON.parse(JSON.stringify(structuredData).split(SITE_URL).join(origin));
+      existingScript.textContent = JSON.stringify(Array.isArray(data) ? data : data);
     } else if (existingScript) {
       existingScript.remove();
+    }
+
+    if (origin === ZIVO_TRAVEL_ORIGIN) {
+      const appleAppMeta = document.querySelector('meta[name="apple-itunes-app"]') || document.createElement('meta');
+      appleAppMeta.setAttribute('name', 'apple-itunes-app');
+      appleAppMeta.setAttribute('content', `app-id=6759480121, app-argument=${ZIVO_TRAVEL_ORIGIN}`);
+      if (!appleAppMeta.parentElement) document.head.appendChild(appleAppMeta);
+
+      document.head.querySelectorAll('link[href*="zivosmedia.com"]').forEach((link) => {
+        if (link.getAttribute('rel') === 'alternate') link.remove();
+      });
+      document.head.querySelectorAll('meta[content*="zivosmedia.com"]').forEach((meta) => {
+        if (meta.getAttribute('name') !== 'apple-itunes-app') meta.remove();
+      });
+      document.head.querySelectorAll('script[type="application/ld+json"]').forEach((script) => {
+        const text = script.textContent || '';
+        if (script.id !== SCRIPT_ID && (text.includes(SITE_URL) || text.includes('zivosmedia.com'))) {
+          script.remove();
+        }
+      });
     }
 
     return () => {

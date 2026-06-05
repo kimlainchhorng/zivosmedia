@@ -44,6 +44,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { SmartImage } from "@/components/shared/SmartImage";
+import { isZivoTravelHost, ZIVO_TRAVEL_ORIGIN } from "@/config/zivoTravelDomain";
 
 import tabHotelsBg from "@/assets/tab-hotels-bg.jpg";
 import destPhnomPenh from "@/assets/destinations/phnom-penh.jpg";
@@ -112,6 +113,15 @@ export default function HotelsLandingPage() {
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { format: fmtPrice } = useCurrency();
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const seoOrigin = isTravelHost ? ZIVO_TRAVEL_ORIGIN : "https://zivosmedia.com";
+  const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
+  const seoTitle = `Hotels & Resorts - Find Your Stay | ${seoBrand}`;
+  const seoDescription = isTravelHost
+    ? "Discover hotels, resorts, and guesthouses with Zivo Travel. Search stays, compare dates and guests, and keep trips connected with flights, cars, and bus booking."
+    : "Discover hotels, resorts and guesthouses. Browse properties in Phnom Penh, Siem Reap, Sihanoukville and more. Book direct on ZIVO.";
+  const seoCanonical = `${seoOrigin}/hotels`;
+  const seoImage = `${seoOrigin}/og-hotels.jpg`;
 
   // Honor share-card / deep-link query params on mount: ?city=&ci=&co=&adults=&children=
   // Matches the params built by ZivoCardPicker's hotel composer.
@@ -225,6 +235,43 @@ export default function HotelsLandingPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
+
+  useEffect(() => {
+    if (!isTravelHost) return;
+    const reconcileTravelHead = () => {
+      const head = document.head;
+      const keepLast = (selector: string, keyOf: (el: Element) => string) => {
+        const seen = new Map<string, Element>();
+        head.querySelectorAll(selector).forEach((el) => {
+          const key = keyOf(el);
+          const prev = seen.get(key);
+          if (prev) prev.remove();
+          seen.set(key, el);
+        });
+      };
+
+      keepLast('link[rel="canonical"]', () => "canonical");
+      keepLast('meta[name="description"]', () => "description");
+      keepLast('meta[property^="og:"]', (el) => el.getAttribute("property") || "");
+      keepLast('meta[name^="twitter:"]', (el) => el.getAttribute("name") || "");
+      const appleAppMeta = head.querySelector('meta[name="apple-itunes-app"]') || document.createElement("meta");
+      appleAppMeta.setAttribute("name", "apple-itunes-app");
+      appleAppMeta.setAttribute("content", `app-id=6759480121, app-argument=${ZIVO_TRAVEL_ORIGIN}`);
+      if (!appleAppMeta.parentElement) head.appendChild(appleAppMeta);
+      head.querySelectorAll('link[href*="zivosmedia.com"]').forEach((link) => {
+        if (link.getAttribute("rel") === "alternate") link.remove();
+      });
+      head.querySelectorAll('meta[content*="zivosmedia.com"]').forEach((meta) => {
+        if (meta.getAttribute("name") !== "apple-itunes-app") meta.remove();
+      });
+      head.querySelectorAll('script[type="application/ld+json"]').forEach((script) => {
+        const text = script.textContent || "";
+        if (!(text.includes("zivostravel.com")) || text.includes("zivosmedia.com")) script.remove();
+      });
+    };
+    const raf = requestAnimationFrame(() => requestAnimationFrame(reconcileTravelHead));
+    return () => cancelAnimationFrame(raf);
+  }, [isTravelHost]);
 
   // Show a sticky compact header once the hero scrolls out of view
   useEffect(() => {
@@ -701,27 +748,28 @@ export default function HotelsLandingPage() {
   return (
     <div className="min-h-dvh bg-background pb-24">
       <Helmet>
-        <title>Hotels & Resorts — Find Your Stay | ZIVO</title>
-        <meta name="description" content="Discover hotels, resorts and guesthouses. Browse properties in Phnom Penh, Siem Reap, Sihanoukville and more. Book direct on ZIVO." />
-        <link rel="canonical" href="https://zivosmedia.com/hotels" />
-        <meta property="og:title" content="Hotels & Resorts — Find Your Stay | ZIVO" />
-        <meta property="og:description" content="Discover hotels, resorts and guesthouses. Browse properties and book direct on ZIVO." />
-        <meta property="og:image" content="https://zivosmedia.com/og-hotels.jpg" />
-        <meta property="og:url" content="https://zivosmedia.com/hotels" />
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <link rel="canonical" href={seoCanonical} />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+        <meta property="og:image" content={seoImage} />
+        <meta property="og:url" content={seoCanonical} />
         <meta property="og:type" content="website" />
+        <meta property="og:site_name" content={seoBrand} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Hotels & Resorts — Find Your Stay | ZIVO" />
-        <meta name="twitter:description" content="Discover hotels, resorts and guesthouses. Book direct on ZIVO." />
-        <meta name="twitter:image" content="https://zivosmedia.com/og-hotels.jpg" />
+        <meta name="twitter:title" content={seoTitle} />
+        <meta name="twitter:description" content={seoDescription} />
+        <meta name="twitter:image" content={seoImage} />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebPage",
-          "name": "Hotels & Resorts — ZIVO",
-          "url": "https://zivosmedia.com/hotels",
-          "description": "Search and book hotels, resorts and guesthouses on ZIVO.",
+          "name": `Hotels & Resorts - ${seoBrand}`,
+          "url": seoCanonical,
+          "description": `Search and book hotels, resorts and guesthouses on ${seoBrand}.`,
           "potentialAction": {
             "@type": "SearchAction",
-            "target": "https://zivosmedia.com/hotels-list?city={city}",
+            "target": `${seoOrigin}/hotels-list?city={city}`,
             "query-input": "required name=city"
           }
         })}</script>
