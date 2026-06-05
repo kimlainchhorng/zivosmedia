@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-06-05T03:40:12.072Z",
+  "generated": "2026-06-05T12:57:22.364Z",
   "mode": "soft",
   "options": {
     "strict": false,
     "skipBuild": false,
     "skipTypeCheck": true
   },
-  "readyForCurrentGate": false,
+  "readyForCurrentGate": true,
   "readyForProductionGate": false,
   "counts": {
     "apiCritical": 0,
@@ -19,7 +19,7 @@
     "edgeFunctionDeployFailures": 0,
     "edgeFunctionMissingLiveCritical": 6,
     "edgeFunctionBrowserGateFailures": 0,
-    "failedCommands": 1,
+    "failedCommands": 0,
     "productionBlockers": 8,
     "currentGateBlockers": 0
   },
@@ -39,7 +39,7 @@
     "candidates": 0,
     "highConfidenceCandidates": 0,
     "mediumConfidenceCandidates": 0,
-    "unmatchedLocalAfterCandidates": 1092,
+    "unmatchedLocalAfterCandidates": 1094,
     "unmatchedRemoteAfterCandidates": 0,
     "unmatchedLocalAfterRemoteRange": 0,
     "reviewOrder": [
@@ -63,7 +63,7 @@
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-        "count": 1092
+        "count": 1094
       },
       {
         "order": 4,
@@ -114,15 +114,13 @@
       "Supabase migrations have 6 unresolved duplicate version(s)."
     ],
     "currentGate": [],
-    "failedCommands": [
-      "Security scan"
-    ]
+    "failedCommands": []
   },
   "steps": [
     {
       "id": "secrets",
       "title": "Security scan",
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "environment",
@@ -192,12 +190,12 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 18528
+      "bytes": 18538
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 7180
+      "bytes": 7152
     },
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
@@ -207,7 +205,7 @@
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
       "exists": true,
-      "bytes": 13437
+      "bytes": 13739
     },
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
@@ -237,7 +235,7 @@
     "unmatchedLocal": {
       "path": "docs/supabase-migration-unmatched-local.csv",
       "exists": true,
-      "bytes": 117776
+      "bytes": 118015
     },
     "unmatchedRemote": {
       "path": "docs/supabase-migration-unmatched-remote.csv",
@@ -249,6 +247,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 177355
+    "bytes": 177878
   }
 }

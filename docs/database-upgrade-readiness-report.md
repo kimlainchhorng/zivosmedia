@@ -1,23 +1,23 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-05T03:41:29.745Z
+Generated: 2026-06-05T12:57:08.614Z
 
 ## Summary
 
 - Supabase CLI: 2.100.0
-- Local migrations: 1092
+- Local migrations: 1094
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 6
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1092, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1092, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-06-05T03:39:59.425Z
+- Last linked drift report: local=1094, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1094, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-06-05T12:57:08.303Z
 - Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 901
+- Public tables created in migrations: 906
 - Public tables needing RLS review: 0
-- Recent public tables needing Data API grant review: 6
+- Recent public tables needing Data API grant review: 9
 - Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
 - Hardcoded Supabase URLs in migrations: 34
@@ -34,7 +34,7 @@ Generated: 2026-06-05T03:41:29.745Z
 
 ## Warnings
 
-- 6 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
+- 9 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
 
 ## Duplicate Versions
 
@@ -57,10 +57,13 @@ Generated: 2026-06-05T03:41:29.745Z
 
 - bus_routes: supabase/migrations/20260601194500_bus_booking_schema.sql
 - bus_trips: supabase/migrations/20260601194500_bus_booking_schema.sql
-- bus_bookings: supabase/migrations/20260601194500_bus_booking_schema.sql
 - channel_removed_users: supabase/migrations/20260602033500_add_channel_removed_users.sql
 - channel_admin_log: supabase/migrations/20260602034000_add_channel_admin_log.sql
 - channel_invite_links: supabase/migrations/20260602035000_add_channel_invite_links.sql
+- bus_vehicles: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
+- bus_drivers: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
+- bus_route_stops: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
+- bus_promos: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
 
 ## View Review Candidates
 

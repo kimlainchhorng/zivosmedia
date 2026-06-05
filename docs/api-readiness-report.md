@@ -1,6 +1,6 @@
 # API Readiness Report
 
-Generated: 2026-06-05T03:40:00.515Z
+Generated: 2026-06-05T12:57:10.757Z
 
 ## Summary
 
@@ -17,8 +17,8 @@ Generated: 2026-06-05T03:40:00.515Z
 - Required public env documented: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
 - Recommended backend env documented: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 - API operations runbook: present (0 missing topics)
-- Supabase migration drift: reportLocal=1092, currentLocal=1092, remote=0, matched=0, duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, remoteError=yes
-- Supabase migration near-match diagnostics: near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1092, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0
+- Supabase migration drift: reportLocal=1094, currentLocal=1094, remote=0, matched=0, duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, remoteError=yes
+- Supabase migration near-match diagnostics: near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1094, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0
 - Pending local migration risk gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Critical
@@ -28,7 +28,7 @@ Generated: 2026-06-05T03:40:00.515Z
 ## Warnings
 
 - [hardcoded-supabase-browser-config] Browser Supabase URL/key are hardcoded. Prefer Vite env values so staging and production can use separate projects. (src/integrations/supabase/client.ts)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/config/autoRepairDomain.ts:10)
+- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/config/autoRepairDomain.ts:11)
 - [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/integrations/supabase/client.ts:22)
 - [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/pages/OAuthForwarder.tsx:4)
 - [duplicate-migration-versions] Local Supabase migrations contain 6 new duplicate version(s). (docs/supabase-migration-drift-report.md)
