@@ -163,3 +163,5 @@ project_id = "ydxztoresbdeoeijhxww"
     verify_jwt = true
   [functions.capture-bus-payment]
     verify_jwt = true
+  [functions.software-media-handoff]
+    verify_jwt = false

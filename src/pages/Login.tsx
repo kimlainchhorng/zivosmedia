@@ -19,6 +19,11 @@ import {
 import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
 import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
+import {
+  buildSoftwareMediaConnectHref,
+  createSoftwareMediaConnectState,
+  rememberSoftwareMediaConnect,
+} from "@/lib/softwareMediaConnect";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
 
@@ -126,9 +131,11 @@ function ZivoSoftwareAuthGraphic({ mode }: { mode: "login" | "signup" }) {
 function ZivoSoftwareLegalLinks({
   connectHref,
   mediaConnected = false,
+  onConnectClick,
 }: {
   connectHref?: string;
   mediaConnected?: boolean;
+  onConnectClick?: () => void;
 }) {
   return (
     <div className="mt-3 space-y-3">
@@ -138,13 +145,14 @@ function ZivoSoftwareLegalLinks({
           <span>ZIVO Media is connected. Sign in here to open your ZIVO Software workspace.</span>
         </div>
       )}
-      {connectHref && !mediaConnected && (
+      {connectHref && (
         <a
           href={connectHref}
+          onClick={onConnectClick}
           className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#101412]/15 bg-white/90 text-sm font-black text-[#101412] shadow-sm transition hover:border-[#138f68] hover:text-[#138f68]"
         >
           <ExternalLink className="h-4 w-4" />
-          Connect with ZIVO Media
+          {mediaConnected ? "Continue with ZIVO Media" : "Connect with ZIVO Media"}
         </a>
       )}
       <p className="text-center text-xs font-medium text-[#66736d]">
@@ -309,12 +317,13 @@ const Login = () => {
   const isZivoSoftwareDomain =
     isZivoSoftwareHost ||
     isZivoSoftwareRedirectTarget(redirect);
+  const zivoMediaConnectState = useMemo(() => createSoftwareMediaConnectState(), []);
   const zivoMediaConnectHref = useMemo(() => {
-    const softwareReturn = new URL("https://zivosoftware.com/login");
-    softwareReturn.searchParams.set("redirect", redirect);
-    softwareReturn.searchParams.set("connected", "zivosmedia");
-    return `https://zivosmedia.com/login?redirect=${encodeURIComponent(softwareReturn.toString())}`;
-  }, [redirect]);
+    return buildSoftwareMediaConnectHref({ redirect, state: zivoMediaConnectState });
+  }, [redirect, zivoMediaConnectState]);
+  const handleZivoMediaConnectClick = useCallback(() => {
+    rememberSoftwareMediaConnect(zivoMediaConnectState, redirect);
+  }, [redirect, zivoMediaConnectState]);
   const finishAuthRedirect = useCallback((target: string) => {
     if (isExternalRedirectTarget(target)) {
       window.location.assign(target);
@@ -1038,6 +1047,7 @@ const Login = () => {
           <ZivoSoftwareLegalLinks
             connectHref={zivoMediaConnectHref}
             mediaConnected={mediaConnected}
+            onConnectClick={handleZivoMediaConnectClick}
           />
         )}
 

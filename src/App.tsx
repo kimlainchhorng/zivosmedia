@@ -137,6 +137,8 @@ const Signup = lazy(() => import("./pages/Signup"));
 const ConnectCallback = lazy(() => import("./pages/ConnectCallback"));
 const OAuthForwarder = lazy(() => import("./pages/OAuthForwarder"));
 const ConnectChat = lazy(() => import("./pages/ConnectChat"));
+const ConnectSoftware = lazy(() => import("./pages/ConnectSoftware"));
+const ConnectMedia = lazy(() => import("./pages/ConnectMedia"));
 const PublicDocumentView = lazy(() => import("./pages/PublicDocumentView"));
 const PairPage = lazy(() => lazyRetry(() => import("./pages/PairPage")));
 const EstimateApprovalPage = lazy(() => lazyRetry(() => import("./pages/EstimateApprovalPage")));
@@ -1411,6 +1413,8 @@ function ZivoSoftwareHostGate() {
     "/auth-callback",
     "/auth/meta/callback",
     "/auth/google-ads/callback",
+    "/connect/media",
+    "/connect/software",
   ];
   const isAuthPath = authPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const isLegalPath =
@@ -1560,6 +1564,8 @@ const App = () => (
                             <Route path="/auth/meta/callback" element={<OAuthForwarder />} />
                             <Route path="/auth/google-ads/callback" element={<OAuthForwarder />} />
                             <Route path="/connect/chat" element={<ConnectChat />} />
+                            <Route path="/connect/software" element={<ConnectSoftware />} />
+                            <Route path="/connect/media" element={<ConnectMedia />} />
                             <Route path="/d/:token" element={<PublicDocumentView />} />
 
                 {/* App Dashboard */}

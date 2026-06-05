@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 const preflight = path.join(root, "scripts/deploy/env-preflight.mjs");
+const mediaSupabaseUrl = "https://slirphzzwcogdbkeicff.supabase.co";
+const mediaProjectId = "slirphzzwcogdbkeicff";
 
 function read(relativePath: string) {
   return readFileSync(path.join(root, relativePath), "utf8");
@@ -116,9 +118,9 @@ describe("deploy env preflight", () => {
       encoding: "utf8",
       env: {
         PATH: process.env.PATH ?? "",
-        VITE_SUPABASE_URL: "https://example.supabase.co",
+        VITE_SUPABASE_URL: mediaSupabaseUrl,
         VITE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_fake`,
-        VITE_SUPABASE_PROJECT_ID: "example",
+        VITE_SUPABASE_PROJECT_ID: mediaProjectId,
         VITE_ZIVO_SOFTWARE_SUPABASE_URL: "",
         VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: "",
       },
@@ -135,9 +137,9 @@ describe("deploy env preflight", () => {
       encoding: "utf8",
       env: {
         PATH: process.env.PATH ?? "",
-        VITE_SUPABASE_URL: "https://example.supabase.co",
+        VITE_SUPABASE_URL: mediaSupabaseUrl,
         VITE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_fake`,
-        VITE_SUPABASE_PROJECT_ID: "example",
+        VITE_SUPABASE_PROJECT_ID: mediaProjectId,
         VITE_ZIVO_SOFTWARE_SUPABASE_URL: "https://ydxztoresbdeoeijhxww.supabase.co",
         VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_software_fake`,
       },
@@ -146,6 +148,25 @@ describe("deploy env preflight", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('"zivoSoftwareDomainRequired": true');
     expect(result.stdout).toContain('"zivoSoftwarePublishableKey": true');
+  });
+
+  it("rejects the software Supabase project as the default media backend", () => {
+    const result = spawnSync(process.execPath, [preflight, "--require-software-domain"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH ?? "",
+        VITE_SUPABASE_URL: "https://ydxztoresbdeoeijhxww.supabase.co",
+        VITE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_software_fake`,
+        VITE_SUPABASE_PROJECT_ID: "ydxztoresbdeoeijhxww",
+        VITE_ZIVO_SOFTWARE_SUPABASE_URL: "https://ydxztoresbdeoeijhxww.supabase.co",
+        VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_software_fake`,
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain('"id": "zivo-media-supabase-url-mismatch"');
+    expect(result.stdout).toContain("VITE_SUPABASE_URL must point to https://slirphzzwcogdbkeicff.supabase.co");
   });
 
   it("documents the software Supabase env in deploy setup surfaces", () => {

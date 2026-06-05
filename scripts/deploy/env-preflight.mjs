@@ -10,6 +10,8 @@ const root = process.cwd();
 const args = new Set(process.argv.slice(2));
 const strict = args.has("--strict");
 const requireSoftwareDomain = strict || args.has("--require-software-domain");
+const ZIVO_MEDIA_PROJECT_REF = "slirphzzwcogdbkeicff";
+const ZIVO_MEDIA_PROJECT_URL = `https://${ZIVO_MEDIA_PROJECT_REF}.supabase.co`;
 const ZIVO_SOFTWARE_PROJECT_REF = "ydxztoresbdeoeijhxww";
 const ZIVO_SOFTWARE_PROJECT_URL = `https://${ZIVO_SOFTWARE_PROJECT_REF}.supabase.co`;
 
@@ -123,6 +125,14 @@ const zivoSoftwareSupabaseUrl = validateSupabaseUrl("VITE_ZIVO_SOFTWARE_SUPABASE
 });
 const backendSupabaseUrl = validateSupabaseUrl("SUPABASE_URL");
 const channelOgUrl = readEnv("CHANNEL_OG_FUNCTION_URL");
+
+if (viteSupabaseUrl && viteSupabaseUrl !== ZIVO_MEDIA_PROJECT_URL) {
+  add(
+    "critical",
+    "zivo-media-supabase-url-mismatch",
+    `VITE_SUPABASE_URL must point to ${ZIVO_MEDIA_PROJECT_URL} for zivosmedia.com.`,
+  );
+}
 
 if (zivoSoftwareSupabaseUrl && zivoSoftwareSupabaseUrl !== ZIVO_SOFTWARE_PROJECT_URL) {
   add(
