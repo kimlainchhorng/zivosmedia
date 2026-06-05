@@ -4,7 +4,7 @@ import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let authState: {
-  user: { id: string; email?: string } | null;
+  user: { id: string; email?: string; user_metadata?: Record<string, unknown> } | null;
   isLoading: boolean;
 };
 
@@ -94,9 +94,23 @@ describe("BusinessSoftwarePortalPage account header", () => {
     );
   });
 
-  it("falls back to the configured software dashboard on zivosoftware.com", () => {
+  it("keeps Software dashboard links on zivosoftware.com", () => {
+    const mediaDashboardUrl =
+      "https://zivosmedia.com/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair";
+    const softwareDashboardPath =
+      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair";
+
+    expect(
+      resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com", mediaDashboardUrl),
+    ).toBe(softwareDashboardPath);
+    expect(
+      resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com", "https://example.com/admin/stores/bad"),
+    ).toBe(softwareDashboardPath);
     expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com")).toBe(
-      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+      softwareDashboardPath,
+    );
+    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com", mediaDashboardUrl)).toBe(
+      mediaDashboardUrl,
     );
     expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com")).toBe("/business/new");
   });

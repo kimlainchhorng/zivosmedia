@@ -12,6 +12,7 @@ export const ZIVO_MEDIA_HOSTS = new Set([
 ]);
 
 export const ZIVO_SOFTWARE_ORIGIN = "https://zivosoftware.com";
+export const ZIVO_MEDIA_ORIGIN = "https://zivosmedia.com";
 export const ZIVO_SOFTWARE_HOME_PATH = "/business";
 export const ZIVO_SOFTWARE_AUTH_REDIRECT_PATH = "/business/new";
 
@@ -27,6 +28,7 @@ export const AUTO_REPAIR_SOFTWARE_PATH = `/desktop/auto-repair/${AUTO_REPAIR_STO
 
 export const AUTO_REPAIR_DASHBOARD_PATH =
   `/admin/stores/${AUTO_REPAIR_STORE_ID}?tab=ar-dashboard&category=auto-repair`;
+export const AUTO_REPAIR_MEDIA_DASHBOARD_URL = `${ZIVO_MEDIA_ORIGIN}${AUTO_REPAIR_DASHBOARD_PATH}`;
 
 export const isAutoRepairSoftwareHost = (hostname?: string | null) =>
   AUTO_REPAIR_SOFTWARE_HOSTS.has((hostname || "").toLowerCase());
@@ -64,12 +66,5 @@ export const isZivoSoftwareRedirectTarget = (target?: string | null) => {
 
 export const isZivoSoftwareDashboardPath = (pathname?: string | null) => {
   const path = pathname || "";
-  return (
-    path === "/admin/stores" ||
-    path.startsWith("/admin/stores/") ||
-    path === "/business/dashboard" ||
-    path === "/bus/operator" ||
-    path === "/eats/restaurant-dashboard" ||
-    path === "/hotel-admin"
-  );
+  return path === "/business/dashboard";
 };

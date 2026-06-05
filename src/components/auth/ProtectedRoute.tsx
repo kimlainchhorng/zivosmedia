@@ -142,10 +142,10 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   }
 
   if (!user) {
+    const redirectTarget = `${location.pathname}${location.search ?? ""}${location.hash ?? ""}`;
+    const loginUrl = withRedirectParam("/login", redirectTarget);
+
     if (allowStoreOwner && storeId && !isAutoRepairSoftwareRoute) {
-      if (!publicStoreResolved && location.pathname.startsWith("/admin/stores/")) {
-        return <Navigate to={`/hotel/${storeId}`} replace />;
-      }
       if (!publicStoreResolved) {
         return (
           <div className="min-h-screen flex items-center justify-center bg-background">
@@ -156,11 +156,12 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
           </div>
         );
       }
+      if (location.pathname.startsWith("/admin/stores/")) {
+        return <Navigate to={loginUrl} state={{ from: location }} replace />;
+      }
       if (publicStorePath) return <Navigate to={publicStorePath} replace />;
     }
 
-    const redirectTarget = `${location.pathname}${location.search ?? ""}${location.hash ?? ""}`;
-    const loginUrl = withRedirectParam("/login", redirectTarget);
     return <Navigate to={loginUrl} state={{ from: location }} replace />;
   }
 

@@ -87,6 +87,29 @@ describe("Cloudflare Pages edge guard", () => {
     );
   });
 
+  it("redirects Software admin store URLs back to the Media store dashboard", async () => {
+    const storePath =
+      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair";
+    const expected = `https://zivosmedia.com${storePath}`;
+    const pagesResponse = await worker.fetch(
+      request(storePath, { headers: { host: "zivosoftware.com" } }),
+      env,
+    );
+    const cloudflareResponse = await cloudflareWorker.fetch(
+      request(storePath, { headers: { host: "zivosoftware.com" } }),
+      cloudflareEnv as any,
+    );
+
+    expect(pagesResponse.status).toBe(302);
+    expect(pagesResponse.headers.get("location")).toBe(expected);
+    expect(pagesResponse.headers.get("cache-control")).toBe("no-store");
+    expect(cloudflareResponse.status).toBe(302);
+    expect(cloudflareResponse.headers.get("location")).toBe(expected);
+    expect(cloudflareResponse.headers.get("content-security-policy")).toContain(
+      "report-uri https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report",
+    );
+  });
+
   it("blocks common secret and scanner paths before hitting static assets", async () => {
     const response = await worker.fetch(request("/.env"), env);
 

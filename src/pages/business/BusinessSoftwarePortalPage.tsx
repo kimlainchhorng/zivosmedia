@@ -30,7 +30,11 @@ import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStor
 import { useAuth } from "@/contexts/AuthContext";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
-import { AUTO_REPAIR_DASHBOARD_PATH, isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+import {
+  AUTO_REPAIR_DASHBOARD_PATH,
+  isAutoRepairSoftwareHost,
+  isZivoMediaHost,
+} from "@/config/autoRepairDomain";
 import bgOffice from "@/assets/bg-office.jpg";
 import hotelBusiness from "@/assets/hotel-business.jpg";
 import serviceCars from "@/assets/service-cars.jpg";
@@ -63,12 +67,32 @@ const startPath = (category?: StoreCategory) =>
 export const resolveSoftwarePortalAccountDashboardPath = (
   ownerStore?: { id?: string | null; category?: string | null } | null,
   hostname?: string | null,
+  mediaDashboardUrl?: string | null,
 ) => {
   if (ownerStore?.id) {
     return resolveBusinessDashboardRoute(ownerStore.category, ownerStore.id).path;
   }
 
-  return isAutoRepairSoftwareHost(hostname) ? AUTO_REPAIR_DASHBOARD_PATH : startPath();
+  if (isAutoRepairSoftwareHost(hostname)) {
+    return AUTO_REPAIR_DASHBOARD_PATH;
+  }
+
+  const linkedMediaDashboardUrl = normalizeMediaDashboardUrl(mediaDashboardUrl);
+  return linkedMediaDashboardUrl ?? startPath();
+};
+
+const normalizeMediaDashboardUrl = (value?: string | null) => {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    if (!isZivoMediaHost(url.hostname) || !url.pathname.startsWith("/admin/stores/")) {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
 };
 
 const authPath = (path: "/login" | "/signup") => {
@@ -190,7 +214,15 @@ export default function BusinessSoftwarePortalPage() {
   const accountLoading = authLoading || (!!user && ownerStoreLoading);
   const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
   const isSoftwareRuntimeHost = isAutoRepairSoftwareHost(currentHostname);
-  const accountDashboardPath = resolveSoftwarePortalAccountDashboardPath(ownerStore, currentHostname);
+  const mediaDashboardUrl =
+    typeof user?.user_metadata?.zivo_media_dashboard_url === "string"
+      ? user.user_metadata.zivo_media_dashboard_url
+      : null;
+  const accountDashboardPath = resolveSoftwarePortalAccountDashboardPath(
+    ownerStore,
+    currentHostname,
+    mediaDashboardUrl,
+  );
   const hasAccountDashboard = Boolean(ownerStore?.id) || isSoftwareRuntimeHost;
   const primaryActionPath = user ? accountDashboardPath : startPath();
   const primaryActionLabel = user

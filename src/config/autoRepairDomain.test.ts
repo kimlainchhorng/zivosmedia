@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AUTO_REPAIR_DASHBOARD_PATH,
+  AUTO_REPAIR_MEDIA_DASHBOARD_URL,
   AUTO_REPAIR_SOFTWARE_PATH,
   AUTO_REPAIR_STORE_ID,
   ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
@@ -25,6 +26,9 @@ describe("auto repair software domain config", () => {
     );
     expect(AUTO_REPAIR_DASHBOARD_PATH).toBe(
       "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+    );
+    expect(AUTO_REPAIR_MEDIA_DASHBOARD_URL).toBe(
+      "https://zivosmedia.com/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
     );
   });
 
@@ -74,12 +78,13 @@ describe("auto repair software domain config", () => {
     expect(ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY).toMatch(/^sb_publishable_/);
   });
 
-  it("allows business dashboard routes on the software domain", () => {
-    expect(isZivoSoftwareDashboardPath("/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44")).toBe(true);
-    expect(isZivoSoftwareDashboardPath("/admin/stores/another-store-id")).toBe(true);
-    expect(isZivoSoftwareDashboardPath("/eats/restaurant-dashboard")).toBe(true);
-    expect(isZivoSoftwareDashboardPath("/bus/operator")).toBe(true);
-    expect(isZivoSoftwareDashboardPath("/hotel-admin")).toBe(true);
+  it("allows only the Software dashboard route on the software domain", () => {
+    expect(isZivoSoftwareDashboardPath("/business/dashboard")).toBe(true);
+    expect(isZivoSoftwareDashboardPath("/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44")).toBe(false);
+    expect(isZivoSoftwareDashboardPath("/admin/stores/another-store-id")).toBe(false);
+    expect(isZivoSoftwareDashboardPath("/eats/restaurant-dashboard")).toBe(false);
+    expect(isZivoSoftwareDashboardPath("/bus/operator")).toBe(false);
+    expect(isZivoSoftwareDashboardPath("/hotel-admin")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/reels")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/chat")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/profile")).toBe(false);

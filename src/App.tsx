@@ -1428,7 +1428,6 @@ function ZivoSoftwareHostGate() {
     pathname.startsWith("/business/software/");
   const isAutoRepairPath =
     pathname === AUTO_REPAIR_SOFTWARE_PATH ||
-    pathname === `/admin/stores/${AUTO_REPAIR_STORE_ID}` ||
     pathname.startsWith(`/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}/`);
   const isSoftwareDashboardPath = isZivoSoftwareDashboardPath(pathname);
   const isOperationalAsset =

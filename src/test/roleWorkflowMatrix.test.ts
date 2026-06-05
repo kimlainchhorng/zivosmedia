@@ -141,6 +141,9 @@ describe("role workflow matrix", () => {
     expect(guard).toContain("allowSupport");
     expect(guard).toContain("useUserAccess(user?.id)");
     expect(guard).toContain("<AccessDenied");
+    expect(guard).toContain('location.pathname.startsWith("/admin/stores/")');
+    expect(guard).toContain("return <Navigate to={loginUrl} state={{ from: location }} replace />;");
+    expect(guard).not.toContain("return <Navigate to={`/hotel/${storeId}`} replace />;");
 
     expect(app).toContain('path="/admin/stores/:storeId" element={<ProtectedRoute requireAdmin={true} allowStoreOwner={true}>');
     expect(app).toContain('path="/admin/support" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>');
