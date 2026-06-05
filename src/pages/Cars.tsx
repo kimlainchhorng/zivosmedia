@@ -10,6 +10,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CarElectricVehicles from "@/components/car/CarElectricVehicles";
 import SEOHead from "@/components/SEOHead";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { useState, useMemo } from "react";
 import { 
   Search, MapPin, Calendar, Car, Zap, Star, Users, 
@@ -72,6 +73,8 @@ export default function Cars() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
 
   // Parse search params into filters
   const filters: P2PSearchFilters = useMemo(() => ({
@@ -171,8 +174,8 @@ export default function Cars() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title={`Rent Cars from Local Owners${filters.city ? ` in ${filters.city}` : ""} | ZIVO`}
-        description="Rent cars directly from local owners. Better prices, unique vehicles, flexible terms. Book now on ZIVO's peer-to-peer car sharing marketplace."
+        title={`Rent Cars from Local Owners${filters.city ? ` in ${filters.city}` : ""} | ${seoBrand}`}
+        description={`Rent cars directly from local owners. Better prices, unique vehicles, flexible terms. Book now on ${seoBrand}'s peer-to-peer car sharing marketplace.`}
       />
       <Header />
 

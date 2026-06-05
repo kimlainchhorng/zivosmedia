@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import AppLayout from "@/components/app/AppLayout";
 import SEOHead from "@/components/SEOHead";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/contexts/AuthContext";
@@ -362,6 +363,8 @@ export default function BusBookingPage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO Bus";
 
   const [step, setStep] = useState<Step>("search");
   const [from, setFrom] = useState(searchParams.get("from") || "Phnom Penh");
@@ -654,10 +657,10 @@ export default function BusBookingPage() {
   return (
     <>
       <SEOHead
-        title="ZIVO Bus – Book Intercity Bus Tickets"
-        description="Search routes, compare operators, pick your seats, and book intercity bus tickets in a few taps with ZIVO."
+        title={`${seoBrand} - Book Intercity Bus Tickets`}
+        description={`Search routes, compare operators, pick your seats, and book intercity bus tickets in a few taps with ${seoBrand}.`}
         canonical="/bus"
-        noIndex
+        noIndex={!isTravelHost}
       />
       <AppLayout title={stepTitle[step]} showBack onBack={handleBack}>
         <div className="mx-auto w-full max-w-6xl px-3 py-2 sm:px-4 sm:py-4">
