@@ -40,6 +40,10 @@ function json(req: Request, body: unknown, status = 200): Response {
   });
 }
 
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
@@ -80,6 +84,30 @@ serve(async (req: Request): Promise<Response> => {
   const tokenHash = linkData?.properties?.hashed_token;
   if (linkError || !tokenHash) {
     return json(req, { error: "Could not create Software handoff token" }, 500);
+  }
+
+  const softwareUserId = linkData.user?.id;
+  if (softwareUserId) {
+    const metadata = mediaUser.user_metadata ?? {};
+    const fullName =
+      stringValue(metadata.full_name) ||
+      stringValue(metadata.name) ||
+      stringValue(metadata.display_name);
+    const phone = stringValue(mediaUser.phone) || stringValue(metadata.phone);
+    const profilePayload: Record<string, string> = {
+      user_id: softwareUserId,
+      updated_at: new Date().toISOString(),
+    };
+    if (fullName) profilePayload.full_name = fullName;
+    if (phone) profilePayload.phone = phone;
+
+    const { error: profileError } = await software
+      .from("profiles")
+      .upsert(profilePayload, { onConflict: "user_id" });
+
+    if (profileError) {
+      return json(req, { error: "Could not prepare Software profile" }, 500);
+    }
   }
 
   return json(req, {
