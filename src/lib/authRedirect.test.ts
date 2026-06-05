@@ -20,19 +20,31 @@ describe("auth redirect safety", () => {
     ).toBe("https://zivosmedia.com/login?redirect=https%3A%2F%2Fzivosoftware.com%2Flogin");
   });
 
-  it("allows zivoschat.com to bridge auth with the main media host", () => {
+  it("keeps zivoschat.com auth redirects on the chat surface", () => {
     expect(
       getSafeRedirectTargetForHost(
-        "https://zivoschat.com/login?redirect=%2Fchat",
-        "zivosmedia.com",
+        null,
+        "zivoschat.com",
       ),
-    ).toBe("https://zivoschat.com/login?redirect=%2Fchat");
+    ).toBe("/chat");
+    expect(
+      getSafeRedirectTargetForHost(
+        "/login?redirect=/account",
+        "zivoschat.com",
+      ),
+    ).toBe("/chat");
     expect(
       getSafeRedirectTargetForHost(
         "https://zivosmedia.com/login?redirect=https%3A%2F%2Fzivoschat.com%2Fchat",
         "zivoschat.com",
       ),
-    ).toBe("https://zivosmedia.com/login?redirect=https%3A%2F%2Fzivoschat.com%2Fchat");
+    ).toBe("/chat");
+    expect(
+      getSafeRedirectTargetForHost(
+        "https://zivoschat.com/chat",
+        "zivosmedia.com",
+      ),
+    ).toBe("https://zivoschat.com/chat");
   });
 
   it("blocks non-ZIVO external redirects", () => {
