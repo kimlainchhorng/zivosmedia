@@ -13,7 +13,7 @@ export const ZIVO_SOFTWARE_SUPABASE_URL =
 export const ZIVO_SOFTWARE_SUPABASE_PROJECT_ID = "ydxztoresbdeoeijhxww";
 
 export const ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY || "";
+  import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_uZ-GdApCM_hzdmOGiwokDg_G7MxTf41";
 
 export const AUTO_REPAIR_SOFTWARE_PATH = `/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}`;
 

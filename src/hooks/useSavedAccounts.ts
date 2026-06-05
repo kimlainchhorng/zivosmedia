@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const STORAGE_KEY = "zivo_saved_accounts";
+const BASE_STORAGE_KEY = "zivo_saved_accounts";
 const MAX_ACCOUNTS = 5;
 
 export interface SavedAccount {
@@ -25,9 +25,21 @@ export interface SavedAccount {
   expiresAt?: number | null;
 }
 
+function getStorageKey() {
+  if (typeof window === "undefined") return BASE_STORAGE_KEY;
+  const host = window.location.hostname.toLowerCase();
+  if (host === "zivosoftware.com" || host === "www.zivosoftware.com") {
+    return `${BASE_STORAGE_KEY}:software`;
+  }
+  if (host === "zivosmedia.com" || host === "www.zivosmedia.com") {
+    return `${BASE_STORAGE_KEY}:media`;
+  }
+  return `${BASE_STORAGE_KEY}:${host || "local"}`;
+}
+
 function read(): SavedAccount[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey());
     return raw ? (JSON.parse(raw) as SavedAccount[]) : [];
   } catch {
     return [];
@@ -36,7 +48,7 @@ function read(): SavedAccount[] {
 
 function write(accounts: SavedAccount[]) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    localStorage.setItem(getStorageKey(), JSON.stringify(accounts));
   } catch {}
 }
 
@@ -52,17 +64,18 @@ export function removeAccount(email: string) {
 
 export function useSavedAccounts() {
   const [accounts, setAccounts] = useState<SavedAccount[]>(() => read());
+  const storageKey = getStorageKey();
 
   const refresh = useCallback(() => setAccounts(read()), []);
 
   useEffect(() => {
     // Sync across tabs
     const handler = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) refresh();
+      if (e.key === storageKey) refresh();
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
-  }, [refresh]);
+  }, [refresh, storageKey]);
 
   const remove = useCallback((email: string) => {
     removeAccount(email);

@@ -4,16 +4,16 @@
  * - Emerald glassmorphic branding.
  * - Email + password + name. Email confirmation required.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Check, Loader2, Eye, EyeOff, MailCheck, ShieldCheck, Wrench, CalendarCheck, BadgeCheck } from "lucide-react";
+import { Check, Loader2, Eye, EyeOff, MailCheck, ShieldCheck, Wrench, CalendarCheck, BadgeCheck, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { LegalPreviewLink } from "@/components/legal/LegalPreviewSheet";
 import { analyzePassword, checkPasswordBreach } from "@/lib/security/passwordStrength";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
-import { getSafeRedirectTarget } from "@/lib/authRedirect";
+import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
 
@@ -118,14 +118,25 @@ function ZivoSoftwareAuthGraphic() {
   );
 }
 
-function ZivoSoftwareLegalLinks() {
+function ZivoSoftwareLegalLinks({ connectHref }: { connectHref?: string }) {
   return (
-    <p className="mt-3 text-center text-xs font-medium text-[#66736d]">
-      By creating an account, you agree to the{" "}
-      <Link to="/legal/terms" className="font-black text-[#101412] underline-offset-4 hover:underline">ZIVO Software Terms</Link>
-      {" "}and{" "}
-      <Link to="/legal/privacy" className="font-black text-[#101412] underline-offset-4 hover:underline">Privacy Policy</Link>.
-    </p>
+    <div className="mt-3 space-y-3">
+      {connectHref && (
+        <a
+          href={connectHref}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#101412]/15 bg-white/90 text-sm font-black text-[#101412] shadow-sm transition hover:border-[#138f68] hover:text-[#138f68]"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Connect with ZIVO Media
+        </a>
+      )}
+      <p className="text-center text-xs font-medium text-[#66736d]">
+        By creating an account, you agree to the{" "}
+        <Link to="/legal/terms" className="font-black text-[#101412] underline-offset-4 hover:underline">ZIVO Software Terms</Link>
+        {" "}and{" "}
+        <Link to="/legal/privacy" className="font-black text-[#101412] underline-offset-4 hover:underline">Privacy Policy</Link>.
+      </p>
+    </div>
   );
 }
 
@@ -135,6 +146,17 @@ const Signup = () => {
   const redirect = getSafeRedirectTarget(params.get("redirect"));
   const isZivoSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const zivoMediaConnectHref = useMemo(() => {
+    const softwareReturn = "https://zivosoftware.com/login?connected=zivosmedia";
+    return `https://zivosmedia.com/login?redirect=${encodeURIComponent(softwareReturn)}`;
+  }, []);
+  const finishAuthRedirect = useCallback((target: string) => {
+    if (isExternalRedirectTarget(target)) {
+      window.location.assign(target);
+      return;
+    }
+    navigate(target, { replace: true });
+  }, [navigate]);
   const { signUp, user, isLoading: authLoading } = useAuth();
 
   const [firstName, setFirstName] = useState("");
@@ -178,8 +200,8 @@ const Signup = () => {
     : "";
 
   useEffect(() => {
-    if (!authLoading && user) navigate(redirect, { replace: true });
-  }, [authLoading, user, navigate, redirect]);
+    if (!authLoading && user) finishAuthRedirect(redirect);
+  }, [authLoading, user, finishAuthRedirect, redirect]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -572,7 +594,7 @@ const Signup = () => {
             </a>
           </p>
         )}
-        {isZivoSoftwareDomain && <ZivoSoftwareLegalLinks />}
+        {isZivoSoftwareDomain && <ZivoSoftwareLegalLinks connectHref={zivoMediaConnectHref} />}
         </div>
       </div>
     </div>

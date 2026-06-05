@@ -4,7 +4,7 @@
  * - Full email+password form for new/other accounts
  * - Remember me saves avatar/name to localStorage for quick re-login
  */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink, ShieldCheck, Wrench, CalendarCheck, BadgeCheck } from "lucide-react";
 import { supabase, setRememberMePreference } from "@/integrations/supabase/client";
@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
-import { getSafeRedirectTarget } from "@/lib/authRedirect";
+import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
 
@@ -118,14 +118,25 @@ function ZivoSoftwareAuthGraphic({ mode }: { mode: "login" | "signup" }) {
   );
 }
 
-function ZivoSoftwareLegalLinks() {
+function ZivoSoftwareLegalLinks({ connectHref }: { connectHref?: string }) {
   return (
-    <p className="mt-3 text-center text-xs font-medium text-[#66736d]">
-      By continuing, you agree to the{" "}
-      <Link to="/legal/terms" className="font-black text-[#101412] underline-offset-4 hover:underline">ZIVO Software Terms</Link>
-      {" "}and{" "}
-      <Link to="/legal/privacy" className="font-black text-[#101412] underline-offset-4 hover:underline">Privacy Policy</Link>.
-    </p>
+    <div className="mt-3 space-y-3">
+      {connectHref && (
+        <a
+          href={connectHref}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#101412]/15 bg-white/90 text-sm font-black text-[#101412] shadow-sm transition hover:border-[#138f68] hover:text-[#138f68]"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Connect with ZIVO Media
+        </a>
+      )}
+      <p className="text-center text-xs font-medium text-[#66736d]">
+        By continuing, you agree to the{" "}
+        <Link to="/legal/terms" className="font-black text-[#101412] underline-offset-4 hover:underline">ZIVO Software Terms</Link>
+        {" "}and{" "}
+        <Link to="/legal/privacy" className="font-black text-[#101412] underline-offset-4 hover:underline">Privacy Policy</Link>.
+      </p>
+    </div>
   );
 }
 
@@ -268,6 +279,17 @@ const Login = () => {
   const redirect = getSafeRedirectTarget(params.get("redirect"));
   const isZivoSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const zivoMediaConnectHref = useMemo(() => {
+    const softwareReturn = "https://zivosoftware.com/login?connected=zivosmedia";
+    return `https://zivosmedia.com/login?redirect=${encodeURIComponent(softwareReturn)}`;
+  }, []);
+  const finishAuthRedirect = useCallback((target: string) => {
+    if (isExternalRedirectTarget(target)) {
+      window.location.assign(target);
+      return;
+    }
+    navigate(target, { replace: true });
+  }, [navigate]);
   const { signIn, user, isLoading: authLoading } = useAuth();
   const { accounts, remove, refresh } = useSavedAccounts();
 
@@ -316,8 +338,14 @@ const Login = () => {
   ) : null;
 
   useEffect(() => {
-    if (!authLoading && user) navigate(redirect, { replace: true });
-  }, [authLoading, user, navigate, redirect]);
+    if (!authLoading && user) finishAuthRedirect(redirect);
+  }, [authLoading, user, finishAuthRedirect, redirect]);
+
+  useEffect(() => {
+    if (isZivoSoftwareDomain && params.get("connected") === "zivosmedia") {
+      toast.success("ZIVO Media connection checked. Sign in to ZIVO Software to continue.");
+    }
+  }, [isZivoSoftwareDomain, params]);
 
   // When accounts change (e.g. all removed), fall back to full form and exit
   // edit mode so users don't get stuck staring at "Tap × to remove" with no
@@ -361,7 +389,7 @@ const Login = () => {
         refresh();
         setSubmitting(false);
         toast.success(`Welcome back, ${account.fullName?.split(" ")[0] || ""}!`);
-        navigate(redirect, { replace: true });
+        finishAuthRedirect(redirect);
         return;
       }
     } catch {
@@ -395,7 +423,7 @@ const Login = () => {
           refresh();
           setSubmitting(false);
           toast.success(`Welcome back, ${account.fullName?.split(" ")[0] || ""}!`);
-          navigate(redirect, { replace: true });
+          finishAuthRedirect(redirect);
           return;
         }
       } catch {
@@ -561,7 +589,7 @@ const Login = () => {
 
     setSubmitting(false);
     toast.success("Welcome back!");
-    navigate(redirect, { replace: true });
+    finishAuthRedirect(redirect);
   };
 
   return (
@@ -968,7 +996,7 @@ const Login = () => {
           </p>
         </div>
 
-        {isZivoSoftwareDomain && <ZivoSoftwareLegalLinks />}
+        {isZivoSoftwareDomain && <ZivoSoftwareLegalLinks connectHref={zivoMediaConnectHref} />}
 
         <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-500 mt-3">
           Protected by enterprise-grade security

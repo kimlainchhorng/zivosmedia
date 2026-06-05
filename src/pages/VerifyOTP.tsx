@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { saveAccount } from "@/hooks/useSavedAccounts";
-import { getSafeRedirectTarget } from "@/lib/authRedirect";
+import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 
 const RESEND_COOLDOWN = 30;
 
@@ -29,6 +29,14 @@ const VerifyOTP = () => {
   // Login emails are magic-link first. Signup emails use the custom 6-digit
   // verification code, so show code entry immediately for signup only.
   const [showCodeEntry, setShowCodeEntry] = useState(isSignup);
+
+  const finishAuthRedirect = useCallback((target: string) => {
+    if (isExternalRedirectTarget(target)) {
+      window.location.assign(target);
+      return;
+    }
+    navigate(target, { replace: true });
+  }, [navigate]);
 
   const getEmailRedirectTo = () => {
     const redirectParams = new URLSearchParams();
@@ -87,12 +95,12 @@ const VerifyOTP = () => {
       if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
         void persistVerifiedAccount().finally(() => {
           toast.success("Signed in!");
-          navigate(redirect, { replace: true });
+          finishAuthRedirect(redirect);
         });
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate, persistVerifiedAccount, redirect]);
+  }, [finishAuthRedirect, persistVerifiedAccount, redirect]);
 
   const submit = async (fullCode: string) => {
     if (submitting) return;
@@ -125,7 +133,7 @@ const VerifyOTP = () => {
             if (!vErr) {
               setSubmitting(false);
               toast.success("Email verified! Welcome to ZIVO.");
-              navigate(redirect && redirect !== "/" ? redirect : "/account", { replace: true });
+              finishAuthRedirect(redirect && redirect !== "/" ? redirect : "/account");
               return;
             }
             console.warn("Auto sign-in failed:", vErr);
@@ -155,7 +163,7 @@ const VerifyOTP = () => {
     }
     await persistVerifiedAccount();
     toast.success("Signed in!");
-    navigate(redirect, { replace: true });
+    finishAuthRedirect(redirect);
   };
 
   const handleChange = (idx: number, value: string) => {

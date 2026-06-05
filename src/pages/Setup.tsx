@@ -2,7 +2,7 @@
  * Setup Page — Profile picture & cover photo upload after signup.
  * Name and phone are already collected during registration.
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { User, ArrowRight, Loader2, Camera, ImagePlus } from "lucide-react";
-import { getSafeRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
+import { getSafeRedirectTarget, isExternalRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -27,6 +27,13 @@ export default function Setup() {
   const redirectTo = getSafeRedirectTarget(
     searchParams.get("redirect") ?? (location.state as { redirectTo?: string } | null)?.redirectTo,
   );
+  const finishRedirect = useCallback((target: string) => {
+    if (isExternalRedirectTarget(target)) {
+      window.location.assign(target);
+      return;
+    }
+    navigate(target, { replace: true });
+  }, [navigate]);
 
   // Image state
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -59,7 +66,7 @@ export default function Setup() {
         if (!isActive) return;
 
         if (profile?.setup_complete) {
-          navigate(redirectTo, { replace: true });
+          finishRedirect(redirectTo);
           return;
         }
 
@@ -77,7 +84,7 @@ export default function Setup() {
     return () => {
       isActive = false;
     };
-  }, [authLoading, user, navigate]);
+  }, [authLoading, user, navigate, redirectTo, finishRedirect]);
 
   const handleImageSelect = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -192,7 +199,7 @@ export default function Setup() {
       }
 
       toast.success("Account setup complete!");
-      navigate(redirectTo, { replace: true });
+      finishRedirect(redirectTo);
     } catch (err: any) {
       console.error("Setup error:", err);
       toast.error(err?.message || "Failed to save. Please try again.");

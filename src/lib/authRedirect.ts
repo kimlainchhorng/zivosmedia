@@ -5,8 +5,20 @@ type RedirectLocation = {
 } | null | undefined;
 
 const AUTH_ROUTES = ["/login", "/verify-otp", "/auth-callback"];
+const TRUSTED_ZIVO_AUTH_HOSTS = new Set([
+  "zivosmedia.com",
+  "www.zivosmedia.com",
+  "zivosoftware.com",
+  "www.zivosoftware.com",
+]);
 
-export const getSafeRedirectTarget = (value?: string | null) => {
+const isTrustedZivoAuthHost = (hostname: string) =>
+  TRUSTED_ZIVO_AUTH_HOSTS.has(hostname.toLowerCase());
+
+export const getSafeRedirectTargetForHost = (
+  value?: string | null,
+  currentHostname?: string | null,
+) => {
   const normalizedValue = value?.trim();
 
   if (!normalizedValue) {
@@ -18,10 +30,28 @@ export const getSafeRedirectTarget = (value?: string | null) => {
   if (/^https?:\/\//i.test(normalizedValue)) {
     try {
       const url = new URL(normalizedValue);
-      const currentHost = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+      const currentHost = (
+        currentHostname ??
+        (typeof window !== "undefined" ? window.location.hostname : "")
+      ).toLowerCase();
 
-      if (!currentHost || url.hostname.toLowerCase() !== currentHost) {
+      if (!currentHost) {
         return "/";
+      }
+
+      const targetHost = url.hostname.toLowerCase();
+      const isSameHost = targetHost === currentHost;
+      const isTrustedZivoBridge =
+        isTrustedZivoAuthHost(currentHost) &&
+        isTrustedZivoAuthHost(targetHost) &&
+        targetHost !== currentHost;
+
+      if (!isSameHost && !isTrustedZivoBridge) {
+        return "/";
+      }
+
+      if (isTrustedZivoBridge) {
+        return url.toString();
       }
 
       safeValue = `${url.pathname}${url.search}${url.hash}`;
@@ -43,6 +73,15 @@ export const getSafeRedirectTarget = (value?: string | null) => {
 
   return isAuthRoute ? "/" : safeValue;
 };
+
+export const getSafeRedirectTarget = (value?: string | null) =>
+  getSafeRedirectTargetForHost(
+    value,
+    typeof window !== "undefined" ? window.location.hostname : "",
+  );
+
+export const isExternalRedirectTarget = (value?: string | null) =>
+  /^https?:\/\//i.test(value || "");
 
 export const getRedirectFromLocation = (location?: RedirectLocation) => {
   if (!location?.pathname) {

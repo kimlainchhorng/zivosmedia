@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useExchangeAuthToken } from "@/hooks/useCrossAppAuth";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { getSafeRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
+import { getSafeRedirectTarget, isExternalRedirectTarget, withRedirectParam } from "@/lib/authRedirect";
 import { saveAccount } from "@/hooks/useSavedAccounts";
 
 const AuthCallback = () => {
@@ -16,6 +16,14 @@ const AuthCallback = () => {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const redirectTo = getSafeRedirectTarget(searchParams.get("redirect"));
+
+  const finishRedirect = (target: string) => {
+    if (isExternalRedirectTarget(target)) {
+      window.location.assign(target);
+      return;
+    }
+    navigate(target, { replace: true });
+  };
 
   // Parse hash fragment for OAuth errors (Supabase returns errors in hash, not query)
   const getHashParams = () => {
@@ -178,12 +186,12 @@ const AuthCallback = () => {
         _role: "admin",
       });
       setStatus("success");
-      setTimeout(() => navigate(isAdminUser ? "/admin/analytics" : redirectTo, { replace: true }), 200);
+      setTimeout(() => finishRedirect(isAdminUser ? "/admin/analytics" : redirectTo), 200);
     } catch (err) {
       console.error("Error checking setup status:", err);
       // User IS authenticated — never show an error. Redirect to home.
       setStatus("success");
-      setTimeout(() => navigate(redirectTo, { replace: true }), 200);
+      setTimeout(() => finishRedirect(redirectTo), 200);
     }
   };
 
@@ -244,7 +252,7 @@ const AuthCallback = () => {
         if (redirectUrl) {
           // Validate the redirect URL is internal to prevent open redirect
           const safeTarget = getSafeRedirectTarget(redirectUrl);
-          navigate(safeTarget, { replace: true });
+          finishRedirect(safeTarget);
         } else {
           setStatus("error");
         }
