@@ -147,6 +147,8 @@ project_id = "ydxztoresbdeoeijhxww"
     verify_jwt = false
   [functions.send-transactional-email]
     verify_jwt = false
+  [functions.send-otp-email]
+    verify_jwt = false
   [functions.target-search]
     verify_jwt = false
   [functions.wallet-summary]

@@ -4,7 +4,7 @@ import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { TEMPLATES_WITH_FALLBACK as TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
-const SITE_NAME = "myzivo"
+const SITE_NAME = "ZIVO"
 const SENDER_DOMAIN = "send.zivosmedia.com"
 // FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
 // When display_from_root is enabled, this can be the root domain for cleaner branding,
@@ -20,9 +20,9 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Auth note: this function is deployed with verify_jwt = false so backend
+// functions and selected admin workflows can call it. It relies on strict CORS,
+// rate limiting, suppression checks, and template allowlisting here.
 
 Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
