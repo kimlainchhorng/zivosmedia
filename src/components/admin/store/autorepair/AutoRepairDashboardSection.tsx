@@ -60,7 +60,7 @@ export default function AutoRepairDashboardSection({ storeId, onNavigate }: Prop
         .eq("store_id", storeId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as any[];
+      return (data ?? []) as any[];
     },
   });
 
