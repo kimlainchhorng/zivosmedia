@@ -72,6 +72,75 @@ const SOFTWARE_HOSTS = new Set([
   "www.zivosoftware.com",
 ]);
 
+const TRAVEL_HOSTS = new Set([
+  "zivostravel.com",
+  "www.zivostravel.com",
+]);
+
+const TRAVEL_ORIGIN = "https://zivostravel.com";
+
+// zivostravel.com is served by the same build as zivosmedia.com, so the static
+// public/robots.txt and public/sitemap.xml carry zivosmedia URLs. Serve a
+// host-specific robots + sitemap for the travel domain instead.
+const TRAVEL_ROBOTS = `# Zivo Travel (zivostravel.com)
+User-agent: *
+Allow: /
+Disallow: /account/
+Disallow: /wallet
+Disallow: /payment-methods
+Disallow: /checkout
+Disallow: /booking
+Disallow: /confirmation
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /login
+Disallow: /signup
+Disallow: /flights/results
+Disallow: /rent-car/results
+
+Sitemap: ${TRAVEL_ORIGIN}/sitemap.xml
+`;
+
+const TRAVEL_SITEMAP_ENTRIES: { path: string; priority: string; freq: string }[] = [
+  { path: "/", priority: "1.0", freq: "daily" },
+  { path: "/flights", priority: "0.9", freq: "daily" },
+  { path: "/hotels", priority: "0.9", freq: "daily" },
+  { path: "/cars", priority: "0.9", freq: "daily" },
+  { path: "/bus", priority: "0.9", freq: "daily" },
+  { path: "/things-to-do", priority: "0.6", freq: "weekly" },
+  { path: "/destinations", priority: "0.6", freq: "weekly" },
+  { path: "/travel-insurance", priority: "0.5", freq: "weekly" },
+  { path: "/guides/cheap-flights", priority: "0.6", freq: "weekly" },
+];
+
+function travelSeoResponse(request: Request, url: URL): Response | null {
+  if (!TRAVEL_HOSTS.has(url.hostname)) return null;
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const head = request.method === "HEAD";
+
+  if (url.pathname === "/robots.txt") {
+    return new Response(head ? null : TRAVEL_ROBOTS, {
+      status: 200,
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" },
+    });
+  }
+
+  if (url.pathname === "/sitemap.xml") {
+    const lastmod = new Date().toISOString().slice(0, 10);
+    const urls = TRAVEL_SITEMAP_ENTRIES.map(
+      ({ path, priority, freq }) =>
+        `  <url>\n    <loc>${TRAVEL_ORIGIN}${path}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`,
+    ).join("\n");
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+    return new Response(head ? null : xml, {
+      status: 200,
+      headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" },
+    });
+  }
+
+  return null;
+}
+
 const CSP_BASE =
   "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://static.cloudflareinsights.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
 
@@ -418,6 +487,11 @@ export default {
 
     if (url.pathname.startsWith("/share/c/")) {
       return handleChannelSharePreview(request, env);
+    }
+
+    const travelSeo = travelSeoResponse(request, url);
+    if (travelSeo) {
+      return withSecurityHeaders(travelSeo, request, env);
     }
 
     if (env.ASSETS) {

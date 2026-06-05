@@ -490,6 +490,7 @@ const PaymentMethodsPage = lazy(() => import("./pages/PaymentMethodsPage"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const AuthHandoff = lazy(() => import("./pages/AuthHandoff"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const VerifyOTP = lazy(() => lazyRetry(() => import("./pages/VerifyOTP")));
@@ -2016,6 +2017,7 @@ const App = () => (
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/auth-callback" element={<AuthCallback />} />
+                <Route path="/auth/handoff" element={<AuthHandoff />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 
                 <Route path="/verify-otp" element={<VerifyOTP />} />

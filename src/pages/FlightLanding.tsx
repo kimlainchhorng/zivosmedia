@@ -4,7 +4,7 @@
  */
 
 import { useRef, useCallback, useMemo, useState, useEffect, lazy, Suspense } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plane, Shield, Star, TrendingUp, Sparkles,
@@ -539,9 +539,30 @@ function WhyZivoSection({ className }: { className?: string }) {
   );
 }
 
+/* ─── Deep-link prefill: route params win; else ?from/?to/?start/?end/?travelers (Zivo Travel home) ─── */
+function useFlightDeepLinkInitial(fromCity?: string, toCity?: string) {
+  const [params] = useSearchParams();
+  return useMemo(() => {
+    const parseDate = (raw: string | null) => {
+      if (!raw) return undefined;
+      const d = new Date(`${raw}T00:00:00`);
+      return Number.isNaN(d.getTime()) ? undefined : d;
+    };
+    const travelers = Number.parseInt(params.get("travelers") || "", 10);
+    return {
+      initialFrom: fromCity ? decodeURIComponent(fromCity) : params.get("from") || "",
+      initialTo: toCity ? decodeURIComponent(toCity) : params.get("to") || "",
+      initialDepartDate: parseDate(params.get("start")),
+      initialReturnDate: parseDate(params.get("end")),
+      initialPassengers: Number.isFinite(travelers) && travelers > 0 ? travelers : undefined,
+    };
+  }, [params, fromCity, toCity]);
+}
+
 /* ─── Cinematic Desktop Hero ─── */
 function DesktopCinematicHero() {
   const { fromCity, toCity } = useParams();
+  const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
   const [currentSlide, setCurrentSlide] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
@@ -706,8 +727,11 @@ function DesktopCinematicHero() {
 
             <div className="relative">
               <FlightSearchFormPro
-                initialFrom={fromCity ? decodeURIComponent(fromCity) : ""}
-                initialTo={toCity ? decodeURIComponent(toCity) : ""}
+                initialFrom={flightInitial.initialFrom}
+                initialTo={flightInitial.initialTo}
+                initialDepartDate={flightInitial.initialDepartDate}
+                initialReturnDate={flightInitial.initialReturnDate}
+                initialPassengers={flightInitial.initialPassengers}
                 className="shadow-2xl shadow-primary/15 rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl"
               />
             </div>
@@ -828,6 +852,7 @@ function TravelTipBar() {
 /* ─── Mobile Flight Search ─── */
 function MobileFlightSearch() {
   const { fromCity, toCity } = useParams();
+  const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
   const navigate = useNavigate();
   const [showBackToTop, setShowBackToTop] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -855,8 +880,11 @@ function MobileFlightSearch() {
         style={{ transformStyle: "preserve-3d" }}
       >
         <FlightSearchFormPro
-          initialFrom={fromCity ? decodeURIComponent(fromCity) : ""}
-          initialTo={toCity ? decodeURIComponent(toCity) : ""}
+          initialFrom={flightInitial.initialFrom}
+          initialTo={flightInitial.initialTo}
+          initialDepartDate={flightInitial.initialDepartDate}
+          initialReturnDate={flightInitial.initialReturnDate}
+          initialPassengers={flightInitial.initialPassengers}
           className="shadow-xl shadow-primary/10 rounded-2xl border border-border/30"
         />
       </motion.div>
