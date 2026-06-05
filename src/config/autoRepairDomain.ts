@@ -5,6 +5,13 @@ export const AUTO_REPAIR_SOFTWARE_HOSTS = new Set([
   "www.zivosoftware.com",
 ]);
 
+export const ZIVO_MEDIA_HOSTS = new Set([
+  "zivosmedia.com",
+  "www.zivosmedia.com",
+  "preview.zivosmedia.com",
+]);
+
+export const ZIVO_SOFTWARE_ORIGIN = "https://zivosoftware.com";
 export const ZIVO_SOFTWARE_HOME_PATH = "/business";
 export const ZIVO_SOFTWARE_AUTH_REDIRECT_PATH = "/business/new";
 
@@ -25,6 +32,20 @@ export const isAutoRepairSoftwareHost = (hostname?: string | null) =>
   AUTO_REPAIR_SOFTWARE_HOSTS.has((hostname || "").toLowerCase());
 
 export const isZivoSoftwareHost = isAutoRepairSoftwareHost;
+
+export const isZivoMediaHost = (hostname?: string | null) =>
+  ZIVO_MEDIA_HOSTS.has((hostname || "").toLowerCase());
+
+export const getZivoSoftwareUrl = (
+  pathname = ZIVO_SOFTWARE_HOME_PATH,
+  search?: string | null,
+  hash?: string | null,
+) => {
+  const url = new URL(pathname, ZIVO_SOFTWARE_ORIGIN);
+  url.search = search || "";
+  url.hash = hash || "";
+  return url.toString();
+};
 
 export const isZivoSoftwareBusinessPath = (pathname?: string | null) => {
   const path = pathname || "";

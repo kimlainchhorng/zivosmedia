@@ -4,11 +4,14 @@ import {
   AUTO_REPAIR_SOFTWARE_PATH,
   AUTO_REPAIR_STORE_ID,
   ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
+  ZIVO_SOFTWARE_ORIGIN,
   ZIVO_SOFTWARE_SUPABASE_PROJECT_ID,
   ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY,
   ZIVO_SOFTWARE_SUPABASE_URL,
   ZIVO_SOFTWARE_HOME_PATH,
+  getZivoSoftwareUrl,
   isAutoRepairSoftwareHost,
+  isZivoMediaHost,
   isZivoSoftwareDashboardPath,
   isZivoSoftwareHost,
   isZivoSoftwareRedirectTarget,
@@ -36,10 +39,26 @@ describe("auto repair software domain config", () => {
   });
 
   it("uses zivosoftware.com as the business software home", () => {
+    expect(ZIVO_SOFTWARE_ORIGIN).toBe("https://zivosoftware.com");
     expect(ZIVO_SOFTWARE_HOME_PATH).toBe("/business");
     expect(ZIVO_SOFTWARE_AUTH_REDIRECT_PATH).toBe("/business/new");
     expect(isZivoSoftwareHost("zivosoftware.com")).toBe(true);
     expect(isZivoSoftwareHost("zivosmedia.com")).toBe(false);
+  });
+
+  it("recognizes media hosts that should hand business setup to software", () => {
+    expect(isZivoMediaHost("zivosmedia.com")).toBe(true);
+    expect(isZivoMediaHost("www.zivosmedia.com")).toBe(true);
+    expect(isZivoMediaHost("preview.zivosmedia.com")).toBe(true);
+    expect(isZivoMediaHost("zivosoftware.com")).toBe(false);
+    expect(isZivoMediaHost("localhost")).toBe(false);
+  });
+
+  it("builds software-domain URLs while preserving navigation state", () => {
+    expect(getZivoSoftwareUrl("/business/new", "?new=1", "#profile")).toBe(
+      "https://zivosoftware.com/business/new?new=1#profile",
+    );
+    expect(getZivoSoftwareUrl("/business")).toBe("https://zivosoftware.com/business");
   });
 
   it("only treats absolute zivosoftware.com URLs as software auth redirects", () => {

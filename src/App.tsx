@@ -121,8 +121,11 @@ import RequestHealthBadge from "@/components/dev/RequestHealthBadge";
 import {
   AUTO_REPAIR_SOFTWARE_PATH,
   AUTO_REPAIR_STORE_ID,
+  ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
   isAutoRepairSoftwareHost,
+  isZivoMediaHost,
   isZivoSoftwareDashboardPath,
+  getZivoSoftwareUrl,
   ZIVO_SOFTWARE_HOME_PATH,
 } from "@/config/autoRepairDomain";
 import {
@@ -1450,6 +1453,42 @@ function ZivoSoftwareHostGate() {
   return <Navigate to={ZIVO_SOFTWARE_HOME_PATH} replace />;
 }
 
+function BusinessPageWizardRoute() {
+  const location = useLocation();
+  const shouldRedirectToSoftware =
+    typeof window !== "undefined" && isZivoMediaHost(window.location.hostname);
+  const softwareUrl = getZivoSoftwareUrl(
+    ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
+    location.search,
+    location.hash,
+  );
+
+  useEffect(() => {
+    if (shouldRedirectToSoftware) {
+      window.location.replace(softwareUrl);
+    }
+  }, [shouldRedirectToSoftware, softwareUrl]);
+
+  if (shouldRedirectToSoftware) {
+    return (
+      <div className="min-h-screen bg-background px-6 py-12 text-center">
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 shadow-sm">
+          <p className="text-sm font-semibold text-foreground">Opening ZIVO Software...</p>
+          <a className="text-sm font-medium text-primary underline" href={softwareUrl}>
+            Continue to zivosoftware.com
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <BusinessPageWizard />
+    </ProtectedRoute>
+  );
+}
+
 function ZivoChatHostGate() {
   const location = useLocation();
 
@@ -1885,7 +1924,7 @@ const App = () => (
                 <Route path="/admin/lodging/wiring-check" element={<ProtectedRoute requireAdmin={true}><AdminLodgingWiringCheckPage /></ProtectedRoute>} />
                 <Route path="/admin/lodging/webhook-events" element={<ProtectedRoute requireAdmin={true}><AdminLodgingWebhookEventsPage /></ProtectedRoute>} />
                 <Route path="/store/setup" element={<ProtectedRoute><StoreSetup /></ProtectedRoute>} />
-                <Route path="/business/new" element={<ProtectedRoute><BusinessPageWizard /></ProtectedRoute>} />
+                <Route path="/business/new" element={<BusinessPageWizardRoute />} />
                 <Route path="/business/software/:storeId" element={<ProtectedRoute><BusinessSoftwareDownloadPage /></ProtectedRoute>} />
                 <Route path="/desktop/auto-repair/:storeId" element={<ProtectedRoute requireAdmin={true} allowStoreOwner={true}><AutoRepairDesktopAppPage /></ProtectedRoute>} />
                 <Route path="/admin/employees" element={<ProtectedRoute requireAdmin={true} allowSupport={true}><AdminEmployeesPage /></ProtectedRoute>} />
