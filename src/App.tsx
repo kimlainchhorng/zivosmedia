@@ -130,6 +130,11 @@ import {
   isZivoChatPath,
   ZIVO_CHAT_HOME_PATH,
 } from "@/config/zivoChatDomain";
+import {
+  isZivoTravelHost,
+  isZivoTravelPath,
+  ZIVO_TRAVEL_HOME_PATH,
+} from "@/config/zivoTravelDomain";
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
@@ -146,6 +151,7 @@ const RepairStatusPage = lazy(() => lazyRetry(() => import("./pages/RepairStatus
 const InspectionViewPage = lazy(() => lazyRetry(() => import("./pages/InspectionViewPage")));
 
 const Index = lazy(() => lazyRetry(() => import("./pages/Index")));
+const ZivoTravelHome = lazy(() => import("./pages/ZivoTravelHome"));
 const AdminDriverModerationPage = lazy(() => import("./pages/admin/AdminDriverModerationPage"));
 const AdminTripHeatmapPage = lazy(() => import("./pages/admin/AdminTripHeatmapPage"));
 const AdminRefundsPage = lazy(() => import("./pages/admin/AdminRefundsPage"));
@@ -1220,14 +1226,21 @@ function isCurrentZivoChatHost() {
   return typeof window !== "undefined" && isZivoChatHost(window.location.hostname);
 }
 
+function isCurrentZivoTravelHost() {
+  return typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+}
+
 function RouteAwareGlobalUI() {
   const location = useLocation();
   const { user } = useAuth();
   const ready = useAfterFirstPaint(4200);
   const blockedRoutes = ["/login", "/signup", "/setup", "/forgot-password", "/reset-password", "/verify-email", "/verify-otp", "/verify-new-device", "/auth-callback"];
   const hideGlobalUI = blockedRoutes.some((route) => location.pathname.startsWith(route));
+  const isTravelPreview = location.pathname === "/zivo-travel";
 
   if (isCurrentZivoSoftwareHost()) return null;
+  if (isCurrentZivoTravelHost()) return null;
+  if (isTravelPreview) return null;
   if (hideGlobalUI || !ready) return null;
 
   return (
@@ -1248,6 +1261,7 @@ function RouteAwareGlobalUI() {
 function DeferredPassiveChatOverlays() {
   const ready = useAfterFirstPaint(3200);
   if (isCurrentZivoSoftwareHost()) return null;
+  if (isCurrentZivoTravelHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1293,7 +1307,7 @@ function LazyP2PTransferSheetHost() {
 
 function DeferredGlobalSheets() {
   const ready = useAfterFirstPaint(2400);
-  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost()) return null;
+  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1310,7 +1324,7 @@ function DeferredGlobalSheets() {
 
 function DeferredCurrencyPicker() {
   const ready = useAfterFirstPaint(2400);
-  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost()) return null;
+  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost()) return null;
   return ready ? <Suspense fallback={null}><CurrencyPickerSheet /></Suspense> : null;
 }
 
@@ -1348,6 +1362,8 @@ function DesktopNavBootstrap() {
   if (
     isCurrentZivoSoftwareHost() ||
     isCurrentZivoChatHost() ||
+    isCurrentZivoTravelHost() ||
+    location.pathname === "/zivo-travel" ||
     location.pathname.startsWith("/desktop/auto-repair") ||
     location.pathname.startsWith("/d/")
   ) return null;
@@ -1507,6 +1523,20 @@ function ZivoChatHostGate() {
   return <Navigate to={ZIVO_CHAT_HOME_PATH} replace />;
 }
 
+function ZivoTravelHostGate() {
+  const location = useLocation();
+
+  if (typeof window === "undefined" || !isZivoTravelHost(window.location.hostname)) {
+    return null;
+  }
+
+  if (isZivoTravelPath(location.pathname)) {
+    return null;
+  }
+
+  return <Navigate to={ZIVO_TRAVEL_HOME_PATH} replace />;
+}
+
 const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
@@ -1532,6 +1562,7 @@ const App = () => (
                 <DeferredGeoDetector />
                 <ZivoChatHostGate />
                 <ZivoSoftwareHostGate />
+                <ZivoTravelHostGate />
                 <RoutePerfTracker />
                 <NativeDeepLinkHandler />
                 <OTAUpdateBootstrap />
@@ -1554,7 +1585,8 @@ const App = () => (
                       <UTMProvider>
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
-                            <Route path="/" element={<Index />} />
+                            <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : <Index />} />
+                            <Route path="/zivo-travel" element={<ZivoTravelHome />} />
                             
                             <Route path="/login" element={<Login />} />
                             <Route path="/signup" element={<Signup />} />
@@ -1577,7 +1609,7 @@ const App = () => (
                 <Route path="/wallet" element={<ProtectedRoute><AccountWalletPage /></ProtectedRoute>} />
                 <Route path="/wallet/coins/success" element={<ProtectedRoute><CoinPurchaseSuccess /></ProtectedRoute>} />
                 <Route path="/support" element={<ProtectedRoute><SupportCenterPage /></ProtectedRoute>} />
-                <Route path="/travel" element={<ProtectedRoute><AppTravel /></ProtectedRoute>} />
+                <Route path="/travel" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : <ProtectedRoute><AppTravel /></ProtectedRoute>} />
                 {/* /more is registered below with MorePage (the canonical hub).
                    Do NOT re-add an /more route here — it would shadow MorePage. */}
                 <Route path="/personal-dashboard" element={<ProtectedRoute><PersonalDashboard /></ProtectedRoute>} />

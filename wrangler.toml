@@ -12,6 +12,14 @@ zone_name = "zivosoftware.com"
 pattern = "www.zivosoftware.com/*"
 zone_name = "zivosoftware.com"
 
+[[routes]]
+pattern = "zivostravel.com/*"
+zone_name = "zivostravel.com"
+
+[[routes]]
+pattern = "www.zivostravel.com/*"
+zone_name = "zivostravel.com"
+
 # When the built Vite app is deployed to Cloudflare Workers, unknown routes
 # are served from index.html so React Router deep links work.
 [assets]

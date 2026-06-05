@@ -82,6 +82,8 @@ const CSP_REPORT_BY_HOST = new Map([
   ["www.zivoschat.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
   ["zivosmedia.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
   ["www.zivosmedia.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
+  ["zivostravel.com", "https://xbllvmpomorawkcrtbcq.supabase.co/functions/v1/csp-report"],
+  ["www.zivostravel.com", "https://xbllvmpomorawkcrtbcq.supabase.co/functions/v1/csp-report"],
 ]);
 
 const immutableCache = "public, max-age=31536000, immutable";
