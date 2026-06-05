@@ -51,12 +51,12 @@ jobs:
 
       - name: Verify notification functions compile
         run: |
-          deno check supabase/functions/notify-dispatch/index.ts
-          deno check supabase/functions/register-push-token/index.ts
-          deno check supabase/functions/send-marketing-campaign/index.ts
-          deno check supabase/functions/send-push-notification/index.ts
-          deno check supabase/functions/send-transactional-email/index.ts
-          deno check supabase/functions/send-sms/index.ts
+          deno check --config supabase/functions/deno.json supabase/functions/notify-dispatch/index.ts
+          deno check --config supabase/functions/deno.json supabase/functions/register-push-token/index.ts
+          deno check --config supabase/functions/deno.json supabase/functions/send-marketing-campaign/index.ts
+          deno check --config supabase/functions/deno.json supabase/functions/send-push-notification/index.ts
+          deno check --config supabase/functions/deno.json supabase/functions/send-transactional-email/index.ts
+          deno check --config supabase/functions/deno.json supabase/functions/send-sms/index.ts
 
       - name: Verify notification config entries
         run: |
@@ -66,4 +66,4 @@ jobs:
           grep -q '\[functions.send-transactional-email\]' supabase/config.toml
 
       - name: Lint notification edge functions
-        run: deno lint supabase/functions/notify-dispatch/index.ts supabase/functions/register-push-token/index.ts supabase/functions/send-marketing-campaign/index.ts supabase/functions/send-push-notification/index.ts supabase/functions/send-transactional-email/index.ts supabase/functions/send-sms/index.ts
+        run: deno lint --config supabase/functions/deno.json supabase/functions/notify-dispatch/index.ts supabase/functions/register-push-token/index.ts supabase/functions/send-marketing-campaign/index.ts supabase/functions/send-push-notification/index.ts supabase/functions/send-transactional-email/index.ts supabase/functions/send-sms/index.ts
