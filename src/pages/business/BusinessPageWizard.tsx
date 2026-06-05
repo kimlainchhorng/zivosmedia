@@ -23,8 +23,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { normalizeStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStores";
 import { isZivoSoftwareHost } from "@/config/autoRepairDomain";
+import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import {
   resolveBusinessDashboardRoute,
   RESTAURANT_CATEGORIES,
@@ -88,11 +90,16 @@ export default function BusinessPageWizard() {
     typeof window !== "undefined" && isZivoSoftwareHost(window.location.hostname);
   const { user } = useAuth();
   const { data: profile } = useUserProfile();
+  const mediaDashboardUrl =
+    typeof user?.user_metadata?.zivo_media_dashboard_url === "string"
+      ? user.user_metadata.zivo_media_dashboard_url
+      : "";
 
   const [step, setStep] = useState<Step>(1);
   const [submitting, setSubmitting] = useState(false);
   const [savingExit, setSavingExit] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [redirectingExistingBusiness, setRedirectingExistingBusiness] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<Step>>(new Set());
   const [storeId, setStoreId] = useState<string | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -165,6 +172,42 @@ export default function BusinessPageWizard() {
     !isLeaving &&
     fieldsSnapshot !== baselineSnapshot;
 
+  useEffect(() => {
+    if (!user || forceNew || !isSoftwareDomain || !mediaDashboardUrl) return;
+    const safeTarget = getSafeRedirectTarget(mediaDashboardUrl);
+    if (!safeTarget || safeTarget === "/" || !isExternalRedirectTarget(safeTarget)) return;
+
+    completedRef.current = true;
+    setCompleted(true);
+    setRedirectingExistingBusiness(true);
+    window.location.assign(safeTarget);
+  }, [forceNew, isSoftwareDomain, mediaDashboardUrl, user]);
+
+  useEffect(() => {
+    if (!user || forceNew || !isSoftwareDomain || mediaDashboardUrl) return;
+
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const freshMediaDashboardUrl =
+        typeof data.user?.user_metadata?.zivo_media_dashboard_url === "string"
+          ? data.user.user_metadata.zivo_media_dashboard_url
+          : "";
+      const safeTarget = getSafeRedirectTarget(freshMediaDashboardUrl);
+      if (!safeTarget || safeTarget === "/" || !isExternalRedirectTarget(safeTarget)) return;
+
+      completedRef.current = true;
+      setCompleted(true);
+      setRedirectingExistingBusiness(true);
+      window.location.assign(safeTarget);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [forceNew, isSoftwareDomain, mediaDashboardUrl, user]);
+
   // Auth gate + redirect already-completed owners; resume partial setups.
   useEffect(() => {
     if (!user) return;
@@ -175,23 +218,41 @@ export default function BusinessPageWizard() {
       return;
     }
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("store_profiles")
-        .select("id, name, slug, category, phone, logo_url, banner_url, setup_complete")
+        .select("id, name, slug, category, phone, logo_url, banner_url, setup_complete, is_active, created_at")
         .eq("owner_id", user.id)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
 
-      if ((data as any)?.setup_complete) {
+      if (error) {
+        setChecking(false);
+        return;
+      }
+
+      const stores = (data || []) as any[];
+      const activeStores = stores.filter((store) => store.is_active !== false);
+      const preferredStore =
+        activeStores.find((store) => normalizeStoreCategory(store.category) === "auto repair") ||
+        activeStores.find((store) => store.setup_complete === true) ||
+        activeStores[0] ||
+        stores[0] ||
+        null;
+
+      if (
+        preferredStore &&
+        (preferredStore.setup_complete === true ||
+          normalizeStoreCategory(preferredStore.category) === "auto repair")
+      ) {
         completedRef.current = true;
         setCompleted(true);
-        const { path } = resolveBusinessDashboardRoute((data as any).category, (data as any).id);
+        const { path } = resolveBusinessDashboardRoute(preferredStore.category, preferredStore.id);
         navigate(path, { replace: true });
         return;
       }
 
       // Resume partial setup
-      if (data) {
-        const d = data as any;
+      if (preferredStore) {
+        const d = preferredStore as any;
         setStoreId(d.id);
         if (d.name) setBizName(d.name);
         if (d.phone) setBizPhone(formatPhone(d.phone));
@@ -528,7 +589,7 @@ export default function BusinessPageWizard() {
     }
   };
 
-  if (checking) {
+  if (checking || redirectingExistingBusiness) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

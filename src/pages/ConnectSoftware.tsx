@@ -17,10 +17,27 @@ const ALLOWED_SOFTWARE_RETURNS = new Set([
   "https://www.zivosoftware.com/connect/media",
 ]);
 
+const ALLOWED_MEDIA_DASHBOARD_HOSTS = new Set([
+  "zivosmedia.com",
+  "www.zivosmedia.com",
+]);
+
 function validateReturn(returnUrl: string) {
   try {
     const url = new URL(returnUrl);
     return ALLOWED_SOFTWARE_RETURNS.has(`${url.origin}${url.pathname}`) ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function validateMediaDashboardUrl(value?: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    const isAllowedHost = ALLOWED_MEDIA_DASHBOARD_HOSTS.has(url.hostname.toLowerCase());
+    const isDashboardPath = url.pathname.startsWith("/admin/stores/");
+    return isAllowedHost && isDashboardPath ? url : null;
   } catch {
     return null;
   }
@@ -69,6 +86,7 @@ const ConnectSoftware = () => {
       }
 
       let tokenHash: string | undefined;
+      let finalRedirect = redirect;
       try {
         const response = await withTimeout(
           fetch(`${ZIVO_SOFTWARE_SUPABASE_URL}/functions/v1/software-media-handoff`, {
@@ -81,17 +99,28 @@ const ConnectSoftware = () => {
           }),
           12000,
         );
-        const body = (await response.json().catch(() => null)) as { token_hash?: string; error?: string } | null;
+        const body = (await response.json().catch(() => null)) as {
+          token_hash?: string;
+          media_dashboard_url?: string;
+          error?: string;
+        } | null;
         if (!response.ok || !body?.token_hash) {
           throw new Error(body?.error || "Could not connect ZIVO Media to ZIVO Software.");
         }
         tokenHash = body.token_hash;
+        const mediaDashboard = validateMediaDashboardUrl(body.media_dashboard_url);
+        if (mediaDashboard) {
+          target.searchParams.set("linked", "zivosmedia");
+          target.searchParams.set("store", "media");
+          target.searchParams.set("next", Date.now().toString());
+          finalRedirect = mediaDashboard.toString();
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not connect ZIVO Media to ZIVO Software.");
         return;
       }
 
-      const fragment = new URLSearchParams({ ott: tokenHash, state, redirect });
+      const fragment = new URLSearchParams({ ott: tokenHash, state, redirect: finalRedirect });
       target.hash = fragment.toString();
       window.location.replace(target.toString());
     })();

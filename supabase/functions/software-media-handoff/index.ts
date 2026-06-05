@@ -44,6 +44,55 @@ function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+type MediaStoreProfile = {
+  id: string;
+  name: string | null;
+  slug: string | null;
+  category: string | null;
+  setup_complete: boolean | null;
+  is_active: boolean | null;
+  created_at: string | null;
+};
+
+function normalizeCategory(category?: string | null) {
+  return (category || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[\/_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function pickMediaStore(stores: MediaStoreProfile[]) {
+  const activeStores = stores.filter((store) => store.id && store.is_active !== false);
+  return (
+    activeStores.find((store) => normalizeCategory(store.category) === "auto repair") ||
+    activeStores.find((store) => store.setup_complete === true) ||
+    activeStores[0] ||
+    null
+  );
+}
+
+function mediaDashboardUrlForStore(store: MediaStoreProfile | null) {
+  if (!store?.id) return null;
+  const category = normalizeCategory(store.category);
+  const base = "https://zivosmedia.com";
+
+  if (category === "auto repair") {
+    return `${base}/admin/stores/${store.id}?tab=ar-dashboard&category=auto-repair`;
+  }
+
+  if (category === "car rental") {
+    return `${base}/admin/stores/${store.id}?tab=car-rental-dashboard`;
+  }
+
+  if (category === "car dealership") {
+    return `${base}/admin/stores/${store.id}?tab=cd-dashboard`;
+  }
+
+  return `${base}/admin/stores/${store.id}`;
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
@@ -70,16 +119,40 @@ serve(async (req: Request): Promise<Response> => {
     return json(req, { error: "Invalid ZIVO Media session" }, 401);
   }
 
+  let linkedMediaStore: MediaStoreProfile | null = null;
+  const { data: mediaStores } = await media
+    .from("store_profiles")
+    .select("id, name, slug, category, setup_complete, is_active, created_at")
+    .eq("owner_id", mediaUser.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+  linkedMediaStore = pickMediaStore((mediaStores ?? []) as MediaStoreProfile[]);
+  const mediaDashboardUrl = mediaDashboardUrlForStore(linkedMediaStore);
+
   const software = createClient(SOFTWARE_SUPABASE_URL, SOFTWARE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const handoffMetadata: Record<string, string> = {
+    connected_from: "zivosmedia",
+    zivo_media_user_id: mediaUser.id,
+  };
+  if (linkedMediaStore?.id) {
+    handoffMetadata.zivo_media_store_id = linkedMediaStore.id;
+  }
+  if (linkedMediaStore?.name) {
+    handoffMetadata.zivo_media_store_name = linkedMediaStore.name;
+  }
+  if (linkedMediaStore?.category) {
+    handoffMetadata.zivo_media_store_category = linkedMediaStore.category;
+  }
+  if (mediaDashboardUrl) {
+    handoffMetadata.zivo_media_dashboard_url = mediaDashboardUrl;
+  }
+
   const { data: linkData, error: linkError } = await software.auth.admin.generateLink({
     type: "magiclink",
     email,
-    data: {
-      connected_from: "zivosmedia",
-      zivo_media_user_id: mediaUser.id,
-    },
+    data: handoffMetadata,
   });
   const tokenHash = linkData?.properties?.hashed_token;
   if (linkError || !tokenHash) {
@@ -108,10 +181,30 @@ serve(async (req: Request): Promise<Response> => {
     if (profileError) {
       return json(req, { error: "Could not prepare Software profile" }, 500);
     }
+
+    const { error: metadataError } = await software.auth.admin.updateUserById(softwareUserId, {
+      user_metadata: {
+        ...(linkData.user?.user_metadata ?? {}),
+        ...handoffMetadata,
+      },
+    });
+
+    if (metadataError) {
+      return json(req, { error: "Could not link ZIVO Media business" }, 500);
+    }
   }
 
   return json(req, {
     token_hash: tokenHash,
     connected: "zivosmedia",
+    media_store: linkedMediaStore
+      ? {
+          id: linkedMediaStore.id,
+          name: linkedMediaStore.name,
+          category: linkedMediaStore.category,
+          setup_complete: linkedMediaStore.setup_complete,
+        }
+      : null,
+    media_dashboard_url: mediaDashboardUrl,
   });
 });

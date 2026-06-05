@@ -30,6 +30,7 @@ import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStor
 import { useAuth } from "@/contexts/AuthContext";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
+import { AUTO_REPAIR_DASHBOARD_PATH, isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import bgOffice from "@/assets/bg-office.jpg";
 import hotelBusiness from "@/assets/hotel-business.jpg";
 import serviceCars from "@/assets/service-cars.jpg";
@@ -58,6 +59,17 @@ const groupedCategories = ALLOWED_GROUPS.map((group) => ({
 
 const startPath = (category?: StoreCategory) =>
   `/business/new${category ? `?category=${encodeURIComponent(category)}` : ""}`;
+
+export const resolveSoftwarePortalAccountDashboardPath = (
+  ownerStore?: { id?: string | null; category?: string | null } | null,
+  hostname?: string | null,
+) => {
+  if (ownerStore?.id) {
+    return resolveBusinessDashboardRoute(ownerStore.category, ownerStore.id).path;
+  }
+
+  return isAutoRepairSoftwareHost(hostname) ? AUTO_REPAIR_DASHBOARD_PATH : startPath();
+};
 
 const authPath = (path: "/login" | "/signup") => {
   const redirect = path === "/login" ? "/business" : "/business/new";
@@ -176,12 +188,13 @@ export default function BusinessSoftwarePortalPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
   const accountLoading = authLoading || (!!user && ownerStoreLoading);
-  const accountDashboardPath = ownerStore?.id
-    ? resolveBusinessDashboardRoute(ownerStore.category, ownerStore.id).path
-    : startPath();
+  const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
+  const isSoftwareRuntimeHost = isAutoRepairSoftwareHost(currentHostname);
+  const accountDashboardPath = resolveSoftwarePortalAccountDashboardPath(ownerStore, currentHostname);
+  const hasAccountDashboard = Boolean(ownerStore?.id) || isSoftwareRuntimeHost;
   const primaryActionPath = user ? accountDashboardPath : startPath();
   const primaryActionLabel = user
-    ? ownerStore?.id
+    ? hasAccountDashboard
       ? "Open Dashboard"
       : "Create Business Software"
     : "Create Business Software";

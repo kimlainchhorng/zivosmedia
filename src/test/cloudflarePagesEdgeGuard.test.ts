@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import cloudflareWorker from "../../cloudflare/worker";
 import worker from "../../public/_worker.js";
 
 const env = {
@@ -12,6 +13,11 @@ const env = {
         },
       }),
   },
+};
+
+const cloudflareEnv = {
+  ...env,
+  ZIVO_MEDIA: {},
 };
 
 function request(path: string, init: RequestInit = {}) {
@@ -93,6 +99,25 @@ describe("Cloudflare Pages edge guard", () => {
     let response = new Response(null);
     for (let i = 0; i < 81; i += 1) {
       response = await worker.fetch(request("/login", { headers: { "cf-connecting-ip": "203.0.113.81" } }), env);
+    }
+
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({ error: "Too many requests" });
+  });
+
+  it("keeps the deployed Cloudflare Worker source protected too", async () => {
+    const scanner = await cloudflareWorker.fetch(request("/.git/config"), cloudflareEnv as any);
+
+    expect(scanner.status).toBe(403);
+    expect(scanner.headers.get("cache-control")).toBe("no-store");
+    expect(scanner.headers.get("content-security-policy")).toContain("https://static.cloudflareinsights.com");
+
+    let response = new Response(null);
+    for (let i = 0; i < 81; i += 1) {
+      response = await cloudflareWorker.fetch(
+        request("/login", { headers: { "cf-connecting-ip": "203.0.113.82" } }),
+        cloudflareEnv as any,
+      );
     }
 
     expect(response.status).toBe(429);

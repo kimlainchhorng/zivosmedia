@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { ZIVO_SOFTWARE_AUTH_REDIRECT_PATH } from "@/config/autoRepairDomain";
 import { supabase } from "@/integrations/supabase/client";
-import { getSafeRedirectTarget } from "@/lib/authRedirect";
+import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import {
   clearRememberedSoftwareMediaConnect,
   getRememberedSoftwareMediaConnect,
@@ -45,7 +45,12 @@ const ConnectMedia = () => {
         });
         if (verifyError) throw verifyError;
         clearRememberedSoftwareMediaConnect();
-        navigate(redirect || remembered.redirect || ZIVO_SOFTWARE_AUTH_REDIRECT_PATH, { replace: true });
+        const destination = redirect || remembered.redirect || ZIVO_SOFTWARE_AUTH_REDIRECT_PATH;
+        if (isExternalRedirectTarget(destination)) {
+          window.location.assign(destination);
+          return;
+        }
+        navigate(destination, { replace: true });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not finish connecting ZIVO Media.");
       }

@@ -38,7 +38,7 @@ vi.mock("@/hooks/useOwnerStoreProfile", () => ({
   useOwnerStoreProfile: () => ownerStoreState,
 }));
 
-import BusinessSoftwarePortalPage from "./BusinessSoftwarePortalPage";
+import BusinessSoftwarePortalPage, { resolveSoftwarePortalAccountDashboardPath } from "./BusinessSoftwarePortalPage";
 
 const renderPage = () =>
   render(
@@ -92,5 +92,12 @@ describe("BusinessSoftwarePortalPage account header", () => {
       "href",
       "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard",
     );
+  });
+
+  it("falls back to the configured software dashboard on zivosoftware.com", () => {
+    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com")).toBe(
+      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+    );
+    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com")).toBe("/business/new");
   });
 });

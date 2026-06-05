@@ -31,6 +31,11 @@ type Env = {
   SUPABASE_URL?: string;
 };
 
+const WINDOW_MS = 10 * 60 * 1000;
+const AUTH_LIMIT = 80;
+const GENERAL_LIMIT = 600;
+const buckets = new Map<string, { count: number; resetAt: number }>();
+
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://zivosmedia.com",
   "https://www.zivosmedia.com",
@@ -59,7 +64,7 @@ const CHAT_HOSTS = new Set([
 ]);
 
 const CSP_BASE =
-  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
+  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://static.cloudflareinsights.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
 
 const CSP_REPORT_BY_HOST = new Map([
   ["zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
@@ -71,11 +76,40 @@ const CSP_REPORT_BY_HOST = new Map([
 ]);
 
 const immutableCache = "public, max-age=31536000, immutable";
+const authPathPattern = /^\/(?:login|signup|auth(?:\/|$)|admin(?:\/|$))/i;
+const blockedPathPattern =
+  /(?:^|\/)(?:\.env|\.git|\.svn|\.hg|wp-admin|wp-login\.php|xmlrpc\.php|phpmyadmin|adminer|\.DS_Store|composer\.json|package-lock\.json)(?:\/|$)|(?:\.\.\/|\/etc\/passwd|\/proc\/self|%2e%2e|%5c)/i;
 
 function json(data: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers);
   headers.set("content-type", "application/json; charset=utf-8");
   return new Response(JSON.stringify(data), { ...init, headers });
+}
+
+function noStoreJson(data: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("cache-control", "no-store");
+  return json(data, { ...init, headers });
+}
+
+function clientIp(request: Request) {
+  return request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
+}
+
+function isRateLimited(request: Request, url: URL) {
+  const now = Date.now();
+  const isAuthPath = authPathPattern.test(url.pathname);
+  const key = `${isAuthPath ? "auth" : "site"}:${clientIp(request)}`;
+  const limit = isAuthPath ? AUTH_LIMIT : GENERAL_LIMIT;
+  const current = buckets.get(key);
+
+  if (!current || current.resetAt <= now) {
+    buckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
+    return false;
+  }
+
+  current.count += 1;
+  return current.count > limit;
 }
 
 function allowedOrigins(env: Env) {
@@ -346,6 +380,16 @@ export default {
 
     if (url.pathname === "/healthz") {
       return json({ ok: true, service: "zivo-web", media: Boolean(env.ZIVO_MEDIA) });
+    }
+
+    if (request.method !== "OPTIONS") {
+      if (blockedPathPattern.test(url.pathname)) {
+        return withSecurityHeaders(noStoreJson({ error: "Forbidden" }, { status: 403 }), request, env);
+      }
+
+      if (isRateLimited(request, url)) {
+        return withSecurityHeaders(noStoreJson({ error: "Too many requests" }, { status: 429 }), request, env);
+      }
     }
 
     const chatRedirect = chatHomeRedirect(request, url);
