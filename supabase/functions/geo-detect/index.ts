@@ -67,7 +67,7 @@ Deno.serve(withSecurity("geo-detect", async (req, ctx) => {
   }
 }, {
   strictCors: true,
-  allowedMethods: ["GET"],
+  allowedMethods: ["GET", "POST"],
   rateLimit: "api_general",
   trackNetwork: "suspicious",
   blockNetworkRiskAt: 80,
