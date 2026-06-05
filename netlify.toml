@@ -1,5 +1,5 @@
 [build]
-  command = "npm run security:scan && npm run deploy:preflight:local"
+  command = "node scripts/deploy/netlify-build.mjs"
   publish = "dist"
 
 [build.environment]
