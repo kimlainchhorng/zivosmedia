@@ -13,7 +13,7 @@ export const ZIVO_TRAVEL_SUPABASE_URL =
 export const ZIVO_TRAVEL_SUPABASE_PROJECT_ID = "xbllvmpomorawkcrtbcq";
 
 export const ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env.VITE_ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_3idiRHli7BTv1HI_AtiyBw_cOBl9Xti";
+  import.meta.env.VITE_ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY || "";
 
 export const ZIVO_TRAVEL_USE_DEDICATED_BACKEND =
   import.meta.env.VITE_ZIVO_TRAVEL_USE_DEDICATED_BACKEND === "true";

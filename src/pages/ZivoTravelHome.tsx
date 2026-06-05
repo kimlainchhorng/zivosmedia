@@ -22,18 +22,23 @@ import {
   ChevronRight,
   Code2,
   CreditCard,
+  Database,
   Globe2,
   Headphones,
   Hotel,
   Landmark,
+  Layers3,
   LockKeyhole,
   Luggage,
   MapPin,
+  MousePointer2,
   Plane,
+  ReceiptText,
+  RefreshCw,
   Route,
   Search,
+  ServerCog,
   ShieldCheck,
-  Sparkles,
   TrendingUp,
   Users,
   WalletCards,
@@ -52,10 +57,16 @@ import destNewYork from "@/assets/hero-city-newyork.jpg";
 import destLondon from "@/assets/hero-city-london.jpg";
 import destBarcelona from "@/assets/hero-city-barcelona.jpg";
 import destCancun from "@/assets/hero-city-cancun.jpg";
-import { zivoTravelSupabase } from "@/integrations/supabase/travelClient";
+import { recordZivoTravelSearchEvent } from "@/integrations/supabase/travelClient";
 import { goCrossDomain } from "@/lib/crossDomainSSO";
 import { ZIVO_MEDIA_ORIGIN } from "@/config/autoRepairDomain";
 import { cn } from "@/lib/utils";
+import {
+  HorizontalRail,
+  Parallax,
+  ScrollTurn,
+  TiltCard as TravelTiltCard,
+} from "@/components/zivo-travel/scroll3d";
 
 type TravelService = "flight" | "hotel" | "rental_car" | "bus";
 
@@ -187,6 +198,57 @@ const ops: { title: string; body: string; icon: typeof Code2; color: string; hre
   { title: "SEO optimized", body: "Search-ready service and city pages.", icon: TrendingUp, color: "bg-emerald-500", href: "/guides/cheap-flights" },
   { title: "Global network", body: "A travel layer under Zivos Media.", icon: Globe2, color: "bg-rose-500", href: "/connect-website" },
   { title: "Real-time ops", body: "Live status, alerts, and support.", icon: Headphones, color: "bg-sky-500", href: "/support" },
+];
+
+const serviceShowcase = [
+  {
+    service: "Flights",
+    title: "3D cabin search",
+    body: "Route arcs, dates, cabin cards, and trip wallet records stay connected from search to checkout.",
+    image: flightImage,
+    icon: Plane,
+    tone: "from-sky-400/30 to-cyan-300/10",
+    href: "/flights",
+    bullets: ["IATA-ready deep links", "Seat and fare upsell layer", "Wallet receipt after pay"],
+  },
+  {
+    service: "Hotels",
+    title: "Stay layer",
+    body: "Hotel search lands with city, check-in, check-out, rooms, payment, and future payout workflow.",
+    image: hotelImage,
+    icon: Hotel,
+    tone: "from-fuchsia-400/25 to-sky-300/10",
+    href: "/hotels",
+    bullets: ["City SEO pages", "Room card motion", "Partner booking records"],
+  },
+  {
+    service: "Rental car",
+    title: "Drive layer",
+    body: "Pickup, return, vehicle class, insurance, checkout, and operator settlement in one flow.",
+    image: carImage,
+    icon: CarFront,
+    tone: "from-emerald-400/30 to-lime-300/10",
+    href: "/cars",
+    bullets: ["Pickup and return sync", "Vehicle media cards", "Deposit-ready checkout"],
+  },
+  {
+    service: "Booking bus",
+    title: "Seat-first bus flow",
+    body: "Routes, trip seats, promos, payment intent, capture, tickets, and reviews are mapped for cutover.",
+    image: busImage,
+    icon: Bus,
+    tone: "from-orange-400/30 to-rose-300/10",
+    href: "/bus",
+    bullets: ["Bus SQL draft ready", "RLS and RPC checklist", "Payment functions staged"],
+  },
+];
+
+const backendWorkflow = [
+  { label: "Search UI", body: "Zivo Travel form emits the right deep-link keys.", icon: MousePointer2 },
+  { label: "Telemetry", body: "Travel project records search intent only.", icon: Database },
+  { label: "Shared engine", body: "Live booking/payment stays on main backend until cutover.", icon: ServerCog },
+  { label: "Pay + payout", body: "Checkout, wallet, partner cash-out stay connected.", icon: ReceiptText },
+  { label: "Claude + Codex", body: "Docs and scripts keep both agents on the same migration order.", icon: RefreshCw },
 ];
 
 function getTravelSessionId() {
@@ -399,6 +461,155 @@ function ServiceCarousel3D({
   );
 }
 
+function FloatingTravelStack({ activeService }: { activeService: ServiceConfig }) {
+  const reduce = useReducedMotion();
+  const ActiveIcon = activeService.icon;
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 top-20 hidden overflow-hidden lg:block" aria-hidden>
+      <motion.div
+        className="absolute right-[8%] top-4 z-[5] h-28 w-28 rounded-[2rem] border border-white/15 bg-white/10 p-5 shadow-[0_34px_80px_rgba(2,6,23,0.48)] backdrop-blur-xl"
+        animate={reduce ? undefined : { y: [0, -16, 0], rotate: [-8, -3, -8] }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <ActiveIcon className={cn("h-12 w-12", activeService.accent)} />
+        <div className="mt-3 h-2 rounded-full bg-white/20" />
+      </motion.div>
+      <motion.div
+        className="absolute left-[5%] top-40 z-[5] w-48 rounded-[1.5rem] border border-white/15 bg-zinc-950/55 p-4 shadow-[0_30px_80px_rgba(2,6,23,0.5)] backdrop-blur-xl"
+        animate={reduce ? undefined : { x: [0, 18, 0], rotate: [6, 10, 6] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <div className="flex items-center gap-2">
+          <Layers3 className="h-4 w-4 text-emerald-300" />
+          <span className="text-xs font-black uppercase tracking-wide text-white/80">3D layers</span>
+        </div>
+        <div className="mt-4 grid gap-2">
+          {["Flight", "Hotel", "Car", "Bus"].map((item, i) => (
+            <div key={item} className="flex items-center justify-between rounded-xl bg-white/[0.08] px-3 py-2">
+              <span className="text-xs font-bold text-white/70">{item}</span>
+              <span className={cn("h-2 w-8 rounded-full", i === 0 ? "bg-sky-300" : i === 1 ? "bg-fuchsia-300" : i === 2 ? "bg-emerald-300" : "bg-orange-300")} />
+            </div>
+          ))}
+        </div>
+      </motion.div>
+      <motion.div
+        className="absolute bottom-10 right-[33%] z-[5] w-56 rounded-[1.6rem] border border-white/15 bg-white/10 p-4 shadow-[0_34px_90px_rgba(2,6,23,0.45)] backdrop-blur-xl"
+        animate={reduce ? undefined : { y: [0, 12, 0], rotate: [4, 0, 4] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black text-white">Wallet ready</span>
+          <CreditCard className="h-4 w-4 text-emerald-300" />
+        </div>
+        <div className="mt-4 h-16 rounded-2xl bg-gradient-to-br from-emerald-300 via-sky-300 to-white p-3 text-zinc-950">
+          <p className="text-[10px] font-black uppercase tracking-wide">Zivo Travel</p>
+          <p className="mt-2 text-sm font-black">Pay, refund, cash out</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function ServiceLayerShowcase() {
+  return (
+    <section className="relative overflow-hidden border-t border-white/10 bg-zinc-950 px-4 py-16 sm:px-6 lg:px-8">
+      <div className="zt-aurora opacity-80" aria-hidden />
+      <div className="mx-auto max-w-7xl">
+        <Reveal className="max-w-3xl">
+          <h2 className="text-4xl font-black leading-none sm:text-5xl">Four booking products, one 3D travel layer.</h2>
+          <p className="mt-5 text-lg leading-8 text-zinc-400">
+            Each surface keeps its own workflow, pictures, search contract, payment path, and backend readiness notes so Zivo Travel can grow without breaking the shared platform.
+          </p>
+        </Reveal>
+
+        <HorizontalRail className="mt-9 gap-6" ariaLabel="Zivo Travel service layers">
+          {serviceShowcase.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <ScrollTurn key={item.service} axis={i % 2 === 0 ? "y" : "x"} rotate={i % 2 === 0 ? 13 : -10} className="w-[82vw] max-w-[390px] sm:w-[390px]">
+                <Link to={item.href} className="group block">
+                  <TravelTiltCard className="relative h-[520px] overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.055] p-4 shadow-[0_36px_90px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+                    <img src={item.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-700 group-hover:scale-105" loading="lazy" />
+                    <div className={cn("absolute inset-0 bg-gradient-to-b", item.tone)} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/5" />
+                    <div className="relative flex h-full flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="grid h-14 w-14 place-items-center rounded-2xl border border-white/15 bg-white/15 backdrop-blur">
+                          <Icon className="h-7 w-7 text-white" />
+                        </span>
+                        <span className="rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs font-black uppercase tracking-wide text-white/80 backdrop-blur">
+                          Live layer
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-black uppercase tracking-wide text-emerald-300">{item.service}</p>
+                        <h3 className="mt-2 text-3xl font-black leading-none">{item.title}</h3>
+                        <p className="mt-3 text-sm leading-6 text-white/78">{item.body}</p>
+                        <div className="mt-5 grid gap-2">
+                          {item.bullets.map((bullet) => (
+                            <span key={bullet} className="flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold text-white/82 backdrop-blur">
+                              <BadgeCheck className="h-4 w-4 text-emerald-300" />
+                              {bullet}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </TravelTiltCard>
+                </Link>
+              </ScrollTurn>
+            );
+          })}
+        </HorizontalRail>
+      </div>
+    </section>
+  );
+}
+
+function BackendWorkflowSpine() {
+  return (
+    <section className="relative overflow-hidden border-t border-white/10 bg-[#07111e] px-4 py-16 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 opacity-40" style={{ backgroundImage: `url(${ambientImage})`, backgroundSize: "cover", backgroundPosition: "center" }} aria-hidden />
+      <div className="absolute inset-0 bg-[#07111e]/86" aria-hidden />
+      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+        <Reveal className="relative z-10">
+          <h2 className="text-4xl font-black leading-none sm:text-5xl">Workflow and backend move together.</h2>
+          <p className="mt-5 text-lg leading-8 text-slate-300">
+            The front door now shows the same operational story we are building in Supabase: search, telemetry, shared live engine, payments, payouts, SEO, and agent handoff.
+          </p>
+          <div className="mt-7 rounded-[1.5rem] border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm font-bold leading-6 text-emerald-100">
+            Dedicated Zivo Travel backend mode stays off until schema, RLS, Edge Functions, secrets, and sandbox smoke tests pass in the target project.
+          </div>
+        </Reveal>
+
+        <div className="relative z-10 zt-perspective">
+          <Parallax distance={55}>
+            <div className="relative rounded-[2rem] border border-white/12 bg-white/[0.06] p-4 shadow-[0_42px_100px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+              <div className="absolute left-8 right-8 top-1/2 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" aria-hidden />
+              <div className="grid gap-4 md:grid-cols-5">
+                {backendWorkflow.map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <ScrollTurn key={item.label} rotate={8 - i * 2} lift={30} className="relative">
+                      <div className="relative h-full rounded-[1.4rem] border border-white/10 bg-zinc-950/72 p-4 shadow-xl">
+                        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-300 to-sky-300 text-zinc-950 shadow-lg">
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <p className="mt-4 text-sm font-black">{item.label}</p>
+                        <p className="mt-2 text-xs leading-5 text-slate-400">{item.body}</p>
+                      </div>
+                    </ScrollTurn>
+                  );
+                })}
+              </div>
+            </div>
+          </Parallax>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function ZivoTravelHome() {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
@@ -550,12 +761,7 @@ export default function ZivoTravelHome() {
       source_host: typeof window !== "undefined" ? window.location.hostname : "zivostravel.com",
       filters: { mode: service.label, queryHref: href },
     };
-    void zivoTravelSupabase
-      .from("zivo_travel_search_events")
-      .insert(payload)
-      .then(({ error }) => {
-        if (error) console.warn("[zivo-travel] search event skipped", error.message);
-      });
+    void recordZivoTravelSearchEvent(payload);
     navigate(href);
   };
 
@@ -569,7 +775,7 @@ export default function ZivoTravelHome() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white">
+    <main className="zivo-travel-3d min-h-screen bg-zinc-950 text-white">
       <Helmet>
         <title>Zivo Travel | Flights, Hotels, Rental Cars, and Bus Booking</title>
         <meta
@@ -669,7 +875,7 @@ export default function ZivoTravelHome() {
             <Link to="/login" className="h-11 rounded-full border border-white/15 px-6 py-3 text-sm font-black text-white transition hover:border-white">
               Log in
             </Link>
-            <a href="#booking" className="h-11 rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_16px_32px_rgba(16,185,129,0.32)] transition hover:bg-emerald-400">
+            <a href="#booking" className="h-11 whitespace-nowrap rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_16px_32px_rgba(16,185,129,0.32)] transition hover:bg-emerald-400">
               Start booking
             </a>
           </div>
@@ -717,6 +923,7 @@ export default function ZivoTravelHome() {
 
       {/* Hero */}
       <section ref={heroRef} className="relative overflow-hidden">
+        <FloatingTravelStack activeService={activeService} />
         <motion.div
           aria-hidden
           style={reduce ? undefined : { y: ambientY }}
@@ -728,14 +935,8 @@ export default function ZivoTravelHome() {
         <div className="absolute -left-32 top-10 -z-10 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="absolute right-0 top-40 -z-10 h-96 w-96 rounded-full bg-sky-500/20 blur-3xl" />
 
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:px-8 lg:pb-24 lg:pt-16">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-12 sm:px-6 lg:px-8 lg:pb-24 lg:pt-16 xl:grid-cols-[1.02fr_0.98fr]">
           <div className="relative z-10 flex flex-col justify-center">
-            <Reveal>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-black uppercase tracking-wide text-emerald-300">
-                <Sparkles className="h-3.5 w-3.5" />
-                One travel workflow
-              </span>
-            </Reveal>
             <Reveal delay={0.05}>
               <h1 className="mt-5 max-w-3xl text-6xl font-black leading-[0.92] sm:text-7xl lg:text-8xl">
                 Zivo{" "}
@@ -877,7 +1078,7 @@ export default function ZivoTravelHome() {
               alt=""
               aria-hidden
               style={reduce ? undefined : { y: planeY, rotate: planeRotate }}
-              className="pointer-events-none absolute -top-6 right-2 z-[60] hidden w-40 drop-shadow-[0_20px_40px_rgba(2,6,23,0.5)] lg:block"
+              className="pointer-events-none absolute -top-6 right-2 z-[60] hidden w-40 drop-shadow-[0_20px_40px_rgba(2,6,23,0.5)] xl:block"
             />
             <ServiceCarousel3D
               index={index}
@@ -889,13 +1090,15 @@ export default function ZivoTravelHome() {
         </div>
       </section>
 
+      <ServiceLayerShowcase />
+
       {/* Destinations rail (drag / scroll left + right) */}
       <section className="border-t border-white/10 bg-zinc-950 px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <Reveal className="flex items-end justify-between gap-4">
             <div>
               <h2 className="text-3xl font-black sm:text-4xl">Trending destinations</h2>
-              <p className="mt-2 max-w-xl text-zinc-400">Swipe through hand-picked cities — flights, hotels, cars, and bus routes ready to book.</p>
+              <p className="mt-2 max-w-xl text-zinc-400">Hand-picked cities with flights, hotels, cars, and bus routes ready to book.</p>
             </div>
             <div className="hidden gap-2 sm:flex">
               <button type="button" onClick={() => scrollRail(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 transition hover:bg-white/10" aria-label="Scroll left">
@@ -994,6 +1197,8 @@ export default function ZivoTravelHome() {
           </div>
         </div>
       </section>
+
+      <BackendWorkflowSpine />
 
       {/* Under Zivos Media */}
       <section className="relative overflow-hidden border-t border-white/10 px-4 py-20 sm:px-6 lg:px-8">

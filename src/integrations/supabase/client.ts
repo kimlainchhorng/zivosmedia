@@ -19,7 +19,10 @@ import {
 
 const runtimeHostname = typeof window !== "undefined" ? window.location.hostname : "";
 const useZivoSoftwareBackend = isZivoSoftwareHost(runtimeHostname);
-const useZivoTravelBackend = isZivoTravelHost(runtimeHostname) && ZIVO_TRAVEL_USE_DEDICATED_BACKEND;
+const useZivoTravelBackend =
+  isZivoTravelHost(runtimeHostname) &&
+  ZIVO_TRAVEL_USE_DEDICATED_BACKEND &&
+  Boolean(ZIVO_TRAVEL_SUPABASE_URL && ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY);
 
 export const SUPABASE_URL = useZivoSoftwareBackend
   ? ZIVO_SOFTWARE_SUPABASE_URL

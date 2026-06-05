@@ -25,21 +25,37 @@ The app should keep using the shared live engine until the target project has:
 ## Useful files
 
 - `src/pages/ZivoTravelHome.tsx` - travel homepage and 3D-style booking front door.
+- `src/components/zivo-travel/scroll3d.tsx` - shared 3D primitives for scroll turn, parallax, tilt, and horizontal rails.
+- `src/styles/zivo-travel-3d.css` - scoped 3D theme utilities for the travel surface.
 - `src/config/zivoTravelDomain.ts` - travel host gating and target Supabase config.
 - `src/integrations/supabase/client.ts` - shared Supabase browser client; now supports the gated travel backend switch.
 - `src/integrations/supabase/travelClient.ts` - telemetry/config client for the travel project.
 - `docs/zivo-travel-backend-cutover.md` - migration/cutover runbook.
 - `docs/zivo-travel-supabase-inventory.md` - live source/target Supabase inventory comparison.
 - `docs/zivo-travel-migration-manifest.md` - service-by-service migration batches and smoke tests.
+- `docs/zivo-travel-bus-cutover-plan.md` - first small backend batch plan for bus tables, RLS, routines, and payment functions.
 - `scripts/supabase/zivo-travel-readiness-audit.mjs` - local readiness audit.
 
 ## Commands
 
 - `npm run zivo-travel:backend-readiness`
 - `npm run zivo-travel:migration-manifest`
+- `npm run zivo-travel:bus-draft-check`
 - `npm run test -- --run src/test/deployEnvPreflight.test.ts`
-- `npx eslint src/config/zivoTravelDomain.ts src/integrations/supabase/client.ts src/pages/ZivoTravelHome.tsx`
+- `npx eslint src/config/zivoTravelDomain.ts src/integrations/supabase/client.ts src/integrations/supabase/travelClient.ts src/pages/ZivoTravelHome.tsx src/pages/app/BusBookingPage.tsx`
 - `npm run type-check` when the machine has enough time/resources.
+
+## Latest Codex UI batch
+
+- Wired `src/styles/zivo-travel-3d.css` into the app entry.
+- Scoped the Zivo Travel homepage root with `zivo-travel-3d`.
+- Added a floating hero layer stack, a horizontal 3D service-layer rail, and a backend workflow spine.
+- Kept the booking form route contracts unchanged:
+  - flights: `/flights?from&to&start&end&travelers`
+  - hotels: `/hotels?city&ci&co&adults`
+  - cars: `/cars?city&pickup_date&return_date`
+  - bus: `/bus?from&to&date`
+- Kept telemetry isolated through `recordZivoTravelSearchEvent`; live bookings/payments remain on the shared engine.
 
 ## Safe next work
 

@@ -1,0 +1,90 @@
+/*
+ * Zivo Travel 3D theme — scoped entirely under `.zivo-travel-3d` so it ONLY
+ * applies on zivostravel.com (the provider adds that class to <html> on the
+ * travel host). zivosmedia.com and every other domain are untouched.
+ */
+
+.zivo-travel-3d {
+  /* depth + brand tokens */
+  --zt-bg: #060912;
+  --zt-bg-soft: #0b1222;
+  --zt-ink: #f4f7ff;
+  --zt-muted: #9fb0c8;
+  --zt-emerald: #34d399;
+  --zt-sky: #0ea5e9;
+  --zt-violet: #7c3aed;
+  --zt-glass: rgba(255, 255, 255, 0.06);
+  --zt-glass-border: rgba(255, 255, 255, 0.12);
+  --zt-shadow: 0 40px 90px rgba(2, 6, 23, 0.55);
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zivo-travel-3d {
+    scroll-behavior: auto;
+  }
+}
+
+/* Custom scrollbar for the immersive feel */
+.zivo-travel-3d ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.zivo-travel-3d ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--zt-emerald), var(--zt-sky), var(--zt-violet));
+  border-radius: 9999px;
+}
+.zivo-travel-3d ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Reusable utility classes (used by the kit + pages) */
+.zt-perspective {
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+.zt-preserve-3d {
+  transform-style: preserve-3d;
+}
+.zt-glass {
+  background: var(--zt-glass);
+  border: 1px solid var(--zt-glass-border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--zt-shadow);
+}
+.zt-depth {
+  box-shadow: var(--zt-shadow);
+}
+.zt-gradient-text {
+  background-image: linear-gradient(90deg, var(--zt-emerald), var(--zt-sky), var(--zt-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.zt-aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 50% at 15% 20%, rgba(52, 211, 153, 0.18), transparent 60%),
+    radial-gradient(45% 55% at 85% 25%, rgba(14, 165, 233, 0.18), transparent 60%),
+    radial-gradient(50% 60% at 50% 100%, rgba(124, 58, 237, 0.16), transparent 60%);
+  filter: blur(20px);
+}
+
+/* Snap rails for horizontal (left/right) scroll sections */
+.zt-rail {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.zt-rail::-webkit-scrollbar {
+  display: none;
+}
+.zt-rail > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}

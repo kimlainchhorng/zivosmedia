@@ -2,6 +2,7 @@ import "./lib/randomUUID-polyfill";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./styles/zivo-travel-3d.css";
 import "./lib/toastErrorFilter";
 import { setupGlobalErrorHandlers } from "@/lib/security/errorReporting";
 import { installMarketingRuntimeConfig } from "@/config/marketingRuntimeConfig";

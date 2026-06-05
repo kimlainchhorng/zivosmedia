@@ -37,6 +37,7 @@
     "zivo-travel:migration-manifest": "node scripts/supabase/zivo-travel-migration-manifest.mjs",
     "zivo-travel:backend-readiness": "node scripts/supabase/zivo-travel-readiness-audit.mjs --write-report",
     "zivo-travel:backend-readiness:strict": "node scripts/supabase/zivo-travel-readiness-audit.mjs --strict",
+    "zivo-travel:bus-draft-check": "node scripts/supabase/check-zivo-travel-bus-draft.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

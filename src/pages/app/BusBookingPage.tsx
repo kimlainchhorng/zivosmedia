@@ -27,6 +27,8 @@ import Star from "lucide-react/dist/esm/icons/star";
 import Wifi from "lucide-react/dist/esm/icons/wifi";
 import Snowflake from "lucide-react/dist/esm/icons/snowflake";
 import Zap from "lucide-react/dist/esm/icons/zap";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
+import CreditCard from "lucide-react/dist/esm/icons/credit-card";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2";
 import Ticket from "lucide-react/dist/esm/icons/ticket";
@@ -333,6 +335,179 @@ const operatorLogoColors = (name: string) => {
     ["#be123c", "#fff1f2"],
   ] as const;
   return palettes[hashString(name) % palettes.length];
+};
+
+const TravelBusHero = ({
+  from,
+  to,
+  date,
+  passengers,
+}: {
+  from: string;
+  to: string;
+  date: string;
+  passengers: number;
+}) => {
+  const displayDate = new Date(`${date}T00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return (
+    <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-zinc-950 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+      <img
+        src="/bus/bus-booking-thumb.jpg"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover opacity-40"
+        loading="eager"
+        decoding="async"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(6,10,18,0.94),rgba(6,10,18,0.74)_48%,rgba(6,10,18,0.2))]" aria-hidden />
+
+      <div className="relative grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center lg:p-6">
+        <div className="min-w-0">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-emerald-200 backdrop-blur">
+            <Bus className="h-3.5 w-3.5" />
+            Zivo Travel bus
+          </div>
+          <h1 className="max-w-2xl text-2xl font-black leading-[0.95] tracking-normal sm:text-4xl lg:text-5xl">
+            Book bus tickets with a seat-first checkout.
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-white/76 sm:text-base">
+            Compare operators, choose seats, reserve securely, and keep the ticket connected to the rest of the trip.
+          </p>
+
+          <div className="mt-4 grid max-w-xl grid-cols-3 gap-2 sm:grid-cols-[1.35fr_1fr_1fr]">
+            {[
+              { label: "Route", value: `${from || "From"} → ${to || "To"}` },
+              { label: "Date", value: displayDate },
+              { label: "Guests", value: `${passengers} ${passengers > 1 ? "passengers" : "passenger"}` },
+            ].map((item) => (
+              <div key={item.label} className="min-h-[3.65rem] min-w-0 rounded-2xl border border-white/12 bg-white/10 px-3 py-2 backdrop-blur">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-white/50">{item.label}</p>
+                <p className="text-xs font-black leading-tight text-white sm:text-sm">{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 grid max-w-xl gap-3 sm:grid-cols-[minmax(0,1fr)_10rem] lg:hidden" aria-hidden>
+            <motion.div
+              className="rounded-[1.4rem] border border-white/20 bg-white p-3 text-zinc-950 shadow-[0_18px_42px_rgba(0,0,0,0.28)]"
+              animate={{ y: [0, -4, 0], rotate: [-1.5, -0.5, -1.5] }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-950 text-white">
+                  <Ticket className="h-4 w-4" />
+                </span>
+                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700">SEAT HOLD</span>
+              </div>
+              <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <p className="truncate text-sm font-black">{from}</p>
+                <div className="h-px w-8 bg-zinc-300" />
+                <p className="truncate text-right text-sm font-black">{to}</p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="rounded-[1.25rem] border border-white/15 bg-white/12 p-3 shadow-[0_16px_34px_rgba(0,0,0,0.24)] backdrop-blur"
+              animate={{ y: [0, 4, 0], rotate: [1.5, 2.5, 1.5] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <div className="mb-2 text-[10px] font-black uppercase tracking-wide text-white/60">Seats</div>
+              <div className="grid grid-cols-[1fr_1fr_0.6rem_1fr_1fr] gap-1">
+                {Array.from({ length: 15 }).map((_, index) => (
+                  <span
+                    key={index}
+                    className={cn(
+                      "h-4 rounded",
+                      index % 5 === 2
+                        ? "bg-transparent"
+                        : index === 1 || index === 8
+                          ? "bg-emerald-400"
+                          : index === 11
+                            ? "bg-white/22"
+                            : "bg-white/68",
+                    )}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        <div className="relative hidden min-h-[17rem] lg:block" aria-hidden>
+          <motion.div
+            className="absolute right-8 top-5 z-20 h-44 w-64 rounded-[1.6rem] border border-white/20 bg-white p-4 text-zinc-950 shadow-[0_28px_60px_rgba(0,0,0,0.38)]"
+            animate={{ y: [0, -8, 0], rotate: [-8, -5, -8] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 text-white">
+                <Ticket className="h-4 w-4" />
+              </span>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">READY</span>
+            </div>
+            <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">From</p>
+                <p className="truncate text-lg font-black">{from}</p>
+              </div>
+              <div className="h-px w-12 bg-zinc-300" />
+              <div className="text-right">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">To</p>
+                <p className="truncate text-lg font-black">{to}</p>
+              </div>
+            </div>
+            <div className="mt-5 flex items-center justify-between rounded-2xl bg-zinc-100 px-3 py-2">
+              <span className="text-xs font-bold text-zinc-500">{displayDate}</span>
+              <span className="text-xs font-black text-zinc-950">{passengers} seat hold</span>
+            </div>
+          </motion.div>
+
+          <motion.div
+            className="absolute bottom-4 right-0 z-10 h-36 w-52 rotate-6 rounded-[1.4rem] border border-white/15 bg-white/12 p-4 shadow-[0_22px_42px_rgba(0,0,0,0.28)] backdrop-blur"
+            animate={{ y: [0, 7, 0], rotate: [6, 8, 6] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="mb-3 flex items-center justify-between text-[10px] font-black uppercase tracking-wide text-white/60">
+              <span>Seat map</span>
+              <span>2 + 2</span>
+            </div>
+            <div className="grid grid-cols-[1fr_1fr_0.75rem_1fr_1fr] gap-1.5">
+              {Array.from({ length: 20 }).map((_, index) => (
+                <span
+                  key={index}
+                  className={cn(
+                    "h-5 rounded-md",
+                    index % 5 === 2
+                      ? "bg-transparent"
+                      : index === 1 || index === 8 || index === 16
+                        ? "bg-emerald-400"
+                        : index === 6 || index === 13
+                          ? "bg-white/22"
+                          : "bg-white/70",
+                  )}
+                />
+              ))}
+            </div>
+          </motion.div>
+
+          <div className="absolute left-0 bottom-8 z-30 grid gap-2">
+            {[
+              { icon: ShieldCheck, label: "Secure hold" },
+              { icon: CreditCard, label: "Card or KHQR" },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className="flex w-40 items-center gap-2 rounded-2xl border border-white/12 bg-white/12 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur">
+                  <Icon className="h-4 w-4 text-emerald-300" />
+                  {item.label}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 };
 
 const BusOperatorLogo = ({ trip, size = "md" }: { trip: BusTrip; size?: "sm" | "md" }) => {
@@ -697,22 +872,7 @@ export default function BusBookingPage() {
               {step === "search" && (
                 <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-4">
                   <div className="space-y-3 sm:space-y-4">
-                    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 sm:rounded-2xl sm:p-4">
-                      <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-muted shadow-sm sm:h-14 sm:w-16 sm:rounded-2xl">
-                        <img
-                          src="/bus/bus-booking-thumb.jpg"
-                          alt=""
-                          className="h-full w-full object-cover"
-                          loading="eager"
-                          decoding="async"
-                        />
-                        <span className="absolute inset-0 bg-gradient-to-tr from-black/35 via-transparent to-white/10" aria-hidden />
-                      </div>
-                      <div>
-                        <h1 className="text-base font-black leading-tight text-foreground sm:text-lg">{t("bus.headline")}</h1>
-                        <p className="text-[11px] text-muted-foreground sm:text-xs">{t("bus.subhead")}</p>
-                      </div>
-                    </div>
+                    <TravelBusHero from={from} to={to} date={date} passengers={passengers} />
 
                     {/* From / To */}
                     <div className="relative rounded-xl border border-border bg-card p-1.5 sm:rounded-2xl sm:p-2">
