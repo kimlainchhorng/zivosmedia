@@ -587,7 +587,7 @@ export default function ZivoTravelHome() {
         <meta property="og:description" content="Flights, hotels, rental cars, and bus booking in one connected workflow." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://zivostravel.com/" />
-        <meta property="og:image" content="https://zivostravel.com/og-image.png" />
+        <meta property="og:image" content="https://zivostravel.com/og-zivo-travel.jpg" />
         <meta property="og:image:alt" content="Zivo Travel - Flights, Hotels, Rental Cars, and Bus Booking" />
         <meta property="og:site_name" content="Zivo Travel" />
         <meta property="og:locale" content="en_US" />
@@ -595,7 +595,7 @@ export default function ZivoTravelHome() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Zivo Travel" />
         <meta name="twitter:description" content="Flights, hotels, rental cars, and bus booking in one connected workflow." />
-        <meta name="twitter:image" content="https://zivostravel.com/og-image.png" />
+        <meta name="twitter:image" content="https://zivostravel.com/og-zivo-travel.jpg" />
         <meta name="twitter:image:alt" content="Zivo Travel - Flights, Hotels, Rental Cars, and Bus Booking" />
         <meta name="theme-color" content="#09090b" />
         <script type="application/ld+json">

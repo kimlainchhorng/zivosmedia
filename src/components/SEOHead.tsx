@@ -43,7 +43,11 @@ export default function SEOHead({
       ? (canonical.startsWith('http') ? canonical : `${origin}${canonical}`)
       : `${origin}${location.pathname}`;
 
-    const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${origin}${ogImage}`;
+    const resolvedOgImage =
+      origin === ZIVO_TRAVEL_ORIGIN && ogImage === '/og-image.png'
+        ? '/og-zivo-travel.jpg'
+        : ogImage;
+    const ogImageUrl = resolvedOgImage.startsWith('http') ? resolvedOgImage : `${origin}${resolvedOgImage}`;
     const siteName = origin === ZIVO_TRAVEL_ORIGIN ? 'Zivo Travel' : 'ZIVO';
 
     // robots
