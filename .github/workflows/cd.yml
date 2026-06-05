@@ -54,18 +54,12 @@ jobs:
         run: npm run supabase:migrations:check
         continue-on-error: true
 
-      - name: Security scan
-        run: npm run security:scan
-
-      - name: Local deploy preflight
+      - name: Netlify preview build gate
         env:
+          NETLIFY: "true"
+          CONTEXT: deploy-preview
           NODE_OPTIONS: "--max-old-space-size=8192"
-        run: npm run deploy:preflight:local
-
-      - name: Production build
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
-        run: npm run build
+        run: node scripts/deploy/netlify-build.mjs
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v7
