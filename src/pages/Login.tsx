@@ -133,13 +133,13 @@ function ZivoSoftwareLegalLinks({
           <span>ZIVO Media is connected. Sign in here to open your ZIVO Software workspace.</span>
         </div>
       )}
-      {connectHref && (
+      {connectHref && !mediaConnected && (
         <a
           href={connectHref}
           className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#101412]/15 bg-white/90 text-sm font-black text-[#101412] shadow-sm transition hover:border-[#138f68] hover:text-[#138f68]"
         >
           <ExternalLink className="h-4 w-4" />
-          {mediaConnected ? "Reconnect ZIVO Media" : "Connect ZIVO Media account"}
+          Connect with ZIVO Media
         </a>
       )}
       <p className="text-center text-xs font-medium text-[#66736d]">

@@ -148,9 +148,11 @@ const Signup = () => {
     (typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname)) ||
     isZivoSoftwareRedirectTarget(redirect);
   const zivoMediaConnectHref = useMemo(() => {
-    const softwareReturn = "https://zivosoftware.com/login?connected=zivosmedia";
-    return `https://zivosmedia.com/login?redirect=${encodeURIComponent(softwareReturn)}`;
-  }, []);
+    const softwareReturn = new URL("https://zivosoftware.com/login");
+    if (redirect) softwareReturn.searchParams.set("redirect", redirect);
+    softwareReturn.searchParams.set("connected", "zivosmedia");
+    return `https://zivosmedia.com/login?redirect=${encodeURIComponent(softwareReturn.toString())}`;
+  }, [redirect]);
   const finishAuthRedirect = useCallback((target: string) => {
     if (isExternalRedirectTarget(target)) {
       window.location.assign(target);
