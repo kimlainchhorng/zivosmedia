@@ -15,6 +15,9 @@ export const ZIVO_TRAVEL_SUPABASE_PROJECT_ID = "xbllvmpomorawkcrtbcq";
 export const ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY =
   import.meta.env.VITE_ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_3idiRHli7BTv1HI_AtiyBw_cOBl9Xti";
 
+export const ZIVO_TRAVEL_USE_DEDICATED_BACKEND =
+  import.meta.env.VITE_ZIVO_TRAVEL_USE_DEDICATED_BACKEND === "true";
+
 const ZIVO_TRAVEL_ALLOWED_PREFIXES = [
   "/flights",
   "/airports",

@@ -9,15 +9,27 @@ import {
   ZIVO_SOFTWARE_SUPABASE_URL,
   isZivoSoftwareHost,
 } from '@/config/autoRepairDomain';
+import {
+  ZIVO_TRAVEL_SUPABASE_PROJECT_ID,
+  ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY,
+  ZIVO_TRAVEL_SUPABASE_URL,
+  ZIVO_TRAVEL_USE_DEDICATED_BACKEND,
+  isZivoTravelHost,
+} from '@/config/zivoTravelDomain';
 
 const runtimeHostname = typeof window !== "undefined" ? window.location.hostname : "";
 const useZivoSoftwareBackend = isZivoSoftwareHost(runtimeHostname);
+const useZivoTravelBackend = isZivoTravelHost(runtimeHostname) && ZIVO_TRAVEL_USE_DEDICATED_BACKEND;
 
 export const SUPABASE_URL = useZivoSoftwareBackend
   ? ZIVO_SOFTWARE_SUPABASE_URL
+  : useZivoTravelBackend
+  ? ZIVO_TRAVEL_SUPABASE_URL
   : import.meta.env.VITE_SUPABASE_URL || "";
 export const SUPABASE_PUBLISHABLE_KEY = useZivoSoftwareBackend
   ? ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY
+  : useZivoTravelBackend
+  ? ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY
   : import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
 const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
@@ -26,6 +38,7 @@ const EFFECTIVE_SUPABASE_URL = SUPABASE_URL || FALLBACK_SUPABASE_URL;
 const EFFECTIVE_SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
 const SUPABASE_PROJECT_REF =
   (useZivoSoftwareBackend ? ZIVO_SOFTWARE_SUPABASE_PROJECT_ID : "") ||
+  (useZivoTravelBackend ? ZIVO_TRAVEL_SUPABASE_PROJECT_ID : "") ||
   import.meta.env.VITE_SUPABASE_PROJECT_ID ||
   (EFFECTIVE_SUPABASE_URL ? new URL(EFFECTIVE_SUPABASE_URL).hostname.split(".")[0] : "");
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
