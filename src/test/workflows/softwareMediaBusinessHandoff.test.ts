@@ -19,6 +19,9 @@ describe("ZIVO Software and Media business handoff", () => {
     expect(handoff).toContain('normalizeCategory(store.category) === "auto repair"');
     expect(handoff).toContain("zivo_media_dashboard_url");
     expect(handoff).toContain("media_dashboard_url");
+    expect(handoff).toContain("withSecurity");
+    expect(handoff).toContain("strictCors: true");
+    expect(handoff).toContain('allowedMethods: ["POST"]');
 
     expect(connectSoftware).toContain("validateMediaDashboardUrl");
     expect(connectSoftware).toContain("finalRedirect = mediaDashboard.toString()");

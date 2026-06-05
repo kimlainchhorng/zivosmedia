@@ -8,6 +8,7 @@
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.106.0";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const MEDIA_SUPABASE_URL =
   Deno.env.get("ZIVO_MEDIA_SUPABASE_URL") || "https://slirphzzwcogdbkeicff.supabase.co";
@@ -15,28 +16,10 @@ const MEDIA_SUPABASE_ANON_KEY =
   Deno.env.get("ZIVO_MEDIA_SUPABASE_ANON_KEY") ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
 
-const ALLOWED_ORIGINS = new Set([
-  "https://zivosmedia.com",
-  "https://www.zivosmedia.com",
-  "https://zivosoftware.com",
-  "https://www.zivosoftware.com",
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-]);
-
-function corsFor(req: Request) {
-  const origin = req.headers.get("origin") || "";
-  return {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://zivosmedia.com",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
-}
-
-function json(req: Request, body: unknown, status = 200): Response {
+function json(corsHeaders: Record<string, string>, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsFor(req), "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
@@ -93,19 +76,17 @@ function mediaDashboardUrlForStore(store: MediaStoreProfile | null) {
   return `${base}/admin/stores/${store.id}`;
 }
 
-serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsFor(req) });
-  if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
-
+serve(withSecurity("software-media-handoff", async (req, ctx): Promise<Response> => {
+  const corsHeaders = ctx.corsHeaders;
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
-    return json(req, { error: "Missing ZIVO Media session" }, 401);
+    return json(corsHeaders, { error: "Missing ZIVO Media session" }, 401);
   }
 
   const SOFTWARE_SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
   const SOFTWARE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (!SOFTWARE_SUPABASE_URL || !SOFTWARE_SERVICE_ROLE_KEY) {
-    return json(req, { error: "Software auth bridge is not configured" }, 500);
+    return json(corsHeaders, { error: "Software auth bridge is not configured" }, 500);
   }
 
   const media = createClient(MEDIA_SUPABASE_URL, MEDIA_SUPABASE_ANON_KEY, {
@@ -116,7 +97,7 @@ serve(async (req: Request): Promise<Response> => {
   const mediaUser = mediaUserData?.user;
   const email = mediaUser?.email?.trim().toLowerCase();
   if (mediaUserError || !mediaUser || !email) {
-    return json(req, { error: "Invalid ZIVO Media session" }, 401);
+    return json(corsHeaders, { error: "Invalid ZIVO Media session" }, 401);
   }
 
   let linkedMediaStore: MediaStoreProfile | null = null;
@@ -156,7 +137,7 @@ serve(async (req: Request): Promise<Response> => {
   });
   const tokenHash = linkData?.properties?.hashed_token;
   if (linkError || !tokenHash) {
-    return json(req, { error: "Could not create Software handoff token" }, 500);
+    return json(corsHeaders, { error: "Could not create Software handoff token" }, 500);
   }
 
   const softwareUserId = linkData.user?.id;
@@ -179,7 +160,7 @@ serve(async (req: Request): Promise<Response> => {
       .upsert(profilePayload, { onConflict: "user_id" });
 
     if (profileError) {
-      return json(req, { error: "Could not prepare Software profile" }, 500);
+      return json(corsHeaders, { error: "Could not prepare Software profile" }, 500);
     }
 
     const { error: metadataError } = await software.auth.admin.updateUserById(softwareUserId, {
@@ -190,11 +171,11 @@ serve(async (req: Request): Promise<Response> => {
     });
 
     if (metadataError) {
-      return json(req, { error: "Could not link ZIVO Media business" }, 500);
+      return json(corsHeaders, { error: "Could not link ZIVO Media business" }, 500);
     }
   }
 
-  return json(req, {
+  return json(corsHeaders, {
     token_hash: tokenHash,
     connected: "zivosmedia",
     media_store: linkedMediaStore
@@ -207,4 +188,10 @@ serve(async (req: Request): Promise<Response> => {
       : null,
     media_dashboard_url: mediaDashboardUrl,
   });
-});
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

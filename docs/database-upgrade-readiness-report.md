@@ -1,18 +1,18 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-05T15:49:54.809Z
+Generated: 2026-06-05T18:03:49.189Z
 
 ## Summary
 
-- Supabase CLI: 2.100.0
-- Local migrations: 1096
+- Supabase CLI: 2.105.0
+- Local migrations: 1097
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 6
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1096, remote=1531, matched=0, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=480, unmatchedRemote=915, localAfterRemoteRange=17, sharedDays=88, remoteError=no, generated=2026-06-05T15:49:53.495Z
-- Pending local migration gates: createsTables=3, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Last linked drift report: local=1097, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1097, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-06-05T18:03:48.779Z
+- Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
 - Public tables created in migrations: 908
@@ -31,7 +31,6 @@ Generated: 2026-06-05T15:49:54.809Z
 ## Blockers
 
 - 6 new duplicate migration version(s) need reconciliation before db push/pull.
-- Local and remote migration histories have zero exact matches, with near-timestamp pairs indicating version-id drift.
 
 ## Warnings
 
