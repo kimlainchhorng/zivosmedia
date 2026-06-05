@@ -48,7 +48,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm ci --no-audit --no-fund && npm install react-dom@19.2.7 --save-exact --no-audit --no-fund
 
       # ── TypeScript ──────────────────────────────────────────────────────────
       - name: TypeScript type-check
