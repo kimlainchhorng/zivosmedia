@@ -66,5 +66,5 @@ export const isZivoSoftwareRedirectTarget = (target?: string | null) => {
 
 export const isZivoSoftwareDashboardPath = (pathname?: string | null) => {
   const path = pathname || "";
-  return path === "/business/dashboard";
+  return path === "/business/dashboard" || path === `/admin/stores/${AUTO_REPAIR_STORE_ID}`;
 };

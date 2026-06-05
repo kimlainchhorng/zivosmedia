@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-05T18:29:22.337Z
+Generated: 2026-06-05T19:59:52.181Z
 Mode: soft
 Options: strict=no, skipBuild=no, skipTypeCheck=yes
 
@@ -139,7 +139,7 @@ select pg_reload_conf();
   "reconciliationPlan": "docs/supabase-migration-reconciliation-plan.md",
   "pendingLocalReviewReport": "docs/supabase-migration-pending-local-review.csv",
   "reconciliationRepairDraft": "docs/supabase-migration-reconciliation-repair-draft.sql",
-  "remoteError": "Initialising login role...\n2026/06/05 11:29:12 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable."
+  "remoteError": "Initialising login role...\n2026/06/05 12:59:42 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable."
 }
 ```
 
@@ -251,7 +251,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:29:13.101Z",
+  "generated": "2026-06-05T19:59:43.437Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -299,11 +299,11 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:29:13.143Z",
+  "generated": "2026-06-05T19:59:43.481Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
-    "configuredFunctions": 82,
-    "localConfiguredFunctions": 82,
+    "configuredFunctions": 83,
+    "localConfiguredFunctions": 83,
     "liveFunctions": null,
     "knownMissingLiveFunctions": 6,
     "criticalFunctions": 6,
@@ -431,7 +431,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:29:13.768Z",
+  "generated": "2026-06-05T19:59:44.115Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2786,

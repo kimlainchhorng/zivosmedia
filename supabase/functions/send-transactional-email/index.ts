@@ -10,6 +10,17 @@ const SENDER_DOMAIN = "send.zivosmedia.com"
 // When display_from_root is enabled, this can be the root domain for cleaner branding,
 // even though actual sending uses the subdomain above.
 const FROM_DOMAIN = "zivosmedia.com"
+const DEFAULT_CTA_URL = "https://zivosmedia.com"
+
+const RESEND_DASHBOARD_TEMPLATES: Record<string, { label: string; defaultCta: string }> = {
+  "zivo-business-core": { label: "ZIVO Business", defaultCta: "https://zivobusiness.com" },
+  "zivo-driver-core": { label: "ZIVO Driver", defaultCta: "https://zivodriver.com" },
+  "zivo-employee-core": { label: "ZIVO Employee", defaultCta: "https://zivoemployee.com" },
+  "zivo-chat-core": { label: "ZIVO Chat", defaultCta: "https://zivoschat.com" },
+  "zivo-media-core": { label: "ZIVO Media", defaultCta: "https://zivosmedia.com" },
+  "zivo-software-core": { label: "ZIVO Software", defaultCta: "https://zivosoftware.com" },
+  "zivo-travel-core": { label: "ZIVO Travel", defaultCta: "https://zivostravel.com" },
+}
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
@@ -52,6 +63,7 @@ Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let resendTemplateAlias: string | undefined
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -61,6 +73,9 @@ Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
     }
+    resendTemplateAlias = resolveResendTemplateAlias(
+      body.resendTemplateAlias || body.resend_template_alias || templateData.resendTemplateAlias || templateData.resend_template_alias
+    )
   } catch {
     return new Response(
       JSON.stringify({ error: 'Invalid JSON in request body' }),
@@ -74,6 +89,21 @@ Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
   if (!templateName) {
     return new Response(
       JSON.stringify({ error: 'templateName is required' }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (
+    (resendTemplateAlias &&
+      !Object.prototype.hasOwnProperty.call(RESEND_DASHBOARD_TEMPLATES, resendTemplateAlias))
+  ) {
+    return new Response(
+      JSON.stringify({
+        error: `Resend template alias is not allowlisted. Available: ${Object.keys(RESEND_DASHBOARD_TEMPLATES).join(', ')}`,
+      }),
       {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -337,18 +367,35 @@ Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
   })
 
   try {
+    const resendTemplate = resendTemplateAlias
+      ? buildResendTemplatePayload({
+          alias: resendTemplateAlias,
+          resolvedSubject,
+          plainText,
+          templateData,
+          displayName: template.displayName,
+        })
+      : null
+
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${resendApiKey}`,
+        'Idempotency-Key': idempotencyKey,
       },
       body: JSON.stringify({
-        from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+        from: resendTemplate ? undefined : `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
         to: [effectiveRecipient],
-        subject: resolvedSubject,
-        html,
-        text: plainText,
+        subject: resendTemplate ? undefined : resolvedSubject,
+        html: resendTemplate ? undefined : html,
+        text: resendTemplate ? undefined : plainText,
+        template: resendTemplate
+          ? {
+              id: resendTemplate.alias,
+              variables: resendTemplate.variables,
+            }
+          : undefined,
         // RFC 8058 one-click unsubscribe — required by Gmail/Yahoo bulk-sender
         // rules. handle-email-unsubscribe accepts ?token= via GET and the
         // POST "List-Unsubscribe=One-Click" form. We already mint a per-email
@@ -385,7 +432,7 @@ Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
       status: 'sent',
     })
 
-    console.log('Transactional email sent', { templateName, resendId: result.id })
+    console.log('Transactional email sent', { templateName, resendTemplateAlias, resendId: result.id })
 
     return new Response(
       JSON.stringify({ success: true, sent: true }),
@@ -406,3 +453,90 @@ Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
     )
   }
 }, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }))
+
+function resolveResendTemplateAlias(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const alias = value.trim()
+  return alias || undefined
+}
+
+function buildResendTemplatePayload(input: {
+  alias: string
+  resolvedSubject: string
+  plainText: string
+  templateData: Record<string, any>
+  displayName?: string
+}) {
+  const meta = RESEND_DASHBOARD_TEMPLATES[input.alias]
+  const title = firstString(
+    input.templateData.title,
+    input.templateData.emailTitle,
+    input.templateData.email_title,
+    input.displayName,
+    input.resolvedSubject,
+  )
+  const body = firstString(
+    input.templateData.body,
+    input.templateData.message,
+    input.templateData.description,
+    input.plainText,
+    "We have a new update for your account.",
+  )
+  const ctaUrl = firstString(
+    input.templateData.ctaUrl,
+    input.templateData.cta_url,
+    input.templateData.url,
+    input.templateData.actionUrl,
+    input.templateData.action_url,
+    meta.defaultCta,
+    DEFAULT_CTA_URL,
+  )
+  const ctaLabel = firstString(
+    input.templateData.ctaLabel,
+    input.templateData.cta_label,
+    input.templateData.actionLabel,
+    input.templateData.action_label,
+    "Open ZIVO",
+  )
+
+  return {
+    alias: input.alias,
+    variables: {
+      PREHEADER: truncateText(firstString(input.templateData.preheader, input.resolvedSubject), 140),
+      TITLE: truncateText(title, 120),
+      BODY: truncateText(stripHtml(body), 900),
+      CTA_LABEL: truncateText(ctaLabel, 60),
+      CTA_URL: ctaUrl,
+      FOOTER_NOTE: truncateText(
+        firstString(
+          input.templateData.footerNote,
+          input.templateData.footer_note,
+          `You are receiving this because you use ${meta.label}.`,
+        ),
+        180,
+      ),
+    },
+  }
+}
+
+function firstString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  }
+  return ''
+}
+
+function stripHtml(value: string): string {
+  return value
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`
+}

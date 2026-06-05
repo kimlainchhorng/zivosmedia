@@ -80,7 +80,7 @@ describe("auto repair software domain config", () => {
 
   it("allows only the Software dashboard route on the software domain", () => {
     expect(isZivoSoftwareDashboardPath("/business/dashboard")).toBe(true);
-    expect(isZivoSoftwareDashboardPath("/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44")).toBe(false);
+    expect(isZivoSoftwareDashboardPath("/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44")).toBe(true);
     expect(isZivoSoftwareDashboardPath("/admin/stores/another-store-id")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/eats/restaurant-dashboard")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/bus/operator")).toBe(false);

@@ -103,7 +103,7 @@ const contracts = [
           '.from("store_employee_invites")',
           'Deno.env.get("PUBLIC_APP_URL")',
           'Deno.env.get("SITE_URL")',
-          '"https://zivollc.com"',
+          '"https://zivosmedia.com"',
           "/auth/accept-invite?token=",
         ]) {
           requireContains(this.id, text, needle, relativePath);
