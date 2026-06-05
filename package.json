@@ -136,7 +136,7 @@
     "@capacitor/status-bar": "^8.0.2",
     "@capacitor/toast": "^8.0.1",
     "@capawesome/capacitor-apple-sign-in": "^0.1.0",
-    "@capgo/capacitor-updater": "^8.46.1",
+    "@capgo/capacitor-updater": "^8.47.8",
     "@ffmpeg/core": "0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
