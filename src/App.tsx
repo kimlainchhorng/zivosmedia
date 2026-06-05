@@ -2247,7 +2247,7 @@ const App = () => (
                 <Route path="/share/with-me" element={<ShareWatchlistPage />} />
                 <Route path="/partner-login" element={<PartnerLogin />} />
                 <Route path="/partners" element={<PartnerWithZivo />} />
-                <Route path="/business" element={isAutoRepairSoftwareHost(typeof window !== "undefined" ? window.location.hostname : "") ? <BusinessSoftwarePortalPage /> : <BusinessLandingPage />} />
+                <Route path="/business" element={<BusinessSoftwarePortalPage />} />
                 <Route path="/api-partners" element={<APIPartners />} />
                 <Route path="/developers" element={<APIPartners />} />
                 <Route path="/business/dashboard" element={<AdminShellRoute vertical="business" title="Business Dashboard | ZIVO Admin"><BusinessDashboard /></AdminShellRoute>} />
