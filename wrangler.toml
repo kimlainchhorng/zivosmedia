@@ -4,6 +4,14 @@ compatibility_date = "2026-05-23"
 workers_dev = true
 preview_urls = false
 
+[[routes]]
+pattern = "zivosoftware.com/*"
+zone_name = "zivosoftware.com"
+
+[[routes]]
+pattern = "www.zivosoftware.com/*"
+zone_name = "zivosoftware.com"
+
 # When the built Vite app is deployed to Cloudflare Workers, unknown routes
 # are served from index.html so React Router deep links work.
 [assets]

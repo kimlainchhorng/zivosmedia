@@ -1,6 +1,6 @@
 # Supabase Migration Reconciliation Plan
 
-Generated: 2026-06-05T15:43:46.101Z
+Generated: 2026-06-05T15:49:53.511Z
 
 This plan is diagnostic only. It does not repair migration history or change the remote schema.
 
