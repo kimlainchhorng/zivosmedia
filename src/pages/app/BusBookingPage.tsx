@@ -838,7 +838,7 @@ export default function BusBookingPage() {
         noIndex={!isTravelHost}
       />
       <AppLayout title={stepTitle[step]} showBack onBack={handleBack}>
-        <div className="mx-auto w-full max-w-6xl px-3 py-2 sm:px-4 sm:py-4">
+        <div className="mx-auto w-full max-w-6xl px-3 pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] pt-2 sm:px-4 sm:pb-28 sm:pt-4 lg:pb-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -1198,7 +1198,7 @@ export default function BusBookingPage() {
                     </p>
                   )}
 
-                  <div className="sticky bottom-4">
+                  <div className="fixed inset-x-3 bottom-[calc(var(--zivo-safe-bottom,0px)+5.5rem)] z-30 lg:sticky lg:inset-x-auto lg:bottom-4">
                     <Button onClick={goToSummary} className="h-12 w-full rounded-2xl text-base font-black">
                       {t("bus.continue")} · ${selectedTrip.priceUsd * Math.max(1, selectedSeats.length)}
                     </Button>
