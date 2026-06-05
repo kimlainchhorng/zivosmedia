@@ -67,6 +67,7 @@ import {
   ScrollTurn,
   TiltCard as TravelTiltCard,
 } from "@/components/zivo-travel/scroll3d";
+import { PageTransition } from "@/components/zivo-travel/PageTransition";
 
 type TravelService = "flight" | "hotel" | "rental_car" | "bus";
 
@@ -90,6 +91,8 @@ type ServiceConfig = {
   fromValue: string;
   toValue: string;
 };
+
+const TRAVEL_THEME_COLOR = "#f8fbff";
 
 const services: ServiceConfig[] = [
   {
@@ -322,10 +325,10 @@ const journeyCommand = [
 ];
 
 const launchLayers = [
-  { label: "Flights", icon: Plane, color: "text-sky-200", bg: "bg-sky-400/[0.18]" },
-  { label: "Hotels", icon: Hotel, color: "text-fuchsia-200", bg: "bg-fuchsia-400/[0.18]" },
-  { label: "Cars", icon: CarFront, color: "text-emerald-200", bg: "bg-emerald-400/[0.18]" },
-  { label: "Bus", icon: Bus, color: "text-orange-200", bg: "bg-orange-400/[0.18]" },
+  { label: "Flights", icon: Plane, color: "text-sky-600", bg: "bg-sky-100/80" },
+  { label: "Hotels", icon: Hotel, color: "text-fuchsia-600", bg: "bg-fuchsia-100/80" },
+  { label: "Cars", icon: CarFront, color: "text-emerald-600", bg: "bg-emerald-100/80" },
+  { label: "Bus", icon: Bus, color: "text-orange-600", bg: "bg-orange-100/80" },
 ];
 
 function getTravelSessionId() {
@@ -488,7 +491,7 @@ function ServiceCarousel3D({
               key={service.id}
               type="button"
               onClick={() => (isCenter ? onLaunch(service) : onSelect(i))}
-              className="absolute inset-y-2 left-0 right-0 mx-auto w-[268px] overflow-hidden rounded-[2rem] border border-white/15 text-left shadow-[0_44px_90px_rgba(2,6,23,0.55)] will-change-transform sm:w-[320px]"
+              className="zt-on-media absolute inset-y-2 left-0 right-0 mx-auto w-[268px] overflow-hidden rounded-[2rem] border border-white/15 text-left shadow-[0_44px_90px_rgba(2,6,23,0.55)] will-change-transform sm:w-[320px]"
               style={{ zIndex: slot.zIndex, transformStyle: "preserve-3d" }}
               animate={{ x: slot.x, z: slot.z, rotateY: slot.rotateY, scale: slot.scale, opacity: slot.opacity }}
               transition={{ type: "spring", stiffness: 120, damping: 18 }}
@@ -621,7 +624,7 @@ function ServiceLayerShowcase() {
             return (
               <ScrollTurn key={item.service} axis={i % 2 === 0 ? "y" : "x"} rotate={i % 2 === 0 ? 13 : -10} className="w-[82vw] max-w-[390px] sm:w-[390px]">
                 <Link to={item.href} className="group block">
-                  <TravelTiltCard className="relative h-[520px] overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.055] p-4 shadow-[0_36px_90px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+                  <TravelTiltCard className="zt-on-media relative h-[520px] overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.055] p-4 shadow-[0_36px_90px_rgba(2,6,23,0.45)] backdrop-blur-xl">
                     <img src={item.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-700 group-hover:scale-105" loading="lazy" />
                     <div className={cn("absolute inset-0 bg-gradient-to-b", item.tone)} />
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/5" />
@@ -910,7 +913,7 @@ function JourneyCommandDeck() {
 function ZivoTravelLaunchLoader() {
   return (
     <motion.div
-      className="fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-[#050914] text-white"
+      className="zt-launch-loader fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-[#f8fbff] text-slate-950"
       role="status"
       aria-live="polite"
       initial={{ opacity: 1 }}
@@ -918,19 +921,19 @@ function ZivoTravelLaunchLoader() {
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="zt-aurora opacity-90" aria-hidden />
-      <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" aria-hidden />
+      <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" aria-hidden />
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-6 text-center">
         <div className="relative zt-perspective">
-          <div className="absolute -inset-20 rounded-full border border-emerald-300/15 zt-loader-orbit" aria-hidden />
-          <div className="absolute -inset-12 rounded-full border border-sky-300/15 zt-loader-orbit [animation-direction:reverse]" aria-hidden />
-          <div className="relative grid h-28 w-28 place-items-center rounded-[2rem] border border-white/15 bg-white/10 shadow-[0_34px_80px_rgba(16,185,129,0.28)] backdrop-blur-xl zt-loader-float">
+          <div className="absolute -inset-20 rounded-full border border-emerald-400/20 zt-loader-orbit" aria-hidden />
+          <div className="absolute -inset-12 rounded-full border border-sky-400/20 zt-loader-orbit [animation-direction:reverse]" aria-hidden />
+          <div className="relative grid h-28 w-28 place-items-center rounded-[2rem] border border-slate-900/10 bg-white/80 shadow-[0_34px_80px_rgba(14,165,233,0.18)] backdrop-blur-xl zt-loader-float">
             <span className="text-6xl font-black leading-none zt-gradient-text">Z</span>
-            <span className="absolute inset-x-3 bottom-4 h-1 overflow-hidden rounded-full bg-white/15">
-              <span className="block h-full w-1/2 rounded-full bg-gradient-to-r from-emerald-300 to-sky-300 zt-loader-scan" />
+            <span className="absolute inset-x-3 bottom-4 h-1 overflow-hidden rounded-full bg-slate-900/10">
+              <span className="block h-full w-1/2 rounded-full bg-gradient-to-r from-emerald-400 to-sky-400 zt-loader-scan" />
             </span>
           </div>
         </div>
-        <p className="mt-8 text-sm font-black uppercase tracking-[0.42em] text-emerald-200">Zivo Travel</p>
+        <p className="mt-8 text-sm font-black uppercase tracking-[0.42em] text-emerald-600">Zivo Travel</p>
         <h2 className="mt-3 max-w-2xl text-3xl font-black leading-none sm:text-5xl">Preparing your trip layers</h2>
         <div className="mt-7 grid w-full max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
           {launchLayers.map((item, index) => {
@@ -942,7 +945,7 @@ function ZivoTravelLaunchLoader() {
                 style={{ animationDelay: `${index * 0.18}s` }}
               >
                 <Icon className={cn("h-5 w-5", item.color)} />
-                <p className="mt-2 text-xs font-black uppercase tracking-wide text-white/80">{item.label}</p>
+                <p className="mt-2 text-xs font-black uppercase tracking-wide text-slate-700">{item.label}</p>
               </div>
             );
           })}
@@ -1018,9 +1021,9 @@ export default function ZivoTravelHome() {
 
   // The shared static index.html bakes zivosmedia.com SEO into every host
   // (canonical, OG/Twitter, JSON-LD). This page's <Helmet> appends correct travel
-  // tags *after* them, leaving duplicates. After Helmet flushes (double rAF),
-  // de-dupe singleton SEO tags keeping the last (Helmet's), drop any JSON-LD that
-  // isn't travel-branded, and remove off-brand parent-company social images.
+  // tags *after* them, leaving duplicates. After Helmet/global tags settle,
+  // de-dupe singleton SEO tags, drop any JSON-LD that isn't travel-branded,
+  // and remove off-brand parent-company social images.
   useEffect(() => {
     const reconcile = () => {
       const head = document.head;
@@ -1033,10 +1036,30 @@ export default function ZivoTravelHome() {
           seen.set(key, el);
         });
       };
+      const keepTravelThemeColor = () => {
+        const nodes = Array.from(head.querySelectorAll('meta[name="theme-color"]'));
+        const preferred =
+          nodes.find((el) => el.getAttribute("content") === TRAVEL_THEME_COLOR) ||
+          nodes[nodes.length - 1];
+
+        if (!preferred) {
+          const meta = document.createElement("meta");
+          meta.setAttribute("name", "theme-color");
+          meta.setAttribute("content", TRAVEL_THEME_COLOR);
+          head.append(meta);
+          return;
+        }
+
+        nodes.forEach((el) => {
+          if (el !== preferred) el.remove();
+        });
+        preferred.setAttribute("content", TRAVEL_THEME_COLOR);
+      };
       keepLast('link[rel="canonical"]', () => "canonical");
       keepLast('link[rel="alternate"][hreflang]', (el) => el.getAttribute("hreflang") || "");
       keepLast('meta[name="description"]', () => "description");
       keepLast('meta[name="apple-itunes-app"]', () => "apple-itunes-app");
+      keepTravelThemeColor();
       keepLast('meta[property^="og:"]', (el) => el.getAttribute("property") || "");
       keepLast('meta[name^="twitter:"]', (el) => el.getAttribute("name") || "");
       head.querySelectorAll('script[type="application/ld+json"]').forEach((script) => {
@@ -1054,7 +1077,17 @@ export default function ZivoTravelHome() {
         });
     };
     const raf = requestAnimationFrame(() => requestAnimationFrame(reconcile));
-    return () => cancelAnimationFrame(raf);
+    const timers = [150, 600, 1400].map((delay) => window.setTimeout(reconcile, delay));
+    const observer = new MutationObserver(reconcile);
+    observer.observe(document.head, { childList: true, subtree: false });
+    const observerStop = window.setTimeout(() => observer.disconnect(), 2500);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.clearTimeout(observerStop);
+      observer.disconnect();
+    };
   }, []);
 
   // Each engine landing page reads its own query keys, so emit per-service params
@@ -1132,7 +1165,7 @@ export default function ZivoTravelHome() {
   };
 
   return (
-    <main className="zivo-travel-3d min-h-screen bg-zinc-950 text-white">
+    <main className="zivo-travel-3d zivo-travel-light min-h-screen bg-white text-slate-950">
       <AnimatePresence>{booting && <ZivoTravelLaunchLoader />}</AnimatePresence>
       <Helmet>
         <title>Zivo Travel | Flights, Hotels, Rental Cars, and Bus Booking</title>
@@ -1161,7 +1194,7 @@ export default function ZivoTravelHome() {
         <meta name="twitter:description" content="Flights, hotels, rental cars, and bus booking in one connected workflow." />
         <meta name="twitter:image" content="https://zivostravel.com/og-zivo-travel.jpg" />
         <meta name="twitter:image:alt" content="Zivo Travel - Flights, Hotels, Rental Cars, and Bus Booking" />
-        <meta name="theme-color" content="#09090b" />
+        <meta name="theme-color" content={TRAVEL_THEME_COLOR} />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -1279,6 +1312,7 @@ export default function ZivoTravelHome() {
         )}
       </header>
 
+      <PageTransition className="relative">
       {/* Hero */}
       <section ref={heroRef} className="relative overflow-hidden">
         <FloatingTravelStack activeService={activeService} />
@@ -1479,7 +1513,7 @@ export default function ZivoTravelHome() {
                 key={destination.name}
                 type="button"
                 onClick={() => selectService(0)}
-                className="group relative h-72 w-64 shrink-0 snap-start overflow-hidden rounded-[1.8rem] border border-white/10 text-left"
+                className="zt-on-media group relative h-72 w-64 shrink-0 snap-start overflow-hidden rounded-[1.8rem] border border-white/10 text-left"
               >
                 <img
                   src={destination.image}
@@ -1623,6 +1657,7 @@ export default function ZivoTravelHome() {
           <p className="text-xs text-zinc-500">© {new Date().getFullYear()} Zivo Travel · A Zivos Media company</p>
         </div>
       </footer>
+      </PageTransition>
     </main>
   );
 }
