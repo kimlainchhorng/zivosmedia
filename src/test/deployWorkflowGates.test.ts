@@ -96,11 +96,16 @@ describe("deploy workflow gates", () => {
 
   it("keeps direct Netlify builds gated by local preflight and secret scanning", () => {
     const config = read("netlify.toml");
+    const netlifyBuild = read("scripts/deploy/netlify-build.mjs");
 
     expect(config).toContain('[build]');
-    expect(config).toContain('command = "npm run security:scan && npm run deploy:preflight:local"');
+    expect(config).toContain('command = "node scripts/deploy/netlify-build.mjs"');
     expect(config).toContain('publish = "dist"');
     expect(config).not.toContain('command = "npm run build"');
+    expect(netlifyBuild).toContain('run("Security scan", ["run", "security:scan"])');
+    expect(netlifyBuild).toContain('context !== "production"');
+    expect(netlifyBuild).toContain('run("Local deploy preflight", ["run", "deploy:preflight:local"])');
+    expect(netlifyBuild).toContain('run("Production build", ["run", "build"])');
   });
 
   it("keeps preview deploy gated by local preflight and secret scanning", () => {
