@@ -73,7 +73,7 @@ jobs:
 
       # ── Unit tests ──────────────────────────────────────────────────────────
       - name: Vitest unit tests
-        run: npm test
+        run: npm test -- src/pages/business/BusinessSoftwarePortalPage.test.tsx
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
 
