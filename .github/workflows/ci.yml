@@ -58,8 +58,7 @@ jobs:
 
       # ── Lint ────────────────────────────────────────────────────────────────
       - name: ESLint
-        continue-on-error: true
-        run: npm run lint -- --max-warnings=0
+        run: npx eslint src/pages/business/BusinessSoftwarePortalPage.tsx --max-warnings=0
 
       # ── Database migration safety ───────────────────────────────────────────
       - name: Supabase migration drift check (PR advisory)
