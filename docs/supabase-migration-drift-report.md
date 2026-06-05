@@ -1,10 +1,10 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-06-04T22:32:31.619Z
+Generated: 2026-06-05T03:39:59.425Z
 
 ## Summary
 
-- Local migrations: 1080
+- Local migrations: 1092
 - Invalid filenames: 0
 - Duplicate versions: 6
 - Allowed duplicate versions: 0
@@ -15,13 +15,13 @@ Generated: 2026-06-04T22:32:31.619Z
 - Remote version range: none to none
 - Remote migrations: 0
 - Matched versions: 0
-- Local-only pending: 1080
+- Local-only pending: 1092
 - Remote-only missing locally: 0
 - Near timestamp pairs within 5 seconds: 0
 - Near timestamp pairs within 1 minute: 0
 - One-to-one reconciliation candidates within 5 seconds: 0
 - One-to-one reconciliation candidates within 1 minute: 0
-- Unmatched local migrations after one-to-one candidates: 1080
+- Unmatched local migrations after one-to-one candidates: 1092
 - Unmatched remote versions after one-to-one candidates: 0
 - Unmatched local migrations after remote range: 0
 - Unmatched remote versions before local range: 0
@@ -38,11 +38,11 @@ Generated: 2026-06-04T22:32:31.619Z
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=1004, medium=53, low=23
+- Pending risk: high=1016, medium=53, low=23
 
 ## Domains
 
-- security/auth: 917
+- security/auth: 929
 - commerce/store: 57
 - chat/social: 48
 - general: 24
@@ -62,7 +62,7 @@ Generated: 2026-06-04T22:32:31.619Z
 
 - Auth token: SUPABASE_ACCESS_TOKEN was not present for this run.
 - Error: Initialising login role...
-2026/06/04 15:32:31 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
+2026/06/04 20:39:59 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
 - Hint: Run `supabase login` or export `SUPABASE_ACCESS_TOKEN` before linked migration checks.
 
 ## Reconciliation Diagnostics
@@ -176,7 +176,7 @@ Generated: 2026-06-04T22:32:31.619Z
 - 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
 - 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
 - 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 904 more
+- ...and 916 more
 
 ## Remote-Only Versions
 

@@ -42,6 +42,7 @@ const EXCLUDE_PREFIXES = [
   "/zivo-plus",     // ZivoPlus adds NavBar
   "/membership",    // MembershipPage adds NavBar
   "/auto-repair",   // AutoRepairPage adds NavBar
+  "/business",      // Business landing uses its own ZIVO Software website header
   "/vision",        // Vision adds NavBar
   "/referral",      // ReferralProgram adds NavBar
   "/profile",       // Profile adds NavBar

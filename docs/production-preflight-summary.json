@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-06-04T22:32:57.613Z",
+  "generated": "2026-06-05T03:40:12.072Z",
   "mode": "soft",
   "options": {
     "strict": false,
@@ -10,8 +10,8 @@
   "readyForCurrentGate": false,
   "readyForProductionGate": false,
   "counts": {
-    "apiCritical": 1,
-    "apiWarnings": 4,
+    "apiCritical": 0,
+    "apiWarnings": 6,
     "environmentCritical": 0,
     "environmentWarnings": 0,
     "databaseBlockers": 1,
@@ -19,9 +19,9 @@
     "edgeFunctionDeployFailures": 0,
     "edgeFunctionMissingLiveCritical": 6,
     "edgeFunctionBrowserGateFailures": 0,
-    "failedCommands": 0,
-    "productionBlockers": 9,
-    "currentGateBlockers": 1
+    "failedCommands": 1,
+    "productionBlockers": 8,
+    "currentGateBlockers": 0
   },
   "supabase": {
     "envAccessToken": false,
@@ -39,7 +39,7 @@
     "candidates": 0,
     "highConfidenceCandidates": 0,
     "mediumConfidenceCandidates": 0,
-    "unmatchedLocalAfterCandidates": 1080,
+    "unmatchedLocalAfterCandidates": 1092,
     "unmatchedRemoteAfterCandidates": 0,
     "unmatchedLocalAfterRemoteRange": 0,
     "reviewOrder": [
@@ -63,7 +63,7 @@
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-        "count": 1080
+        "count": 1092
       },
       {
         "order": 4,
@@ -104,26 +104,25 @@
   },
   "blockers": {
     "production": [
-      "API readiness has 1 critical finding(s).",
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
       "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
-      "API readiness has 4 warning(s).",
+      "API readiness has 6 warning(s).",
       "Database readiness has 1 blocker(s).",
       "Database readiness has 1 warning(s).",
       "Supabase remote migration history is unavailable (access_token_missing).",
       "Supabase migrations have 6 unresolved duplicate version(s)."
     ],
-    "currentGate": [
-      "API readiness has 1 critical finding(s)."
-    ],
-    "failedCommands": []
+    "currentGate": [],
+    "failedCommands": [
+      "Security scan"
+    ]
   },
   "steps": [
     {
       "id": "secrets",
       "title": "Security scan",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "environment",
@@ -193,12 +192,12 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 17524
+      "bytes": 18528
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 7257
+      "bytes": 7180
     },
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
@@ -213,7 +212,7 @@
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 3137
+      "bytes": 3353
     },
     "reconciliationPlan": {
       "path": "docs/supabase-migration-reconciliation-plan.md",
@@ -238,7 +237,7 @@
     "unmatchedLocal": {
       "path": "docs/supabase-migration-unmatched-local.csv",
       "exists": true,
-      "bytes": 116398
+      "bytes": 117776
     },
     "unmatchedRemote": {
       "path": "docs/supabase-migration-unmatched-remote.csv",
@@ -250,6 +249,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 174834
+    "bytes": 177355
   }
 }

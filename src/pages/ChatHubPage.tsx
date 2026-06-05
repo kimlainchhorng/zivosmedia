@@ -3865,7 +3865,11 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.12 }}
-                className={cn("px-4 pt-2", embedded && "px-2 pt-2 pb-2")}
+                className={cn(
+                  "px-4 pt-2",
+                  embedded && "px-2 pt-2 pb-2",
+                  !embedded && !desktopTwoColumn && "pb-[calc(var(--zivo-safe-bottom,0px)+var(--zivo-mobile-nav-h,60px)+8.75rem)]"
+                )}
               >
                 <div className={cn(search.trim().length > 0 && "pb-3", collapsedRail && "lg:hidden")}>
                   {embedded && (
@@ -5293,7 +5297,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       <PullToRefresh
         onRefresh={handlePullRefresh}
         enabled={!hasOverlayChatOpen}
-        className="zivo-shell-mobile bg-background overscroll-none"
+        className="zivo-shell-mobile zivo-chat-hub-shell bg-background overscroll-none"
       >
         <SEOHead
           title="Messages – ZIVO | Chat with Friends & Businesses"

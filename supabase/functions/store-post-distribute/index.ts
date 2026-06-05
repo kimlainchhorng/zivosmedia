@@ -1,5 +1,6 @@
 // Queue store post distribution jobs across social and ad platforms.
 import { createClient } from "npm:@supabase/supabase-js@2.106.0";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 type Platform = "facebook" | "tiktok" | "google_ads" | "x";
 type Action = "organic_post" | "boost_ad";
@@ -10,17 +11,6 @@ const PLATFORM_TO_CONNECTION = {
   google_ads: "google",
   x: "x",
 } satisfies Record<Platform, string>;
-
-const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type";
-
-function corsHeaders(req: Request): Record<string, string> {
-  return {
-    "Access-Control-Allow-Origin": req.headers.get("origin") || "*",
-    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
-  };
-}
 
 const json = (data: unknown, status = 200, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(data), {
@@ -40,9 +30,8 @@ function cleanActions(input: unknown): Action[] {
   return Array.from(new Set(values.filter((value): value is Action => allowed.has(value))));
 }
 
-Deno.serve(async (req) => {
-  const headers = corsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers });
+Deno.serve(withSecurity("store-post-distribute", async (req, ctx) => {
+  const headers = ctx.corsHeaders;
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, headers);
 
   try {
@@ -186,4 +175,4 @@ Deno.serve(async (req) => {
     console.error("[store-post-distribute] error:", e);
     return json({ error: (e as Error).message }, 500, headers);
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

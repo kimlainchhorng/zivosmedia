@@ -1,9 +1,9 @@
 {
-  "generated": "2026-06-04T22:32:34.754Z",
+  "generated": "2026-06-05T03:40:00.660Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
-    "configuredFunctions": 76,
-    "localConfiguredFunctions": 76,
+    "configuredFunctions": 81,
+    "localConfiguredFunctions": 81,
     "liveFunctions": null,
     "knownMissingLiveFunctions": 6,
     "criticalFunctions": 6,

@@ -1,598 +1,469 @@
 /**
- * ZIVO FOR BUSINESS - B2B Landing Page
+ * ZIVO Software landing page
  * /business
- * 
- * Enterprise travel booking platform with team management,
- * centralized billing, and transparent partner pricing.
  */
 
-import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
-  Building2,
-  Users,
-  Plane,
-  Hotel,
-  Car,
-  FileText,
-  DollarSign,
-  TrendingUp,
-  Shield,
-  RefreshCw,
-  CheckCircle2,
   ArrowRight,
+  BadgeCheck,
   BarChart3,
-  Calendar,
-  Receipt,
-  Clock,
-  Globe,
-  Briefcase,
+  CalendarCheck,
+  Car,
+  CheckCircle2,
   ChevronRight,
-  ExternalLink,
+  ClipboardList,
+  CreditCard,
+  FileText,
+  Hotel,
+  LayoutDashboard,
+  LockKeyhole,
+  MessageCircle,
+  PackageCheck,
+  Plus,
+  Scissors,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  Utensils,
+  Wrench,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import NavBar from "@/components/home/NavBar";
-import Footer from "@/components/Footer";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  BUSINESS_FEATURES,
-  HIGH_VALUE_ROUTES,
-  B2B_REVENUE_ADVANTAGES,
-  CORPORATE_COMPLIANCE,
-  COMPANY_SIZE_OPTIONS,
-  INDUSTRY_OPTIONS,
-} from "@/config/b2bTravelConfig";
 
-const ICON_MAP: Record<string, React.ElementType> = {
-  Building2,
-  Users,
-  LayoutDashboard: BarChart3,
-  History: Clock,
-  PieChart: BarChart3,
-  DollarSign,
-  RefreshCw,
-  TrendingUp,
-  Shield,
+import { Button } from "@/components/ui/button";
+import { STORE_CATEGORY_OPTIONS } from "@/config/groceryStores";
+import bgCafe from "@/assets/bg-cafe.jpg";
+import bgOffice from "@/assets/bg-office.jpg";
+import hotelResort from "@/assets/hotel-resort.jpg";
+import serviceCars from "@/assets/service-cars.jpg";
+import serviceShopping from "@/assets/service-shopping.png";
+import serviceTire from "@/assets/service-tire.jpg";
+import zivoShopping from "@/assets/zivo-shopping.webp";
+
+const allowedGroups = [
+  "Hotels & Resorts",
+  "Food & Drink",
+  "Shopping & Markets",
+  "Auto",
+  "Transport",
+  "Beauty & Wellness",
+  "Services",
+];
+
+const groupImages: Record<string, string> = {
+  "Hotels & Resorts": hotelResort,
+  "Food & Drink": bgCafe,
+  "Shopping & Markets": zivoShopping,
+  Auto: serviceCars,
+  Transport: serviceShopping,
+  "Beauty & Wellness": bgOffice,
+  Services: serviceTire,
 };
 
+const groupIcons: Record<string, typeof Store> = {
+  "Hotels & Resorts": Hotel,
+  "Food & Drink": Utensils,
+  "Shopping & Markets": ShoppingBag,
+  Auto: Car,
+  Transport: Store,
+  "Beauty & Wellness": Scissors,
+  Services: Wrench,
+};
+
+const groupedCategories = allowedGroups
+  .map((group) => ({
+    group,
+    categories: STORE_CATEGORY_OPTIONS.filter((option) => option.group === group),
+  }))
+  .filter((entry) => entry.categories.length > 0);
+
+const workflow = [
+  {
+    title: "Setup",
+    copy: "Create the business profile, choose an industry, invite staff, and connect the workspace.",
+    icon: Plus,
+  },
+  {
+    title: "Operate",
+    copy: "Run bookings, work orders, inventory, payments, employees, customers, and messages.",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Grow",
+    copy: "Review revenue, promotions, reports, customer activity, and repeat-business tools.",
+    icon: BarChart3,
+  },
+];
+
+const dashboardTiles = [
+  { label: "Bookings", value: "42", icon: CalendarCheck, tone: "bg-emerald-400" },
+  { label: "Revenue", value: "$18.4k", icon: CreditCard, tone: "bg-zinc-950 text-white" },
+  { label: "Work orders", value: "17", icon: Wrench, tone: "bg-sky-400" },
+  { label: "Messages", value: "128", icon: MessageCircle, tone: "bg-pink-400" },
+];
+
+const featureCards = [
+  {
+    title: "Daily operations",
+    copy: "Bookings, orders, invoices, schedules, customer records, and staff activity in one workspace.",
+    icon: ClipboardList,
+  },
+  {
+    title: "Payments and receipts",
+    copy: "Track paid invoices, pending balances, deposits, refunds, and daily revenue reports.",
+    icon: CreditCard,
+  },
+  {
+    title: "Team access",
+    copy: "Invite employees, manage roles, and keep each workspace tied to the right business account.",
+    icon: BadgeCheck,
+  },
+  {
+    title: "Secure dashboard",
+    copy: "Signed-in dashboards, protected admin actions, hardened RPC access, and edge security headers.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Customer workflows",
+    copy: "Booking links, review requests, estimates, invoices, service messages, and loyalty tools.",
+    icon: MessageCircle,
+  },
+  {
+    title: "Desktop-ready software",
+    copy: "Business workspaces are designed for computer screens where owners do serious daily work.",
+    icon: PackageCheck,
+  },
+];
+
+function authPath(path: "/login" | "/signup") {
+  const redirect = path === "/login" ? "/business" : "/business/new";
+  return `${path}?redirect=${encodeURIComponent(redirect)}`;
+}
+
+function ZivoSoftwareLogo() {
+  return (
+    <Link to="/business" className="group inline-flex items-center gap-3" aria-label="ZIVO Software home">
+      <span className="relative flex h-12 w-12 items-center justify-center rounded-[14px] bg-zinc-950 shadow-[0_18px_38px_rgba(15,23,42,0.16)]">
+        <span className="absolute -right-1 -top-1 h-4 w-4 rounded-[5px] bg-emerald-400 shadow-[0_8px_18px_rgba(52,211,153,0.36)]" />
+        <span className="absolute bottom-2 left-2 h-3 w-3 rounded-full bg-sky-400" />
+        <span className="text-3xl font-black leading-none text-transparent bg-clip-text bg-ig-gradient">Z</span>
+      </span>
+      <span className="hidden sm:block leading-tight">
+        <span className="block text-[18px] font-black tracking-[0.22em] text-zinc-950">ZIVO</span>
+        <span className="block text-[12px] font-black tracking-[0.32em] text-emerald-600">SOFTWARE</span>
+      </span>
+    </Link>
+  );
+}
+
+function BusinessHeader() {
+  return (
+    <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/88 backdrop-blur-2xl">
+      <div className="mx-auto flex h-[78px] w-full max-w-[1400px] items-center gap-6 px-6">
+        <ZivoSoftwareLogo />
+        <nav aria-label="ZIVO Software sections" className="hidden flex-1 items-center justify-center gap-8 lg:flex">
+          {[
+            ["Software", "#software"],
+            ["Workflow", "#workflow"],
+            ["Industries", "#industries"],
+            ["Security", "#security"],
+          ].map(([label, href]) => (
+            <a key={label} href={href} className="text-[15px] font-bold text-zinc-700 transition-colors hover:text-zinc-950">
+              {label}
+            </a>
+          ))}
+        </nav>
+        <div className="ml-auto flex items-center gap-3">
+          <Button asChild variant="ghost" className="hidden h-11 rounded-full px-5 text-[15px] font-bold sm:inline-flex">
+            <Link to={authPath("/login")}>Log in</Link>
+          </Button>
+          <Button asChild className="h-11 rounded-full bg-zinc-950 px-5 text-[15px] font-bold text-white hover:bg-zinc-800">
+            <Link to={authPath("/signup")}>Sign up</Link>
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function DashboardGraphic() {
+  return (
+    <div className="relative mx-auto h-[520px] w-full max-w-[620px]" aria-hidden="true">
+      <div className="absolute left-10 top-8 h-[430px] w-[360px] rotate-[-8deg] rounded-[36px] border border-zinc-200 bg-white shadow-[0_34px_90px_rgba(15,23,42,0.16)]" />
+      <div className="absolute left-24 top-20 h-[430px] w-[360px] rotate-[9deg] overflow-hidden rounded-[36px] border border-zinc-200 bg-white shadow-[0_42px_110px_rgba(15,23,42,0.2)]">
+        <img src={serviceCars} alt="" className="h-36 w-full object-cover" loading="eager" />
+        <div className="space-y-4 p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-zinc-400">Workspace</p>
+              <p className="text-2xl font-black text-zinc-950">Auto Repair</p>
+            </div>
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">Live</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {dashboardTiles.map((tile) => {
+              const Icon = tile.icon;
+              return (
+                <div key={tile.label} className="rounded-[18px] border border-zinc-100 bg-zinc-50 p-3 shadow-sm">
+                  <div className={`mb-4 flex h-9 w-9 items-center justify-center rounded-[12px] ${tile.tone}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <p className="text-xl font-black text-zinc-950">{tile.value}</p>
+                  <p className="text-xs font-semibold text-zinc-500">{tile.label}</p>
+                </div>
+              );
+            })}
+          </div>
+          <div className="rounded-[20px] bg-zinc-950 p-4 text-white">
+            <div className="flex items-center justify-between text-xs font-bold text-white/60">
+              <span>Today</span>
+              <span>92%</span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/15">
+              <div className="h-full w-[92%] rounded-full bg-ig-gradient" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="absolute right-3 top-36 rotate-[7deg] rounded-[22px] border border-zinc-200 bg-white p-4 shadow-[0_22px_52px_rgba(15,23,42,0.16)]">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-emerald-400">
+            <CheckCircle2 className="h-5 w-5 text-zinc-950" />
+          </span>
+          <div>
+            <p className="font-black text-zinc-950">Secure sign-in</p>
+            <p className="text-sm font-semibold text-zinc-500">team access ready</p>
+          </div>
+        </div>
+      </div>
+      <div className="absolute bottom-20 left-0 rotate-[-10deg] rounded-[22px] border border-zinc-200 bg-white p-4 shadow-[0_22px_52px_rgba(15,23,42,0.16)]">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-sky-400">
+            <FileText className="h-5 w-5 text-zinc-950" />
+          </span>
+          <div>
+            <p className="font-black text-zinc-950">Invoices</p>
+            <p className="text-sm font-semibold text-zinc-500">paid and unpaid</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BusinessLandingPage() {
-  const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    companyName: "",
-    contactName: "",
-    email: "",
-    phone: "",
-    companySize: "",
-    industry: "",
-    message: "",
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const message = `Contact: ${formData.contactName}\nPhone: ${formData.phone}\nSize: ${formData.companySize}\nIndustry: ${formData.industry}\nMessage: ${formData.message}`;
-      const { error } = await supabase.functions.invoke("marketing-interest-submit", { body: {
-        category: "business_inquiry",
-        subject: `Business Inquiry - ${formData.companyName}`,
-        email: formData.email,
-        company: formData.companyName,
-        message,
-        context: "business_landing",
-        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-      } });
-      if (error) throw error;
-      toast.success("Thank you! Our business team will contact you within 24 hours.");
-      setFormData({ companyName: "", contactName: "", email: "", phone: "", companySize: "", industry: "", message: "" });
-    } catch {
-      toast.error("Failed to submit. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <>
       <Helmet>
-        <title>ZIVO for Business | Corporate Travel Management</title>
+        <title>ZIVO Software | Business Workspaces</title>
         <meta
           name="description"
-          content="Manage flights, hotels, and car rentals for your team with transparent pricing and trusted partners. Request a business account today."
+          content="Launch a ZIVO Software workspace for hotels, food, retail, auto, transport, wellness, and local service businesses."
         />
       </Helmet>
 
-      <NavBar />
+      <div className="min-h-screen bg-[#fbfbfc] text-zinc-950">
+        <BusinessHeader />
 
-      <main className="min-h-screen bg-background pt-16">
-        {/* Hero Section */}
-        <section className="relative py-20 lg:py-28 overflow-hidden">
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-emerald-500/5" />
-          <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-gradient-to-bl from-primary/10 to-transparent rounded-full blur-3xl" />
+        <main>
+          <section className="relative overflow-hidden border-b border-zinc-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_60%,#ffffff_100%)]">
+            <div className="mx-auto grid min-h-[720px] max-w-[1400px] items-center gap-10 px-6 pb-14 pt-12 lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="max-w-2xl">
+                <div className="mb-8 flex gap-4 overflow-hidden">
+                  {groupedCategories.map((entry) => {
+                    const Icon = groupIcons[entry.group] || Store;
+                    return (
+                      <a key={entry.group} href="#industries" className="group text-center">
+                        <span className="ring-ig-gradient inline-flex h-[74px] w-[74px] items-center justify-center rounded-full p-[3px]">
+                          <span className="flex h-full w-full items-center justify-center rounded-full bg-white">
+                            <Icon className="h-7 w-7 text-zinc-950" />
+                          </span>
+                        </span>
+                        <span className="mt-2 block max-w-[86px] truncate text-xs font-bold text-zinc-600 group-hover:text-zinc-950">
+                          {entry.group}
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
 
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
-                  <Briefcase className="w-3 h-3 mr-1" />
-                  Enterprise Travel
-                </Badge>
-
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-6 leading-tight">
-                  ZIVO for{" "}
-                  <span className="text-primary">Business Travel</span>
-                </h1>
-
-                <p className="text-lg text-muted-foreground mb-8 max-w-xl">
-                  Manage flights, hotels, and car rentals for your team with transparent 
-                  pricing and trusted partners. Simplify corporate travel booking.
+                <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black shadow-sm">
+                  <Sparkles className="h-4 w-4 text-pink-500" />
+                  Desktop-first software for local operators
                 </p>
-
-                <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={() => document.getElementById("request-form")?.scrollIntoView({ behavior: "smooth" })}
-                  >
-                    Request Business Account
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="lg" className="gap-2" asChild>
-                    <Link to="/business/dashboard">
-                      View Demo Dashboard
-                      <ExternalLink className="w-4 h-4" />
+                <h1 className="max-w-[850px] text-[58px] font-black leading-[0.96] tracking-normal text-zinc-950 md:text-[72px]">
+                  ZIVO Software for every local business workflow
+                </h1>
+                <p className="mt-7 max-w-2xl text-xl font-medium leading-9 text-zinc-600">
+                  Build a business workspace with setup, dashboard, bookings, work orders, payments,
+                  customers, employees, reports, and secure account access from one clean website.
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Button asChild size="lg" className="h-14 rounded-full bg-zinc-950 px-7 text-base font-black text-white hover:bg-zinc-800">
+                    <Link to="/business/new">
+                      Create Business Software
+                      <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
+                  <Button asChild size="lg" variant="outline" className="h-14 rounded-full border-zinc-300 bg-white px-7 text-base font-black">
+                    <a href="#industries">Explore industries</a>
+                  </Button>
                 </div>
-
-                {/* Trust badges */}
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-emerald-500" />
-                    Trusted Partners
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    No Hidden Fees
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-emerald-500" />
-                    24/7 Support
-                  </div>
+                <div className="mt-10 grid max-w-[600px] grid-cols-3 gap-4">
+                  {[
+                    ["7", "Industry groups"],
+                    ["30+", "Business types"],
+                    ["1", "Software domain"],
+                  ].map(([value, label]) => (
+                    <div key={label} className="rounded-[22px] border border-zinc-200 bg-white p-5 shadow-sm">
+                      <p className="text-3xl font-black">{value}</p>
+                      <p className="mt-2 text-xs font-black uppercase tracking-[0.2em] text-zinc-500">{label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
+              <DashboardGraphic />
+            </div>
+          </section>
 
-              {/* Visual element */}
-              <div className="hidden lg:block">
-                <div className="relative">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                      <Card className="border-primary/20 shadow-lg">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                              <Plane className="w-5 h-5 text-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-semibold">Flight Booking</p>
-                              <p className="text-xs text-muted-foreground">300+ airlines</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card className="border-amber-500/20 shadow-lg ml-8">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                              <Hotel className="w-5 h-5 text-amber-500" />
-                            </div>
-                            <div>
-                              <p className="font-semibold">Hotels</p>
-                              <p className="text-xs text-muted-foreground">Corporate rates</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    <div className="space-y-4 mt-8">
-                      <Card className="border-border shadow-lg">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                              <Car className="w-5 h-5 text-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-semibold">Car Rentals</p>
-                              <p className="text-xs text-muted-foreground">All major providers</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card className="border-emerald-500/20 shadow-lg ml-4">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                              <BarChart3 className="w-5 h-5 text-emerald-500" />
-                            </div>
-                            <div>
-                              <p className="font-semibold">Analytics</p>
-                              <p className="text-xs text-muted-foreground">Track spending</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
+          <section id="software" className="py-20">
+            <div className="mx-auto max-w-[1280px] px-6">
+              <div className="mb-10 flex items-end justify-between gap-8">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-600">Software</p>
+                  <h2 className="mt-3 text-4xl font-black tracking-normal">Everything owners expect on a computer screen</h2>
+                </div>
+                <Button asChild variant="outline" className="hidden rounded-full border-zinc-300 bg-white font-black lg:inline-flex">
+                  <Link to="/login?redirect=%2Fbusiness">Open Dashboard</Link>
+                </Button>
+              </div>
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {featureCards.map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <article key={feature.title} className="rounded-[26px] border border-zinc-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-1">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-zinc-950 text-white">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <h3 className="mt-5 text-xl font-black">{feature.title}</h3>
+                      <p className="mt-3 text-sm font-medium leading-6 text-zinc-600">{feature.copy}</p>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          <section id="workflow" className="border-y border-zinc-200 bg-white py-20">
+            <div className="mx-auto max-w-[1280px] px-6">
+              <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-[0.24em] text-pink-600">Workflow</p>
+                  <h2 className="mt-3 text-4xl font-black tracking-normal">Setup, operate, and grow without leaving the workspace</h2>
+                  <p className="mt-5 text-lg font-medium leading-8 text-zinc-600">
+                    The website path guides owners from sign up to setup, then sends them into the dashboard that matches their business type.
+                  </p>
+                </div>
+                <div className="grid gap-5 md:grid-cols-3">
+                  {workflow.map((step, index) => {
+                    const Icon = step.icon;
+                    return (
+                      <article key={step.title} className="rounded-[26px] border border-zinc-200 bg-[#fbfbfc] p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-ig-gradient text-white">
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <span className="text-4xl font-black text-zinc-200">0{index + 1}</span>
+                        </div>
+                        <h3 className="mt-6 text-xl font-black">{step.title}</h3>
+                        <p className="mt-3 text-sm font-medium leading-6 text-zinc-600">{step.copy}</p>
+                      </article>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Business Account Features */}
-        <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <Badge variant="outline" className="mb-4">Features</Badge>
-              <h2 className="text-3xl font-bold mb-4">
-                Everything Your Business Needs
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Powerful tools to manage your corporate travel program efficiently
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {BUSINESS_FEATURES.map((feature) => {
-                const Icon = ICON_MAP[feature.icon] || Building2;
-                return (
-                  <Card key={feature.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                        <Icon className="w-6 h-6 text-primary" />
+          <section id="industries" className="py-20">
+            <div className="mx-auto max-w-[1280px] px-6">
+              <div className="mb-10">
+                <p className="text-sm font-black uppercase tracking-[0.24em] text-sky-600">Industries</p>
+                <h2 className="mt-3 text-4xl font-black tracking-normal">Only the business software categories you asked for</h2>
+              </div>
+              <div className="grid gap-5 lg:grid-cols-7">
+                {groupedCategories.map((entry) => {
+                  const Icon = groupIcons[entry.group] || Store;
+                  return (
+                    <article key={entry.group} className="overflow-hidden rounded-[26px] border border-zinc-200 bg-white shadow-sm lg:col-span-1">
+                      <div className="relative h-28">
+                        <img src={groupImages[entry.group]} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/65 to-transparent" />
+                        <Icon className="absolute bottom-3 left-3 h-6 w-6 text-white" />
                       </div>
-                      <h3 className="font-semibold text-lg mb-2">{feature.name}</h3>
-                      <p className="text-sm text-muted-foreground">{feature.description}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-              {/* Invoice feature */}
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
-                    <Receipt className="w-6 h-6 text-amber-500" />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">Invoices & Receipts</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Downloadable invoices and receipts for easy expense reporting
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2 italic">
-                    {CORPORATE_COMPLIANCE.invoiceDisclaimer}
-                  </p>
-                </CardContent>
-              </Card>
+                      <div className="p-4">
+                        <h3 className="text-sm font-black">{entry.group}</h3>
+                        <div className="mt-3 space-y-2">
+                          {entry.categories.map((category) => (
+                            <Link
+                              key={category.value}
+                              to={`/business/new?category=${encodeURIComponent(category.value)}`}
+                              className="flex items-center justify-between rounded-full border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-600 transition-colors hover:border-zinc-950 hover:text-zinc-950"
+                            >
+                              <span className="truncate">{category.label}</span>
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Team Travel Management */}
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <section id="security" className="border-t border-zinc-200 bg-zinc-950 py-20 text-white">
+            <div className="mx-auto grid max-w-[1280px] gap-10 px-6 lg:grid-cols-[1fr_0.8fr]">
               <div>
-                <Badge variant="outline" className="mb-4">Team Management</Badge>
-                <h2 className="text-3xl font-bold mb-6">
-                  Manage Your Team's Travel
-                </h2>
-                
-                <div className="space-y-4">
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Users className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-1">Admin Adds Team Members</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Easily add travelers with their profiles, preferences, and travel documents
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <Plane className="w-5 h-5 text-emerald-500" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-1">Travelers Book Using Company Account</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Team members book travel with company payment and policy compliance
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                      <FileText className="w-5 h-5 text-foreground" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-1">Admin Views Trips and Invoices</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Complete visibility into all company travel and financial documents
-                      </p>
-                    </div>
-                  </div>
+                <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-300">Security</p>
+                <h2 className="mt-3 text-4xl font-black tracking-normal">Login, setup, dashboard, and backend protected together</h2>
+                <p className="mt-5 max-w-3xl text-lg font-medium leading-8 text-white/65">
+                  ZIVO Software uses signed-in dashboards, protected business setup, edge security headers,
+                  rate limits, and restricted backend RPC access for business operations.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  {["Cloudflare edge guard", "Supabase RLS", "Signed-in dashboards", "Service-role backend"].map((item) => (
+                    <span key={item} className="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-bold text-white/80">
+                      {item}
+                    </span>
+                  ))}
                 </div>
               </div>
-
-              {/* Dashboard preview */}
-              <div className="relative">
-                <Card className="shadow-2xl border-primary/10">
-                  <CardHeader className="bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-5 h-5 text-primary" />
-                        <span className="font-semibold">Acme Corp Dashboard</span>
-                      </div>
-                      <Badge>Business</Badge>
+              <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-emerald-400 text-zinc-950">
+                    <LockKeyhole className="h-6 w-6" />
+                  </span>
+                  <div>
+                    <p className="text-2xl font-black">Workspace access</p>
+                    <p className="text-sm font-semibold text-white/55">login and sign up on the top bar</p>
+                  </div>
+                </div>
+                <div className="mt-6 space-y-3">
+                  {["Owner signs in", "Setup opens", "Dashboard routes by business type", "Backend checks role and store access"].map((item) => (
+                    <div key={item} className="flex items-center gap-3 rounded-[18px] bg-white/[0.07] px-4 py-3">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+                      <span className="font-bold text-white/82">{item}</span>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-2xl font-bold">24</p>
-                        <p className="text-sm text-muted-foreground">Team Members</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-2xl font-bold">156</p>
-                        <p className="text-sm text-muted-foreground">Bookings</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-2xl font-bold">$45K</p>
-                        <p className="text-sm text-muted-foreground">This Month</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-2xl font-bold text-emerald-500">18%</p>
-                        <p className="text-sm text-muted-foreground">Savings</p>
-                      </div>
-                    </div>
-                    <Button className="w-full" asChild>
-                      <Link to="/business/dashboard">
-                        View Full Dashboard
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Popular Business Routes */}
-        <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <Badge variant="outline" className="mb-4">Popular Routes</Badge>
-              <h2 className="text-3xl font-bold mb-4">
-                Top Business Travel Routes
-              </h2>
-              <p className="text-muted-foreground">
-                Frequently booked routes by our corporate clients
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
-              {HIGH_VALUE_ROUTES.slice(0, 10).map((route) => (
-                <Link
-                  key={`${route.origin}-${route.destination}`}
-                  to={`/flights?origin=${route.origin}&destination=${route.destination}`}
-                  className="group"
-                >
-                  <Card className="hover:border-primary/50 hover:shadow-md transition-all group-hover:bg-primary/5">
-                    <CardContent className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <span className="font-bold text-lg">{route.origin}</span>
-                        <Plane className="w-4 h-4 text-primary transform group-hover:translate-x-1 transition-transform" />
-                        <span className="font-bold text-lg">{route.destination}</span>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {route.category === "domestic" ? "Domestic" : "International"}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* B2B Revenue Advantages */}
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <Badge variant="outline" className="mb-4">Why Business Travel</Badge>
-              <h2 className="text-3xl font-bold mb-4">
-                The Business Advantage
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Corporate accounts provide consistent, high-value bookings
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-              {B2B_REVENUE_ADVANTAGES.map((advantage) => {
-                const Icon = ICON_MAP[advantage.icon] || TrendingUp;
-                return (
-                  <Card key={advantage.title} className="text-center">
-                    <CardContent className="p-6">
-                      <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                        <Icon className="w-7 h-7 text-primary" />
-                      </div>
-                      <p className="text-3xl font-bold text-primary mb-1">{advantage.stat}</p>
-                      <p className="text-sm text-muted-foreground mb-3">{advantage.statLabel}</p>
-                      <h3 className="font-semibold mb-2">{advantage.title}</h3>
-                      <p className="text-sm text-muted-foreground">{advantage.description}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Request Business Account Form */}
-        <section id="request-form" className="py-20 bg-gradient-to-b from-background to-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="max-w-2xl mx-auto">
-              <div className="text-center mb-10">
-                <Badge className="mb-4 bg-primary/10 text-primary">Get Started</Badge>
-                <h2 className="text-3xl font-bold mb-4">
-                  Request a Business Account
-                </h2>
-                <p className="text-muted-foreground">
-                  Fill out the form below and our team will reach out within 24 hours
-                </p>
-              </div>
-
-              <Card className="shadow-xl">
-                <CardContent className="p-8">
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="companyName">Company Name *</Label>
-                        <Input
-                          id="companyName"
-                          value={formData.companyName}
-                          onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                          placeholder="Acme Inc."
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="contactName">Contact Name *</Label>
-                        <Input
-                          id="contactName"
-                          value={formData.contactName}
-                          onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                          placeholder="John Smith"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="email">Work Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          placeholder="john@acme.com"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          placeholder="+1 (555) 000-0000"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="companySize">Company Size *</Label>
-                        <Select
-                          value={formData.companySize}
-                          onValueChange={(v) => setFormData({ ...formData, companySize: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select size" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {COMPANY_SIZE_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="industry">Industry</Label>
-                        <Select
-                          value={formData.industry}
-                          onValueChange={(v) => setFormData({ ...formData, industry: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select industry" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {INDUSTRY_OPTIONS.map((opt) => (
-                              <SelectItem key={opt} value={opt}>
-                                {opt}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="message">Tell us about your travel needs</Label>
-                      <Textarea
-                        id="message"
-                        value={formData.message}
-                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                        placeholder="Monthly travel volume, current challenges, special requirements..."
-                        rows={4}
-                      />
-                    </div>
-
-                    <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? "Submitting..." : "Request Business Account"}
-                    </Button>
-
-                    <p className="text-xs text-center text-muted-foreground">
-                      By submitting, you agree to our{" "}
-                      <Link to="/legal/terms" className="underline">Terms</Link> and{" "}
-                      <Link to="/legal/privacy" className="underline">Privacy Policy</Link>.
-                    </p>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Compliance Disclaimer */}
-        <section className="py-8 border-t border-border/50 bg-muted/20">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground text-center">
-              <ExternalLink className="w-4 h-4 shrink-0" />
-              <p>{CORPORATE_COMPLIANCE.mainDisclaimer}</p>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <Footer />
+          </section>
+        </main>
+      </div>
     </>
   );
 }

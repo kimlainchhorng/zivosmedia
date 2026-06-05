@@ -1,34 +1,36 @@
 # API Readiness Report
 
-Generated: 2026-06-04T22:32:34.423Z
+Generated: 2026-06-05T03:40:00.515Z
 
 ## Summary
 
-- Critical findings: 1
-- Warnings: 4
+- Critical findings: 0
+- Warnings: 6
 - Edge Functions inventoried: 401
 - High-risk Edge Functions: 136
-- Functions using withSecurity(): 400
-- Functions using strictCorsHeaders(): 400
-- Method-gated Edge Functions: 400
+- Functions using withSecurity(): 401
+- Functions using strictCorsHeaders(): 401
+- Method-gated Edge Functions: 401
 - Functions using service role: 344
-- Loose Edge Function security backlog: 1
+- Loose Edge Function security backlog: 0
 - Method gate backlog: 0
 - Required public env documented: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
 - Recommended backend env documented: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 - API operations runbook: present (0 missing topics)
-- Supabase migration drift: reportLocal=1080, currentLocal=1080, remote=0, matched=0, duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, remoteError=yes
-- Supabase migration near-match diagnostics: near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1080, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0
+- Supabase migration drift: reportLocal=1092, currentLocal=1092, remote=0, matched=0, duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, remoteError=yes
+- Supabase migration near-match diagnostics: near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1092, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0
 - Pending local migration risk gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Critical
 
-- [edge-function-security-backlog] Every Edge Function must use withSecurity(), strict CORS, and avoid literal wildcard origins.
+- No critical API readiness issues found.
 
 ## Warnings
 
 - [hardcoded-supabase-browser-config] Browser Supabase URL/key are hardcoded. Prefer Vite env values so staging and production can use separate projects. (src/integrations/supabase/client.ts)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/integrations/supabase/client.ts:9)
+- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/config/autoRepairDomain.ts:10)
+- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/integrations/supabase/client.ts:22)
+- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/pages/OAuthForwarder.tsx:4)
 - [duplicate-migration-versions] Local Supabase migrations contain 6 new duplicate version(s). (docs/supabase-migration-drift-report.md)
 - [migration-history-unavailable] Linked Supabase migration history could not be read. Run supabase login or configure authenticated MCP before production schema work. (docs/supabase-migration-drift-report.md)
 
@@ -42,7 +44,7 @@ Generated: 2026-06-04T22:32:34.423Z
 
 ## Loose Edge Function Security Backlog
 
-- supabase/functions/store-post-distribute/index.ts
+- None
 
 ## Next Hardening Moves
 
