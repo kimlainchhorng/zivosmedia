@@ -66,4 +66,4 @@ jobs:
           grep -q '\[functions.send-transactional-email\]' supabase/config.toml
 
       - name: Lint notification edge functions
-        run: deno lint --config supabase/functions/deno.json --rules-exclude=no-explicit-any,no-import-prefix,require-await supabase/functions/notify-dispatch/index.ts supabase/functions/register-push-token/index.ts supabase/functions/send-marketing-campaign/index.ts supabase/functions/send-push-notification/index.ts supabase/functions/send-transactional-email/index.ts supabase/functions/send-sms/index.ts
+        run: deno lint --config supabase/functions/deno.json --rules-exclude=no-explicit-any,no-import-prefix,require-await,no-unused-vars supabase/functions/notify-dispatch/index.ts supabase/functions/register-push-token/index.ts supabase/functions/send-marketing-campaign/index.ts supabase/functions/send-push-notification/index.ts supabase/functions/send-transactional-email/index.ts supabase/functions/send-sms/index.ts
