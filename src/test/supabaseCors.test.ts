@@ -9,6 +9,9 @@ describe("Supabase strict CORS origin allowlist", () => {
     expect(isOriginAllowed("https://myzivo.com")).toBe(true);
     expect(isOriginAllowed("https://www.myzivo.com")).toBe(true);
     expect(isOriginAllowed("https://app.myzivo.com")).toBe(true);
+    expect(isOriginAllowed("https://zivosoftware.com")).toBe(true);
+    expect(isOriginAllowed("https://www.zivosoftware.com")).toBe(true);
+    expect(isOriginAllowed("https://app.zivosoftware.com")).toBe(true);
   });
 
   it("rejects unknown public origins and non-http protocols", () => {
@@ -20,12 +23,12 @@ describe("Supabase strict CORS origin allowlist", () => {
   it("builds strict CORS headers only for allowed origins", () => {
     const allowed = strictCorsHeaders(
       new Request("https://example.test", {
-        headers: { origin: "http://192.168.1.72:8083" },
+        headers: { origin: "https://zivosoftware.com" },
       }),
     );
     expect(allowed).toEqual(
       expect.objectContaining({
-        "Access-Control-Allow-Origin": "http://192.168.1.72:8083",
+        "Access-Control-Allow-Origin": "https://zivosoftware.com",
         "Access-Control-Allow-Credentials": "true",
         "Vary": "Origin",
       }),

@@ -13,6 +13,7 @@ import { Lock, Loader2, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import SEOHead from "@/components/SEOHead";
+import { getSafeRedirectTarget } from "@/lib/authRedirect";
 
 const resetPasswordSchema = z.object({
   password: z
@@ -28,7 +29,7 @@ type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

@@ -1,11 +1,11 @@
 /**
  * BusBookingPage - Intercity bus booking flow
  * A self-contained multi-step wizard: search a route, pick a trip,
- * choose seats, review, and confirm. Uses sample trip data (no live
- * operator backend yet) so the full booking experience is navigable.
+ * choose seats, review, and confirm. Real operator trips come from Supabase;
+ * sample trips remain as a fallback when no operator has published that route.
  * @module BusBookingPage
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -62,6 +62,22 @@ interface BusTrip {
   real: boolean;
 }
 
+type StoreProfileLite = {
+  id: string;
+  name: string | null;
+  logo_url: string | null;
+};
+
+type PopularBusRoute = {
+  origin: string;
+  destination: string;
+  tripCount: number;
+  nextDepartDate: string | null;
+  minPriceCents: number | null;
+  currency: string | null;
+  real: boolean;
+};
+
 const AMENITY_KEYS: BusVehicleAmenity[] = BUS_AMENITIES.map((a) => a.value);
 const normalizeAmenities = (raw: unknown): BusVehicleAmenity[] => {
   if (!Array.isArray(raw)) return [];
@@ -73,6 +89,12 @@ const normalizeAmenities = (raw: unknown): BusVehicleAmenity[] => {
 const POPULAR_CITIES = [
   "Phnom Penh", "Siem Reap", "Sihanoukville", "Battambang",
   "Kampot", "Kep", "Bangkok", "Ho Chi Minh City",
+];
+
+const FALLBACK_POPULAR_ROUTES: PopularBusRoute[] = [
+  { origin: "Phnom Penh", destination: "Siem Reap", tripCount: 0, nextDepartDate: null, minPriceCents: null, currency: "usd", real: false },
+  { origin: "Phnom Penh", destination: "Sihanoukville", tripCount: 0, nextDepartDate: null, minPriceCents: null, currency: "usd", real: false },
+  { origin: "Siem Reap", destination: "Battambang", tripCount: 0, nextDepartDate: null, minPriceCents: null, currency: "usd", real: false },
 ];
 
 const AMENITY_META: Record<BusVehicleAmenity, { icon: typeof Wifi; label: string }> = {
@@ -215,6 +237,33 @@ type RpcTripRow = {
   bus_type: string | null; total_seats: number | null; seats_left: number | null;
   amenities: unknown; rating: number | null; review_count: number | null;
 };
+
+type RpcPopularRouteRow = {
+  origin: string | null;
+  destination: string | null;
+  trip_count: number | null;
+  next_depart_date: string | null;
+  min_price_cents: number | null;
+  currency: string | null;
+};
+
+const mapPopularRoute = (r: RpcPopularRouteRow): PopularBusRoute | null => {
+  if (!r.origin || !r.destination) return null;
+  return {
+    origin: r.origin,
+    destination: r.destination,
+    tripCount: r.trip_count ?? 0,
+    nextDepartDate: r.next_depart_date,
+    minPriceCents: r.min_price_cents,
+    currency: r.currency || "usd",
+    real: true,
+  };
+};
+
+const formatRoutePrice = (route: PopularBusRoute) => {
+  if (route.minPriceCents == null) return null;
+  return `from $${Math.round((route.minPriceCents / 100) * 100) / 100}`;
+};
 const mapRpcTrip = (r: RpcTripRow): BusTrip => ({
   id: r.trip_id,
   storeId: r.store_id,
@@ -241,7 +290,7 @@ const enrichTripsWithStoreLogos = async (rows: BusTrip[]): Promise<BusTrip[]> =>
       .from("store_profiles")
       .select("id, name, logo_url")
       .in("id", missingStoreIds);
-    const stores = new Map((data || []).map((store: { id: string; name: string | null; logo_url: string | null }) => [store.id, store]));
+    const stores = new Map<string, StoreProfileLite>((data || []).map((store: StoreProfileLite) => [store.id, store]));
     return rows.map((trip) => {
       const store = stores.get(trip.storeId);
       if (!store) return trip;
@@ -321,6 +370,8 @@ export default function BusBookingPage() {
   const [passengers, setPassengers] = useState(1);
 
   const [trips, setTrips] = useState<BusTrip[]>([]);
+  const [popularRoutes, setPopularRoutes] = useState<PopularBusRoute[]>(FALLBACK_POPULAR_ROUTES);
+  const [popularRoutesLoading, setPopularRoutesLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<BusTrip | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
@@ -347,6 +398,25 @@ export default function BusBookingPage() {
   const [promo, setPromo] = useState<{ code: string; discountUsd: number } | null>(null);
   const [promoError, setPromoError] = useState("");
   const [checkingPromo, setCheckingPromo] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const loadPopularRoutes = async () => {
+      setPopularRoutesLoading(true);
+      try {
+        const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: RpcPopularRouteRow[] | null; error: unknown }> })
+          .rpc("get_popular_bus_routes", { p_limit: 6 });
+        const mapped = error ? [] : (data || []).map(mapPopularRoute).filter((r): r is PopularBusRoute => Boolean(r));
+        if (alive && mapped.length > 0) setPopularRoutes(mapped);
+      } catch {
+        if (alive) setPopularRoutes(FALLBACK_POPULAR_ROUTES);
+      } finally {
+        if (alive) setPopularRoutesLoading(false);
+      }
+    };
+    void loadPopularRoutes();
+    return () => { alive = false; };
+  }, []);
 
   const seatRows = Math.ceil((selectedTrip?.totalSeats ?? SEAT_ROWS * SEATS_PER_ROW) / SEATS_PER_ROW);
   const subtotalUsd = selectedTrip ? selectedTrip.priceUsd * selectedSeats.length : 0;
@@ -590,7 +660,7 @@ export default function BusBookingPage() {
         noIndex
       />
       <AppLayout title={stepTitle[step]} showBack onBack={handleBack}>
-        <div className="mx-auto w-full max-w-2xl px-4 py-4">
+        <div className="mx-auto w-full max-w-6xl px-3 py-2 sm:px-4 sm:py-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -601,7 +671,7 @@ export default function BusBookingPage() {
             >
               {/* ── Step indicator ── */}
               {step !== "confirmed" && (
-                <div className="mb-4 flex items-center gap-1.5">
+                <div className="mb-2 flex items-center gap-1.5 sm:mb-4">
                   {(["search", "results", "seats", "summary"] as Step[]).map((s, i) => {
                     const order: Step[] = ["search", "results", "seats", "summary"];
                     const activeIdx = order.indexOf(step);
@@ -622,147 +692,201 @@ export default function BusBookingPage() {
 
               {/* ── SEARCH ── */}
               {step === "search" && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-                      <Bus className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h1 className="text-lg font-black leading-tight text-foreground">{t("bus.headline")}</h1>
-                      <p className="text-xs text-muted-foreground">{t("bus.subhead")}</p>
-                    </div>
-                  </div>
-
-                  {/* From / To */}
-                  <div className="relative rounded-2xl border border-border bg-card p-2">
-                    <label className="flex items-center gap-3 rounded-xl px-3 py-3">
-                      <MapPin className="h-4 w-4 shrink-0 text-emerald-500" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.from")}</span>
-                        <input
-                          list="bus-cities"
-                          value={from}
-                          onChange={(e) => setFrom(e.target.value)}
-                          placeholder={t("bus.from_placeholder")}
-                          className="w-full bg-transparent text-sm font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-4">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 sm:rounded-2xl sm:p-4">
+                      <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-muted shadow-sm sm:h-14 sm:w-16 sm:rounded-2xl">
+                        <img
+                          src="/bus/bus-booking-thumb.jpg"
+                          alt=""
+                          className="h-full w-full object-cover"
+                          loading="eager"
+                          decoding="async"
                         />
-                      </span>
-                    </label>
-                    <div className="mx-3 h-px bg-border" />
-                    <label className="flex items-center gap-3 rounded-xl px-3 py-3">
-                      <MapPin className="h-4 w-4 shrink-0 text-rose-500" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.to")}</span>
-                        <input
-                          list="bus-cities"
-                          value={to}
-                          onChange={(e) => setTo(e.target.value)}
-                          placeholder={t("bus.to_placeholder")}
-                          className="w-full bg-transparent text-sm font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
-                        />
-                      </span>
-                    </label>
-                    <datalist id="bus-cities">
-                      {POPULAR_CITIES.map((c) => <option key={c} value={c} />)}
-                    </datalist>
-                    <button
-                      type="button"
-                      onClick={swapCities}
-                      aria-label={t("bus.swap")}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background shadow-sm active:scale-90 transition-transform"
-                    >
-                      <ArrowLeftRight className="h-4 w-4 text-foreground" />
-                    </button>
-                  </div>
-
-                  {/* Date + passengers */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="flex items-center gap-3 rounded-2xl border border-border bg-card px-3 py-3">
-                      <Calendar className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.date")}</span>
-                        <input
-                          type="date"
-                          value={date}
-                          min={todayISO()}
-                          onChange={(e) => setDate(e.target.value)}
-                          className="w-full bg-transparent text-sm font-semibold text-foreground outline-none"
-                        />
-                      </span>
-                    </label>
-                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-3 py-3">
-                      <Users className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.passengers")}</span>
-                        <div className="flex items-center justify-between">
-                          <button
-                            type="button"
-                            aria-label="Fewer passengers"
-                            onClick={() => setPassengers((p) => Math.max(1, p - 1))}
-                            className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-base font-bold text-foreground active:scale-90 transition-transform"
-                          >
-                            −
-                          </button>
-                          <span className="text-sm font-bold text-foreground">{passengers}</span>
-                          <button
-                            type="button"
-                            aria-label="More passengers"
-                            onClick={() => setPassengers((p) => Math.min(6, p + 1))}
-                            className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-base font-bold text-foreground active:scale-90 transition-transform"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </span>
+                        <span className="absolute inset-0 bg-gradient-to-tr from-black/35 via-transparent to-white/10" aria-hidden />
+                      </div>
+                      <div>
+                        <h1 className="text-base font-black leading-tight text-foreground sm:text-lg">{t("bus.headline")}</h1>
+                        <p className="text-[11px] text-muted-foreground sm:text-xs">{t("bus.subhead")}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Quick routes */}
-                  <div>
-                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.popular_routes")}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {[["Phnom Penh", "Siem Reap"], ["Phnom Penh", "Sihanoukville"], ["Siem Reap", "Battambang"]].map(([f, t]) => (
-                        <button
-                          key={`${f}-${t}`}
-                          type="button"
-                          onClick={() => { setFrom(f); setTo(t); }}
-                          className="rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground active:scale-95 transition-transform"
-                        >
-                          {f} → {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button onClick={runSearch} disabled={searching} className="h-12 w-full rounded-2xl text-base font-black">
-                    {searching ? `${t("bus.search")}…` : t("bus.search")}
-                  </Button>
-
-                  <div className="flex items-center justify-center gap-4">
-                    {user && (
+                    {/* From / To */}
+                    <div className="relative rounded-xl border border-border bg-card p-1.5 sm:rounded-2xl sm:p-2">
+                      <label className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 sm:gap-3 sm:rounded-xl sm:px-3 sm:py-3">
+                        <MapPin className="h-4 w-4 shrink-0 text-emerald-500" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.from")}</span>
+                          <input
+                            list="bus-cities"
+                            value={from}
+                            onChange={(e) => setFrom(e.target.value)}
+                            placeholder={t("bus.from_placeholder")}
+                            className="w-full bg-transparent text-[13px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground sm:text-sm"
+                          />
+                        </span>
+                      </label>
+                      <div className="mx-2.5 h-px bg-border sm:mx-3" />
+                      <label className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 sm:gap-3 sm:rounded-xl sm:px-3 sm:py-3">
+                        <MapPin className="h-4 w-4 shrink-0 text-rose-500" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.to")}</span>
+                          <input
+                            list="bus-cities"
+                            value={to}
+                            onChange={(e) => setTo(e.target.value)}
+                            placeholder={t("bus.to_placeholder")}
+                            className="w-full bg-transparent text-[13px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground sm:text-sm"
+                          />
+                        </span>
+                      </label>
+                      <datalist id="bus-cities">
+                        {POPULAR_CITIES.map((c) => <option key={c} value={c} />)}
+                      </datalist>
                       <button
                         type="button"
-                        onClick={() => navigate("/bus/tickets")}
+                        onClick={swapCities}
+                        aria-label={t("bus.swap")}
+                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-transform active:scale-90 sm:right-4 sm:h-9 sm:w-9"
+                      >
+                        <ArrowLeftRight className="h-3.5 w-3.5 text-foreground sm:h-4 sm:w-4" />
+                      </button>
+                    </div>
+
+                    {/* Date + passengers */}
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <label className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 sm:gap-3 sm:rounded-2xl sm:px-3 sm:py-3">
+                        <Calendar className="h-4 w-4 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.date")}</span>
+                          <input
+                            type="date"
+                            value={date}
+                            min={todayISO()}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="w-full bg-transparent text-[13px] font-semibold text-foreground outline-none sm:text-sm"
+                          />
+                        </span>
+                      </label>
+                      <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 sm:gap-3 sm:rounded-2xl sm:px-3 sm:py-3">
+                        <Users className="h-4 w-4 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("bus.passengers")}</span>
+                          <div className="flex items-center justify-between">
+                            <button
+                              type="button"
+                              aria-label="Fewer passengers"
+                              onClick={() => setPassengers((p) => Math.max(1, p - 1))}
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-sm font-bold text-foreground transition-transform active:scale-90 sm:h-7 sm:w-7 sm:text-base"
+                            >
+                              −
+                            </button>
+                            <span className="text-[13px] font-bold text-foreground sm:text-sm">{passengers}</span>
+                            <button
+                              type="button"
+                              aria-label="More passengers"
+                              onClick={() => setPassengers((p) => Math.min(6, p + 1))}
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-sm font-bold text-foreground transition-transform active:scale-90 sm:h-7 sm:w-7 sm:text-base"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quick routes */}
+                    <div>
+                      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:mb-2 sm:text-[11px]">{t("bus.popular_routes")}</p>
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                        {popularRoutes.slice(0, 4).map((route) => (
+                          <button
+                            key={`${route.origin}-${route.destination}`}
+                            type="button"
+                            onClick={() => { setFrom(route.origin); setTo(route.destination); }}
+                            className="rounded-full border border-border bg-card px-2.5 py-1.5 text-[11px] font-semibold text-foreground transition-transform hover:border-primary/40 active:scale-95 sm:px-3 sm:py-2 sm:text-xs"
+                          >
+                            {route.origin} → {route.destination}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button onClick={runSearch} disabled={searching} className="h-11 w-full rounded-xl text-sm font-black sm:h-12 sm:rounded-2xl sm:text-base">
+                      {searching ? `${t("bus.search")}…` : t("bus.search")}
+                    </Button>
+
+                    <div className="flex items-center justify-center gap-3 sm:gap-4">
+                      {user && (
+                        <button
+                          type="button"
+                          onClick={() => navigate("/bus/tickets")}
+                          className="text-[11px] font-semibold text-muted-foreground underline-offset-2 hover:underline"
+                        >
+                          {t("bus.my_tickets_cta")}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => navigate("/bus/operator")}
                         className="text-[11px] font-semibold text-muted-foreground underline-offset-2 hover:underline"
                       >
-                        {t("bus.my_tickets_cta")}
+                        {t("bus.operate_cta")}
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => navigate("/bus/operator")}
-                      className="text-[11px] font-semibold text-muted-foreground underline-offset-2 hover:underline"
-                    >
-                      {t("bus.operate_cta")}
-                    </button>
+                    </div>
                   </div>
+
+                  <aside className="hidden space-y-3 rounded-2xl border border-border bg-card p-4 shadow-sm lg:block">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-foreground">Live bus network</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {popularRoutesLoading ? "Checking operator schedules..." : popularRoutes.some((route) => route.real) ? "Routes from published operator trips." : "Default routes until operators publish trips."}
+                        </p>
+                      </div>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                        <Ticket className="h-5 w-5 text-primary" />
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {popularRoutes.slice(0, 5).map((route) => {
+                        const price = formatRoutePrice(route);
+                        return (
+                          <button
+                            key={`${route.origin}-${route.destination}-panel`}
+                            type="button"
+                            onClick={() => { setFrom(route.origin); setTo(route.destination); }}
+                            className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40"
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-xs font-black text-foreground">{route.origin} → {route.destination}</span>
+                              <span className="block truncate text-[10px] text-muted-foreground">
+                                {route.real ? `${route.tripCount} scheduled${route.nextDepartDate ? ` · next ${route.nextDepartDate}` : ""}` : "Ready to search"}
+                              </span>
+                            </span>
+                            {price && <span className="shrink-0 text-[10px] font-bold text-emerald-600">{price}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <Button type="button" variant="outline" onClick={() => navigate("/bus/tickets")} className="h-10 rounded-xl text-xs font-bold">
+                        My tickets
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => navigate("/bus/operator")} className="h-10 rounded-xl text-xs font-bold">
+                        Operator
+                      </Button>
+                    </div>
+                  </aside>
                 </div>
               )}
 
               {/* ── RESULTS ── */}
               {step === "results" && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="flex items-center justify-between lg:col-span-2">
                     <p className="text-sm font-bold text-foreground">{trips.length} {t("bus.buses")} · {new Date(date + "T00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
                     <button type="button" onClick={() => setStep("search")} className="text-xs font-bold text-primary active:opacity-70">
                       {t("bus.edit_search")}

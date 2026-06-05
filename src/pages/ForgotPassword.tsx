@@ -13,6 +13,7 @@ import { ArrowLeft, Mail, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import SEOHead from "@/components/SEOHead";
+import { getSafeRedirectTarget } from "@/lib/authRedirect";
 
 const forgotPasswordSchema = z.object({
   email: z.string().trim().email({ message: "Please enter a valid email address" }),
@@ -23,7 +24,7 @@ type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
 const ForgotPassword = () => {
   const [params] = useSearchParams();
   const initialEmail = params.get("email") || "";
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [sentEmail, setSentEmail] = useState("");

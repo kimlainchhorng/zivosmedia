@@ -9,13 +9,11 @@ import {
   ArrowRight,
   BadgeCheck,
   BarChart3,
-  CalendarCheck,
   Car,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
   CreditCard,
-  FileText,
   Hotel,
   LayoutDashboard,
   LockKeyhole,
@@ -96,13 +94,6 @@ const workflow = [
   },
 ];
 
-const dashboardTiles = [
-  { label: "Bookings", value: "42", icon: CalendarCheck, tone: "bg-emerald-400" },
-  { label: "Revenue", value: "$18.4k", icon: CreditCard, tone: "bg-zinc-950 text-white" },
-  { label: "Work orders", value: "17", icon: Wrench, tone: "bg-sky-400" },
-  { label: "Messages", value: "128", icon: MessageCircle, tone: "bg-pink-400" },
-];
-
 const featureCards = [
   {
     title: "Daily operations",
@@ -144,14 +135,14 @@ function authPath(path: "/login" | "/signup") {
 function ZivoSoftwareLogo() {
   return (
     <Link to="/business" className="group inline-flex items-center gap-3" aria-label="ZIVO Software home">
-      <span className="relative flex h-12 w-12 items-center justify-center rounded-[14px] bg-zinc-950 shadow-[0_18px_38px_rgba(15,23,42,0.16)]">
-        <span className="absolute -right-1 -top-1 h-4 w-4 rounded-[5px] bg-emerald-400 shadow-[0_8px_18px_rgba(52,211,153,0.36)]" />
-        <span className="absolute bottom-2 left-2 h-3 w-3 rounded-full bg-sky-400" />
-        <span className="text-3xl font-black leading-none text-transparent bg-clip-text bg-ig-gradient">Z</span>
+      <span className="relative flex h-16 w-16 items-center justify-center rounded-[18px] bg-zinc-950 shadow-[0_24px_58px_rgba(15,23,42,0.18)]">
+        <span className="absolute -right-1.5 -top-1.5 h-6 w-6 rounded-[8px] bg-emerald-400 shadow-[0_10px_20px_rgba(52,211,153,0.36)]" />
+        <span className="absolute bottom-3 left-3 h-4 w-4 rounded-full bg-sky-400" />
+        <span className="text-5xl font-black leading-none text-transparent bg-clip-text bg-ig-gradient">Z</span>
       </span>
       <span className="hidden sm:block leading-tight">
-        <span className="block text-[18px] font-black tracking-[0.22em] text-zinc-950">ZIVO</span>
-        <span className="block text-[12px] font-black tracking-[0.32em] text-emerald-600">SOFTWARE</span>
+        <span className="block text-[28px] font-black tracking-[0.26em] text-zinc-950">ZIVO</span>
+        <span className="block text-[15px] font-black tracking-[0.42em] text-emerald-600">SOFTWARE</span>
       </span>
     </Link>
   );
@@ -160,95 +151,18 @@ function ZivoSoftwareLogo() {
 function BusinessHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/88 backdrop-blur-2xl">
-      <div className="mx-auto flex h-[78px] w-full max-w-[1400px] items-center gap-6 px-6">
+      <div className="mx-auto flex h-[138px] w-full max-w-[1400px] items-center gap-6 px-10">
         <ZivoSoftwareLogo />
-        <nav aria-label="ZIVO Software sections" className="hidden flex-1 items-center justify-center gap-8 lg:flex">
-          {[
-            ["Software", "#software"],
-            ["Workflow", "#workflow"],
-            ["Industries", "#industries"],
-            ["Security", "#security"],
-          ].map(([label, href]) => (
-            <a key={label} href={href} className="text-[15px] font-bold text-zinc-700 transition-colors hover:text-zinc-950">
-              {label}
-            </a>
-          ))}
-        </nav>
         <div className="ml-auto flex items-center gap-3">
-          <Button asChild variant="ghost" className="hidden h-11 rounded-full px-5 text-[15px] font-bold sm:inline-flex">
+          <Button asChild variant="ghost" className="hidden h-14 rounded-full px-7 text-[22px] font-bold sm:inline-flex">
             <Link to={authPath("/login")}>Log in</Link>
           </Button>
-          <Button asChild className="h-11 rounded-full bg-zinc-950 px-5 text-[15px] font-bold text-white hover:bg-zinc-800">
+          <Button asChild className="h-[72px] rounded-full bg-zinc-950 px-10 text-[22px] font-bold text-white hover:bg-zinc-800">
             <Link to={authPath("/signup")}>Sign up</Link>
           </Button>
         </div>
       </div>
     </header>
-  );
-}
-
-function DashboardGraphic() {
-  return (
-    <div className="relative mx-auto h-[520px] w-full max-w-[620px]" aria-hidden="true">
-      <div className="absolute left-10 top-8 h-[430px] w-[360px] rotate-[-8deg] rounded-[36px] border border-zinc-200 bg-white shadow-[0_34px_90px_rgba(15,23,42,0.16)]" />
-      <div className="absolute left-24 top-20 h-[430px] w-[360px] rotate-[9deg] overflow-hidden rounded-[36px] border border-zinc-200 bg-white shadow-[0_42px_110px_rgba(15,23,42,0.2)]">
-        <img src={serviceCars} alt="" className="h-36 w-full object-cover" loading="eager" />
-        <div className="space-y-4 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-zinc-400">Workspace</p>
-              <p className="text-2xl font-black text-zinc-950">Auto Repair</p>
-            </div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">Live</span>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {dashboardTiles.map((tile) => {
-              const Icon = tile.icon;
-              return (
-                <div key={tile.label} className="rounded-[18px] border border-zinc-100 bg-zinc-50 p-3 shadow-sm">
-                  <div className={`mb-4 flex h-9 w-9 items-center justify-center rounded-[12px] ${tile.tone}`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <p className="text-xl font-black text-zinc-950">{tile.value}</p>
-                  <p className="text-xs font-semibold text-zinc-500">{tile.label}</p>
-                </div>
-              );
-            })}
-          </div>
-          <div className="rounded-[20px] bg-zinc-950 p-4 text-white">
-            <div className="flex items-center justify-between text-xs font-bold text-white/60">
-              <span>Today</span>
-              <span>92%</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/15">
-              <div className="h-full w-[92%] rounded-full bg-ig-gradient" />
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="absolute right-3 top-36 rotate-[7deg] rounded-[22px] border border-zinc-200 bg-white p-4 shadow-[0_22px_52px_rgba(15,23,42,0.16)]">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-emerald-400">
-            <CheckCircle2 className="h-5 w-5 text-zinc-950" />
-          </span>
-          <div>
-            <p className="font-black text-zinc-950">Secure sign-in</p>
-            <p className="text-sm font-semibold text-zinc-500">team access ready</p>
-          </div>
-        </div>
-      </div>
-      <div className="absolute bottom-20 left-0 rotate-[-10deg] rounded-[22px] border border-zinc-200 bg-white p-4 shadow-[0_22px_52px_rgba(15,23,42,0.16)]">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-sky-400">
-            <FileText className="h-5 w-5 text-zinc-950" />
-          </span>
-          <div>
-            <p className="font-black text-zinc-950">Invoices</p>
-            <p className="text-sm font-semibold text-zinc-500">paid and unpaid</p>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -268,19 +182,19 @@ export default function BusinessLandingPage() {
 
         <main>
           <section className="relative overflow-hidden border-b border-zinc-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_60%,#ffffff_100%)]">
-            <div className="mx-auto grid min-h-[720px] max-w-[1400px] items-center gap-10 px-6 pb-14 pt-12 lg:grid-cols-[0.95fr_1.05fr]">
-              <div className="max-w-2xl">
-                <div className="mb-8 flex gap-4 overflow-hidden">
+            <div className="mx-auto min-h-[920px] max-w-[1400px] px-10 pb-14 pt-24">
+              <div>
+                <div className="mb-16 flex justify-between gap-8 overflow-hidden">
                   {groupedCategories.map((entry) => {
                     const Icon = groupIcons[entry.group] || Store;
                     return (
                       <a key={entry.group} href="#industries" className="group text-center">
-                        <span className="ring-ig-gradient inline-flex h-[74px] w-[74px] items-center justify-center rounded-full p-[3px]">
+                        <span className="ring-ig-gradient inline-flex h-[120px] w-[120px] items-center justify-center rounded-full p-[4px]">
                           <span className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                            <Icon className="h-7 w-7 text-zinc-950" />
+                            <Icon className="h-11 w-11 text-zinc-950" />
                           </span>
                         </span>
-                        <span className="mt-2 block max-w-[86px] truncate text-xs font-bold text-zinc-600 group-hover:text-zinc-950">
+                        <span className="mt-4 block max-w-[130px] truncate text-[20px] font-bold text-zinc-600 group-hover:text-zinc-950">
                           {entry.group}
                         </span>
                       </a>
@@ -288,29 +202,29 @@ export default function BusinessLandingPage() {
                   })}
                 </div>
 
-                <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black shadow-sm">
-                  <Sparkles className="h-4 w-4 text-pink-500" />
+                <p className="mb-9 inline-flex items-center gap-4 rounded-full border border-zinc-200 bg-white px-7 py-4 text-[23px] font-black shadow-sm">
+                  <Sparkles className="h-7 w-7 text-pink-500" />
                   Desktop-first software for local operators
                 </p>
-                <h1 className="max-w-[850px] text-[58px] font-black leading-[0.96] tracking-normal text-zinc-950 md:text-[72px]">
+                <h1 className="max-w-[1230px] text-[86px] font-black leading-[0.93] tracking-normal text-zinc-950 md:text-[118px]">
                   ZIVO Software for every local business workflow
                 </h1>
-                <p className="mt-7 max-w-2xl text-xl font-medium leading-9 text-zinc-600">
+                <p className="mt-16 max-w-[1220px] text-[31px] font-medium leading-[1.55] text-zinc-600">
                   Build a business workspace with setup, dashboard, bookings, work orders, payments,
                   customers, employees, reports, and secure account access from one clean website.
                 </p>
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Button asChild size="lg" className="h-14 rounded-full bg-zinc-950 px-7 text-base font-black text-white hover:bg-zinc-800">
+                <div className="mt-16 flex flex-col gap-6 sm:flex-row">
+                  <Button asChild size="lg" className="h-[90px] rounded-full bg-zinc-950 px-12 text-[27px] font-black text-white hover:bg-zinc-800">
                     <Link to="/business/new">
                       Create Business Software
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      <ArrowRight className="ml-6 h-8 w-8" />
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="h-14 rounded-full border-zinc-300 bg-white px-7 text-base font-black">
+                  <Button asChild size="lg" variant="outline" className="h-[90px] rounded-full border-zinc-300 bg-white px-12 text-[27px] font-black">
                     <a href="#industries">Explore industries</a>
                   </Button>
                 </div>
-                <div className="mt-10 grid max-w-[600px] grid-cols-3 gap-4">
+                <div className="mt-12 grid max-w-[600px] grid-cols-3 gap-4">
                   {[
                     ["7", "Industry groups"],
                     ["30+", "Business types"],
@@ -323,7 +237,6 @@ export default function BusinessLandingPage() {
                   ))}
                 </div>
               </div>
-              <DashboardGraphic />
             </div>
           </section>
 

@@ -7,19 +7,41 @@ type RedirectLocation = {
 const AUTH_ROUTES = ["/login", "/verify-otp", "/auth-callback"];
 
 export const getSafeRedirectTarget = (value?: string | null) => {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue) {
     return "/";
   }
 
-  const normalizedValue = value.trim();
+  let safeValue = normalizedValue;
+
+  if (/^https?:\/\//i.test(normalizedValue)) {
+    try {
+      const url = new URL(normalizedValue);
+      const currentHost = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+
+      if (!currentHost || url.hostname.toLowerCase() !== currentHost) {
+        return "/";
+      }
+
+      safeValue = `${url.pathname}${url.search}${url.hash}`;
+    } catch {
+      return "/";
+    }
+  }
+
+  if (!safeValue.startsWith("/") || safeValue.startsWith("//")) {
+    return "/";
+  }
+
   const isAuthRoute = AUTH_ROUTES.some(
     (route) =>
-      normalizedValue === route ||
-      normalizedValue.startsWith(`${route}?`) ||
-      normalizedValue.startsWith(`${route}#`),
+      safeValue === route ||
+      safeValue.startsWith(`${route}?`) ||
+      safeValue.startsWith(`${route}#`),
   );
 
-  return isAuthRoute ? "/" : normalizedValue;
+  return isAuthRoute ? "/" : safeValue;
 };
 
 export const getRedirectFromLocation = (location?: RedirectLocation) => {

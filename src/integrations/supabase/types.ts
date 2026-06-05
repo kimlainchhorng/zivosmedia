@@ -77571,6 +77571,17 @@ export type Database = {
           trip_id: string
         }[]
       }
+      get_popular_bus_routes: {
+        Args: { p_limit?: number }
+        Returns: {
+          currency: string | null
+          destination: string
+          min_price_cents: number | null
+          next_depart_date: string | null
+          origin: string
+          trip_count: number
+        }[]
+      }
       get_my_phone_status: {
         Args: never
         Returns: {

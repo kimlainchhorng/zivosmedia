@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { saveAccount } from "@/hooks/useSavedAccounts";
+import { getSafeRedirectTarget } from "@/lib/authRedirect";
 
 const RESEND_COOLDOWN = 30;
 
@@ -16,7 +17,7 @@ const VerifyOTP = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const email = params.get("email") || "";
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const mode = params.get("mode") === "signup" ? "signup" : "login";
   const isSignup = mode === "signup";
 

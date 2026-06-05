@@ -13,6 +13,7 @@ import SEOHead from "@/components/SEOHead";
 import { LegalPreviewLink } from "@/components/legal/LegalPreviewSheet";
 import { analyzePassword, checkPasswordBreach } from "@/lib/security/passwordStrength";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+import { getSafeRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
 
@@ -131,7 +132,7 @@ function ZivoSoftwareLegalLinks() {
 const Signup = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const isZivoSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
   const { signUp, user, isLoading: authLoading } = useAuth();

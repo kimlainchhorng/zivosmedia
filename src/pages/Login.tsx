@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
+import { getSafeRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
 
@@ -264,7 +265,7 @@ const getLoginErrorFacts = (error: Error) => {
 const Login = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = params.get("redirect") || "/";
+  const redirect = getSafeRedirectTarget(params.get("redirect"));
   const isZivoSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
   const { signIn, user, isLoading: authLoading } = useAuth();

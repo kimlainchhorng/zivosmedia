@@ -332,60 +332,56 @@ export default function TrendingPage() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-3xl px-4 py-3">
-        <section className="relative overflow-hidden rounded-2xl border border-pink-100 bg-[linear-gradient(135deg,#fff7fb_0%,#fff_58%,#f7f0ff_100%)] px-3 py-2.5 shadow-[0_12px_34px_rgba(236,72,153,0.11)]">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[radial-gradient(circle_at_30%_20%,#fff_0%,#ff8a00_18%,#ff2d78_48%,#7c3aed_100%)] text-white shadow-[inset_0_6px_10px_rgba(255,255,255,0.45),0_10px_22px_rgba(168,85,247,0.22)]">
-              <TrendingUp className="h-5 w-5 drop-shadow" />
+      <main className="mx-auto max-w-3xl px-4 py-2.5">
+        <section className="relative overflow-hidden rounded-[1.15rem] border border-pink-100 bg-white px-2.5 py-1.5 shadow-[0_8px_22px_rgba(236,72,153,0.08)]">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[radial-gradient(circle_at_30%_20%,#fff_0%,#ff8a00_18%,#ff2d78_48%,#7c3aed_100%)] text-white shadow-[inset_0_5px_8px_rgba(255,255,255,0.42),0_8px_18px_rgba(168,85,247,0.18)]">
+              <TrendingUp className="h-4 w-4 drop-shadow" />
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="shrink-0 text-[11px] font-black uppercase text-pink-600">Live</span>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="shrink-0 text-[10px] font-black uppercase text-pink-600">Live</span>
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]" />
-                <span className="truncate text-xs font-semibold text-slate-500">Updated from backend</span>
+                <span className="truncate text-[11px] font-bold text-slate-500">Backend</span>
               </div>
-              <div className="mt-1 flex min-w-0 items-center gap-2">
-                <span className="text-xs font-black uppercase text-slate-600">Score</span>
-                <span className="text-2xl font-black leading-none text-transparent bg-clip-text bg-[linear-gradient(135deg,#ff7a18,#ff2d78,#7c3aed)]">{score}</span>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">Real</span>
-                <span className="truncate text-xs font-bold text-slate-600">
-                  {totalPeople > 0 ? `${formatCompact(totalPeople)} people` : trendingPeople.length > 0 ? `${formatCompact(trendingPeople.length)} people` : "No people trend"}
-                </span>
-              </div>
+              <span className="flex shrink-0 items-baseline gap-1 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-500">
+                Score <strong className="text-base leading-none text-transparent bg-clip-text bg-[linear-gradient(135deg,#ff7a18,#ff2d78,#7c3aed)]">{score}</strong>
+              </span>
+              <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black text-emerald-700">Real data</span>
             </div>
             <button
               type="button"
               aria-label="Refresh trends"
               onClick={() => void retryTrendingQueries()}
               disabled={isRetryingTrending}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-950 text-white shadow-[0_10px_20px_rgba(15,23,42,0.16)] transition active:translate-y-0.5 disabled:opacity-60"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-950 text-white shadow-[0_8px_16px_rgba(15,23,42,0.14)] transition active:translate-y-0.5 disabled:opacity-60"
             >
-              <RefreshCw className={cn("h-4 w-4", isRetryingTrending && "animate-spin")} />
+              <RefreshCw className={cn("h-3.5 w-3.5", isRetryingTrending && "animate-spin")} />
             </button>
           </div>
         </section>
 
-        <section className="mt-2 grid grid-cols-4 gap-1.5" aria-label="Trending backend pulse">
+        <section className="mt-1.5 grid grid-cols-4 gap-1" aria-label="Trending backend pulse">
           {activityStats.map(({ label, value, icon: Icon }, index) => (
             <button
               key={label}
               type="button"
               onClick={() => setTab(index === 3 ? "communities" : index === 0 ? "posts" : "hashtags")}
-              className="group rounded-xl border border-pink-100 bg-white px-2 py-2 text-left shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition active:translate-y-0.5"
+              className="group rounded-xl border border-pink-100 bg-white px-2 py-1.5 text-left shadow-[0_6px_14px_rgba(15,23,42,0.04)] transition active:translate-y-0.5"
             >
-              <span className="mb-1 flex items-center justify-between">
-                <span className="grid h-6 w-6 place-items-center rounded-lg bg-pink-50 text-pink-600 transition group-active:scale-95">
-                  <Icon className="h-3.5 w-3.5" />
+              <span className="mb-0.5 flex items-center justify-between">
+                <span className="grid h-5 w-5 place-items-center rounded-lg bg-pink-50 text-pink-600 transition group-active:scale-95">
+                  <Icon className="h-3 w-3" />
                 </span>
-                <ArrowUpRight className="h-3 w-3 text-slate-300" />
+                <ArrowUpRight className="h-2.5 w-2.5 text-slate-300" />
               </span>
-              <span className="block text-base font-black leading-none text-slate-950">{value}</span>
-              <span className="mt-0.5 block truncate text-[9px] font-bold uppercase text-slate-400">{label}</span>
+              <span className="block text-sm font-black leading-none text-slate-950">{value}</span>
+              <span className="mt-0.5 block truncate text-[8px] font-bold uppercase text-slate-400">{label}</span>
             </button>
           ))}
         </section>
 
-        <nav className="mt-2 flex gap-1.5 overflow-x-auto rounded-2xl border border-slate-100 bg-white p-1 shadow-[0_10px_24px_rgba(15,23,42,0.06)] scrollbar-none" aria-label="Trending sections">
+        <nav className="mt-1.5 flex gap-1 overflow-x-auto rounded-2xl border border-slate-100 bg-white p-1 shadow-[0_8px_20px_rgba(15,23,42,0.05)] scrollbar-none" aria-label="Trending sections">
           {tabMeta.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
