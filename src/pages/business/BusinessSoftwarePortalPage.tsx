@@ -432,21 +432,21 @@ export default function BusinessSoftwarePortalPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3 lg:gap-4">
               {suiteModules.map((module) => {
                 const Icon = module.icon;
                 return (
                   <article key={module.title} className="overflow-hidden rounded-lg border border-black/10 bg-[#fbfcfb] shadow-[0_18px_50px_rgba(18,28,24,0.06)]">
-                    <div className="relative h-56 overflow-hidden">
+                    <div className="relative h-28 overflow-hidden sm:h-32 lg:h-44">
                       <img src={module.image} alt={`${module.title} software view`} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/58 via-black/10 to-transparent" />
-                      <span className="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-lg bg-white text-[#111412] shadow-[0_14px_28px_rgba(17,20,18,0.2)]">
-                        <Icon className="h-5 w-5" />
+                      <span className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#111412] shadow-[0_14px_28px_rgba(17,20,18,0.2)] lg:h-11 lg:w-11">
+                        <Icon className="h-4 w-4 lg:h-5 lg:w-5" />
                       </span>
                     </div>
-                    <div className="p-5">
-                      <h3 className="text-xl font-black text-[#111412]">{module.title}</h3>
-                      <p className="mt-3 text-sm leading-6 text-[#65706a]">{module.copy}</p>
+                    <div className="p-3 lg:p-5">
+                      <h3 className="text-base font-black text-[#111412] lg:text-xl">{module.title}</h3>
+                      <p className="mt-2 text-xs leading-5 text-[#65706a] lg:mt-3 lg:text-sm lg:leading-6">{module.copy}</p>
                     </div>
                   </article>
                 );
