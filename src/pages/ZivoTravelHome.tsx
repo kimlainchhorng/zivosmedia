@@ -448,6 +448,47 @@ export default function ZivoTravelHome() {
     return () => window.clearInterval(timer);
   }, [index, engaged, carouselHover, reduce]);
 
+  // The shared static index.html bakes zivosmedia.com SEO into every host
+  // (canonical, OG/Twitter, JSON-LD). This page's <Helmet> appends correct travel
+  // tags *after* them, leaving duplicates. After Helmet flushes (double rAF),
+  // de-dupe singleton SEO tags keeping the last (Helmet's), drop any JSON-LD that
+  // isn't travel-branded, and remove off-brand parent-company social images.
+  useEffect(() => {
+    const reconcile = () => {
+      const head = document.head;
+      const keepLast = (selector: string, keyOf: (el: Element) => string) => {
+        const seen = new Map<string, Element>();
+        head.querySelectorAll(selector).forEach((el) => {
+          const key = keyOf(el);
+          const prev = seen.get(key);
+          if (prev) prev.remove();
+          seen.set(key, el);
+        });
+      };
+      keepLast('link[rel="canonical"]', () => "canonical");
+      keepLast('link[rel="alternate"][hreflang]', (el) => el.getAttribute("hreflang") || "");
+      keepLast('meta[name="description"]', () => "description");
+      keepLast('meta[name="apple-itunes-app"]', () => "apple-itunes-app");
+      keepLast('meta[property^="og:"]', (el) => el.getAttribute("property") || "");
+      keepLast('meta[name^="twitter:"]', (el) => el.getAttribute("name") || "");
+      head.querySelectorAll('script[type="application/ld+json"]').forEach((script) => {
+        if (!(script.textContent || "").includes("zivostravel")) script.remove();
+      });
+      head
+        .querySelectorAll(
+          'meta[property="og:image"], meta[name="twitter:image"], meta[name="twitter:image:alt"], meta[name="twitter:site"], meta[name="twitter:creator"]',
+        )
+        .forEach((el) => {
+          const value = el.getAttribute("content") || "";
+          if (value.includes("zivosmedia") || value === "ZIVO" || value.startsWith("@Zivo") || value.includes("ZIVO -")) {
+            el.remove();
+          }
+        });
+    };
+    const raf = requestAnimationFrame(() => requestAnimationFrame(reconcile));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   // Each engine landing page reads its own query keys, so emit per-service params
   // the destination page already understands (see deep-link contracts):
   //  flight  -> /flights?from&to&start&end&travelers   (FlightLanding deep-link hook)
@@ -536,16 +577,26 @@ export default function ZivoTravelHome() {
           content="Zivo Travel connects flights, hotels, rental cars, and bus booking in one travel workflow with secure payments, partner payouts, API access, SSO, and SEO-ready trip pages."
         />
         <link rel="canonical" href="https://zivostravel.com/" />
+        <link rel="alternate" hrefLang="x-default" href="https://zivostravel.com/" />
+        <link rel="alternate" hrefLang="en" href="https://zivostravel.com/" />
+        <link rel="alternate" hrefLang="km" href="https://zivostravel.com/?lang=km" />
+        <link rel="alternate" hrefLang="ar" href="https://zivostravel.com/?lang=ar" />
+        <link rel="alternate" hrefLang="fr" href="https://zivostravel.com/?lang=fr" />
+        <meta name="apple-itunes-app" content="app-id=6759480121, app-argument=https://zivostravel.com" />
         <meta property="og:title" content="Zivo Travel" />
         <meta property="og:description" content="Flights, hotels, rental cars, and bus booking in one connected workflow." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://zivostravel.com/" />
+        <meta property="og:image" content="https://zivostravel.com/og-image.png" />
+        <meta property="og:image:alt" content="Zivo Travel - Flights, Hotels, Rental Cars, and Bus Booking" />
         <meta property="og:site_name" content="Zivo Travel" />
         <meta property="og:locale" content="en_US" />
         <meta name="robots" content="index,follow,max-image-preview:large" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Zivo Travel" />
         <meta name="twitter:description" content="Flights, hotels, rental cars, and bus booking in one connected workflow." />
+        <meta name="twitter:image" content="https://zivostravel.com/og-image.png" />
+        <meta name="twitter:image:alt" content="Zivo Travel - Flights, Hotels, Rental Cars, and Bus Booking" />
         <meta name="theme-color" content="#09090b" />
         <script type="application/ld+json">
           {JSON.stringify({
@@ -567,7 +618,6 @@ export default function ZivoTravelHome() {
             name: "Zivo Travel",
             url: "https://zivostravel.com/",
             parentOrganization: { "@type": "Organization", name: "Zivos Media" },
-            sameAs: ["https://zivosmedia.com"],
           })}
         </script>
       </Helmet>
