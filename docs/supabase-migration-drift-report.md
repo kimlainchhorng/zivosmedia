@@ -1,6 +1,6 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-06-05T18:14:34.928Z
+Generated: 2026-06-05T18:29:12.417Z
 
 ## Summary
 
@@ -62,7 +62,7 @@ Generated: 2026-06-05T18:14:34.928Z
 
 - Auth token: SUPABASE_ACCESS_TOKEN was not present for this run.
 - Error: Initialising login role...
-2026/06/05 11:14:34 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
+2026/06/05 11:29:12 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.
 - Hint: Run `supabase login` or export `SUPABASE_ACCESS_TOKEN` before linked migration checks.
 
 ## Reconciliation Diagnostics

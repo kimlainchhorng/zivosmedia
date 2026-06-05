@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-05T18:14:46.611Z
+Generated: 2026-06-05T18:29:22.337Z
 Mode: soft
 Options: strict=no, skipBuild=no, skipTypeCheck=yes
 
@@ -139,7 +139,7 @@ select pg_reload_conf();
   "reconciliationPlan": "docs/supabase-migration-reconciliation-plan.md",
   "pendingLocalReviewReport": "docs/supabase-migration-pending-local-review.csv",
   "reconciliationRepairDraft": "docs/supabase-migration-reconciliation-repair-draft.sql",
-  "remoteError": "Initialising login role...\n2026/06/05 11:14:34 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable."
+  "remoteError": "Initialising login role...\n2026/06/05 11:29:12 Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable."
 }
 ```
 
@@ -251,7 +251,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:14:35.608Z",
+  "generated": "2026-06-05T18:29:13.101Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -299,7 +299,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:14:35.649Z",
+  "generated": "2026-06-05T18:29:13.143Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 82,
@@ -431,7 +431,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T18:14:36.279Z",
+  "generated": "2026-06-05T18:29:13.768Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2786,
@@ -515,14 +515,14 @@ src/pages/business/BusinessLandingPage.tsx
   281: img missing decoding="async"/SmartImage
 
 src/pages/business/BusinessSoftwarePortalPage.tsx
-  363: img missing loading="lazy"/SmartImage
-  363: img missing decoding="async"/SmartImage
-  422: img missing loading="lazy"/SmartImage
-  422: img missing decoding="async"/SmartImage
-  496: img missing loading="lazy"/SmartImage
-  496: img missing decoding="async"/SmartImage
+  395: img missing loading="lazy"/SmartImage
+  395: img missing decoding="async"/SmartImage
+  454: img missing loading="lazy"/SmartImage
+  454: img missing decoding="async"/SmartImage
   528: img missing loading="lazy"/SmartImage
   528: img missing decoding="async"/SmartImage
+  560: img missing loading="lazy"/SmartImage
+  560: img missing decoding="async"/SmartImage
 
 src/pages/channels/ChannelPage.tsx
   430: img missing loading="lazy"/SmartImage
