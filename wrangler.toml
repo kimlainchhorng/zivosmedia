@@ -1,6 +1,7 @@
 name = "zivo-web"
 main = "cloudflare/worker.ts"
 compatibility_date = "2026-05-23"
+pages_build_output_dir = "dist"
 workers_dev = true
 preview_urls = false
 

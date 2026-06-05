@@ -198,7 +198,7 @@
     "qrcode.react": "^4.2.0",
     "react": "^19.2.7",
     "react-day-picker": "^10.0.1",
-    "react-dom": "^19.2.6",
+    "react-dom": "19.2.7",
     "react-helmet-async": "^3.0.0",
     "react-hook-form": "^7.77.0",
     "react-router-dom": "^7.15.1",
