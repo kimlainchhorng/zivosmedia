@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,8 +9,11 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AUTO_REPAIR_STORE_ID,
+  ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
   ZIVO_SOFTWARE_HOME_PATH,
+  getZivoSoftwareUrl,
   isAutoRepairSoftwareHost,
+  isZivoMediaHost,
   isZivoSoftwareDashboardPath,
 } from "@/config/autoRepairDomain";
 
@@ -45,6 +49,15 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   const isZivoBusinessSetupRoute =
     location.pathname === "/business/new" || location.pathname.startsWith("/business/software/");
   const isZivoSoftwareDashboardRoute = isZivoSoftwareDashboardPath(location.pathname);
+  const shouldRedirectMediaBusinessSetup =
+    typeof window !== "undefined" &&
+    isZivoMediaHost(window.location.hostname) &&
+    location.pathname === ZIVO_SOFTWARE_AUTH_REDIRECT_PATH;
+  const softwareBusinessSetupUrl = getZivoSoftwareUrl(
+    ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
+    location.search,
+    location.hash,
+  );
   const shouldCheckStoreOwner = requireAdmin && allowStoreOwner && !!storeId && !!user?.id && !isAdmin;
 
   // Support-role accounts may enter admin-gated routes that opt in via
@@ -88,6 +101,25 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   const ownerAccessAllowed = ownerQuery.data === true;
   const publicStoreResolved = publicStoreQuery.isSuccess || publicStoreQuery.isError;
   const publicStorePath = getPublicStorePath(publicStoreQuery.data);
+
+  useEffect(() => {
+    if (shouldRedirectMediaBusinessSetup) {
+      window.location.replace(softwareBusinessSetupUrl);
+    }
+  }, [shouldRedirectMediaBusinessSetup, softwareBusinessSetupUrl]);
+
+  if (shouldRedirectMediaBusinessSetup) {
+    return (
+      <div className="min-h-screen bg-background px-6 py-12 text-center">
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 shadow-sm">
+          <p className="text-sm font-semibold text-foreground">Opening ZIVO Software...</p>
+          <a className="text-sm font-medium text-primary underline" href={softwareBusinessSetupUrl}>
+            Continue to zivosoftware.com
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (
     isAutoRepairSoftwareDomain &&
