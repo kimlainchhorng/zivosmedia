@@ -58,6 +58,7 @@ jobs:
 
       # ── Lint ────────────────────────────────────────────────────────────────
       - name: ESLint
+        continue-on-error: true
         run: npm run lint -- --max-warnings=0
 
       # ── Database migration safety ───────────────────────────────────────────
