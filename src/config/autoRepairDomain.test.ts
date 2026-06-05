@@ -11,6 +11,7 @@ import {
   isAutoRepairSoftwareHost,
   isZivoSoftwareDashboardPath,
   isZivoSoftwareHost,
+  isZivoSoftwareRedirectTarget,
 } from "./autoRepairDomain";
 
 describe("auto repair software domain config", () => {
@@ -39,6 +40,13 @@ describe("auto repair software domain config", () => {
     expect(ZIVO_SOFTWARE_AUTH_REDIRECT_PATH).toBe("/business/new");
     expect(isZivoSoftwareHost("zivosoftware.com")).toBe(true);
     expect(isZivoSoftwareHost("zivosmedia.com")).toBe(false);
+  });
+
+  it("only treats absolute zivosoftware.com URLs as software auth redirects", () => {
+    expect(isZivoSoftwareRedirectTarget("/business/dashboard")).toBe(false);
+    expect(isZivoSoftwareRedirectTarget("https://zivosmedia.com/business/dashboard")).toBe(false);
+    expect(isZivoSoftwareRedirectTarget("https://zivosoftware.com/business/dashboard")).toBe(true);
+    expect(isZivoSoftwareRedirectTarget("https://www.zivosoftware.com/business/new")).toBe(true);
   });
 
   it("points the software domain at the dedicated software Supabase project", () => {
