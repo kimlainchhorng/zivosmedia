@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink, ShieldCheck, Wrench, CalendarCheck, BadgeCheck } from "lucide-react";
+import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink, ShieldCheck, Wrench, CalendarCheck, BadgeCheck, CheckCircle2 } from "lucide-react";
 import { supabase, setRememberMePreference } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -118,16 +118,28 @@ function ZivoSoftwareAuthGraphic({ mode }: { mode: "login" | "signup" }) {
   );
 }
 
-function ZivoSoftwareLegalLinks({ connectHref }: { connectHref?: string }) {
+function ZivoSoftwareLegalLinks({
+  connectHref,
+  mediaConnected = false,
+}: {
+  connectHref?: string;
+  mediaConnected?: boolean;
+}) {
   return (
     <div className="mt-3 space-y-3">
+      {mediaConnected && (
+        <div className="flex items-start gap-2 rounded-2xl border border-[#48e7af]/45 bg-[#48e7af]/12 px-4 py-3 text-left text-xs font-semibold text-[#101412]">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#138f68]" />
+          <span>ZIVO Media is connected. Sign in here to open your ZIVO Software workspace.</span>
+        </div>
+      )}
       {connectHref && (
         <a
           href={connectHref}
           className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#101412]/15 bg-white/90 text-sm font-black text-[#101412] shadow-sm transition hover:border-[#138f68] hover:text-[#138f68]"
         >
           <ExternalLink className="h-4 w-4" />
-          Connect with ZIVO Media
+          {mediaConnected ? "Reconnect ZIVO Media" : "Connect ZIVO Media account"}
         </a>
       )}
       <p className="text-center text-xs font-medium text-[#66736d]">
@@ -276,13 +288,16 @@ const getLoginErrorFacts = (error: Error) => {
 const Login = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = getSafeRedirectTarget(params.get("redirect"));
+  const redirect = getSafeRedirectTarget(params.get("redirect") || "/");
+  const mediaConnected = params.get("connected") === "zivosmedia";
   const isZivoSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
   const zivoMediaConnectHref = useMemo(() => {
-    const softwareReturn = "https://zivosoftware.com/login?connected=zivosmedia";
+    const softwareReturn = new URL("https://zivosoftware.com/login");
+    softwareReturn.searchParams.set("redirect", redirect);
+    softwareReturn.searchParams.set("connected", "zivosmedia");
     return `https://zivosmedia.com/login?redirect=${encodeURIComponent(softwareReturn)}`;
-  }, []);
+  }, [redirect]);
   const finishAuthRedirect = useCallback((target: string) => {
     if (isExternalRedirectTarget(target)) {
       window.location.assign(target);
@@ -316,7 +331,6 @@ const Login = () => {
     const query = forgotParams.toString();
     return `/forgot-password${query ? `?${query}` : ""}`;
   }, [activeEmail, redirect]);
-
   const canSubmit =
     !submitting &&
     password.length > 0 &&
@@ -996,7 +1010,12 @@ const Login = () => {
           </p>
         </div>
 
-        {isZivoSoftwareDomain && <ZivoSoftwareLegalLinks connectHref={zivoMediaConnectHref} />}
+        {(isZivoSoftwareDomain || mediaConnected) && (
+          <ZivoSoftwareLegalLinks
+            connectHref={zivoMediaConnectHref}
+            mediaConnected={mediaConnected}
+          />
+        )}
 
         <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-500 mt-3">
           Protected by enterprise-grade security

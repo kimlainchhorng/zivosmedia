@@ -9,6 +9,9 @@ import { config as loadDotenv } from "dotenv";
 const root = process.cwd();
 const args = new Set(process.argv.slice(2));
 const strict = args.has("--strict");
+const requireSoftwareDomain = strict || args.has("--require-software-domain");
+const ZIVO_SOFTWARE_PROJECT_REF = "ydxztoresbdeoeijhxww";
+const ZIVO_SOFTWARE_PROJECT_URL = `https://${ZIVO_SOFTWARE_PROJECT_REF}.supabase.co`;
 
 for (const file of [".env", ".env.local", ".env.deploy"]) {
   const envPath = path.join(root, file);
@@ -68,6 +71,26 @@ function isSupabaseManagementToken(value) {
   return value.startsWith("sbp_");
 }
 
+function validatePublishableKey(name, options = {}) {
+  const value = readEnv(name);
+  if (!value) {
+    if (options.required) add("critical", `${name}-missing`, `Missing ${name}.`);
+    return "";
+  }
+
+  if (isSupabaseSecret(value)) {
+    add("critical", `${name}-secret`, `${name} contains a secret/service-role key.`);
+  } else if (isSupabaseManagementToken(value)) {
+    add("critical", `${name}-management-token`, `${name} contains a Supabase management access token.`);
+  } else if (!value.startsWith("sb_publishable_") && !value.startsWith("eyJ")) {
+    add("warning", `${name}-format`, `${name} should be an sb_publishable key or legacy anon JWT.`);
+  } else if (value.startsWith("eyJ")) {
+    add("warning", `${name}-legacy`, `${name} is a legacy JWT anon key; prefer sb_publishable.`);
+  }
+
+  return value;
+}
+
 function validateSupabaseUrl(name, options = {}) {
   const value = readEnv(name);
   if (!value) {
@@ -95,8 +118,19 @@ function validateSupabaseUrl(name, options = {}) {
 }
 
 const viteSupabaseUrl = validateSupabaseUrl("VITE_SUPABASE_URL", { required: true });
+const zivoSoftwareSupabaseUrl = validateSupabaseUrl("VITE_ZIVO_SOFTWARE_SUPABASE_URL", {
+  required: requireSoftwareDomain,
+});
 const backendSupabaseUrl = validateSupabaseUrl("SUPABASE_URL");
 const channelOgUrl = readEnv("CHANNEL_OG_FUNCTION_URL");
+
+if (zivoSoftwareSupabaseUrl && zivoSoftwareSupabaseUrl !== ZIVO_SOFTWARE_PROJECT_URL) {
+  add(
+    "critical",
+    "zivo-software-supabase-url-mismatch",
+    `VITE_ZIVO_SOFTWARE_SUPABASE_URL must point to ${ZIVO_SOFTWARE_PROJECT_URL} for zivosoftware.com.`,
+  );
+}
 
 if (strict && !backendSupabaseUrl) {
   add("critical", "backend-supabase-url-missing", "Missing SUPABASE_URL for backend cron/runtime settings. See docs/supabase-deploy-env-setup.md.");
@@ -117,16 +151,10 @@ if (channelOgUrl) {
   add("warning", "channel-og-unconfigured", "Channel share previews need SUPABASE_URL or CHANNEL_OG_FUNCTION_URL.");
 }
 
-const publishableKey = readEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
-if (!publishableKey) {
-  add("critical", "publishable-key-missing", "Missing VITE_SUPABASE_PUBLISHABLE_KEY.");
-} else if (isSupabaseSecret(publishableKey)) {
-  add("critical", "publishable-key-secret", "VITE_SUPABASE_PUBLISHABLE_KEY contains a secret/service-role key.");
-} else if (!publishableKey.startsWith("sb_publishable_") && !publishableKey.startsWith("eyJ")) {
-  add("warning", "publishable-key-format", "VITE_SUPABASE_PUBLISHABLE_KEY should be an sb_publishable key or legacy anon JWT.");
-} else if (publishableKey.startsWith("eyJ")) {
-  add("warning", "publishable-key-legacy", "VITE_SUPABASE_PUBLISHABLE_KEY is a legacy JWT anon key; prefer sb_publishable.");
-}
+const publishableKey = validatePublishableKey("VITE_SUPABASE_PUBLISHABLE_KEY", { required: true });
+const zivoSoftwarePublishableKey = validatePublishableKey("VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY", {
+  required: requireSoftwareDomain,
+});
 
 for (const [name, value] of Object.entries(process.env)) {
   if (!name.startsWith("VITE_")) continue;
@@ -184,6 +212,9 @@ const summary = {
   warnings: findings.filter((finding) => finding.severity === "warning").length,
   checked: {
     viteSupabaseUrl: Boolean(viteSupabaseUrl),
+    zivoSoftwareSupabaseUrl: Boolean(zivoSoftwareSupabaseUrl),
+    zivoSoftwarePublishableKey: Boolean(zivoSoftwarePublishableKey),
+    zivoSoftwareDomainRequired: requireSoftwareDomain,
     backendSupabaseUrl: Boolean(backendSupabaseUrl),
     publishableKey: Boolean(publishableKey),
     anonKey: Boolean(anonKey),

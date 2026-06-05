@@ -110,6 +110,63 @@ describe("deploy env preflight", () => {
     expect(secretsDoc).toContain("Optional explicit `channel-og` Edge Function URL");
   });
 
+  it("requires the dedicated software Supabase env for Cloudflare deploy checks", () => {
+    const result = spawnSync(process.execPath, [preflight, "--require-software-domain"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH ?? "",
+        VITE_SUPABASE_URL: "https://example.supabase.co",
+        VITE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_fake`,
+        VITE_SUPABASE_PROJECT_ID: "example",
+        VITE_ZIVO_SOFTWARE_SUPABASE_URL: "",
+        VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: "",
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain('"id": "VITE_ZIVO_SOFTWARE_SUPABASE_URL-missing"');
+    expect(result.stdout).toContain('"id": "VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY-missing"');
+  });
+
+  it("accepts the dedicated software Supabase env for Cloudflare deploy checks", () => {
+    const result = spawnSync(process.execPath, [preflight, "--require-software-domain"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH ?? "",
+        VITE_SUPABASE_URL: "https://example.supabase.co",
+        VITE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_fake`,
+        VITE_SUPABASE_PROJECT_ID: "example",
+        VITE_ZIVO_SOFTWARE_SUPABASE_URL: "https://ydxztoresbdeoeijhxww.supabase.co",
+        VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_software_fake`,
+      },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('"zivoSoftwareDomainRequired": true');
+    expect(result.stdout).toContain('"zivoSoftwarePublishableKey": true');
+  });
+
+  it("documents the software Supabase env in deploy setup surfaces", () => {
+    const script = read("scripts/deploy/env-preflight.mjs");
+    const packageJson = read("package.json");
+    const envTemplate = read(".env.example");
+    const deployTemplate = read(".env.deploy.example");
+    const setupDoc = read("docs/supabase-deploy-env-setup.md");
+    const secretsDoc = read("docs/production-deploy-secrets.md");
+    const cloudflareDoc = read("cloudflare/README.md");
+
+    for (const text of [script, envTemplate, deployTemplate, setupDoc, secretsDoc, cloudflareDoc]) {
+      expect(text).toContain("VITE_ZIVO_SOFTWARE_SUPABASE_URL");
+      expect(text).toContain("VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY");
+    }
+
+    expect(script).toContain("--require-software-domain");
+    expect(packageJson).toContain("npm run deploy:env-check -- --require-software-domain");
+    expect(secretsDoc).toContain("ydxztoresbdeoeijhxww");
+  });
+
   it("validates CHANNEL_OG_FUNCTION_URL when provided", () => {
     const result = spawnSync(process.execPath, [preflight, "--strict"], {
       cwd: root,

@@ -71,6 +71,19 @@ curl "http://localhost:8787/media/smoke/hello.txt"
 
 ## Deploy
 
+Before a Cloudflare deploy, make sure the software-domain browser values are
+configured in the private deploy environment or CI secret store:
+
+```sh
+VITE_ZIVO_SOFTWARE_SUPABASE_URL=https://ydxztoresbdeoeijhxww.supabase.co
+VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY=<software-project-publishable-key>
+```
+
+`npm run cloudflare:check`, `npm run cloudflare:deploy`, and
+`npm run cloudflare:pages:deploy` all run the software-domain env guard before
+publishing. The guard prevents `zivosoftware.com` from shipping with the main
+Zivo media Supabase key by accident.
+
 Run the local release gate, then deploy the Worker:
 
 ```sh
@@ -105,6 +118,10 @@ https://www.zivosoftware.com/**
 ```
 
 Keep the main project `slirphzzwcogdbkeicff` on `https://zivosmedia.com`. Supabase only redirects to URLs that are present in each project's allowlist.
+
+In Supabase Auth password settings for project `ydxztoresbdeoeijhxww`, enable
+leaked password protection if the project is on a plan that supports it. This is
+the live security advisor warning currently reported for the software project.
 
 Public DNS for `zivosmedia.com` is currently served by Name.com nameservers. The Cloudflare zone exists but is still initializing. To activate Cloudflare DNS, update the domain nameservers at Name.com to:
 

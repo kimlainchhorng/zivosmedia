@@ -54,6 +54,8 @@ describe("release safety production secret contracts", () => {
       "VITE_SUPABASE_URL",
       "VITE_SUPABASE_PUBLISHABLE_KEY",
       "VITE_SUPABASE_PROJECT_ID",
+      "VITE_ZIVO_SOFTWARE_SUPABASE_URL",
+      "VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY",
       "SUPABASE_URL",
       "SUPABASE_ANON_KEY",
       "SUPABASE_ACCESS_TOKEN",
@@ -75,6 +77,8 @@ describe("release safety production secret contracts", () => {
     expect(workflow).toContain("SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}");
     expect(workflow).toContain("SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}");
     expect(workflow).toContain("VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}");
+    expect(workflow).toContain("VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}");
+    expect(workflow).toContain("VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}");
     expect(envPreflightTest).toContain("requires a Supabase access token in strict production checks");
     expect(envPreflightTest).toContain("rejects service-role JWTs configured as SUPABASE_ANON_KEY");
   });

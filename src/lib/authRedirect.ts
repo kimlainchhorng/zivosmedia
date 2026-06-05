@@ -12,6 +12,14 @@ const TRUSTED_ZIVO_AUTH_HOSTS = new Set([
   "www.zivosoftware.com",
 ]);
 
+const WORKSPACE_REDIRECTS: Record<string, string> = {
+  "/business": "/business/dashboard",
+};
+
+const normalizeRedirectTarget = (value: string) => {
+  return WORKSPACE_REDIRECTS[value] ?? value;
+};
+
 const isTrustedZivoAuthHost = (hostname: string) =>
   TRUSTED_ZIVO_AUTH_HOSTS.has(hostname.toLowerCase());
 
@@ -71,7 +79,7 @@ export const getSafeRedirectTargetForHost = (
       safeValue.startsWith(`${route}#`),
   );
 
-  return isAuthRoute ? "/" : safeValue;
+  return isAuthRoute ? "/" : normalizeRedirectTarget(safeValue);
 };
 
 export const getSafeRedirectTarget = (value?: string | null) =>

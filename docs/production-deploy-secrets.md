@@ -9,6 +9,8 @@ Use this checklist for the GitHub `production` environment and any CI runner tha
 | `VITE_SUPABASE_URL` | build, strict preflight | Browser Supabase project URL. |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | build, strict preflight | Browser-safe Supabase publishable key. |
 | `VITE_SUPABASE_PROJECT_ID` | build, strict preflight | Supabase project ref; must match `VITE_SUPABASE_URL`. |
+| `VITE_ZIVO_SOFTWARE_SUPABASE_URL` | Cloudflare build, strict preflight | Dedicated browser Supabase URL for `zivosoftware.com`; must be `https://ydxztoresbdeoeijhxww.supabase.co`. |
+| `VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY` | Cloudflare build, strict preflight | Browser-safe publishable key for the `Zivo software` Supabase project. |
 | `SUPABASE_URL` | strict preflight, backend scripts | Backend Supabase project URL for cron/runtime settings. |
 | `SUPABASE_ANON_KEY` | strict preflight, backend scripts | Legacy anon JWT or compatible function-auth key for Edge Function JWT verification and database cron auth. |
 | `SUPABASE_ACCESS_TOKEN` | strict preflight | Supabase CLI token for linked remote migration-history checks. |
@@ -20,6 +22,7 @@ Use this checklist for the GitHub `production` environment and any CI runner tha
 
 - Store these as GitHub environment secrets on the `production` environment, not as committed files.
 - Keep real values out of `.env.example`, `.env.deploy.example`, docs, source code, and workflow logs.
+- Keep the `VITE_ZIVO_SOFTWARE_*` values tied to Supabase project `ydxztoresbdeoeijhxww` so `zivosoftware.com` does not boot with the main Zivo media backend key.
 - Do not use `SUPABASE_SERVICE_ROLE_KEY` as `SUPABASE_ANON_KEY`.
 - Do not use `SUPABASE_ACCESS_TOKEN` or any `sbp_...` management token as `SUPABASE_ANON_KEY`.
 - Keep `SUPABASE_ACCESS_TOKEN` scoped to automation that needs migration-history checks, and rotate it if it is ever exposed.

@@ -14,6 +14,15 @@ any `VITE_` variable.
 
 GitHub and Netlify deploy secrets are tracked in `docs/production-deploy-secrets.md`.
 
+Cloudflare deploys that serve `zivosoftware.com` also require the dedicated
+software-project browser values:
+
+- `VITE_ZIVO_SOFTWARE_SUPABASE_URL`
+- `VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY`
+
+`VITE_ZIVO_SOFTWARE_SUPABASE_URL` must stay on
+`https://ydxztoresbdeoeijhxww.supabase.co` for the Zivo software project.
+
 ## Required Values
 
 Start from the safe template:
@@ -28,6 +37,8 @@ Then set these in the private `.env.deploy`, CI secret store, or local shell:
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_ANON_KEY=<legacy-anon-jwt-or-compatible-function-auth-key>
 SUPABASE_ACCESS_TOKEN=<your-supabase-access-token>
+VITE_ZIVO_SOFTWARE_SUPABASE_URL=https://ydxztoresbdeoeijhxww.supabase.co
+VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY=<software-project-publishable-key>
 ```
 
 Optional share-preview override:
@@ -44,8 +55,9 @@ Do not use `SUPABASE_SERVICE_ROLE_KEY` for `SUPABASE_ANON_KEY`.
 `scripts/deploy/env-preflight.mjs --strict` rejects service-role JWTs in the
 anon-key slot, rejects `sbp_...` Supabase management access tokens in the
 anon-key slot and public `VITE_` variables, validates `CHANNEL_OG_FUNCTION_URL`
-when it is set, and fails production checks when `SUPABASE_ACCESS_TOKEN` is
-missing.
+when it is set, requires the software-domain Supabase values for strict and
+Cloudflare deploy checks, and fails production checks when
+`SUPABASE_ACCESS_TOKEN` is missing.
 
 If any value is pasted into chat, logs, docs, or source code, treat it as compromised and follow `docs/supabase-secret-rotation-runbook.md`.
 

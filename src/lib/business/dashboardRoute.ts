@@ -37,6 +37,10 @@ export function resolveBusinessDashboardRoute(
 ): ResolvedDashboard {
   const normalizedCategory = normalizeStoreCategory(category);
 
+  if (normalizedCategory === "software" && storeId) {
+    return { path: `/admin/stores/${storeId}?tab=software`, fallback: false };
+  }
+
   // Cafés have their own admin module (KDS, modifiers, tables, payments) so
   // they go to /admin/stores/<id>?tab=cafe-dashboard rather than the legacy
   // Eats dashboard. Checked before the restaurant fallback below.
