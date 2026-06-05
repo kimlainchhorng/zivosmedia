@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { LegalPreviewLink } from "@/components/legal/LegalPreviewSheet";
 import { analyzePassword, checkPasswordBreach } from "@/lib/security/passwordStrength";
-import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+import { isAutoRepairSoftwareHost, isZivoSoftwareRedirectTarget } from "@/config/autoRepairDomain";
 import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
@@ -52,13 +52,13 @@ function ZivoSoftwareMiniScene() {
           <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/50">Launch</span>
           <BadgeCheck className="h-3.5 w-3.5 text-[#48e7af]" />
         </div>
-        <div className="mt-3 text-xl font-black">30+</div>
-        <div className="text-[9px] font-semibold text-white/55">business types</div>
+        <div className="mt-3 text-xl font-black">1</div>
+        <div className="text-[9px] font-semibold text-white/55">business page</div>
       </div>
       <div className="absolute right-10 top-0 h-14 w-20 rounded-2xl bg-[#48e7af] p-2 text-[#102018] shadow-[0_18px_34px_rgba(25,183,127,0.32)] [transform:rotateX(54deg)_rotateZ(13deg)]">
         <CalendarCheck className="h-3.5 w-3.5" />
-        <div className="mt-2 text-lg font-black">7</div>
-        <div className="text-[8px] font-bold">groups</div>
+        <div className="mt-2 text-lg font-black">1</div>
+        <div className="text-[8px] font-bold">setup</div>
       </div>
       <div className="absolute bottom-1 left-[45%] h-14 w-24 rounded-2xl border border-black/5 bg-white p-2 text-[#101412] shadow-[0_20px_42px_rgba(17,20,18,0.18)] [transform:rotateX(55deg)_rotateZ(4deg)]">
         <Wrench className="h-3.5 w-3.5" />
@@ -83,7 +83,7 @@ function ZivoSoftwareAuthGraphic() {
             Build the software home for your operation.
           </h2>
           <p className="mt-5 max-w-sm text-base leading-7 text-white/62">
-            Start with your industry, invite your team, and open a dashboard for bookings, work, payments, and reports.
+            Start with your Software Business Page, invite your team, and open a dashboard for bookings, work, payments, and reports.
           </p>
         </div>
 
@@ -94,14 +94,14 @@ function ZivoSoftwareAuthGraphic() {
                 <span className="text-xs font-black uppercase tracking-[0.16em] text-[#64706a]">Launch board</span>
                 <BadgeCheck className="h-5 w-5 text-[#19b77f]" />
               </div>
-              <div className="mt-7 text-4xl font-black">30+</div>
-              <div className="mt-1 text-sm font-semibold text-[#64706a]">business types</div>
+              <div className="mt-7 text-4xl font-black">1</div>
+              <div className="mt-1 text-sm font-semibold text-[#64706a]">business page</div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-[#48e7af] p-4 text-[#102018]">
                 <CalendarCheck className="h-5 w-5" />
-                <div className="mt-7 text-2xl font-black">7</div>
-                <div className="text-xs font-bold">industry groups</div>
+                <div className="mt-7 text-2xl font-black">1</div>
+                <div className="text-xs font-bold">software setup</div>
               </div>
               <div className="rounded-xl bg-white/90 p-4 text-[#101412]">
                 <Wrench className="h-5 w-5" />
@@ -145,7 +145,8 @@ const Signup = () => {
   const [params] = useSearchParams();
   const redirect = getSafeRedirectTarget(params.get("redirect"));
   const isZivoSoftwareDomain =
-    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+    (typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname)) ||
+    isZivoSoftwareRedirectTarget(redirect);
   const zivoMediaConnectHref = useMemo(() => {
     const softwareReturn = "https://zivosoftware.com/login?connected=zivosmedia";
     return `https://zivosmedia.com/login?redirect=${encodeURIComponent(softwareReturn)}`;

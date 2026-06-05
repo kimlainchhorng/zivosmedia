@@ -1,5 +1,5 @@
 -- Supabase migration reconciliation repair draft
--- Generated: 2026-06-05T14:28:54.248Z
+-- Generated: 2026-06-05T15:12:19.405Z
 --
 -- Review-only artifact. Do not run this file as-is.
 -- Every repair statement is commented out until local/remote SQL intent is manually verified.

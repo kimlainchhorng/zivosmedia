@@ -25,6 +25,23 @@ export const isAutoRepairSoftwareHost = (hostname?: string | null) =>
 
 export const isZivoSoftwareHost = isAutoRepairSoftwareHost;
 
+export const isZivoSoftwareBusinessPath = (pathname?: string | null) => {
+  const path = pathname || "";
+  return path === "/business" || path.startsWith("/business/");
+};
+
+export const isZivoSoftwareRedirectTarget = (target?: string | null) => {
+  const value = target || "";
+  if (isZivoSoftwareBusinessPath(value)) return true;
+
+  try {
+    const url = new URL(value);
+    return isZivoSoftwareHost(url.hostname) || isZivoSoftwareBusinessPath(url.pathname);
+  } catch {
+    return false;
+  }
+};
+
 export const isZivoSoftwareDashboardPath = (pathname?: string | null) => {
   const path = pathname || "";
   return (

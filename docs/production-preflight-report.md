@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-05T14:29:27.646Z
+Generated: 2026-06-05T15:05:46.173Z
 Mode: soft
 Options: strict=no, skipBuild=no, skipTypeCheck=yes
 
@@ -251,7 +251,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T14:28:57.166Z",
+  "generated": "2026-06-05T15:05:15.486Z",
   "counts": {
     "functions": 6,
     "failures": 0
@@ -299,7 +299,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T14:28:57.276Z",
+  "generated": "2026-06-05T15:05:15.611Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 81,
@@ -431,10 +431,10 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-06-05T14:29:02.002Z",
+  "generated": "2026-06-05T15:05:21.130Z",
   "counts": {
     "gatedFunctions": 6,
-    "scannedSrcFiles": 2781,
+    "scannedSrcFiles": 2783,
     "failures": 0
   },
   "gatedFunctions": [

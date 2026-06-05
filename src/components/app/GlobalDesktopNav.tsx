@@ -24,6 +24,7 @@ const EXCLUDE_PREFIXES = [
   // Auth & onboarding — chromeless by design
   "/auth",
   "/login",
+  "/signup",
   "/onboard",
   "/welcome",
   // Fullscreen / immersive surfaces

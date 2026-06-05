@@ -11,7 +11,7 @@ import { supabase, setRememberMePreference } from "@/integrations/supabase/clien
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
-import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+import { isAutoRepairSoftwareHost, isZivoSoftwareRedirectTarget } from "@/config/autoRepairDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
 import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import serviceCars from "@/assets/service-cars.jpg";
@@ -52,13 +52,13 @@ function ZivoSoftwareMiniScene({ mode }: { mode: "login" | "signup" }) {
           <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/50">Board</span>
           <BadgeCheck className="h-3.5 w-3.5 text-[#48e7af]" />
         </div>
-        <div className="mt-3 text-xl font-black">{mode === "login" ? "$18.4k" : "30+"}</div>
-        <div className="text-[9px] font-semibold text-white/55">{mode === "login" ? "weekly revenue" : "business types"}</div>
+        <div className="mt-3 text-xl font-black">{mode === "login" ? "$18.4k" : "1"}</div>
+        <div className="text-[9px] font-semibold text-white/55">{mode === "login" ? "weekly revenue" : "business page"}</div>
       </div>
       <div className="absolute right-10 top-0 h-14 w-20 rounded-2xl bg-[#48e7af] p-2 text-[#102018] shadow-[0_18px_34px_rgba(25,183,127,0.32)] [transform:rotateX(54deg)_rotateZ(13deg)]">
         <CalendarCheck className="h-3.5 w-3.5" />
-        <div className="mt-2 text-lg font-black">{mode === "login" ? "42" : "7"}</div>
-        <div className="text-[8px] font-bold">{mode === "login" ? "bookings" : "groups"}</div>
+        <div className="mt-2 text-lg font-black">{mode === "login" ? "42" : "1"}</div>
+        <div className="text-[8px] font-bold">{mode === "login" ? "bookings" : "setup"}</div>
       </div>
       <div className="absolute bottom-1 left-[45%] h-14 w-24 rounded-2xl border border-black/5 bg-white p-2 text-[#101412] shadow-[0_20px_42px_rgba(17,20,18,0.18)] [transform:rotateX(55deg)_rotateZ(4deg)]">
         <Wrench className="h-3.5 w-3.5" />
@@ -291,7 +291,8 @@ const Login = () => {
   const redirect = getSafeRedirectTarget(params.get("redirect") || "/");
   const mediaConnected = params.get("connected") === "zivosmedia";
   const isZivoSoftwareDomain =
-    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+    (typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname)) ||
+    isZivoSoftwareRedirectTarget(redirect);
   const zivoMediaConnectHref = useMemo(() => {
     const softwareReturn = new URL("https://zivosoftware.com/login");
     softwareReturn.searchParams.set("redirect", redirect);
