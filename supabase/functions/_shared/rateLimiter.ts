@@ -131,17 +131,18 @@ export async function rateLimitDb(
   const config = opts ?? (LIMITS[category as LimitCategory] ?? { max: 120, windowSec: 60 });
   try {
     const sb = serviceClient();
-    const { data, error } = await sb.rpc("rate_limit_check", {
+    const { data, error } = await (sb as any).rpc("rate_limit_check", {
       _category:   String(category),
       _identifier: identifier,
       _max:        config.max,
       _window_sec: config.windowSec,
     });
-    if (error || !data || !Array.isArray(data) || data.length === 0) {
+    const rows = Array.isArray(data) ? data as Array<{ allowed: boolean; remaining: number; reset_at: string }> : [];
+    if (error || rows.length === 0) {
       // Fail-open with in-memory fallback so a DB hiccup doesn't break auth
       return rateLimit(identifier, category, opts);
     }
-    const row = data[0] as { allowed: boolean; remaining: number; reset_at: string };
+    const row = rows[0];
     const resetAt = new Date(row.reset_at).getTime();
     return {
       allowed:    row.allowed,
